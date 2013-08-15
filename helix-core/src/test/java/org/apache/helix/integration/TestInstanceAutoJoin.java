@@ -6,7 +6,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -40,7 +40,8 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase
     HelixManager manager = _startCMResultMap.get(instanceName)._manager;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline",
+        RebalanceMode.FULL_AUTO+"");
     
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);

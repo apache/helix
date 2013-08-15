@@ -24,9 +24,9 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
@@ -78,7 +78,7 @@ public class TaskCluster {
 			clusterConfig.set(clusterScope, node.getId(), node.toJson());
 			_admin.addResource(_clusterName, node.getId(),
 					node.getNumPartitions(), DEFAULT_STATE_MODEL,
-					IdealStateModeProperty.AUTO_REBALANCE.toString());
+					RebalanceMode.FULL_AUTO.toString());
 
 		}
 

@@ -35,10 +35,10 @@ import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
@@ -77,7 +77,8 @@ public class BaseStageTest
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources,
-                                             int partitions, int replicas)
+                                             int partitions, int replicas,
+                                             RebalanceMode rebalanceMode)
   {
     List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
@@ -101,7 +102,7 @@ public class BaseStageTest
       }
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");
-      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+      idealState.setRebalanceMode(rebalanceMode);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 

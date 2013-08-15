@@ -19,7 +19,6 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.net.URL;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
@@ -27,24 +26,20 @@ import java.util.Map;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
 // Helix-50: integration test for generate message based on state priority
 public class TestInvalidAutoIdealState extends ZkUnitTestBase {
@@ -85,7 +80,7 @@ public class TestInvalidAutoIdealState extends ZkUnitTestBase {
 
         // construct ideal-state manually
         IdealState idealState = new IdealState(db);
-        idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+        idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
         idealState.setNumPartitions(2);
         idealState.setReplicas("" + 2);	// should be 3
         idealState.setStateModelDefRef("MasterSlave");

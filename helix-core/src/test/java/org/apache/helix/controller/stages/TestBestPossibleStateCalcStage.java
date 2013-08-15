@@ -29,6 +29,7 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -42,7 +43,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest
 //    List<IdealState> idealStates = new ArrayList<IdealState>();
 
     String[] resources = new String[]{ "testResourceName" };
-    setupIdealState(5, resources, 10, 1);
+    setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     setupLiveInstances(5);
     setupStateModel();
 

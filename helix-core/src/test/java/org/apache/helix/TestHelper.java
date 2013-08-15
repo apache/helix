@@ -19,14 +19,10 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +55,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
@@ -429,7 +425,7 @@ public class TestHelper
                             nodesNb,
                             replica,
                             stateModelDef,
-                            IdealStateModeProperty.AUTO,
+                            RebalanceMode.SEMI_AUTO,
                             doRebalance);
   }
 
@@ -443,7 +439,7 @@ public class TestHelper
                                   int nodesNb,
                                   int replica,
                                   String stateModelDef,
-                                  IdealStateModeProperty mode,
+                                  RebalanceMode mode,
                                   boolean doRebalance) throws Exception
   {
     ZkClient zkClient = new ZkClient(ZkAddr);

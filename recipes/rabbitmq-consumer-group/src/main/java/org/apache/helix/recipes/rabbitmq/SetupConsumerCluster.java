@@ -22,7 +22,7 @@ package org.apache.helix.recipes.rabbitmq;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
@@ -62,7 +62,7 @@ public class SetupConsumerCluster
       // add resource "topic" which has 6 partitions
       String resourceName = DEFAULT_RESOURCE_NAME;
       admin.addResource(clusterName, resourceName, DEFAULT_PARTITION_NUMBER, DEFAULT_STATE_MODEL,
-          IdealStateModeProperty.AUTO_REBALANCE.toString());
+          RebalanceMode.FULL_AUTO.toString());
       
       admin.rebalance(clusterName, resourceName, 1);
 

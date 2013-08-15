@@ -115,13 +115,13 @@ public interface HelixAdmin
    * @param resourceName
    * @param numPartitions
    * @param stateModelRef
-   * @param idealStateMode
+   * @param rebalancerMode
    */
   void addResource(String clusterName,
                    String resourceName,
                    int numPartitions,
                    String stateModelRef,
-                   String idealStateMode);
+                   String rebalancerMode);
 
   /**
    * Add a resource to a cluster, using a bucket size > 1
@@ -130,14 +130,14 @@ public interface HelixAdmin
    * @param resourceName
    * @param numPartitions
    * @param stateModelRef
-   * @param idealStateMode
+   * @param rebalancerMode
    * @param bucketSize
    */
   void addResource(String clusterName,
                    String resourceName,
                    int numPartitions,
                    String stateModelRef,
-                   String idealStateMode,
+                   String rebalancerMode,
                    int bucketSize);
   
   /**
@@ -147,7 +147,7 @@ public interface HelixAdmin
    * @param resourceName
    * @param numPartitions
    * @param stateModelRef
-   * @param idealStateMode
+   * @param rebalancerMode
    * @param bucketSize
    * @param maxPartitionsPerInstance
    */
@@ -155,7 +155,7 @@ public interface HelixAdmin
                    String resourceName,
                    int numPartitions,
                    String stateModelRef,
-                   String idealStateMode,
+                   String rebalancerMode,
                    int bucketSize,
                    int maxPartitionsPerInstance);
   

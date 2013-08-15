@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.Map;
+
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -29,8 +30,8 @@ import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -120,11 +121,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
       if (rebalancer == null)
       {
-        if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+        if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO)
         {
           rebalancer = new AutoRebalancer();
         }
-        else if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
+        else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO)
         {
           rebalancer = new SemiAutoRebalancer();
         }

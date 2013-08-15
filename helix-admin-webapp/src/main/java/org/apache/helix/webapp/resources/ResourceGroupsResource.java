@@ -25,7 +25,7 @@ import java.util.List;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
@@ -140,7 +140,7 @@ public class ResourceGroupsResource extends Resource
             jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
         int partitions =
             Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
-        String mode = IdealStateModeProperty.AUTO.toString();
+        String mode = RebalanceMode.SEMI_AUTO.toString();
         if (jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE) != null)
         {
           mode = jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE);

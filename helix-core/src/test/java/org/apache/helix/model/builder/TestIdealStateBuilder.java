@@ -40,8 +40,9 @@ public class TestIdealStateBuilder {
             Assert.fail("fail to build an auto mode ideal-state.", e);
         }
 //        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getIdealStateMode(), IdealState.IdealStateModeProperty.AUTO,
-                "ideal-state mode should be auto");
+        Assert.assertEquals(idealState.getRebalanceMode(),
+            IdealState.RebalanceMode.SEMI_AUTO,
+            "rebalancer mode should be semi-auto");
     }
 
     @Test
@@ -60,8 +61,9 @@ public class TestIdealStateBuilder {
             Assert.fail("fail to build an auto-rebalance mode ideal-state.", e);
         }
 //        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getIdealStateMode(), IdealState.IdealStateModeProperty.AUTO_REBALANCE,
-                "ideal-state mode should be auto-rebalance");
+        Assert.assertEquals(idealState.getRebalanceMode(),
+            IdealState.RebalanceMode.FULL_AUTO,
+            "rebalancer mode should be auto");
 
     }
 
@@ -83,8 +85,9 @@ public class TestIdealStateBuilder {
             Assert.fail("fail to build a custom mode ideal-state.", e);
         }
 //        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getIdealStateMode(), IdealState.IdealStateModeProperty.CUSTOMIZED,
-                "ideal-state mode should be customized");
+        Assert.assertEquals(idealState.getRebalanceMode(),
+            IdealState.RebalanceMode.CUSTOMIZED,
+            "rebalancer mode should be customized");
 
     }
 }

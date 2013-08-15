@@ -23,7 +23,7 @@ import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -78,17 +78,17 @@ public class IdealStateExample
   {
     if (args.length < 3)
     {
-      System.err.println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (AUTO, AUTO_REBALANCE, or CUSTOMIZED) idealStateJsonFile (required for CUSTOMIZED mode)");
+      System.err.println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (FULL_AUTO, SEMI_AUTO, or CUSTOMIZED) idealStateJsonFile (required for CUSTOMIZED mode)");
       System.exit(1);
     }
 
     final String zkAddr = args[0];
     final String clusterName = args[1];
-    final String idealStateModeStr = args[2].toUpperCase();
+    final String idealStateRebalancerModeStr = args[2].toUpperCase();
     String idealStateJsonFile = null;
-    IdealStateModeProperty idealStateMode =
-        IdealStateModeProperty.valueOf(idealStateModeStr);
-    if (idealStateMode == IdealStateModeProperty.CUSTOMIZED)
+    RebalanceMode idealStateRebalancerMode =
+        RebalanceMode.valueOf(idealStateRebalancerModeStr);
+    if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED)
     {
       if (args.length < 4)
       {
@@ -126,15 +126,15 @@ public class IdealStateExample
 
     // add resource "TestDB" which has 4 partitions and uses MasterSlave state model
     String resourceName = "TestDB";
-    if (idealStateMode == IdealStateModeProperty.AUTO
-        || idealStateMode == IdealStateModeProperty.AUTO_REBALANCE)
+    if (idealStateRebalancerMode == RebalanceMode.SEMI_AUTO
+        || idealStateRebalancerMode == RebalanceMode.FULL_AUTO)
     {
-      admin.addResource(clusterName, resourceName, 4, "MasterSlave", idealStateModeStr);
+      admin.addResource(clusterName, resourceName, 4, "MasterSlave", idealStateRebalancerModeStr);
 
       // rebalance resource "TestDB" using 3 replicas
       admin.rebalance(clusterName, resourceName, 3);
     }
-    else if (idealStateMode == IdealStateModeProperty.CUSTOMIZED)
+    else if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED)
     {
       admin.addIdealState(clusterName, resourceName, idealStateJsonFile);
     }

@@ -34,6 +34,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
@@ -77,8 +78,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
   {
     _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "MasterSlave");
     _setupTool.addResourceProperty(CLUSTER_NAME, db2, IdealStateProperty.REBALANCER_CLASS_NAME.toString(), 
-        TestCustomizedIdealStateRebalancer.TestRebalancer.class.getName()
-        );
+        TestCustomizedIdealStateRebalancer.TestRebalancer.class.getName());
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
     

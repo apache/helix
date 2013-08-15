@@ -41,11 +41,11 @@ import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlaceme
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.log4j.Logger;
 
 /**
@@ -112,7 +112,7 @@ public class AutoRebalancer implements Rebalancer {
 
     IdealState newIdealState = new IdealState(resourceName);
     newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
-    newIdealState.setIdealStateMode(IdealStateModeProperty.AUTO_REBALANCE.toString());
+    newIdealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
     newIdealState.getRecord().setListFields(newMapping.getListFields());
     return newIdealState;
   }

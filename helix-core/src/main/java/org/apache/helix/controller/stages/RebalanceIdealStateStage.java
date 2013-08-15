@@ -54,7 +54,8 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
     for(String resourceName : idealStateMap.keySet())
     {
       IdealState currentIdealState = idealStateMap.get(resourceName);
-      if(currentIdealState.getRecord().getSimpleFields().containsKey(IdealStateProperty.REBALANCER_CLASS_NAME.toString()))
+      if(currentIdealState.getRecord().getSimpleFields().containsKey(
+          IdealStateProperty.REBALANCER_CLASS_NAME.toString()))
       {
         String rebalancerClassName = currentIdealState.getRebalancerClassName();
         LOG.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);

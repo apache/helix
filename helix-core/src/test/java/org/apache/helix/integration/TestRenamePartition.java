@@ -32,6 +32,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
@@ -98,7 +99,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase
     ZNRecord destIS = DefaultIdealStateCalculator.calculateIdealState(instanceNames,
         10, 3-1, "TestDB0", "MASTER", "SLAVE");
     IdealState idealState = new IdealState(destIS);
-    idealState.setIdealStateMode("CUSTOMIZED");
+    idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     idealState.setReplicas("3");
     idealState.setStateModelDefRef("MasterSlave");
     

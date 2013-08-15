@@ -39,21 +39,30 @@ public class IdealState extends HelixProperty
 {
   public enum IdealStateProperty
   {
-    NUM_PARTITIONS, 
-    STATE_MODEL_DEF_REF, 
-    STATE_MODEL_FACTORY_NAME, 
-    REPLICAS, IDEAL_STATE_MODE, 
-    REBALANCE_TIMER_PERIOD, 
-    MAX_PARTITIONS_PER_INSTANCE, 
-    INSTANCE_GROUP_TAG, 
+    NUM_PARTITIONS,
+    STATE_MODEL_DEF_REF,
+    STATE_MODEL_FACTORY_NAME,
+    REPLICAS,
+    @Deprecated
+    IDEAL_STATE_MODE,
+    REBALANCE_MODE,
+    REBALANCE_TIMER_PERIOD,
+    MAX_PARTITIONS_PER_INSTANCE,
+    INSTANCE_GROUP_TAG,
     REBALANCER_CLASS_NAME
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
+  @Deprecated
   public enum IdealStateModeProperty
   {
     AUTO, CUSTOMIZED, AUTO_REBALANCE
+  }
+
+  public enum RebalanceMode
+  {
+    FULL_AUTO, SEMI_AUTO, CUSTOMIZED, USER_DEFINED, NONE
   }
 
   private static final Logger logger = Logger.getLogger(IdealState.class
@@ -74,11 +83,21 @@ public class IdealState extends HelixProperty
     return _record.getId();
   }
 
+  @Deprecated
   public void setIdealStateMode(String mode)
   {
     _record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), mode);
+    RebalanceMode rebalanceMode = normalizeRebalanceMode(IdealStateModeProperty.valueOf(mode));
+    _record.setEnumField(IdealStateProperty.REBALANCE_MODE.toString(), rebalanceMode);
   }
-  
+
+  public void setRebalanceMode(RebalanceMode rebalancerType)
+  {
+    _record.setEnumField(IdealStateProperty.REBALANCE_MODE.toString(), rebalancerType);
+    IdealStateModeProperty idealStateMode = denormalizeRebalanceMode(rebalancerType);
+    _record.setEnumField(IdealStateProperty.IDEAL_STATE_MODE.toString(),idealStateMode);
+  }
+
   public int getMaxPartitionsPerInstance()
   {
     return _record.getIntField(IdealStateProperty.MAX_PARTITIONS_PER_INSTANCE.toString(),
@@ -101,10 +120,23 @@ public class IdealState extends HelixProperty
     _record.setIntField(IdealStateProperty.MAX_PARTITIONS_PER_INSTANCE.toString(), max);
   }
 
+  @Deprecated
   public IdealStateModeProperty getIdealStateMode()
   {
     return _record.getEnumField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
         IdealStateModeProperty.class, IdealStateModeProperty.AUTO);
+  }
+
+  public RebalanceMode getRebalanceMode()
+  {
+    RebalanceMode property = _record.getEnumField(
+        IdealStateProperty.REBALANCE_MODE.toString(), RebalanceMode.class,
+        RebalanceMode.NONE);
+    if (property == RebalanceMode.NONE)
+    {
+      property = normalizeRebalanceMode(getIdealStateMode());
+    }
+    return property;
   }
 
   public void setPartitionState(String partitionName, String instanceName,
@@ -120,11 +152,12 @@ public class IdealState extends HelixProperty
 
   public Set<String> getPartitionSet()
   {
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO
-        || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED)
     {
       return _record.getListFields().keySet();
-    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED)
     {
       return _record.getMapFields().keySet();
     } else
@@ -141,8 +174,8 @@ public class IdealState extends HelixProperty
 
   public Set<String> getInstanceSet(String partitionName)
   {
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO
-        || getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE)
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO)
     {
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null)
@@ -153,7 +186,7 @@ public class IdealState extends HelixProperty
         logger.warn(partitionName + " does NOT exist");
         return Collections.emptySet();
       }
-    } else if (getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED)
     {
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null)
@@ -222,9 +255,9 @@ public class IdealState extends HelixProperty
     if (replica == null)
     {
       String firstPartition = null;
-      switch (getIdealStateMode())
+      switch (getRebalanceMode())
       {
-      case AUTO:
+      case SEMI_AUTO:
         if (_record.getListFields().size() == 0)
         {
           replica = "0";
@@ -299,7 +332,7 @@ public class IdealState extends HelixProperty
       return false;
     }
 
-    if (getIdealStateMode() == IdealStateModeProperty.AUTO)
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO)
     {
         String replicaStr = getReplicas();
         if (replicaStr == null) {
@@ -335,5 +368,55 @@ public class IdealState extends HelixProperty
   {
     return _record.getSimpleField(
         IdealStateProperty.INSTANCE_GROUP_TAG.toString());
+  }
+
+  private RebalanceMode normalizeRebalanceMode(IdealStateModeProperty mode)
+  {
+    RebalanceMode property;
+    switch (mode)
+    {
+    case AUTO_REBALANCE:
+      property = RebalanceMode.FULL_AUTO;
+      break;
+    case AUTO:
+      property = RebalanceMode.SEMI_AUTO;
+      break;
+    case CUSTOMIZED:
+      property = RebalanceMode.CUSTOMIZED;
+      break;
+    default:
+      if (getRebalancerClassName() != null)
+      {
+        property = RebalanceMode.USER_DEFINED;
+      }
+      else
+      {
+        property = RebalanceMode.SEMI_AUTO;
+      }
+      break;
+    }
+    return property;
+  }
+
+  private IdealStateModeProperty denormalizeRebalanceMode(
+      RebalanceMode rebalancerType)
+  {
+    IdealStateModeProperty property;
+    switch (rebalancerType)
+    {
+    case FULL_AUTO:
+      property = IdealStateModeProperty.AUTO_REBALANCE;
+      break;
+    case SEMI_AUTO:
+      property = IdealStateModeProperty.AUTO;
+      break;
+    case CUSTOMIZED:
+      property = IdealStateModeProperty.CUSTOMIZED;
+      break;
+    default:
+      property = IdealStateModeProperty.AUTO;
+      break;
+    }
+    return property;
   }
 }

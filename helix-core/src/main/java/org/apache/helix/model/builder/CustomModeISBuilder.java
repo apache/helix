@@ -19,7 +19,7 @@ package org.apache.helix.model.builder;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 
 import java.util.Map;
 import java.util.TreeMap;
@@ -29,7 +29,7 @@ public class CustomModeISBuilder extends IdealStateBuilder {
     public CustomModeISBuilder(String resourceName)
     {
         super(resourceName);
-        setMode(IdealState.IdealStateModeProperty.CUSTOMIZED);
+        setRebalancerMode(RebalanceMode.CUSTOMIZED);
     }
 
     /**

@@ -28,8 +28,8 @@ import java.util.Map;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestExecutor;
 import org.apache.helix.tools.TestTrigger;
@@ -117,7 +117,8 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+        RebalanceMode.SEMI_AUTO.toString());
     arg = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "+", recordNew);
     command = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 3000, record), arg);
     commandList.add(command);
@@ -162,7 +163,8 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+        RebalanceMode.SEMI_AUTO.toString());
     arg1 = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "+", recordNew);
     command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 500, record), arg1);
     commandList.add(command1);
@@ -196,7 +198,8 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     final ZNRecord record = getExampleZNRecord();
     ZNRecord recordNew = new ZNRecord(record);
-    recordNew.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.AUTO.toString());
+    recordNew.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+        RebalanceMode.SEMI_AUTO.toString());
     ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "+", recordNew);
     TestCommand command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 8000, record), arg1);
     commandList.add(command1);
@@ -266,7 +269,8 @@ public class TestZnodeModify extends ZkUnitTestBase
   private ZNRecord getExampleZNRecord()
   {
     ZNRecord record = new ZNRecord("TestDB");
-    record.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(), IdealStateModeProperty.CUSTOMIZED.toString());
+    record.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+        RebalanceMode.CUSTOMIZED.toString());
     Map<String, String> map = new HashMap<String, String>();
     map.put("localhost_12918", "MASTER");
     map.put("localhost_12919", "SLAVE");

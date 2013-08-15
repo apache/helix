@@ -64,7 +64,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.model.LiveInstance;
@@ -274,8 +274,10 @@ public class ZKHelixAdmin implements HelixAdmin
       IdealState idealState = new IdealState(idealStateRecord);
       for (String partitionName : partitionNames)
       {
-        if ((idealState.getIdealStateMode() == IdealStateModeProperty.AUTO && idealState.getPreferenceList(partitionName) == null)
-            || (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED && idealState.getInstanceStateMap(partitionName) == null))
+        if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
+              && idealState.getPreferenceList(partitionName) == null)
+            || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED
+              && idealState.getInstanceStateMap(partitionName) == null))
         {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName
               + ", partition: " + partitionName
@@ -373,7 +375,7 @@ public class ZKHelixAdmin implements HelixAdmin
 
     // check partition exists in resource group
     Set<String> resetPartitionNames = new HashSet<String>(partitionNames);
-    if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED)
     {
       Set<String> partitions =
           new HashSet<String>(idealState.getRecord().getMapFields().keySet());
@@ -700,7 +702,7 @@ public class ZKHelixAdmin implements HelixAdmin
                 resourceName,
                 partitions,
                 stateModelRef,
-                IdealStateModeProperty.AUTO.toString(),
+                RebalanceMode.SEMI_AUTO.toString(),
                 0);
   }
 
@@ -709,9 +711,9 @@ public class ZKHelixAdmin implements HelixAdmin
                           String resourceName,
                           int partitions,
                           String stateModelRef,
-                          String idealStateMode)
+                          String rebalancerMode)
   {
-    addResource(clusterName, resourceName, partitions, stateModelRef, idealStateMode, 0);
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, 0);
   }
 
   @Override
@@ -746,17 +748,17 @@ public class ZKHelixAdmin implements HelixAdmin
                           String resourceName,
                           int partitions,
                           String stateModelRef,
-                          String idealStateMode,
+                          String rebalancerMode,
                           int bucketSize)
   {
-    addResource(clusterName, resourceName, partitions, stateModelRef, idealStateMode,
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode,
         bucketSize, -1);
 
   }
   
   @Override
   public void addResource(String clusterName, String resourceName,
-      int partitions, String stateModelRef, String idealStateMode,
+      int partitions, String stateModelRef, String rebalancerMode,
       int bucketSize, int maxPartitionsPerInstance)
   {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient))
@@ -764,10 +766,10 @@ public class ZKHelixAdmin implements HelixAdmin
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    IdealStateModeProperty mode = IdealStateModeProperty.AUTO;
+    RebalanceMode mode = RebalanceMode.SEMI_AUTO;
     try
     {
-      mode = IdealStateModeProperty.valueOf(idealStateMode);
+      mode = RebalanceMode.valueOf(rebalancerMode);
     }
     catch (Exception e)
     {
@@ -776,7 +778,7 @@ public class ZKHelixAdmin implements HelixAdmin
     IdealState idealState = new IdealState(resourceName);
     idealState.setNumPartitions(partitions);
     idealState.setStateModelDefRef(stateModelRef);
-    idealState.setIdealStateMode(mode.toString());
+    idealState.setRebalanceMode(mode);
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     if(maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE)
@@ -1256,7 +1258,7 @@ public class ZKHelixAdmin implements HelixAdmin
     {
       masterStateValue = slaveStateValue;
     }
-    if (idealState.getIdealStateMode() != IdealStateModeProperty.AUTO_REBALANCE)
+    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO)
     {
       ZNRecord newIdealState =
           DefaultIdealStateCalculator.calculateIdealState(instanceNames,
@@ -1267,12 +1269,12 @@ public class ZKHelixAdmin implements HelixAdmin
                                                                  slaveStateValue);
 
       // for now keep mapField in AUTO mode and remove listField in CUSTOMIZED mode
-      if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO)
       {
         idealState.getRecord().setListFields(newIdealState.getListFields());
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }
-      if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+      if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED)
       {
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }

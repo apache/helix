@@ -37,8 +37,8 @@ import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.ClusterSetup;
@@ -367,8 +367,8 @@ public class TestDriver
       ZNRecord destIS = DefaultIdealStateCalculator.calculateIdealState(instanceNames,
           testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER", "SLAVE");
       // destIS.setId(dbName);
-      destIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
-          IdealStateModeProperty.CUSTOMIZED.toString());
+      destIS.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+          RebalanceMode.CUSTOMIZED.toString());
       destIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       destIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);
@@ -378,8 +378,8 @@ public class TestDriver
       // + TEST_DB_PREFIX + i;
       ZNRecord initIS = new ZNRecord(dbName); // _zkClient.<ZNRecord>
                                               // readData(idealStatePath);
-      initIS.setSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString(),
-          IdealStateModeProperty.CUSTOMIZED.toString());
+      initIS.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
+          RebalanceMode.CUSTOMIZED.toString());
       initIS.setSimpleField(IdealStateProperty.NUM_PARTITIONS.toString(),
           Integer.toString(testInfo._numPartitionsPerDb));
       initIS.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), STATE_MODEL);

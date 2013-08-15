@@ -39,11 +39,11 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -210,11 +210,11 @@ public class ZkUnitTestBase
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
     for (String partitionName : idealState.getPartitionSet())
     {
-      if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO)
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO)
       {
         AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
       }
-      else if (idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+      else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED)
       {
         AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName)
                                                  .size());
@@ -351,7 +351,7 @@ public class ZkUnitTestBase
 
       idealState.setReplicas(Integer.toString(replicas));
       idealState.setStateModelDefRef("MasterSlave");
-      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+      idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 

@@ -49,9 +49,9 @@ public abstract class IdealStateBuilder {
      */
     private String stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     /**
-     * Helix Execution mode/strategies. AUTO_REBALANCE, AUTO, CUSTOM
+     * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
      */
-    protected IdealState.IdealStateModeProperty mode;
+    protected IdealState.RebalanceMode rebalancerMode;
     /**
      * A constraint that limits the maximum number of partitions per Node.
      */
@@ -140,9 +140,10 @@ public abstract class IdealStateBuilder {
      *
      * @return
      */
-    public IdealStateBuilder setMode(IdealState.IdealStateModeProperty mode) {
-        this.mode = mode;
-        return this;
+    public IdealStateBuilder setRebalancerMode(
+        IdealState.RebalanceMode rebalancerMode) {
+      this.rebalancerMode = rebalancerMode;
+      return this;
     }
 
     /**
@@ -156,7 +157,7 @@ public abstract class IdealStateBuilder {
         idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
         idealstate.setStateModelDefRef(stateModel);
         idealstate.setStateModelFactoryName(stateModelFactoryName);
-        idealstate.setIdealStateMode(mode.toString());
+        idealstate.setRebalanceMode(rebalancerMode);
         idealstate.setReplicas("" + numReplica);
         
         if (!idealstate.isValid()) {

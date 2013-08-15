@@ -26,7 +26,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -50,7 +50,7 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
 	        10, // partitions per resource
 	        n, // number of nodes
 	        1, // replicas
-	        "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE, true); // do
+	        "OnlineOffline", RebalanceMode.FULL_AUTO, true); // do
 									       // rebalance
 
 	// start controller

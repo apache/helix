@@ -19,7 +19,7 @@ package org.apache.helix.model.builder;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -28,7 +28,7 @@ public class AutoModeISBuilder extends IdealStateBuilder {
     public AutoModeISBuilder(String resourceName)
     {
         super(resourceName);
-        setMode(IdealState.IdealStateModeProperty.AUTO);
+        setRebalancerMode(RebalanceMode.SEMI_AUTO);
     }
 
     public void add(String partitionName)

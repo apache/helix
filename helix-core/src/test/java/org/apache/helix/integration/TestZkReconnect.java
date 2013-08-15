@@ -21,7 +21,6 @@ package org.apache.helix.integration;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -92,7 +91,7 @@ public class TestZkReconnect {
     LOG.info("Ideal state assignment");
     HelixAdmin helixAdmin = participant.getClusterManagmentTool();
     helixAdmin.addResource(clusterName, resourceName, 1, "OnlineOffline", 
-        IdealState.IdealStateModeProperty.CUSTOMIZED.toString());
+        IdealState.RebalanceMode.CUSTOMIZED.toString());
 
     IdealState idealState = helixAdmin.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas("1");

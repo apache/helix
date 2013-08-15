@@ -234,7 +234,7 @@ public class ZkLogCSVFormatter
                           timestamp,
                           record.getId(),
                           record.getSimpleField(IdealStateProperty.NUM_PARTITIONS.toString()),
-                          record.getSimpleField(IdealStateProperty.IDEAL_STATE_MODE.toString()),
+                          record.getSimpleField(IdealStateProperty.REBALANCE_MODE.toString()),
                           partition,
                           instance,
                           Integer.toString(i));

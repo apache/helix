@@ -32,13 +32,12 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.integration.TestAutoRebalancePartitionLimit.ExternalViewBalancedVerifier;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
@@ -71,9 +70,11 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL, IdealStateModeProperty.AUTO_REBALANCE+"");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL,
+        RebalanceMode.FULL_AUTO+"");
     
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, _PARTITIONS, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, _PARTITIONS, "OnlineOffline",
+        RebalanceMode.FULL_AUTO+"");
     
     
     for (int i = 0; i < NODE_NR; i++)
@@ -132,7 +133,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
   public void testDropResourceAutoRebalance() throws Exception
   {
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline",
+        RebalanceMode.FULL_AUTO+"");
      
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
 
@@ -157,7 +159,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
                                  ZK_ADDR);
     
  // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave", IdealStateModeProperty.AUTO_REBALANCE+"");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave",
+        RebalanceMode.FULL_AUTO+"");
      
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 

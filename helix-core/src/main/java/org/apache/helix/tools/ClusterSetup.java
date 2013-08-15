@@ -53,7 +53,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
@@ -411,34 +411,34 @@ public class ClusterSetup
                          resourceName,
                          numResources,
                          stateModelRef,
-                         IdealStateModeProperty.AUTO.toString());
+                         RebalanceMode.SEMI_AUTO.toString());
   }
 
   public void addResourceToCluster(String clusterName,
                                    String resourceName,
                                    int numResources,
                                    String stateModelRef,
-                                   String idealStateMode)
+                                   String rebalancerMode)
   {
     _admin.addResource(clusterName,
                        resourceName,
                        numResources,
                        stateModelRef,
-                       idealStateMode);
+                       rebalancerMode);
   }
 
   public void addResourceToCluster(String clusterName,
                                    String resourceName,
                                    int numResources,
                                    String stateModelRef,
-                                   String idealStateMode,
+                                   String rebalancerMode,
                                    int bucketSize)
   {
     _admin.addResource(clusterName,
                        resourceName,
                        numResources,
                        stateModelRef,
-                       idealStateMode,
+                       rebalancerMode,
                        bucketSize);
   }
   
@@ -446,7 +446,7 @@ public class ClusterSetup
       String resourceName,
       int numResources,
       String stateModelRef,
-      String idealStateMode,
+      String rebalancerMode,
       int bucketSize,
       int maxPartitionsPerInstance)
   {
@@ -454,7 +454,7 @@ public class ClusterSetup
       resourceName,
       numResources,
       stateModelRef,
-      idealStateMode,
+      rebalancerMode,
       bucketSize,
       maxPartitionsPerInstance);
   }
@@ -477,11 +477,11 @@ public class ClusterSetup
   public void expandResource(String clusterName, String resourceName)
   {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
-    if (idealState.getIdealStateMode() == IdealStateModeProperty.AUTO_REBALANCE
-        || idealState.getIdealStateMode() == IdealStateModeProperty.CUSTOMIZED)
+    if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO
+        || idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED)
     {
       _logger.info("Skipping idealState " + idealState.getResourceName() + " "
-          + idealState.getIdealStateMode());
+          + idealState.getRebalanceMode());
       return;
     }
     boolean anyLiveInstance = false;
@@ -1241,7 +1241,7 @@ public class ClusterSetup
       String resourceName = cmd.getOptionValues(addResource)[1];
       int partitions = Integer.parseInt(cmd.getOptionValues(addResource)[2]);
       String stateModelRef = cmd.getOptionValues(addResource)[3];
-      String modeValue = IdealStateModeProperty.AUTO.toString();
+      String modeValue = RebalanceMode.SEMI_AUTO.toString();
       if (cmd.hasOption(mode))
       {
         modeValue = cmd.getOptionValues(mode)[0];

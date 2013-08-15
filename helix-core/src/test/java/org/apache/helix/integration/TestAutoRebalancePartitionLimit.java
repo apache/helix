@@ -36,7 +36,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
@@ -68,7 +68,8 @@ private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLim
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE+"", 0, 25);
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
+        RebalanceMode.FULL_AUTO+"", 0, 25);
     for (int i = 0; i < NODE_NR; i++)
     {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);

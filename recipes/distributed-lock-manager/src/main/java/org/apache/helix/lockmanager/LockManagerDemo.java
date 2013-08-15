@@ -32,8 +32,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
 public class LockManagerDemo
@@ -64,7 +64,7 @@ public class LockManagerDemo
       admin.addStateModelDef(clusterName, "OnlineOffline",
           new StateModelDefinition(generator.generateConfigForOnlineOffline()));
       admin.addResource(clusterName, lockGroupName, numPartitions,
-          "OnlineOffline", IdealStateModeProperty.AUTO_REBALANCE.toString());
+          "OnlineOffline", RebalanceMode.FULL_AUTO.toString());
       admin.rebalance(clusterName, lockGroupName, 1);
       for (int i = 0; i < numInstances; i++)
       {

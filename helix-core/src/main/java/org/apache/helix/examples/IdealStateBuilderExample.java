@@ -24,9 +24,9 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.builder.AutoModeISBuilder;
 import org.apache.helix.model.builder.AutoRebalanceModeISBuilder;
 import org.apache.helix.model.builder.CustomModeISBuilder;
@@ -41,13 +41,14 @@ public class IdealStateBuilderExample {
   public static void main(String[] args) {
     
     if (args.length < 3) {
-      System.err.println("USAGE: java IdealStateBuilderExample zkAddress clusterName idealStateMode (AUTO, AUTO_REBALANCE, or CUSTOMIZED)");
+      System.err.println("USAGE: java IdealStateBuilderExample zkAddress clusterName idealStateMode" +
+          " (FULL_AUTO, SEMI_AUTO, CUSTOMIZED, or USER_DEFINED)");
       System.exit(1);
     }
 
     final String zkAddr = args[0];
     final String clusterName = args[1];
-    IdealStateModeProperty idealStateMode = IdealStateModeProperty.valueOf(args[2].toUpperCase());
+    RebalanceMode idealStateMode = RebalanceMode.valueOf(args[2].toUpperCase());
 
     ZkClient zkclient =
         new ZkClient(zkAddr,
@@ -79,7 +80,7 @@ public class IdealStateBuilderExample {
     String resourceName = "TestDB";
     IdealState idealState = null;
     switch (idealStateMode) {
-    case AUTO: {
+    case SEMI_AUTO: {
       AutoModeISBuilder builder = new AutoModeISBuilder(resourceName);
       builder.setStateModel("MasterSlave")
              .setNumPartitions(2)
@@ -90,7 +91,7 @@ public class IdealStateBuilderExample {
       idealState = builder.build();
       break;
     }
-    case AUTO_REBALANCE: {
+    case FULL_AUTO: {
       AutoRebalanceModeISBuilder builder = new AutoRebalanceModeISBuilder(resourceName);
       builder.setStateModel("MasterSlave")
               .setNumPartitions(2)

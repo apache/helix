@@ -36,6 +36,7 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -93,7 +94,7 @@ public class TestResourceComputationStage extends BaseStageTest
 //    List<IdealState> idealStates = new ArrayList<IdealState>();
     String[] resources = new String[]
         { "testResource1", "testResource2" };
-    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1);
+    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);

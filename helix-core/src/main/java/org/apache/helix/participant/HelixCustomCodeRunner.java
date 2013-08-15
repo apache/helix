@@ -33,7 +33,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Logger;
 
 
@@ -145,7 +145,7 @@ public class HelixCustomCodeRunner
       Builder keyBuilder = accessor.keyBuilder();
 
       IdealState idealState = new IdealState(_resourceName);
-      idealState.setIdealStateMode(IdealStateModeProperty.AUTO.toString());
+      idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);

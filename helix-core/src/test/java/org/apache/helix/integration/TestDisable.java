@@ -32,7 +32,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateModeProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -75,7 +75,7 @@ public class TestDisable extends ZkIntegrationTestBase
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    idealState.setIdealStateMode(IdealStateModeProperty.CUSTOMIZED.toString());
+    idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     
@@ -259,7 +259,7 @@ public class TestDisable extends ZkIntegrationTestBase
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    idealState.setIdealStateMode(IdealStateModeProperty.CUSTOMIZED.toString());
+    idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     

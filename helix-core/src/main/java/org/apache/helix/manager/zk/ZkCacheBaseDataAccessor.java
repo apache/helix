@@ -276,11 +276,10 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
       try
       {
         cache.lockWrite();
-        List<String> pathsCreated = new ArrayList<String>();
-        RetCode rc = _baseAccessor.create(serverPath, data, pathsCreated, options);
-        boolean success = (rc == RetCode.OK);
+        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doCreate(serverPath, data, options);
+        boolean success = (result._retCode == RetCode.OK);
 
-        updateCache(cache, pathsCreated, success, serverPath, data, ZNode.ZERO_STAT);
+        updateCache(cache, result._pathCreated, success, serverPath, data, ZNode.ZERO_STAT);
 
         return success;
       }
@@ -297,6 +296,12 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   @Override
   public boolean set(String path, T data, int options)
   {
+    return set(path, data, -1, options);
+  }
+  
+  @Override
+  public boolean set(String path, T data, int expectVersion, int options)
+  {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
@@ -306,14 +311,16 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
       try
       {
         cache.lockWrite();
-        Stat setStat = new Stat();
-        List<String> pathsCreated = new ArrayList<String>();
-        boolean success =
-            _baseAccessor.set(serverPath, data, pathsCreated, setStat, -1, options);
+        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doSet(serverPath, data, expectVersion, options);
+        boolean success = result._retCode == RetCode.OK;
 
-        updateCache(cache, pathsCreated, success, serverPath, data, setStat);
+        updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);
 
         return success;
+      }
+      catch (Exception e) 
+      {
+        return false;
       }
       finally
       {
@@ -322,9 +329,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     }
 
     // no cache
-    return _baseAccessor.set(serverPath, data, options);
+    return _baseAccessor.set(serverPath, data, expectVersion, options);
   }
-
+  
   @Override
   public boolean update(String path, DataUpdater<T> updater, int options)
   {
@@ -338,12 +345,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
       try
       {
         cache.lockWrite();
-        Stat setStat = new Stat();
-        List<String> pathsCreated = new ArrayList<String>();
-        T updateData =
-            _baseAccessor.update(serverPath, updater, pathsCreated, setStat, options);
-        boolean success = (updateData != null);
-        updateCache(cache, pathsCreated, success, serverPath, updateData, setStat);
+        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doUpdate(serverPath, updater, options);
+        boolean success = (result._retCode == RetCode.OK);
+        updateCache(cache, result._pathCreated, success, serverPath, result._updatedValue, result._stat);
 
         return success;
       }

@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,6 +55,31 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   {
     OK, NODE_EXISTS, ERROR
   }
+  
+  /**
+   * struct holding return information
+   *
+   */
+  public class AccessResult
+  {
+    RetCode _retCode;
+    List<String> _pathCreated;
+    
+    Stat _stat;
+    
+    /**
+     * used by update only
+     */
+    T _updatedValue;
+    
+    public AccessResult()
+    {
+      _retCode = RetCode.ERROR;
+      _pathCreated = new ArrayList<String>();
+      _stat = new Stat();
+      _updatedValue = null;
+    }
+  }
 
   private static Logger  LOG = Logger.getLogger(ZkBaseDataAccessor.class);
 
@@ -72,19 +96,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   @Override
   public boolean create(String path, T record, int options)
   {
-    return create(path, record, null, options) == RetCode.OK;
+    AccessResult result =  doCreate(path, record, options);
+    return result._retCode == RetCode.OK;
   }
 
   /**
    * sync create
    */
-  public RetCode create(String path, T record, List<String> pathCreated, int options)
+  public AccessResult doCreate(String path, T record, int options)
   {
+    AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid create mode. options: " + options);
-      return RetCode.ERROR;
+      result._retCode = RetCode.ERROR;
+      return result;
     }
 
     boolean retry;
@@ -94,10 +121,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       try
       {
         _zkClient.create(path, record, mode);
-        if (pathCreated != null)
-          pathCreated.add(path);
+        result._pathCreated.add(path);
 
-        return RetCode.OK;
+        result._retCode = RetCode.OK;
+        return result;
       }
       catch (ZkNoNodeException e)
       {
@@ -105,7 +132,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         String parentPath = HelixUtil.getZkParentPath(path);
         try
         {
-          RetCode rc = create(parentPath, null, pathCreated, AccessOption.PERSISTENT);
+          AccessResult res = doCreate(parentPath, null, AccessOption.PERSISTENT);
+          result._pathCreated.addAll(res._pathCreated);
+          RetCode rc = res._retCode;
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS)
           {
             // if parent node created/exists, retry
@@ -115,23 +144,27 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         catch (Exception e1)
         {
           LOG.error("Exception while creating path: " + parentPath, e1);
-          return RetCode.ERROR;
+          result._retCode = RetCode.ERROR;
+          return result;
         }
       }
       catch (ZkNodeExistsException e)
       {
         LOG.warn("Node already exists. path: " + path);
-        return RetCode.NODE_EXISTS;
+        result._retCode = RetCode.NODE_EXISTS;
+        return result;
       }
       catch (Exception e)
       {
         LOG.error("Exception while creating path: " + path, e);
-        return RetCode.ERROR;
+        result._retCode = RetCode.ERROR;
+        return result;
       }
     }
     while (retry);
 
-    return RetCode.OK;
+    result._retCode = RetCode.OK;
+    return result;
   }
 
   /**
@@ -140,27 +173,43 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   @Override
   public boolean set(String path, T record, int options)
   {
-    return set(path, record, null, null, -1, options);
+    return set(path, record, -1, options);
   }
 
   /**
    * sync set
-   * 
-   * @param setstat
-   *          : if node is created instead of set, stat will NOT be set
    */
-  public boolean set(String path,
-                     T record,
-                     List<String> pathsCreated,
-                     Stat setstat,
-                     int expectVersion,
-                     int options)
+  @Override
+  public boolean set(String path, T record, int expectVersion, int options)
   {
+    try 
+    {
+      AccessResult result = doSet(path, record, expectVersion, options);
+      return result._retCode == RetCode.OK;
+    } 
+    catch (ZkBadVersionException e)
+    {
+      return false;
+    }
+  }
+  
+  /**
+   * sync set
+   * 
+   */
+  public AccessResult doSet(String path,
+                            T record,
+                            int expectVersion,
+                            int options)
+  {
+    AccessResult result = new AccessResult();
+
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid set mode. options: " + options);
-      return false;
+      result._retCode = RetCode.ERROR;
+      return result;
     }
 
     boolean retry;
@@ -169,36 +218,43 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       retry = false;
       try
       {
-        // _zkClient.writeData(path, record);
-        Stat setStat = _zkClient.writeDataGetStat(path, record, expectVersion);
-        if (setstat != null)
-          DataTree.copyStat(setStat, setstat);
+        Stat stat = _zkClient.writeDataGetStat(path, record, expectVersion);
+        DataTree.copyStat(stat, result._stat);
       }
       catch (ZkNoNodeException e)
       {
-        // node not exists, try create. in this case, stat will not be set
+        // node not exists, try create if expectedVersion == -1; in this case, stat will not be set
+        if (expectVersion != -1) 
+        {
+          LOG.error("Could not create node if expectVersion != -1, was " + expectVersion);
+          result._retCode = RetCode.ERROR;
+          return result;
+        }
         try
         {
-          RetCode rc = create(path, record, pathsCreated, options);
-          // if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS)
-          // retry = true;
+          // may create recursively
+          AccessResult res = doCreate(path, record, options);
+          result._pathCreated.addAll(res._pathCreated);
+          RetCode rc = res._retCode;
           switch (rc)
           {
           case OK:
             // not set stat if node is created (instead of set)
             break;
-          case NODE_EXISTS:
+          case NODE_EXISTS:            
             retry = true;
             break;
           default:
             LOG.error("Fail to set path by creating: " + path);
-            return false;
+            result._retCode = RetCode.ERROR;
+            return result;
           }
         }
         catch (Exception e1)
         {
           LOG.error("Exception while setting path by creating: " + path, e);
-          return false;
+          result._retCode = RetCode.ERROR;
+          return result;
         }
       }
       catch (ZkBadVersionException e)
@@ -208,12 +264,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       catch (Exception e)
       {
         LOG.error("Exception while setting path: " + path, e);
-        return false;
+        result._retCode = RetCode.ERROR;
+        return result;
       }
     }
     while (retry);
 
-    return true;
+    result._retCode = RetCode.OK;
+    return result;
   }
 
   /**
@@ -222,25 +280,25 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
   @Override
   public boolean update(String path, DataUpdater<T> updater, int options)
   {
-    return update(path, updater, null, null, options) != null;
+    AccessResult result = doUpdate(path, updater, options);
+    return result._retCode == RetCode.OK;
   }
 
   /**
    * sync update
    * 
-   * @return: updatedData on success, or null on fail
    */
-  public T update(String path,
-                  DataUpdater<T> updater,
-                  List<String> createPaths,
-                  Stat stat,
-                  int options)
+  public AccessResult doUpdate(String path,
+                               DataUpdater<T> updater,
+                               int options)
   {
+    AccessResult result = new AccessResult();
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null)
     {
       LOG.error("Invalid update mode. options: " + options);
-      return null;
+      result._retCode = RetCode.ERROR;
+      return result;
     }
 
     boolean retry;
@@ -254,10 +312,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
         T oldData = (T) _zkClient.readData(path, readStat);
         T newData = updater.update(oldData);
         Stat setStat = _zkClient.writeDataGetStat(path, newData, readStat.getVersion());
-        if (stat != null)
-        {
-          DataTree.copyStat(setStat, stat);
-        }
+        DataTree.copyStat(setStat, result._stat);
 
         updatedData = newData;
       }
@@ -267,11 +322,13 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
       }
       catch (ZkNoNodeException e)
       {
-        // node not exist, try create
+        // node not exist, try create, pass null to updater
         try
         {
           T newData = updater.update(null);
-          RetCode rc = create(path, newData, createPaths, options);
+          AccessResult res = doCreate(path, newData, options);
+          result._pathCreated.addAll(res._pathCreated);
+          RetCode rc = res._retCode;
           switch (rc)
           {
           case OK:
@@ -282,24 +339,29 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
             break;
           default:
             LOG.error("Fail to update path by creating: " + path);
-            return null;
+            result._retCode = RetCode.ERROR;
+            return result;
           }
         }
         catch (Exception e1)
         {
           LOG.error("Exception while updating path by creating: " + path, e1);
-          return null;
+          result._retCode = RetCode.ERROR;
+          return result;
         }
       }
       catch (Exception e)
       {
         LOG.error("Exception while updating path: " + path, e);
-        return null;
+        result._retCode = RetCode.ERROR;
+        return result;
       }
     }
     while (retry);
 
-    return updatedData;
+    result._retCode = RetCode.OK;
+    result._updatedValue = updatedData;
+    return result;
   }
 
   /**
@@ -516,13 +578,12 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T>
     try
     {
       // optimize on common path
-      _zkClient.delete(path);
+      return _zkClient.delete(path);
     }
     catch (ZkException e)
     {
-      _zkClient.deleteRecursive(path);
+      return _zkClient.deleteRecursive(path);
     }
-    return true;
   }
 
   /**

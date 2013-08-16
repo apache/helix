@@ -195,6 +195,13 @@ public class Mocks {
       
     }
 
+    @Override
+    public boolean set(String path, ZNRecord record, int options, int expectVersion)
+    {
+      // TODO Auto-generated method stub
+      return false;
+    }
+
 //		@Override
 //		public boolean subscribe(String path, IZkListener listener) {
 //			// TODO Auto-generated method stub

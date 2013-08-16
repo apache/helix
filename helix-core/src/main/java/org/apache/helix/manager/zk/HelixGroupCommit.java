@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
+import org.apache.helix.AccessOption;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
@@ -108,6 +109,9 @@ public class HelixGroupCommit<T>
               T merged = null;
 
               Stat readStat = new Stat();
+              
+              // to create a new znode, we need set version to -1
+              readStat.setVersion(-1);
               try
               {
                 // accessor will fallback to zk if not found in cache
@@ -115,7 +119,7 @@ public class HelixGroupCommit<T>
               }
               catch (ZkNoNodeException e)
               {
-                // OK.
+                // OK
               }
 
               // updater should handler merged == null
@@ -149,7 +153,7 @@ public class HelixGroupCommit<T>
                 it.remove();
               }
               // System.out.println("size:"+ processed.size());
-              accessor.set(mergedKey, merged, null, null, readStat.getVersion(), options);
+              accessor.set(mergedKey, merged, readStat.getVersion(), options);
             }
             catch (ZkBadVersionException e)
             {

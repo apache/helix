@@ -1,4 +1,5 @@
 package org.apache.helix.integration;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -40,31 +41,26 @@ import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
-  String db2 = TEST_DB+"2";
+public class TestCustomizedIdealStateRebalancer extends
+    ZkStandAloneCMTestBaseWithPropertyServerCheck {
+  String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
 
-  public static class TestRebalancer extends SemiAutoRebalancer
-  {
+  public static class TestRebalancer extends SemiAutoRebalancer {
 
     @Override
-    public void init(HelixManager manager)
-    {
+    public void init(HelixManager manager) {
       testRebalancerCreated = true;
     }
 
     @Override
-    public IdealState computeNewIdealState(String resourceName,
-        IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-        ClusterDataCache clusterData)
-    {
-      for(String partition : currentIdealState.getPartitionSet())
-      {
+    public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+        CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      for (String partition : currentIdealState.getPartitionSet()) {
         String instance = currentIdealState.getPreferenceList(partition).get(0);
         currentIdealState.getPreferenceList(partition).clear();
         currentIdealState.getPreferenceList(partition).add(instance);
-        
+
         currentIdealState.getInstanceStateMap(partition).clear();
         currentIdealState.getInstanceStateMap(partition).put(instance, "MASTER");
       }
@@ -74,8 +70,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
   }
 
   @Test
-  public void testCustomizedIdealStateRebalancer() throws InterruptedException
-  {
+  public void testCustomizedIdealStateRebalancer() throws InterruptedException {
     _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "MasterSlave");
     _setupTool.addResourceProperty(CLUSTER_NAME, db2,
         IdealStateProperty.REBALANCER_CLASS_NAME.toString(),
@@ -84,133 +79,119 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
         RebalanceMode.USER_DEFINED.toString());
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
-    
+
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
-                                                                              CLUSTER_NAME, db2));
+            CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     Thread.sleep(1000);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor( CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionSet().size(), 60);
-    for(String partition: ev.getPartitionSet())
-    {
+    for (String partition : ev.getPartitionSet()) {
       Assert.assertEquals(ev.getStateMap(partition).size(), 1);
     }
     IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
-    for(String partition: is.getPartitionSet())
-    {
+    for (String partition : is.getPartitionSet()) {
       Assert.assertEquals(is.getPreferenceList(partition).size(), 3);
       Assert.assertEquals(is.getInstanceStateMap(partition).size(), 3);
     }
     Assert.assertTrue(testRebalancerCreated);
   }
 
-  public static class ExternalViewBalancedVerifier implements ZkVerifier
-  {
+  public static class ExternalViewBalancedVerifier implements ZkVerifier {
     ZkClient _client;
     String _clusterName;
     String _resourceName;
-    
-    public ExternalViewBalancedVerifier(ZkClient client, String clusterName, String resourceName)
-    {
+
+    public ExternalViewBalancedVerifier(ZkClient client, String clusterName, String resourceName) {
       _client = client;
       _clusterName = clusterName;
       _resourceName = resourceName;
     }
+
     @Override
-    public boolean verify()
-    {
-      try
-      {
-        HelixDataAccessor accessor = new ZKHelixDataAccessor( _clusterName, new ZkBaseDataAccessor(_client));
+    public boolean verify() {
+      try {
+        HelixDataAccessor accessor =
+            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
         Builder keyBuilder = accessor.keyBuilder();
-        int numberOfPartitions = accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields().size();
+        int numberOfPartitions =
+            accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
+                .size();
         ClusterDataCache cache = new ClusterDataCache();
         cache.refresh(accessor);
-        String masterValue = cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef()).getStatesPriorityList().get(0);
+        String masterValue =
+            cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
+                .getStatesPriorityList().get(0);
         int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
         String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
         int instances = 0;
-        for(String  liveInstanceName : cache.getLiveInstances().keySet())
-        {
-          if(cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag))
-          {
-            instances ++;
+        for (String liveInstanceName : cache.getLiveInstances().keySet()) {
+          if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+            instances++;
           }
         }
-        if(instances == 0)
-        {
+        if (instances == 0) {
           instances = cache.getLiveInstances().size();
         }
-        return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(), numberOfPartitions, masterValue, replicas, instances);
-      }
-      catch(Exception e)
-      {
+        return verifyBalanceExternalView(
+            accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
+            numberOfPartitions, masterValue, replicas, instances);
+      } catch (Exception e) {
         return false;
       }
     }
 
     @Override
-    public ZkClient getZkClient()
-    {
+    public ZkClient getZkClient() {
       return _client;
     }
 
     @Override
-    public String getClusterName()
-    {
+    public String getClusterName() {
       return _clusterName;
     }
-    
-  }
-  
 
-  static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount, String masterState, int replica, int instances)
-  {
+  }
+
+  static boolean verifyBalanceExternalView(ZNRecord externalView, int partitionCount,
+      String masterState, int replica, int instances) {
     Map<String, Integer> masterPartitionsCountMap = new HashMap<String, Integer>();
-    for(String partitionName : externalView.getMapFields().keySet())
-    {
+    for (String partitionName : externalView.getMapFields().keySet()) {
       Map<String, String> assignmentMap = externalView.getMapField(partitionName);
-      //Assert.assertTrue(assignmentMap.size() >= replica);
-      for(String instance : assignmentMap.keySet())
-      {
-        if(assignmentMap.get(instance).equals(masterState))
-        {
-          if(!masterPartitionsCountMap.containsKey(instance))
-          {
+      // Assert.assertTrue(assignmentMap.size() >= replica);
+      for (String instance : assignmentMap.keySet()) {
+        if (assignmentMap.get(instance).equals(masterState)) {
+          if (!masterPartitionsCountMap.containsKey(instance)) {
             masterPartitionsCountMap.put(instance, 0);
           }
           masterPartitionsCountMap.put(instance, masterPartitionsCountMap.get(instance) + 1);
         }
       }
     }
-    
+
     int perInstancePartition = partitionCount / instances;
-    
+
     int totalCount = 0;
-    for(String instanceName : masterPartitionsCountMap.keySet())
-    {
+    for (String instanceName : masterPartitionsCountMap.keySet()) {
       int instancePartitionCount = masterPartitionsCountMap.get(instanceName);
       totalCount += instancePartitionCount;
-      if(!(instancePartitionCount == perInstancePartition || instancePartitionCount == perInstancePartition +1 ))
-      {
+      if (!(instancePartitionCount == perInstancePartition || instancePartitionCount == perInstancePartition + 1)) {
         return false;
       }
-      if(instancePartitionCount == perInstancePartition +1)
-      {
-        if(partitionCount % instances == 0)
-        {
+      if (instancePartitionCount == perInstancePartition + 1) {
+        if (partitionCount % instances == 0) {
           return false;
         }
       }
     }
-    if(partitionCount != totalCount)
-    {
+    if (partitionCount != totalCount) {
       return false;
     }
     return true;
-    
+
   }
 }

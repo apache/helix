@@ -24,27 +24,21 @@ import java.util.List;
 /**
  * Constructs ZNRecords from collections of ZNRecords
  */
-public class ZNRecordAssembler
-{
+public class ZNRecordAssembler {
   /**
    * Merge a list of ZNRecords into a single ZNRecord
    * @param records
    * @return {@link ZNRecord}
    */
-  public ZNRecord assemble(List<ZNRecord> records)
-  {
+  public ZNRecord assemble(List<ZNRecord> records) {
     ZNRecord assembledRecord = null;
-    if (records != null && records.size() > 0)
-    {
-      for (ZNRecord record : records)
-      {
-        if (record == null)
-        {
+    if (records != null && records.size() > 0) {
+      for (ZNRecord record : records) {
+        if (record == null) {
           continue;
         }
 
-        if (assembledRecord == null)
-        {
+        if (assembledRecord == null) {
           assembledRecord = new ZNRecord(record.getId());
         }
 

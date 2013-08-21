@@ -30,82 +30,71 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
-public class DummyParticipant
-{
+public class DummyParticipant {
   // dummy master-slave state model
-  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
-  public static class DummyMSStateModel extends StateModel
-  {
+  @StateModelInfo(initialState = "OFFLINE", states = {
+      "MASTER", "SLAVE", "ERROR"
+  })
+  public static class DummyMSStateModel extends StateModel {
     @Transition(to = "SLAVE", from = "OFFLINE")
-    public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
-    {
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes SLAVE from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "MASTER", from = "SLAVE")
-    public void onBecomeMasterFromSlave(Message message, NotificationContext context)
-    {
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes MASTER from SLAVE for " + partitionName);
     }
 
     @Transition(to = "SLAVE", from = "MASTER")
-    public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
-    {
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes SLAVE from MASTER for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "SLAVE")
-    public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
-    {
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes OFFLINE from SLAVE for " + partitionName);
     }
 
     @Transition(to = "DROPPED", from = "OFFLINE")
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-    {
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes DROPPED from OFFLINE for " + partitionName);
     }
 
     @Transition(to = "OFFLINE", from = "ERROR")
-    public void onBecomeOfflineFromError(Message message, NotificationContext context)
-    {
+    public void onBecomeOfflineFromError(Message message, NotificationContext context) {
       String partitionName = message.getPartitionName();
       String instanceName = message.getTgtName();
       System.out.println(instanceName + " becomes OFFLINE from ERROR for " + partitionName);
     }
 
     @Override
-    public void reset()
-    {
+    public void reset() {
       System.out.println("Default MockMSStateModel.reset() invoked");
     }
   }
 
   // dummy master slave state model factory
-  public static class DummyMSModelFactory extends StateModelFactory<DummyMSStateModel>
-  {
+  public static class DummyMSModelFactory extends StateModelFactory<DummyMSStateModel> {
     @Override
-    public DummyMSStateModel createNewStateModel(String partitionName)
-    {
+    public DummyMSStateModel createNewStateModel(String partitionName) {
       DummyMSStateModel model = new DummyMSStateModel();
       return model;
     }
   }
 
-  public static void main(String[] args)
-  {
-    if (args.length < 3)
-    {
+  public static void main(String[] args) {
+    if (args.length < 3) {
       System.err.println("USAGE: DummyParticipant zkAddress clusterName instanceName");
       System.exit(1);
     }
@@ -115,10 +104,10 @@ public class DummyParticipant
     String instanceName = args[2];
 
     HelixManager manager = null;
-    try
-    {
-      manager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
-          InstanceType.PARTICIPANT, zkAddr);
+    try {
+      manager =
+          HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
+              InstanceType.PARTICIPANT, zkAddr);
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
       DummyMSModelFactory msModelFactory = new DummyMSModelFactory();
@@ -127,14 +116,11 @@ public class DummyParticipant
       manager.connect();
 
       Thread.currentThread().join();
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-    } finally
-    {
-      if (manager != null)
-      {
+    } finally {
+      if (manager != null) {
         manager.disconnect();
       }
     }

@@ -23,17 +23,17 @@ import java.util.List;
 import java.util.Map;
 
 public interface TaskResultStore {
-	public boolean exists(String key) throws Exception;
-	
-	public long llen(String key) throws Exception;
-	
-	public void rpush(String key, String value) throws Exception;
-	
-	public List<String> lrange(final String key, final long start, final long end) throws Exception;
-    
-	public void ltrim(final String key, final long start, final long end) throws Exception;
-    
-    public Long hincrBy(final String key, final String field, final long value) throws Exception;
-  
-    public Map<String, String> hgetAll(final String key) throws Exception;
+  public boolean exists(String key) throws Exception;
+
+  public long llen(String key) throws Exception;
+
+  public void rpush(String key, String value) throws Exception;
+
+  public List<String> lrange(final String key, final long start, final long end) throws Exception;
+
+  public void ltrim(final String key, final long start, final long end) throws Exception;
+
+  public Long hincrBy(final String key, final String field, final long value) throws Exception;
+
+  public Map<String, String> hgetAll(final String key) throws Exception;
 }

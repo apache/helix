@@ -19,7 +19,6 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
-
 import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -42,8 +41,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
-{
+public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestConsecutiveZkSessionExpiry.class);
 
   /**
@@ -56,26 +54,22 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
     int count = 0;
 
     public PreConnectTestCallback(String instanceName, CountDownLatch startCountdown,
-                                  CountDownLatch endCountdown) {
+        CountDownLatch endCountdown) {
       this.instanceName = instanceName;
       this.startCountDown = startCountdown;
       this.endCountDown = endCountdown;
     }
 
     @Override
-    public void onPreConnect()
-    {
+    public void onPreConnect() {
       // TODO Auto-generated method stub
       LOG.info("handleNewSession for instance: " + instanceName + ", count: " + count);
       if (count++ == 1) {
         startCountDown.countDown();
         LOG.info("wait session expiry to happen");
-        try
-        {
+        try {
           endCountDown.await();
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
           LOG.error("interrupted in waiting", e);
         }
       }
@@ -84,27 +78,23 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
   }
 
   @Test
-  public void testParticipant() throws Exception
-  {
+  public void testParticipant() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 2;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName,
-                            ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            32, // partitions per resource
-                            n, // number of nodes
-                            2, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        32, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
     final ClusterControllerManager controller =
@@ -116,24 +106,22 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
     CountDownLatch endCountdown = new CountDownLatch(1);
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
 
       if (i == 0) {
         participants[i].addPreConnectCallback(new PreConnectTestCallback(instanceName,
-                                                                         startCountdown,
-                                                                         endCountdown));
+            startCountdown, endCountdown));
       }
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                      clusterName));
+        ClusterStateVerifier
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                clusterName));
     Assert.assertTrue(result);
 
     // expire the session of participant
@@ -142,8 +130,8 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
 
     ZkTestHelper.asyncExpireSession(participants[0].getZkClient());
     String newSessionId = participants[0].getSessionId();
-    LOG.info("Expried participant session. oldSessionId: " + oldSessionId
-        + ", newSessionId: " + newSessionId);
+    LOG.info("Expried participant session. oldSessionId: " + oldSessionId + ", newSessionId: "
+        + newSessionId);
 
     // expire zk session again during HelixManager#handleNewSession()
     startCountdown.await();
@@ -152,14 +140,14 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
 
     ZkTestHelper.asyncExpireSession(participants[0].getZkClient());
     newSessionId = participants[0].getSessionId();
-    LOG.info("Expried participant session. oldSessionId: " + oldSessionId
-        + ", newSessionId: " + newSessionId);
+    LOG.info("Expried participant session. oldSessionId: " + oldSessionId + ", newSessionId: "
+        + newSessionId);
 
     endCountdown.countDown();
 
     result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                   clusterName));
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // clean up
@@ -168,8 +156,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -180,18 +167,16 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
     String clusterName = className + "_" + methodName;
     int n = 2;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            4, // partitions per resource
-                            n, // number of nodes
-                            2, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
 
     ClusterDistributedController[] distributedControllers = new ClusterDistributedController[n];
     CountDownLatch startCountdown = new CountDownLatch(1);
@@ -199,19 +184,20 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
-      distributedControllers[i] = new ClusterDistributedController(ZK_ADDR, clusterName, contrllerName);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", new MockMSModelFactory());
+      distributedControllers[i] =
+          new ClusterDistributedController(ZK_ADDR, clusterName, contrllerName);
+      distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
+          new MockMSModelFactory());
       if (i == 0) {
         distributedControllers[i].addPreConnectCallback(new PreConnectTestCallback(contrllerName,
-                                                                         startCountdown,
-                                                                         endCountdown));
+            startCountdown, endCountdown));
       }
       distributedControllers[i].connect();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     // expire the session of distributedController
@@ -236,12 +222,13 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
     endCountdown.countDown();
 
     result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                   clusterName));
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     // verify leader changes to localhost_12919
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNotNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -251,17 +238,18 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase
     // check localhost_12918 has 2 handlers: message and data-accessor
     LOG.debug("handlers: " + TestHelper.printHandlers(distributedControllers[0]));
     List<CallbackHandler> handlers = distributedControllers[0].getHandlers();
-    Assert.assertEquals(handlers.size(), 2,
-                        "Distributed controller should have 2 handlers (message and data-accessor) after lose leadership, but was "
-                        + handlers.size());
+    Assert
+        .assertEquals(
+            handlers.size(),
+            2,
+            "Distributed controller should have 2 handlers (message and data-accessor) after lose leadership, but was "
+                + handlers.size());
 
     // clean up
     distributedControllers[1].disconnect();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12919")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
 
-
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

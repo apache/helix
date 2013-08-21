@@ -26,16 +26,13 @@ import org.testng.annotations.Test;
 /**
  * This is a simple integration test. We will use this until we have framework
  * which helps us write integration tests easily
- *
  */
 
-public class IntegrationTest extends ZkStandAloneCMTestBase
-{
+public class IntegrationTest extends ZkStandAloneCMTestBase {
   @Test
-  public void integrationTest() throws Exception
-  {
+  public void integrationTest() throws Exception {
     System.out.println("START IntegrationTest at " + new Date(System.currentTimeMillis()));
-//    Thread.currentThread().join();
+    // Thread.currentThread().join();
     System.out.println("END IntegrationTest at " + new Date(System.currentTimeMillis()));
   }
 }

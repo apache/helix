@@ -19,84 +19,70 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-
 import java.util.Date;
 
 import org.apache.helix.alerts.AlertValueAndStatus;
 
-
-public class ClusterAlertItem implements ClusterAlertItemMBean
-{
+public class ClusterAlertItem implements ClusterAlertItemMBean {
   String _alertItemName;
-  double  _alertValue;
+  double _alertValue;
   int _alertFired;
   String _additionalInfo = "";
   AlertValueAndStatus _valueAndStatus;
   long _lastUpdateTime = 0;
-  
-  public ClusterAlertItem(String name, AlertValueAndStatus valueAndStatus)
-  {
+
+  public ClusterAlertItem(String name, AlertValueAndStatus valueAndStatus) {
     _valueAndStatus = valueAndStatus;
     _alertItemName = name;
     refreshValues();
   }
+
   @Override
-  public String getSensorName()
-  {
+  public String getSensorName() {
     return _alertItemName;
   }
 
   @Override
-  public double getAlertValue()
-  {
+  public double getAlertValue() {
     return _alertValue;
   }
-  
-  public void setValueMap(AlertValueAndStatus valueAndStatus)
-  {
+
+  public void setValueMap(AlertValueAndStatus valueAndStatus) {
     _valueAndStatus = valueAndStatus;
     refreshValues();
   }
-  
-  void refreshValues()
-  {
+
+  void refreshValues() {
     _lastUpdateTime = new Date().getTime();
-    if(_valueAndStatus.getValue().getElements().size() > 0)
-    {
+    if (_valueAndStatus.getValue().getElements().size() > 0) {
       _alertValue = Double.parseDouble(_valueAndStatus.getValue().getElements().get(0));
-    }
-    else
-    {
+    } else {
       _alertValue = 0;
     }
-    _alertFired = _valueAndStatus.isFired() ?  1 : 0;
+    _alertFired = _valueAndStatus.isFired() ? 1 : 0;
   }
+
   @Override
-  public int getAlertFired()
-  {
+  public int getAlertFired() {
     return _alertFired;
   }
-  
-  public void setAdditionalInfo(String additionalInfo)
-  {
+
+  public void setAdditionalInfo(String additionalInfo) {
     _additionalInfo = additionalInfo;
   }
-  
+
   @Override
-  public String getAdditionalInfo()
-  {
+  public String getAdditionalInfo() {
     return _additionalInfo;
   }
-  
-  public void reset()
-  {
+
+  public void reset() {
     _alertFired = 0;
     _additionalInfo = "";
     _alertValue = 0;
   }
-  
-  public long getLastUpdateTime()
-  {
+
+  public long getLastUpdateTime() {
     return _lastUpdateTime;
   }
 }

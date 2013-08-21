@@ -27,22 +27,21 @@ import org.apache.log4j.Logger;
  */
 
 /**
- * thread for monitoring a pid 
- *
+ * thread for monitoring a pid
  */
 public class ProcessMonitorThread extends Thread {
   private static final Logger LOG = Logger.getLogger(ProcessMonitorThread.class);
-  private static final int MONITOR_PERIOD_BASE = 1000;  // 1 second
+  private static final int MONITOR_PERIOD_BASE = 1000; // 1 second
 
   private final String _pid;
-  
+
   public ProcessMonitorThread(String pid) {
     _pid = pid;
   }
-  
+
   @Override
   public void run() {
-    
+
     // monitor pid
     try {
       ProcessStateCode processState = SystemUtil.getProcessState(_pid);
@@ -51,13 +50,14 @@ public class ProcessMonitorThread extends Thread {
           LOG.error("process: " + _pid + " is in zombie state");
           break;
         }
-        TimeUnit.MILLISECONDS.sleep(new Random().nextInt(MONITOR_PERIOD_BASE) + MONITOR_PERIOD_BASE);
+        TimeUnit.MILLISECONDS
+            .sleep(new Random().nextInt(MONITOR_PERIOD_BASE) + MONITOR_PERIOD_BASE);
         processState = SystemUtil.getProcessState(_pid);
       }
     } catch (Exception e) {
       LOG.error("fail to monitor process: " + _pid, e);
     }
-    
+
     // TODO need to find the exit value of pid and kill the pid on timeout
   }
 

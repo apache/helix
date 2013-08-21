@@ -34,32 +34,26 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase
-{
+public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
   @Test
-  public void testStateMismatch() throws InterruptedException
-  {
+  public void testStateMismatch() throws InterruptedException {
     String controllerName = CONTROLLER_PREFIX + "_0";
-    
+
     HelixManager manager = _startCMResultMap.get(controllerName)._manager;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
-    Map<String, LiveInstance> liveinstanceMap = accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
-    
-    for(String instanceName : liveinstanceMap.keySet())
-    {
+    Map<String, LiveInstance> liveinstanceMap =
+        accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
+
+    for (String instanceName : liveinstanceMap.keySet()) {
       String sessionid = liveinstanceMap.get(instanceName).getSessionId();
-      for(String partition : ev.getPartitionSet())
-      {
-        if(ev.getStateMap(partition).containsKey(instanceName))
-        {
+      for (String partition : ev.getPartitionSet()) {
+        if (ev.getStateMap(partition).containsKey(instanceName)) {
           String uuid = UUID.randomUUID().toString();
           Message message = new Message(MessageType.STATE_TRANSITION, uuid);
           boolean rand = new Random().nextInt(10) > 5;
-          if(ev.getStateMap(partition).get(instanceName).equals("MASTER"))
-          {
+          if (ev.getStateMap(partition).get(instanceName).equals("MASTER")) {
             message.setSrcName(manager.getInstanceName());
             message.setTgtName(instanceName);
             message.setMsgState(MessageState.NEW);
@@ -70,10 +64,8 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase
             message.setTgtSessionId(sessionid);
             message.setSrcSessionId(manager.getSessionId());
             message.setStateModelDef("MasterSlave");
-            message.setStateModelFactoryName("DEFAULT"); 
-          }
-          else if (ev.getStateMap(partition).get(instanceName).equals("SLAVE"))
-          {
+            message.setStateModelFactoryName("DEFAULT");
+          } else if (ev.getStateMap(partition).get(instanceName).equals("SLAVE")) {
             message.setSrcName(manager.getInstanceName());
             message.setTgtName(instanceName);
             message.setMsgState(MessageState.NEW);
@@ -86,7 +78,8 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase
             message.setStateModelDef("MasterSlave");
             message.setStateModelFactoryName("DEFAULT");
           }
-          accessor.setProperty(accessor.keyBuilder().message(instanceName, message.getMsgId()), message);
+          accessor.setProperty(accessor.keyBuilder().message(instanceName, message.getMsgId()),
+              message);
         }
       }
     }

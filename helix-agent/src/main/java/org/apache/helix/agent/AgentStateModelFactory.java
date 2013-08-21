@@ -21,11 +21,10 @@ package org.apache.helix.agent;
 
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class AgentStateModelFactory extends StateModelFactory<AgentStateModel>{
-  
+public class AgentStateModelFactory extends StateModelFactory<AgentStateModel> {
+
   @Override
-  public AgentStateModel createNewStateModel(String partitionKey)
-  {
+  public AgentStateModel createNewStateModel(String partitionKey) {
     AgentStateModel model = new AgentStateModel();
     return model;
   }

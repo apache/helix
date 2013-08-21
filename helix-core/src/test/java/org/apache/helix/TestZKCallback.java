@@ -52,15 +52,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestZKCallback extends ZkUnitTestBase
-{
+public class TestZKCallback extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
   ZkClient _zkClient;
 
-  private static String[] createArgs(String str)
-  {
+  private static String[] createArgs(String str) {
     String[] split = str.split("[ ]+");
     System.out.println(Arrays.toString(split));
     return split;
@@ -68,8 +65,7 @@ public class TestZKCallback extends ZkUnitTestBase
 
   public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,
       ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
-      IdealStateChangeListener
-  {
+      IdealStateChangeListener {
     boolean externalViewChangeReceived = false;
     boolean liveInstanceChangeReceived = false;
     boolean configChangeReceived = false;
@@ -79,40 +75,34 @@ public class TestZKCallback extends ZkUnitTestBase
 
     @Override
     public void onExternalViewChange(List<ExternalView> externalViewList,
-        NotificationContext changeContext)
-    {
+        NotificationContext changeContext) {
       externalViewChangeReceived = true;
     }
 
     @Override
     public void onStateChange(String instanceName, List<CurrentState> statesInfo,
-        NotificationContext changeContext)
-    {
+        NotificationContext changeContext) {
       currentStateChangeReceived = true;
     }
 
     @Override
-    public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
-    {
+    public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
       configChangeReceived = true;
     }
 
     @Override
     public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-        NotificationContext changeContext)
-    {
+        NotificationContext changeContext) {
       liveInstanceChangeReceived = true;
     }
 
     @Override
     public void onMessage(String instanceName, List<Message> messages,
-        NotificationContext changeContext)
-    {
+        NotificationContext changeContext) {
       messageChangeReceived = true;
     }
 
-    void Reset()
-    {
+    void Reset() {
       externalViewChangeReceived = false;
       liveInstanceChangeReceived = false;
       configChangeReceived = false;
@@ -122,19 +112,18 @@ public class TestZKCallback extends ZkUnitTestBase
     }
 
     @Override
-    public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext)
-    {
+    public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
       // TODO Auto-generated method stub
       idealStateChangeReceived = true;
     }
   }
 
   @Test()
-  public void testInvocation() throws Exception
-  {
+  public void testInvocation() throws Exception {
 
-    HelixManager testHelixManager = HelixManagerFactory.getZKHelixManager(clusterName,
-        "localhost_8900", InstanceType.PARTICIPANT, ZK_ADDR);
+    HelixManager testHelixManager =
+        HelixManagerFactory.getZKHelixManager(clusterName, "localhost_8900",
+            InstanceType.PARTICIPANT, ZK_ADDR);
     testHelixManager.connect();
 
     TestZKCallback test = new TestZKCallback();
@@ -158,7 +147,7 @@ public class TestZKCallback extends ZkUnitTestBase
     testListener.Reset();
     HelixDataAccessor accessor = testHelixManager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    
+
     ExternalView extView = new ExternalView("db-12345");
     accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
     Thread.sleep(100);
@@ -168,7 +157,8 @@ public class TestZKCallback extends ZkUnitTestBase
     CurrentState curState = new CurrentState("db-12345");
     curState.setSessionId("sessionId");
     curState.setStateModelDefRef("StateModelDef");
-    accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(), curState.getId()), curState);
+    accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
+        curState.getId()), curState);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
@@ -223,12 +213,10 @@ public class TestZKCallback extends ZkUnitTestBase
   }
 
   @BeforeClass()
-  public void beforeClass() throws IOException, Exception
-  {
+  public void beforeClass() throws IOException, Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    if (_zkClient.exists("/" + clusterName))
-    {
+    if (_zkClient.exists("/" + clusterName)) {
       _zkClient.deleteRecursive("/" + clusterName);
     }
 
@@ -254,8 +242,7 @@ public class TestZKCallback extends ZkUnitTestBase
   }
 
   @AfterClass()
-  public void afterClass()
-  {
+  public void afterClass() {
     _zkClient.close();
   }
 

@@ -32,34 +32,35 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase
-{
+public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   @Test
-  public void TestThreadPoolSizeConfig()
-  {
+  public void TestThreadPoolSizeConfig() {
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     HelixManager manager = _startCMResultMap.get(instanceName)._manager;
     ConfigAccessor accessor = manager.getConfigAccessor();
     ConfigScope scope =
         new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource("NextDB").build();
-    accessor.set(scope, HelixTaskExecutor.MAX_THREADS, ""+12);
-    
+    accessor.set(scope, HelixTaskExecutor.MAX_THREADS, "" + 12);
+
     _setupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "NextDB", 3);
-    
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
-    
-    long taskcount = 0; 
-    for (int i = 0; i < NODE_NR; i++)
-    {
+
+    long taskcount = 0;
+    for (int i = 0; i < NODE_NR; i++) {
       instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      
-      DefaultMessagingService svc = (DefaultMessagingService)(_startCMResultMap.get(instanceName)._manager.getMessagingService());
+
+      DefaultMessagingService svc =
+          (DefaultMessagingService) (_startCMResultMap.get(instanceName)._manager
+              .getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "." + "NextDB"));
+      ThreadPoolExecutor executor =
+          (ThreadPoolExecutor) (helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "."
+              + "NextDB"));
       Assert.assertEquals(12, executor.getMaximumPoolSize());
       taskcount += executor.getCompletedTaskCount();
       Assert.assertTrue(executor.getCompletedTaskCount() > 0);

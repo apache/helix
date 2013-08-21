@@ -31,20 +31,16 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestConfigAccessor extends ZkUnitTestBase
-{
+public class TestConfigAccessor extends ZkUnitTestBase {
   @Test
-  public void testBasic() throws Exception
-  {
-      String className = TestHelper.getTestClassName();
-      String methodName = TestHelper.getTestMethodName();
-      String clusterName = className + "_" + methodName;
+  public void testBasic() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
 
-      System.out.println("START " + clusterName + " at "
-              + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-      TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
@@ -59,22 +55,23 @@ public class TestConfigAccessor extends ZkUnitTestBase
     Assert.assertEquals(clusterConfigValue, "clusterConfigValue");
 
     // resource scope config
-    ConfigScope resourceScope = new ConfigScopeBuilder().forCluster(clusterName)
-        .forResource("testResource").build();
+    ConfigScope resourceScope =
+        new ConfigScopeBuilder().forCluster(clusterName).forResource("testResource").build();
     configAccessor.set(resourceScope, "resourceConfigKey", "resourceConfigValue");
     String resourceConfigValue = configAccessor.get(resourceScope, "resourceConfigKey");
     Assert.assertEquals(resourceConfigValue, "resourceConfigValue");
 
     // partition scope config
-    ConfigScope partitionScope = new ConfigScopeBuilder().forCluster(clusterName)
-        .forResource("testResource").forPartition("testPartition").build();
+    ConfigScope partitionScope =
+        new ConfigScopeBuilder().forCluster(clusterName).forResource("testResource")
+            .forPartition("testPartition").build();
     configAccessor.set(partitionScope, "partitionConfigKey", "partitionConfigValue");
     String partitionConfigValue = configAccessor.get(partitionScope, "partitionConfigKey");
     Assert.assertEquals(partitionConfigValue, "partitionConfigValue");
 
     // participant scope config
-    ConfigScope participantScope = new ConfigScopeBuilder().forCluster(clusterName)
-        .forParticipant("localhost_12918").build();
+    ConfigScope participantScope =
+        new ConfigScopeBuilder().forCluster(clusterName).forParticipant("localhost_12918").build();
     configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
@@ -106,10 +103,13 @@ public class TestConfigAccessor extends ZkUnitTestBase
 
     keys = configAccessor.getKeys(ConfigScopeProperty.PARTICIPANT, clusterName, "localhost_12918");
     System.out.println((keys));
-    Assert.assertEquals(keys.size(), 4, "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
+    Assert.assertEquals(keys.size(), 4,
+        "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(3), "participantConfigKey");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource", "testPartition");
+    keys =
+        configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource",
+            "testPartition");
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
@@ -125,79 +125,71 @@ public class TestConfigAccessor extends ZkUnitTestBase
     configAccessor.remove(partitionScope, "partitionConfigKey");
     partitionConfigValue = configAccessor.get(partitionScope, "partitionConfigKey");
     Assert.assertNull(partitionConfigValue, "Should be null since it's removed");
-    
+
     configAccessor.remove(participantScope, "participantConfigKey");
     participantConfigValue = configAccessor.get(partitionScope, "participantConfigKey");
     Assert.assertNull(participantConfigValue, "Should be null since it's removed");
-    
+
     // negative tests
-    try
-    {
+    try {
       new ConfigScopeBuilder().forPartition("testPartition").build();
       Assert.fail("Should fail since cluster name is not set");
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
 
-    try
-    {
+    try {
       new ConfigScopeBuilder().forCluster("testCluster").forPartition("testPartition").build();
       Assert.fail("Should fail since resource name is not set");
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
 
-    try
-    {
+    try {
       new ConfigScopeBuilder().forParticipant("testParticipant").build();
       Assert.fail("Should fail since cluster name is not set");
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
 
-      System.out.println("END " + clusterName + " at "
-              + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
-    // HELIX-25: set participant Config should check existence of instance
-    @Test
-    public void testSetNonexistentParticipantConfig() throws Exception
-    {
-        String className = TestHelper.getTestClassName();
-        String methodName = TestHelper.getTestMethodName();
-        String clusterName = className + "_" + methodName;
+  // HELIX-25: set participant Config should check existence of instance
+  @Test
+  public void testSetNonexistentParticipantConfig() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
 
-        System.out.println("START " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-        ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
-        admin.addCluster(clusterName, true);
-        ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-        ConfigScope participantScope = new ConfigScopeBuilder().forCluster(clusterName)
-                .forParticipant("localhost_12918").build();
+    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigScope participantScope =
+        new ConfigScopeBuilder().forCluster(clusterName).forParticipant("localhost_12918").build();
 
-        try {
-            configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
-            Assert.fail("Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
-        } catch (HelixException e) {
-            // OK
-        }
-        admin.addInstance(clusterName, new InstanceConfig("localhost_12918"));
-
-        try {
-            configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
-        } catch (Exception e) {
-            Assert.fail("Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
-        }
-
-        String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
-        Assert.assertEquals(participantConfigValue, "participantConfigValue");
-
-        System.out.println("END " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
+    try {
+      configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
+      Assert
+          .fail("Except fail to set participant-config because participant: localhost_12918 is not added to cluster yet");
+    } catch (HelixException e) {
+      // OK
     }
+    admin.addInstance(clusterName, new InstanceConfig("localhost_12918"));
+
+    try {
+      configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
+    } catch (Exception e) {
+      Assert
+          .fail("Except succeed to set participant-config because participant: localhost_12918 has been added to cluster");
+    }
+
+    String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
+    Assert.assertEquals(participantConfigValue, "participantConfigValue");
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 }

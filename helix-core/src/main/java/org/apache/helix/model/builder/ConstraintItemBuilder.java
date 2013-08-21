@@ -27,18 +27,16 @@ import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.log4j.Logger;
 
-
 public class ConstraintItemBuilder {
 
   private static Logger LOG = Logger.getLogger(ConstraintItemBuilder.class);
-  
+
   // attributes e.g. {STATE:MASTER, RESOURCE:TestDB, INSTANCE:localhost_12918}
   final Map<ConstraintAttribute, String> _attributes = new TreeMap<ConstraintAttribute, String>();
   String _constraintValue = null;
 
   /**
    * add an attribute to constraint-item, overwrite if already exists
-   * 
    * @param attribute
    * @param value
    */
@@ -46,64 +44,59 @@ public class ConstraintItemBuilder {
     // make sure constraint attribute is valid
     try {
       ConstraintAttribute attr = ConstraintAttribute.valueOf(attribute.toUpperCase());
-      
+
       if (attr == ConstraintAttribute.CONSTRAINT_VALUE) {
         // make sure constraint-value is valid
-        try
-        {
+        try {
           ConstraintValue.valueOf(value);
           if (_constraintValue == null) {
-            LOG.info("overwrite existing constraint-value. old-value: " + _constraintValue 
+            LOG.info("overwrite existing constraint-value. old-value: " + _constraintValue
                 + ", new-value: " + value);
           }
           _constraintValue = value;
-        } catch (IllegalArgumentException e)
-        {
-          try
-          {
+        } catch (IllegalArgumentException e) {
+          try {
             Integer.parseInt(value);
             if (_constraintValue == null) {
-              LOG.info("overwrite existing constraint-value. old-value: " + _constraintValue 
+              LOG.info("overwrite existing constraint-value. old-value: " + _constraintValue
                   + ", new-value: " + value);
             }
             _constraintValue = value;
-          }
-          catch (NumberFormatException ne)
-          {
-            LOG.error("fail to add constraint attribute. Invalid constraintValue. " 
-              + attribute + ": " + attribute + ", value: " + value);
+          } catch (NumberFormatException ne) {
+            LOG.error("fail to add constraint attribute. Invalid constraintValue. " + attribute
+                + ": " + attribute + ", value: " + value);
           }
         }
       } else {
         if (_attributes.containsKey(attr)) {
-          LOG.info("overwrite existing constraint attribute. attribute: " 
-            + attribute + ", old-value: " + _attributes.get(attr) + ", new-value: " + value);
+          LOG.info("overwrite existing constraint attribute. attribute: " + attribute
+              + ", old-value: " + _attributes.get(attr) + ", new-value: " + value);
         }
         _attributes.put(attr, value);
       }
     } catch (IllegalArgumentException e) {
-      LOG.error("fail to add constraint attribute. Invalid attribute type. attribute: " 
-          + attribute + ", value: " + value);
+      LOG.error("fail to add constraint attribute. Invalid attribute type. attribute: " + attribute
+          + ", value: " + value);
     }
-    
+
     return this;
   }
-  
+
   public ConstraintItemBuilder addConstraintAttributes(Map<String, String> attributes) {
     for (String attr : attributes.keySet()) {
       addConstraintAttribute(attr, attributes.get(attr));
     }
     return this;
   }
-  
+
   public Map<ConstraintAttribute, String> getAttributes() {
     return _attributes;
   }
-  
+
   public String getConstraintValue() {
     return _constraintValue;
   }
-  
+
   public ConstraintItem build() {
     // TODO: check if constraint-item is valid
     return new ConstraintItem(_attributes, _constraintValue);

@@ -36,7 +36,6 @@ import org.apache.log4j.Logger;
 
 /**
  * do distributed leader election
- *
  */
 public class DistributedLeaderElection implements ControllerChangeListener {
   private static Logger LOG = Logger.getLogger(DistributedLeaderElection.class);
@@ -74,7 +73,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
         LOG.info(_manager.getInstanceName() + " is trying to acquire leadership for cluster: "
-                           + _manager.getClusterName());
+            + _manager.getClusterName());
         HelixDataAccessor accessor = manager.getHelixDataAccessor();
         Builder keyBuilder = accessor.keyBuilder();
 
@@ -92,7 +91,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
         }
       } else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
         LOG.info(_manager.getInstanceName() + " reqlinquish leadership for cluster: "
-              + _manager.getClusterName());
+            + _manager.getClusterName());
         controllerHelper.stopControllerTimerTasks();
         controllerHelper.removeListenersFromController(_controller);
 
@@ -117,8 +116,8 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
       if (ZKPropertyTransferServer.getInstance() != null) {
-        String zkPropertyTransferServiceUrl = ZKPropertyTransferServer.getInstance()
-            .getWebserviceUrl();
+        String zkPropertyTransferServiceUrl =
+            ZKPropertyTransferServer.getInstance().getWebserviceUrl();
         if (zkPropertyTransferServiceUrl != null) {
           leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
         }

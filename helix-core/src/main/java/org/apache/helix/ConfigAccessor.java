@@ -39,59 +39,47 @@ import org.apache.log4j.Logger;
  * Provides access to the persistent configuration of the cluster, the instances that live on it,
  * and the logical resources assigned to it.
  */
-public class ConfigAccessor
-{
-  private static Logger               LOG      = Logger.getLogger(ConfigAccessor.class);
+public class ConfigAccessor {
+  private static Logger LOG = Logger.getLogger(ConfigAccessor.class);
 
   private static final StringTemplate template = new StringTemplate();
-  static
-  {
+  static {
     // @formatter:off
     template.addEntry(ConfigScopeProperty.CLUSTER, 1, "/{clusterName}/CONFIGS/CLUSTER");
-    template.addEntry(ConfigScopeProperty.CLUSTER,
-                      2,
-                      "/{clusterName}/CONFIGS/CLUSTER/{clusterName}|SIMPLEKEYS");
-    template.addEntry(ConfigScopeProperty.PARTICIPANT,
-                      1,
-                      "/{clusterName}/CONFIGS/PARTICIPANT");
-    template.addEntry(ConfigScopeProperty.PARTICIPANT,
-                      2,
-                      "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.CLUSTER, 2,
+        "/{clusterName}/CONFIGS/CLUSTER/{clusterName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.PARTICIPANT, 1, "/{clusterName}/CONFIGS/PARTICIPANT");
+    template.addEntry(ConfigScopeProperty.PARTICIPANT, 2,
+        "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}|SIMPLEKEYS");
     template.addEntry(ConfigScopeProperty.RESOURCE, 1, "/{clusterName}/CONFIGS/RESOURCE");
-    template.addEntry(ConfigScopeProperty.RESOURCE,
-                      2,
-                      "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|SIMPLEKEYS");
-    template.addEntry(ConfigScopeProperty.PARTITION,
-                      2,
-                      "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPKEYS");
-    template.addEntry(ConfigScopeProperty.PARTITION,
-                      3,
-                      "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPMAPKEYS|{partitionName}");
+    template.addEntry(ConfigScopeProperty.RESOURCE, 2,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|SIMPLEKEYS");
+    template.addEntry(ConfigScopeProperty.PARTITION, 2,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPKEYS");
+    template.addEntry(ConfigScopeProperty.PARTITION, 3,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|MAPMAPKEYS|{partitionName}");
     // @formatter:on
   }
 
-  private final ZkClient              zkClient;
+  private final ZkClient zkClient;
 
   /**
    * Initialize an accessor with a Zookeeper client
    * @param zkClient
    */
-  public ConfigAccessor(ZkClient zkClient)
-  {
+  public ConfigAccessor(ZkClient zkClient) {
     this.zkClient = zkClient;
   }
 
   /**
    * get config
    * @deprecated replaced by {@link #get(HelixConfigScope, String)}
-   *
    * @param scope
    * @param key
    * @return value or null if doesn't exist
    */
   @Deprecated
-  public String get(ConfigScope scope, String key)
-  {
+  public String get(ConfigScope scope, String key) {
     Map<String, String> map = get(scope, Arrays.asList(key));
     return map.get(key);
   }
@@ -99,16 +87,13 @@ public class ConfigAccessor
   /**
    * get configs
    * @deprecated replaced by {@link #get(HelixConfigScope, List<String>)}
-   *
    * @param scope
    * @param keys
    * @return
    */
   @Deprecated
-  public Map<String, String> get(ConfigScope scope, List<String> keys)
-  {
-    if (scope == null || scope.getScope() == null)
-    {
+  public Map<String, String> get(ConfigScope scope, List<String> keys) {
+    if (scope == null || scope.getScope() == null) {
       LOG.error("Scope can't be null");
       return null;
     }
@@ -116,8 +101,7 @@ public class ConfigAccessor
     // String value = null;
     Map<String, String> map = new HashMap<String, String>();
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient))
-    {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
@@ -126,20 +110,15 @@ public class ConfigAccessor
 
     ZNRecord record = zkClient.readData(splits[0], true);
 
-    if (record != null)
-    {
-      if (splits.length == 1)
-      {
+    if (record != null) {
+      if (splits.length == 1) {
         for (String key : keys) {
           if (record.getSimpleFields().containsKey(key)) {
             map.put(key, record.getSimpleField(key));
           }
         }
-      }
-      else if (splits.length == 2)
-      {
-        if (record.getMapField(splits[1]) != null)
-        {
+      } else if (splits.length == 2) {
+        if (record.getMapField(splits[1]) != null) {
           for (String key : keys) {
             if (record.getMapField(splits[1]).containsKey(key)) {
               map.put(key, record.getMapField(splits[1]).get(key));
@@ -154,9 +133,8 @@ public class ConfigAccessor
 
   /**
    * get a single config entry
-   *
    * @param scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param key the identifier of the configuration entry
    * @return the configuration entry
    */
@@ -170,14 +148,13 @@ public class ConfigAccessor
 
   /**
    * get many config entries
-   *
    * @param scope scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param keys the identifiers of the configuration entries
    * @return the configuration entries, organized by key
    */
   public Map<String, String> get(HelixConfigScope scope, List<String> keys) {
-    if (scope == null || scope.getType()== null || !scope.isFullKey()) {
+    if (scope == null || scope.getType() == null || !scope.isFullKey()) {
       LOG.error("fail to get configs. invalid config scope. scope: " + scope + ", keys: " + keys);
       return null;
     }
@@ -222,7 +199,6 @@ public class ConfigAccessor
   /**
    * Set config, create if not exist
    * @deprecated replaced by {@link #set(HelixConfigScope, String, String)}
-   *
    * @param scope
    * @param key
    * @param value
@@ -237,31 +213,29 @@ public class ConfigAccessor
   /**
    * Set configs, create if not exist
    * @deprecated replaced by {@link #set(HelixConfigScope, Map<String, String>)}
-   *
    * @param scope
    * @param keyValueMap
    */
   @Deprecated
-  public void set(ConfigScope scope, Map<String, String> keyValueMap)
-  {
-    if (scope == null || scope.getScope() == null)
-    {
+  public void set(ConfigScope scope, Map<String, String> keyValueMap) {
+    if (scope == null || scope.getScope() == null) {
       LOG.error("Scope can't be null");
       return;
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient))
-    {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("cluster: " + clusterName + " is NOT setup.");
     }
 
     if (scope.getScope() == ConfigScopeProperty.PARTICIPANT) {
-       String scopeStr = scope.getScopeStr();
-       String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
-       if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), instanceName, InstanceType.PARTICIPANT)) {
-           throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: " + clusterName);
-       }
+      String scopeStr = scope.getScopeStr();
+      String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
+      if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), instanceName,
+          InstanceType.PARTICIPANT)) {
+        throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: "
+            + clusterName);
+      }
     }
 
     // use "|" to delimit resource and partition. e.g. /MyCluster/CONFIGS/PARTICIPANT/MyDB|MyDB_0
@@ -270,20 +244,16 @@ public class ConfigAccessor
 
     String id = splits[0].substring(splits[0].lastIndexOf('/') + 1);
     ZNRecord update = new ZNRecord(id);
-    if (splits.length == 1)
-    {
-      for (String key: keyValueMap.keySet()) {
+    if (splits.length == 1) {
+      for (String key : keyValueMap.keySet()) {
         String value = keyValueMap.get(key);
         update.setSimpleField(key, value);
       }
-    }
-    else if (splits.length == 2)
-    {
-      if (update.getMapField(splits[1]) == null)
-      {
+    } else if (splits.length == 2) {
+      if (update.getMapField(splits[1]) == null) {
         update.setMapField(splits[1], new TreeMap<String, String>());
       }
-      for (String key: keyValueMap.keySet()) {
+      for (String key : keyValueMap.keySet()) {
         String value = keyValueMap.get(key);
         update.getMapField(splits[1]).put(key, value);
       }
@@ -294,9 +264,8 @@ public class ConfigAccessor
 
   /**
    * Set config, creating it if it doesn't exist
-   *
    * @param scope scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param key the identifier of the configuration entry
    * @param value the configuration
    */
@@ -308,13 +277,11 @@ public class ConfigAccessor
 
   /**
    * Set multiple configs, creating them if they don't exist
-   *
    * @param scope scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param keyValueMap configurations organized by their identifiers
    */
-  public void set(HelixConfigScope scope, Map<String, String> keyValueMap)
-  {
+  public void set(HelixConfigScope scope, Map<String, String> keyValueMap) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
       LOG.error("fail to set config. invalid config scope. scope: " + scope);
       return;
@@ -326,11 +293,11 @@ public class ConfigAccessor
     }
 
     if (scope.getType() == ConfigScopeProperty.PARTICIPANT) {
-       if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), scope.getParticipantName(),
-               InstanceType.PARTICIPANT)) {
-           throw new HelixException("fail to set config. instance: " + scope.getParticipantName()
-               + " is NOT setup in cluster: " + clusterName);
-       }
+      if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), scope.getParticipantName(),
+          InstanceType.PARTICIPANT)) {
+        throw new HelixException("fail to set config. instance: " + scope.getParticipantName()
+            + " is NOT setup in cluster: " + clusterName);
+      }
     }
 
     String zkPath = scope.getZkPath();
@@ -340,7 +307,7 @@ public class ConfigAccessor
     if (mapKey == null) {
       update.getSimpleFields().putAll(keyValueMap);
     } else {
-        update.setMapField(mapKey, keyValueMap);
+      update.setMapField(mapKey, keyValueMap);
     }
     ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
     return;
@@ -349,7 +316,6 @@ public class ConfigAccessor
   /**
    * Remove config
    * @deprecated replaced by {@link #remove(HelixConfigScope, String)}
-   *
    * @param scope
    * @param key
    */
@@ -361,22 +327,18 @@ public class ConfigAccessor
   /**
    * remove configs
    * @deprecated replaced by {@link #remove(HelixConfigScope, List<String>)}
-   *
    * @param scope
    * @param keys
    */
   @Deprecated
-  public void remove(ConfigScope scope, List<String> keys)
-  {
-    if (scope == null || scope.getScope() == null)
-    {
+  public void remove(ConfigScope scope, List<String> keys) {
+    if (scope == null || scope.getScope() == null) {
       LOG.error("Scope can't be null");
       return;
     }
 
     String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient))
-    {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
@@ -385,17 +347,13 @@ public class ConfigAccessor
 
     String id = splits[0].substring(splits[0].lastIndexOf('/') + 1);
     ZNRecord update = new ZNRecord(id);
-    if (splits.length == 1)
-    {
+    if (splits.length == 1) {
       // subtract doesn't care about value, use empty string
       for (String key : keys) {
         update.setSimpleField(key, "");
       }
-    }
-    else if (splits.length == 2)
-    {
-      if (update.getMapField(splits[1]) == null)
-      {
+    } else if (splits.length == 2) {
+      if (update.getMapField(splits[1]) == null) {
         update.setMapField(splits[1], new TreeMap<String, String>());
       }
       // subtract doesn't care about value, use empty string
@@ -410,9 +368,8 @@ public class ConfigAccessor
 
   /**
    * Remove a single config
-   *
    * @param scope scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param key the identifier of the configuration entry
    */
   public void remove(HelixConfigScope scope, String key) {
@@ -421,13 +378,11 @@ public class ConfigAccessor
 
   /**
    * Remove multiple configs
-   *
    * @param scope scope specification of the entity set to query
-   *    (e.g. cluster, resource, participant, etc.)
+   *          (e.g. cluster, resource, participant, etc.)
    * @param keys the identifiers of the configuration entries
    */
-  public void remove(HelixConfigScope scope, List<String> keys)
-  {
+  public void remove(HelixConfigScope scope, List<String> keys) {
     if (scope == null || scope.getType() == null || !scope.isFullKey()) {
       LOG.error("fail to remove. invalid scope: " + scope + ", keys: " + keys);
       return;
@@ -462,27 +417,20 @@ public class ConfigAccessor
   /**
    * get config keys
    * @deprecated replaced by {@link #getKeys(HelixConfigScope)}
-   *
    * @param type
    * @param clusterName
    * @param keys
    * @return
    */
   @Deprecated
-  public List<String> getKeys(ConfigScopeProperty type,
-                              String clusterName,
-                              String... keys)
-  {
-    if (type == null || clusterName == null)
-    {
+  public List<String> getKeys(ConfigScopeProperty type, String clusterName, String... keys) {
+    if (type == null || clusterName == null) {
       LOG.error("clusterName|scope can't be null");
       return Collections.emptyList();
     }
 
-    try
-    {
-      if (!ZKUtil.isClusterSetup(clusterName, zkClient))
-      {
+    try {
+      if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
         LOG.error("cluster " + clusterName + " is not setup yet");
         return Collections.emptyList();
       }
@@ -493,48 +441,35 @@ public class ConfigAccessor
       String scopeStr = template.instantiate(type, args);
       String[] splits = scopeStr.split("\\|");
       List<String> retKeys = null;
-      if (splits.length == 1)
-      {
+      if (splits.length == 1) {
         retKeys = zkClient.getChildren(splits[0]);
-      }
-      else
-      {
+      } else {
         ZNRecord record = zkClient.readData(splits[0]);
 
-        if (splits[1].startsWith("SIMPLEKEYS"))
-        {
+        if (splits[1].startsWith("SIMPLEKEYS")) {
           retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
 
-        }
-        else if (splits[1].startsWith("MAPKEYS"))
-        {
+        } else if (splits[1].startsWith("MAPKEYS")) {
           retKeys = new ArrayList<String>(record.getMapFields().keySet());
-        }
-        else if (splits[1].startsWith("MAPMAPKEYS"))
-        {
+        } else if (splits[1].startsWith("MAPMAPKEYS")) {
           retKeys = new ArrayList<String>(record.getMapField(splits[2]).keySet());
         }
       }
-      if (retKeys == null)
-      {
+      if (retKeys == null) {
         LOG.error("Invalid scope: " + type + " or keys: " + Arrays.toString(args));
         return Collections.emptyList();
       }
 
       Collections.sort(retKeys);
       return retKeys;
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       return Collections.emptyList();
     }
 
   }
 
-
   /**
    * Get list of config keys for a scope
-   *
    * @param scope
    * @return a list of configuration keys
    */
@@ -544,7 +479,7 @@ public class ConfigAccessor
       return null;
     }
 
-    if (!ZKUtil.isClusterSetup(scope.getClusterName(), zkClient)){
+    if (!ZKUtil.isClusterSetup(scope.getClusterName(), zkClient)) {
       LOG.error("fail to getKeys. cluster " + scope.getClusterName() + " is not setup yet");
       return Collections.emptyList();
     }

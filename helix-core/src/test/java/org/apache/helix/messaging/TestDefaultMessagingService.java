@@ -43,40 +43,30 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
+public class TestDefaultMessagingService {
+  class MockHelixManager extends Mocks.MockManager {
+    class MockDataAccessor extends Mocks.MockAccessor {
 
-public class TestDefaultMessagingService
-{
-  class MockHelixManager extends Mocks.MockManager
-  {
-    class MockDataAccessor extends Mocks.MockAccessor
-    {
-      
       @Override
-      public <T extends HelixProperty> T getProperty(PropertyKey key)
-      {
-        
+      public <T extends HelixProperty> T getProperty(PropertyKey key) {
+
         PropertyType type = key.getType();
-        if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
-        {
+        if (type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES) {
           return (T) new ExternalView(_externalView);
         }
         return null;
       }
 
       @Override
-      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
-      {
+      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key) {
         PropertyType type = key.getType();
         List<T> result = new ArrayList<T>();
         Class<? extends HelixProperty> clazz = key.getTypeClass();
-        if(type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES)
-        {
+        if (type == PropertyType.EXTERNALVIEW || type == PropertyType.IDEALSTATES) {
           HelixProperty typedInstance = HelixProperty.convertToTypedInstance(clazz, _externalView);
           result.add((T) typedInstance);
           return result;
-        }
-        else if(type == PropertyType.LIVEINSTANCES)
-        {
+        } else if (type == PropertyType.LIVEINSTANCES) {
           return (List<T>) HelixProperty.convertToTypedList(clazz, _liveInstances);
         }
 
@@ -92,102 +82,87 @@ public class TestDefaultMessagingService
     int _replicas = 3;
     int _partitions = 50;
 
-    public MockHelixManager()
-    {
+    public MockHelixManager() {
       _liveInstances = new ArrayList<ZNRecord>();
       _instances = new ArrayList<String>();
-      for(int i = 0;i<5; i++)
-      {
-        String instance = "localhost_"+(12918+i);
+      for (int i = 0; i < 5; i++) {
+        String instance = "localhost_" + (12918 + i);
         _instances.add(instance);
         ZNRecord metaData = new ZNRecord(instance);
-        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
-            UUID.randomUUID().toString());
+        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), UUID.randomUUID()
+            .toString());
         _liveInstances.add(metaData);
       }
-      _externalView = DefaultIdealStateCalculator.calculateIdealState(
-          _instances, _partitions, _replicas, _db, "MASTER", "SLAVE");
+      _externalView =
+          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
+              "MASTER", "SLAVE");
 
     }
 
     @Override
-    public boolean isConnected()
-    {
+    public boolean isConnected() {
       return true;
     }
 
     @Override
-    public HelixDataAccessor getHelixDataAccessor()
-    {
+    public HelixDataAccessor getHelixDataAccessor() {
       return _accessor;
     }
 
-
     @Override
-    public String getInstanceName()
-    {
+    public String getInstanceName() {
       return "localhost_12919";
     }
 
     @Override
-    public InstanceType getInstanceType()
-    {
+    public InstanceType getInstanceType() {
       return InstanceType.PARTICIPANT;
     }
   }
 
-  class TestMessageHandlerFactory implements MessageHandlerFactory
-  {
-    class TestMessageHandler extends MessageHandler
-    {
+  class TestMessageHandlerFactory implements MessageHandlerFactory {
+    class TestMessageHandler extends MessageHandler {
 
-      public TestMessageHandler(Message message, NotificationContext context)
-      {
+      public TestMessageHandler(Message message, NotificationContext context) {
         super(message, context);
         // TODO Auto-generated constructor stub
       }
 
       @Override
-      public HelixTaskResult handleMessage() throws InterruptedException
-      {
+      public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         return result;
       }
 
       @Override
-      public void onError( Exception e, ErrorCode code, ErrorType type)
-      {
+      public void onError(Exception e, ErrorCode code, ErrorType type) {
         // TODO Auto-generated method stub
-        
+
       }
     }
+
     @Override
-    public MessageHandler createHandler(Message message,
-        NotificationContext context)
-    {
+    public MessageHandler createHandler(Message message, NotificationContext context) {
       // TODO Auto-generated method stub
       return new TestMessageHandler(message, context);
     }
 
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       // TODO Auto-generated method stub
       return "TestingMessageHandler";
     }
 
     @Override
-    public void reset()
-    {
+    public void reset() {
       // TODO Auto-generated method stub
 
     }
   }
 
   @Test()
-  public void TestMessageSend()
-  {
+  public void TestMessageSend() {
     HelixManager manager = new MockHelixManager();
     DefaultMessagingService svc = new DefaultMessagingService(manager);
     TestMessageHandlerFactory factory = new TestMessageHandlerFactory();
@@ -203,7 +178,6 @@ public class TestDefaultMessagingService
 
     recipientCriteria.setSelfExcluded(false);
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
-
 
     recipientCriteria.setSelfExcluded(false);
     recipientCriteria.setInstanceName("%");
@@ -228,7 +202,6 @@ public class TestDefaultMessagingService
     recipientCriteria.setResource("DB");
     recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
-
 
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");

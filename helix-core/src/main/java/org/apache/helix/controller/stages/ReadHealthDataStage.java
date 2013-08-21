@@ -25,25 +25,20 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.log4j.Logger;
 
-
-public class ReadHealthDataStage extends AbstractBaseStage
-{
+public class ReadHealthDataStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(ReadHealthDataStage.class.getName());
   HealthDataCache _cache;
 
-  public ReadHealthDataStage()
-  {
+  public ReadHealthDataStage() {
     _cache = new HealthDataCache();
   }
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
 
     HelixManager manager = event.getAttribute("helixmanager");
-    if (manager == null)
-    {
+    if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
     }
     // DataAccessor dataAccessor = manager.getDataAccessor();
@@ -56,4 +51,3 @@ public class ReadHealthDataStage extends AbstractBaseStage
     addLatencyToMonitor(event, processLatency);
   }
 }
-

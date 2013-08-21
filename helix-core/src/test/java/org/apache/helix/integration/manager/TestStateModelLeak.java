@@ -43,8 +43,7 @@ import org.testng.annotations.Test;
 /**
  * test drop resource should remove state-models
  */
-public class TestStateModelLeak extends ZkUnitTestBase
-{
+public class TestStateModelLeak extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestStateModelLeak.class);
 
   /**
@@ -52,8 +51,7 @@ public class TestStateModelLeak extends ZkUnitTestBase
    * @throws Exception
    */
   @Test
-  public void testDrop() throws Exception
-  {
+  public void testDrop() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -63,33 +61,35 @@ public class TestStateModelLeak extends ZkUnitTestBase
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            4, // partitions per resource
-                            n, // number of nodes
-                            2, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
     Assert.assertTrue(result);
 
     // check state-models in state-machine
-    HelixStateMachineEngine stateMachine = (HelixStateMachineEngine) participants[0].getStateMachineEngine();
+    HelixStateMachineEngine stateMachine =
+        (HelixStateMachineEngine) participants[0].getStateMachineEngine();
     StateModelFactory<? extends StateModel> fty = stateMachine.getStateModelFactory("MasterSlave");
     Map<String, String> expectStateModelMap = new TreeMap<String, String>();
     expectStateModelMap.put("TestDB0_0", "SLAVE");
@@ -102,17 +102,18 @@ public class TestStateModelLeak extends ZkUnitTestBase
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, "TestDB0");
 
-    result = ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(), "All state-models should be dropped, but was "
-    + fty.getPartitionSet());
+    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
+        "All state-models should be dropped, but was " + fty.getPartitionSet());
 
     // cleanup
     controller.syncStop();
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
 
@@ -124,8 +125,7 @@ public class TestStateModelLeak extends ZkUnitTestBase
    * @throws Exception
    */
   @Test
-  public void testDropErrorPartition() throws Exception
-  {
+  public void testDropErrorPartition() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -135,27 +135,25 @@ public class TestStateModelLeak extends ZkUnitTestBase
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            4, // partitions per resource
-                            n, // number of nodes
-                            2, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
-      if (i == 0)
-      {
+      if (i == 0) {
         Map<String, Set<String>> errTransitionMap = new HashMap<String, Set<String>>();
         Set<String> partitions = new HashSet<String>();
         partitions.add("TestDB0_0");
@@ -169,11 +167,14 @@ public class TestStateModelLeak extends ZkUnitTestBase
     Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
     errStates.put("TestDB0", new HashMap<String, String>());
     errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
-    boolean result = ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName, errStates));
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName, errStates));
     Assert.assertTrue(result);
 
     // check state-models in state-machine
-    HelixStateMachineEngine stateMachine = (HelixStateMachineEngine) participants[0].getStateMachineEngine();
+    HelixStateMachineEngine stateMachine =
+        (HelixStateMachineEngine) participants[0].getStateMachineEngine();
     StateModelFactory<? extends StateModel> fty = stateMachine.getStateModelFactory("MasterSlave");
     Map<String, String> expectStateModelMap = new TreeMap<String, String>();
     expectStateModelMap.put("TestDB0_0", "ERROR");
@@ -186,17 +187,18 @@ public class TestStateModelLeak extends ZkUnitTestBase
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, "TestDB0");
 
-    result = ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(), "All state-models should be dropped, but was "
-    + fty.getPartitionSet());
+    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
+        "All state-models should be dropped, but was " + fty.getPartitionSet());
 
     // cleanup
     controller.syncStop();
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
 
@@ -205,21 +207,19 @@ public class TestStateModelLeak extends ZkUnitTestBase
 
   /**
    * check state-model factory contains state-models same as in expect-state-model map
-   *
    * @param fty
    * @param expectStateModelMap
    */
-  static void checkStateModelMap(StateModelFactory<? extends StateModel> fty, Map<String, String> expectStateModelMap)
-  {
+  static void checkStateModelMap(StateModelFactory<? extends StateModel> fty,
+      Map<String, String> expectStateModelMap) {
     Assert.assertEquals(fty.getPartitionSet().size(), expectStateModelMap.size());
-    for (String partition : fty.getPartitionSet())
-    {
+    for (String partition : fty.getPartitionSet()) {
       StateModel stateModel = fty.getStateModel(partition);
       String actualState = stateModel.getCurrentState();
       String expectState = expectStateModelMap.get(partition);
       LOG.debug(partition + " actual state: " + actualState + ", expect state: " + expectState);
-      Assert.assertEquals(actualState, expectState, "partition: " + partition + " should be in state: " + expectState
-                          + " but was " + actualState);
+      Assert.assertEquals(actualState, expectState, "partition: " + partition
+          + " should be in state: " + expectState + " but was " + actualState);
     }
   }
 }

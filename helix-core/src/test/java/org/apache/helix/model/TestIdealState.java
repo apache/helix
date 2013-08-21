@@ -28,17 +28,13 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @SuppressWarnings("deprecation")
-public class TestIdealState
-{
+public class TestIdealState {
   @Test
-  public void testGetInstanceSet()
-  {
+  public void testGetInstanceSet() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String testName = className + "_" + methodName;
-    System.out.println("START " + testName + " at "
-        + new Date(System.currentTimeMillis()));
-
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     IdealState idealState = new IdealState("idealState");
     idealState.getRecord().setListField("TestDB_0", Arrays.asList("node_1", "node_2"));
@@ -50,27 +46,26 @@ public class TestIdealState
     // test SEMI_AUTO mode
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     Set<String> instances = idealState.getInstanceSet("TestDB_0");
-//    System.out.println("instances: " + instances);
+    // System.out.println("instances: " + instances);
     Assert.assertEquals(instances.size(), 2, "Should contain node_1 and node_2");
     Assert.assertTrue(instances.contains("node_1"), "Should contain node_1 and node_2");
     Assert.assertTrue(instances.contains("node_2"), "Should contain node_1 and node_2");
 
     instances = idealState.getInstanceSet("TestDB_nonExist_auto");
     Assert.assertEquals(instances, Collections.emptySet(), "Should get empty set");
-    
+
     // test CUSTOMIZED mode
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     instances = idealState.getInstanceSet("TestDB_1");
-//    System.out.println("instances: " + instances);
+    // System.out.println("instances: " + instances);
     Assert.assertEquals(instances.size(), 2, "Should contain node_3 and node_4");
     Assert.assertTrue(instances.contains("node_3"), "Should contain node_3 and node_4");
     Assert.assertTrue(instances.contains("node_4"), "Should contain node_3 and node_4");
 
     instances = idealState.getInstanceSet("TestDB_nonExist_custom");
     Assert.assertEquals(instances, Collections.emptySet(), "Should get empty set");
-    
-    System.out.println("END " + testName + " at "
-        + new Date(System.currentTimeMillis()));
+
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
@@ -85,11 +80,13 @@ public class TestIdealState
     List<String> preferenceList = new ArrayList<String>();
     preferenceList.add("node_0");
     idealState.getRecord().setListField("test-db_0", preferenceList);
-    Assert.assertFalse(idealState.isValid(), "should fail since replicas not equals to preference-list size");
+    Assert.assertFalse(idealState.isValid(),
+        "should fail since replicas not equals to preference-list size");
 
     preferenceList.add("node_1");
     idealState.getRecord().setListField("test-db_0", preferenceList);
-    Assert.assertTrue(idealState.isValid(), "should pass since replicas equals to preference-list size");
+    Assert.assertTrue(idealState.isValid(),
+        "should pass since replicas equals to preference-list size");
   }
 
   @Test

@@ -19,7 +19,6 @@ package org.apache.helix.controller.pipeline;
  * under the License.
  */
 
-public class StageContext
-{
+public class StageContext {
 
 }

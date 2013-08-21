@@ -26,56 +26,44 @@ import java.util.TreeMap;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
-
 /**
  * External view is an aggregation (across all instances)
- *  of current states for the partitions in a resource
+ * of current states for the partitions in a resource
  */
-public class ExternalView extends HelixProperty
-{
-  public ExternalView(String resource)
-  {
+public class ExternalView extends HelixProperty {
+  public ExternalView(String resource) {
     super(new ZNRecord(resource));
   }
 
-  public ExternalView(ZNRecord record)
-  {
+  public ExternalView(ZNRecord record) {
     super(record);
   }
 
-  public void setState(String partition, String instance, String state)
-  {
-    if(_record.getMapField(partition) == null)
-    {
+  public void setState(String partition, String instance, String state) {
+    if (_record.getMapField(partition) == null) {
       _record.setMapField(partition, new TreeMap<String, String>());
     }
     _record.getMapField(partition).put(instance, state);
   }
 
-  public void setStateMap(String partitionName,
-      Map<String, String> currentStateMap)
-  {
+  public void setStateMap(String partitionName, Map<String, String> currentStateMap) {
     _record.setMapField(partitionName, currentStateMap);
   }
 
-  public Set<String> getPartitionSet()
-  {
+  public Set<String> getPartitionSet() {
     return _record.getMapFields().keySet();
   }
 
-  public Map<String, String> getStateMap(String partitionName)
-  {
+  public Map<String, String> getStateMap(String partitionName) {
     return _record.getMapField(partitionName);
   }
 
-  public String getResourceName()
-  {
+  public String getResourceName() {
     return _record.getId();
   }
 
   @Override
-  public boolean isValid()
-  {
+  public boolean isValid() {
     return true;
   }
 }

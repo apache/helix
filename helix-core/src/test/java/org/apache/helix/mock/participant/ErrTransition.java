@@ -28,41 +28,33 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
 // simulate error transition
-public class ErrTransition extends MockTransition
-{
+public class ErrTransition extends MockTransition {
   private final Map<String, Set<String>> _errPartitions;
 
-  public ErrTransition(Map<String, Set<String>> errPartitions)
-  {
-    if (errPartitions != null)
-    {
+  public ErrTransition(Map<String, Set<String>> errPartitions) {
+    if (errPartitions != null) {
       // change key to upper case
       _errPartitions = new HashMap<String, Set<String>>();
-      for (String key : errPartitions.keySet())
-      {
+      for (String key : errPartitions.keySet()) {
         String upperKey = key.toUpperCase();
         _errPartitions.put(upperKey, errPartitions.get(key));
       }
-    }
-    else
-    {
+    } else {
       _errPartitions = Collections.emptyMap();
     }
   }
 
   @Override
-  public void doTransition(Message message, NotificationContext context)
-  {
+  public void doTransition(Message message, NotificationContext context) {
     String fromState = message.getFromState();
     String toState = message.getToState();
     String partition = message.getPartitionName();
 
     String key = (fromState + "-" + toState).toUpperCase();
-    if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition))
-    {
+    if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition)) {
       String errMsg =
-          "IGNORABLE: test throw exception in msgId: " + message.getId() + " for " + partition + " transit from "
-              + fromState + " to " + toState;
+          "IGNORABLE: test throw exception in msgId: " + message.getId() + " for " + partition
+              + " transit from " + fromState + " to " + toState;
       throw new RuntimeException(errMsg);
     }
   }

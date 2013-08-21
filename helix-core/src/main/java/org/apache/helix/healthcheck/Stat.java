@@ -23,8 +23,7 @@ import org.apache.log4j.Logger;
 
 import java.util.Map;
 
-public class Stat
-{
+public class Stat {
 
   private static final Logger _logger = Logger.getLogger(Stat.class);
 
@@ -48,19 +47,15 @@ public class Stat
   public String _aggTypeName;
   public String _timestamp;
 
-  public Stat(String opType, String measurementType, String resourceName,
-      String partitionName, String nodeName)
-  {
+  public Stat(String opType, String measurementType, String resourceName, String partitionName,
+      String nodeName) {
     // this(opType, measurementType, resourceName, partitionName, nodeName,
     // null, null, null);
-    this(opType, measurementType, resourceName, partitionName, nodeName, null,
-        null, null);
+    this(opType, measurementType, resourceName, partitionName, nodeName, null, null, null);
   }
 
-  public Stat(String opType, String measurementType, String resourceName,
-      String partitionName, String nodeName, String returnStatus,
-      String metricName, AggregationType aggType)
-  {
+  public Stat(String opType, String measurementType, String resourceName, String partitionName,
+      String nodeName, String returnStatus, String metricName, AggregationType aggType) {
     this._opType = opType;
     this._measurementType = measurementType;
     this._resourceName = resourceName;
@@ -69,16 +64,14 @@ public class Stat
     this._returnStatus = returnStatus;
     this._metricName = metricName;
     this._aggTypeName = null;
-    if (aggType != null)
-    {
+    if (aggType != null) {
       this._aggTypeName = aggType.getName();
     }
 
     _timestamp = String.valueOf(System.currentTimeMillis());
   }
 
-  public Stat(Map<String, String> in)
-  {
+  public Stat(Map<String, String> in) {
     _opType = in.get(OP_TYPE);
     _measurementType = in.get(MEASUREMENT_TYPE);
     _resourceName = in.get(RESOURCE_NAME);
@@ -87,59 +80,46 @@ public class Stat
     _timestamp = String.valueOf(System.currentTimeMillis());
   }
 
-  public void setAggType(AggregationType aggType)
-  {
+  public void setAggType(AggregationType aggType) {
     this._aggTypeName = aggType.getName();
   }
 
   @Override
-  public boolean equals(Object obj)
-  {
-    if (!(obj instanceof Stat))
-    {
+  public boolean equals(Object obj) {
+    if (!(obj instanceof Stat)) {
       return false;
     }
     Stat other = (Stat) obj;
-    if (!_partitionName.equals(other._partitionName))
-    {
+    if (!_partitionName.equals(other._partitionName)) {
       return false;
     }
-    if (!_opType.equals(other._opType))
-    {
+    if (!_opType.equals(other._opType)) {
       return false;
     }
-    if (!_measurementType.equals(other._measurementType))
-    {
+    if (!_measurementType.equals(other._measurementType)) {
       return false;
     }
-    if (!_resourceName.equals(other._resourceName))
-    {
+    if (!_resourceName.equals(other._resourceName)) {
       return false;
     }
-    if (!_nodeName.equals(other._nodeName))
-    {
+    if (!_nodeName.equals(other._nodeName)) {
       return false;
     }
     return true;
   }
 
   @Override
-  public int hashCode()
-  {
-    return (_partitionName + _opType + _measurementType + _resourceName + _nodeName)
-        .hashCode();
+  public int hashCode() {
+    return (_partitionName + _opType + _measurementType + _resourceName + _nodeName).hashCode();
   }
 
-  public void addAlert(long value)
-  {
+  public void addAlert(long value) {
     // TODO Auto-generated method stub
 
   }
 
-  public String toString()
-  {
-    return _nodeName + "." + _resourceName + "." + _partitionName + "."
-        + _opType + "." + _measurementType + "." + _returnStatus + "."
-        + _metricName + "." + _aggTypeName;
+  public String toString() {
+    return _nodeName + "." + _resourceName + "." + _partitionName + "." + _opType + "."
+        + _measurementType + "." + _returnStatus + "." + _metricName + "." + _aggTypeName;
   }
 }

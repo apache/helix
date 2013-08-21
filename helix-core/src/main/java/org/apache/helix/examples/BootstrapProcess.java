@@ -1,5 +1,5 @@
-
 package org.apache.helix.examples;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -47,7 +47,6 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterStateVerifier;
 
-
 /**
  * This process does little more than handling the state transition messages.
  * This is generally the case when the server needs to bootstrap when it comes
@@ -56,18 +55,15 @@ import org.apache.helix.tools.ClusterStateVerifier;
  * <ul>
  * <li>Gets OFFLINE-SLAVE transition</li>
  * <li>Figure out if it has any data and how old it is for the SLAVE partition</li>
- * <li>If the data is fresh enough it can probably catch up from the replication
- * stream of the master</li>
- * <li>If not, then it can use the messaging service provided by cluster manager
- * to talk other nodes to figure out if they have any backup</li>
- * </li>
- * <li>Once it gets a response from other nodes in the cluster the process can
- * decide which back up it wants to use to bootstrap</li>
+ * <li>If the data is fresh enough it can probably catch up from the replication stream of the
+ * master</li>
+ * <li>If not, then it can use the messaging service provided by cluster manager to talk other nodes
+ * to figure out if they have any backup</li> </li>
+ * <li>Once it gets a response from other nodes in the cluster the process can decide which back up
+ * it wants to use to bootstrap</li>
  * </ul>
- *
  */
-public class BootstrapProcess
-{
+public class BootstrapProcess {
   static final String REQUEST_BOOTSTRAP_URL = "REQUEST_BOOTSTRAP_URL";
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
@@ -85,15 +81,14 @@ public class BootstrapProcess
   private final String stateModelType;
   private HelixManager manager;
 
-//  private StateMachineEngine genericStateMachineHandler;
+  // private StateMachineEngine genericStateMachineHandler;
 
   private String _file = null;
   private StateModelFactory<StateModel> stateModelFactory;
   private final int delay;
 
-  public BootstrapProcess(String zkConnectString, String clusterName,
-      String instanceName, String stateModel, int delay)
-  {
+  public BootstrapProcess(String zkConnectString, String clusterName, String instanceName,
+      String stateModel, int delay) {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
@@ -101,88 +96,68 @@ public class BootstrapProcess
     this.delay = delay;
   }
 
-  public void start() throws Exception
-  {
-      manager = HelixManagerFactory.getZKHelixManager(clusterName,
-                                                          instanceName,
-                                                          InstanceType.PARTICIPANT,
-                                                          zkConnectString);
+  public void start() throws Exception {
+    manager =
+        HelixManagerFactory.getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT,
+            zkConnectString);
 
-    
     stateModelFactory = new BootstrapHandler();
-//    genericStateMachineHandler = new StateMachineEngine();
-//    genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
-    
+    // genericStateMachineHandler = new StateMachineEngine();
+    // genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
+
     StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
-    
+
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), stateMach);
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.USER_DEFINE_MSG.toString(),
-        new CustomMessageHandlerFactory());
+        MessageType.USER_DEFINE_MSG.toString(), new CustomMessageHandlerFactory());
     manager.connect();
   }
 
-  public static class CustomMessageHandlerFactory implements
-      MessageHandlerFactory
-  {
+  public static class CustomMessageHandlerFactory implements MessageHandlerFactory {
 
     @Override
-    public MessageHandler createHandler(Message message,
-        NotificationContext context)
-    {
+    public MessageHandler createHandler(Message message, NotificationContext context) {
 
       return new CustomMessageHandler(message, context);
     }
 
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       return MessageType.USER_DEFINE_MSG.toString();
     }
 
     @Override
-    public void reset()
-    {
+    public void reset() {
 
     }
 
-    static class CustomMessageHandler extends MessageHandler
-    {
+    static class CustomMessageHandler extends MessageHandler {
 
-      public CustomMessageHandler(Message message, NotificationContext context)
-      {
+      public CustomMessageHandler(Message message, NotificationContext context) {
         super(message, context);
         // TODO Auto-generated constructor stub
       }
 
       @Override
-      public HelixTaskResult handleMessage() throws InterruptedException
-      {
+      public HelixTaskResult handleMessage() throws InterruptedException {
         String hostName;
         HelixTaskResult result = new HelixTaskResult();
-        try
-        {
+        try {
           hostName = InetAddress.getLocalHost().getCanonicalHostName();
-        } catch (UnknownHostException e)
-        {
+        } catch (UnknownHostException e) {
           hostName = "UNKNOWN";
         }
         String port = "2134";
         String msgSubType = _message.getMsgSubType();
-        if (msgSubType.equals(REQUEST_BOOTSTRAP_URL))
-        {
+        if (msgSubType.equals(REQUEST_BOOTSTRAP_URL)) {
           result.getTaskResultMap().put(
               "BOOTSTRAP_URL",
-              "http://" + hostName + ":" + port
-                  + "/getFile?path=/data/bootstrap/"
-                  + _message.getResourceName() + "/"
-                  + _message.getPartitionName() + ".tar");
+              "http://" + hostName + ":" + port + "/getFile?path=/data/bootstrap/"
+                  + _message.getResourceName() + "/" + _message.getPartitionName() + ".tar");
 
-          result.getTaskResultMap().put(
-              "BOOTSTRAP_TIME",
-              ""+new Date().getTime());
+          result.getTaskResultMap().put("BOOTSTRAP_TIME", "" + new Date().getTime());
         }
 
         result.setSuccess(true);
@@ -190,59 +165,58 @@ public class BootstrapProcess
       }
 
       @Override
-      public void onError( Exception e, ErrorCode code, ErrorType type)
-      {
+      public void onError(Exception e, ErrorCode code, ErrorType type) {
         e.printStackTrace();
       }
     }
   }
 
-
   @SuppressWarnings("static-access")
-  private static Options constructCommandLineOptions()
-  {
-    Option helpOption = OptionBuilder.withLongOpt(help)
-        .withDescription("Prints command-line options info").create();
+  private static Options constructCommandLineOptions() {
+    Option helpOption =
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
-    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
-        .withDescription("Provide zookeeper address").create();
+    Option zkServerOption =
+        OptionBuilder.withLongOpt(zkServer).withDescription("Provide zookeeper address").create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
-    Option clusterOption = OptionBuilder.withLongOpt(cluster)
-        .withDescription("Provide cluster name").create();
+    Option clusterOption =
+        OptionBuilder.withLongOpt(cluster).withDescription("Provide cluster name").create();
     clusterOption.setArgs(1);
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
-    Option hostOption = OptionBuilder.withLongOpt(hostAddress)
-        .withDescription("Provide host name").create();
+    Option hostOption =
+        OptionBuilder.withLongOpt(hostAddress).withDescription("Provide host name").create();
     hostOption.setArgs(1);
     hostOption.setRequired(true);
     hostOption.setArgName("Host name (Required)");
 
-    Option portOption = OptionBuilder.withLongOpt(hostPort)
-        .withDescription("Provide host port").create();
+    Option portOption =
+        OptionBuilder.withLongOpt(hostPort).withDescription("Provide host port").create();
     portOption.setArgs(1);
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
 
-    Option stateModelOption = OptionBuilder.withLongOpt(stateModel)
-        .withDescription("StateModel Type").create();
+    Option stateModelOption =
+        OptionBuilder.withLongOpt(stateModel).withDescription("StateModel Type").create();
     stateModelOption.setArgs(1);
     stateModelOption.setRequired(true);
     stateModelOption.setArgName("StateModel Type (Required)");
 
     // add an option group including either --zkSvr or --configFile
-    Option fileOption = OptionBuilder.withLongOpt(configFile)
-        .withDescription("Provide file to read states/messages").create();
+    Option fileOption =
+        OptionBuilder.withLongOpt(configFile)
+            .withDescription("Provide file to read states/messages").create();
     fileOption.setArgs(1);
     fileOption.setRequired(true);
     fileOption.setArgName("File to read states/messages (Optional)");
 
-    Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
-        .withDescription("Provide state trans delay").create();
+    Option transDelayOption =
+        OptionBuilder.withLongOpt(transDelay).withDescription("Provide state trans delay").create();
     transDelayOption.setArgs(1);
     transDelayOption.setRequired(false);
     transDelayOption.setArgName("Delay time in state transition, in MS");
@@ -265,41 +239,33 @@ public class BootstrapProcess
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.printHelp("java " + BootstrapProcess.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-      throws Exception
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    try
-    {
+    try {
       return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
-      System.err
-          .println("CommandLineClient: failed to parse command-line options: "
-              + pe.toString());
+    } catch (ParseException pe) {
+      System.err.println("CommandLineClient: failed to parse command-line options: "
+          + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }
     return null;
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     String zkConnectString = "localhost:2181";
     String clusterName = "storage-integration-cluster";
     String instanceName = "localhost_8905";
     String stateModelValue = "MasterSlave";
     int delay = 0;
     boolean skipZeroArgs = true;// false is for dev testing
-    if (!skipZeroArgs || args.length > 0)
-    {
+    if (!skipZeroArgs || args.length > 0) {
       CommandLine cmd = processCommandLineArgs(args);
       zkConnectString = cmd.getOptionValue(zkServer);
       clusterName = cmd.getOptionValue(cluster);
@@ -309,19 +275,14 @@ public class BootstrapProcess
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
 
-
       stateModelValue = cmd.getOptionValue(stateModel);
-      if (cmd.hasOption(transDelay))
-      {
-        try
-        {
+      if (cmd.hasOption(transDelay)) {
+        try {
           delay = Integer.parseInt(cmd.getOptionValue(transDelay));
-          if (delay < 0)
-          {
+          if (delay < 0) {
             throw new Exception("delay must be positive");
           }
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
           e.printStackTrace();
           delay = 0;
         }
@@ -330,46 +291,39 @@ public class BootstrapProcess
     // Espresso_driver.py will consume this
     System.out.println("Starting Process with ZK:" + zkConnectString);
 
-    BootstrapProcess process = new BootstrapProcess(zkConnectString,
-        clusterName, instanceName, stateModelValue, delay);
+    BootstrapProcess process =
+        new BootstrapProcess(zkConnectString, clusterName, instanceName, stateModelValue, delay);
 
     process.start();
     Thread.currentThread().join();
   }
 }
 
-class BootstrapReplyHandler extends AsyncCallback
-{
+class BootstrapReplyHandler extends AsyncCallback {
 
-  public BootstrapReplyHandler()
-  {
+  public BootstrapReplyHandler() {
   }
 
   private String bootstrapUrl;
   private String bootstrapTime;
 
   @Override
-  public void onTimeOut()
-  {
+  public void onTimeOut() {
     System.out.println("Timed out");
   }
 
-  public String getBootstrapUrl()
-  {
+  public String getBootstrapUrl() {
     return bootstrapUrl;
   }
 
-  public String getBootstrapTime()
-  {
+  public String getBootstrapTime() {
     return bootstrapTime;
   }
 
   @Override
-  public void onReplyMessage(Message message)
-  {
+  public void onReplyMessage(Message message) {
     String time = message.getResultMap().get("BOOTSTRAP_TIME");
-    if (bootstrapTime == null || time.compareTo(bootstrapTime) > -1)
-    {
+    if (bootstrapTime == null || time.compareTo(bootstrapTime) > -1) {
       bootstrapTime = message.getResultMap().get("BOOTSTRAP_TIME");
       bootstrapUrl = message.getResultMap().get("BOOTSTRAP_URL");
     }

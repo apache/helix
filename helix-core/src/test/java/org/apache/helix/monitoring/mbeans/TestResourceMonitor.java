@@ -39,32 +39,24 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestResourceMonitor
-{
+public class TestResourceMonitor {
   String _clusterName = "Test-cluster";
   String _dbName = "TestDB";
   int _replicas = 3;
   int _partitions = 50;
 
-  class MockHelixManager extends Mocks.MockManager
-  {
-    class MockDataAccessor extends Mocks.MockAccessor
-    {
+  class MockHelixManager extends Mocks.MockManager {
+    class MockDataAccessor extends Mocks.MockAccessor {
       @Override
-      public <T extends HelixProperty> List<T>  getChildValues(PropertyKey key)
-      {
+      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key) {
         List<T> result = new ArrayList<T>();
         PropertyType type = key.getType();
         Class<? extends HelixProperty> clazz = key.getTypeClass();
-        if (type == PropertyType.EXTERNALVIEW)
-        {
+        if (type == PropertyType.EXTERNALVIEW) {
           HelixProperty typedInstance = HelixProperty.convertToTypedInstance(clazz, _externalView);
           result.add((T) typedInstance);
           return result;
-        }
-        else if (type == PropertyType.LIVEINSTANCES)
-        {
+        } else if (type == PropertyType.LIVEINSTANCES) {
           return (List<T>) HelixProperty.convertToTypedList(clazz, _liveInstances);
         }
 
@@ -72,15 +64,11 @@ public class TestResourceMonitor
       }
 
       @Override
-      public  <T extends HelixProperty> T  getProperty(PropertyKey key)
-      {
+      public <T extends HelixProperty> T getProperty(PropertyKey key) {
         PropertyType type = key.getType();
-        if (type == PropertyType.EXTERNALVIEW)
-        {
+        if (type == PropertyType.EXTERNALVIEW) {
           return (T) new ExternalView(_externalView);
-        }
-        else if (type == PropertyType.IDEALSTATES)
-        {
+        } else if (type == PropertyType.IDEALSTATES) {
           return (T) new IdealState(_idealState);
         }
         return null;
@@ -94,46 +82,38 @@ public class TestResourceMonitor
     List<ZNRecord> _liveInstances;
     String _db = "DB";
 
-    public MockHelixManager()
-    {
+    public MockHelixManager() {
       _liveInstances = new ArrayList<ZNRecord>();
       _instances = new ArrayList<String>();
-      for(int i = 0;i<5; i++)
-      {
-        String instance = "localhost_"+(12918+i);
+      for (int i = 0; i < 5; i++) {
+        String instance = "localhost_" + (12918 + i);
         _instances.add(instance);
         ZNRecord metaData = new ZNRecord(instance);
-        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
-            UUID.randomUUID().toString());
+        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), UUID.randomUUID()
+            .toString());
 
       }
-      _idealState= DefaultIdealStateCalculator.calculateIdealState(_instances,
-                                                                          _partitions,
-                                                                          _replicas,
-                                                                          _dbName,
-                                                                          "MASTER",
-                                                                          "SLAVE");
+      _idealState =
+          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas,
+              _dbName, "MASTER", "SLAVE");
       _externalView = new ZNRecord(_idealState);
     }
 
     @Override
-    public HelixDataAccessor getHelixDataAccessor()
-    {
+    public HelixDataAccessor getHelixDataAccessor() {
       return _accessor;
     }
 
   }
 
   @Test()
-  public void TestReportData()
-  {
+  public void TestReportData() {
     MockHelixManager manager = new MockHelixManager();
     ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName);
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    ExternalView externalView = 
-        helixDataAccessor.getProperty(keyBuilder.externalView(_dbName));
+    ExternalView externalView = helixDataAccessor.getProperty(keyBuilder.externalView(_dbName));
     IdealState idealState = helixDataAccessor.getProperty(keyBuilder.idealStates(_dbName));
 
     monitor.updateExternalView(externalView, idealState);
@@ -145,8 +125,7 @@ public class TestResourceMonitor
     monitor.getBeanName();
 
     int n = 4;
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       Map<String, String> map = externalView.getStateMap(_dbName + "_" + 3 * i);
       String key = map.keySet().toArray()[0].toString();
       map.put(key, "ERROR");
@@ -160,14 +139,12 @@ public class TestResourceMonitor
     AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
 
     n = 5;
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       externalView.getRecord().getMapFields().remove(_dbName + "_" + 4 * i);
     }
 
     monitor.updateExternalView(externalView, idealState);
-    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n
-        * (_replicas + 1));
+    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n * (_replicas + 1));
     AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 3);
     AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions - n);
     AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);

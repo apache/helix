@@ -38,24 +38,22 @@ import org.apache.log4j.Logger;
  * This is a Rebalancer specific to semi-automatic mode. It is tasked with computing the ideal
  * state of a resource based on a predefined preference list of instances willing to accept
  * replicas.
- *
  * The input is the optional current assignment of partitions to instances, as well as the required
  * existing instance preferences.
- *
  * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
  * with state s.
  */
 public class SemiAutoRebalancer implements Rebalancer {
 
   private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);
+
   @Override
   public void init(HelixManager manager) {
   }
 
   @Override
-  public IdealState computeNewIdealState(String resourceName,
-      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     return currentIdealState;
   }
 
@@ -73,8 +71,8 @@ public class SemiAutoRebalancer implements Rebalancer {
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(partition.toString());
-      List<String> preferenceList = ConstraintBasedAssignment.getPreferenceList(cache, partition,
-          idealState, stateModelDef);
+      List<String> preferenceList =
+          ConstraintBasedAssignment.getPreferenceList(cache, partition, idealState, stateModelDef);
       Map<String, String> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, stateModelDef,
               preferenceList, currentStateMap, disabledInstancesForPartition);

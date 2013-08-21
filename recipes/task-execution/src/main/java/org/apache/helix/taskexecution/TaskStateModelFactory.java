@@ -22,19 +22,20 @@ package org.apache.helix.taskexecution;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
-	private final String _workerId;
-	private final TaskFactory _taskFactory;
-	private TaskResultStore _taskResultStore;
+  private final String _workerId;
+  private final TaskFactory _taskFactory;
+  private TaskResultStore _taskResultStore;
 
-	public TaskStateModelFactory(String workerId, TaskFactory taskFactory, TaskResultStore taskResultStore) {
-		_workerId = workerId;
-		_taskFactory = taskFactory;
-		_taskResultStore = taskResultStore;
-	}
+  public TaskStateModelFactory(String workerId, TaskFactory taskFactory,
+      TaskResultStore taskResultStore) {
+    _workerId = workerId;
+    _taskFactory = taskFactory;
+    _taskResultStore = taskResultStore;
+  }
 
-	@Override
-	public TaskStateModel createNewStateModel(String partition) {
-		TaskStateModel model = new TaskStateModel(_workerId, partition, _taskFactory, _taskResultStore);
-		return model;
-	}
+  @Override
+  public TaskStateModel createNewStateModel(String partition) {
+    TaskStateModel model = new TaskStateModel(_workerId, partition, _taskFactory, _taskResultStore);
+    return model;
+  }
 }

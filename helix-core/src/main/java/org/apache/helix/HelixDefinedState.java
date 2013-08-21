@@ -19,24 +19,22 @@ package org.apache.helix;
  * under the License.
  */
 
-
 /**
-* helix defined states
-*
-* ERROR : when errors happen during state transitions, transit to ERROR state
-*            participant will also invoke state-model.on-err(), ignore errors in state-model.on-err()
-*         when drop resource in ERROR state and not disabled, controller sends ERROR->DROPPED transition
-*            if errors happen in ERROR->DROPPED transition, participant will disable resource/partition
-*         when disable resource/partition in ERROR state, resource/partition will be marked disabled
-*            but controller not send any transitions
-*         when reset resource/partition in ERROR state and not disabled
-*            controller send ERROR->initial-state transition
-*            if errors happen in ERROR->initial-state transition, remain in ERROR state
-* DROPPED : when drop resource in a non-ERROR state and not disabled
-*            controller sends all the transitions from current-state to initial-state
-*            then sends initial-state->DROPPED transition
-* @see HELIX-43: add support for dropping partitions in error state
-*/
+ * helix defined states
+ * ERROR : when errors happen during state transitions, transit to ERROR state
+ * participant will also invoke state-model.on-err(), ignore errors in state-model.on-err()
+ * when drop resource in ERROR state and not disabled, controller sends ERROR->DROPPED transition
+ * if errors happen in ERROR->DROPPED transition, participant will disable resource/partition
+ * when disable resource/partition in ERROR state, resource/partition will be marked disabled
+ * but controller not send any transitions
+ * when reset resource/partition in ERROR state and not disabled
+ * controller send ERROR->initial-state transition
+ * if errors happen in ERROR->initial-state transition, remain in ERROR state
+ * DROPPED : when drop resource in a non-ERROR state and not disabled
+ * controller sends all the transitions from current-state to initial-state
+ * then sends initial-state->DROPPED transition
+ * @see HELIX-43: add support for dropping partitions in error state
+ */
 public enum HelixDefinedState {
   ERROR,
   DROPPED

@@ -45,18 +45,14 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestZkHelixAdmin extends ZkUnitTestBase
-{
+public class TestZkHelixAdmin extends ZkUnitTestBase {
   @Test()
-  public void testZkHelixAdmin()
-  {
+  public void testZkHelixAdmin() {
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = getShortClassName();
     String rootPath = "/" + clusterName;
-    if (_gZkClient.exists(rootPath))
-    {
+    if (_gZkClient.exists(rootPath)) {
       _gZkClient.deleteRecursive(rootPath);
     }
 
@@ -69,17 +65,15 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     List<String> list = tool.getClusters();
     AssertJUnit.assertTrue(list.size() > 0);
 
-    try
-    {
+    try {
       Stat oldstat = _gZkClient.getStat(rootPath);
       Assert.assertNotNull(oldstat);
       boolean success = tool.addCluster(clusterName, false);
-      //Even though it exists, it should return true but it should not make any changes in zk
+      // Even though it exists, it should return true but it should not make any changes in zk
       Assert.assertTrue(success);
       Stat newstat = _gZkClient.getStat(rootPath);
       Assert.assertEquals(oldstat, newstat);
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
 
@@ -88,134 +82,105 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     config.setPort("9999");
     tool.addInstance(clusterName, config);
     tool.enableInstance(clusterName, "host1_9999", true);
-    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES,
-        clusterName, "host1_9999");
+    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "host1_9999");
     AssertJUnit.assertTrue(_gZkClient.exists(path));
 
-    try
-    {
+    try {
       tool.addInstance(clusterName, config);
       Assert.fail("should fail if add an alredy-existing instance");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
     config = tool.getInstanceConfig(clusterName, "host1_9999");
     AssertJUnit.assertEquals(config.getId(), "host1_9999");
 
     tool.dropInstance(clusterName, config);
-    try
-    {
+    try {
       tool.getInstanceConfig(clusterName, "host1_9999");
       Assert.fail("should fail if get a non-existent instance");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
-    try
-    {
+    try {
       tool.dropInstance(clusterName, config);
       Assert.fail("should fail if drop on a non-existent instance");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
-    try
-    {
+    try {
       tool.enableInstance(clusterName, "host1_9999", false);
       Assert.fail("should fail if enable a non-existent instance");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
     ZNRecord stateModelRecord = new ZNRecord("id1");
-    try
-    {
-      tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(
-          stateModelRecord));
-      path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,
-          clusterName, "id1");
+    try {
+      tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));
+      path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
       AssertJUnit.assertTrue(_gZkClient.exists(path));
       Assert.fail("should fail");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
+      // OK
+    } catch (IllegalArgumentException ex) {
       // OK
     }
-    catch(IllegalArgumentException ex)
-    {
-      // OK
-    }
-    
-    tool.addStateModelDef(clusterName,
-        "MasterSlave",
-        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
+
+    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
     stateModelRecord = StateModelConfigGenerator.generateConfigForMasterSlave();
-    try
-    {
+    try {
       tool.addStateModelDef(clusterName, stateModelRecord.getId(), new StateModelDefinition(
           stateModelRecord));
       Assert.fail("should fail if add an already-existing state model");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
     list = tool.getStateModelDefs(clusterName);
     AssertJUnit.assertEquals(list.size(), 1);
 
-    try
-    {
-      tool.addResource(clusterName, "resource", 10,
-          "nonexistStateModelDef");
-      Assert
-          .fail("should fail if add a resource without an existing state model");
-    } catch (HelixException e)
-    {
+    try {
+      tool.addResource(clusterName, "resource", 10, "nonexistStateModelDef");
+      Assert.fail("should fail if add a resource without an existing state model");
+    } catch (HelixException e) {
       // OK
     }
-    try
-    {
+    try {
       tool.addResource(clusterName, "resource", 10, "id1");
       Assert.fail("should fail");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
     list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
-    try
-    {
+    try {
       tool.addResource(clusterName, "resource", 10, "id1");
       Assert.fail("should fail");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
     list = tool.getResourcesInCluster(clusterName);
     AssertJUnit.assertEquals(list.size(), 0);
 
-    ExternalView resourceExternalView = tool.getResourceExternalView(
-        clusterName, "resource");
+    ExternalView resourceExternalView = tool.getResourceExternalView(clusterName, "resource");
     AssertJUnit.assertNull(resourceExternalView);
 
     // test config support
-//    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-//        .forResource("testResource").forPartition("testPartition").build();
-    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
-                                  .forCluster(clusterName)
-                                  .forResource("testResource")
-                                  .forPartition("testPartition")
-                                  .build();
-  
+    // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
+    // .forResource("testResource").forPartition("testPartition").build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
+            .forResource("testResource").forPartition("testPartition").build();
+
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("pKey1", "pValue1");
     properties.put("pKey2", "pValue2");
-    
+
     // make sure calling set/getConfig() many times will not drain zkClient resources
     // int nbOfZkClients = ZkClient.getNumberOfConnections();
-    for (int i = 0; i < 100; i++)
-    {
+    for (int i = 0; i < 100; i++) {
       tool.setConfig(scope, properties);
-      Map<String, String> newProperties = tool.getConfig(scope, new ArrayList<String>(properties.keySet()));
+      Map<String, String> newProperties =
+          tool.getConfig(scope, new ArrayList<String>(properties.keySet()));
       Assert.assertEquals(newProperties.size(), 2);
       Assert.assertEquals(newProperties.get("pKey1"), "pValue1");
       Assert.assertEquals(newProperties.get("pKey2"), "pValue2");
@@ -225,100 +190,102 @@ public class TestZkHelixAdmin extends ZkUnitTestBase
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
   }
 
-    // drop resource should drop corresponding resource-level config also
-    @Test
-    public void testDropResource() {
-        String className = TestHelper.getTestClassName();
-        String methodName = TestHelper.getTestMethodName();
-        String clusterName = className + "_" + methodName;
+  // drop resource should drop corresponding resource-level config also
+  @Test
+  public void testDropResource() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
 
-        System.out.println("START " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-        ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-        tool.addCluster(clusterName, true);
-        Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    tool.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
-        tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
-        tool.addResource(clusterName, "test-db", 4, "MasterSlave");
-        Map<String, String> resourceConfig = new HashMap<String, String>();
-        resourceConfig.put("key1", "value1");
-        tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
-                                .forCluster(clusterName)
-                                .forResource("test-db")
-                                .build(), 
-                       resourceConfig);
+    tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
+    tool.addResource(clusterName, "test-db", 4, "MasterSlave");
+    Map<String, String> resourceConfig = new HashMap<String, String>();
+    resourceConfig.put("key1", "value1");
+    tool.setConfig(new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
+        .forCluster(clusterName).forResource("test-db").build(), resourceConfig);
 
-        PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
-        Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()), "test-db ideal-state should exist");
-        Assert.assertTrue(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()), "test-db resource config should exist");
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
+        "test-db ideal-state should exist");
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()),
+        "test-db resource config should exist");
 
-        tool.dropResource(clusterName, "test-db");
-        Assert.assertFalse(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()), "test-db ideal-state should be dropped");
-        Assert.assertFalse(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()), "test-db resource config should be dropped");
+    tool.dropResource(clusterName, "test-db");
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
+        "test-db ideal-state should be dropped");
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()),
+        "test-db resource config should be dropped");
 
-        System.out.println("END " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
-    }
-    
-    // test add/remove message constraint
-    @Test
-    public void testAddRemoveMsgConstraint() {
-      String className = TestHelper.getTestClassName();
-      String methodName = TestHelper.getTestMethodName();
-      String clusterName = className + "_" + methodName;
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 
-      System.out.println("START " + clusterName + " at "
-              + new Date(System.currentTimeMillis()));
+  // test add/remove message constraint
+  @Test
+  public void testAddRemoveMsgConstraint() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
 
-      ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-      tool.addCluster(clusterName, true);
-      Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-      // test admin.getMessageConstraints()
-      ClusterConstraints constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
-      Assert.assertNull(constraints, "message-constraint should NOT exist for cluster: " + className);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    tool.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
-      // remove non-exist constraint
-      try {
-        tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
-        // will leave a null message-constraint znode on zk
-      } catch (Exception e) {
-        Assert.fail("Should not throw exception when remove a non-exist constraint.");
-      }
+    // test admin.getMessageConstraints()
+    ClusterConstraints constraints =
+        tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
+    Assert.assertNull(constraints, "message-constraint should NOT exist for cluster: " + className);
 
-      // add a message constraint
-      ConstraintItemBuilder builder = new ConstraintItemBuilder();
-      builder.addConstraintAttribute(ConstraintAttribute.RESOURCE.toString(), "MyDB")
-             .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
-      tool.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
-
-      HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-      PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
-      constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
-      Assert.assertNotNull(constraints, "message-constraint should exist");
-      ConstraintItem item = constraints.getConstraintItem("constraint1");
-      Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
-      Assert.assertEquals(item.getConstraintValue(), "1");
-      Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
-      
-      // test admin.getMessageConstraints()
-      constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
-      Assert.assertNotNull(constraints, "message-constraint should exist");
-      item = constraints.getConstraintItem("constraint1");
-      Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
-      Assert.assertEquals(item.getConstraintValue(), "1");
-      Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
-      
-
-      // remove a exist message-constraint
+    // remove non-exist constraint
+    try {
       tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
-      constraints = accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
-      Assert.assertNotNull(constraints, "message-constraint should exist");
-      item = constraints.getConstraintItem("constraint1");
-      Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
-
-      System.out.println("END " + clusterName + " at "
-              + new Date(System.currentTimeMillis()));
+      // will leave a null message-constraint znode on zk
+    } catch (Exception e) {
+      Assert.fail("Should not throw exception when remove a non-exist constraint.");
     }
+
+    // add a message constraint
+    ConstraintItemBuilder builder = new ConstraintItemBuilder();
+    builder.addConstraintAttribute(ConstraintAttribute.RESOURCE.toString(), "MyDB")
+        .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
+    tool.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1",
+        builder.build());
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+    constraints =
+        accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+    Assert.assertNotNull(constraints, "message-constraint should exist");
+    ConstraintItem item = constraints.getConstraintItem("constraint1");
+    Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
+    Assert.assertEquals(item.getConstraintValue(), "1");
+    Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
+
+    // test admin.getMessageConstraints()
+    constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
+    Assert.assertNotNull(constraints, "message-constraint should exist");
+    item = constraints.getConstraintItem("constraint1");
+    Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
+    Assert.assertEquals(item.getConstraintValue(), "1");
+    Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
+
+    // remove a exist message-constraint
+    tool.removeConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
+    constraints =
+        accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
+    Assert.assertNotNull(constraints, "message-constraint should exist");
+    item = constraints.getConstraintItem("constraint1");
+    Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 }

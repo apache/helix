@@ -31,24 +31,20 @@ import org.apache.helix.AccessOption;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-public class HelixGroupCommit<T>
-{
+public class HelixGroupCommit<T> {
   private static Logger LOG = Logger.getLogger(HelixGroupCommit.class);
 
-  private static class Queue<T>
-  {
-    final AtomicReference<Thread>      _running = new AtomicReference<Thread>();
+  private static class Queue<T> {
+    final AtomicReference<Thread> _running = new AtomicReference<Thread>();
     final ConcurrentLinkedQueue<Entry<T>> _pending = new ConcurrentLinkedQueue<Entry<T>>();
   }
 
-  private static class Entry<T>
-  {
-    final String         _key;
+  private static class Entry<T> {
+    final String _key;
     final DataUpdater<T> _updater;
-    AtomicBoolean        _sent = new AtomicBoolean(false);
+    AtomicBoolean _sent = new AtomicBoolean(false);
 
-    Entry(String key, DataUpdater<T> updater)
-    {
+    Entry(String key, DataUpdater<T> updater) {
       _key = key;
       _updater = updater;
     }
@@ -56,40 +52,30 @@ public class HelixGroupCommit<T>
 
   private final Queue<T>[] _queues = new Queue[100];
 
-  public HelixGroupCommit()
-  {
+  public HelixGroupCommit() {
     // Don't use Arrays.fill();
-    for (int i = 0; i < _queues.length; ++i)
-    {
+    for (int i = 0; i < _queues.length; ++i) {
       _queues[i] = new Queue<T>();
     }
   }
 
-  private Queue<T> getQueue(String key)
-  {
+  private Queue<T> getQueue(String key) {
     return _queues[(key.hashCode() & Integer.MAX_VALUE) % _queues.length];
   }
 
-  public boolean commit(ZkBaseDataAccessor<T> accessor,
-                        int options,
-                        String key,
-                        DataUpdater<T> updater)
-  {
+  public boolean commit(ZkBaseDataAccessor<T> accessor, int options, String key,
+      DataUpdater<T> updater) {
     Queue<T> queue = getQueue(key);
     Entry<T> entry = new Entry<T>(key, updater);
 
     queue._pending.add(entry);
 
-    while (!entry._sent.get())
-    {
-      if (queue._running.compareAndSet(null, Thread.currentThread()))
-      {
+    while (!entry._sent.get()) {
+      if (queue._running.compareAndSet(null, Thread.currentThread())) {
         ArrayList<Entry<T>> processed = new ArrayList<Entry<T>>();
-        try
-        {
+        try {
           Entry<T> first = queue._pending.peek();
-          if (first == null)
-          {
+          if (first == null) {
             return true;
           }
 
@@ -100,25 +86,20 @@ public class HelixGroupCommit<T>
           String mergedKey = first._key;
 
           boolean retry;
-          do
-          {
+          do {
             retry = false;
 
-            try
-            {
+            try {
               T merged = null;
 
               Stat readStat = new Stat();
-              
+
               // to create a new znode, we need set version to -1
               readStat.setVersion(-1);
-              try
-              {
+              try {
                 // accessor will fallback to zk if not found in cache
                 merged = accessor.get(mergedKey, readStat, options);
-              }
-              catch (ZkNoNodeException e)
-              {
+              } catch (ZkNoNodeException e) {
                 // OK
               }
 
@@ -127,11 +108,9 @@ public class HelixGroupCommit<T>
 
               // iterate over processed if we are retrying
               Iterator<Entry<T>> it = processed.iterator();
-              while (it.hasNext())
-              {
+              while (it.hasNext()) {
                 Entry<T> ent = it.next();
-                if (!ent._key.equals(mergedKey))
-                {
+                if (!ent._key.equals(mergedKey)) {
                   continue;
                 }
                 merged = ent._updater.update(merged);
@@ -140,11 +119,9 @@ public class HelixGroupCommit<T>
 
               // iterate over queue._pending for newly coming requests
               it = queue._pending.iterator();
-              while (it.hasNext())
-              {
+              while (it.hasNext()) {
                 Entry<T> ent = it.next();
-                if (!ent._key.equals(mergedKey))
-                {
+                if (!ent._key.equals(mergedKey)) {
                   continue;
                 }
                 processed.add(ent);
@@ -154,37 +131,24 @@ public class HelixGroupCommit<T>
               }
               // System.out.println("size:"+ processed.size());
               accessor.set(mergedKey, merged, readStat.getVersion(), options);
-            }
-            catch (ZkBadVersionException e)
-            {
+            } catch (ZkBadVersionException e) {
               retry = true;
             }
-          }
-          while (retry);
-        }
-        finally
-        {
+          } while (retry);
+        } finally {
           queue._running.set(null);
-          for (Entry<T> e : processed)
-          {
-            synchronized (e)
-            {
+          for (Entry<T> e : processed) {
+            synchronized (e) {
               e._sent.set(true);
               e.notify();
             }
           }
         }
-      }
-      else
-      {
-        synchronized (entry)
-        {
-          try
-          {
+      } else {
+        synchronized (entry) {
+          try {
             entry.wait(10);
-          }
-          catch (InterruptedException e)
-          {
+          } catch (InterruptedException e) {
             e.printStackTrace();
             return false;
           }

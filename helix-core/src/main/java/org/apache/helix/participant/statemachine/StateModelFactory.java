@@ -26,8 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
-public abstract class StateModelFactory<T extends StateModel>
-{
+public abstract class StateModelFactory<T extends StateModel> {
   /**
    * mapping from partitionName to StateModel
    */
@@ -36,12 +35,11 @@ public abstract class StateModelFactory<T extends StateModel>
   /**
    * mapping from resourceName to BatchMessageWrapper
    */
-  private final ConcurrentMap<String, BatchMessageWrapper> _batchMsgWrapperMap
-      = new ConcurrentHashMap<String, BatchMessageWrapper>();
+  private final ConcurrentMap<String, BatchMessageWrapper> _batchMsgWrapperMap =
+      new ConcurrentHashMap<String, BatchMessageWrapper>();
 
   /**
    * This method will be invoked only once per partitionName per session
-   *
    * @param partitionName
    * @return
    */
@@ -49,67 +47,55 @@ public abstract class StateModelFactory<T extends StateModel>
 
   /**
    * Create a state model for a partition
-   *
    * @param partitionName
    */
-  public T createAndAddStateModel(String partitionName)
-  {
-		T stateModel = createNewStateModel(partitionName);
-	    _stateModelMap.put(partitionName, stateModel);
-	    return stateModel;
+  public T createAndAddStateModel(String partitionName) {
+    T stateModel = createNewStateModel(partitionName);
+    _stateModelMap.put(partitionName, stateModel);
+    return stateModel;
   }
 
   /**
    * Get the state model for a partition
-   *
    * @param partitionName
    * @return state model if exists, null otherwise
    */
-  public T getStateModel(String partitionName)
-  {
+  public T getStateModel(String partitionName) {
     return _stateModelMap.get(partitionName);
   }
 
   /**
    * remove state model for a partition
-   *
    * @param partitionName
    * @return state model removed or null if not exist
    */
-  public T removeStateModel(String partitionName)
-  {
+  public T removeStateModel(String partitionName) {
     return _stateModelMap.remove(partitionName);
   }
 
   /**
    * get partition set
-   *
    * @return partition key set
    */
-  public Set<String> getPartitionSet()
-  {
+  public Set<String> getPartitionSet() {
     return _stateModelMap.keySet();
   }
 
   /**
    * create a default batch-message-wrapper for a resource
-   *
    * @param resourceName
    * @return
    */
-  public BatchMessageWrapper createBatchMessageWrapper(String resourceName)
-  {
+  public BatchMessageWrapper createBatchMessageWrapper(String resourceName) {
     return new BatchMessageWrapper();
   }
 
   /**
    * create a batch-message-wrapper for a resource and put it into map
-   *
    * @param resourceName
    * @return
    */
-  public BatchMessageWrapper createAndAddBatchMessageWrapper(String resourceName)
-  {
+  public BatchMessageWrapper createAndAddBatchMessageWrapper(String resourceName) {
     BatchMessageWrapper wrapper = createBatchMessageWrapper(resourceName);
     _batchMsgWrapperMap.put(resourceName, wrapper);
     return wrapper;
@@ -117,12 +103,10 @@ public abstract class StateModelFactory<T extends StateModel>
 
   /**
    * get batch-message-wrapper for a resource
-   *
    * @param resourceName
    * @return
    */
-  public BatchMessageWrapper getBatchMessageWrapper(String resourceName)
-  {
+  public BatchMessageWrapper getBatchMessageWrapper(String resourceName) {
     return _batchMsgWrapperMap.get(resourceName);
   }
 

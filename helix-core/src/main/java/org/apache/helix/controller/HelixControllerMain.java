@@ -52,9 +52,7 @@ import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-
-public class HelixControllerMain
-{
+public class HelixControllerMain {
   public static final String zkServerAddress = "zkSvr";
   public static final String cluster = "cluster";
   public static final String help = "help";
@@ -67,47 +65,48 @@ public class HelixControllerMain
 
   // hack: OptionalBuilder is not thread safe
   @SuppressWarnings("static-access")
-  synchronized private static Options constructCommandLineOptions()
-  {
-    Option helpOption = OptionBuilder.withLongOpt(help)
-        .withDescription("Prints command-line options info").create();
+  synchronized private static Options constructCommandLineOptions() {
+    Option helpOption =
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
-    Option zkServerOption = OptionBuilder.withLongOpt(zkServerAddress)
-        .withDescription("Provide zookeeper address").create();
+    Option zkServerOption =
+        OptionBuilder.withLongOpt(zkServerAddress).withDescription("Provide zookeeper address")
+            .create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
-    Option clusterOption = OptionBuilder.withLongOpt(cluster)
-        .withDescription("Provide cluster name").create();
+    Option clusterOption =
+        OptionBuilder.withLongOpt(cluster).withDescription("Provide cluster name").create();
     clusterOption.setArgs(1);
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
-    Option modeOption = OptionBuilder
-        .withLongOpt(mode)
-        .withDescription(
-            "Provide cluster controller mode (Optional): STANDALONE (default) or DISTRIBUTED")
-        .create();
+    Option modeOption =
+        OptionBuilder
+            .withLongOpt(mode)
+            .withDescription(
+                "Provide cluster controller mode (Optional): STANDALONE (default) or DISTRIBUTED")
+            .create();
     modeOption.setArgs(1);
     modeOption.setRequired(false);
     modeOption.setArgName("Cluster controller mode (Optional)");
 
-    Option controllerNameOption = OptionBuilder.withLongOpt(name)
-        .withDescription("Provide cluster controller name (Optional)").create();
+    Option controllerNameOption =
+        OptionBuilder.withLongOpt(name)
+            .withDescription("Provide cluster controller name (Optional)").create();
     controllerNameOption.setArgs(1);
     controllerNameOption.setRequired(false);
     controllerNameOption.setArgName("Cluster controller name (Optional)");
-    
-    Option portOption = OptionBuilder
-        .withLongOpt(propertyTransferServicePort)
-        .withDescription(
-            "Webservice port for ZkProperty controller transfer")
-        .create();
+
+    Option portOption =
+        OptionBuilder.withLongOpt(propertyTransferServicePort)
+            .withDescription("Webservice port for ZkProperty controller transfer").create();
     portOption.setArgs(1);
     portOption.setRequired(false);
     portOption.setArgName("Cluster controller property transfer port (Optional)");
-    
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
@@ -119,23 +118,19 @@ public class HelixControllerMain
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + HelixControllerMain.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
 
-    try
-    {
+    try {
       return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
+    } catch (ParseException pe) {
       logger.error("fail to parse command-line options. cliArgs: " + Arrays.toString(cliArgs), pe);
       printUsage(cliOptions);
       System.exit(1);
@@ -144,45 +139,39 @@ public class HelixControllerMain
   }
 
   public static void addListenersToController(HelixManager manager,
-      GenericHelixController controller)
-  {
-    try
-    {
+      GenericHelixController controller) {
+    try {
       manager.addConfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view
       // manager.addExternalViewChangeListener(controller);
       manager.addControllerListener(controller);
-    } catch (ZkInterruptedException e)
-    {
+    } catch (ZkInterruptedException e) {
       logger
           .warn("zk connection is interrupted during HelixManagerMain.addListenersToController(). "
               + e);
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       logger.error("Error when creating HelixManagerContollerMonitor", e);
     }
   }
 
   public static HelixManager startHelixController(final String zkConnectString,
-      final String clusterName, final String controllerName, final String controllerMode)
-  {
+      final String clusterName, final String controllerName, final String controllerMode) {
     HelixManager manager = null;
-    try
-    {
-      if (controllerMode.equalsIgnoreCase(STANDALONE))
-      {
-        manager = HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
-            InstanceType.CONTROLLER, zkConnectString);
+    try {
+      if (controllerMode.equalsIgnoreCase(STANDALONE)) {
+        manager =
+            HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
+                InstanceType.CONTROLLER, zkConnectString);
         manager.connect();
-      } else if (controllerMode.equalsIgnoreCase(DISTRIBUTED))
-      {
-        manager = HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
-            InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
+      } else if (controllerMode.equalsIgnoreCase(DISTRIBUTED)) {
+        manager =
+            HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
+                InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        DistClusterControllerStateModelFactory stateModelFactory = new DistClusterControllerStateModelFactory(
-            zkConnectString);
+        DistClusterControllerStateModelFactory stateModelFactory =
+            new DistClusterControllerStateModelFactory(zkConnectString);
 
         // StateMachineEngine genericStateMachineHandler = new
         // StateMachineEngine();
@@ -191,23 +180,20 @@ public class HelixControllerMain
         // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
         // genericStateMachineHandler);
         manager.connect();
-      } else
-      {
+      } else {
         logger.error("cluster controller mode:" + controllerMode + " NOT supported");
         // throw new
         // IllegalArgumentException("Unsupported cluster controller mode:" +
         // controllerMode);
       }
-    } catch (Exception e)
-    {
-      logger.error("Exception while starting controller",e);
+    } catch (Exception e) {
+      logger.error("Exception while starting controller", e);
     }
 
     return manager;
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     // read the config;
     // check if the this process is the master wait indefinitely
     // other approach is always process the events but when updating the zk
@@ -222,18 +208,15 @@ public class HelixControllerMain
     String controllerMode = STANDALONE;
     String controllerName = null;
     int propertyTransServicePort = -1;
-    
-    if (cmd.hasOption(mode))
-    {
+
+    if (cmd.hasOption(mode)) {
       controllerMode = cmd.getOptionValue(mode);
     }
-    
-    if(cmd.hasOption(propertyTransferServicePort))
-    {
-        propertyTransServicePort = Integer.parseInt(cmd.getOptionValue(propertyTransferServicePort));
+
+    if (cmd.hasOption(propertyTransferServicePort)) {
+      propertyTransServicePort = Integer.parseInt(cmd.getOptionValue(propertyTransferServicePort));
     }
-    if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name))
-    {
+    if (controllerMode.equalsIgnoreCase(DISTRIBUTED) && !cmd.hasOption(name)) {
       throw new IllegalArgumentException(
           "A unique cluster controller name is required in DISTRIBUTED mode");
     }
@@ -244,24 +227,18 @@ public class HelixControllerMain
     logger.info("Cluster manager started, zkServer: " + zkConnectString + ", clusterName:"
         + clusterName + ", controllerName:" + controllerName + ", mode:" + controllerMode);
 
-    if (propertyTransServicePort > 0)
-    {
+    if (propertyTransServicePort > 0) {
       ZKPropertyTransferServer.getInstance().init(propertyTransServicePort, zkConnectString);
     }
-    
-    HelixManager manager = startHelixController(zkConnectString, clusterName, controllerName,
-        controllerMode);
-    try
-    {
+
+    HelixManager manager =
+        startHelixController(zkConnectString, clusterName, controllerName, controllerMode);
+    try {
       Thread.currentThread().join();
-    } 
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       logger.info("controller:" + controllerName + ", " + Thread.currentThread().getName()
           + " interrupted");
-    }
-    finally
-    {
+    } finally {
       manager.disconnect();
       ZKPropertyTransferServer.getInstance().shutdown();
     }

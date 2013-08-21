@@ -25,35 +25,33 @@ import org.apache.helix.HelixManager;
 
 public class AnalyticsTaskFactory implements TaskFactory {
 
-	@Override
-	public Task createTask(String id, Set<String> parentIds,
-			HelixManager helixManager, TaskResultStore taskResultStore) {
-		if(id.equalsIgnoreCase("filterImps")) {
-			return new FilterTask(id, parentIds, helixManager, taskResultStore, FilterTask.IMPRESSIONS);
-		}
-		else if(id.equalsIgnoreCase("filterClicks")) {
-			return new FilterTask(id, parentIds, helixManager, taskResultStore, FilterTask.CLICKS);
-		}
-		else if(id.equalsIgnoreCase("impClickJoin")) {
-			return new JoinTask(id, parentIds, helixManager, taskResultStore, FilterTask.FILTERED_IMPRESSIONS, FilterTask.FILTERED_CLICKS);
-		}
-		else if(id.equalsIgnoreCase("impCountsByGender")) {
-			return new CountTask(id, parentIds, helixManager, taskResultStore, FilterTask.FILTERED_IMPRESSIONS, "gender");
-		}
-		else if(id.equalsIgnoreCase("impCountsByCountry")) {
-			return new CountTask(id, parentIds, helixManager, taskResultStore, FilterTask.FILTERED_IMPRESSIONS, "country");
-		}
-		else if(id.equalsIgnoreCase("clickCountsByGender")) {
-			return new CountTask(id, parentIds, helixManager, taskResultStore, JoinTask.JOINED_CLICKS, "gender");
-		}
-		else if(id.equalsIgnoreCase("clickCountsByCountry")) {
-			return new CountTask(id, parentIds, helixManager, taskResultStore, JoinTask.JOINED_CLICKS, "country");
-		}
-		else if(id.equalsIgnoreCase("report")) {
-			return new ReportTask(id, parentIds, helixManager, taskResultStore);
-		}
-		
-		throw new IllegalArgumentException("Cannot create task for " + id);
-	}
-	
+  @Override
+  public Task createTask(String id, Set<String> parentIds, HelixManager helixManager,
+      TaskResultStore taskResultStore) {
+    if (id.equalsIgnoreCase("filterImps")) {
+      return new FilterTask(id, parentIds, helixManager, taskResultStore, FilterTask.IMPRESSIONS);
+    } else if (id.equalsIgnoreCase("filterClicks")) {
+      return new FilterTask(id, parentIds, helixManager, taskResultStore, FilterTask.CLICKS);
+    } else if (id.equalsIgnoreCase("impClickJoin")) {
+      return new JoinTask(id, parentIds, helixManager, taskResultStore,
+          FilterTask.FILTERED_IMPRESSIONS, FilterTask.FILTERED_CLICKS);
+    } else if (id.equalsIgnoreCase("impCountsByGender")) {
+      return new CountTask(id, parentIds, helixManager, taskResultStore,
+          FilterTask.FILTERED_IMPRESSIONS, "gender");
+    } else if (id.equalsIgnoreCase("impCountsByCountry")) {
+      return new CountTask(id, parentIds, helixManager, taskResultStore,
+          FilterTask.FILTERED_IMPRESSIONS, "country");
+    } else if (id.equalsIgnoreCase("clickCountsByGender")) {
+      return new CountTask(id, parentIds, helixManager, taskResultStore, JoinTask.JOINED_CLICKS,
+          "gender");
+    } else if (id.equalsIgnoreCase("clickCountsByCountry")) {
+      return new CountTask(id, parentIds, helixManager, taskResultStore, JoinTask.JOINED_CLICKS,
+          "country");
+    } else if (id.equalsIgnoreCase("report")) {
+      return new ReportTask(id, parentIds, helixManager, taskResultStore);
+    }
+
+    throw new IllegalArgumentException("Cannot create task for " + id);
+  }
+
 }

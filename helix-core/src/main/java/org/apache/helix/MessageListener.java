@@ -26,12 +26,10 @@ import org.apache.helix.model.Message;
 /**
  * Interface to implement when there is a change to messages
  */
-public interface MessageListener
-{
+public interface MessageListener {
 
   /**
    * Invoked when message changes
-   * 
    * @param instanceName
    * @param messages
    * @param changeContext

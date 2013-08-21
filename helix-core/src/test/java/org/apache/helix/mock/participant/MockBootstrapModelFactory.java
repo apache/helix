@@ -22,12 +22,9 @@ package org.apache.helix.mock.participant;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 // mock Bootstrap state model factory
-public class MockBootstrapModelFactory extends
-    StateModelFactory<MockBootstrapStateModel>
-{
+public class MockBootstrapModelFactory extends StateModelFactory<MockBootstrapStateModel> {
   @Override
-  public MockBootstrapStateModel createNewStateModel(String partitionKey)
-  {
+  public MockBootstrapStateModel createNewStateModel(String partitionKey) {
     MockBootstrapStateModel model = new MockBootstrapStateModel();
     return model;
   }

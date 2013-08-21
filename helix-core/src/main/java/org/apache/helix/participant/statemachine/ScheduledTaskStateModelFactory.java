@@ -22,21 +22,17 @@ package org.apache.helix.participant.statemachine;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.log4j.Logger;
 
-
-public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledTaskStateModel>
-{
+public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledTaskStateModel> {
   Logger logger = Logger.getLogger(ScheduledTaskStateModelFactory.class);
-  
+
   HelixTaskExecutor _executor;
-  
-  public ScheduledTaskStateModelFactory(HelixTaskExecutor executor)
-  {
+
+  public ScheduledTaskStateModelFactory(HelixTaskExecutor executor) {
     _executor = executor;
   }
-  
+
   @Override
-  public ScheduledTaskStateModel createNewStateModel(String partitionName)
-  {
+  public ScheduledTaskStateModel createNewStateModel(String partitionName) {
     logger.info("Create state model for ScheduledTask " + partitionName);
     return new ScheduledTaskStateModel(this, _executor, partitionName);
   }

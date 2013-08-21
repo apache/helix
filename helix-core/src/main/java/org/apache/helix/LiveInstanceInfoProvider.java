@@ -1,4 +1,5 @@
 package org.apache.helix;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,12 +22,10 @@ package org.apache.helix;
 /**
  * Interface to provide additional information about a live instance at creation time
  */
-public interface LiveInstanceInfoProvider
-{
+public interface LiveInstanceInfoProvider {
   /**
    * Callback function that is called by HelixManager before it creates LiveInstance Zk Node.
-   * The ZNRecord returned by this function 
-   * 
+   * The ZNRecord returned by this function
    * @see ZkHelixManager#addLiveInstance()
    * @see HelixManager#setLiveInstanceInfoProvider(LiveInstanceInfoProvider)
    */

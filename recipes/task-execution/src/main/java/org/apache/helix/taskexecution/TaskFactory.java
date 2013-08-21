@@ -24,5 +24,6 @@ import java.util.Set;
 import org.apache.helix.HelixManager;
 
 public interface TaskFactory {
-	public Task createTask(String id, Set<String> parentIds, HelixManager helixManager, TaskResultStore resultStore);
+  public Task createTask(String id, Set<String> parentIds, HelixManager helixManager,
+      TaskResultStore resultStore);
 }

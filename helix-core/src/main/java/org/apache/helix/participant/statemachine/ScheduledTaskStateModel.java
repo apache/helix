@@ -29,9 +29,7 @@ import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 
-
-public class ScheduledTaskStateModel extends StateModel
-{
+public class ScheduledTaskStateModel extends StateModel {
   static final String DEFAULT_INITIAL_STATE = "OFFLINE";
   Logger logger = Logger.getLogger(ScheduledTaskStateModel.class);
 
@@ -41,87 +39,75 @@ public class ScheduledTaskStateModel extends StateModel
   final ScheduledTaskStateModelFactory _factory;
   final String _partitionName;
 
- final HelixTaskExecutor _executor;
+  final HelixTaskExecutor _executor;
 
-  public ScheduledTaskStateModel(ScheduledTaskStateModelFactory factory, HelixTaskExecutor executor, String partitionName)
-  {
-   _factory = factory;
-   _partitionName = partitionName;
-   _executor = executor;
+  public ScheduledTaskStateModel(ScheduledTaskStateModelFactory factory,
+      HelixTaskExecutor executor, String partitionName) {
+    _factory = factory;
+    _partitionName = partitionName;
+    _executor = executor;
   }
 
-  @Transition(to="COMPLETED",from="OFFLINE")
-  public void onBecomeCompletedFromOffline(Message message,
-      NotificationContext context) throws InterruptedException
-  {
+  @Transition(to = "COMPLETED", from = "OFFLINE")
+  public void onBecomeCompletedFromOffline(Message message, NotificationContext context)
+      throws InterruptedException {
     logger.info(_partitionName + " onBecomeCompletedFromOffline");
 
     // Construct the inner task message from the mapfields of scheduledTaskQueue resource group
-    Map<String, String> messageInfo = message.getRecord().getMapField(Message.Attributes.INNER_MESSAGE.toString());
+    Map<String, String> messageInfo =
+        message.getRecord().getMapField(Message.Attributes.INNER_MESSAGE.toString());
     ZNRecord record = new ZNRecord(_partitionName);
     record.getSimpleFields().putAll(messageInfo);
     Message taskMessage = new Message(record);
-    if(logger.isDebugEnabled())
-    {
+    if (logger.isDebugEnabled()) {
       logger.debug(taskMessage.getRecord().getSimpleFields());
     }
-    MessageHandler handler = _executor.createMessageHandler(taskMessage, new NotificationContext(null));
-    if (handler == null)
-    {
-      throw new HelixException("Task message " + taskMessage.getMsgType() + " handler not found, task id " + _partitionName);
+    MessageHandler handler =
+        _executor.createMessageHandler(taskMessage, new NotificationContext(null));
+    if (handler == null) {
+      throw new HelixException("Task message " + taskMessage.getMsgType()
+          + " handler not found, task id " + _partitionName);
     }
     // Invoke the internal handler to complete the task
     handler.handleMessage();
     logger.info(_partitionName + " onBecomeCompletedFromOffline completed");
   }
 
-  @Transition(to="OFFLINE",from="COMPLETED")
-  public void onBecomeOfflineFromCompleted(Message message,
-      NotificationContext context)
-  {
+  @Transition(to = "OFFLINE", from = "COMPLETED")
+  public void onBecomeOfflineFromCompleted(Message message, NotificationContext context) {
     logger.info(_partitionName + " onBecomeOfflineFromCompleted");
   }
 
-  @Transition(to="DROPPED",from="COMPLETED")
-  public void onBecomeDroppedFromCompleted(Message message,
-      NotificationContext context)
-  {
+  @Transition(to = "DROPPED", from = "COMPLETED")
+  public void onBecomeDroppedFromCompleted(Message message, NotificationContext context) {
     logger.info(_partitionName + " onBecomeDroppedFromCompleted");
     removeFromStatemodelFactory();
   }
 
-
-  @Transition(to="DROPPED",from="OFFLINE")
-  public void onBecomeDroppedFromOffline(Message message,
-      NotificationContext context) throws InterruptedException
-  {
+  @Transition(to = "DROPPED", from = "OFFLINE")
+  public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
+      throws InterruptedException {
     logger.info(_partitionName + " onBecomeDroppedFromScheduled");
     removeFromStatemodelFactory();
   }
 
-  @Transition(to="OFFLINE",from="ERROR")
-  public void onBecomeOfflineFromError(Message message,
-      NotificationContext context) throws InterruptedException
-  {
+  @Transition(to = "OFFLINE", from = "ERROR")
+  public void onBecomeOfflineFromError(Message message, NotificationContext context)
+      throws InterruptedException {
     logger.info(_partitionName + " onBecomeOfflineFromError");
   }
 
   @Override
-  public void reset()
-  {
+  public void reset() {
     logger.info(_partitionName + " ScheduledTask reset");
     removeFromStatemodelFactory();
   }
 
   // We need this to prevent state model leak
-  private void removeFromStatemodelFactory()
-  {
-    if(_factory.getStateModel(_partitionName) != null)
-    {
+  private void removeFromStatemodelFactory() {
+    if (_factory.getStateModel(_partitionName) != null) {
       _factory.removeStateModel(_partitionName);
-    }
-    else
-    {
+    } else {
       logger.warn(_partitionName + " not found in ScheduledTaskStateModelFactory");
     }
   }

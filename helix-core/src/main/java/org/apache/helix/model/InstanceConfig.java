@@ -30,164 +30,131 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
 /**
  * Instance configurations
  */
-public class InstanceConfig extends HelixProperty
-{
-  public enum InstanceConfigProperty
-  {
+public class InstanceConfig extends HelixProperty {
+  public enum InstanceConfigProperty {
     HELIX_HOST,
     HELIX_PORT,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
     TAG_LIST
   }
+
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
-  public InstanceConfig(String instanceId)
-  {
+  public InstanceConfig(String instanceId) {
     super(instanceId);
   }
 
-  public InstanceConfig(ZNRecord record)
-  {
+  public InstanceConfig(ZNRecord record) {
     super(record);
   }
 
-  public String getHostName()
-  {
+  public String getHostName() {
     return _record.getSimpleField(InstanceConfigProperty.HELIX_HOST.toString());
   }
 
-  public void setHostName(String hostName)
-  {
+  public void setHostName(String hostName) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_HOST.toString(), hostName);
   }
 
-  public String getPort()
-  {
+  public String getPort() {
     return _record.getSimpleField(InstanceConfigProperty.HELIX_PORT.toString());
   }
 
-  public void setPort(String port)
-  {
+  public void setPort(String port) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
   }
-  
-  public List<String> getTags()
-  {
+
+  public List<String> getTags() {
     List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
-    if(tags == null)
-    {
+    if (tags == null) {
       tags = new ArrayList<String>(0);
     }
     return tags;
   }
-  
-  public void addTag(String tag)
-  {
+
+  public void addTag(String tag) {
     List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
-    if(tags == null)
-    {
+    if (tags == null) {
       tags = new ArrayList<String>(0);
     }
-    if(!tags.contains(tag))
-    {
+    if (!tags.contains(tag)) {
       tags.add(tag);
     }
     getRecord().setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
   }
-  
-  public void removeTag(String tag)
-  {
+
+  public void removeTag(String tag) {
     List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
-    if(tags == null)
-    {
+    if (tags == null) {
       return;
     }
-    if(tags.contains(tag))
-    {
+    if (tags.contains(tag)) {
       tags.remove(tag);
     }
   }
-  
-  public boolean containsTag(String tag)
-  {
+
+  public boolean containsTag(String tag) {
     List<String> tags = getRecord().getListField(InstanceConfigProperty.TAG_LIST.toString());
-    if(tags == null)
-    {
+    if (tags == null) {
       return false;
     }
     return tags.contains(tag);
   }
 
-  public boolean getInstanceEnabled()
-  {
+  public boolean getInstanceEnabled() {
     return _record.getBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), true);
   }
 
-  public void setInstanceEnabled(boolean enabled)
-  {
+  public void setInstanceEnabled(boolean enabled) {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
   }
 
-
-  public boolean getInstanceEnabledForPartition(String partition)
-  {
-    // Map<String, String> disabledPartitionMap = _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-    List<String> disabledPartitions = _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-    if (disabledPartitions != null && disabledPartitions.contains(partition))
-    {
+  public boolean getInstanceEnabledForPartition(String partition) {
+    // Map<String, String> disabledPartitionMap =
+    // _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    List<String> disabledPartitions =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    if (disabledPartitions != null && disabledPartitions.contains(partition)) {
       return false;
-    }
-    else
-    {
+    } else {
       return true;
     }
   }
 
-  public List<String> getDisabledPartitions()
-  {
+  public List<String> getDisabledPartitions() {
     return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
 
   }
 
-  public void setInstanceEnabledForPartition(String partitionName, boolean enabled)
-  {
+  public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
     List<String> list =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
     Set<String> disabledPartitions = new HashSet<String>();
-    if (list != null)
-    {
+    if (list != null) {
       disabledPartitions.addAll(list);
     }
 
-    if (enabled)
-    {
+    if (enabled) {
       disabledPartitions.remove(partitionName);
-    }
-    else
-    {
+    } else {
       disabledPartitions.add(partitionName);
     }
 
     list = new ArrayList<String>(disabledPartitions);
     Collections.sort(list);
-    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
-                             list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
   }
 
   @Override
-  public boolean equals(Object obj)
-  {
-    if (obj instanceof InstanceConfig)
-    {
+  public boolean equals(Object obj) {
+    if (obj instanceof InstanceConfig) {
       InstanceConfig that = (InstanceConfig) obj;
 
-      if (this.getId().equals(that.getId()))
-      {
+      if (this.getId().equals(that.getId())) {
         return true;
       }
     }
@@ -195,19 +162,16 @@ public class InstanceConfig extends HelixProperty
   }
 
   @Override
-  public int hashCode()
-  {
+  public int hashCode() {
     return getId().hashCode();
   }
 
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     return _record.getId();
   }
 
   @Override
-  public boolean isValid()
-  {
+  public boolean isValid() {
     // HELIX-65: remove check for hostname/port existence
     return true;
   }

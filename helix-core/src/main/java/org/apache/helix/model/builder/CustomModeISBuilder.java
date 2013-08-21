@@ -26,41 +26,34 @@ import java.util.TreeMap;
 
 public class CustomModeISBuilder extends IdealStateBuilder {
 
-    public CustomModeISBuilder(String resourceName)
-    {
-        super(resourceName);
-        setRebalancerMode(RebalanceMode.CUSTOMIZED);
-    }
+  public CustomModeISBuilder(String resourceName) {
+    super(resourceName);
+    setRebalancerMode(RebalanceMode.CUSTOMIZED);
+  }
 
-    /**
-     * Add a sub-resource
-     *
-     * @param partitionName
-     */
-    public void add(String partitionName)
-    {
-        if (_record.getMapField(partitionName) == null)
-        {
-            _record.setMapField(partitionName, new TreeMap<String, String>());
-        }
+  /**
+   * Add a sub-resource
+   * @param partitionName
+   */
+  public void add(String partitionName) {
+    if (_record.getMapField(partitionName) == null) {
+      _record.setMapField(partitionName, new TreeMap<String, String>());
     }
+  }
 
-    /**
-     * add an instance->state assignment
-     *
-     * @param partitionName
-     * @param instanceName
-     * @param state
-     * @return
-     */
-    public CustomModeISBuilder assignInstanceAndState(String partitionName, String instanceName,
-                                       String state)
-    {
-        add(partitionName);
-        Map<String, String> partitionToInstanceStateMapping = _record
-                .getMapField(partitionName);
-        partitionToInstanceStateMapping.put(instanceName, state);
-        return this;
-    }
+  /**
+   * add an instance->state assignment
+   * @param partitionName
+   * @param instanceName
+   * @param state
+   * @return
+   */
+  public CustomModeISBuilder assignInstanceAndState(String partitionName, String instanceName,
+      String state) {
+    add(partitionName);
+    Map<String, String> partitionToInstanceStateMapping = _record.getMapField(partitionName);
+    partitionToInstanceStateMapping.put(instanceName, state);
+    return this;
+  }
 
 }

@@ -21,19 +21,17 @@ package org.apache.helix.recipes.rabbitmq;
 
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class ConsumerStateModelFactory extends StateModelFactory<ConsumerStateModel>
-{
+public class ConsumerStateModelFactory extends StateModelFactory<ConsumerStateModel> {
   private final String _consumerId;
   private final String _mqServer;
-  public ConsumerStateModelFactory(String consumerId, String msServer)
-  {
+
+  public ConsumerStateModelFactory(String consumerId, String msServer) {
     _consumerId = consumerId;
     _mqServer = msServer;
   }
-  
+
   @Override
-  public ConsumerStateModel createNewStateModel(String partition)
-  {
+  public ConsumerStateModel createNewStateModel(String partition) {
     ConsumerStateModel model = new ConsumerStateModel(_consumerId, partition, _mqServer);
     return model;
   }

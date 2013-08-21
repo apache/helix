@@ -36,7 +36,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 
-
 public class MockListener implements IdealStateChangeListener, LiveInstanceChangeListener,
     ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
     ControllerChangeListener, MessageListener
@@ -50,8 +49,7 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
   public boolean isExternalViewChangeListenerInvoked = false;
   public boolean isControllerChangeListenerInvoked = false;
 
-  public void reset()
-  {
+  public void reset() {
     isIdealStateChangeListenerInvoked = false;
     isLiveInstanceChangeListenerInvoked = false;
     isCurrentStateChangeListenerInvoked = false;
@@ -62,49 +60,41 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
   }
 
   @Override
-  public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext)
-  {
+  public void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext) {
     isIdealStateChangeListenerInvoked = true;
   }
 
   @Override
-  public void onLiveInstanceChange(List<LiveInstance> liveInstances, NotificationContext changeContext)
-  {
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
+      NotificationContext changeContext) {
     isLiveInstanceChangeListenerInvoked = true;
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext)
-  {
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
     isConfigChangeListenerInvoked = true;
   }
 
   @Override
-  public void onStateChange(String instanceName,
-                            List<CurrentState> statesInfo,
-                            NotificationContext changeContext)
-  {
+  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext) {
     isCurrentStateChangeListenerInvoked = true;
   }
 
   @Override
   public void onExternalViewChange(List<ExternalView> externalViewList,
-                                   NotificationContext changeContext)
-  {
+      NotificationContext changeContext) {
     isExternalViewChangeListenerInvoked = true;
   }
 
   @Override
-  public void onControllerChange(NotificationContext changeContext)
-  {
+  public void onControllerChange(NotificationContext changeContext) {
     isControllerChangeListenerInvoked = true;
   }
 
   @Override
-  public void onMessage(String instanceName,
-                        List<Message> messages,
-                        NotificationContext changeContext)
-  {
+  public void onMessage(String instanceName, List<Message> messages,
+      NotificationContext changeContext) {
     isMessageListenerInvoked = true;
   }
 }

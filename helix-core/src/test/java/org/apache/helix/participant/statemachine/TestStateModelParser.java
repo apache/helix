@@ -31,7 +31,9 @@ public class TestStateModelParser {
 
   private static Logger LOG = Logger.getLogger(TestStateModelParser.class);
 
-  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
+  @StateModelInfo(initialState = "OFFLINE", states = {
+      "MASTER", "SLAVE", "ERROR"
+  })
   class StateModelUsingAnnotation extends StateModel {
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
@@ -46,7 +48,9 @@ public class TestStateModelParser {
 
   }
 
-  @StateModelInfo(initialState = "OFFLINE", states = { "MASTER", "SLAVE", "ERROR" })
+  @StateModelInfo(initialState = "OFFLINE", states = {
+      "MASTER", "SLAVE", "ERROR"
+  })
   class DerivedStateModelUsingAnnotation extends StateModelUsingAnnotation {
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void derivedOnBecomeSlaveFromOffline(Message message, NotificationContext context) {
@@ -54,8 +58,7 @@ public class TestStateModelParser {
     }
   }
 
-  class StateModelUsingNameConvention extends StateModel
-  {
+  class StateModelUsingNameConvention extends StateModel {
     // empty state model
   }
 
@@ -64,10 +67,11 @@ public class TestStateModelParser {
     StateModelParser parser = new StateModelParser();
     StateModelUsingAnnotation testModel = new StateModelUsingAnnotation();
 
-    Method method = parser.getMethodForTransitionUsingAnnotation(testModel.getClass(),
-        "offline",
-        "slave",
-        new Class[] { Message.class, NotificationContext.class});
+    Method method =
+        parser.getMethodForTransitionUsingAnnotation(testModel.getClass(), "offline", "slave",
+            new Class[] {
+                Message.class, NotificationContext.class
+            });
 
     // System.out.println("method-name: " + method.getName());
     Assert.assertNotNull(method);
@@ -79,20 +83,21 @@ public class TestStateModelParser {
     StateModelParser parser = new StateModelParser();
     DerivedStateModelUsingAnnotation testModel = new DerivedStateModelUsingAnnotation();
 
-    Method method = parser.getMethodForTransitionUsingAnnotation(testModel.getClass(),
-        "offline",
-        "slave",
-        new Class[] { Message.class, NotificationContext.class});
+    Method method =
+        parser.getMethodForTransitionUsingAnnotation(testModel.getClass(), "offline", "slave",
+            new Class[] {
+                Message.class, NotificationContext.class
+            });
 
     // System.out.println("method-name: " + method.getName());
     Assert.assertNotNull(method);
     Assert.assertEquals(method.getName(), "derivedOnBecomeSlaveFromOffline");
 
-
-    method = parser.getMethodForTransitionUsingAnnotation(testModel.getClass(),
-        "error",
-        "dropped",
-        new Class[] { Message.class, NotificationContext.class});
+    method =
+        parser.getMethodForTransitionUsingAnnotation(testModel.getClass(), "error", "dropped",
+            new Class[] {
+                Message.class, NotificationContext.class
+            });
 
     // System.out.println("method: " + method);
     Assert.assertNotNull(method);
@@ -100,17 +105,15 @@ public class TestStateModelParser {
 
   }
 
-
   @Test
-  public void testUsingNameConvention()
-  {
+  public void testUsingNameConvention() {
     StateModelParser parser = new StateModelParser();
     StateModelUsingNameConvention testModel = new StateModelUsingNameConvention();
 
-    Method method = parser.getMethodForTransition(testModel.getClass(),
-                                                 "error",
-                                                 "dropped",
-                                                 new Class[] { Message.class, NotificationContext.class});
+    Method method =
+        parser.getMethodForTransition(testModel.getClass(), "error", "dropped", new Class[] {
+            Message.class, NotificationContext.class
+        });
     Assert.assertNotNull(method);
     Assert.assertEquals(method.getName(), "onBecomeDroppedFromError");
 

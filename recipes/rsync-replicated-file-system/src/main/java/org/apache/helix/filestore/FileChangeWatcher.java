@@ -19,8 +19,7 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
-public interface FileChangeWatcher
-{
+public interface FileChangeWatcher {
   void onEntryModified(String path);
 
   void onEntryAdded(String path);

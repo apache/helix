@@ -23,21 +23,16 @@ import java.util.List;
 
 import org.apache.helix.model.InstanceConfig;
 
-
 /**
- * 
  * @deprecated replaced by InstanceConfigChangeListener
  */
-public interface ConfigChangeListener
-{
+public interface ConfigChangeListener {
 
   /**
    * Invoked when participant config changes
-   * 
    * @param configs
    * @param changeContext
    */
-  public void onConfigChange(List<InstanceConfig> configs,
-                             NotificationContext changeContext);
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext);
 
 }

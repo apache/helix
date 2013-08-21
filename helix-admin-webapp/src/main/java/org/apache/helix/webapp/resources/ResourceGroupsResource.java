@@ -41,54 +41,44 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ResourceGroupsResource extends Resource
-{
+public class ResourceGroupsResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
 
-  public ResourceGroupsResource(Context context, Request request, Response response)
-  {
+  public ResourceGroupsResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getHostedEntitiesRepresentation(clusterName);
     }
 
-    catch (Exception e)
-    {
+    catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -97,12 +87,9 @@ public class ResourceGroupsResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getHostedEntitiesRepresentation(String clusterName) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+  StringRepresentation getHostedEntitiesRepresentation(String clusterName)
+      throws JsonGenerationException, JsonMappingException, IOException {
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ;
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> hostedEntities =
@@ -113,62 +100,49 @@ public class ResourceGroupsResource extends Resource
 
     StringRepresentation representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord),
-                                 MediaType.APPLICATION_JSON);
+            MediaType.APPLICATION_JSON);
 
     return representation;
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
+  public void acceptRepresentation(Representation entity) {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
 
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
       if (command.equalsIgnoreCase(ClusterSetup.addResource)
-          || JsonParameters.CLUSTERSETUP_COMMAND_ALIASES.get(ClusterSetup.addResource)
-                                                        .contains(command))
-      {
+          || JsonParameters.CLUSTERSETUP_COMMAND_ALIASES.get(ClusterSetup.addResource).contains(
+              command)) {
         jsonParameters.verifyCommand(ClusterSetup.addResource);
 
-        String entityName =
-            jsonParameters.getParameter(JsonParameters.RESOURCE_GROUP_NAME);
-        String stateModelDefRef =
-            jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
-        int partitions =
-            Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
+        String entityName = jsonParameters.getParameter(JsonParameters.RESOURCE_GROUP_NAME);
+        String stateModelDefRef = jsonParameters.getParameter(JsonParameters.STATE_MODEL_DEF_REF);
+        int partitions = Integer.parseInt(jsonParameters.getParameter(JsonParameters.PARTITIONS));
         String mode = RebalanceMode.SEMI_AUTO.toString();
-        if (jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE) != null)
-        {
+        if (jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE) != null) {
           mode = jsonParameters.getParameter(JsonParameters.IDEAL_STATE_MODE);
         }
-        
+
         int bucketSize = 0;
-        if (jsonParameters.getParameter(JsonParameters.BUCKET_SIZE) != null)
-        {
-          try
-          {
+        if (jsonParameters.getParameter(JsonParameters.BUCKET_SIZE) != null) {
+          try {
             bucketSize = Integer.parseInt(jsonParameters.getParameter(JsonParameters.BUCKET_SIZE));
-          }
-          catch(Exception e)
-          {
-            
+          } catch (Exception e) {
+
           }
         }
-        
+
         int maxPartitionsPerNode = -1;
-        if (jsonParameters.getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE) != null)
-        {
-          try
-          {
-            maxPartitionsPerNode = Integer.parseInt(jsonParameters.getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE));
-          }
-          catch(Exception e)
-          {
-            
+        if (jsonParameters.getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE) != null) {
+          try {
+            maxPartitionsPerNode =
+                Integer.parseInt(jsonParameters
+                    .getParameter(JsonParameters.MAX_PARTITIONS_PER_NODE));
+          } catch (Exception e) {
+
           }
         }
 
@@ -176,19 +150,11 @@ public class ResourceGroupsResource extends Resource
             (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
         ;
         ClusterSetup setupTool = new ClusterSetup(zkClient);
-        setupTool.addResourceToCluster(clusterName,
-                                       entityName,
-                                       partitions,
-                                       stateModelDefRef,
-                                       mode,
-                                       bucketSize,
-                                       maxPartitionsPerNode
-                                       );
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + ClusterSetup.addResource + "]");
+        setupTool.addResourceToCluster(clusterName, entityName, partitions, stateModelDefRef, mode,
+            bucketSize, maxPartitionsPerNode);
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + ClusterSetup.addResource + "]");
 
       }
 
@@ -196,10 +162,9 @@ public class ResourceGroupsResource extends Resource
       getResponse().setStatus(Status.SUCCESS_OK);
     }
 
-    catch (Exception e)
-    {
+    catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
     }

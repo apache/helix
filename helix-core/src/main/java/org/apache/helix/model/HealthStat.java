@@ -30,52 +30,43 @@ import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.log4j.Logger;
 
-
-public class HealthStat extends HelixProperty 
-{
-  public enum HealthStatProperty
-  {
+public class HealthStat extends HelixProperty {
+  public enum HealthStatProperty {
     FIELDS
   }
+
   private static final Logger _logger = Logger.getLogger(HealthStat.class.getName());
 
-  public HealthStat(String id)
-  {
+  public HealthStat(String id) {
     super(id);
   }
 
-  public HealthStat(ZNRecord record)
-    {
-      super(record);
-      if(getCreateTimeStamp() == 0)
-      {
-        _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
-      }
+  public HealthStat(ZNRecord record) {
+    super(record);
+    if (getCreateTimeStamp() == 0) {
+      _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
     }
+  }
 
-  public long getLastModifiedTimeStamp()
-  {
+  public long getLastModifiedTimeStamp() {
     return _record.getModifiedTime();
   }
 
-  public long getCreateTimeStamp()
-  {
+  public long getCreateTimeStamp() {
     return _record.getLongField(Attributes.CREATE_TIMESTAMP.toString(), 0L);
   }
-  
-  public String getTestField()
-  {
+
+  public String getTestField() {
     return _record.getSimpleField("requestCountStat");
   }
-  
-  public void setHealthFields(Map<String, Map<String, String>> healthFields)
-  {
+
+  public void setHealthFields(Map<String, Map<String, String>> healthFields) {
     _record.setMapFields(healthFields);
   }
-  
-  public String buildCompositeKey(String instance, String parentKey, String statName ) {
+
+  public String buildCompositeKey(String instance, String parentKey, String statName) {
     String delim = ExpressionParser.statFieldDelim;
-    return instance+delim+parentKey+delim+statName;
+    return instance + delim + parentKey + delim + statName;
   }
 
   public Map<String, Map<String, String>> getHealthFields(String instanceName) // ,
@@ -85,15 +76,13 @@ public class HealthStat extends HelixProperty
     // XXX: need to do some conversion of input format to the format that stats
     // computation wants
     Map<String, Map<String, String>> currMapFields = _record.getMapFields();
-    Map<String, Map<String, String>> convertedMapFields = new HashMap<String, Map<String, String>>();
-    for (String key : currMapFields.keySet())
-    {
+    Map<String, Map<String, String>> convertedMapFields =
+        new HashMap<String, Map<String, String>>();
+    for (String key : currMapFields.keySet()) {
       Map<String, String> currMap = currMapFields.get(key);
       String timestamp = _record.getStringField(StatsHolder.TIMESTAMP_NAME, "-1");
-      for (String subKey : currMap.keySet())
-      {
-        if (subKey.equals("StatsHolder.TIMESTAMP_NAME"))
-        { // don't want to get timestamp again
+      for (String subKey : currMap.keySet()) {
+        if (subKey.equals("StatsHolder.TIMESTAMP_NAME")) { // don't want to get timestamp again
           continue;
         }
         String compositeKey = buildCompositeKey(instanceName, key, subKey);
@@ -103,10 +92,10 @@ public class HealthStat extends HelixProperty
         convertedMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
         convertedMapFields.put(compositeKey, convertedMap);
       }
-    } 
+    }
     return convertedMapFields;
   }
-  
+
   @Override
   public boolean isValid() {
     // TODO Auto-generated method stub

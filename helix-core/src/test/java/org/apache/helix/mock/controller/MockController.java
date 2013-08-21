@@ -45,26 +45,21 @@ import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 
-
-public class MockController
-{
+public class MockController {
   private final ZkClient client;
   private final String srcName;
   private final String clusterName;
 
-  public MockController(String src, String zkServer, String cluster)
-  {
+  public MockController(String src, String zkServer, String cluster) {
     srcName = src;
     clusterName = cluster;
     client = new ZkClient(zkServer);
     client.setZkSerializer(new ZNRecordSerializer());
   }
 
-  void sendMessage(String msgId, String instanceName, String fromState,
-      String toState, String partitionKey, int partitionId)
-      throws InterruptedException, JsonGenerationException,
-      JsonMappingException, IOException
-  {
+  void sendMessage(String msgId, String instanceName, String fromState, String toState,
+      String partitionKey, int partitionId) throws InterruptedException, JsonGenerationException,
+      JsonMappingException, IOException {
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
     message.setMsgId(msgId);
     message.setSrcName(srcName);
@@ -75,8 +70,7 @@ public class MockController
     // message.setPartitionId(partitionId);
     message.setPartitionName(partitionKey);
 
-    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/"
-        + message.getId();
+    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
     ObjectMapper mapper = new ObjectMapper();
     StringWriter sw = new StringWriter();
     mapper.writeValueUsingView(sw, message, Message.class);
@@ -84,28 +78,27 @@ public class MockController
     client.delete(path);
 
     Thread.sleep(10000);
-    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName,
-        instanceName));
-    message.setTgtSessionId(record.getSimpleField(
-        LiveInstanceProperty.SESSION_ID.toString()).toString());
+    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
+    message.setTgtSessionId(record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString())
+        .toString());
     client.createPersistent(path, message);
   }
 
-  public void createExternalView(List<String> instanceNames, int partitions,
-      int replicas, String dbName, long randomSeed)
-  {
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(client));
+  public void createExternalView(List<String> instanceNames, int partitions, int replicas,
+      String dbName, long randomSeed) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(client));
     Builder keyBuilder = accessor.keyBuilder();
 
-    ExternalView externalView = new ExternalView(computeRoutingTable(instanceNames, partitions,
-                                                                     replicas, dbName, randomSeed));
+    ExternalView externalView =
+        new ExternalView(computeRoutingTable(instanceNames, partitions, replicas, dbName,
+            randomSeed));
 
     accessor.setProperty(keyBuilder.externalView(dbName), externalView);
   }
 
-  public ZNRecord computeRoutingTable(List<String> instanceNames,
-      int partitions, int replicas, String dbName, long randomSeed)
-  {
+  public ZNRecord computeRoutingTable(List<String> instanceNames, int partitions, int replicas,
+      String dbName, long randomSeed) {
     assert (instanceNames.size() > replicas);
     Collections.sort(instanceNames);
 
@@ -114,16 +107,14 @@ public class MockController
     Map<String, Object> externalView = new TreeMap<String, Object>();
 
     List<Integer> partitionList = new ArrayList<Integer>(partitions);
-    for (int i = 0; i < partitions; i++)
-    {
+    for (int i = 0; i < partitions; i++) {
       partitionList.add(new Integer(i));
     }
     Random rand = new Random(randomSeed);
     // Shuffle the partition list
     Collections.shuffle(partitionList, rand);
 
-    for (int i = 0; i < partitionList.size(); i++)
-    {
+    for (int i = 0; i < partitionList.size(); i++) {
       int partitionId = partitionList.get(i);
       Map<String, String> partitionAssignment = new TreeMap<String, String>();
       int masterNode = i % instanceNames.size();
@@ -132,11 +123,9 @@ public class MockController
 
       // for the jth replica, we put it on (masterNode + j) % nodes-th
       // node
-      for (int j = 1; j <= replicas; j++)
-      {
+      for (int j = 1; j <= replicas; j++) {
         partitionAssignment
-            .put(instanceNames.get((masterNode + j) % instanceNames.size()),
-                "SLAVE");
+            .put(instanceNames.get((masterNode + j) % instanceNames.size()), "SLAVE");
       }
       String partitionName = dbName + ".partition-" + partitionId;
       result.setMapField(partitionName, partitionAssignment);

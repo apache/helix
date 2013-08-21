@@ -37,60 +37,46 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class StatusUpdateResource extends Resource
-{
+public class StatusUpdateResource extends Resource {
   private final static Logger LOG = Logger.getLogger(StatusUpdateResource.class);
 
-  public StatusUpdateResource(Context context, Request request, Response response)
-  {
+  public StatusUpdateResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return false;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       String resourceGroup = (String) getRequest().getAttributes().get("resourceName");
 
       presentation =
-          getInstanceStatusUpdateRepresentation(
-                                                clusterName,
-                                                instanceName,
-                                                resourceGroup);
-    }
-    catch (Exception e)
-    {
+          getInstanceStatusUpdateRepresentation(clusterName, instanceName, resourceGroup);
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -99,31 +85,22 @@ public class StatusUpdateResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getInstanceStatusUpdateRepresentation(
-                                                             String clusterName,
-                                                             String instanceName,
-                                                             String resourceGroup) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-  
+  StringRepresentation getInstanceStatusUpdateRepresentation(String clusterName,
+      String instanceName, String resourceGroup) throws JsonGenerationException,
+      JsonMappingException, IOException {
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+
     String instanceSessionId =
-        ClusterRepresentationUtil.getInstanceSessionId(zkClient,
-                                                       clusterName,
-                                                       instanceName);
+        ClusterRepresentationUtil.getInstanceSessionId(zkClient, clusterName, instanceName);
 
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
     String message =
-        ClusterRepresentationUtil.getInstancePropertiesAsString(zkClient,
-                                                                  clusterName,
-                                                                  keyBuilder.stateTransitionStatus(instanceName,
-                                                                                                   instanceSessionId,
-                                                                                                   resourceGroup),
-                                                                  // instanceSessionId
-                                                                  // + "__"
-                                                                  // + resourceGroup,
-                                                                  MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.getInstancePropertiesAsString(zkClient, clusterName,
+            keyBuilder.stateTransitionStatus(instanceName, instanceSessionId, resourceGroup),
+            // instanceSessionId
+            // + "__"
+            // + resourceGroup,
+            MediaType.APPLICATION_JSON);
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);
     return representation;

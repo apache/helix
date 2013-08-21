@@ -26,17 +26,14 @@ import org.apache.helix.model.HealthStat;
 /**
  * Interface to implement to listen for when a health status event is triggered.
  */
-public interface HealthStateChangeListener
-{
+public interface HealthStateChangeListener {
 
   /**
    * Invoked when health stats change
-   * 
    * @param instanceName the instance where the health status changed
    * @param reports the health statuses
    * @param changeContext event properties and state
    */
-  public void onHealthChange(String instanceName,
-                             List<HealthStat> reports,
-                             NotificationContext changeContext);
+  public void onHealthChange(String instanceName, List<HealthStat> reports,
+      NotificationContext changeContext);
 }

@@ -43,15 +43,12 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestZnodeModify extends ZkUnitTestBase
-{
+public class TestZnodeModify extends ZkUnitTestBase {
   private static Logger logger = Logger.getLogger(TestZnodeModify.class);
   private final String PREFIX = "/" + getShortClassName();
 
-  @Test ()
-  public void testBasic() throws Exception
-  {
+  @Test()
+  public void testBasic() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
     List<TestCommand> commandList = new ArrayList<TestCommand>();
 
@@ -90,17 +87,15 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command);
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
-    {
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
     }
 
     logger.info("END: " + new Date(System.currentTimeMillis()));
   }
 
-  @Test ()
-  public void testDataTrigger() throws Exception
-  {
+  @Test()
+  public void testDataTrigger() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
     List<TestCommand> commandList = new ArrayList<TestCommand>();
 
@@ -111,8 +106,10 @@ public class TestZnodeModify extends ZkUnitTestBase
     ZnodeOpArg arg;
     TestCommand command;
 
-    ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "+", "key1", "simpleValue1-new");
-    TestCommand command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 0, "simpleValue1"), arg1);
+    ZnodeOpArg arg1 =
+        new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "+", "key1", "simpleValue1-new");
+    TestCommand command1 =
+        new TestCommand(CommandType.MODIFY, new TestTrigger(0, 0, "simpleValue1"), arg1);
     commandList.add(command1);
 
     ZNRecord record = getExampleZNRecord();
@@ -128,7 +125,8 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command);
 
     arg = new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "!=", "key1");
-    command = new TestCommand(CommandType.VERIFY, new TestTrigger(3100, 0, "simpleValue1-new"), arg);
+    command =
+        new TestCommand(CommandType.VERIFY, new TestTrigger(3100, 0, "simpleValue1-new"), arg);
     commandList.add(command);
 
     arg = new ZnodeOpArg(pathChild2, ZnodePropertyType.ZNODE, "==");
@@ -139,17 +137,15 @@ public class TestZnodeModify extends ZkUnitTestBase
 
     boolean result = results.remove(command1).booleanValue();
     AssertJUnit.assertFalse(result);
-    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
-    {
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
     }
 
     logger.info("END: " + new Date(System.currentTimeMillis()));
   }
 
-  @Test ()
-  public void testTimeout() throws Exception
-  {
+  @Test()
+  public void testTimeout() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
     List<TestCommand> commandList = new ArrayList<TestCommand>();
 
@@ -157,8 +153,10 @@ public class TestZnodeModify extends ZkUnitTestBase
     String pathChild1 = PREFIX + "/timeout_child1";
     String pathChild2 = PREFIX + "/timeout_child2";
 
-    ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "+", "key1", "simpleValue1-new");
-    TestCommand command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 1000, "simpleValue1"), arg1);
+    ZnodeOpArg arg1 =
+        new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "+", "key1", "simpleValue1-new");
+    TestCommand command1 =
+        new TestCommand(CommandType.MODIFY, new TestTrigger(0, 1000, "simpleValue1"), arg1);
     commandList.add(command1);
 
     ZNRecord record = getExampleZNRecord();
@@ -170,7 +168,8 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command1);
 
     arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.SIMPLE, "==", "key1");
-    command1 = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 500, "simpleValue1-new"), arg1);
+    command1 =
+        new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 500, "simpleValue1-new"), arg1);
     commandList.add(command1);
 
     arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "==");
@@ -178,18 +177,15 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command1);
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
-    {
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertFalse(entry.getValue());
     }
 
     logger.info("END: " + new Date(System.currentTimeMillis()));
   }
 
-
-  @Test ()
-  public void testDataTriggerWithTimeout() throws Exception
-  {
+  @Test()
+  public void testDataTriggerWithTimeout() throws Exception {
     logger.info("RUN: " + new Date(System.currentTimeMillis()));
     List<TestCommand> commandList = new ArrayList<TestCommand>();
 
@@ -201,7 +197,8 @@ public class TestZnodeModify extends ZkUnitTestBase
     recordNew.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
         RebalanceMode.SEMI_AUTO.toString());
     ZnodeOpArg arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "+", recordNew);
-    TestCommand command1 = new TestCommand(CommandType.MODIFY, new TestTrigger(0, 8000, record), arg1);
+    TestCommand command1 =
+        new TestCommand(CommandType.MODIFY, new TestTrigger(0, 8000, record), arg1);
     commandList.add(command1);
 
     arg1 = new ZnodeOpArg(pathChild1, ZnodePropertyType.ZNODE, "==");
@@ -209,21 +206,16 @@ public class TestZnodeModify extends ZkUnitTestBase
     commandList.add(command1);
 
     // start a separate thread to change znode at pathChild1
-    new Thread()
-    {
+    new Thread() {
       @Override
-      public void run()
-      {
-        try
-        {
+      public void run() {
+        try {
           Thread.sleep(3000);
           final ZkClient zkClient = new ZkClient(ZK_ADDR);
           zkClient.setZkSerializer(new ZNRecordSerializer());
           zkClient.createPersistent(pathChild1, true);
           zkClient.writeData(pathChild1, record);
-        }
-        catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
         }
@@ -231,8 +223,7 @@ public class TestZnodeModify extends ZkUnitTestBase
     }.start();
 
     Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
-    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet())
-    {
+    for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
       // System.out.println(entry.getValue() + ":" + entry.getKey());
     }
@@ -241,33 +232,29 @@ public class TestZnodeModify extends ZkUnitTestBase
 
   ZkClient _zkClient;
 
-  @BeforeClass ()
-  public void beforeClass()
-  {
+  @BeforeClass()
+  public void beforeClass() {
     System.out.println("START " + getShortClassName() + " at "
         + new Date(System.currentTimeMillis()));
 
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    if (_zkClient.exists(PREFIX))
-    {
+    if (_zkClient.exists(PREFIX)) {
       _zkClient.deleteRecursive(PREFIX);
     }
 
   }
 
   @AfterClass
-  public void afterClass()
-  {
-  	_zkClient.close();
+  public void afterClass() {
+    _zkClient.close();
 
-    System.out.println("END " + getShortClassName() + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out
+        .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
 
   }
 
-  private ZNRecord getExampleZNRecord()
-  {
+  private ZNRecord getExampleZNRecord() {
     ZNRecord record = new ZNRecord("TestDB");
     record.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
         RebalanceMode.CUSTOMIZED.toString());

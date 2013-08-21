@@ -26,12 +26,10 @@ import java.util.Map;
 import org.apache.helix.HelixConstants;
 import org.apache.log4j.Logger;
 
-
 /**
  * A resource contains a set of partitions
  */
-public class Resource
-{
+public class Resource {
   private static Logger LOG = Logger.getLogger(Resource.class);
 
   private final String _resourceName;
@@ -41,81 +39,65 @@ public class Resource
   private int _bucketSize = 0;
   private boolean _batchMessageMode = false;
 
-  public Resource(String resourceName)
-  {
+  public Resource(String resourceName) {
     this._resourceName = resourceName;
     this._partitionMap = new LinkedHashMap<String, Partition>();
   }
 
-  public String getStateModelDefRef()
-  {
+  public String getStateModelDefRef() {
     return _stateModelDefRef;
   }
 
-  public void setStateModelDefRef(String stateModelDefRef)
-  {
+  public void setStateModelDefRef(String stateModelDefRef) {
     _stateModelDefRef = stateModelDefRef;
   }
 
-  public void setStateModelFactoryName(String factoryName)
-  {
-    if (factoryName == null)
-    {
+  public void setStateModelFactoryName(String factoryName) {
+    if (factoryName == null) {
       _stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
-    } else
-    {
+    } else {
       _stateModelFactoryName = factoryName;
     }
   }
 
-  public String getStateModelFactoryname()
-  {
+  public String getStateModelFactoryname() {
     return _stateModelFactoryName;
   }
 
-  public String getResourceName()
-  {
+  public String getResourceName() {
     return _resourceName;
   }
 
-  public Collection<Partition> getPartitions()
-  {
+  public Collection<Partition> getPartitions() {
     return _partitionMap.values();
   }
 
-  public void addPartition(String partitionName)
-  {
+  public void addPartition(String partitionName) {
     _partitionMap.put(partitionName, new Partition(partitionName));
   }
 
-  public Partition getPartition(String partitionName)
-  {
+  public Partition getPartition(String partitionName) {
     return _partitionMap.get(partitionName);
   }
 
-  public int getBucketSize()
-  {
+  public int getBucketSize() {
     return _bucketSize;
   }
-  
-  public void setBucketSize(int bucketSize)
-  {
+
+  public void setBucketSize(int bucketSize) {
     _bucketSize = bucketSize;
   }
 
-  public void setBatchMessageMode(boolean mode)
-  {
+  public void setBatchMessageMode(boolean mode) {
     _batchMessageMode = mode;
   }
-  
-  public boolean getBatchMessageMode()
-  {
+
+  public boolean getBatchMessageMode() {
     return _batchMessageMode;
   }
-  
+
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append("resourceName:").append(_resourceName);
     sb.append(", stateModelDef:").append(_stateModelDefRef);

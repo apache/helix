@@ -37,17 +37,14 @@ import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
-
-public class ZKPathDataDumpTask extends TimerTask
-{
+public class ZKPathDataDumpTask extends TimerTask {
   static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
 
   private final int _thresholdNoChangeInMs;
   private final HelixManager _manager;
   private final ZkClient _zkClient;
 
-  public ZKPathDataDumpTask(HelixManager manager, ZkClient zkClient, int thresholdNoChangeInMs)
-  {
+  public ZKPathDataDumpTask(HelixManager manager, ZkClient zkClient, int thresholdNoChangeInMs) {
     _manager = manager;
     _zkClient = zkClient;
     logger.info("Scannning cluster statusUpdate " + manager.getClusterName()
@@ -56,22 +53,19 @@ public class ZKPathDataDumpTask extends TimerTask
   }
 
   @Override
-  public void run()
-  {
+  public void run() {
     // For each record in status update and error node
     // TODO: for now the status updates are dumped to cluster manager log4j log.
     // We need to think if we should create per-instance log files that contains
     // per-instance statusUpdates
     // and errors
     logger.info("Scannning status updates ...");
-    try
-    {
+    try {
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
 
       List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
-      for (String instanceName : instances)
-      {
+      for (String instanceName : instances) {
         scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instanceName,
             PropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
         scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instanceName,
@@ -82,48 +76,37 @@ public class ZKPathDataDumpTask extends TimerTask
 
       scanPath(HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
           PropertyType.ERRORS_CONTROLLER), _thresholdNoChangeInMs * 3);
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       logger.error(e);
     }
   }
 
-  void scanPath(String path, int thresholdNoChangeInMs)
-  {
+  void scanPath(String path, int thresholdNoChangeInMs) {
     logger.info("Scannning path " + path);
     List<String> subPaths = _zkClient.getChildren(path);
-    for (String subPath : subPaths)
-    {
-      try
-      {
+    for (String subPath : subPaths) {
+      try {
         String nextPath = path + "/" + subPath;
         List<String> subSubPaths = _zkClient.getChildren(nextPath);
-        for (String subsubPath : subSubPaths)
-        {
-          try
-          {
+        for (String subsubPath : subSubPaths) {
+          try {
             checkAndDump(nextPath + "/" + subsubPath, thresholdNoChangeInMs);
-          } catch (Exception e)
-          {
+          } catch (Exception e) {
             logger.error(e);
           }
         }
-      } catch (Exception e)
-      {
+      } catch (Exception e) {
         logger.error(e);
       }
     }
   }
 
-  void checkAndDump(String path, int thresholdNoChangeInMs)
-  {
+  void checkAndDump(String path, int thresholdNoChangeInMs) {
     List<String> subPaths = _zkClient.getChildren(path);
-    if(subPaths.size() == 0)
-    {
+    if (subPaths.size() == 0) {
       subPaths.add("");
     }
-    for (String subPath : subPaths)
-    {
+    for (String subPath : subPaths) {
       String fullPath = subPath.length() > 0 ? path + "/" + subPath : path;
       Stat pathStat = _zkClient.getStat(fullPath);
 
@@ -132,11 +115,9 @@ public class ZKPathDataDumpTask extends TimerTask
       // logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
 
       // Check the last modified time
-      if (nowInMs > lastModifiedTimeInMs)
-      {
+      if (nowInMs > lastModifiedTimeInMs) {
         long timeDiff = nowInMs - lastModifiedTimeInMs;
-        if (timeDiff > thresholdNoChangeInMs)
-        {
+        if (timeDiff > thresholdNoChangeInMs) {
           logger.info("Dumping status update path " + fullPath + " " + timeDiff + "MS has passed");
           _zkClient.setZkSerializer(new ZNRecordSerializer());
           ZNRecord record = _zkClient.readData(fullPath);
@@ -147,13 +128,12 @@ public class ZKPathDataDumpTask extends TimerTask
           serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
 
           StringWriter sw = new StringWriter();
-          try
-          {
+          try {
             mapper.writeValue(sw, record);
             logger.info(sw.toString());
-          } catch (Exception e)
-          {
-            logger.warn(
+          } catch (Exception e) {
+            logger
+                .warn(
                     "Exception during serialization in ZKPathDataDumpTask.checkAndDump. This can mostly be ignored",
                     e);
           }

@@ -25,52 +25,44 @@ import org.apache.helix.mock.participant.DummyProcess.DummyStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-
-public class DummyProcessThread implements Runnable
-{
+public class DummyProcessThread implements Runnable {
   private static final Logger LOG = Logger.getLogger(DummyProcessThread.class);
 
   HelixManager _manager;
   String _instanceName;
 
-  public DummyProcessThread(HelixManager manager, String instanceName)
-  {
+  public DummyProcessThread(HelixManager manager, String instanceName) {
     _manager = manager;
     _instanceName = instanceName;
   }
 
   @Override
-  public void run()
-  {
-    try
-    {
+  public void run() {
+    try {
       DummyStateModelFactory stateModelFactory = new DummyStateModelFactory(0);
-//      StateMachineEngine genericStateMachineHandler =
-//          new StateMachineEngine();
+      // StateMachineEngine genericStateMachineHandler =
+      // new StateMachineEngine();
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
 
-      DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(10);
-      DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(10);
+      DummyLeaderStandbyStateModelFactory stateModelFactory1 =
+          new DummyLeaderStandbyStateModelFactory(10);
+      DummyOnlineOfflineStateModelFactory stateModelFactory2 =
+          new DummyOnlineOfflineStateModelFactory(10);
       stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
       stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
-//      _manager.getMessagingService()
-//              .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-//                                             genericStateMachineHandler);
+      // _manager.getMessagingService()
+      // .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+      // genericStateMachineHandler);
 
       _manager.connect();
       Thread.currentThread().join();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       String msg =
-          "participant:" + _instanceName + ", " + Thread.currentThread().getName()
-              + " interrupted";
+          "participant:" + _instanceName + ", " + Thread.currentThread().getName() + " interrupted";
       LOG.info(msg);
       // System.err.println(msg);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

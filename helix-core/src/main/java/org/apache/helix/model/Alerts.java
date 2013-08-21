@@ -24,28 +24,24 @@ import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
-
-public class Alerts extends HelixProperty
-{
+public class Alerts extends HelixProperty {
 
   // private final ZNRecord _record;
 
   public final static String nodeName = "Alerts";
 
-  public enum AlertsProperty
-  {
-    SESSION_ID, FIELDS
+  public enum AlertsProperty {
+    SESSION_ID,
+    FIELDS
   }
 
   // private final ZNRecord _record;
 
-  public Alerts(String id)
-  {
+  public Alerts(String id) {
     super(id);
   }
 
-  public Alerts(ZNRecord record)
-  {
+  public Alerts(ZNRecord record) {
     // _record = record;
     super(record);
 
@@ -55,18 +51,15 @@ public class Alerts extends HelixProperty
    * public Alerts(ZNRecord record, Stat stat) { super(record, stat); }
    */
 
-  public void setSessionId(String sessionId)
-  {
+  public void setSessionId(String sessionId) {
     _record.setSimpleField(AlertsProperty.SESSION_ID.toString(), sessionId);
   }
 
-  public String getSessionId()
-  {
+  public String getSessionId() {
     return _record.getSimpleField(AlertsProperty.SESSION_ID.toString());
   }
 
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     return _record.getId();
   }
 
@@ -76,19 +69,16 @@ public class Alerts extends HelixProperty
    * }
    */
 
-  public Map<String, Map<String, String>> getMapFields()
-  {
+  public Map<String, Map<String, String>> getMapFields() {
     return _record.getMapFields();
   }
 
-  public Map<String, String> getStatFields(String statName)
-  {
+  public Map<String, String> getStatFields(String statName) {
     return _record.getMapField(statName);
   }
 
   @Override
-  public boolean isValid()
-  {
+  public boolean isValid() {
     // TODO Auto-generated method stub
     return true;
   }

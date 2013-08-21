@@ -46,49 +46,38 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
-
-public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
-{
-  private static final Logger    LOG          =
-                                                  Logger.getLogger(ZkCacheBaseDataAccessor.class);
+public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
+  private static final Logger LOG = Logger.getLogger(ZkCacheBaseDataAccessor.class);
 
   protected WriteThroughCache<T> _wtCache;
-  protected ZkCallbackCache<T>   _zkCache;
+  protected ZkCallbackCache<T> _zkCache;
 
-  final ZkBaseDataAccessor<T>    _baseAccessor;
-  final Map<String, Cache<T>>    _cacheMap;
+  final ZkBaseDataAccessor<T> _baseAccessor;
+  final Map<String, Cache<T>> _cacheMap;
 
-  final String                   _chrootPath;
-  final List<String>             _wtCachePaths;
-  final List<String>             _zkCachePaths;
+  final String _chrootPath;
+  final List<String> _wtCachePaths;
+  final List<String> _zkCachePaths;
 
-  final HelixGroupCommit<T>      _groupCommit = new HelixGroupCommit<T>();
+  final HelixGroupCommit<T> _groupCommit = new HelixGroupCommit<T>();
 
   // fire listeners
-  private final ReentrantLock    _eventLock   = new ReentrantLock();
-  private ZkCacheEventThread     _eventThread;
+  private final ReentrantLock _eventLock = new ReentrantLock();
+  private ZkCacheEventThread _eventThread;
 
-  private ZkClient               _zkclient    = null;
+  private ZkClient _zkclient = null;
 
-  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
-                                 List<String> wtCachePaths)
-  {
+  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, List<String> wtCachePaths) {
     this(baseAccessor, null, wtCachePaths, null);
   }
 
-  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor,
-                                 String chrootPath,
-                                 List<String> wtCachePaths,
-                                 List<String> zkCachePaths)
-  {
+  public ZkCacheBaseDataAccessor(ZkBaseDataAccessor<T> baseAccessor, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths) {
     _baseAccessor = baseAccessor;
 
-    if (chrootPath == null || chrootPath.equals("/"))
-    {
+    if (chrootPath == null || chrootPath.equals("/")) {
       _chrootPath = null;
-    }
-    else
-    {
+    } else {
       PathUtils.validatePath(chrootPath);
       _chrootPath = chrootPath;
     }
@@ -99,11 +88,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
     // comes first
-    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>()
-    {
+    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>() {
       @Override
-      public int compare(String o1, String o2)
-      {
+      public int compare(String o1, String o2) {
         int len1 = o1.split("/").length;
         int len2 = o2.split("/").length;
         return len1 - len2;
@@ -113,27 +100,17 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     start();
   }
 
-  public ZkCacheBaseDataAccessor(String zkAddress,
-                                 ZkSerializer serializer,
-                                 String chrootPath,
-                                 List<String> wtCachePaths,
-                                 List<String> zkCachePaths)
-  {
+  public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths) {
     _zkclient =
-        new ZkClient(zkAddress,
-                     ZkClient.DEFAULT_SESSION_TIMEOUT,
-                     ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                     serializer);
-    _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                                 TimeUnit.MILLISECONDS);
+        new ZkClient(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
+            ZkClient.DEFAULT_CONNECTION_TIMEOUT, serializer);
+    _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
     _baseAccessor = new ZkBaseDataAccessor<T>(_zkclient);
 
-    if (chrootPath == null || chrootPath.equals("/"))
-    {
+    if (chrootPath == null || chrootPath.equals("/")) {
       _chrootPath = null;
-    }
-    else
-    {
+    } else {
       PathUtils.validatePath(chrootPath);
       _chrootPath = chrootPath;
     }
@@ -144,11 +121,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     // TODO: need to make sure no overlap between wtCachePaths and zkCachePaths
     // TreeMap key is ordered by key string length, so more general (i.e. short) prefix
     // comes first
-    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>()
-    {
+    _cacheMap = new TreeMap<String, Cache<T>>(new Comparator<String>() {
       @Override
-      public int compare(String o1, String o2)
-      {
+      public int compare(String o1, String o2) {
         int len1 = o1.split("/").length;
         int len2 = o2.split("/").length;
         return len1 - len2;
@@ -158,30 +133,23 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     start();
   }
 
-  private String prependChroot(String clientPath)
-  {
+  private String prependChroot(String clientPath) {
     PathUtils.validatePath(clientPath);
 
-    if (_chrootPath != null)
-    {
+    if (_chrootPath != null) {
       // handle clientPath = "/"
-      if (clientPath.length() == 1)
-      {
+      if (clientPath.length() == 1) {
         return _chrootPath;
       }
       return _chrootPath + clientPath;
-    }
-    else
-    {
+    } else {
       return clientPath;
     }
   }
 
-  private List<String> prependChroot(List<String> clientPaths)
-  {
+  private List<String> prependChroot(List<String> clientPaths) {
     List<String> serverPaths = new ArrayList<String>();
-    for (String clientPath : clientPaths)
-    {
+    for (String clientPath : clientPaths) {
       serverPaths.add(prependChroot(clientPath));
     }
     return serverPaths;
@@ -190,14 +158,10 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   /**
    * find the first path in paths that is a descendant
    */
-  private String firstCachePath(List<String> paths)
-  {
-    for (String cachePath : _cacheMap.keySet())
-    {
-      for (String path : paths)
-      {
-        if (path.startsWith(cachePath))
-        {
+  private String firstCachePath(List<String> paths) {
+    for (String cachePath : _cacheMap.keySet()) {
+      for (String path : paths) {
+        if (path.startsWith(cachePath)) {
           return path;
         }
       }
@@ -205,12 +169,9 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     return null;
   }
 
-  private Cache<T> getCache(String path)
-  {
-    for (String cachePath : _cacheMap.keySet())
-    {
-      if (path.startsWith(cachePath))
-      {
+  private Cache<T> getCache(String path) {
+    for (String cachePath : _cacheMap.keySet()) {
+      if (path.startsWith(cachePath)) {
         return _cacheMap.get(cachePath);
       }
     }
@@ -218,19 +179,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     return null;
   }
 
-  private Cache<T> getCache(List<String> paths)
-  {
+  private Cache<T> getCache(List<String> paths) {
     Cache<T> cache = null;
-    for (String path : paths)
-    {
-      for (String cachePath : _cacheMap.keySet())
-      {
-        if (cache == null && path.startsWith(cachePath))
-        {
+    for (String path : paths) {
+      for (String cachePath : _cacheMap.keySet()) {
+        if (cache == null && path.startsWith(cachePath)) {
           cache = _cacheMap.get(cachePath);
-        }
-        else if (cache != null && cache != _cacheMap.get(cachePath))
-        {
+        } else if (cache != null && cache != _cacheMap.get(cachePath)) {
           throw new IllegalArgumentException("Couldn't do cross-cache async operations. paths: "
               + paths);
         }
@@ -240,51 +195,37 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     return cache;
   }
 
-  private void updateCache(Cache<T> cache,
-                           List<String> createPaths,
-                           boolean success,
-                           String updatePath,
-                           T data,
-                           Stat stat)
-  {
-    if (createPaths == null || createPaths.isEmpty())
-    {
-      if (success)
-      {
+  private void updateCache(Cache<T> cache, List<String> createPaths, boolean success,
+      String updatePath, T data, Stat stat) {
+    if (createPaths == null || createPaths.isEmpty()) {
+      if (success) {
         cache.update(updatePath, data, stat);
       }
-    }
-    else
-    {
+    } else {
       String firstPath = firstCachePath(createPaths);
-      if (firstPath != null)
-      {
+      if (firstPath != null) {
         cache.updateRecursive(firstPath);
       }
     }
   }
 
   @Override
-  public boolean create(String path, T data, int options)
-  {
+  public boolean create(String path, T data, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
-        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doCreate(serverPath, data, options);
+        ZkBaseDataAccessor<T>.AccessResult result =
+            _baseAccessor.doCreate(serverPath, data, options);
         boolean success = (result._retCode == RetCode.OK);
 
         updateCache(cache, result._pathCreated, success, serverPath, data, ZNode.ZERO_STAT);
 
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -294,36 +235,29 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean set(String path, T data, int options)
-  {
+  public boolean set(String path, T data, int options) {
     return set(path, data, -1, options);
   }
-  
+
   @Override
-  public boolean set(String path, T data, int expectVersion, int options)
-  {
+  public boolean set(String path, T data, int expectVersion, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
-        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doSet(serverPath, data, expectVersion, options);
+        ZkBaseDataAccessor<T>.AccessResult result =
+            _baseAccessor.doSet(serverPath, data, expectVersion, options);
         boolean success = result._retCode == RetCode.OK;
 
         updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);
 
         return success;
-      }
-      catch (Exception e) 
-      {
+      } catch (Exception e) {
         return false;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -331,28 +265,25 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     // no cache
     return _baseAccessor.set(serverPath, data, expectVersion, options);
   }
-  
+
   @Override
-  public boolean update(String path, DataUpdater<T> updater, int options)
-  {
+  public boolean update(String path, DataUpdater<T> updater, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
 
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
-        ZkBaseDataAccessor<T>.AccessResult result = _baseAccessor.doUpdate(serverPath, updater, options);
+        ZkBaseDataAccessor<T>.AccessResult result =
+            _baseAccessor.doUpdate(serverPath, updater, options);
         boolean success = (result._retCode == RetCode.OK);
-        updateCache(cache, result._pathCreated, success, serverPath, result._updatedValue, result._stat);
+        updateCache(cache, result._pathCreated, success, serverPath, result._updatedValue,
+            result._stat);
 
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -363,17 +294,14 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean exists(String path, int options)
-  {
+  public boolean exists(String path, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
+    if (cache != null) {
       boolean exists = cache.exists(serverPath);
-      if (exists)
-      {
+      if (exists) {
         return true;
       }
     }
@@ -383,28 +311,22 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean remove(String path, int options)
-  {
+  public boolean remove(String path, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
 
         boolean success = _baseAccessor.remove(serverPath, options);
-        if (success)
-        {
+        if (success) {
           cache.purgeRecursive(serverPath);
         }
 
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -414,46 +336,36 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public T get(String path, Stat stat, int options)
-  {
+  public T get(String path, Stat stat, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
+    if (cache != null) {
       T record = null;
       ZNode znode = cache.get(serverPath);
 
-      if (znode != null)
-      {
+      if (znode != null) {
         // TODO: shall return a deep copy instead of reference
         record = ((T) znode.getData());
-        if (stat != null)
-        {
+        if (stat != null) {
           DataTree.copyStat(znode.getStat(), stat);
         }
         return record;
 
-      }
-      else
-      {
+      } else {
         // if cache miss, fall back to zk and update cache
-        try
-        {
+        try {
           cache.lockWrite();
-          record = _baseAccessor.get(serverPath, stat, options | AccessOption.THROW_EXCEPTION_IFNOTEXIST);
+          record =
+              _baseAccessor
+                  .get(serverPath, stat, options | AccessOption.THROW_EXCEPTION_IFNOTEXIST);
           cache.update(serverPath, record, stat);
-        }
-        catch (ZkNoNodeException e)
-        {
-          if (AccessOption.isThrowExceptionIfNotExist(options))
-          {
+        } catch (ZkNoNodeException e) {
+          if (AccessOption.isThrowExceptionIfNotExist(options)) {
             throw e;
           }
-        }
-        finally
-        {
+        } finally {
           cache.unlockWrite();
         }
 
@@ -466,37 +378,27 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public Stat getStat(String path, int options)
-  {
+  public Stat getStat(String path, int options) {
     String clientPath = path;
     String serverPath = prependChroot(clientPath);
 
     Cache<T> cache = getCache(serverPath);
-    if (cache != null)
-    {
+    if (cache != null) {
       Stat stat = new Stat();
       ZNode znode = cache.get(serverPath);
 
-      if (znode != null)
-      {
+      if (znode != null) {
         return znode.getStat();
 
-      }
-      else
-      {
+      } else {
         // if cache miss, fall back to zk and update cache
-        try
-        {
+        try {
           cache.lockWrite();
           T data = _baseAccessor.get(serverPath, stat, options);
           cache.update(serverPath, data, stat);
-        }
-        catch (ZkNoNodeException e)
-        {
+        } catch (ZkNoNodeException e) {
           return null;
-        }
-        finally
-        {
+        } finally {
           cache.unlockWrite();
         }
 
@@ -509,46 +411,32 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean[] createChildren(List<String> paths, List<T> records, int options)
-  {
+  public boolean[] createChildren(List<String> paths, List<T> records, int options) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
     Cache<T> cache = getCache(serverPaths);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
         boolean[] needCreate = new boolean[size];
         Arrays.fill(needCreate, true);
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
         CreateCallbackHandler[] createCbList =
-            _baseAccessor.create(serverPaths,
-                                 records,
-                                 needCreate,
-                                 pathsCreatedList,
-                                 options);
+            _baseAccessor.create(serverPaths, records, needCreate, pathsCreatedList, options);
 
         boolean[] success = new boolean[size];
-        for (int i = 0; i < size; i++)
-        {
+        for (int i = 0; i < size; i++) {
           CreateCallbackHandler cb = createCbList[i];
           success[i] = (Code.get(cb.getRc()) == Code.OK);
 
-          updateCache(cache,
-                      pathsCreatedList.get(i),
-                      success[i],
-                      serverPaths.get(i),
-                      records.get(i),
-                      ZNode.ZERO_STAT);
+          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+              records.get(i), ZNode.ZERO_STAT);
         }
 
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -558,16 +446,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean[] setChildren(List<String> paths, List<T> records, int options)
-  {
+  public boolean[] setChildren(List<String> paths, List<T> records, int options) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
     Cache<T> cache = getCache(serverPaths);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
         List<Stat> setStats = new ArrayList<Stat>();
         List<List<String>> pathsCreatedList =
@@ -575,20 +460,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
         boolean[] success =
             _baseAccessor.set(serverPaths, records, pathsCreatedList, setStats, options);
 
-        for (int i = 0; i < size; i++)
-        {
-          updateCache(cache,
-                      pathsCreatedList.get(i),
-                      success[i],
-                      serverPaths.get(i),
-                      records.get(i),
-                      setStats.get(i));
+        for (int i = 0; i < size; i++) {
+          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+              records.get(i), setStats.get(i));
         }
 
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -597,18 +475,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public boolean[] updateChildren(List<String> paths,
-                                  List<DataUpdater<T>> updaters,
-                                  int options)
-  {
+  public boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
     Cache<T> cache = getCache(serverPaths);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
 
         List<Stat> setStats = new ArrayList<Stat>();
@@ -616,11 +489,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
         List<T> updateData =
-            _baseAccessor.update(serverPaths,
-                                 updaters,
-                                 pathsCreatedList,
-                                 setStats,
-                                 options);
+            _baseAccessor.update(serverPaths, updaters, pathsCreatedList, setStats, options);
 
         // System.out.println("updateChild: ");
         // for (T data : updateData)
@@ -628,20 +497,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
         // System.out.println(data);
         // }
 
-        for (int i = 0; i < size; i++)
-        {
+        for (int i = 0; i < size; i++) {
           success[i] = (updateData.get(i) != null);
-          updateCache(cache,
-                      pathsCreatedList.get(i),
-                      success[i],
-                      serverPaths.get(i),
-                      updateData.get(i),
-                      setStats.get(i));
+          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+              updateData.get(i), setStats.get(i));
         }
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -652,45 +514,36 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
 
   // TODO: change to use async_exists
   @Override
-  public boolean[] exists(List<String> paths, int options)
-  {
+  public boolean[] exists(List<String> paths, int options) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
     boolean exists[] = new boolean[size];
-    for (int i = 0; i < size; i++)
-    {
+    for (int i = 0; i < size; i++) {
       exists[i] = exists(serverPaths.get(i), options);
     }
     return exists;
   }
 
   @Override
-  public boolean[] remove(List<String> paths, int options)
-  {
+  public boolean[] remove(List<String> paths, int options) {
     final int size = paths.size();
     List<String> serverPaths = prependChroot(paths);
 
     Cache<T> cache = getCache(serverPaths);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockWrite();
 
         boolean[] success = _baseAccessor.remove(serverPaths, options);
 
-        for (int i = 0; i < size; i++)
-        {
-          if (success[i])
-          {
+        for (int i = 0; i < size; i++) {
+          if (success[i]) {
             cache.purgeRecursive(serverPaths.get(i));
           }
         }
         return success;
-      }
-      finally
-      {
+      } finally {
         cache.unlockWrite();
       }
     }
@@ -700,10 +553,8 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public List<T> get(List<String> paths, List<Stat> stats, int options)
-  {
-    if (paths == null || paths.isEmpty())
-    {
+  public List<T> get(List<String> paths, List<Stat> stats, int options) {
+    if (paths == null || paths.isEmpty()) {
       return Collections.emptyList();
     }
 
@@ -717,56 +568,41 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
     boolean needReads[] = new boolean[size]; // init to false
 
     Cache<T> cache = getCache(serverPaths);
-    if (cache != null)
-    {
-      try
-      {
+    if (cache != null) {
+      try {
         cache.lockRead();
-        for (int i = 0; i < size; i++)
-        {
+        for (int i = 0; i < size; i++) {
           ZNode zNode = cache.get(serverPaths.get(i));
-          if (zNode != null)
-          {
+          if (zNode != null) {
             // TODO: shall return a deep copy instead of reference
             records.set(i, (T) zNode.getData());
             readStats.set(i, zNode.getStat());
-          }
-          else
-          {
+          } else {
             needRead = true;
             needReads[i] = true;
           }
         }
-      }
-      finally
-      {
+      } finally {
         cache.unlockRead();
       }
 
       // cache miss, fall back to zk and update cache
-      if (needRead)
-      {
+      if (needRead) {
         cache.lockWrite();
-        try
-        {
+        try {
           List<T> readRecords = _baseAccessor.get(serverPaths, readStats, needReads);
-          for (int i = 0; i < size; i++)
-          {
-            if (needReads[i])
-            {
+          for (int i = 0; i < size; i++) {
+            if (needReads[i]) {
               records.set(i, readRecords.get(i));
               cache.update(serverPaths.get(i), readRecords.get(i), readStats.get(i));
             }
           }
-        }
-        finally
-        {
+        } finally {
           cache.unlockWrite();
         }
       }
 
-      if (stats != null)
-      {
+      if (stats != null) {
         stats.clear();
         stats.addAll(readStats);
       }
@@ -780,46 +616,36 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
 
   // TODO: add cache
   @Override
-  public Stat[] getStats(List<String> paths, int options)
-  {
+  public Stat[] getStats(List<String> paths, int options) {
     List<String> serverPaths = prependChroot(paths);
     return _baseAccessor.getStats(serverPaths, options);
   }
 
   @Override
-  public List<String> getChildNames(String parentPath, int options)
-  {
+  public List<String> getChildNames(String parentPath, int options) {
     String serverParentPath = prependChroot(parentPath);
 
     Cache<T> cache = getCache(serverParentPath);
-    if (cache != null)
-    {
+    if (cache != null) {
       // System.out.println("zk-cache");
       ZNode znode = cache.get(serverParentPath);
 
-      if (znode != null && znode.getChildSet() != Collections.<String> emptySet())
-      {
+      if (znode != null && znode.getChildSet() != Collections.<String> emptySet()) {
         // System.out.println("zk-cache-hit: " + parentPath);
         List<String> childNames = new ArrayList<String>(znode.getChildSet());
         Collections.sort(childNames);
         return childNames;
-      }
-      else
-      {
+      } else {
         // System.out.println("zk-cache-miss");
-        try
-        {
+        try {
           cache.lockWrite();
 
-          List<String> childNames =
-              _baseAccessor.getChildNames(serverParentPath, options);
+          List<String> childNames = _baseAccessor.getChildNames(serverParentPath, options);
           // System.out.println("\t--" + childNames);
           cache.addToParentChildSet(serverParentPath, childNames);
 
           return childNames;
-        }
-        finally
-        {
+        } finally {
           cache.unlockWrite();
         }
       }
@@ -830,17 +656,14 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public List<T> getChildren(String parentPath, List<Stat> stats, int options)
-  {
+  public List<T> getChildren(String parentPath, List<Stat> stats, int options) {
     List<String> childNames = getChildNames(parentPath, options);
-    if (childNames == null)
-    {
+    if (childNames == null) {
       return null;
     }
 
     List<String> paths = new ArrayList<String>();
-    for (String childName : childNames)
-    {
+    for (String childName : childNames) {
       String path = parentPath + "/" + childName;
       paths.add(path);
     }
@@ -849,128 +672,101 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
   }
 
   @Override
-  public void subscribeDataChanges(String path, IZkDataListener listener)
-  {
+  public void subscribeDataChanges(String path, IZkDataListener listener) {
     String serverPath = prependChroot(path);
 
     _baseAccessor.subscribeDataChanges(serverPath, listener);
   }
 
   @Override
-  public void unsubscribeDataChanges(String path, IZkDataListener listener)
-  {
+  public void unsubscribeDataChanges(String path, IZkDataListener listener) {
     String serverPath = prependChroot(path);
 
     _baseAccessor.unsubscribeDataChanges(serverPath, listener);
   }
 
   @Override
-  public List<String> subscribeChildChanges(String path, IZkChildListener listener)
-  {
+  public List<String> subscribeChildChanges(String path, IZkChildListener listener) {
     String serverPath = prependChroot(path);
 
     return _baseAccessor.subscribeChildChanges(serverPath, listener);
   }
 
   @Override
-  public void unsubscribeChildChanges(String path, IZkChildListener listener)
-  {
+  public void unsubscribeChildChanges(String path, IZkChildListener listener) {
     String serverPath = prependChroot(path);
 
     _baseAccessor.unsubscribeChildChanges(serverPath, listener);
   }
 
   @Override
-  public void subscribe(String parentPath, HelixPropertyListener listener)
-  {
+  public void subscribe(String parentPath, HelixPropertyListener listener) {
     String serverPath = prependChroot(parentPath);
     _zkCache.subscribe(serverPath, listener);
   }
 
   @Override
-  public void unsubscribe(String parentPath, HelixPropertyListener listener)
-  {
+  public void unsubscribe(String parentPath, HelixPropertyListener listener) {
     String serverPath = prependChroot(parentPath);
     _zkCache.unsubscribe(serverPath, listener);
   }
 
   @Override
-  public void start()
-  {
+  public void start() {
 
-    LOG.info("START: Init ZkCacheBaseDataAccessor: " + _chrootPath + ", " + _wtCachePaths
-        + ", " + _zkCachePaths);
+    LOG.info("START: Init ZkCacheBaseDataAccessor: " + _chrootPath + ", " + _wtCachePaths + ", "
+        + _zkCachePaths);
 
     // start event thread
-    try
-    {
+    try {
       _eventLock.lockInterruptibly();
-      if (_eventThread != null)
-      {
+      if (_eventThread != null) {
         LOG.warn(_eventThread + " has already started");
-      }
-      else
-      {
+      } else {
 
-        if (_zkCachePaths == null || _zkCachePaths.isEmpty())
-        {
+        if (_zkCachePaths == null || _zkCachePaths.isEmpty()) {
           LOG.warn("ZkCachePaths is null or empty. Will not start ZkCacheEventThread");
-        }
-        else
-        {
+        } else {
           LOG.debug("Starting ZkCacheEventThread...");
 
           _eventThread = new ZkCacheEventThread("");
           _eventThread.start();
         }
       }
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("Current thread is interrupted when starting ZkCacheEventThread. ", e);
-    }
-    finally
-    {
+    } finally {
       _eventLock.unlock();
     }
     LOG.debug("Start ZkCacheEventThread...done");
 
     _wtCache = new WriteThroughCache<T>(_baseAccessor, _wtCachePaths);
-    _zkCache =
-        new ZkCallbackCache<T>(_baseAccessor, _chrootPath, _zkCachePaths, _eventThread);
+    _zkCache = new ZkCallbackCache<T>(_baseAccessor, _chrootPath, _zkCachePaths, _eventThread);
 
-    if (_wtCachePaths != null && !_wtCachePaths.isEmpty())
-    {
-      for (String path : _wtCachePaths)
-      {
+    if (_wtCachePaths != null && !_wtCachePaths.isEmpty()) {
+      for (String path : _wtCachePaths) {
         _cacheMap.put(path, _wtCache);
       }
     }
 
-    if (_zkCachePaths != null && !_zkCachePaths.isEmpty())
-    {
-      for (String path : _zkCachePaths)
-      {
+    if (_zkCachePaths != null && !_zkCachePaths.isEmpty()) {
+      for (String path : _zkCachePaths) {
         _cacheMap.put(path, _zkCache);
       }
     }
   }
 
   @Override
-  public void stop()
-  {
-    try
-    {
+  public void stop() {
+    try {
       _eventLock.lockInterruptibly();
 
-      if (_zkclient != null)
-      {
+      if (_zkclient != null) {
         _zkclient.close();
         _zkclient = null;
       }
 
-      if (_eventThread == null)
-      {
+      if (_eventThread == null) {
         LOG.warn(_eventThread + " has already stopped");
         return;
       }
@@ -979,30 +775,23 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T>
       _eventThread.interrupt();
       _eventThread.join(2000);
       _eventThread = null;
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("Current thread is interrupted when stopping ZkCacheEventThread.");
-    }
-    finally
-    {
+    } finally {
       _eventLock.unlock();
     }
 
     LOG.debug("Stop ZkCacheEventThread...done");
 
   }
-  
+
   @Override
-  public void reset()
-  {
-    if (_wtCache != null)
-    {
+  public void reset() {
+    if (_wtCache != null) {
       _wtCache.reset();
     }
-    
-    if (_zkCache != null)
-    {
+
+    if (_zkCache != null) {
       _zkCache.reset();
     }
   }

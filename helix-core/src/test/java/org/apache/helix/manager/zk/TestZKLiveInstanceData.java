@@ -43,46 +43,37 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestZKLiveInstanceData extends ZkUnitTestBase
-{
+public class TestZKLiveInstanceData extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
 
   @Test
-  public void testDataChange() throws Exception
-  {
+  public void testDataChange() throws Exception {
     // Create an admin and add LiveInstanceChange listener to it
     HelixManager adminManager =
-        HelixManagerFactory.getZKHelixManager(clusterName,
-                                              null,
-                                              InstanceType.ADMINISTRATOR,
-                                              ZK_ADDR);
+        HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR,
+            ZK_ADDR);
     adminManager.connect();
     final BlockingQueue<List<LiveInstance>> changeList =
         new LinkedBlockingQueue<List<LiveInstance>>();
 
-    adminManager.addLiveInstanceChangeListener(new LiveInstanceChangeListener()
-    {
+    adminManager.addLiveInstanceChangeListener(new LiveInstanceChangeListener() {
       @Override
       public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-                                       NotificationContext changeContext)
-      {
+          NotificationContext changeContext) {
         // The queue is basically unbounded, so shouldn't throw exception when calling
         // "add".
         changeList.add(deepCopy(liveInstances));
       }
     });
-    
+
     // Check the initial condition
     List<LiveInstance> instances = changeList.poll(1, TimeUnit.SECONDS);
     Assert.assertNotNull(instances, "Expecting a list of live instance");
     Assert.assertTrue(instances.isEmpty(), "Expecting an empty list of live instance");
     // Join as participant, should trigger a live instance change event
     HelixManager manager =
-        HelixManagerFactory.getZKHelixManager(clusterName,
-                                              "localhost_54321",
-                                              InstanceType.PARTICIPANT,
-                                              ZK_ADDR);
+        HelixManagerFactory.getZKHelixManager(clusterName, "localhost_54321",
+            InstanceType.PARTICIPANT, ZK_ADDR);
     manager.connect();
     instances = changeList.poll(1, TimeUnit.SECONDS);
     Assert.assertNotNull(instances, "Expecting a list of live instance");
@@ -99,13 +90,11 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase
     map.put("k1", "v1");
     instance.getRecord().setMapField("test", map);
     Assert.assertTrue(helixDataAccessor.updateProperty(propertyKey, instance),
-                      "Failed to update live instance node");
+        "Failed to update live instance node");
 
     instances = changeList.poll(1, TimeUnit.SECONDS);
     Assert.assertNotNull(instances, "Expecting a list of live instance");
-    Assert.assertEquals(instances.get(0).getRecord().getMapField("test"),
-                        map,
-                        "Wrong map data.");
+    Assert.assertEquals(instances.get(0).getRecord().getMapField("test"), map, "Wrong map data.");
     manager.disconnect();
     Thread.sleep(1000); // wait for callback finish
 
@@ -118,52 +107,34 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase
   }
 
   @BeforeClass()
-  public void beforeClass() throws Exception
-  {
+  public void beforeClass() throws Exception {
     ZkClient zkClient = null;
-    try
-    {
+    try {
       zkClient = new ZkClient(ZK_ADDR);
       zkClient.setZkSerializer(new ZNRecordSerializer());
-      if (zkClient.exists("/" + clusterName))
-      {
+      if (zkClient.exists("/" + clusterName)) {
         zkClient.deleteRecursive("/" + clusterName);
       }
-    }
-    finally
-    {
-      if (zkClient != null)
-      {
+    } finally {
+      if (zkClient != null) {
         zkClient.close();
       }
     }
 
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr",
-                                                ZK_ADDR,
-                                                "-addCluster",
-                                                clusterName));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr",
-                                                ZK_ADDR,
-                                                "-addNode",
-                                                clusterName,
-                                                "localhost:54321"));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr",
-                                                ZK_ADDR,
-                                                "-addNode",
-                                                clusterName,
-                                                "localhost:54322"));
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addCluster", clusterName));
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
+        "localhost:54321"));
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
+        "localhost:54322"));
   }
 
-  private String[] getArgs(String... args)
-  {
+  private String[] getArgs(String... args) {
     return args;
   }
 
-  private List<LiveInstance> deepCopy(List<LiveInstance> instances)
-  {
+  private List<LiveInstance> deepCopy(List<LiveInstance> instances) {
     List<LiveInstance> result = new ArrayList<LiveInstance>();
-    for (LiveInstance instance : instances)
-    {
+    for (LiveInstance instance : instances) {
       result.add(new LiveInstance(instance.getRecord()));
     }
     return result;

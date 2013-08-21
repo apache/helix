@@ -19,30 +19,22 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
-
-public class RsyncDaemon
-{
-  public boolean start()
-  {
+public class RsyncDaemon {
+  public boolean start() {
     ProcessBuilder pb = new ProcessBuilder("sudo", "rync", "--daemon");
     ExternalCommand externalCommand = new ExternalCommand(pb);
-    try
-    {
+    try {
       int exitVal = externalCommand.waitFor();
-      if(exitVal!=0){
+      if (exitVal != 0) {
         return true;
       }
-    } catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       e.printStackTrace();
     }
     return false;
   }
 
- 
-
-  public boolean stop()
-  {
+  public boolean stop() {
     return true;
   }
 }

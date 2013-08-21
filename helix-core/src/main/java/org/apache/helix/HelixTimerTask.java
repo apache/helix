@@ -22,13 +22,12 @@ package org.apache.helix;
 /**
  * Interface for defining a generic task to run periodically.
  */
-public abstract class HelixTimerTask
-{
+public abstract class HelixTimerTask {
   /**
    * Start a timer task
    */
   public abstract void start();
-  
+
   /**
    * Stop a timer task
    */

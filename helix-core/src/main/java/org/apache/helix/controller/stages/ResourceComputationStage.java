@@ -31,25 +31,19 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
 import org.apache.log4j.Logger;
 
-
 /**
  * This stage computes all the resources in a cluster. The resources are
  * computed from IdealStates -> this gives all the resources currently active
  * CurrentState for liveInstance-> Helps in finding resources that are inactive
  * and needs to be dropped
- *
- *
  */
-public class ResourceComputationStage extends AbstractBaseStage
-{
+public class ResourceComputationStage extends AbstractBaseStage {
   private static Logger LOG = Logger.getLogger(ResourceComputationStage.class);
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    if (cache == null)
-    {
+    if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
     }
 
@@ -57,15 +51,12 @@ public class ResourceComputationStage extends AbstractBaseStage
 
     Map<String, Resource> resourceMap = new LinkedHashMap<String, Resource>();
 
-    if (idealStates != null && idealStates.size() > 0)
-    {
-      for (IdealState idealState : idealStates.values())
-      {
+    if (idealStates != null && idealStates.size() > 0) {
+      for (IdealState idealState : idealStates.values()) {
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
 
-        for (String partition : partitionSet)
-        {
+        for (String partition : partitionSet) {
           addPartition(partition, resourceName, resourceMap);
           Resource resource = resourceMap.get(resourceName);
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
@@ -80,28 +71,23 @@ public class ResourceComputationStage extends AbstractBaseStage
     // idealState might be removed.
     Map<String, LiveInstance> availableInstances = cache.getLiveInstances();
 
-    if (availableInstances != null && availableInstances.size() > 0)
-    {
-      for (LiveInstance instance : availableInstances.values())
-      {
+    if (availableInstances != null && availableInstances.size() > 0) {
+      for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
         String clientSessionId = instance.getSessionId();
 
-        Map<String, CurrentState> currentStateMap = cache.getCurrentState(instanceName,
-            clientSessionId);
-        if (currentStateMap == null || currentStateMap.size() == 0)
-        {
+        Map<String, CurrentState> currentStateMap =
+            cache.getCurrentState(instanceName, clientSessionId);
+        if (currentStateMap == null || currentStateMap.size() == 0) {
           continue;
         }
-        for (CurrentState currentState : currentStateMap.values())
-        {
+        for (CurrentState currentState : currentStateMap.values()) {
 
           String resourceName = currentState.getResourceName();
           Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
 
           // don't overwrite ideal state settings
-          if (!resourceMap.containsKey(resourceName))
-          {
+          if (!resourceMap.containsKey(resourceName)) {
             addResource(resourceName, resourceMap);
             Resource resource = resourceMap.get(resourceName);
             resource.setStateModelDefRef(currentState.getStateModelDefRef());
@@ -109,9 +95,8 @@ public class ResourceComputationStage extends AbstractBaseStage
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
           }
-          
-          if (currentState.getStateModelDefRef() == null)
-          {
+
+          if (currentState.getStateModelDefRef() == null) {
             LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
                 + ", partitions: " + currentState.getPartitionStateMap().keySet() + ", states: "
                 + currentState.getPartitionStateMap().values());
@@ -119,8 +104,7 @@ public class ResourceComputationStage extends AbstractBaseStage
                 + currentState.getResourceName());
           }
 
-          for (String partition : resourceStateMap.keySet())
-          {
+          for (String partition : resourceStateMap.keySet()) {
             addPartition(partition, resourceName, resourceMap);
           }
         }
@@ -130,26 +114,20 @@ public class ResourceComputationStage extends AbstractBaseStage
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
   }
 
-  private void addResource(String resource, Map<String, Resource> resourceMap)
-  {
-    if (resource == null || resourceMap == null)
-    {
+  private void addResource(String resource, Map<String, Resource> resourceMap) {
+    if (resource == null || resourceMap == null) {
       return;
     }
-    if (!resourceMap.containsKey(resource))
-    {
+    if (!resourceMap.containsKey(resource)) {
       resourceMap.put(resource, new Resource(resource));
     }
   }
 
-  private void addPartition(String partition, String resourceName, Map<String, Resource> resourceMap)
-  {
-    if (resourceName == null || partition == null || resourceMap == null)
-    {
+  private void addPartition(String partition, String resourceName, Map<String, Resource> resourceMap) {
+    if (resourceName == null || partition == null || resourceMap == null) {
       return;
     }
-    if (!resourceMap.containsKey(resourceName))
-    {
+    if (!resourceMap.containsKey(resourceName)) {
       resourceMap.put(resourceName, new Resource(resourceName));
     }
     Resource resource = resourceMap.get(resourceName);

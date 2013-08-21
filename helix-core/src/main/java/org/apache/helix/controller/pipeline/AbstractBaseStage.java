@@ -24,58 +24,46 @@ import java.util.Map;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.monitoring.mbeans.HelixStageLatencyMonitor;
 
-
-public class AbstractBaseStage implements Stage
-{
+public class AbstractBaseStage implements Stage {
   @Override
-  public void init(StageContext context)
-  {
+  public void init(StageContext context) {
 
   }
 
   @Override
-  public void preProcess()
-  {
+  public void preProcess() {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
 
   }
 
   @Override
-  public void postProcess()
-  {
+  public void postProcess() {
 
   }
 
   @Override
-  public void release()
-  {
+  public void release() {
 
   }
 
   @Override
-  public String getStageName()
-  {
+  public String getStageName() {
     // default stage name will be the class name
     String className = this.getClass().getName();
     return className;
   }
 
-  public void addLatencyToMonitor(ClusterEvent event, long latency)
-  {
+  public void addLatencyToMonitor(ClusterEvent event, long latency) {
     Map<String, HelixStageLatencyMonitor> stgLatencyMonitorMap =
         event.getAttribute("HelixStageLatencyMonitorMap");
-    if (stgLatencyMonitorMap != null)
-    {
-      if (stgLatencyMonitorMap.containsKey(getStageName()))
-      {
-        HelixStageLatencyMonitor stgLatencyMonitor =
-            stgLatencyMonitorMap.get(getStageName());
+    if (stgLatencyMonitorMap != null) {
+      if (stgLatencyMonitorMap.containsKey(getStageName())) {
+        HelixStageLatencyMonitor stgLatencyMonitor = stgLatencyMonitorMap.get(getStageName());
         stgLatencyMonitor.addStgLatency(latency);
       }
     }

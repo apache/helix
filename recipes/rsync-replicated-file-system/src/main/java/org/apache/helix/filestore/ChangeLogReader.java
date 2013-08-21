@@ -31,15 +31,13 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-public class ChangeLogReader implements FileChangeWatcher
-{
+public class ChangeLogReader implements FileChangeWatcher {
   int MAX_ENTRIES_TO_READ = 100;
   private final String changeLogDir;
   Lock lock;
   private Condition condition;
 
-  public ChangeLogReader(String changeLogDir)
-  {
+  public ChangeLogReader(String changeLogDir) {
     this.changeLogDir = changeLogDir;
     lock = new ReentrantLock();
     condition = lock.newCondition();
@@ -48,45 +46,36 @@ public class ChangeLogReader implements FileChangeWatcher
 
   /**
    * Blocking call
-   * 
    * @param record
    * @return
    */
-  public List<ChangeRecord> getChangeSince(ChangeRecord record)
-  {
+  public List<ChangeRecord> getChangeSince(ChangeRecord record) {
     List<ChangeRecord> changes = new ArrayList<ChangeRecord>();
     String fileName;
     long endOffset;
-    if (record == null)
-    {
+    if (record == null) {
       fileName = "log.1";
       endOffset = 0;
-    } else
-    {
+    } else {
       fileName = record.changeLogFileName;
       endOffset = record.endOffset;
     }
-    try
-    {
+    try {
       lock.lock();
-      
+
       File file;
       file = new File(changeLogDir + "/" + fileName);
-      while (!file.exists() || file.length() <= endOffset)
-      {
-     // wait
-        try
-        {
+      while (!file.exists() || file.length() <= endOffset) {
+        // wait
+        try {
           System.out.println("Waiting for new changes");
           condition.await();
           System.out.println("Detected changes");
-        } catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
           e.printStackTrace();
         }
       }
-      RandomAccessFile raf = new RandomAccessFile(
-          changeLogDir + "/" + fileName, "r");
+      RandomAccessFile raf = new RandomAccessFile(changeLogDir + "/" + fileName, "r");
       raf.seek(endOffset);
       // out.writeLong(record.txid);
       // out.writeShort(record.type);
@@ -94,7 +83,7 @@ public class ChangeLogReader implements FileChangeWatcher
       // out.writeUTF(record.file);
 
       int count = 0;
-     do {
+      do {
         ChangeRecord newRecord = new ChangeRecord();
         newRecord.changeLogFileName = fileName;
         newRecord.startOffset = raf.getFilePointer();
@@ -105,64 +94,49 @@ public class ChangeLogReader implements FileChangeWatcher
         newRecord.endOffset = raf.getFilePointer();
         changes.add(newRecord);
         count++;
-      }while (count < MAX_ENTRIES_TO_READ && raf.getFilePointer()< raf.length());
-    } catch (FileNotFoundException e)
-    {
+      } while (count < MAX_ENTRIES_TO_READ && raf.getFilePointer() < raf.length());
+    } catch (FileNotFoundException e) {
       e.printStackTrace();
-    } catch (IOException e)
-    {
+    } catch (IOException e) {
       e.printStackTrace();
-    } finally
-    {
+    } finally {
       lock.unlock();
     }
     return changes;
   }
 
   @Override
-  public void onEntryModified(String path)
-  {
-    try
-    {
+  public void onEntryModified(String path) {
+    try {
       lock.lock();
       condition.signalAll();
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO: handle exception
-    } finally
-    {
+    } finally {
       lock.unlock();
     }
   }
 
   @Override
-  public void onEntryAdded(String path)
-  {
-    try
-    {
+  public void onEntryAdded(String path) {
+    try {
       lock.lock();
       condition.signalAll();
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO: handle exception
-    } finally
-    {
+    } finally {
       lock.unlock();
     }
   }
 
   @Override
-  public void onEntryDeleted(String path)
-  {
-    try
-    {
+  public void onEntryDeleted(String path) {
+    try {
       lock.lock();
       condition.signalAll();
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO: handle exception
-    } finally
-    {
+    } finally {
       lock.unlock();
     }
   }

@@ -28,10 +28,10 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
-
 /**
  * Ideal state json format file used in this example for CUSTOMIZED ideal state mode
  * <p>
+ * 
  * <pre>
  * {
  * "id" : "TestDB",
@@ -68,17 +68,14 @@ import org.apache.helix.tools.StateModelConfigGenerator;
  * }
  * }
  * </pre>
- * 
  */
 
-public class IdealStateExample
-{
+public class IdealStateExample {
 
-  public static void main(String[] args) throws Exception
-  {
-    if (args.length < 3)
-    {
-      System.err.println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (FULL_AUTO, SEMI_AUTO, or CUSTOMIZED) idealStateJsonFile (required for CUSTOMIZED mode)");
+  public static void main(String[] args) throws Exception {
+    if (args.length < 3) {
+      System.err
+          .println("USAGE: IdealStateExample zkAddress clusterName idealStateMode (FULL_AUTO, SEMI_AUTO, or CUSTOMIZED) idealStateJsonFile (required for CUSTOMIZED mode)");
       System.exit(1);
     }
 
@@ -86,12 +83,9 @@ public class IdealStateExample
     final String clusterName = args[1];
     final String idealStateRebalancerModeStr = args[2].toUpperCase();
     String idealStateJsonFile = null;
-    RebalanceMode idealStateRebalancerMode =
-        RebalanceMode.valueOf(idealStateRebalancerModeStr);
-    if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED)
-    {
-      if (args.length < 4)
-      {
+    RebalanceMode idealStateRebalancerMode = RebalanceMode.valueOf(idealStateRebalancerModeStr);
+    if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED) {
+      if (args.length < 4) {
         System.err.println("Missng idealStateJsonFile for CUSTOMIZED ideal state mode");
         System.exit(1);
       }
@@ -100,22 +94,18 @@ public class IdealStateExample
 
     // add cluster {clusterName}
     ZkClient zkclient =
-        new ZkClient(zkAddr,
-                     ZkClient.DEFAULT_SESSION_TIMEOUT,
-                     ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                     new ZNRecordSerializer());
+        new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            new ZNRecordSerializer());
     ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
     admin.addCluster(clusterName, true);
 
     // add MasterSlave state mode definition
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    admin.addStateModelDef(clusterName,
-                           "MasterSlave",
-                           new StateModelDefinition(generator.generateConfigForMasterSlave()));
+    admin.addStateModelDef(clusterName, "MasterSlave",
+        new StateModelDefinition(generator.generateConfigForMasterSlave()));
 
     // add 3 participants: "localhost:{12918, 12919, 12920}"
-    for (int i = 0; i < 3; i++)
-    {
+    for (int i = 0; i < 3; i++) {
       int port = 12918 + i;
       InstanceConfig config = new InstanceConfig("localhost_" + port);
       config.setHostName("localhost");
@@ -127,32 +117,25 @@ public class IdealStateExample
     // add resource "TestDB" which has 4 partitions and uses MasterSlave state model
     String resourceName = "TestDB";
     if (idealStateRebalancerMode == RebalanceMode.SEMI_AUTO
-        || idealStateRebalancerMode == RebalanceMode.FULL_AUTO)
-    {
+        || idealStateRebalancerMode == RebalanceMode.FULL_AUTO) {
       admin.addResource(clusterName, resourceName, 4, "MasterSlave", idealStateRebalancerModeStr);
 
       // rebalance resource "TestDB" using 3 replicas
       admin.rebalance(clusterName, resourceName, 3);
-    }
-    else if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED)
-    {
+    } else if (idealStateRebalancerMode == RebalanceMode.CUSTOMIZED) {
       admin.addIdealState(clusterName, resourceName, idealStateJsonFile);
     }
 
     // start helix controller
-    new Thread(new Runnable()
-    {
+    new Thread(new Runnable() {
 
       @Override
-      public void run()
-      {
-        try
-        {
-          HelixControllerMain.main(new String[] { "--zkSvr", zkAddr, "--cluster",
-              clusterName });
-        }
-        catch (Exception e)
-        {
+      public void run() {
+        try {
+          HelixControllerMain.main(new String[] {
+              "--zkSvr", zkAddr, "--cluster", clusterName
+          });
+        } catch (Exception e) {
           // TODO Auto-generated catch block
           e.printStackTrace();
         }
@@ -161,17 +144,16 @@ public class IdealStateExample
     }).start();
 
     // start 3 dummy participants
-    for (int i = 0; i < 3; i++)
-    {
+    for (int i = 0; i < 3; i++) {
       int port = 12918 + i;
       final String instanceName = "localhost_" + port;
-      new Thread(new Runnable()
-      {
+      new Thread(new Runnable() {
 
         @Override
-        public void run()
-        {
-          DummyParticipant.main(new String[] { zkAddr, clusterName, instanceName });
+        public void run() {
+          DummyParticipant.main(new String[] {
+              zkAddr, clusterName, instanceName
+          });
         }
       }).start();
     }

@@ -62,181 +62,152 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
 
-public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
-
-  class MockAsyncCallback extends AsyncCallback
-  {
+  class MockAsyncCallback extends AsyncCallback {
     Message _message;
-    public MockAsyncCallback()
-    {
+
+    public MockAsyncCallback() {
     }
 
     @Override
-    public void onTimeOut()
-    {
+    public void onTimeOut() {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void onReplyMessage(Message message)
-    {
+    public void onReplyMessage(Message message) {
       _message = message;
     }
   }
+
   TestMessagingHandlerFactory _factory = new TestMessagingHandlerFactory();
-  public static class TestMessagingHandlerFactory implements
-      MessageHandlerFactory
-  {
+
+  public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
     public Map<String, Set<String>> _results = new ConcurrentHashMap<String, Set<String>>();
+
     @Override
-    public MessageHandler createHandler(Message message,
-        NotificationContext context)
-    {
+    public MessageHandler createHandler(Message message, NotificationContext context) {
       return new TestMessagingHandler(message, context);
     }
 
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       return "TestParticipant";
     }
 
     @Override
-    public void reset()
-    {
+    public void reset() {
       // TODO Auto-generated method stub
 
     }
 
-    public class TestMessagingHandler extends MessageHandler
-    {
-      public TestMessagingHandler(Message message, NotificationContext context)
-      {
+    public class TestMessagingHandler extends MessageHandler {
+      public TestMessagingHandler(Message message, NotificationContext context) {
         super(message, context);
         // TODO Auto-generated constructor stub
       }
 
       @Override
-      public HelixTaskResult handleMessage() throws InterruptedException
-      {
+      public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         String destName = _message.getTgtName();
         result.getTaskResultMap().put("Message", _message.getMsgId());
-        synchronized (_results)
-        {
-          if (!_results.containsKey(_message.getPartitionName()))
-          {
-            _results.put(_message.getPartitionName(),
-                new ConcurrentSkipListSet<String>());
+        synchronized (_results) {
+          if (!_results.containsKey(_message.getPartitionName())) {
+            _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
           }
         }
         _results.get(_message.getPartitionName()).add(_message.getMsgId());
-        //System.err.println("Message " + _message.getMsgId() + " executed");
+        // System.err.println("Message " + _message.getMsgId() + " executed");
         return result;
       }
 
       @Override
-      public void onError(Exception e, ErrorCode code, ErrorType type)
-      {
+      public void onError(Exception e, ErrorCode code, ErrorType type) {
         // TODO Auto-generated method stub
       }
     }
   }
-  
-  public static class TestMessagingHandlerFactoryLatch implements
-    MessageHandlerFactory
-  {
+
+  public static class TestMessagingHandlerFactoryLatch implements MessageHandlerFactory {
     public volatile CountDownLatch _latch = new CountDownLatch(1);
     public int _messageCount = 0;
     public Map<String, Set<String>> _results = new ConcurrentHashMap<String, Set<String>>();
+
     @Override
-    public synchronized MessageHandler createHandler(Message message,
-      NotificationContext context)
-    {
+    public synchronized MessageHandler createHandler(Message message, NotificationContext context) {
       _messageCount++;
       return new TestMessagingHandlerLatch(message, context);
     }
-    
-    public synchronized void signal()
-    {
+
+    public synchronized void signal() {
       _latch.countDown();
       _latch = new CountDownLatch(1);
     }
-  
+
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       return "TestMessagingHandlerLatch";
     }
-  
+
     @Override
-    public void reset()
-    {
+    public void reset() {
       // TODO Auto-generated method stub
     }
 
-  public class TestMessagingHandlerLatch extends MessageHandler
-  {
-    public TestMessagingHandlerLatch(Message message, NotificationContext context)
-    {
-      super(message, context);
-      // TODO Auto-generated constructor stub
-    }
-  
-    @Override
-    public HelixTaskResult handleMessage() throws InterruptedException
-    {
-      _latch.await();
-      HelixTaskResult result = new HelixTaskResult();
-      result.setSuccess(true);
-      result.getTaskResultMap().put("Message", _message.getMsgId());
-      String destName = _message.getTgtName();
-      synchronized (_results)
-      {
-        if (!_results.containsKey(_message.getPartitionName()))
-        {
-          _results.put(_message.getPartitionName(),
-              new ConcurrentSkipListSet<String>());
-        }
+    public class TestMessagingHandlerLatch extends MessageHandler {
+      public TestMessagingHandlerLatch(Message message, NotificationContext context) {
+        super(message, context);
+        // TODO Auto-generated constructor stub
       }
-      _results.get(_message.getPartitionName()).add(destName);
-      //System.err.println("Message " + _message.getMsgId() + " executed");
-      return result;
-    }
-  
-    @Override
-    public void onError(Exception e, ErrorCode code, ErrorType type)
-    {
-      // TODO Auto-generated method stub
+
+      @Override
+      public HelixTaskResult handleMessage() throws InterruptedException {
+        _latch.await();
+        HelixTaskResult result = new HelixTaskResult();
+        result.setSuccess(true);
+        result.getTaskResultMap().put("Message", _message.getMsgId());
+        String destName = _message.getTgtName();
+        synchronized (_results) {
+          if (!_results.containsKey(_message.getPartitionName())) {
+            _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
+          }
+        }
+        _results.get(_message.getPartitionName()).add(destName);
+        // System.err.println("Message " + _message.getMsgId() + " executed");
+        return result;
+      }
+
+      @Override
+      public void onError(Exception e, ErrorCode code, ErrorType type) {
+        // TODO Auto-generated method stub
+      }
     }
   }
-}
-  
+
   @Test()
-  public void TestSchedulerMsgUsingQueue() throws Exception
-  {
+  public void TestSchedulerMsgUsingQueue() throws Exception {
     Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
-    schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg");
+    schedulerMessage.getRecord().setSimpleField(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg");
     // Template for the individual message sent to each participant
     Message msg = new Message(_factory.getMessageType(), "Template");
     msg.setTgtSessionId("*");
@@ -260,84 +231,71 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(
-        keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
+    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
         schedulerMessage);
-    
-    for(int i = 0; i < 30; i++)
-    {
+
+    for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);
-      if(_PARTITIONS == _factory._results.size())
-      {
+      if (_PARTITIONS == _factory._results.size()) {
         break;
       }
     }
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
-    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-        MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
-      
+    PropertyKey controllerTaskStatus =
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+            schedulerMessage.getMsgId());
+
     int messageResultCount = 0;
-    for(int i = 0; i < 10; i++)
-    {
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-          .get("MessageCount").equals("" + (_PARTITIONS * 3)));
-      for(String key : statusUpdate.getMapFields().keySet())
-      {
-        if(key.startsWith("MessageResult "))
-        {
-          messageResultCount ++;
+    for (int i = 0; i < 10; i++) {
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+          .equals("" + (_PARTITIONS * 3)));
+      for (String key : statusUpdate.getMapFields().keySet()) {
+        if (key.startsWith("MessageResult ")) {
+          messageResultCount++;
         }
       }
-      if(messageResultCount == _PARTITIONS * 3)
-      {
+      if (messageResultCount == _PARTITIONS * 3) {
         break;
-      }
-      else
-      {
+      } else {
         Thread.sleep(2000);
       }
     }
     Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
     int count = 0;
-    for (Set<String> val : _factory._results.values())
-    {
+    for (Set<String> val : _factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
-    
-   
+
   }
-  
+
   @Test()
-  public void TestSchedulerMsg() throws Exception
-  {
+  public void TestSchedulerMsg() throws Exception {
     Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
-    //schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg");
+    // schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE,
+    // "TestSchedulerMsg");
     // Template for the individual message sent to each participant
     Message msg = new Message(_factory.getMessageType(), "Template");
     msg.setTgtSessionId("*");
@@ -361,85 +319,73 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(
-        keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
+    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
         schedulerMessage);
-    
-    for(int i = 0; i < 30; i++)
-    {
+
+    for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);
-      if(_PARTITIONS == _factory._results.size())
-      {
+      if (_PARTITIONS == _factory._results.size()) {
         break;
       }
     }
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
-    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-        MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
-      
+    PropertyKey controllerTaskStatus =
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+            schedulerMessage.getMsgId());
+
     int messageResultCount = 0;
-    for(int i = 0; i < 10; i++)
-    {
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-          .get("MessageCount").equals("" + (_PARTITIONS * 3)));
-      for(String key : statusUpdate.getMapFields().keySet())
-      {
-        if(key.startsWith("MessageResult "))
-        {
-          messageResultCount ++;
+    for (int i = 0; i < 10; i++) {
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+          .equals("" + (_PARTITIONS * 3)));
+      for (String key : statusUpdate.getMapFields().keySet()) {
+        if (key.startsWith("MessageResult ")) {
+          messageResultCount++;
           Assert.assertTrue(statusUpdate.getMapField(key).size() > 1);
         }
       }
-      if(messageResultCount == _PARTITIONS * 3)
-      {
+      if (messageResultCount == _PARTITIONS * 3) {
         break;
-      }
-      else
-      {
+      } else {
         Thread.sleep(2000);
       }
     }
     Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
     int count = 0;
-    for (Set<String> val : _factory._results.values())
-    {
+    for (Set<String> val : _factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
-    
+
     // test the ZkPathDataDumpTask
-    String controllerStatusPath = HelixUtil.getControllerPropertyPath(manager.getClusterName(),
-        PropertyType.STATUSUPDATES_CONTROLLER);
+    String controllerStatusPath =
+        HelixUtil.getControllerPropertyPath(manager.getClusterName(),
+            PropertyType.STATUSUPDATES_CONTROLLER);
     List<String> subPaths = _zkClient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
-    for(String subPath : subPaths)
-    {
+    for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
       List<String> subsubPaths = _zkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
     }
-    
-    String instanceStatusPath = HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
-        PropertyType.STATUSUPDATES);
-    
+
+    String instanceStatusPath =
+        HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
+            PropertyType.STATUSUPDATES);
+
     subPaths = _zkClient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
-    for(String subPath : subPaths)
-    {
+    for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _zkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
-      for(String subsubPath : subsubPaths)
-      {
+      for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
         Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() > 0);
       }
@@ -447,47 +393,41 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Thread.sleep(3000);
     ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, _zkClient, 0);
     dumpTask.run();
-    
+
     subPaths = _zkClient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
-    for(String subPath : subPaths)
-    {
+    for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
       List<String> subsubPaths = _zkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() == 0);
     }
-    
+
     subPaths = _zkClient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
-    for(String subPath : subPaths)
-    {
+    for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _zkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
-      for(String subsubPath : subsubPaths)
-      {
+      for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
         Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() == 0);
       }
     }
   }
-  
 
   @Test()
-  public void TestSchedulerMsg2() throws Exception
-  {
+  public void TestSchedulerMsg2() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
@@ -516,76 +456,69 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     schedulerMessage.getRecord().setSimpleField("WAIT_ALL", "true");
-    
+
     Criteria cr2 = new Criteria();
     cr2.setRecipientInstanceType(InstanceType.CONTROLLER);
     cr2.setInstanceName("*");
     cr2.setSessionSpecific(false);
 
-    schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg2");
+    schedulerMessage.getRecord().setSimpleField(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg2");
     MockAsyncCallback callback = new MockAsyncCallback();
     manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
-    String msgId = callback._message.getResultMap().get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
-    
+    String msgId =
+        callback._message.getResultMap()
+            .get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
+
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    for(int i = 0;i < 10; i++ )
-    {
+    for (int i = 0; i < 10; i++) {
       Thread.sleep(200);
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgId);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      if(statusUpdate.getMapFields().containsKey("Summary"))
-      {
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;
       }
     }
-    
+
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
-    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-        MessageType.SCHEDULER_MSG.toString(), msgId);
-    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-        .getRecord();
-    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-        .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+    PropertyKey controllerTaskStatus =
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+        .equals("" + (_PARTITIONS * 3)));
     int messageResultCount = 0;
-    for(String key : statusUpdate.getMapFields().keySet())
-    {
-      if(key.startsWith("MessageResult "))
-      {
-        messageResultCount ++;
+    for (String key : statusUpdate.getMapFields().keySet()) {
+      if (key.startsWith("MessageResult ")) {
+        messageResultCount++;
       }
     }
     Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
-    
+
     int count = 0;
-    for (Set<String> val : _factory._results.values())
-    {
+    for (Set<String> val : _factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
   }
 
   @Test()
-  public void TestSchedulerZeroMsg() throws Exception
-  {
+  public void TestSchedulerZeroMsg() throws Exception {
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(factory.getMessageType(), factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          factory.getMessageType(), factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
@@ -614,60 +547,51 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    PropertyKey controllerMessageKey = keyBuilder
-        .controllerMessage(schedulerMessage.getMsgId());
+    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgId());
     helixDataAccessor.setProperty(controllerMessageKey, schedulerMessage);
 
     Thread.sleep(3000);
 
     Assert.assertEquals(0, factory._results.size());
-    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-        MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId());
-    for(int i = 0; i< 10; i++)
-    {
+    PropertyKey controllerTaskStatus =
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+            schedulerMessage.getMsgId());
+    for (int i = 0; i < 10; i++) {
       StatusUpdate update = helixDataAccessor.getProperty(controllerTaskStatus);
-      if(update == null || update.getRecord().getMapField("SentMessageCount") == null)
-      {
+      if (update == null || update.getRecord().getMapField("SentMessageCount") == null) {
         Thread.sleep(1000);
       }
     }
-    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-        .getRecord();
-    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-        .get("MessageCount").equals("0"));
+    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals("0"));
     int count = 0;
-    for (Set<String> val : factory._results.values())
-    {
+    for (Set<String> val : factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, 0);
   }
-  
 
   @Test()
-  public void TestSchedulerMsg3() throws Exception
-  {
+  public void TestSchedulerMsg3() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
-      // 
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-      .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
+      //
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
@@ -696,17 +620,17 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     schedulerMessage.getRecord().setSimpleField("WAIT_ALL", "true");
 
-    schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg3");
+    schedulerMessage.getRecord().setSimpleField(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg3");
     Criteria cr2 = new Criteria();
     cr2.setRecipientInstanceType(InstanceType.CONTROLLER);
     cr2.setInstanceName("*");
     cr2.setSessionSpecific(false);
-    
+
     MockAsyncCallback callback = new MockAsyncCallback();
     cr.setInstanceName("localhost_%");
     mapper = new ObjectMapper();
@@ -718,11 +642,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     crString = sw.toString();
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    
-    for(int i = 0; i < 4; i++)
-    {
+
+    for (int i = 0; i < 4; i++) {
       callback = new MockAsyncCallback();
-      cr.setInstanceName("localhost_"+(START_PORT + i));
+      cr.setInstanceName("localhost_" + (START_PORT + i));
       mapper = new ObjectMapper();
       serializationConfig = mapper.getSerializationConfig();
       serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
@@ -733,71 +656,63 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       crString = sw.toString();
       schedulerMessage.getRecord().setSimpleField("Criteria", crString);
       manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
-      String msgId = callback._message.getResultMap().get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
-      
+      String msgId =
+          callback._message.getResultMap().get(
+              DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
+
       HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
       Builder keyBuilder = helixDataAccessor.keyBuilder();
-      
-      for(int j = 0;j < 100; j++ )
-      {
+
+      for (int j = 0; j < 100; j++) {
         Thread.sleep(200);
-        PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-            MessageType.SCHEDULER_MSG.toString(), msgId);
-        ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-            .getRecord();
-        if(statusUpdate.getMapFields().containsKey("Summary"))
-        {
+        PropertyKey controllerTaskStatus =
+            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+        ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+        if (statusUpdate.getMapFields().containsKey("Summary")) {
           break;
         }
       }
-      
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgId);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-          .get("MessageCount").equals("" + (_PARTITIONS * 3 / 5)));
+
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+          .equals("" + (_PARTITIONS * 3 / 5)));
       int messageResultCount = 0;
-      for(String key : statusUpdate.getMapFields().keySet())
-      {
-        if(key.startsWith("MessageResult"))
-        {
-          messageResultCount ++;
+      for (String key : statusUpdate.getMapFields().keySet()) {
+        if (key.startsWith("MessageResult")) {
+          messageResultCount++;
         }
       }
       Assert.assertEquals(messageResultCount, _PARTITIONS * 3 / 5);
-      
+
       int count = 0;
-      //System.out.println(i);
-      for (Set<String> val : _factory._results.values())
-      {
-        //System.out.println(val);
+      // System.out.println(i);
+      for (Set<String> val : _factory._results.values()) {
+        // System.out.println(val);
         count += val.size();
       }
-      //System.out.println(count);
-      Assert.assertEquals(count, _PARTITIONS * 3/ 5 *(i+1) );
+      // System.out.println(count);
+      Assert.assertEquals(count, _PARTITIONS * 3 / 5 * (i + 1));
     }
   }
-  
 
   @Test()
-  public void TestSchedulerMsg4() throws Exception
-  {
+  public void TestSchedulerMsg4() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
-      // 
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-      .registerMessageHandlerFactory(_factory.getMessageType(), _factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
+      //
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          _factory.getMessageType(), _factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
@@ -826,27 +741,25 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     schedulerMessage.getRecord().setSimpleField("WAIT_ALL", "true");
 
-    schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg4");
+    schedulerMessage.getRecord().setSimpleField(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg4");
     Criteria cr2 = new Criteria();
     cr2.setRecipientInstanceType(InstanceType.CONTROLLER);
     cr2.setInstanceName("*");
     cr2.setSessionSpecific(false);
-    
+
     Map<String, String> constraints = new TreeMap<String, String>();
     constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
     constraints.put("TRANSITION", "OFFLINE-COMPLETED");
     constraints.put("CONSTRAINT_VALUE", "1");
     constraints.put("INSTANCE", ".*");
-    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
-                                                    ConstraintType.MESSAGE_CONSTRAINT, 
-                                                    "constraint1", 
-                                                    new ConstraintItem(constraints));
-    
+    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(),
+        ConstraintType.MESSAGE_CONSTRAINT, "constraint1", new ConstraintItem(constraints));
+
     MockAsyncCallback callback = new MockAsyncCallback();
     cr.setInstanceName("localhost_%");
     mapper = new ObjectMapper();
@@ -859,15 +772,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     crString = sw.toString();
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
     manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
-    String msgIdPrime = callback._message.getResultMap().get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
+    String msgIdPrime =
+        callback._message.getResultMap()
+            .get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
     ArrayList<String> msgIds = new ArrayList<String>();
-    for(int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       callback = new MockAsyncCallback();
-      cr.setInstanceName("localhost_"+(START_PORT + i));
+      cr.setInstanceName("localhost_" + (START_PORT + i));
       mapper = new ObjectMapper();
       serializationConfig = mapper.getSerializationConfig();
       serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
@@ -878,89 +792,77 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       crString = sw.toString();
       schedulerMessage.getRecord().setSimpleField("Criteria", crString);
       manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
-      String msgId = callback._message.getResultMap().get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
+      String msgId =
+          callback._message.getResultMap().get(
+              DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
       msgIds.add(msgId);
     }
-    for(int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String msgId = msgIds.get(i);
-      for(int j = 0;j < 100; j++ )
-      {
+      for (int j = 0; j < 100; j++) {
         Thread.sleep(200);
-        PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-            MessageType.SCHEDULER_MSG.toString(), msgId);
-        ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-            .getRecord();
-        if(statusUpdate.getMapFields().containsKey("Summary"))
-        {
-          //System.err.println(msgId+" done");
+        PropertyKey controllerTaskStatus =
+            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+        ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+        if (statusUpdate.getMapFields().containsKey("Summary")) {
+          // System.err.println(msgId+" done");
           break;
         }
       }
-      
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgId);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-          .get("MessageCount").equals("" + (_PARTITIONS * 3 / 5)));
+
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+          .equals("" + (_PARTITIONS * 3 / 5)));
       int messageResultCount = 0;
-      for(String key : statusUpdate.getMapFields().keySet())
-      {
-        if(key.startsWith("MessageResult"))
-        {
-          messageResultCount ++;
+      for (String key : statusUpdate.getMapFields().keySet()) {
+        if (key.startsWith("MessageResult")) {
+          messageResultCount++;
         }
       }
-      if(messageResultCount != _PARTITIONS * 3 / 5)
-      {
+      if (messageResultCount != _PARTITIONS * 3 / 5) {
         int x = 10;
         x = x + messageResultCount;
       }
       Assert.assertEquals(messageResultCount, _PARTITIONS * 3 / 5);
     }
-    
-    for(int j = 0;j < 100; j++ )
-    {
+
+    for (int j = 0; j < 100; j++) {
       Thread.sleep(200);
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgIdPrime);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      if(statusUpdate.getMapFields().containsKey("Summary"))
-      {
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgIdPrime);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;
       }
     }
     int count = 0;
-    for (Set<String> val : _factory._results.values())
-    {
-      //System.out.println(val);
+    for (Set<String> val : _factory._results.values()) {
+      // System.out.println(val);
       count += val.size();
     }
-    //System.out.println(count);
-    Assert.assertEquals(count, _PARTITIONS * 3 * 2 );
+    // System.out.println(count);
+    Assert.assertEquals(count, _PARTITIONS * 3 * 2);
   }
-  
-  
+
   @Test
-  public void TestSchedulerMsgContraints() throws JsonGenerationException, JsonMappingException, IOException, InterruptedException
-  {
+  public void TestSchedulerMsgContraints() throws JsonGenerationException, JsonMappingException,
+      IOException, InterruptedException {
     TestMessagingHandlerFactoryLatch factory = new TestMessagingHandlerFactoryLatch();
     HelixManager manager = null;
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-          .registerMessageHandlerFactory(factory.getMessageType(), factory);
-      // 
-      _startCMResultMap.get(hostDest)._manager.getMessagingService()
-      .registerMessageHandlerFactory(factory.getMessageType(), factory);
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          factory.getMessageType(), factory);
+      //
+      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+          factory.getMessageType(), factory);
       manager = _startCMResultMap.get(hostDest)._manager;
     }
 
-    Message schedulerMessage = new Message(MessageType.SCHEDULER_MSG + "", UUID
-        .randomUUID().toString());
+    Message schedulerMessage =
+        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
     schedulerMessage.setTgtSessionId("*");
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
@@ -989,18 +891,17 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate",
-        msg.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate", msg.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     schedulerMessage.getRecord().setSimpleField("WAIT_ALL", "true");
-    schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsgContraints");
-    
+    schedulerMessage.getRecord().setSimpleField(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsgContraints");
+
     Criteria cr2 = new Criteria();
     cr2.setRecipientInstanceType(InstanceType.CONTROLLER);
     cr2.setInstanceName("*");
     cr2.setSessionSpecific(false);
-    
-    
+
     MockAsyncCallback callback = new MockAsyncCallback();
     mapper = new ObjectMapper();
     serializationConfig = mapper.getSerializationConfig();
@@ -1009,94 +910,83 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     sw = new StringWriter();
     mapper.writeValue(sw, cr);
 
-    
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    
+
     // Set contraints that only 1 msg per participant
     Map<String, String> constraints = new TreeMap<String, String>();
     constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
     constraints.put("TRANSITION", "OFFLINE-COMPLETED");
     constraints.put("CONSTRAINT_VALUE", "1");
     constraints.put("INSTANCE", ".*");
-    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(), 
-                                                    ConstraintType.MESSAGE_CONSTRAINT,
-                                                    "constraint1", 
-                                                    new ConstraintItem(constraints));
-    
+    manager.getClusterManagmentTool().setConstraint(manager.getClusterName(),
+        ConstraintType.MESSAGE_CONSTRAINT, "constraint1", new ConstraintItem(constraints));
+
     // Send scheduler message
     crString = sw.toString();
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
     manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
-    String msgId = callback._message.getResultMap().get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
-    
-    for(int j = 0;j < 10; j++ )
-    {
+    String msgId =
+        callback._message.getResultMap()
+            .get(DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
+
+    for (int j = 0; j < 10; j++) {
       Thread.sleep(200);
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgId);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      if(statusUpdate.getMapFields().containsKey("SentMessageCount"))
-      {
-        Assert.assertEquals(statusUpdate.getMapFields().get("SentMessageCount").get("MessageCount"), ""+(_PARTITIONS * 3));
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      if (statusUpdate.getMapFields().containsKey("SentMessageCount")) {
+        Assert.assertEquals(
+            statusUpdate.getMapFields().get("SentMessageCount").get("MessageCount"), ""
+                + (_PARTITIONS * 3));
         break;
       }
     }
-    
-    for(int i = 0; i < _PARTITIONS * 3 / 5; i++)
-    {
-      for(int j = 0; j< 10; j++)
-      {
+
+    for (int i = 0; i < _PARTITIONS * 3 / 5; i++) {
+      for (int j = 0; j < 10; j++) {
         Thread.sleep(300);
-        if(factory._messageCount == 5*(i+1)) break;
+        if (factory._messageCount == 5 * (i + 1))
+          break;
       }
       Thread.sleep(300);
-      Assert.assertEquals(factory._messageCount, 5*(i+1));
+      Assert.assertEquals(factory._messageCount, 5 * (i + 1));
       factory.signal();
-      //System.err.println(i);
+      // System.err.println(i);
     }
-    
-    for(int j = 0;j < 10; j++ )
-    {
+
+    for (int j = 0; j < 10; j++) {
       Thread.sleep(200);
-      PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-          MessageType.SCHEDULER_MSG.toString(), msgId);
-      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-          .getRecord();
-      if(statusUpdate.getMapFields().containsKey("Summary"))
-      {
+      PropertyKey controllerTaskStatus =
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+      ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+      if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;
       }
     }
 
     Assert.assertEquals(_PARTITIONS, factory._results.size());
-    PropertyKey controllerTaskStatus = keyBuilder.controllerTaskStatus(
-        MessageType.SCHEDULER_MSG.toString(), msgId);
-    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus)
-        .getRecord();
-    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount")
-        .get("MessageCount").equals("" + (_PARTITIONS * 3)));
+    PropertyKey controllerTaskStatus =
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+    ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
+    Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
+        .equals("" + (_PARTITIONS * 3)));
     int messageResultCount = 0;
-    for(String key : statusUpdate.getMapFields().keySet())
-    {
-      if(key.startsWith("MessageResult "))
-      {
-        messageResultCount ++;
+    for (String key : statusUpdate.getMapFields().keySet()) {
+      if (key.startsWith("MessageResult ")) {
+        messageResultCount++;
       }
     }
     Assert.assertEquals(messageResultCount, _PARTITIONS * 3);
-    
+
     int count = 0;
-    for (Set<String> val : factory._results.values())
-    {
+    for (Set<String> val : factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, _PARTITIONS * 3);
-    
-    manager.getClusterManagmentTool().removeConstraint(manager.getClusterName(), 
-                                                    ConstraintType.MESSAGE_CONSTRAINT,
-                                                    "constraint1");
-    
+
+    manager.getClusterManagmentTool().removeConstraint(manager.getClusterName(),
+        ConstraintType.MESSAGE_CONSTRAINT, "constraint1");
+
   }
 }

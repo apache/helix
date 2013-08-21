@@ -24,8 +24,7 @@ import java.util.List;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 
-public interface ZkTestManager
-{
+public interface ZkTestManager {
   ZkClient getZkClient();
 
   List<CallbackHandler> getHandlers();

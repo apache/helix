@@ -27,11 +27,10 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
  * Helix participant manager uses this class to register/remove state model factory
  * State model factory creates state model that handles state transition messages
  */
-public interface StateMachineEngine extends MessageHandlerFactory
-{
+public interface StateMachineEngine extends MessageHandlerFactory {
   /**
    * Register a default state model factory for a state model definition
-   * A state model definition could be, for example: 
+   * A state model definition could be, for example:
    * "MasterSlave", "OnlineOffline", "LeaderStandby", etc.
    * @param stateModelDef
    * @param factory

@@ -27,33 +27,24 @@ import java.util.Map;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
-
-public class MessageThrottleStageOutput
-{
+public class MessageThrottleStageOutput {
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
-  public MessageThrottleStageOutput()
-  {
+  public MessageThrottleStageOutput() {
     _messagesMap = new HashMap<String, Map<Partition, List<Message>>>();
   }
 
-  public void addMessages(String resourceName,
-                          Partition partition,
-                          List<Message> selectedMessages)
-  {
-    if (!_messagesMap.containsKey(resourceName))
-    {
+  public void addMessages(String resourceName, Partition partition, List<Message> selectedMessages) {
+    if (!_messagesMap.containsKey(resourceName)) {
       _messagesMap.put(resourceName, new HashMap<Partition, List<Message>>());
     }
     _messagesMap.get(resourceName).put(partition, selectedMessages);
 
   }
 
-  public List<Message> getMessages(String resourceName, Partition partition)
-  {
+  public List<Message> getMessages(String resourceName, Partition partition) {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
-    if (map != null)
-    {
+    if (map != null) {
       return map.get(partition);
     }
     return Collections.emptyList();

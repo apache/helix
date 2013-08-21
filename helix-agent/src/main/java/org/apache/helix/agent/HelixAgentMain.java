@@ -46,34 +46,30 @@ public class HelixAgentMain {
 
   // hack: OptionalBuilder is not thread safe
   @SuppressWarnings("static-access")
-  synchronized private static Options constructCommandLineOptions()
-  {
-    Option helpOption = OptionBuilder.withLongOpt(help)
-        .withDescription("Prints command-line options info").create();
+  synchronized private static Options constructCommandLineOptions() {
+    Option helpOption =
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
-    Option zkAddrOption = OptionBuilder.withLongOpt(zkAddr)
-        .hasArgs(1)
-        .isRequired(true)
-        .withArgName("ZookeeperServerAddress(Required)")
-        .withDescription("Provide zookeeper address").create();
+    Option zkAddrOption =
+        OptionBuilder.withLongOpt(zkAddr).hasArgs(1).isRequired(true)
+            .withArgName("ZookeeperServerAddress(Required)")
+            .withDescription("Provide zookeeper address").create();
 
-    Option clusterOption = OptionBuilder.withLongOpt(cluster)
-        .hasArgs(1)
-        .isRequired(true)
-        .withArgName("Cluster name (Required)")
-        .withDescription("Provide cluster name").create();
+    Option clusterOption =
+        OptionBuilder.withLongOpt(cluster).hasArgs(1).isRequired(true)
+            .withArgName("Cluster name (Required)").withDescription("Provide cluster name")
+            .create();
 
-    Option instanceNameOption = OptionBuilder.withLongOpt(instanceName)
-        .hasArgs(1)
-        .isRequired(true)
-        .withArgName("Helix agent name (Required)")
-        .withDescription("Provide Helix agent name").create();
+    Option instanceNameOption =
+        OptionBuilder.withLongOpt(instanceName).hasArgs(1).isRequired(true)
+            .withArgName("Helix agent name (Required)").withDescription("Provide Helix agent name")
+            .create();
 
-    Option stateModelOption = OptionBuilder.withLongOpt(stateModel)
-        .hasArgs(1)
-        .isRequired(true)
-        .withArgName("State model name (Required)")
-        .withDescription("Provide state model name").create();
+    Option stateModelOption =
+        OptionBuilder.withLongOpt(stateModel).hasArgs(1).isRequired(true)
+            .withArgName("State model name (Required)").withDescription("Provide state model name")
+            .create();
 
     Options options = new Options();
     options.addOption(helpOption);
@@ -85,23 +81,19 @@ public class HelixAgentMain {
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + HelixAgentMain.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
 
-    try
-    {
+    try {
       return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
+    } catch (ParseException pe) {
       LOG.error("fail to parse command-line options. cliArgs: " + Arrays.toString(cliArgs), pe);
       printUsage(cliOptions);
       System.exit(1);
@@ -110,21 +102,18 @@ public class HelixAgentMain {
   }
 
   // NOT working for kill -9, working for kill -2/-15
-  static class HelixAgentShutdownHook extends Thread
-  {
+  static class HelixAgentShutdownHook extends Thread {
     final HelixManager _manager;
 
-    HelixAgentShutdownHook(HelixManager manager)
-    {
+    HelixAgentShutdownHook(HelixManager manager) {
       _manager = manager;
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
       LOG.info("HelixAgentShutdownHook invoked. agent: " + _manager.getInstanceName());
       if (_manager != null && _manager.isConnected())
-      _manager.disconnect();
+        _manager.disconnect();
     }
   }
 
@@ -135,9 +124,9 @@ public class HelixAgentMain {
     String instance = cmd.getOptionValue(instanceName);
     String stateModelName = cmd.getOptionValue(stateModel);
 
-    HelixManager manager = new ZKHelixManager(clusterName, 
-        instance, InstanceType.PARTICIPANT, zkAddress);
-    
+    HelixManager manager =
+        new ZKHelixManager(clusterName, instance, InstanceType.PARTICIPANT, zkAddress);
+
     StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(stateModelName, new AgentStateModelFactory());
 

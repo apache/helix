@@ -40,13 +40,10 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ClustersResource extends Resource
-{
+public class ClustersResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
 
-  public ClustersResource(Context context, Request request, Response response)
-  {
+  public ClustersResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -54,33 +51,26 @@ public class ClustersResource extends Resource
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return true;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       presentation = getClustersRepresentation();
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("", e);
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
@@ -91,11 +81,8 @@ public class ClustersResource extends Resource
   }
 
   StringRepresentation getClustersRepresentation() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      JsonMappingException, IOException {
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> clusters = setupTool.getClusterManagementTool().getClusters();
 
@@ -103,54 +90,44 @@ public class ClustersResource extends Resource
     clustersRecord.setListField("clusters", clusters);
     StringRepresentation representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(clustersRecord),
-                                 MediaType.APPLICATION_JSON);
+            MediaType.APPLICATION_JSON);
 
     return representation;
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
+  public void acceptRepresentation(Representation entity) {
+    try {
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command == null)
-      {
-        throw new HelixException("Could NOT find 'command' in parameterMap: " + jsonParameters._parameterMap);
-      }
-      else if (command.equalsIgnoreCase(ClusterSetup.addCluster))
-      {
+      if (command == null) {
+        throw new HelixException("Could NOT find 'command' in parameterMap: "
+            + jsonParameters._parameterMap);
+      } else if (command.equalsIgnoreCase(ClusterSetup.addCluster)) {
         jsonParameters.verifyCommand(ClusterSetup.addCluster);
 
         ZkClient zkClient =
             (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
         ClusterSetup setupTool = new ClusterSetup(zkClient);
-        setupTool.addCluster(jsonParameters.getParameter(JsonParameters.CLUSTER_NAME),
-                             false);
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + ClusterSetup.addCluster + "]");
+        setupTool.addCluster(jsonParameters.getParameter(JsonParameters.CLUSTER_NAME), false);
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + ClusterSetup.addCluster + "]");
       }
 
       getResponse().setEntity(getClustersRepresentation());
       getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
     }
   }
 
   @Override
-  public void removeRepresentations()
-  {
+  public void removeRepresentations() {
 
   }
 }

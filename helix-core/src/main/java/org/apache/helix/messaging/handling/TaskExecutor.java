@@ -24,69 +24,62 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 public interface TaskExecutor {
-	public static final int DEFAULT_PARALLEL_TASKS = 40;
+  public static final int DEFAULT_PARALLEL_TASKS = 40;
 
-	/**
-	 * register message handler factory this executor can handle
-	 * 
-	 * @param type
-	 * @param factory
-	 */
-	public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
+  /**
+   * register message handler factory this executor can handle
+   * @param type
+   * @param factory
+   */
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory);
 
-	/**
-	 * register message handler factory this executor can handle with specified
-	 * thread-pool size
-	 * 
-	 * @param type
-	 * @param factory
-	 * @param threadpoolSize
-	 */
-	public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
-	        int threadPoolSize);
+  /**
+   * register message handler factory this executor can handle with specified
+   * thread-pool size
+   * @param type
+   * @param factory
+   * @param threadpoolSize
+   */
+  public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
+      int threadPoolSize);
 
-	/**
-	 * schedule a message execution
-	 * 
-	 * @param message
-	 * @param handler
-	 * @param context
-	 */
-	public boolean scheduleTask(MessageTask task);
+  /**
+   * schedule a message execution
+   * @param message
+   * @param handler
+   * @param context
+   */
+  public boolean scheduleTask(MessageTask task);
 
-	/**
-	 * blocking on scheduling all tasks
-	 * 
-	 * @param tasks
-	 */
-	public List<Future<HelixTaskResult>> invokeAllTasks(List<MessageTask> tasks, long timeout, TimeUnit unit)
-	        throws InterruptedException;
+  /**
+   * blocking on scheduling all tasks
+   * @param tasks
+   */
+  public List<Future<HelixTaskResult>> invokeAllTasks(List<MessageTask> tasks, long timeout,
+      TimeUnit unit) throws InterruptedException;
 
-	/**
-	 * cancel a message execution
-	 * 
-	 * @param message
-	 * @param context
-	 */
-	public boolean cancelTask(MessageTask task);
+  /**
+   * cancel a message execution
+   * @param message
+   * @param context
+   */
+  public boolean cancelTask(MessageTask task);
 
-	/**
-	 * cancel the timeout for the given task
-	 * 
-	 * @param task
-	 * @return
-	 */
-	public boolean cancelTimeoutTask(MessageTask task);
-	
-	/**
-	 * finish a message execution
-	 * 
-	 * @param message
-	 */
-	public void finishTask(MessageTask task);
+  /**
+   * cancel the timeout for the given task
+   * @param task
+   * @return
+   */
+  public boolean cancelTimeoutTask(MessageTask task);
 
-	/**
-	 * shutdown executor
-	 */
-	public void shutdown();
+  /**
+   * finish a message execution
+   * @param message
+   */
+  public void finishTask(MessageTask task);
+
+  /**
+   * shutdown executor
+   */
+  public void shutdown();
 }

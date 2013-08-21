@@ -26,22 +26,18 @@ import org.restlet.Router;
 
 /**
  * Restlet application for ZkPropertyTransfer server
- * */
-public class ZkPropertyTransferApplication extends Application
-{
-  public ZkPropertyTransferApplication()
-  {
+ */
+public class ZkPropertyTransferApplication extends Application {
+  public ZkPropertyTransferApplication() {
     super();
   }
 
-  public ZkPropertyTransferApplication(Context context)
-  {
+  public ZkPropertyTransferApplication(Context context) {
     super(context);
   }
-  
+
   @Override
-  public Restlet createRoot()
-  {
+  public Restlet createRoot() {
     Router router = new Router(getContext());
     router.attach("/" + ZKPropertyTransferServer.RESTRESOURCENAME, ZNRecordUpdateResource.class);
     return router;

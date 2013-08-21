@@ -51,22 +51,22 @@ public class TestHelixAgent extends ZkUnitTestBase {
   public void beforeMethod() throws Exception {
     serverCmd = ExternalCommand.start(workingDir + "/simpleHttpServer.py");
   }
-  
+
   @AfterMethod
   public void afterMethod() throws Exception {
     if (serverCmd != null) {
       // shutdown server
       ExternalCommand.execute(new File(workingDir), "simpleHttpClient.py", "exit");
-//      System.out.println("simpleHttpServer output: \n" + serverCmd.getStringOutput());
-      
+      // System.out.println("simpleHttpServer output: \n" + serverCmd.getStringOutput());
+
       // check server has received all the requests
       String serverOutput = serverCmd.getStringOutput();
       int idx = serverOutput.indexOf("requestPath: /OFFLINE-SLAVE");
       Assert.assertTrue(idx > 0, "server should receive OFFINE->SLAVE transition");
-      
+
       idx = serverOutput.indexOf("requestPath: /SLAVE-MASTER", idx);
       Assert.assertTrue(idx > 0, "server should receive SLAVE-MASTER transition");
-      
+
       idx = serverOutput.indexOf("requestPath: /MASTER-SLAVE", idx);
       Assert.assertTrue(idx > 0, "server should receive MASTER-SLAVE transition");
 
@@ -75,7 +75,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
 
     }
   }
-  
+
   @Test
   public void test() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -84,86 +84,75 @@ public class TestHelixAgent extends ZkUnitTestBase {
     final int n = 1;
     final String zkAddr = ZK_ADDR;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-
-    TestHelper.setupCluster(clusterName, 
-                            zkAddr, 
-                            12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            1, // partitions per resource
-                            n, // number of nodes
-                            1, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+    TestHelper.setupCluster(clusterName, zkAddr, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        1, // partitions per resource
+        n, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
 
     // set cluster config
-    ZkClient client = new ZkClient(zkAddr,
-                                   ZkClient.DEFAULT_SESSION_TIMEOUT,
-                                   ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                                   new ZNRecordSerializer());
+    ZkClient client =
+        new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            new ZNRecordSerializer());
 
-    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
-                                    .forCluster(clusterName)
-                                    .build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
     ConfigAccessor configAccessor = new ConfigAccessor(client);
-    
-    // String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_{PARTITION_NAME}_pid.txt";
-    
+
+    // String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR +
+    // "/default/foo_{PARTITION_NAME}_pid.txt";
+
     // the pid file path for the first partition
     // delete it if exists
-//    String pidFileFirstPartition = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
-//    File file = new File(pidFileFirstPartition);
-//    if (file.exists()) {
-//      file.delete();
-//    }
-    
+    // String pidFileFirstPartition = ScriptTestHelper.getPrefix() +
+    // ScriptTestHelper.INTEGRATION_LOG_DIR + "/default/foo_TestDB0_0_pid.txt";
+    // File file = new File(pidFileFirstPartition);
+    // if (file.exists()) {
+    // file.delete();
+    // }
+
     // set commands for state-transitions
     CommandConfig.Builder builder = new CommandConfig.Builder();
-    CommandConfig cmdConfig = builder.setTransition("SLAVE", "MASTER")
-                                     .setCommand("simpleHttpClient.py SLAVE-MASTER")
-                                     .setCommandWorkingDir(workingDir)
-                                     .setCommandTimeout("0")
-    //                                 .setPidFile(pidFile)
-                                     .build();
-    configAccessor.set(scope, cmdConfig.toKeyValueMap());
-    
-    builder = new CommandConfig.Builder();
-    cmdConfig = builder.setTransition("OFFLINE", "SLAVE")
-                       .setCommand("simpleHttpClient.py OFFLINE-SLAVE")
-                       .setCommandWorkingDir(workingDir)
-                       .build();
+    CommandConfig cmdConfig =
+        builder.setTransition("SLAVE", "MASTER").setCommand("simpleHttpClient.py SLAVE-MASTER")
+            .setCommandWorkingDir(workingDir).setCommandTimeout("0")
+            // .setPidFile(pidFile)
+            .build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
     builder = new CommandConfig.Builder();
-    cmdConfig = builder.setTransition("MASTER", "SLAVE")
-                       .setCommand("simpleHttpClient.py MASTER-SLAVE")
-                       .setCommandWorkingDir(workingDir)
-                       .build();
-    configAccessor.set(scope, cmdConfig.toKeyValueMap());
-    
-    builder = new CommandConfig.Builder();
-    cmdConfig = builder.setTransition("SLAVE", "OFFLINE")
-                       .setCommand("simpleHttpClient.py SLAVE-OFFLINE")
-                       .setCommandWorkingDir(workingDir)
-                       .build();
-    configAccessor.set(scope, cmdConfig.toKeyValueMap());
-    
-    builder = new CommandConfig.Builder();
-    cmdConfig = builder.setTransition("OFFLINE", "DROPPED")
-                       .setCommand(CommandAttribute.NOP.getName())
-                       .build();
+    cmdConfig =
+        builder.setTransition("OFFLINE", "SLAVE").setCommand("simpleHttpClient.py OFFLINE-SLAVE")
+            .setCommandWorkingDir(workingDir).build();
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
+    builder = new CommandConfig.Builder();
+    cmdConfig =
+        builder.setTransition("MASTER", "SLAVE").setCommand("simpleHttpClient.py MASTER-SLAVE")
+            .setCommandWorkingDir(workingDir).build();
+    configAccessor.set(scope, cmdConfig.toKeyValueMap());
+
+    builder = new CommandConfig.Builder();
+    cmdConfig =
+        builder.setTransition("SLAVE", "OFFLINE").setCommand("simpleHttpClient.py SLAVE-OFFLINE")
+            .setCommandWorkingDir(workingDir).build();
+    configAccessor.set(scope, cmdConfig.toKeyValueMap());
+
+    builder = new CommandConfig.Builder();
+    cmdConfig =
+        builder.setTransition("OFFLINE", "DROPPED").setCommand(CommandAttribute.NOP.getName())
+            .build();
+    configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
     // start controller
-    ClusterController controller =
-        new ClusterController(clusterName, "controller_0", zkAddr);
+    ClusterController controller = new ClusterController(clusterName, "controller_0", zkAddr);
     controller.syncStart();
-    
+
     // start helix-agent
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
@@ -171,8 +160,10 @@ public class TestHelixAgent extends ZkUnitTestBase {
         @Override
         public void run() {
           try {
-            HelixAgentMain.main(new String[]{"--zkSvr", zkAddr, "--cluster", clusterName,
-                "--instanceName", instanceName, "--stateModel", "MasterSlave"});
+            HelixAgentMain.main(new String[] {
+                "--zkSvr", zkAddr, "--cluster", clusterName, "--instanceName", instanceName,
+                "--stateModel", "MasterSlave"
+            });
           } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -180,34 +171,35 @@ public class TestHelixAgent extends ZkUnitTestBase {
         }
       };
       agentThread.start();
-      
+
       // wait participant thread to start
       Thread.sleep(100);
     }
-    
+
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     // read the pid file should get current process id
-//    String readPid = SystemUtil.getPidFromFile(new File(pidFileFirstPartition));
-//    Assert.assertNotNull(readPid, "readPid is the pid for foo_test.py. should NOT be null");
-    
+    // String readPid = SystemUtil.getPidFromFile(new File(pidFileFirstPartition));
+    // Assert.assertNotNull(readPid, "readPid is the pid for foo_test.py. should NOT be null");
+
     // String name = ManagementFactory.getRuntimeMXBean().getName();
     // String currentPid = name.substring(0,name.indexOf("@"));
-    
+
     // System.out.println("read-pid: " + readPid + ", current-pid: " + currentPid);
-    
+
     // drop resource will trigger M->S and S->O transitions
-    ClusterSetup.processCommandLineArgs(new String[]{"--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"});
+    ClusterSetup.processCommandLineArgs(new String[] {
+        "--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"
+    });
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
-    Assert.assertTrue(result);      
+            clusterName));
+    Assert.assertTrue(result);
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

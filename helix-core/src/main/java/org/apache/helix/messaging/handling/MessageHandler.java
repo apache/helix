@@ -25,64 +25,61 @@ import org.apache.helix.messaging.handling.MessageHandler.ErrorType;
 import org.apache.helix.model.Message;
 
 /**
- * Provides the base class for all message handlers. 
- * 
+ * Provides the base class for all message handlers.
  */
-public abstract class MessageHandler
-{
-  public enum ErrorType
-  {
-    FRAMEWORK, INTERNAL
+public abstract class MessageHandler {
+  public enum ErrorType {
+    FRAMEWORK,
+    INTERNAL
   }
-  
-  public enum ErrorCode
-  {
-    ERROR, CANCEL, TIMEOUT
+
+  public enum ErrorCode {
+    ERROR,
+    CANCEL,
+    TIMEOUT
   }
+
   /**
-   * The message to be handled 
+   * The message to be handled
    */
   protected final Message _message;
-  
+
   /**
    * The context for handling the message. The cluster manager interface can be
-   * accessed from NotificationContext 
+   * accessed from NotificationContext
    */
   protected final NotificationContext _notificationContext;
-  
+
   /**
    * The constructor. The message and notification context must be provided via
    * creation.
    */
-  public MessageHandler(Message message, NotificationContext context)
-  {
+  public MessageHandler(Message message, NotificationContext context) {
     _message = message;
     _notificationContext = context;
   }
-  
+
   /**
-   * Message handling routine. The function is called in a thread pool task in 
-   * CMTaskExecutor 
-   * 
+   * Message handling routine. The function is called in a thread pool task in
+   * CMTaskExecutor
    * @return returns the CMTaskResult which contains info about the message processing.
    */
-  public abstract HelixTaskResult handleMessage()  throws InterruptedException;
-  
+  public abstract HelixTaskResult handleMessage() throws InterruptedException;
+
   /**
-   * Callback when error happens in the message handling pipeline. 
+   * Callback when error happens in the message handling pipeline.
    * @param type TODO
-   * @param retryCountLeft - The number of retries that the framework will 
-   * continue trying to handle the message
-   * @param ErrorType - denote if the exception happens in framework or happens in the 
-   * customer's code
+   * @param retryCountLeft - The number of retries that the framework will
+   *          continue trying to handle the message
+   * @param ErrorType - denote if the exception happens in framework or happens in the
+   *          customer's code
    */
   public abstract void onError(Exception e, ErrorCode code, ErrorType type);
-  
+
   /**
-   * Callback when the framework is about to interrupt the message handler 
+   * Callback when the framework is about to interrupt the message handler
    */
-  public void onTimeout()
-  {
-    
+  public void onTimeout() {
+
   }
 }

@@ -36,7 +36,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Logger;
 
-
 /**
  * This provides the ability for users to run a custom code in exactly one
  * process using a LeaderStandBy state model. <br/>
@@ -51,11 +50,8 @@ import org.apache.log4j.Logger;
  *  .usingLeaderStandbyModel("someUniqueId")
  *  .run()
  * </code>
- *
- *
  */
-public class HelixCustomCodeRunner
-{
+public class HelixCustomCodeRunner {
   private static final String LEADER_STANDBY = "LeaderStandby";
   private static Logger LOG = Logger.getLogger(HelixCustomCodeRunner.class);
   private static String PARTICIPANT_LEADER = "PARTICIPANT_LEADER";
@@ -69,12 +65,10 @@ public class HelixCustomCodeRunner
 
   /**
    * Constructs a HelixCustomCodeRunner that will run exactly in one place
-   *
    * @param manager
    * @param zkAddr
    */
-  public HelixCustomCodeRunner(HelixManager manager, String zkAddr)
-  {
+  public HelixCustomCodeRunner(HelixManager manager, String zkAddr) {
     _manager = manager;
     _zkAddr = zkAddr;
   }
@@ -84,12 +78,10 @@ public class HelixCustomCodeRunner
    * notificationTypes) This callback must be idempotent which means they should
    * not depend on what changed instead simply read the cluster data and act on
    * it.
-   *
    * @param callback
    * @return
    */
-  public HelixCustomCodeRunner invoke(CustomCodeCallbackHandler callback)
-  {
+  public HelixCustomCodeRunner invoke(CustomCodeCallbackHandler callback) {
     _callback = callback;
     return this;
   }
@@ -97,18 +89,15 @@ public class HelixCustomCodeRunner
   /**
    * ChangeTypes interested in, ParticipantLeaderCallback.callback method will
    * be invoked on the
-   *
    * @param notificationTypes
    * @return
    */
-  public HelixCustomCodeRunner on(ChangeType... notificationTypes)
-  {
+  public HelixCustomCodeRunner on(ChangeType... notificationTypes) {
     _notificationTypes = Arrays.asList(notificationTypes);
     return this;
   }
 
-  public HelixCustomCodeRunner usingLeaderStandbyModel(String id)
-  {
+  public HelixCustomCodeRunner usingLeaderStandbyModel(String id) {
     _resourceName = PARTICIPANT_LEADER + "_" + id;
     return this;
   }
@@ -116,14 +105,11 @@ public class HelixCustomCodeRunner
   /**
    * This method will be invoked when there is a change in any subscribed
    * notificationTypes
-   *
    * @throws Exception
    */
-  public void start() throws Exception
-  {
+  public void start() throws Exception {
     if (_callback == null || _notificationTypes == null || _notificationTypes.size() == 0
-        || _resourceName == null)
-    {
+        || _resourceName == null) {
       throw new IllegalArgumentException("Require callback | notificationTypes | resourceName");
     }
 
@@ -134,14 +120,14 @@ public class HelixCustomCodeRunner
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
     stateMach.registerStateModelFactory(LEADER_STANDBY, _stateModelFty, _resourceName);
     ZkClient zkClient = null;
-    try
-    {
+    try {
       // manually add ideal state for participant leader using LeaderStandby
       // model
 
       zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
       zkClient.setZkSerializer(new ZNRecordSerializer());
-      HelixDataAccessor accessor = new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor(zkClient));
+      HelixDataAccessor accessor =
+          new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       IdealState idealState = new IdealState(_resourceName);
@@ -150,21 +136,19 @@ public class HelixCustomCodeRunner
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);
       idealState.setStateModelFactoryName(_resourceName);
-      List<String> prefList = new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE
-          .toString()));
+      List<String> prefList =
+          new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
       idealState.getRecord().setListField(_resourceName + "_0", prefList);
 
       List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());
-      while (idealStates == null || !idealStates.contains(_resourceName))
-      {
+      while (idealStates == null || !idealStates.contains(_resourceName)) {
         accessor.setProperty(keyBuilder.idealStates(_resourceName), idealState);
         idealStates = accessor.getChildNames(keyBuilder.idealStates());
       }
 
       LOG.info("Set idealState for participantLeader:" + _resourceName + ", idealState:"
           + idealState);
-    } finally
-    {
+    } finally {
       if (zkClient != null && zkClient.getConnection() != null)
 
       {
@@ -177,8 +161,7 @@ public class HelixCustomCodeRunner
   /**
    * Stop customer code runner
    */
-  public void stop()
-  {
+  public void stop() {
     LOG.info("Removing stateModelFactory for " + _resourceName);
     _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY, _stateModelFty,
         _resourceName);

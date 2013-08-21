@@ -87,8 +87,8 @@ public class DistributedControllerManager extends AbstractManager {
   public void handleNewSession() throws Exception {
     waitUntilConnected();
 
-    ParticipantManagerHelper participantHelper
-      = new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
+    ParticipantManagerHelper participantHelper =
+        new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
 
     /**
      * stop all timer tasks, reset all handlers, make sure cleanup completed for previous session
@@ -105,13 +105,11 @@ public class DistributedControllerManager extends AbstractManager {
      */
     _baseDataAccessor.reset();
 
-
     /**
      * from here on, we are dealing with new session
      */
     if (!ZKUtil.isClusterSetup(_clusterName, _zkclient)) {
-      throw new HelixException("Cluster structure is not set up for cluster: "
-          + _clusterName);
+      throw new HelixException("Cluster structure is not set up for cluster: " + _clusterName);
     }
 
     /**
@@ -122,8 +120,7 @@ public class DistributedControllerManager extends AbstractManager {
     /**
      * Invoke PreConnectCallbacks
      */
-    for (PreConnectCallback callback : _preConnectCallbacks)
-    {
+    for (PreConnectCallback callback : _preConnectCallbacks) {
       callback.onPreConnect();
     }
 
@@ -139,13 +136,11 @@ public class DistributedControllerManager extends AbstractManager {
     if (_leaderElectionHandler != null) {
       _leaderElectionHandler.init();
     } else {
-      _leaderElectionHandler = new CallbackHandler(this,
-                                                   _zkclient,
-                                                   _keyBuilder.controller(),
-                                  new DistributedLeaderElection(this, _controller),
-                                  new EventType[] { EventType.NodeChildrenChanged,
-                                      EventType.NodeDeleted, EventType.NodeCreated },
-                                  ChangeType.CONTROLLER);
+      _leaderElectionHandler =
+          new CallbackHandler(this, _zkclient, _keyBuilder.controller(),
+              new DistributedLeaderElection(this, _controller), new EventType[] {
+                  EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
+              }, ChangeType.CONTROLLER);
     }
 
     /**
@@ -165,28 +160,24 @@ public class DistributedControllerManager extends AbstractManager {
 
   @Override
   void doDisconnect() {
-    if (_leaderElectionHandler != null)
-    {
+    if (_leaderElectionHandler != null) {
       _leaderElectionHandler.reset();
     }
   }
 
   @Override
   public boolean isLeader() {
-    if (!isConnected())
-    {
+    if (!isConnected()) {
       return false;
     }
 
     try {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
-      if (leader != null)
-      {
+      if (leader != null) {
         String leaderName = leader.getInstanceName();
         String sessionId = leader.getSessionId();
-        if (leaderName != null && leaderName.equals(_instanceName)
-            && sessionId != null && sessionId.equals(_sessionId))
-        {
+        if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
+            && sessionId.equals(_sessionId)) {
           return true;
         }
       }

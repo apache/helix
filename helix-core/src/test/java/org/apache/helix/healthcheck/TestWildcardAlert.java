@@ -68,61 +68,56 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestWildcardAlert extends ZkIntegrationTestBase
-{
-  public static class TestClusterMBeanObserver extends ClusterMBeanObserver
-  {
-    public Map<String, Map<String, Object>> _beanValueMap = new ConcurrentHashMap<String, Map<String, Object>>();
+public class TestWildcardAlert extends ZkIntegrationTestBase {
+  public static class TestClusterMBeanObserver extends ClusterMBeanObserver {
+    public Map<String, Map<String, Object>> _beanValueMap =
+        new ConcurrentHashMap<String, Map<String, Object>>();
 
     public TestClusterMBeanObserver(String domain) throws InstanceNotFoundException, IOException,
-        MalformedObjectNameException, NullPointerException
-    {
+        MalformedObjectNameException, NullPointerException {
       super(domain);
     }
 
     @Override
     public void onMBeanRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification)
-    {
-      try
-      {
+        MBeanServerNotification mbsNotification) {
+      try {
         MBeanInfo info = _server.getMBeanInfo(mbsNotification.getMBeanName());
         MBeanAttributeInfo[] infos = info.getAttributes();
-        _beanValueMap.put(mbsNotification.getMBeanName().toString(), new ConcurrentHashMap<String, Object>());
-        for (MBeanAttributeInfo infoItem : infos)
-        {
+        _beanValueMap.put(mbsNotification.getMBeanName().toString(),
+            new ConcurrentHashMap<String, Object>());
+        for (MBeanAttributeInfo infoItem : infos) {
           Object val = _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName());
           System.out.println("         " + infoItem.getName() + " : "
               + _server.getAttribute(mbsNotification.getMBeanName(), infoItem.getName())
               + " type : " + infoItem.getType());
           _beanValueMap.get(mbsNotification.getMBeanName().toString()).put(infoItem.getName(), val);
         }
-      } catch (Exception e)
-      {
+      } catch (Exception e) {
         _logger.error("Error getting bean info, domain=" + _domain, e);
       }
     }
 
     @Override
     public void onMBeanUnRegistered(MBeanServerConnection server,
-        MBeanServerNotification mbsNotification)
-    {
+        MBeanServerNotification mbsNotification) {
       _beanValueMap.remove(mbsNotification.getMBeanName().toString());
     }
 
-    public void refresh() throws MalformedObjectNameException, NullPointerException, InstanceNotFoundException, IntrospectionException, ReflectionException, IOException, AttributeNotFoundException, MBeanException
-    {
-      for(String beanName: _beanValueMap.keySet())
-      {
+    public void refresh() throws MalformedObjectNameException, NullPointerException,
+        InstanceNotFoundException, IntrospectionException, ReflectionException, IOException,
+        AttributeNotFoundException, MBeanException {
+      for (String beanName : _beanValueMap.keySet()) {
         ObjectName objName = new ObjectName(beanName);
         MBeanInfo info = _server.getMBeanInfo(objName);
         MBeanAttributeInfo[] infos = info.getAttributes();
         _beanValueMap.put(objName.toString(), new HashMap<String, Object>());
-        for(MBeanAttributeInfo infoItem : infos)
-        {
+        for (MBeanAttributeInfo infoItem : infos) {
           Object val = _server.getAttribute(objName, infoItem.getName());
-          System.out.println("         " + infoItem.getName() + " : " + _server.getAttribute(objName, infoItem.getName()) + " type : " + infoItem.getType());
+          System.out
+              .println("         " + infoItem.getName() + " : "
+                  + _server.getAttribute(objName, infoItem.getName()) + " type : "
+                  + infoItem.getType());
           _beanValueMap.get(objName.toString()).put(infoItem.getName(), val);
         }
       }
@@ -133,13 +128,13 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
   ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
-  protected final String _alertStr = "EXP(decay(1)(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
+  protected final String _alertStr =
+      "EXP(decay(1)(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
   protected final String _alertStatusStr = _alertStr; // +" : (*)";
   protected final String _dbName = "TestDB0";
 
   @BeforeClass()
-  public void beforeClass() throws Exception
-  {
+  public void beforeClass() throws Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
 
@@ -147,16 +142,13 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
   }
 
   @AfterClass
-  public void afterClass()
-  {
+  public void afterClass() {
     _zkClient.close();
   }
 
-  public class WildcardAlertTransition extends MockTransition
-  {
+  public class WildcardAlertTransition extends MockTransition {
     @Override
-    public void doTransition(Message message, NotificationContext context)
-    {
+    public void doTransition(Message message, NotificationContext context) {
       HelixManager manager = context.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       String fromState = message.getFromState();
@@ -164,62 +156,58 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
       String instance = message.getTgtName();
       String partition = message.getPartitionName();
 
-      if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER"))
-      {
-    	//add a stat and report to ZK
-    	//perhaps should keep reporter per instance...
-    	ParticipantHealthReportCollectorImpl reporter =
-    			new ParticipantHealthReportCollectorImpl(manager, instance);
-    	MockEspressoHealthReportProvider provider = new
-    			MockEspressoHealthReportProvider();
-    	reporter.addHealthReportProvider(provider);
-    	String statName = "latency";
-    	//using constant as timestamp so that when each partition does this transition,
-    	//they do not advance timestamp, and no stats double-counted
-    	String timestamp = "12345";
-    	provider.setStat(_dbName, statName,"15", timestamp);
+      if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER")) {
+        // add a stat and report to ZK
+        // perhaps should keep reporter per instance...
+        ParticipantHealthReportCollectorImpl reporter =
+            new ParticipantHealthReportCollectorImpl(manager, instance);
+        MockEspressoHealthReportProvider provider = new MockEspressoHealthReportProvider();
+        reporter.addHealthReportProvider(provider);
+        String statName = "latency";
+        // using constant as timestamp so that when each partition does this transition,
+        // they do not advance timestamp, and no stats double-counted
+        String timestamp = "12345";
+        provider.setStat(_dbName, statName, "15", timestamp);
 
+        // sleep for random time and see about errors.
+        /*
+         * Random r = new Random();
+         * int x = r.nextInt(30000);
+         * try {
+         * Thread.sleep(x);
+         * } catch (InterruptedException e) {
+         * // TODO Auto-generated catch block
+         * e.printStackTrace();
+         * }
+         */
 
-    	//sleep for random time and see about errors.
-    	/*
-    	Random r = new Random();
-    	int x = r.nextInt(30000);
-    	try {
-			Thread.sleep(x);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		*/
+        reporter.transmitHealthReports();
 
-     	reporter.transmitHealthReports();
-
-    	/*
-        for (int i = 0; i < 5; i++)
-        {
-          accessor.setProperty(PropertyType.HEALTHREPORT,
-                               new ZNRecord("mockAlerts" + i),
-                               instance,
-                               "mockAlerts");
-          try
-          {
-            Thread.sleep(1000);
-          }
-          catch (InterruptedException e)
-          {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-          }
-        }
-        */
+        /*
+         * for (int i = 0; i < 5; i++)
+         * {
+         * accessor.setProperty(PropertyType.HEALTHREPORT,
+         * new ZNRecord("mockAlerts" + i),
+         * instance,
+         * "mockAlerts");
+         * try
+         * {
+         * Thread.sleep(1000);
+         * }
+         * catch (InterruptedException e)
+         * {
+         * // TODO Auto-generated catch block
+         * e.printStackTrace();
+         * }
+         * }
+         */
       }
     }
 
   }
 
   @Test()
-  public void testWildcardAlert() throws Exception
-  {
+  public void testWildcardAlert() throws Exception {
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
 
@@ -240,33 +228,37 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr2);
 
-    StartCMResult cmResult = TestHelper.startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    StartCMResult cmResult =
+        TestHelper.startController(clusterName, "controller_0", ZK_ADDR,
+            HelixControllerMain.STANDALONE);
     // start participants
     for (int i = 0; i < 5; i++) // !!!change back to 5
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR,
-          new WildcardAlertTransition());
+      participants[i] =
+          new MockParticipant(clusterName, instanceName, ZK_ADDR, new WildcardAlertTransition());
       participants[i].syncStart();
-//      new Thread(participants[i]).start();
+      // new Thread(participants[i]).start();
     }
 
-    TestClusterMBeanObserver jmxMBeanObserver = new TestClusterMBeanObserver(
-        ClusterAlertMBeanCollection.DOMAIN_ALERT);
+    TestClusterMBeanObserver jmxMBeanObserver =
+        new TestClusterMBeanObserver(ClusterAlertMBeanCollection.DOMAIN_ALERT);
 
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     Thread.sleep(3000);
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
     new HealthStatsAggregator(cmResult._manager).aggregate();
 
-    //sleep for a few seconds to give stats stage time to trigger and for bean to trigger
+    // sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(3000);
 
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // for (int i = 0; i < 1; i++) //change 1 back to 5
@@ -282,13 +274,13 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Assert.assertEquals(Double.parseDouble(val), Double.parseDouble("75.0"));
     Assert.assertTrue(fired);
 
-
     // Make sure that the jmxObserver has received all the jmx bean value that is corresponding
-    //to the alerts.
+    // to the alerts.
     jmxMBeanObserver.refresh();
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.size() >= 1);
 
-    String beanName = "HelixAlerts:alert=EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
+    String beanName =
+        "HelixAlerts:alert=EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)";
     Assert.assertTrue(jmxMBeanObserver._beanValueMap.containsKey(beanName));
 
     Map<String, Object> beanValueMap = jmxMBeanObserver._beanValueMap.get(beanName);
@@ -296,9 +288,9 @@ public class TestWildcardAlert extends ZkIntegrationTestBase
     Assert.assertEquals((beanValueMap.get("AlertFired")), new Integer(1));
     Assert.assertEquals((beanValueMap.get("AlertValue")), new Double(75.0));
     Assert
-    .assertEquals(
-    		(String) (beanValueMap.get("SensorName")),
-    		"EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
+        .assertEquals(
+            (String) (beanValueMap.get("SensorName")),
+            "EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
     // }
 
     System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));

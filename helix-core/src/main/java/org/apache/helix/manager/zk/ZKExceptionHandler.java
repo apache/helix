@@ -22,29 +22,25 @@ package org.apache.helix.manager.zk;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.log4j.Logger;
 
-public class ZKExceptionHandler
-{
+public class ZKExceptionHandler {
   private static ZKExceptionHandler instance = new ZKExceptionHandler();
   private static Logger logger = Logger.getLogger(ZKExceptionHandler.class);
-  private ZKExceptionHandler()
-  {
+
+  private ZKExceptionHandler() {
 
   }
 
-  public void handle(Exception e){
-    handle("",e);
+  public void handle(Exception e) {
+    handle("", e);
   }
-  
-  public void handle(String msg, Exception e)
-  {
-    if (!(e instanceof ZkInterruptedException))
-    {
+
+  public void handle(String msg, Exception e) {
+    if (!(e instanceof ZkInterruptedException)) {
       logger.error(msg, e);
     }
   }
 
-  public static ZKExceptionHandler getInstance()
-  {
+  public static ZKExceptionHandler getInstance() {
     return instance;
   }
 }

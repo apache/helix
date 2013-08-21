@@ -35,128 +35,109 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestCompatibilityCheckStage extends BaseStageTest
-{
-  private void prepare(String controllerVersion, String participantVersion)
-  {
+public class TestCompatibilityCheckStage extends BaseStageTest {
+  private void prepare(String controllerVersion, String participantVersion) {
     prepare(controllerVersion, participantVersion, null);
   }
-  
-  private void prepare(String controllerVersion, String participantVersion, 
-      String minSupportedParticipantVersion)
-  {
-    List<String> instances = Arrays.asList("localhost_0", "localhost_1",
-                                           "localhost_2", "localhost_3", "localhost_4");
+
+  private void prepare(String controllerVersion, String participantVersion,
+      String minSupportedParticipantVersion) {
+    List<String> instances =
+        Arrays.asList("localhost_0", "localhost_1", "localhost_2", "localhost_3", "localhost_4");
     int partitions = 10;
     int replicas = 1;
 
     // set ideal state
     String resourceName = "testResource";
-    ZNRecord record = DefaultIdealStateCalculator.calculateIdealState(
-        instances, partitions, replicas, resourceName, "MASTER", "SLAVE");
+    ZNRecord record =
+        DefaultIdealStateCalculator.calculateIdealState(instances, partitions, replicas,
+            resourceName, "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
-    
+
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
 
     // set live instances
     record = new ZNRecord("localhost_0");
-    if (participantVersion != null)
-    {
+    if (participantVersion != null) {
       record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), participantVersion);
     }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
     accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
 
-    if (controllerVersion != null)
-    {
-      ((Mocks.MockManager)manager).setVersion(controllerVersion);
+    if (controllerVersion != null) {
+      ((Mocks.MockManager) manager).setVersion(controllerVersion);
     }
-    
+
     if (minSupportedParticipantVersion != null) {
       manager.getProperties().getProperties()
-                      .put("minimum_supported_version.participant", 
-                          minSupportedParticipantVersion);
+          .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
     event.addAttribute("helixmanager", manager);
     runStage(event, new ReadClusterDataStage());
   }
 
   @Test
-  public void testCompatible()
-  {
+  public void testCompatible() {
     prepare("0.4.0", "0.4.0");
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    try
-    {
+    try {
       stage.process(event);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       Assert.fail("Should not fail since versions are compatible", e);
     }
     stage.postProcess();
   }
 
   @Test
-  public void testNullParticipantVersion()
-  {
+  public void testNullParticipantVersion() {
     prepare("0.4.0", null);
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    try
-    {
+    try {
       stage.process(event);
-    }
-    catch (Exception e)
-    {
-      Assert.fail("Should not fail since compatibility check will be skipped if participant version is null");
+    } catch (Exception e) {
+      Assert
+          .fail("Should not fail since compatibility check will be skipped if participant version is null");
     }
     stage.postProcess();
   }
 
   @Test
-  public void testNullControllerVersion()
-  {
+  public void testNullControllerVersion() {
     prepare(null, "0.4.0");
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    try
-    {
+    try {
       stage.process(event);
-    }
-    catch (Exception e)
-    {
-      Assert.fail("Should not fail since compatibility check will be skipped if controller version is null");
+    } catch (Exception e) {
+      Assert
+          .fail("Should not fail since compatibility check will be skipped if controller version is null");
     }
     stage.postProcess();
   }
 
   @Test
-  public void testIncompatible()
-  {
+  public void testIncompatible() {
     prepare("0.6.1-incubating-SNAPSHOT", "0.3.4", "0.4");
     CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    try
-    {
+    try {
       stage.process(event);
-      Assert.fail("Should fail since participant version is less than the minimum participant version supported by controller");
-    }
-    catch (Exception e)
-    {
+      Assert
+          .fail("Should fail since participant version is less than the minimum participant version supported by controller");
+    } catch (Exception e) {
       // OK
     }
     stage.postProcess();

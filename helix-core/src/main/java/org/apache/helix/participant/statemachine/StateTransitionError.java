@@ -22,26 +22,22 @@ package org.apache.helix.participant.statemachine;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorType;
 
-public class StateTransitionError
-{
+public class StateTransitionError {
   private final Exception _exception;
   private final ErrorCode _code;
   private final ErrorType _type;
 
-  public StateTransitionError(ErrorType type, ErrorCode code, Exception e)
-  {
+  public StateTransitionError(ErrorType type, ErrorCode code, Exception e) {
     _type = type;
     _code = code;
     _exception = e;
   }
 
-  public Exception getException()
-  {
+  public Exception getException() {
     return _exception;
   }
 
-  public ErrorCode getCode()
-  {
+  public ErrorCode getCode() {
     return _code;
   }
 }

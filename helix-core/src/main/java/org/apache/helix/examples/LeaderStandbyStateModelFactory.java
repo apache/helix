@@ -24,48 +24,43 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class LeaderStandbyStateModelFactory extends
-		StateModelFactory<StateModel> {
-	int _delay;
+public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel> {
+  int _delay;
 
-	public LeaderStandbyStateModelFactory(int delay) {
-		_delay = delay;
-	}
+  public LeaderStandbyStateModelFactory(int delay) {
+    _delay = delay;
+  }
 
-	@Override
-	public StateModel createNewStateModel(String stateUnitKey) {
-		LeaderStandbyStateModel stateModel = new LeaderStandbyStateModel();
-		stateModel.setDelay(_delay);
-		return stateModel;
-	}
+  @Override
+  public StateModel createNewStateModel(String stateUnitKey) {
+    LeaderStandbyStateModel stateModel = new LeaderStandbyStateModel();
+    stateModel.setDelay(_delay);
+    return stateModel;
+  }
 
-	public static class LeaderStandbyStateModel extends StateModel {
-		int _transDelay = 0;
+  public static class LeaderStandbyStateModel extends StateModel {
+    int _transDelay = 0;
 
-		public void setDelay(int delay) {
-			_transDelay = delay > 0 ? delay : 0;
-		}
+    public void setDelay(int delay) {
+      _transDelay = delay > 0 ? delay : 0;
+    }
 
-		public void onBecomeLeaderFromStandby(Message message,
-				NotificationContext context) {
-			System.out
-					.println("LeaderStandbyStateModel.onBecomeLeaderFromStandby()");
-			sleep();
-		}
+    public void onBecomeLeaderFromStandby(Message message, NotificationContext context) {
+      System.out.println("LeaderStandbyStateModel.onBecomeLeaderFromStandby()");
+      sleep();
+    }
 
-		public void onBecomeStandbyFromLeader(Message message,
-				NotificationContext context) {
-			System.out
-					.println("LeaderStandbyStateModel.onBecomeStandbyFromLeader()");
-			sleep();
-		}
+    public void onBecomeStandbyFromLeader(Message message, NotificationContext context) {
+      System.out.println("LeaderStandbyStateModel.onBecomeStandbyFromLeader()");
+      sleep();
+    }
 
-		private void sleep() {
-			try {
-				Thread.sleep(_transDelay);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-		}
-	}
+    private void sleep() {
+      try {
+        Thread.sleep(_transDelay);
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+  }
 }

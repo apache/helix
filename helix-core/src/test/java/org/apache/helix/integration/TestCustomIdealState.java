@@ -30,43 +30,38 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestCustomIdealState extends ZkIntegrationTestBase
-{
+public class TestCustomIdealState extends ZkIntegrationTestBase {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
   ZkClient _zkClient;
 
   @BeforeClass
-  public void beforeClass() throws Exception
-  {
+  public void beforeClass() throws Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterClass
-  public void afterClass()
-  {
+  public void afterClass() {
     _zkClient.close();
   }
 
   @Test
-  public void testBasic() throws Exception
-  {
+  public void testBasic() throws Exception {
 
     int numResources = 2;
     int numPartitionsPerResource = 100;
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
-        + "_n" + numInstance + "_r" + replica + "_basic";
+    String uniqClusterName =
+        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
+            + numInstance + "_r" + replica + "_basic";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
 
-    for (int i = 0; i < numInstance; i++)
-    {
+    for (int i = 0; i < numInstance; i++) {
       TestDriver.startDummyParticipant(uniqClusterName, i);
     }
     TestDriver.startController(uniqClusterName);
@@ -80,22 +75,21 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
   }
 
   @Test
-  public void testNonAliveInstances() throws Exception
-  {
+  public void testNonAliveInstances() throws Exception {
     int numResources = 2;
     int numPartitionsPerResource = 50;
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
-        + "_n" + numInstance + "_r" + replica + "_nonalive";
+    String uniqClusterName =
+        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
+            + numInstance + "_r" + replica + "_nonalive";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
 
-    for (int i = 0; i < numInstance / 2; i++)
-    {
+    for (int i = 0; i < numInstance / 2; i++) {
       TestDriver.startDummyParticipant(uniqClusterName, i);
     }
 
@@ -106,8 +100,7 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
     Thread.sleep(1000);
 
     // start the rest of participants after ideal state is set
-    for (int i = numInstance / 2; i < numInstance; i++)
-    {
+    for (int i = numInstance / 2; i < numInstance; i++) {
       TestDriver.startDummyParticipant(uniqClusterName, i);
     }
 
@@ -120,22 +113,21 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
   }
 
   @Test()
-  public void testDrop() throws Exception
-  {
+  public void testDrop() throws Exception {
     int numResources = 2;
     int numPartitionsPerResource = 50;
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName = "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource
-        + "_n" + numInstance + "_r" + replica + "_drop";
+    String uniqClusterName =
+        "TestCustomIS_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n"
+            + numInstance + "_r" + replica + "_drop";
 
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
     TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
         numPartitionsPerResource, numInstance, replica);
 
-    for (int i = 0; i < numInstance; i++)
-    {
+    for (int i = 0; i < numInstance; i++) {
       TestDriver.startDummyParticipant(uniqClusterName, i);
     }
     TestDriver.startController(uniqClusterName);
@@ -146,9 +138,9 @@ public class TestCustomIdealState extends ZkIntegrationTestBase
     ClusterSetup setup = new ClusterSetup(ZK_ADDR);
     setup.dropResourceFromCluster(uniqClusterName, "TestDB0");
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName, "TestDB0",
-        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName,
+        "TestDB0", TestHelper.<String> setOf("localhost_12918", "localhost_12919",
+            "localhost_12920", "localhost_12921", "localhost_12922"), ZK_ADDR);
 
     TestDriver.stopCluster(uniqClusterName);
     System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));

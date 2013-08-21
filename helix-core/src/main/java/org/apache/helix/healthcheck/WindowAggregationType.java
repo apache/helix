@@ -21,11 +21,9 @@ package org.apache.helix.healthcheck;
 
 import org.apache.log4j.Logger;
 
-public class WindowAggregationType implements AggregationType
-{
+public class WindowAggregationType implements AggregationType {
 
-  private static final Logger logger = Logger
-      .getLogger(WindowAggregationType.class);
+  private static final Logger logger = Logger.getLogger(WindowAggregationType.class);
 
   public final String WINDOW_DELIM = "#";
 
@@ -33,15 +31,13 @@ public class WindowAggregationType implements AggregationType
 
   int _windowSize = 1;
 
-  public WindowAggregationType(int ws)
-  {
+  public WindowAggregationType(int ws) {
     super();
     _windowSize = ws;
   }
 
   @Override
-  public String getName()
-  {
+  public String getName() {
     StringBuilder sb = new StringBuilder();
     sb.append(TYPE_NAME);
     sb.append(DELIM);
@@ -50,28 +46,21 @@ public class WindowAggregationType implements AggregationType
   }
 
   @Override
-  public String merge(String incomingVal, String existingVal, long prevTimestamp)
-  {
+  public String merge(String incomingVal, String existingVal, long prevTimestamp) {
     String[] windowVals;
-    if (existingVal == null)
-    {
+    if (existingVal == null) {
       return incomingVal;
-    }
-    else
-    {
+    } else {
       windowVals = existingVal.split(WINDOW_DELIM);
       int currLength = windowVals.length;
       // window not full
-      if (currLength < _windowSize)
-      {
+      if (currLength < _windowSize) {
         return existingVal + WINDOW_DELIM + incomingVal;
       }
       // evict oldest
-      else
-      {
+      else {
         int firstDelim = existingVal.indexOf(WINDOW_DELIM);
-        return existingVal.substring(firstDelim + 1) + WINDOW_DELIM
-            + incomingVal;
+        return existingVal.substring(firstDelim + 1) + WINDOW_DELIM + incomingVal;
       }
     }
   }

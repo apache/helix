@@ -26,74 +26,62 @@ import java.util.TimerTask;
 import org.apache.helix.HelixTimerTask;
 import org.apache.log4j.Logger;
 
-
-public class HealthStatsAggregationTask extends HelixTimerTask
-{  
+public class HealthStatsAggregationTask extends HelixTimerTask {
   private static final Logger LOG = Logger.getLogger(HealthStatsAggregationTask.class);
   public final static int DEFAULT_HEALTH_CHECK_LATENCY = 30 * 1000;
-  
+
   final HealthStatsAggregator _healthStatsAggregator;
-  
+
   class HealthStatsAggregationTaskTimer extends TimerTask {
 
     @Override
     public void run() {
       _healthStatsAggregator.aggregate();
     }
-    
+
   }
-  
+
   private Timer _timer;
   private final int _delay;
   private final int _period;
-  
-  public HealthStatsAggregationTask(HealthStatsAggregator healthStatsAggregator, int delay, int period)
-  {
+
+  public HealthStatsAggregationTask(HealthStatsAggregator healthStatsAggregator, int delay,
+      int period) {
     _healthStatsAggregator = healthStatsAggregator;
-    
+
     _delay = delay;
     _period = period;
   }
 
-  public HealthStatsAggregationTask(HealthStatsAggregator healthStatsAggregator)
-  {
-    this(healthStatsAggregator, 
-        DEFAULT_HEALTH_CHECK_LATENCY, DEFAULT_HEALTH_CHECK_LATENCY);
+  public HealthStatsAggregationTask(HealthStatsAggregator healthStatsAggregator) {
+    this(healthStatsAggregator, DEFAULT_HEALTH_CHECK_LATENCY, DEFAULT_HEALTH_CHECK_LATENCY);
   }
 
   @Override
-  public void start()
-  {
+  public void start() {
 
-    if (_timer == null)
-    {
+    if (_timer == null) {
       LOG.info("START HealthStatsAggregationTimerTask");
 
       // Remove all the previous health check values, if any
       _healthStatsAggregator.init();
-      
+
       _timer = new Timer("HealthStatsAggregationTimerTask", true);
-      _timer.scheduleAtFixedRate(new HealthStatsAggregationTaskTimer(), 
+      _timer.scheduleAtFixedRate(new HealthStatsAggregationTaskTimer(),
           new Random().nextInt(_delay), _period);
-    }
-    else
-    {
+    } else {
       LOG.warn("HealthStatsAggregationTimerTask already started");
     }
   }
 
   @Override
-  public synchronized void stop()
-  {
-    if (_timer != null)
-    {
+  public synchronized void stop() {
+    if (_timer != null) {
       LOG.info("Stop HealthStatsAggregationTimerTask");
       _timer.cancel();
       _healthStatsAggregator.reset();
       _timer = null;
-    }
-    else
-    {
+    } else {
       LOG.warn("HealthStatsAggregationTimerTask already stopped");
     }
   }

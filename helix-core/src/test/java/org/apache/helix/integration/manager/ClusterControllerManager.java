@@ -27,63 +27,47 @@ import org.apache.helix.manager.zk.ControllerManager;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 
-public class ClusterControllerManager extends ControllerManager implements Runnable, ZkTestManager
-{
+public class ClusterControllerManager extends ControllerManager implements Runnable, ZkTestManager {
   private static Logger LOG = Logger.getLogger(ClusterControllerManager.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
-  public ClusterControllerManager(String zkAddr, String clusterName, String controllerName)
-  {
+  public ClusterControllerManager(String zkAddr, String clusterName, String controllerName) {
     super(zkAddr, clusterName, controllerName);
   }
 
-  public void syncStop()
-  {
+  public void syncStop() {
     _stopCountDown.countDown();
-    try
-    {
+    try {
       _waitStopFinishCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
 
-  public void syncStart()
-  {
+  public void syncStart() {
     // TODO: prevent start multiple times
     new Thread(this).start();
-    try
-    {
+    try {
       _startCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
 
   @Override
-  public void run()
-  {
-    try
-    {
+  public void run() {
+    try {
       connect();
       _startCountDown.countDown();
       _stopCountDown.await();
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("exception running controller-manager", e);
-    }
-    finally
-    {
+    } finally {
       _startCountDown.countDown();
       disconnect();
       _waitStopFinishCountDown.countDown();

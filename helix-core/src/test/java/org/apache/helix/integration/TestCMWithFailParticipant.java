@@ -23,8 +23,7 @@ import java.util.Date;
 
 import org.testng.annotations.Test;
 
-public class TestCMWithFailParticipant extends ZkIntegrationTestBase
-{
+public class TestCMWithFailParticipant extends ZkIntegrationTestBase {
   // ZkClient _zkClient;
   //
   // @BeforeClass ()
@@ -42,22 +41,21 @@ public class TestCMWithFailParticipant extends ZkIntegrationTestBase
   // }
 
   @Test()
-  public void testCMWithFailParticipant() throws Exception
-  {
+  public void testCMWithFailParticipant() throws Exception {
     int numResources = 1;
     int numPartitionsPerResource = 10;
     int numInstance = 5;
     int replica = 3;
 
-    String uniqClusterName = "TestFail_" + "rg" + numResources + "_p" + numPartitionsPerResource
-        + "_n" + numInstance + "_r" + replica;
+    String uniqClusterName =
+        "TestFail_" + "rg" + numResources + "_p" + numPartitionsPerResource + "_n" + numInstance
+            + "_r" + replica;
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResources, numPartitionsPerResource,
         numInstance, replica);
 
-    for (int i = 0; i < numInstance; i++)
-    {
+    for (int i = 0; i < numInstance; i++) {
       TestDriver.startDummyParticipant(uniqClusterName, i);
     }
     TestDriver.startController(uniqClusterName);

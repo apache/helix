@@ -24,13 +24,11 @@ import java.util.List;
 /**
  * Interface to implement to listen for changes to any specified scope.
  */
-public interface ScopedConfigChangeListener 
-{
-    /**
-     * Invoked when configs of a scope (cluster, participant, or resource) change
-     * 
-     * @param configs
-     * @param context
-     */
-    public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
+public interface ScopedConfigChangeListener {
+  /**
+   * Invoked when configs of a scope (cluster, participant, or resource) change
+   * @param configs
+   * @param context
+   */
+  public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
 }

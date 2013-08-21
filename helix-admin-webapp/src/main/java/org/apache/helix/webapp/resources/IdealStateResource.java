@@ -44,55 +44,45 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class IdealStateResource extends Resource
-{
+public class IdealStateResource extends Resource {
   private final static Logger LOG = Logger.getLogger(IdealStateResource.class);
 
-  public IdealStateResource(Context context, Request request, Response response)
-  {
+  public IdealStateResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       presentation = getIdealStateRepresentation(clusterName, resourceName);
     }
 
-    catch (Exception e)
-    {
+    catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -101,19 +91,14 @@ public class IdealStateResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getIdealStateRepresentation(String clusterName, String resourceName) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  StringRepresentation getIdealStateRepresentation(String clusterName, String resourceName)
+      throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
 
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
-                                                             clusterName,
-                                                             keyBuilder.idealStates(resourceName),
-                                                             MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
+            keyBuilder.idealStates(resourceName), MediaType.APPLICATION_JSON);
 
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);
@@ -122,10 +107,8 @@ public class IdealStateResource extends Resource
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
+  public void acceptRepresentation(Representation entity) {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       ZkClient zkClient =
@@ -135,61 +118,40 @@ public class IdealStateResource extends Resource
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command.equalsIgnoreCase(ClusterSetup.addIdealState))
-      {
+      if (command.equalsIgnoreCase(ClusterSetup.addIdealState)) {
         ZNRecord newIdealState = jsonParameters.getExtraParameter(JsonParameters.NEW_IDEAL_STATE);
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setProperty(accessor.keyBuilder().idealStates(resourceName),
-                             new IdealState(newIdealState));
+        accessor.setProperty(accessor.keyBuilder().idealStates(resourceName), new IdealState(
+            newIdealState));
 
-      }
-      else if (command.equalsIgnoreCase(ClusterSetup.rebalance))
-      {
-        int replicas = 
-            Integer.parseInt(jsonParameters.getParameter(JsonParameters.REPLICAS));
+      } else if (command.equalsIgnoreCase(ClusterSetup.rebalance)) {
+        int replicas = Integer.parseInt(jsonParameters.getParameter(JsonParameters.REPLICAS));
         String keyPrefix = jsonParameters.getParameter(JsonParameters.RESOURCE_KEY_PREFIX);
         String groupTag = jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
-        
-          setupTool.rebalanceCluster(clusterName,
-                                            resourceName,
-                                            replicas,
-                                            keyPrefix,
-                                            groupTag);
-       
-      }
-      else if (command.equalsIgnoreCase(ClusterSetup.expandResource))
-      {
+
+        setupTool.rebalanceCluster(clusterName, resourceName, replicas, keyPrefix, groupTag);
+
+      } else if (command.equalsIgnoreCase(ClusterSetup.expandResource)) {
         setupTool.expandResource(clusterName, resourceName);
-      }
-      else if (command.equalsIgnoreCase(ClusterSetup.addResourceProperty))
-      {
+      } else if (command.equalsIgnoreCase(ClusterSetup.addResourceProperty)) {
         Map<String, String> parameterMap = jsonParameters.cloneParameterMap();
         parameterMap.remove(JsonParameters.MANAGEMENT_COMMAND);
-        for (String key : parameterMap.keySet())
-        {
-          setupTool.addResourceProperty(clusterName,
-                                        resourceName,
-                                        key,
-                                        parameterMap.get(key));
+        for (String key : parameterMap.keySet()) {
+          setupTool.addResourceProperty(clusterName, resourceName, key, parameterMap.get(key));
         }
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + ClusterSetup.addIdealState + ", "
-            + ClusterSetup.rebalance + ", " + ClusterSetup.expandResource + ", "
-            + ClusterSetup.addResourceProperty + "]");
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + ClusterSetup.addIdealState + ", " + ClusterSetup.rebalance + ", "
+            + ClusterSetup.expandResource + ", " + ClusterSetup.addResourceProperty + "]");
       }
 
       getResponse().setEntity(getIdealStateRepresentation(clusterName, resourceName));
       getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
     }

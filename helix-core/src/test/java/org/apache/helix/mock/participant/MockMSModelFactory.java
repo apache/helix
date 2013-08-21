@@ -24,35 +24,29 @@ import java.util.Map;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 // mock master slave state model factory
-public class MockMSModelFactory extends StateModelFactory<MockMSStateModel>
-{
+public class MockMSModelFactory extends StateModelFactory<MockMSStateModel> {
   private MockTransition _transition;
 
-  public MockMSModelFactory()
-  {
+  public MockMSModelFactory() {
     this(null);
   }
 
-  public MockMSModelFactory(MockTransition transition)
-  {
+  public MockMSModelFactory(MockTransition transition) {
     _transition = transition;
   }
 
-  public void setTrasition(MockTransition transition)
-  {
+  public void setTrasition(MockTransition transition) {
     _transition = transition;
 
     // set existing transition
-    for (String partition : getPartitionSet())
-    {
+    for (String partition : getPartitionSet()) {
       MockMSStateModel stateModel = getStateModel(partition);
       stateModel.setTransition(transition);
     }
   }
 
   @Override
-  public MockMSStateModel createNewStateModel(String partitionKey)
-  {
+  public MockMSStateModel createNewStateModel(String partitionKey) {
     MockMSStateModel model = new MockMSStateModel(_transition);
 
     return model;

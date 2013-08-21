@@ -24,70 +24,60 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestIdealStateBuilder {
-    @Test
-    public void testAutoISBuilder() {
-        AutoModeISBuilder builder = new AutoModeISBuilder("test-db");
-        builder.setStateModel("MasterSlave")
-               .setNumPartitions(2)
-               .setNumReplica(2);
-        builder.assignPreferenceList("test-db_0", "node_0", "node_1")
-               .assignPreferenceList("test-db_1", "node_1", "node_0");
+  @Test
+  public void testAutoISBuilder() {
+    AutoModeISBuilder builder = new AutoModeISBuilder("test-db");
+    builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
+    builder.assignPreferenceList("test-db_0", "node_0", "node_1").assignPreferenceList("test-db_1",
+        "node_1", "node_0");
 
-        IdealState idealState = null;
-        try {
-            idealState = builder.build();
-        } catch (Exception e) {
-            Assert.fail("fail to build an auto mode ideal-state.", e);
-        }
-//        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getRebalanceMode(),
-            IdealState.RebalanceMode.SEMI_AUTO,
-            "rebalancer mode should be semi-auto");
+    IdealState idealState = null;
+    try {
+      idealState = builder.build();
+    } catch (Exception e) {
+      Assert.fail("fail to build an auto mode ideal-state.", e);
     }
+    // System.out.println("ideal-state: " + idealState);
+    Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.SEMI_AUTO,
+        "rebalancer mode should be semi-auto");
+  }
 
-    @Test
-    public void testAutoRebalanceISModeBuilder() {
-        AutoRebalanceModeISBuilder builder = new AutoRebalanceModeISBuilder("test-db");
-        builder.setStateModel("MasterSlave")
-                .setNumPartitions(2)
-                .setNumReplica(2);
-        builder.add("test-db_0")
-                .add("test-db_1");
+  @Test
+  public void testAutoRebalanceISModeBuilder() {
+    AutoRebalanceModeISBuilder builder = new AutoRebalanceModeISBuilder("test-db");
+    builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
+    builder.add("test-db_0").add("test-db_1");
 
-        IdealState idealState = null;
-        try {
-            idealState = builder.build();
-        } catch (Exception e) {
-            Assert.fail("fail to build an auto-rebalance mode ideal-state.", e);
-        }
-//        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getRebalanceMode(),
-            IdealState.RebalanceMode.FULL_AUTO,
-            "rebalancer mode should be auto");
-
+    IdealState idealState = null;
+    try {
+      idealState = builder.build();
+    } catch (Exception e) {
+      Assert.fail("fail to build an auto-rebalance mode ideal-state.", e);
     }
+    // System.out.println("ideal-state: " + idealState);
+    Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.FULL_AUTO,
+        "rebalancer mode should be auto");
 
-    @Test
-    public void testCustomModeISBuilder() {
-        CustomModeISBuilder builder = new CustomModeISBuilder("test-db");
-        builder.setStateModel("MasterSlave")
-                .setNumPartitions(2)
-                .setNumReplica(2);
-        builder.assignInstanceAndState("test-db_0", "node_0", "MASTER")
-                .assignInstanceAndState("test-db_0", "node_1", "SLAVE")
-                .assignInstanceAndState("test-db_1", "node_0", "SLAVE")
-                .assignInstanceAndState("test-db_1", "node_1", "MASTER");
+  }
 
-        IdealState idealState = null;
-        try {
-            idealState = builder.build();
-        } catch (Exception e) {
-            Assert.fail("fail to build a custom mode ideal-state.", e);
-        }
-//        System.out.println("ideal-state: " + idealState);
-        Assert.assertEquals(idealState.getRebalanceMode(),
-            IdealState.RebalanceMode.CUSTOMIZED,
-            "rebalancer mode should be customized");
+  @Test
+  public void testCustomModeISBuilder() {
+    CustomModeISBuilder builder = new CustomModeISBuilder("test-db");
+    builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
+    builder.assignInstanceAndState("test-db_0", "node_0", "MASTER")
+        .assignInstanceAndState("test-db_0", "node_1", "SLAVE")
+        .assignInstanceAndState("test-db_1", "node_0", "SLAVE")
+        .assignInstanceAndState("test-db_1", "node_1", "MASTER");
 
+    IdealState idealState = null;
+    try {
+      idealState = builder.build();
+    } catch (Exception e) {
+      Assert.fail("fail to build a custom mode ideal-state.", e);
     }
+    // System.out.println("ideal-state: " + idealState);
+    Assert.assertEquals(idealState.getRebalanceMode(), IdealState.RebalanceMode.CUSTOMIZED,
+        "rebalancer mode should be customized");
+
+  }
 }

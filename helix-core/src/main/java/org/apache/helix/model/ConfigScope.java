@@ -30,11 +30,10 @@ import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
 /**
- *  @deprecated replaced by {@link HelixConfigScope}
+ * @deprecated replaced by {@link HelixConfigScope}
  */
 @Deprecated
-public class ConfigScope
-{
+public class ConfigScope {
   private static Logger LOG = Logger.getLogger(ConfigScope.class);
 
   private static final List<ConfigScopeProperty> scopePriority =
@@ -42,8 +41,7 @@ public class ConfigScope
   private static final Map<ConfigScopeProperty, Map<ConfigScopeProperty, ConfigScopeProperty>> scopeTransition =
       new HashMap<ConfigScopeProperty, Map<ConfigScopeProperty, ConfigScopeProperty>>();
   private static final StringTemplate template = new StringTemplate();
-  static
-  {
+  static {
     // scope priority: CLUSTER > PARTICIPANT > RESOURCE > PARTITION
     scopePriority.add(ConfigScopeProperty.CLUSTER);
     scopePriority.add(ConfigScopeProperty.PARTICIPANT);
@@ -52,64 +50,54 @@ public class ConfigScope
 
     // scope transition table to check valid inputs
     scopeTransition.put(ConfigScopeProperty.CLUSTER,
-                        new HashMap<ConfigScopeProperty, ConfigScopeProperty>());
+        new HashMap<ConfigScopeProperty, ConfigScopeProperty>());
     scopeTransition.get(ConfigScopeProperty.CLUSTER).put(ConfigScopeProperty.PARTICIPANT,
-                                                         ConfigScopeProperty.PARTICIPANT);
+        ConfigScopeProperty.PARTICIPANT);
     scopeTransition.get(ConfigScopeProperty.CLUSTER).put(ConfigScopeProperty.RESOURCE,
-                                                         ConfigScopeProperty.RESOURCE);
+        ConfigScopeProperty.RESOURCE);
     scopeTransition.put(ConfigScopeProperty.RESOURCE,
-                        new HashMap<ConfigScopeProperty, ConfigScopeProperty>());
+        new HashMap<ConfigScopeProperty, ConfigScopeProperty>());
     scopeTransition.get(ConfigScopeProperty.RESOURCE).put(ConfigScopeProperty.PARTITION,
-                                                          ConfigScopeProperty.PARTITION);
+        ConfigScopeProperty.PARTITION);
 
     // string templates to generate znode path/index
     // @formatter:off
-    template.addEntry(ConfigScopeProperty.CLUSTER,
-                      2,
-                      "/{clusterName}/CONFIGS/CLUSTER/{clusterName}");
-    template.addEntry(ConfigScopeProperty.PARTICIPANT,
-                      2,
-                      "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}");
-    template.addEntry(ConfigScopeProperty.RESOURCE,
-                      2,
-                      "/{clusterName}/CONFIGS/RESOURCE/{resourceName}");
-    template.addEntry(ConfigScopeProperty.PARTITION,
-                      3,
-                      "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|{partitionName}");
+    template.addEntry(ConfigScopeProperty.CLUSTER, 2,
+        "/{clusterName}/CONFIGS/CLUSTER/{clusterName}");
+    template.addEntry(ConfigScopeProperty.PARTICIPANT, 2,
+        "/{clusterName}/CONFIGS/PARTICIPANT/{participantName}");
+    template.addEntry(ConfigScopeProperty.RESOURCE, 2,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}");
+    template.addEntry(ConfigScopeProperty.PARTITION, 3,
+        "/{clusterName}/CONFIGS/RESOURCE/{resourceName}|{partitionName}");
     // @formatter:on
   }
 
   private final String _clusterName;
   private final ConfigScopeProperty _scope;
 
-    /**
-     * _scopeStr is like:
-     *   "/ClusterName/CONFIGS/{CLUSTER|PARTICIPANT|RESOURCE|PARTITION}/{clusterName|instanceName|resourceName}{|partitionName}"
-     */
+  /**
+   * _scopeStr is like:
+   * "/ClusterName/CONFIGS/{CLUSTER|PARTICIPANT|RESOURCE|PARTITION}/{clusterName|instanceName|resourceName}{|partitionName}"
+   */
   private final String _scopeStr;
 
-  public ConfigScope(ConfigScopeBuilder configScopeBuilder)
-  {
-    Map<ConfigScopeProperty, String> scopeMap = configScopeBuilder
-        .getScopeMap();
+  public ConfigScope(ConfigScopeBuilder configScopeBuilder) {
+    Map<ConfigScopeProperty, String> scopeMap = configScopeBuilder.getScopeMap();
     List<String> keys = new ArrayList<String>();
 
     ConfigScopeProperty curScope = null;
-    for (ConfigScopeProperty scope : scopePriority)
-    {
-      if (scopeMap.containsKey(scope))
-      {
-        if (curScope == null && scope == ConfigScopeProperty.CLUSTER)
-        {
+    for (ConfigScopeProperty scope : scopePriority) {
+      if (scopeMap.containsKey(scope)) {
+        if (curScope == null && scope == ConfigScopeProperty.CLUSTER) {
           keys.add(scopeMap.get(scope));
           curScope = ConfigScopeProperty.CLUSTER;
-        } else if (curScope == null)
-        {
-          throw new IllegalArgumentException("Missing CLUSTER scope. Can't build scope using " + configScopeBuilder);
-        } else
-        {
-          if (!scopeTransition.containsKey(curScope) || !scopeTransition.get(curScope).containsKey(scope))
-          {
+        } else if (curScope == null) {
+          throw new IllegalArgumentException("Missing CLUSTER scope. Can't build scope using "
+              + configScopeBuilder);
+        } else {
+          if (!scopeTransition.containsKey(curScope)
+              || !scopeTransition.get(curScope).containsKey(scope)) {
             throw new IllegalArgumentException("Can't build scope using " + configScopeBuilder);
           }
           keys.add(scopeMap.get(scope));
@@ -118,8 +106,7 @@ public class ConfigScope
       }
     }
 
-    if (curScope == ConfigScopeProperty.CLUSTER)
-    {
+    if (curScope == ConfigScopeProperty.CLUSTER) {
       // append one more {clusterName}
       keys.add(scopeMap.get(ConfigScopeProperty.CLUSTER));
     }
@@ -131,24 +118,20 @@ public class ConfigScope
     _scope = curScope;
   }
 
-  public ConfigScopeProperty getScope()
-  {
+  public ConfigScopeProperty getScope() {
     return _scope;
   }
 
-  public String getClusterName()
-  {
+  public String getClusterName() {
     return _clusterName;
   }
 
-  public String getScopeStr()
-  {
+  public String getScopeStr() {
     return _scopeStr;
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     return super.toString() + ": " + _scopeStr;
   }
 }

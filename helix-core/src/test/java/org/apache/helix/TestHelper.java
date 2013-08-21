@@ -69,44 +69,40 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 
-
-public class TestHelper
-{
+public class TestHelper {
   private static final Logger LOG = Logger.getLogger(TestHelper.class);
 
   /**
    * Returns a unused random port.
    */
   public static int getRandomPort() throws IOException {
-      ServerSocket sock = new ServerSocket();
-      sock.bind(null);
-      int port = sock.getLocalPort();
-      sock.close();
+    ServerSocket sock = new ServerSocket();
+    sock.bind(null);
+    int port = sock.getLocalPort();
+    sock.close();
 
-      return port;
+    return port;
   }
 
-  static public ZkServer startZkServer(final String zkAddress) throws Exception
-  {
+  static public ZkServer startZkServer(final String zkAddress) throws Exception {
     List<String> empty = Collections.emptyList();
     return TestHelper.startZkServer(zkAddress, empty, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace) throws Exception
-  {
+  static public ZkServer startZkServer(final String zkAddress, final String rootNamespace)
+      throws Exception {
     List<String> rootNamespaces = new ArrayList<String>();
     rootNamespaces.add(rootNamespace);
     return TestHelper.startZkServer(zkAddress, rootNamespaces, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress,
-      final List<String> rootNamespaces) throws Exception {
+  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces)
+      throws Exception {
     return startZkServer(zkAddress, rootNamespaces, true);
   }
 
-  static public ZkServer startZkServer(final String zkAddress,
-                                      final List<String> rootNamespaces, boolean overwrite) throws Exception
-  {
+  static public ZkServer startZkServer(final String zkAddress, final List<String> rootNamespaces,
+      boolean overwrite) throws Exception {
     System.out.println("Start zookeeper at " + zkAddress + " in thread "
         + Thread.currentThread().getName());
 
@@ -119,25 +115,18 @@ public class TestHelper
     }
     ZKClientPool.reset();
 
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
+    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient)
-      {
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient zkClient) {
         if (rootNamespaces == null) {
           return;
         }
 
-        for (String rootNamespace : rootNamespaces)
-        {
-          try
-          {
+        for (String rootNamespace : rootNamespaces) {
+          try {
             zkClient.deleteRecursive(rootNamespace);
-          }
-          catch (Exception e)
-          {
-            LOG.error("fail to deleteRecursive path:" + rootNamespace + "\nexception:"
-                + e);
+          } catch (Exception e) {
+            LOG.error("fail to deleteRecursive path:" + rootNamespace + "\nexception:" + e);
           }
         }
       }
@@ -150,26 +139,19 @@ public class TestHelper
     return zkServer;
   }
 
-  static public void stopZkServer(ZkServer zkServer)
-  {
-    if (zkServer != null)
-    {
+  static public void stopZkServer(ZkServer zkServer) {
+    if (zkServer != null) {
       zkServer.shutdown();
-      System.out.println("Shut down zookeeper at port " + zkServer.getPort()
-          + " in thread " + Thread.currentThread().getName());
+      System.out.println("Shut down zookeeper at port " + zkServer.getPort() + " in thread "
+          + Thread.currentThread().getName());
     }
   }
 
-  public static StartCMResult startDummyProcess(final String zkAddr,
-                                                final String clusterName,
-                                                final String instanceName) throws Exception
-  {
+  public static StartCMResult startDummyProcess(final String zkAddr, final String clusterName,
+      final String instanceName) throws Exception {
     StartCMResult result = new StartCMResult();
     ZkHelixTestManager manager = null;
-    manager = new ZkHelixTestManager(clusterName,
-                                     instanceName,
-                                     InstanceType.PARTICIPANT,
-                                     zkAddr);
+    manager = new ZkHelixTestManager(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
     result._manager = manager;
     Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
     result._thread = thread;
@@ -179,31 +161,29 @@ public class TestHelper
   }
 
   private static ZkHelixTestManager startHelixController(final String zkConnectString,
-	      final String clusterName, final String controllerName, final String controllerMode)
-  {
-	ZkHelixTestManager manager = null;
-    try
-    {
-      if (controllerMode.equalsIgnoreCase(HelixControllerMain.STANDALONE))
-      {
-        manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER, zkConnectString);
+      final String clusterName, final String controllerName, final String controllerMode) {
+    ZkHelixTestManager manager = null;
+    try {
+      if (controllerMode.equalsIgnoreCase(HelixControllerMain.STANDALONE)) {
+        manager =
+            new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER,
+                zkConnectString);
         manager.connect();
-      } else if (controllerMode.equalsIgnoreCase(HelixControllerMain.DISTRIBUTED))
-      {
-        manager = new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
+      } else if (controllerMode.equalsIgnoreCase(HelixControllerMain.DISTRIBUTED)) {
+        manager =
+            new ZkHelixTestManager(clusterName, controllerName,
+                InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        DistClusterControllerStateModelFactory stateModelFactory = new DistClusterControllerStateModelFactory(
-            zkConnectString);
+        DistClusterControllerStateModelFactory stateModelFactory =
+            new DistClusterControllerStateModelFactory(zkConnectString);
 
         StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
         manager.connect();
-      } else
-      {
+      } else {
         LOG.error("cluster controller mode:" + controllerMode + " NOT supported");
       }
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -213,39 +193,28 @@ public class TestHelper
 
   // TODO refactor this
   public static StartCMResult startController(final String clusterName,
-                                              final String controllerName,
-                                              final String zkConnectString,
-                                              final String controllerMode) throws Exception
-  {
+      final String controllerName, final String zkConnectString, final String controllerMode)
+      throws Exception {
     final StartCMResult result = new StartCMResult();
-    final ZkHelixTestManager manager = startHelixController(zkConnectString,
-                                                 	clusterName,
-                                                 	controllerName,
-                                                 	controllerMode);
+    final ZkHelixTestManager manager =
+        startHelixController(zkConnectString, clusterName, controllerName, controllerMode);
     result._manager = manager;
 
-    Thread thread = new Thread(new Runnable()
-    {
+    Thread thread = new Thread(new Runnable() {
       @Override
-      public void run()
-      {
+      public void run() {
         // ClusterManager manager = null;
 
-        try
-        {
+        try {
 
           Thread.currentThread().join();
-        }
-        catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
           String msg =
               "controller:" + controllerName + ", " + Thread.currentThread().getName()
                   + " interrupted";
           LOG.info(msg);
           // System.err.println(msg);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
           e.printStackTrace();
         }
       }
@@ -256,58 +225,49 @@ public class TestHelper
     return result;
   }
 
-  public static class StartCMResult
-  {
-    public Thread       _thread;
+  public static class StartCMResult {
+    public Thread _thread;
     public ZkHelixTestManager _manager;
 
   }
 
-  public static void setupEmptyCluster(ZkClient zkClient, String clusterName)
-  {
+  public static void setupEmptyCluster(ZkClient zkClient, String clusterName) {
     ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
     admin.addCluster(clusterName, true);
   }
 
   /**
    * convert T[] to set<T>
-   *
    * @param s
    * @return
    */
-  public static <T> Set<T> setOf(T... s)
-  {
+  public static <T> Set<T> setOf(T... s) {
     Set<T> set = new HashSet<T>(Arrays.asList(s));
     return set;
   }
 
-//  public static void verifyWithTimeout(String verifierName, Object... args)
-//  {
-//    verifyWithTimeout(verifierName, 30 * 1000, args);
-//  }
+  // public static void verifyWithTimeout(String verifierName, Object... args)
+  // {
+  // verifyWithTimeout(verifierName, 30 * 1000, args);
+  // }
 
   /**
    * generic method for verification with a timeout
-   *
    * @param verifierName
    * @param args
    */
-  public static void verifyWithTimeout(String verifierName, long timeout, Object... args)
-  {
+  public static void verifyWithTimeout(String verifierName, long timeout, Object... args) {
     final long sleepInterval = 1000; // in ms
     final int loop = (int) (timeout / sleepInterval) + 1;
-    try
-    {
+    try {
       boolean result = false;
       int i = 0;
-      for (; i < loop; i++)
-      {
+      for (; i < loop; i++) {
         Thread.sleep(sleepInterval);
         // verifier should be static method
         result = (Boolean) TestHelper.getMethod(verifierName).invoke(null, args);
 
-        if (result == true)
-        {
+        if (result == true) {
           break;
         }
       }
@@ -315,136 +275,87 @@ public class TestHelper
       // debug
       // LOG.info(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify ("
       // + result + ")");
-      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify "
-          + " (" + result + ")");
+      System.err.println(verifierName + ": wait " + ((i + 1) * 1000) + "ms to verify " + " ("
+          + result + ")");
       LOG.debug("args:" + Arrays.toString(args));
       // System.err.println("args:" + Arrays.toString(args));
 
-      if (result == false)
-      {
+      if (result == false) {
         LOG.error(verifierName + " fails");
         LOG.error("args:" + Arrays.toString(args));
       }
 
       Assert.assertTrue(result);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
 
-  private static Method getMethod(String name)
-  {
+  private static Method getMethod(String name) {
     Method[] methods = TestHelper.class.getMethods();
-    for (Method method : methods)
-    {
-      if (name.equals(method.getName()))
-      {
+    for (Method method : methods) {
+      if (name.equals(method.getName())) {
         return method;
       }
     }
     return null;
   }
 
-  public static boolean verifyEmptyCurStateAndExtView(String clusterName,
-                                                      String resourceName,
-                                                      Set<String> instanceNames,
-                                                      String zkAddr)
-  {
+  public static boolean verifyEmptyCurStateAndExtView(String clusterName, String resourceName,
+      Set<String> instanceNames, String zkAddr) {
     ZkClient zkClient = new ZkClient(zkAddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    try
-    {
+    try {
       ZKHelixDataAccessor accessor =
           new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
-      for (String instanceName : instanceNames)
-      {
-        List<String> sessionIds =
-            accessor.getChildNames(keyBuilder.sessions(instanceName));
+      for (String instanceName : instanceNames) {
+        List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(instanceName));
 
-        for (String sessionId : sessionIds)
-        {
+        for (String sessionId : sessionIds) {
           CurrentState curState =
-              accessor.getProperty(keyBuilder.currentState(instanceName,
-                                                           sessionId,
-                                                           resourceName));
+              accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
 
-          if (curState != null && curState.getRecord().getMapFields().size() != 0)
-          {
+          if (curState != null && curState.getRecord().getMapFields().size() != 0) {
             return false;
           }
         }
 
-        ExternalView extView =
-            accessor.getProperty(keyBuilder.externalView(resourceName));
+        ExternalView extView = accessor.getProperty(keyBuilder.externalView(resourceName));
 
-        if (extView != null && extView.getRecord().getMapFields().size() != 0)
-        {
+        if (extView != null && extView.getRecord().getMapFields().size() != 0) {
           return false;
         }
 
       }
 
       return true;
-    }
-    finally
-    {
+    } finally {
       zkClient.close();
     }
   }
 
-  public static boolean verifyNotConnected(HelixManager manager)
-  {
+  public static boolean verifyNotConnected(HelixManager manager) {
     return !manager.isConnected();
   }
 
-  public static void setupCluster(String clusterName,
-                                  String zkAddr,
-                                  int startPort,
-                                  String participantNamePrefix,
-                                  String resourceNamePrefix,
-                                  int resourceNb,
-                                  int partitionNb,
-                                  int nodesNb,
-                                  int replica,
-                                  String stateModelDef,
-                                  boolean doRebalance) throws Exception
-  {
-    TestHelper.setupCluster(clusterName,
-                            zkAddr,
-                            startPort,
-                            participantNamePrefix,
-                            resourceNamePrefix,
-                            resourceNb,
-                            partitionNb,
-                            nodesNb,
-                            replica,
-                            stateModelDef,
-                            RebalanceMode.SEMI_AUTO,
-                            doRebalance);
+  public static void setupCluster(String clusterName, String zkAddr, int startPort,
+      String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
+      int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
+    TestHelper.setupCluster(clusterName, zkAddr, startPort, participantNamePrefix,
+        resourceNamePrefix, resourceNb, partitionNb, nodesNb, replica, stateModelDef,
+        RebalanceMode.SEMI_AUTO, doRebalance);
   }
 
-  public static void setupCluster(String clusterName,
-                                  String ZkAddr,
-                                  int startPort,
-                                  String participantNamePrefix,
-                                  String resourceNamePrefix,
-                                  int resourceNb,
-                                  int partitionNb,
-                                  int nodesNb,
-                                  int replica,
-                                  String stateModelDef,
-                                  RebalanceMode mode,
-                                  boolean doRebalance) throws Exception
-  {
+  public static void setupCluster(String clusterName, String ZkAddr, int startPort,
+      String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
+      int nodesNb, int replica, String stateModelDef, RebalanceMode mode, boolean doRebalance)
+      throws Exception {
     ZkClient zkClient = new ZkClient(ZkAddr);
-    if (zkClient.exists("/" + clusterName))
-    {
+    if (zkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
       zkClient.deleteRecursive("/" + clusterName);
     }
@@ -452,18 +363,16 @@ public class TestHelper
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
     setupTool.addCluster(clusterName, true);
 
-    for (int i = 0; i < nodesNb; i++)
-    {
+    for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;
       setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
     }
 
-    for (int i = 0; i < resourceNb; i++)
-    {
+    for (int i = 0; i < resourceNb; i++) {
       String resourceName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef, mode.toString());
-      if (doRebalance)
-      {
+      setupTool.addResourceToCluster(clusterName, resourceName, partitionNb, stateModelDef,
+          mode.toString());
+      if (doRebalance) {
         setupTool.rebalanceStorageCluster(clusterName, resourceName, replica);
       }
     }
@@ -471,71 +380,55 @@ public class TestHelper
   }
 
   /**
-   *
    * @param stateMap
    *          : "ResourceName/partitionKey" -> setOf(instances)
    * @param state
    *          : MASTER|SLAVE|ERROR...
    */
-  public static void verifyState(String clusterName,
-                                 String zkAddr,
-                                 Map<String, Set<String>> stateMap,
-                                 String state)
-  {
+  public static void verifyState(String clusterName, String zkAddr,
+      Map<String, Set<String>> stateMap, String state) {
     ZkClient zkClient = new ZkClient(zkAddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    try
-    {
+    try {
       ZKHelixDataAccessor accessor =
           new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
-      for (String resGroupPartitionKey : stateMap.keySet())
-      {
+      for (String resGroupPartitionKey : stateMap.keySet()) {
         Map<String, String> retMap = getResourceAndPartitionKey(resGroupPartitionKey);
         String resGroup = retMap.get("RESOURCE");
         String partitionKey = retMap.get("PARTITION");
 
         ExternalView extView = accessor.getProperty(keyBuilder.externalView(resGroup));
-        for (String instance : stateMap.get(resGroupPartitionKey))
-        {
+        for (String instance : stateMap.get(resGroupPartitionKey)) {
           String actualState = extView.getStateMap(partitionKey).get(instance);
-          Assert.assertNotNull(actualState, "externalView doesn't contain state for "
-              + resGroup + "/" + partitionKey + " on " + instance + " (expect " + state
-              + ")");
+          Assert.assertNotNull(actualState, "externalView doesn't contain state for " + resGroup
+              + "/" + partitionKey + " on " + instance + " (expect " + state + ")");
 
-          Assert.assertEquals(actualState, state, "externalView for " + resGroup + "/"
-              + partitionKey + " on " + instance + " is " + actualState + " (expect "
-              + state + ")");
+          Assert
+              .assertEquals(actualState, state, "externalView for " + resGroup + "/" + partitionKey
+                  + " on " + instance + " is " + actualState + " (expect " + state + ")");
         }
       }
-    }
-    finally
-    {
+    } finally {
       zkClient.close();
     }
   }
 
   /**
-   *
    * @param resourcePartition
    *          : key is in form of "resource/partitionKey" or "resource_x"
-   *
    * @return
    */
-  private static Map<String, String> getResourceAndPartitionKey(String resourcePartition)
-  {
+  private static Map<String, String> getResourceAndPartitionKey(String resourcePartition) {
     String resourceName;
     String partitionName;
     int idx = resourcePartition.indexOf('/');
-    if (idx > -1)
-    {
+    if (idx > -1) {
       resourceName = resourcePartition.substring(0, idx);
       partitionName = resourcePartition.substring(idx + 1);
-    }
-    else
-    {
+    } else {
       idx = resourcePartition.lastIndexOf('_');
       resourceName = resourcePartition.substring(0, idx);
       partitionName = resourcePartition;
@@ -548,45 +441,32 @@ public class TestHelper
   }
 
   public static <T> Map<String, T> startThreadsConcurrently(final int nrThreads,
-                                                            final Callable<T> method,
-                                                            final long timeout)
-  {
+      final Callable<T> method, final long timeout) {
     final CountDownLatch startLatch = new CountDownLatch(1);
     final CountDownLatch finishCounter = new CountDownLatch(nrThreads);
     final Map<String, T> resultsMap = new ConcurrentHashMap<String, T>();
     final List<Thread> threadList = new ArrayList<Thread>();
 
-    for (int i = 0; i < nrThreads; i++)
-    {
-      Thread thread = new Thread()
-      {
+    for (int i = 0; i < nrThreads; i++) {
+      Thread thread = new Thread() {
         @Override
-        public void run()
-        {
-          try
-          {
+        public void run() {
+          try {
             boolean isTimeout = !startLatch.await(timeout, TimeUnit.SECONDS);
-            if (isTimeout)
-            {
+            if (isTimeout) {
               LOG.error("Timeout while waiting for start latch");
             }
-          }
-          catch (InterruptedException ex)
-          {
+          } catch (InterruptedException ex) {
             LOG.error("Interrupted while waiting for start latch");
           }
 
-          try
-          {
+          try {
             T result = method.call();
-            if (result != null)
-            {
+            if (result != null) {
               resultsMap.put("thread_" + this.getId(), result);
             }
             LOG.debug("result=" + result);
-          }
-          catch (Exception e)
-          {
+          } catch (Exception e) {
             LOG.error("Exeption in executing " + method.getClass().getName(), e);
           }
 
@@ -599,33 +479,23 @@ public class TestHelper
     startLatch.countDown();
 
     // wait for all thread to complete
-    try
-    {
+    try {
       boolean isTimeout = !finishCounter.await(timeout, TimeUnit.SECONDS);
-      if (isTimeout)
-      {
+      if (isTimeout) {
         LOG.error("Timeout while waiting for finish latch. Interrupt all threads");
-        for (Thread thread : threadList)
-        {
+        for (Thread thread : threadList) {
           thread.interrupt();
         }
       }
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("Interrupted while waiting for finish latch", e);
     }
 
     return resultsMap;
   }
 
-  public static Message createMessage(String msgId,
-                                      String fromState,
-                                      String toState,
-                                      String tgtName,
-                                      String resourceName,
-                                      String partitionName)
-  {
+  public static Message createMessage(String msgId, String fromState, String toState,
+      String tgtName, String resourceName, String partitionName) {
     Message msg = new Message(MessageType.STATE_TRANSITION, msgId);
     msg.setFromState(fromState);
     msg.setToState(toState);
@@ -637,61 +507,47 @@ public class TestHelper
     return msg;
   }
 
-  public static String getTestMethodName()
-  {
+  public static String getTestMethodName() {
     StackTraceElement[] calls = Thread.currentThread().getStackTrace();
     return calls[2].getMethodName();
   }
 
-  public static String getTestClassName()
-  {
+  public static String getTestClassName() {
     StackTraceElement[] calls = Thread.currentThread().getStackTrace();
     String fullClassName = calls[2].getClassName();
     return fullClassName.substring(fullClassName.lastIndexOf('.') + 1);
   }
 
   public static <T> Map<String, T> startThreadsConcurrently(final List<Callable<T>> methods,
-                                                            final long timeout)
-  {
+      final long timeout) {
     final int nrThreads = methods.size();
     final CountDownLatch startLatch = new CountDownLatch(1);
     final CountDownLatch finishCounter = new CountDownLatch(nrThreads);
     final Map<String, T> resultsMap = new ConcurrentHashMap<String, T>();
     final List<Thread> threadList = new ArrayList<Thread>();
 
-    for (int i = 0; i < nrThreads; i++)
-    {
+    for (int i = 0; i < nrThreads; i++) {
       final Callable<T> method = methods.get(i);
 
-      Thread thread = new Thread()
-      {
+      Thread thread = new Thread() {
         @Override
-        public void run()
-        {
-          try
-          {
+        public void run() {
+          try {
             boolean isTimeout = !startLatch.await(timeout, TimeUnit.SECONDS);
-            if (isTimeout)
-            {
+            if (isTimeout) {
               LOG.error("Timeout while waiting for start latch");
             }
-          }
-          catch (InterruptedException ex)
-          {
+          } catch (InterruptedException ex) {
             LOG.error("Interrupted while waiting for start latch");
           }
 
-          try
-          {
+          try {
             T result = method.call();
-            if (result != null)
-            {
+            if (result != null) {
               resultsMap.put("thread_" + this.getId(), result);
             }
             LOG.debug("result=" + result);
-          }
-          catch (Exception e)
-          {
+          } catch (Exception e) {
             LOG.error("Exeption in executing " + method.getClass().getName(), e);
           }
 
@@ -704,34 +560,27 @@ public class TestHelper
     startLatch.countDown();
 
     // wait for all thread to complete
-    try
-    {
+    try {
       boolean isTimeout = !finishCounter.await(timeout, TimeUnit.SECONDS);
-      if (isTimeout)
-      {
+      if (isTimeout) {
         LOG.error("Timeout while waiting for finish latch. Interrupt all threads");
-        for (Thread thread : threadList)
-        {
+        for (Thread thread : threadList) {
           thread.interrupt();
         }
       }
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("Interrupted while waiting for finish latch", e);
     }
 
     return resultsMap;
   }
 
-  public static void printCache(Map<String, ZNode> cache)
-  {
+  public static void printCache(Map<String, ZNode> cache) {
     System.out.println("START:Print cache");
     TreeMap<String, ZNode> map = new TreeMap<String, ZNode>();
     map.putAll(cache);
 
-    for (String key : map.keySet())
-    {
+    for (String key : map.keySet()) {
       ZNode node = map.get(key);
       TreeSet<String> childSet = new TreeSet<String>();
       childSet.addAll(node.getChildSet());
@@ -741,12 +590,8 @@ public class TestHelper
     System.out.println("END:Print cache");
   }
 
-  public static void readZkRecursive(String path,
-                                     Map<String, ZNode> map,
-                                     ZkClient zkclient)
-  {
-    try
-    {
+  public static void readZkRecursive(String path, Map<String, ZNode> map, ZkClient zkclient) {
+    try {
       Stat stat = new Stat();
       ZNRecord record = zkclient.readData(path, stat);
       List<String> childNames = zkclient.getChildren(path);
@@ -754,24 +599,18 @@ public class TestHelper
       node.addChildren(childNames);
       map.put(path, node);
 
-      for (String childName : childNames)
-      {
+      for (String childName : childNames) {
         String childPath = path + "/" + childName;
         readZkRecursive(childPath, map, zkclient);
       }
-    }
-    catch (ZkNoNodeException e)
-    {
+    } catch (ZkNoNodeException e) {
       // OK
     }
   }
 
-  public static void readZkRecursive(String path,
-                                     Map<String, ZNode> map,
-                                     BaseDataAccessor<ZNRecord> zkAccessor)
-  {
-    try
-    {
+  public static void readZkRecursive(String path, Map<String, ZNode> map,
+      BaseDataAccessor<ZNRecord> zkAccessor) {
+    try {
       Stat stat = new Stat();
       ZNRecord record = zkAccessor.get(path, stat, 0);
       List<String> childNames = zkAccessor.getChildNames(path, 0);
@@ -780,31 +619,23 @@ public class TestHelper
       node.addChildren(childNames);
       map.put(path, node);
 
-      if (childNames != null && !childNames.isEmpty())
-      {
-        for (String childName : childNames)
-        {
+      if (childNames != null && !childNames.isEmpty()) {
+        for (String childName : childNames) {
           String childPath = path + "/" + childName;
           readZkRecursive(childPath, map, zkAccessor);
         }
       }
-    }
-    catch (ZkNoNodeException e)
-    {
+    } catch (ZkNoNodeException e) {
       // OK
     }
   }
 
-  public static boolean verifyZkCache(List<String> paths,
-                                      BaseDataAccessor<ZNRecord> zkAccessor,
-                                      ZkClient zkclient,
-                                      boolean needVerifyStat)
-  {
+  public static boolean verifyZkCache(List<String> paths, BaseDataAccessor<ZNRecord> zkAccessor,
+      ZkClient zkclient, boolean needVerifyStat) {
     // read everything
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
     Map<String, ZNode> cache = new HashMap<String, ZNode>();
-    for (String path : paths)
-    {
+    for (String path : paths) {
       readZkRecursive(path, zkMap, zkclient);
       readZkRecursive(path, cache, zkAccessor);
     }
@@ -813,24 +644,16 @@ public class TestHelper
     return verifyZkCache(paths, null, cache, zkMap, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths,
-                                      Map<String, ZNode> cache,
-                                      ZkClient zkclient,
-                                      boolean needVerifyStat)
-  {
+  public static boolean verifyZkCache(List<String> paths, Map<String, ZNode> cache,
+      ZkClient zkclient, boolean needVerifyStat) {
     return verifyZkCache(paths, null, cache, zkclient, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths,
-                                      List<String> pathsExcludeForStat,
-                                      Map<String, ZNode> cache,
-                                      ZkClient zkclient,
-                                      boolean needVerifyStat)
-  {
+  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
+      Map<String, ZNode> cache, ZkClient zkclient, boolean needVerifyStat) {
     // read everything on zk under paths
     Map<String, ZNode> zkMap = new HashMap<String, ZNode>();
-    for (String path : paths)
-    {
+    for (String path : paths) {
       readZkRecursive(path, zkMap, zkclient);
     }
     // printCache(map);
@@ -838,15 +661,10 @@ public class TestHelper
     return verifyZkCache(paths, pathsExcludeForStat, cache, zkMap, needVerifyStat);
   }
 
-  public static boolean verifyZkCache(List<String> paths,
-                                      List<String> pathsExcludeForStat,
-                                      Map<String, ZNode> cache,
-                                      Map<String, ZNode> zkMap,
-                                      boolean needVerifyStat)
-  {
+  public static boolean verifyZkCache(List<String> paths, List<String> pathsExcludeForStat,
+      Map<String, ZNode> cache, Map<String, ZNode> zkMap, boolean needVerifyStat) {
     // equal size
-    if (zkMap.size() != cache.size())
-    {
+    if (zkMap.size() != cache.size()) {
       System.err.println("size mismatch: cacheSize: " + cache.size() + ", zkMapSize: "
           + zkMap.size());
       System.out.println("cache: (" + cache.size() + ")");
@@ -859,49 +677,41 @@ public class TestHelper
     }
 
     // everything in cache is also in map
-    for (String path : cache.keySet())
-    {
+    for (String path : cache.keySet()) {
       ZNode cacheNode = cache.get(path);
       ZNode zkNode = zkMap.get(path);
 
-      if (zkNode == null)
-      {
+      if (zkNode == null) {
         // in cache but not on zk
-        System.err.println("path: " + path + " in cache but not on zk: inCacheNode: "
-            + cacheNode);
+        System.err.println("path: " + path + " in cache but not on zk: inCacheNode: " + cacheNode);
         return false;
       }
 
       if ((zkNode.getData() == null && cacheNode.getData() != null)
           || (zkNode.getData() != null && cacheNode.getData() == null)
-          || (zkNode.getData() != null && cacheNode.getData() != null && !zkNode.getData()
-                                                                                .equals(cacheNode.getData())))
-      {
+          || (zkNode.getData() != null && cacheNode.getData() != null && !zkNode.getData().equals(
+              cacheNode.getData()))) {
         // data not equal
-        System.err.println("data mismatch on path: " + path + ", inCache: "
-            + cacheNode.getData() + ", onZk: " + zkNode.getData());
+        System.err.println("data mismatch on path: " + path + ", inCache: " + cacheNode.getData()
+            + ", onZk: " + zkNode.getData());
         return false;
       }
 
       if ((zkNode.getChildSet() == null && cacheNode.getChildSet() != null)
           || (zkNode.getChildSet() != null && cacheNode.getChildSet() == null)
-          || (zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode.getChildSet()
-                                                                                        .equals(cacheNode.getChildSet())))
-      {
+          || (zkNode.getChildSet() != null && cacheNode.getChildSet() != null && !zkNode
+              .getChildSet().equals(cacheNode.getChildSet()))) {
         // childSet not equal
         System.err.println("childSet mismatch on path: " + path + ", inCache: "
             + cacheNode.getChildSet() + ", onZk: " + zkNode.getChildSet());
         return false;
       }
 
-      if (needVerifyStat && pathsExcludeForStat != null
-          && !pathsExcludeForStat.contains(path))
-      {
-        if (cacheNode.getStat() == null || !zkNode.getStat().equals(cacheNode.getStat()))
-        {
+      if (needVerifyStat && pathsExcludeForStat != null && !pathsExcludeForStat.contains(path)) {
+        if (cacheNode.getStat() == null || !zkNode.getStat().equals(cacheNode.getStat())) {
           // stat not equal
-          System.err.println("Stat mismatch on path: " + path + ", inCache: "
-              + cacheNode.getStat() + ", onZk: " + zkNode.getStat());
+          System.err.println("Stat mismatch on path: " + path + ", inCache: " + cacheNode.getStat()
+              + ", onZk: " + zkNode.getStat());
           return false;
         }
       }
@@ -910,8 +720,7 @@ public class TestHelper
     return true;
   }
 
-  public static StateModelDefinition generateStateModelDefForBootstrap()
-  {
+  public static StateModelDefinition generateStateModelDefForBootstrap() {
     ZNRecord record = new ZNRecord("Bootstrap");
     record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "IDLE");
     List<String> statePriorityList = new ArrayList<String>();
@@ -922,84 +731,62 @@ public class TestHelper
     statePriorityList.add("DROPPED");
     statePriorityList.add("ERROR");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("ONLINE"))
-      {
+      if (state.equals("ONLINE")) {
         metadata.put("count", "R");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("BOOTSTRAP"))
-      {
+      } else if (state.equals("BOOTSTRAP")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("OFFLINE"))
-      {
+      } else if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("IDLE"))
-      {
+      } else if (state.equals("IDLE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("DROPPED"))
-      {
+      } else if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("ERROR"))
-      {
+      } else if (state.equals("ERROR")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
     }
 
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("ONLINE"))
-      {
+      if (state.equals("ONLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("BOOTSTRAP", "OFFLINE");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         metadata.put("IDLE", "OFFLINE");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("BOOTSTRAP"))
-      {
+      } else if (state.equals("BOOTSTRAP")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("ONLINE", "ONLINE");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         metadata.put("IDLE", "OFFLINE");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("OFFLINE"))
-      {
+      } else if (state.equals("OFFLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("ONLINE", "BOOTSTRAP");
         metadata.put("BOOTSTRAP", "BOOTSTRAP");
         metadata.put("DROPPED", "IDLE");
         metadata.put("IDLE", "IDLE");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("IDLE"))
-      {
+      } else if (state.equals("IDLE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("ONLINE", "OFFLINE");
         metadata.put("BOOTSTRAP", "OFFLINE");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("ERROR"))
-      {
+      } else if (state.equals("ERROR")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("IDLE", "IDLE");
         record.setMapField(key, metadata);
@@ -1015,32 +802,27 @@ public class TestHelper
     stateTransitionPriorityList.add("IDLE-DROPPED");
     stateTransitionPriorityList.add("ERROR-IDLED");
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return new StateModelDefinition(record);
   }
 
-  public static String znrecordToString(ZNRecord record)
-  {
+  public static String znrecordToString(ZNRecord record) {
     StringBuffer sb = new StringBuffer();
     sb.append(record.getId() + "\n");
     Map<String, String> simpleFields = record.getSimpleFields();
-    if (simpleFields != null)
-    {
+    if (simpleFields != null) {
       sb.append("simpleFields\n");
-      for (String key : simpleFields.keySet())
-      {
+      for (String key : simpleFields.keySet()) {
         sb.append("  " + key + "\t: " + simpleFields.get(key) + "\n");
       }
     }
 
     Map<String, List<String>> listFields = record.getListFields();
     sb.append("listFields\n");
-    for (String key : listFields.keySet())
-    {
+    for (String key : listFields.keySet()) {
       List<String> list = listFields.get(key);
       sb.append("  " + key + "\t: ");
-      for (String listValue : list)
-      {
+      for (String listValue : list) {
         sb.append(listValue + ", ");
       }
       sb.append("\n");
@@ -1048,12 +830,10 @@ public class TestHelper
 
     Map<String, Map<String, String>> mapFields = record.getMapFields();
     sb.append("mapFields\n");
-    for (String key : mapFields.keySet())
-    {
+    for (String key : mapFields.keySet()) {
       Map<String, String> map = mapFields.get(key);
       sb.append("  " + key + "\t: \n");
-      for (String mapKey : map.keySet())
-      {
+      for (String mapKey : map.keySet()) {
         sb.append("    " + mapKey + "\t: " + map.get(mapKey) + "\n");
       }
     }
@@ -1077,20 +857,17 @@ public class TestHelper
   }
 
   // debug code
-  public static String printHandlers(ZkTestManager manager)
-  {
+  public static String printHandlers(ZkTestManager manager) {
     StringBuilder sb = new StringBuilder();
     List<CallbackHandler> handlers = manager.getHandlers();
     sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
 
-    for (int i = 0; i < handlers.size(); i++)
-    {
+    for (int i = 0; i < handlers.size(); i++) {
       CallbackHandler handler = handlers.get(i);
       String path = handler.getPath();
       sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
           + handler.getListener());
-      if (i < (handlers.size() - 1))
-      {
+      if (i < (handlers.size() - 1)) {
         sb.append(", ");
       }
     }
@@ -1099,29 +876,29 @@ public class TestHelper
     return sb.toString();
   }
 
-  public static void printZkListeners(ZkClient client) throws  Exception{
+  public static void printZkListeners(ZkClient client) throws Exception {
     Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
     Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
 
     System.out.println("dataListeners {");
     for (String path : datalisteners.keySet()) {
-        System.out.println("\t" + path + ": ");
-        Set<IZkDataListener> set = datalisteners.get(path);
-        for (IZkDataListener listener : set) {
-            CallbackHandler handler = (CallbackHandler)listener;
-            System.out.println("\t\t" + handler.getListener());
-        }
+      System.out.println("\t" + path + ": ");
+      Set<IZkDataListener> set = datalisteners.get(path);
+      for (IZkDataListener listener : set) {
+        CallbackHandler handler = (CallbackHandler) listener;
+        System.out.println("\t\t" + handler.getListener());
+      }
     }
     System.out.println("}");
 
     System.out.println("childListeners {");
     for (String path : childListeners.keySet()) {
-        System.out.println("\t" + path + ": ");
-        Set<IZkChildListener> set = childListeners.get(path);
-        for (IZkChildListener listener : set) {
-            CallbackHandler handler = (CallbackHandler)listener;
-            System.out.println("\t\t" + handler.getListener());
-        }
+      System.out.println("\t" + path + ": ");
+      Set<IZkChildListener> set = childListeners.get(path);
+      for (IZkChildListener listener : set) {
+        CallbackHandler handler = (CallbackHandler) listener;
+        System.out.println("\t\t" + handler.getListener());
+      }
     }
     System.out.println("}");
   }

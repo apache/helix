@@ -19,7 +19,6 @@ package org.apache.helix.mock.participant;
  * under the License.
  */
 
-
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -39,9 +38,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.log4j.Logger;
 
-
-public class DummyProcess
-{
+public class DummyProcess {
   private static final Logger logger = Logger.getLogger(DummyProcess.class);
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
@@ -51,24 +48,19 @@ public class DummyProcess
   public static final String help = "help";
   public static final String transDelay = "transDelay";
   public static final String helixManagerType = "helixManagerType";
-//  public static final String rootNamespace = "rootNamespace";
+  // public static final String rootNamespace = "rootNamespace";
 
   private final String _zkConnectString;
   private final String _clusterName;
   private final String _instanceName;
   private DummyStateModelFactory stateModelFactory;
-//  private StateMachineEngine genericStateMachineHandler;
-
+  // private StateMachineEngine genericStateMachineHandler;
 
   private int _transDelayInMs = 0;
   private final String _clusterMangerType;
 
-  public DummyProcess(String zkConnectString,
-                      String clusterName,
-                      String instanceName,
-                      String clusterMangerType,
-                      int delay)
-  {
+  public DummyProcess(String zkConnectString, String clusterName, String instanceName,
+      String clusterMangerType, int delay) {
     _zkConnectString = zkConnectString;
     _clusterName = clusterName;
     _instanceName = instanceName;
@@ -76,154 +68,130 @@ public class DummyProcess
     _transDelayInMs = delay > 0 ? delay : 0;
   }
 
-  static void sleep(long transDelay)
-  {
-    try
-    {
-      if (transDelay > 0)
-      {
+  static void sleep(long transDelay) {
+    try {
+      if (transDelay > 0) {
         Thread.sleep(transDelay);
       }
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
 
-  public HelixManager start() throws Exception
-  {
+  public HelixManager start() throws Exception {
     HelixManager manager = null;
     // zk cluster manager
-    if (_clusterMangerType.equalsIgnoreCase("zk"))
-    {
-      manager = HelixManagerFactory.getZKHelixManager(_clusterName,
-                                                          _instanceName,
-                                                          InstanceType.PARTICIPANT,
-                                                          _zkConnectString);
-    }
-    else
-    {
+    if (_clusterMangerType.equalsIgnoreCase("zk")) {
+      manager =
+          HelixManagerFactory.getZKHelixManager(_clusterName, _instanceName,
+              InstanceType.PARTICIPANT, _zkConnectString);
+    } else {
       throw new IllegalArgumentException("Unsupported cluster manager type:" + _clusterMangerType);
     }
 
     stateModelFactory = new DummyStateModelFactory(_transDelayInMs);
-    DummyLeaderStandbyStateModelFactory stateModelFactory1 = new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
-    DummyOnlineOfflineStateModelFactory stateModelFactory2 = new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
-//    genericStateMachineHandler = new StateMachineEngine();
+    DummyLeaderStandbyStateModelFactory stateModelFactory1 =
+        new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
+    DummyOnlineOfflineStateModelFactory stateModelFactory2 =
+        new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
+    // genericStateMachineHandler = new StateMachineEngine();
     StateMachineEngine stateMach = manager.getStateMachineEngine();
     stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
     stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
     stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
 
     manager.connect();
-//    manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(), genericStateMachineHandler);
+    // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+    // genericStateMachineHandler);
     return manager;
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel>
-  {
+  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel> {
     int _delay;
 
-    public DummyStateModelFactory(int delay)
-    {
+    public DummyStateModelFactory(int delay) {
       _delay = delay;
     }
 
     @Override
-    public DummyStateModel createNewStateModel(String stateUnitKey)
-    {
+    public DummyStateModel createNewStateModel(String stateUnitKey) {
       DummyStateModel model = new DummyStateModel();
       model.setDelay(_delay);
       return model;
     }
   }
 
-  public static class DummyLeaderStandbyStateModelFactory extends StateModelFactory<DummyLeaderStandbyStateModel>
-  {
+  public static class DummyLeaderStandbyStateModelFactory extends
+      StateModelFactory<DummyLeaderStandbyStateModel> {
     int _delay;
 
-    public DummyLeaderStandbyStateModelFactory(int delay)
-    {
+    public DummyLeaderStandbyStateModelFactory(int delay) {
       _delay = delay;
     }
 
     @Override
-    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey)
-    {
+    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey) {
       DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
       model.setDelay(_delay);
       return model;
     }
   }
 
-  public static class DummyOnlineOfflineStateModelFactory extends StateModelFactory<DummyOnlineOfflineStateModel>
-  {
+  public static class DummyOnlineOfflineStateModelFactory extends
+      StateModelFactory<DummyOnlineOfflineStateModel> {
     int _delay;
 
-    public DummyOnlineOfflineStateModelFactory(int delay)
-    {
+    public DummyOnlineOfflineStateModelFactory(int delay) {
       _delay = delay;
     }
 
     @Override
-    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey)
-    {
+    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey) {
       DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
       model.setDelay(_delay);
       return model;
     }
   }
-  public static class DummyStateModel extends StateModel
-  {
+
+  public static class DummyStateModel extends StateModel {
     int _transDelay = 0;
 
-    public void setDelay(int delay)
-    {
+    public void setDelay(int delay) {
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    public void onBecomeSlaveFromOffline(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
-      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName
-                         + ", db:" + db);
+      logger.info("DummyStateModel.onBecomeSlaveFromOffline(), instance:" + instanceName + ", db:"
+          + db);
     }
 
-    public void onBecomeSlaveFromMaster(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeSlaveFromMaster()");
 
     }
 
-    public void onBecomeMasterFromSlave(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeMasterFromSlave()");
 
     }
 
-    public void onBecomeOfflineFromSlave(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeOfflineFromSlave()");
 
     }
 
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-    {
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
@@ -231,37 +199,30 @@ public class DummyProcess
     }
   }
 
-
-  public static class DummyOnlineOfflineStateModel extends StateModel
-  {
+  public static class DummyOnlineOfflineStateModel extends StateModel {
     int _transDelay = 0;
 
-    public void setDelay(int delay)
-    {
+    public void setDelay(int delay) {
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    public void onBecomeOnlineFromOffline(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeOnlineFromOffline(Message message, NotificationContext context) {
       String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
-      logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName
-                         + ", db:" + db);
+      logger.info("DummyStateModel.onBecomeOnlineFromOffline(), instance:" + instanceName + ", db:"
+          + db);
     }
 
-    public void onBecomeOfflineFromOnline(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeOfflineFromOnline(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeOfflineFromOnline()");
 
     }
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-    {
+
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyStateModel.onBecomeDroppedFromOffline()");
@@ -269,51 +230,43 @@ public class DummyProcess
     }
   }
 
-  public static class DummyLeaderStandbyStateModel extends StateModel
-  {
+  public static class DummyLeaderStandbyStateModel extends StateModel {
     int _transDelay = 0;
 
-    public void setDelay(int delay)
-    {
+    public void setDelay(int delay) {
       _transDelay = delay > 0 ? delay : 0;
     }
 
-    public void onBecomeLeaderFromStandby(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeLeaderFromStandby(Message message, NotificationContext context) {
       String db = message.getPartitionName();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
-      logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:" + instanceName
-                         + ", db:" + db);
+      logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:"
+          + instanceName + ", db:" + db);
     }
 
-    public void onBecomeStandbyFromLeader(Message message,
-        NotificationContext context)
-    {
+    public void onBecomeStandbyFromLeader(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromLeader()");
 
     }
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-    {
+
+    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeDroppedFromOffline()");
 
     }
 
-    public void onBecomeStandbyFromOffline(Message message, NotificationContext context)
-    {
+    public void onBecomeStandbyFromOffline(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeStandbyFromOffline()");
 
     }
 
-    public void onBecomeOfflineFromStandby(Message message, NotificationContext context)
-    {
+    public void onBecomeOfflineFromStandby(Message message, NotificationContext context) {
       DummyProcess.sleep(_transDelay);
 
       logger.info("DummyLeaderStandbyStateModel.onBecomeOfflineFromStandby()");
@@ -323,50 +276,54 @@ public class DummyProcess
 
   // TODO hack OptionBuilder is not thread safe
   @SuppressWarnings("static-access")
-  synchronized private static Options constructCommandLineOptions()
-  {
-    Option helpOption = OptionBuilder.withLongOpt(help)
-        .withDescription("Prints command-line options info").create();
+  synchronized private static Options constructCommandLineOptions() {
+    Option helpOption =
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
-    Option clusterOption = OptionBuilder.withLongOpt(cluster)
-        .withDescription("Provide cluster name").create();
+    Option clusterOption =
+        OptionBuilder.withLongOpt(cluster).withDescription("Provide cluster name").create();
     clusterOption.setArgs(1);
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
-    Option hostOption = OptionBuilder.withLongOpt(hostAddress)
-        .withDescription("Provide host name").create();
+    Option hostOption =
+        OptionBuilder.withLongOpt(hostAddress).withDescription("Provide host name").create();
     hostOption.setArgs(1);
     hostOption.setRequired(true);
     hostOption.setArgName("Host name (Required)");
 
-    Option portOption = OptionBuilder.withLongOpt(hostPort)
-        .withDescription("Provide host port").create();
+    Option portOption =
+        OptionBuilder.withLongOpt(hostPort).withDescription("Provide host port").create();
     portOption.setArgs(1);
     portOption.setRequired(true);
     portOption.setArgName("Host port (Required)");
 
-    Option cmTypeOption = OptionBuilder.withLongOpt(helixManagerType)
-        .withDescription("Provide cluster manager type (e.g. 'zk', 'static-file', or 'dynamic-file'").create();
+    Option cmTypeOption =
+        OptionBuilder
+            .withLongOpt(helixManagerType)
+            .withDescription(
+                "Provide cluster manager type (e.g. 'zk', 'static-file', or 'dynamic-file'")
+            .create();
     cmTypeOption.setArgs(1);
     cmTypeOption.setRequired(true);
-    cmTypeOption.setArgName("Clsuter manager type (e.g. 'zk', 'static-file', or 'dynamic-file') (Required)");
+    cmTypeOption
+        .setArgName("Clsuter manager type (e.g. 'zk', 'static-file', or 'dynamic-file') (Required)");
 
-    Option zkServerOption = OptionBuilder.withLongOpt(zkServer)
-      .withDescription("Provide zookeeper address").create();
+    Option zkServerOption =
+        OptionBuilder.withLongOpt(zkServer).withDescription("Provide zookeeper address").create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required for zk-based cluster manager)");
 
-//    Option rootNsOption = OptionBuilder.withLongOpt(rootNamespace)
-//        .withDescription("Provide root namespace for dynamic-file based cluster manager").create();
-//    rootNsOption.setArgs(1);
-//    rootNsOption.setRequired(true);
-//    rootNsOption.setArgName("Root namespace (Required for dynamic-file based cluster manager)");
+    // Option rootNsOption = OptionBuilder.withLongOpt(rootNamespace)
+    // .withDescription("Provide root namespace for dynamic-file based cluster manager").create();
+    // rootNsOption.setArgs(1);
+    // rootNsOption.setRequired(true);
+    // rootNsOption.setArgName("Root namespace (Required for dynamic-file based cluster manager)");
 
-
-    Option transDelayOption = OptionBuilder.withLongOpt(transDelay)
-        .withDescription("Provide state trans delay").create();
+    Option transDelayOption =
+        OptionBuilder.withLongOpt(transDelay).withDescription("Provide state trans delay").create();
     transDelayOption.setArgs(1);
     transDelayOption.setRequired(false);
     transDelayOption.setArgName("Delay time in state transition, in MS");
@@ -387,45 +344,37 @@ public class DummyProcess
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.printHelp("java " + DummyProcess.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-      throws Exception
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
     // CommandLine cmd = null;
 
-    try
-    {
+    try {
       return cliParser.parse(cliOptions, cliArgs);
-    } catch (ParseException pe)
-    {
-      System.err
-          .println("CommandLineClient: failed to parse command-line options: "
-              + pe.toString());
+    } catch (ParseException pe) {
+      System.err.println("CommandLineClient: failed to parse command-line options: "
+          + pe.toString());
       printUsage(cliOptions);
       System.exit(1);
     }
     return null;
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     String cmType = "zk";
     String zkConnectString = "localhost:2181";
     String clusterName = "testCluster";
     String instanceName = "localhost_8900";
     String cvFileStr = null;
-//    String rootNs = null;
+    // String rootNs = null;
     int delay = 0;
 
-    if (args.length > 0)
-    {
+    if (args.length > 0) {
       CommandLine cmd = processCommandLineArgs(args);
       zkConnectString = cmd.getOptionValue(zkServer);
       clusterName = cmd.getOptionValue(cluster);
@@ -435,17 +384,13 @@ public class DummyProcess
       int port = Integer.parseInt(portString);
       instanceName = host + "_" + port;
       cmType = cmd.getOptionValue(helixManagerType);
-      if (cmd.hasOption(transDelay))
-      {
-        try
-        {
+      if (cmd.hasOption(transDelay)) {
+        try {
           delay = Integer.parseInt(cmd.getOptionValue(transDelay));
-          if (delay < 0)
-          {
+          if (delay < 0) {
             throw new Exception("delay must be positive");
           }
-        } catch (Exception e)
-        {
+        } catch (Exception e) {
           e.printStackTrace();
           delay = 0;
         }
@@ -454,31 +399,22 @@ public class DummyProcess
     // Espresso_driver.py will consume this
     logger.info("Dummy process started, instanceName:" + instanceName);
 
-    DummyProcess process = new DummyProcess(zkConnectString,
-                                            clusterName,
-                                            instanceName,
-                                            cmType,
-                                            delay);
+    DummyProcess process =
+        new DummyProcess(zkConnectString, clusterName, instanceName, cmType, delay);
     HelixManager manager = process.start();
 
-    try
-    {
+    try {
       Thread.currentThread().join();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // ClusterManagerFactory.disconnectManagers(instanceName);
-      logger.info("participant:" + instanceName + ", " +
-                   Thread.currentThread().getName() + " interrupted");
-//      if (manager != null)
-//      {
-//        manager.disconnect();
-//      }
-    }
-    finally
-    {
-      if (manager != null)
-      {
+      logger.info("participant:" + instanceName + ", " + Thread.currentThread().getName()
+          + " interrupted");
+      // if (manager != null)
+      // {
+      // manager.disconnect();
+      // }
+    } finally {
+      if (manager != null) {
         manager.disconnect();
       }
     }

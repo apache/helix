@@ -50,8 +50,7 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-public class ControllerResource extends Resource
-{
+public class ControllerResource extends Resource {
 
   public ControllerResource(Context context, Request request, Response response)
 
@@ -62,48 +61,38 @@ public class ControllerResource extends Resource
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
-  StringRepresentation getControllerRepresentation(String clusterName) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  StringRepresentation getControllerRepresentation(String clusterName)
+      throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
     ZNRecord record = null;
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-    if (leader != null)
-    {
+    if (leader != null) {
       record = leader.getRecord();
-    }
-    else
-    {
+    } else {
       record = new ZNRecord("");
       DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
       String time = formatter.format(new Date());
@@ -123,16 +112,12 @@ public class ControllerResource extends Resource
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getControllerRepresentation(clusterName);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
       e.printStackTrace();
@@ -141,10 +126,8 @@ public class ControllerResource extends Resource
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
+  public void acceptRepresentation(Representation entity) {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -153,32 +136,24 @@ public class ControllerResource extends Resource
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-      if (command == null)
-      {
+      if (command == null) {
         throw new HelixException("Could NOT find 'command' in parameterMap: "
             + jsonParameters._parameterMap);
-      }
-      else if (command.equalsIgnoreCase(ClusterSetup.enableCluster))
-      {
-        boolean enabled =
-            Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
+      } else if (command.equalsIgnoreCase(ClusterSetup.enableCluster)) {
+        boolean enabled = Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
 
         setupTool.getClusterManagementTool().enableCluster(clusterName, enabled);
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + ClusterSetup.enableCluster + "]");
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + ClusterSetup.enableCluster + "]");
       }
 
       getResponse().setEntity(getControllerRepresentation(clusterName));
       getResponse().setStatus(Status.SUCCESS_OK);
 
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }

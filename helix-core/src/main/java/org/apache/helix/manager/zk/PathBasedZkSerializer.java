@@ -21,12 +21,10 @@ package org.apache.helix.manager.zk;
 
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 
-public interface PathBasedZkSerializer
-{
+public interface PathBasedZkSerializer {
 
   /**
    * Serialize data differently according to different paths
-   * 
    * @param data
    * @param path
    * @return
@@ -36,7 +34,6 @@ public interface PathBasedZkSerializer
 
   /**
    * Deserialize data differently according to different paths
-   * 
    * @param bytes
    * @param path
    * @return

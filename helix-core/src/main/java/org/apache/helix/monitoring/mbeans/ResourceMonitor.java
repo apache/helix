@@ -28,59 +28,48 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
-
-public class ResourceMonitor implements ResourceMonitorMBean
-{
-  int                         _numOfPartitions;
-  int                         _numOfPartitionsInExternalView;
-  int                         _numOfErrorPartitions;
-  int                         _externalViewIdealStateDiff;
+public class ResourceMonitor implements ResourceMonitorMBean {
+  int _numOfPartitions;
+  int _numOfPartitionsInExternalView;
+  int _numOfErrorPartitions;
+  int _externalViewIdealStateDiff;
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
 
-  String                      _resourceName, _clusterName;
+  String _resourceName, _clusterName;
 
-  public ResourceMonitor(String clusterName, String resourceName)
-  {
+  public ResourceMonitor(String clusterName, String resourceName) {
     _clusterName = clusterName;
     _resourceName = resourceName;
   }
 
   @Override
-  public long getPartitionGauge()
-  {
+  public long getPartitionGauge() {
     return _numOfPartitions;
   }
 
   @Override
-  public long getErrorPartitionGauge()
-  {
+  public long getErrorPartitionGauge() {
     return _numOfErrorPartitions;
   }
 
   @Override
-  public long getDifferenceWithIdealStateGauge()
-  {
+  public long getDifferenceWithIdealStateGauge() {
     return _externalViewIdealStateDiff;
   }
 
   @Override
-  public String getSensorName()
-  {
-    return ClusterStatusMonitor.RESOURCE_STATUS_KEY + "_" + _clusterName + "_"
-        + _resourceName;
+  public String getSensorName() {
+    return ClusterStatusMonitor.RESOURCE_STATUS_KEY + "_" + _clusterName + "_" + _resourceName;
   }
 
-  public void updateExternalView(ExternalView externalView, IdealState idealState)
-  {
-    if (externalView == null)
-    {
+  public void updateExternalView(ExternalView externalView, IdealState idealState) {
+    if (externalView == null) {
       LOG.warn("external view is null");
       return;
     }
     String resourceName = externalView.getId();
 
-    if (idealState == null)
-    {
+    if (idealState == null) {
       LOG.warn("ideal state is null for " + resourceName);
       _numOfErrorPartitions = 0;
       _externalViewIdealStateDiff = 0;
@@ -93,36 +82,29 @@ public class ResourceMonitor implements ResourceMonitorMBean
     int numOfErrorPartitions = 0;
     int numOfDiff = 0;
 
-    if (_numOfPartitions == 0)
-    {
+    if (_numOfPartitions == 0) {
       _numOfPartitions = idealState.getRecord().getMapFields().size();
     }
 
     // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
     // or list fields (AUDO mode)
-    for (String partitionName : idealState.getRecord().getMapFields().keySet())
-    {
+    for (String partitionName : idealState.getRecord().getMapFields().keySet()) {
       Map<String, String> idealRecord = idealState.getInstanceStateMap(partitionName);
       Map<String, String> externalViewRecord = externalView.getStateMap(partitionName);
 
-      if (externalViewRecord == null)
-      {
+      if (externalViewRecord == null) {
         numOfDiff += idealRecord.size();
         continue;
       }
-      for (String host : idealRecord.keySet())
-      {
+      for (String host : idealRecord.keySet()) {
         if (!externalViewRecord.containsKey(host)
-            || !externalViewRecord.get(host).equals(idealRecord.get(host)))
-        {
+            || !externalViewRecord.get(host).equals(idealRecord.get(host))) {
           numOfDiff++;
         }
       }
 
-      for (String host : externalViewRecord.keySet())
-      {
-        if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString()))
-        {
+      for (String host : externalViewRecord.keySet()) {
+        if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           numOfErrorPartitions++;
         }
       }
@@ -133,13 +115,11 @@ public class ResourceMonitor implements ResourceMonitorMBean
   }
 
   @Override
-  public long getExternalViewPartitionGauge()
-  {
+  public long getExternalViewPartitionGauge() {
     return _numOfPartitionsInExternalView;
   }
 
-  public String getBeanName()
-  {
+  public String getBeanName() {
     return _clusterName + " " + _resourceName;
   }
 }

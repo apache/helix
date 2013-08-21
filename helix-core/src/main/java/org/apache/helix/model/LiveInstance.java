@@ -23,14 +23,11 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
 /**
  * Instance that connects to zookeeper
  */
-public class LiveInstance extends HelixProperty
-{
-  public enum LiveInstanceProperty
-  {
+public class LiveInstance extends HelixProperty {
+  public enum LiveInstanceProperty {
     SESSION_ID,
     HELIX_VERSION,
     LIVE_INSTANCE,
@@ -39,75 +36,61 @@ public class LiveInstance extends HelixProperty
 
   private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
 
-  public LiveInstance(String id)
-  {
+  public LiveInstance(String id) {
     super(id);
   }
 
-  public LiveInstance(ZNRecord record)
-  {
+  public LiveInstance(ZNRecord record) {
     super(record);
   }
 
-  public void setSessionId(String sessionId)
-  {
+  public void setSessionId(String sessionId) {
     _record.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), sessionId);
   }
 
-  public String getSessionId()
-  {
+  public String getSessionId() {
     return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
   }
 
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     return _record.getId();
   }
 
-  public String getHelixVersion()
-  {
+  public String getHelixVersion() {
     return _record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString());
   }
 
-  public void setHelixVersion(String helixVersion)
-  {
+  public void setHelixVersion(String helixVersion) {
     _record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), helixVersion);
   }
 
-  public String getLiveInstance()
-  {
+  public String getLiveInstance() {
     return _record.getSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString());
   }
 
-  public void setLiveInstance(String leader)
-  {
+  public void setLiveInstance(String leader) {
     _record.setSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString(), leader);
   }
 
-  public long getModifiedTime()
-  {
+  public long getModifiedTime() {
     return _record.getModifiedTime();
   }
-  
-  public String getWebserviceUrl()
-  {
+
+  public String getWebserviceUrl() {
     return _record.getSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString());
   }
-  
-  public void setWebserviceUrl(String url)
-  {
+
+  public void setWebserviceUrl(String url) {
     _record.setSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString(), url);
   }
+
   @Override
-  public boolean isValid()
-  {
-    if(getSessionId() == null)
-    {
+  public boolean isValid() {
+    if (getSessionId() == null) {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }
-    if(getHelixVersion() == null)
-    {
+    if (getHelixVersion() == null) {
       _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
       return false;
     }

@@ -31,59 +31,51 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
 /**
- * 
  * setup a storage cluster and start a zk-based cluster controller in stand-alone mode
  * start 5 dummy participants verify the current states at end
  */
 
-public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneCMTestBase
-{
+public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneCMTestBase {
   @BeforeClass
-  public void beforeClass() throws Exception
-  {
+  public void beforeClass() throws Exception {
     ZKPropertyTransferServer.PERIOD = 500;
     ZkPropertyTransferClient.SEND_PERIOD = 500;
     ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
     super.beforeClass();
-    
+
     Thread.sleep(1000);
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      if (_startCMResultMap.get(instanceName) != null)
-      {
-        HelixDataAccessor accessor = _startCMResultMap.get(instanceName)._manager.getHelixDataAccessor();
+      if (_startCMResultMap.get(instanceName) != null) {
+        HelixDataAccessor accessor =
+            _startCMResultMap.get(instanceName)._manager.getHelixDataAccessor();
         Builder kb = accessor.keyBuilder();
-        List<StatusUpdate> statusUpdates = accessor.getChildValues(
-            kb.stateTransitionStatus(instanceName, _startCMResultMap.get(instanceName)._manager.getSessionId(),
-                TEST_DB));
-        for(int j = 0;j < 10; j++)
-        {
-          statusUpdates = accessor.getChildValues(
-            kb.stateTransitionStatus(instanceName, _startCMResultMap.get(instanceName)._manager.getSessionId(),
-                TEST_DB));
-          if(statusUpdates.size() == 0)
-          {
+        List<StatusUpdate> statusUpdates =
+            accessor.getChildValues(kb.stateTransitionStatus(instanceName,
+                _startCMResultMap.get(instanceName)._manager.getSessionId(), TEST_DB));
+        for (int j = 0; j < 10; j++) {
+          statusUpdates =
+              accessor.getChildValues(kb.stateTransitionStatus(instanceName,
+                  _startCMResultMap.get(instanceName)._manager.getSessionId(), TEST_DB));
+          if (statusUpdates.size() == 0) {
             Thread.sleep(500);
-          }
-          else
-          {
+          } else {
             break;
           }
         }
         Assert.assertTrue(statusUpdates.size() > 0);
-        for(StatusUpdate update : statusUpdates)
-        {
-          Assert.assertTrue(update.getRecord().getSimpleField(ZkPropertyTransferClient.USE_PROPERTYTRANSFER).equals("true"));
-          Assert.assertTrue(update.getRecord().getSimpleField(ZKPropertyTransferServer.SERVER) != null);
+        for (StatusUpdate update : statusUpdates) {
+          Assert.assertTrue(update.getRecord()
+              .getSimpleField(ZkPropertyTransferClient.USE_PROPERTYTRANSFER).equals("true"));
+          Assert
+              .assertTrue(update.getRecord().getSimpleField(ZKPropertyTransferServer.SERVER) != null);
         }
       }
     }
   }
 
   @AfterClass
-  public void afterClass() throws Exception
-  {
+  public void afterClass() throws Exception {
     super.afterClass();
     ZKPropertyTransferServer.getInstance().shutdown();
     ZKPropertyTransferServer.getInstance().reset();

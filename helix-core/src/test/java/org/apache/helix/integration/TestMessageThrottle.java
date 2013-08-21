@@ -49,97 +49,81 @@ import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestMessageThrottle extends ZkIntegrationTestBase
-{
+public class TestMessageThrottle extends ZkIntegrationTestBase {
   @Test()
-  public void testMessageThrottle() throws Exception
-  {
+  public void testMessageThrottle() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
 
     String clusterName = getShortClassName();
     MockParticipant[] participants = new MockParticipant[5];
     // ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
                                                          // port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            10, // partitions per resource
-                            5, // number of nodes
-                            3, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
 
     // setup message constraint
     // "MESSAGE_TYPE=STATE_TRANSITION,TRANSITION=OFFLINE-SLAVE,INSTANCE=.*,CONSTRAINT_VALUE=1";
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     ConstraintItemBuilder builder = new ConstraintItemBuilder();
     builder.addConstraintAttribute("MESSAGE_TYPE", "STATE_TRANSITION")
-           .addConstraintAttribute("INSTANCE", ".*")
-           .addConstraintAttribute("CONSTRAINT_VALUE", "1");
-    
-//    Map<String, String> constraints = new TreeMap<String, String>();
-//    constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
-//    // constraints.put("TRANSITION", "OFFLINE-SLAVE");
-//    constraints.put("CONSTRAINT_VALUE", "1");
-//    constraints.put("INSTANCE", ".*");
-    admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1", builder.build());
-    
+        .addConstraintAttribute("INSTANCE", ".*").addConstraintAttribute("CONSTRAINT_VALUE", "1");
+
+    // Map<String, String> constraints = new TreeMap<String, String>();
+    // constraints.put("MESSAGE_TYPE", "STATE_TRANSITION");
+    // // constraints.put("TRANSITION", "OFFLINE-SLAVE");
+    // constraints.put("CONSTRAINT_VALUE", "1");
+    // constraints.put("INSTANCE", ".*");
+    admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1",
+        builder.build());
 
     final ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
     // make sure we never see more than 1 state transition message for each participant
     final AtomicBoolean success = new AtomicBoolean(true);
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      String msgPath =
-          PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName);
+      String msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName);
 
-      _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener()
-      {
+      _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener() {
 
         @Override
-        public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
-        {
-          if (currentChilds != null && currentChilds.size() > 1)
-          {
-            List<ZNRecord> records = accessor.getBaseDataAccessor().getChildren(parentPath, null, 0);
+        public void handleChildChange(String parentPath, List<String> currentChilds)
+            throws Exception {
+          if (currentChilds != null && currentChilds.size() > 1) {
+            List<ZNRecord> records =
+                accessor.getBaseDataAccessor().getChildren(parentPath, null, 0);
             int transitionMsgCount = 0;
-            for (ZNRecord record : records)
-            {
+            for (ZNRecord record : records) {
               Message msg = new Message(record);
-              if(msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString()))
-              {
+              if (msg.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString())) {
                 transitionMsgCount++;
               }
             }
 
-            if (transitionMsgCount > 1)
-            {
+            if (transitionMsgCount > 1) {
               success.set(false);
               Assert.fail("Should not see more than 1 message");
             }
           }
-          
-          
+
         }
       });
     }
 
-    TestHelper.startController(clusterName,
-                               "controller_0",
-                               ZK_ADDR,
-                               HelixControllerMain.STANDALONE);
+    TestHelper
+        .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
     // start participants
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
@@ -147,25 +131,22 @@ public class TestMessageThrottle extends ZkIntegrationTestBase
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-                                                                              clusterName));
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     Assert.assertTrue(success.get());
-    
 
     // clean up
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

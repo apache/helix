@@ -61,7 +61,7 @@ public class AutoRebalanceStrategy {
     _partitions = partitions;
     _states = states;
     _maximumPerNode = maximumPerNode;
-    if (placementScheme != null){
+    if (placementScheme != null) {
       _placementScheme = placementScheme;
     } else {
       _placementScheme = new DefaultPlacementScheme();
@@ -144,8 +144,7 @@ public class AutoRebalanceStrategy {
     // iterate through non preferred and see if we can move them to
     // preferredlocation if the donor has more than it should and stealer has
     // enough capacity
-    Iterator<Entry<Replica, Node>> iterator = _existingNonPreferredAssignment.entrySet()
-        .iterator();
+    Iterator<Entry<Replica, Node>> iterator = _existingNonPreferredAssignment.entrySet().iterator();
     while (iterator.hasNext()) {
       Entry<Replica, Node> entry = iterator.next();
       Replica replica = entry.getKey();
@@ -266,8 +265,7 @@ public class AutoRebalanceStrategy {
    * Update a ZNRecord with the results of the rebalancing.
    * @param znRecord
    */
-  private void prepareResult(ZNRecord znRecord)
-  {
+  private void prepareResult(ZNRecord znRecord) {
     // The map fields are keyed on partition name to a pair of node and state, i.e. it
     // indicates that the partition with given state is served by that node
     //
@@ -319,8 +317,8 @@ public class AutoRebalanceStrategy {
       for (String nodeId : nodeStateMap.keySet()) {
         Node node = _nodeMap.get(nodeId);
         boolean skip = false;
-        for(Replica replica: node.preferred){
-          if(replica.partition.equals(partition)){
+        for (Replica replica : node.preferred) {
+          if (replica.partition.equals(partition)) {
             skip = true;
             break;
           }
@@ -420,8 +418,9 @@ public class AutoRebalanceStrategy {
     for (String partition : _partitions) {
       for (int replicaId = 0; replicaId < count; replicaId++) {
         Replica replica = new Replica(partition, replicaId);
-        String nodeName = _placementScheme.getLocation(partitionId, replicaId,
-            _partitions.size(), numReplicas, allNodes);
+        String nodeName =
+            _placementScheme.getLocation(partitionId, replicaId, _partitions.size(), numReplicas,
+                allNodes);
         preferredMapping.put(replica, _nodeMap.get(nodeName));
       }
       partitionId = partitionId + 1;
@@ -431,7 +430,6 @@ public class AutoRebalanceStrategy {
 
   /**
    * Counts the total number of replicas given a state-count mapping
-   *
    * @param states
    * @return
    */
@@ -625,8 +623,9 @@ public class AutoRebalanceStrategy {
         index = (partitionId + replicaId * numPartitions) % nodeNames.size();
       } else if (nodeNames.size() == numPartitions) {
         // need a replica offset in case the sizes of these sets are the same
-        index = ((partitionId + replicaId * numPartitions) % nodeNames.size()
-            + replicaId) % nodeNames.size();
+        index =
+            ((partitionId + replicaId * numPartitions) % nodeNames.size() + replicaId)
+                % nodeNames.size();
       } else {
         // in all other cases, assigning a replica at a time for each partition is reasonable
         index = (partitionId + replicaId) % nodeNames.size();

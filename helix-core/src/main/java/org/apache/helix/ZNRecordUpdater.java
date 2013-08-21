@@ -24,24 +24,20 @@ import org.I0Itec.zkclient.DataUpdater;
 /**
  * Class that specifies how a ZNRecord should be updated with another ZNRecord
  */
-public class ZNRecordUpdater implements DataUpdater<ZNRecord>
-{
+public class ZNRecordUpdater implements DataUpdater<ZNRecord> {
   final ZNRecord _record;
 
   /**
    * Initialize with the record that will be updated
    * @param record
    */
-  public ZNRecordUpdater(ZNRecord record)
-  {
+  public ZNRecordUpdater(ZNRecord record) {
     _record = record;
   }
 
   @Override
-  public ZNRecord update(ZNRecord current)
-  {
-    if (current != null)
-    {
+  public ZNRecord update(ZNRecord current) {
+    if (current != null) {
       current.merge(_record);
       return current;
     }

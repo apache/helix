@@ -39,10 +39,8 @@ import org.apache.log4j.Logger;
  * This is a Rebalancer specific to custom mode. It is tasked with checking an existing mapping of
  * partitions against the set of live instances to mark assignment states as dropped or erroneous
  * as necessary.
- *
  * The input is the required current assignment of partitions to instances, as well as the required
  * existing instance preferences.
- *
  * The output is a verified mapping based on that preference list, i.e. partition p has a replica
  * on node k with state s, where s may be a dropped or error state if necessary.
  */
@@ -55,9 +53,8 @@ public class CustomRebalancer implements Rebalancer {
   }
 
   @Override
-  public IdealState computeNewIdealState(String resourceName,
-      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     return currentIdealState;
   }
 
@@ -87,7 +84,6 @@ public class CustomRebalancer implements Rebalancer {
 
   /**
    * compute best state for resource in CUSTOMIZED ideal state mode
-   *
    * @param cache
    * @param stateModelDef
    * @param idealStateMap
@@ -108,9 +104,8 @@ public class CustomRebalancer implements Rebalancer {
             && !disabledInstancesForPartition.contains(instance)) {
           // if dropped and not disabled, transit to DROPPED
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        }
-        else if ( (currentStateMap.get(instance) == null
-            || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString()))
+        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
+            HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
@@ -125,9 +120,9 @@ public class CustomRebalancer implements Rebalancer {
 
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
     for (String instance : idealStateMap.keySet()) {
-      boolean notInErrorState = currentStateMap == null
-          || currentStateMap.get(instance) == null
-          || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
+      boolean notInErrorState =
+          currentStateMap == null || currentStateMap.get(instance) == null
+              || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
 
       if (liveInstancesMap.containsKey(instance) && notInErrorState
           && !disabledInstancesForPartition.contains(instance)) {

@@ -19,8 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName
-{
+public enum AttributeName {
   RESOURCES,
   BEST_POSSIBLE_STATE,
   CURRENT_STATE,

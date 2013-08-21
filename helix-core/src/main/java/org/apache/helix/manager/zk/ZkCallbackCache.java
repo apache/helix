@@ -41,12 +41,8 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.data.Stat;
 
-
-public class ZkCallbackCache<T> extends Cache<T> implements
-    IZkChildListener,
-    IZkDataListener,
-    IZkStateListener
-{
+public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZkDataListener,
+    IZkStateListener {
   private static Logger LOG = Logger.getLogger(ZkCallbackCache.class);
 
   final BaseDataAccessor<T> _accessor;
@@ -55,9 +51,8 @@ public class ZkCallbackCache<T> extends Cache<T> implements
   private final ZkCacheEventThread _eventThread;
   private final Map<String, Set<HelixPropertyListener>> _listener;
 
-  public ZkCallbackCache(BaseDataAccessor<T> accessor, String chrootPath,
-                         List<String> paths, ZkCacheEventThread eventThread)
-  {
+  public ZkCallbackCache(BaseDataAccessor<T> accessor, String chrootPath, List<String> paths,
+      ZkCacheEventThread eventThread) {
     super();
     _accessor = accessor;
     _chrootPath = chrootPath;
@@ -67,43 +62,34 @@ public class ZkCallbackCache<T> extends Cache<T> implements
 
     // init cache
     // System.out.println("init cache: " + paths);
-    if (paths != null && !paths.isEmpty())
-    {
-      for (String path : paths)
-      {
+    if (paths != null && !paths.isEmpty()) {
+      for (String path : paths) {
         updateRecursive(path);
       }
     }
   }
 
   @Override
-  public void update(String path, T data, Stat stat)
-  {
+  public void update(String path, T data, Stat stat) {
     String parentPath = HelixUtil.getZkParentPath(path);
     String childName = HelixUtil.getZkName(path);
 
     addToParentChildSet(parentPath, childName);
     ZNode znode = _cache.get(path);
-    if (znode == null)
-    {
+    if (znode == null) {
       _cache.put(path, new ZNode(path, data, stat));
       fireEvents(path, EventType.NodeCreated);
-    }
-    else
-    {
+    } else {
       Stat oldStat = znode.getStat();
 
       znode.setData(data);
       znode.setStat(stat);
       // System.out.println("\t\t--setData. path: " + path + ", data: " + data);
 
-      if (oldStat.getCzxid() != stat.getCzxid())
-      {
+      if (oldStat.getCzxid() != stat.getCzxid()) {
         fireEvents(path, EventType.NodeDeleted);
         fireEvents(path, EventType.NodeCreated);
-      }
-      else if (oldStat.getVersion() != stat.getVersion())
-      {
+      } else if (oldStat.getVersion() != stat.getVersion()) {
         // System.out.println("\t--fireNodeChanged: " + path + ", oldVersion: " +
         // oldStat.getVersion() + ", newVersion: " + stat.getVersion());
         fireEvents(path, EventType.NodeDataChanged);
@@ -113,18 +99,14 @@ public class ZkCallbackCache<T> extends Cache<T> implements
 
   // TODO: make readData async
   @Override
-  public void updateRecursive(String path)
-  {
-    if (path == null)
-    {
+  public void updateRecursive(String path) {
+    if (path == null) {
       return;
     }
 
-    try
-    {
+    try {
       _lock.writeLock().lock();
-      try
-      {
+      try {
         // subscribe changes before read
         _accessor.subscribeDataChanges(path, this);
 
@@ -133,9 +115,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements
         T readData = _accessor.get(path, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
         update(path, readData, stat);
-      }
-      catch (ZkNoNodeException e)
-      {
+      } catch (ZkNoNodeException e) {
         // OK. znode not exists
         // we still need to subscribe child change
       }
@@ -144,33 +124,26 @@ public class ZkCallbackCache<T> extends Cache<T> implements
       // System.out.println("subcribeChildChange: " + path);
       ZNode znode = _cache.get(path);
       List<String> childNames = _accessor.subscribeChildChanges(path, this);
-      if (childNames != null && !childNames.isEmpty())
-      {
-        for (String childName : childNames)
-        {
-          if (!znode.hasChild(childName))
-          {
+      if (childNames != null && !childNames.isEmpty()) {
+        for (String childName : childNames) {
+          if (!znode.hasChild(childName)) {
             String childPath = path + "/" + childName;
             znode.addChild(childName);
             updateRecursive(childPath);
           }
         }
       }
-    }
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
   }
 
   @Override
-  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
-  {
+  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
     // System.out.println("handleChildChange: " + parentPath + ", " + currentChilds);
 
     // this is invoked if subscribed for childChange and node gets deleted
-    if (currentChilds == null)
-    {
+    if (currentChilds == null) {
       return;
     }
 
@@ -178,21 +151,17 @@ public class ZkCallbackCache<T> extends Cache<T> implements
   }
 
   @Override
-  public void handleDataChange(String dataPath, Object data) throws Exception
-  {
+  public void handleDataChange(String dataPath, Object data) throws Exception {
     // System.out.println("handleDataChange: " + dataPath);
-    try
-    {
+    try {
       _lock.writeLock().lock();
 
       // TODO: optimize it by get stat from callback
       Stat stat = new Stat();
-      Object readData =
-          _accessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
+      Object readData = _accessor.get(dataPath, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
       ZNode znode = _cache.get(dataPath);
-      if (znode != null)
-      {
+      if (znode != null) {
         Stat oldStat = znode.getStat();
 
         // System.out.println("handleDataChange: " + dataPath + ", data: " + data);
@@ -206,38 +175,29 @@ public class ZkCallbackCache<T> extends Cache<T> implements
         // if create right after delete, and zkCallback comes after create
         // no DataDelete() will be fired, instead will fire 2 DataChange()
         // see ZkClient.fireDataChangedEvents()
-        if (oldStat.getCzxid() != stat.getCzxid())
-        {
+        if (oldStat.getCzxid() != stat.getCzxid()) {
           fireEvents(dataPath, EventType.NodeDeleted);
           fireEvents(dataPath, EventType.NodeCreated);
-        }
-        else if (oldStat.getVersion() != stat.getVersion())
-        {
+        } else if (oldStat.getVersion() != stat.getVersion()) {
           // System.out.println("\t--fireNodeChanged: " + dataPath + ", oldVersion: " +
           // oldStat.getVersion() + ", newVersion: " + stat.getVersion());
           fireEvents(dataPath, EventType.NodeDataChanged);
         }
-      }
-      else
-      {
+      } else {
         // we may see dataChange on child before childChange on parent
         // in this case, let childChange update cache
       }
-    }
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
 
   }
 
   @Override
-  public void handleDataDeleted(String dataPath) throws Exception
-  {
+  public void handleDataDeleted(String dataPath) throws Exception {
     // System.out.println("handleDataDeleted: " + dataPath);
 
-    try
-    {
+    try {
       _lock.writeLock().lock();
       _accessor.unsubscribeDataChanges(dataPath, this);
       _accessor.unsubscribeChildChanges(dataPath, this);
@@ -248,34 +208,27 @@ public class ZkCallbackCache<T> extends Cache<T> implements
       _cache.remove(dataPath);
 
       fireEvents(dataPath, EventType.NodeDeleted);
-    }
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
   }
 
   @Override
-  public void handleStateChanged(KeeperState state) throws Exception
-  {
+  public void handleStateChanged(KeeperState state) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void handleNewSession() throws Exception
-  {
+  public void handleNewSession() throws Exception {
     // TODO Auto-generated method stub
 
   }
 
-  public void subscribe(String path, HelixPropertyListener listener)
-  {
-    synchronized (_listener)
-    {
+  public void subscribe(String path, HelixPropertyListener listener) {
+    synchronized (_listener) {
       Set<HelixPropertyListener> listeners = _listener.get(path);
-      if (listeners == null)
-      {
+      if (listeners == null) {
         listeners = new CopyOnWriteArraySet<HelixPropertyListener>();
         _listener.put(path, listeners);
       }
@@ -283,69 +236,51 @@ public class ZkCallbackCache<T> extends Cache<T> implements
     }
   }
 
-  public void unsubscribe(String path, HelixPropertyListener childListener)
-  {
-    synchronized (_listener)
-    {
+  public void unsubscribe(String path, HelixPropertyListener childListener) {
+    synchronized (_listener) {
       final Set<HelixPropertyListener> listeners = _listener.get(path);
-      if (listeners != null)
-      {
+      if (listeners != null) {
         listeners.remove(childListener);
       }
     }
   }
 
-  private void fireEvents(final String path, EventType type)
-  {
+  private void fireEvents(final String path, EventType type) {
     String tmpPath = path;
     final String clientPath =
-        (_chrootPath == null ? path : (_chrootPath.equals(path) ? "/"
-            : path.substring(_chrootPath.length())));
+        (_chrootPath == null ? path : (_chrootPath.equals(path) ? "/" : path.substring(_chrootPath
+            .length())));
 
-    while (tmpPath != null)
-    {
+    while (tmpPath != null) {
       Set<HelixPropertyListener> listeners = _listener.get(tmpPath);
 
-      if (listeners != null && !listeners.isEmpty())
-      {
-        for (final HelixPropertyListener listener : listeners)
-        {
-          try
-          {
-            switch (type)
-            {
+      if (listeners != null && !listeners.isEmpty()) {
+        for (final HelixPropertyListener listener : listeners) {
+          try {
+            switch (type) {
             case NodeDataChanged:
               // listener.onDataChange(path);
-              _eventThread.send(new ZkCacheEvent("dataChange on " + path + " send to "
-                  + listener)
-              {
+              _eventThread.send(new ZkCacheEvent("dataChange on " + path + " send to " + listener) {
                 @Override
-                public void run() throws Exception
-                {
+                public void run() throws Exception {
                   listener.onDataChange(clientPath);
                 }
               });
               break;
             case NodeCreated:
               // listener.onDataCreate(path);
-              _eventThread.send(new ZkCacheEvent("dataCreate on " + path + " send to "
-                  + listener)
-              {
+              _eventThread.send(new ZkCacheEvent("dataCreate on " + path + " send to " + listener) {
                 @Override
-                public void run() throws Exception
-                {
+                public void run() throws Exception {
                   listener.onDataCreate(clientPath);
                 }
               });
               break;
             case NodeDeleted:
               // listener.onDataDelete(path);
-              _eventThread.send(new ZkCacheEvent("dataDelete on " + path + " send to "
-                  + listener)
-              {
+              _eventThread.send(new ZkCacheEvent("dataDelete on " + path + " send to " + listener) {
                 @Override
-                public void run() throws Exception
-                {
+                public void run() throws Exception {
                   listener.onDataDelete(clientPath);
                 }
               });
@@ -353,9 +288,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements
             default:
               break;
             }
-          }
-          catch (Exception e)
-          {
+          } catch (Exception e) {
             LOG.error("Exception in handle events.", e);
           }
         }

@@ -50,7 +50,6 @@ import org.apache.zookeeper.data.Stat;
 
 /**
  * helper class for participant-manager
- *
  */
 public class ParticipantManagerHelper {
   private static Logger LOG = Logger.getLogger(ParticipantManagerHelper.class);
@@ -69,7 +68,6 @@ public class ParticipantManagerHelper {
   final DefaultMessagingService _messagingService;
   final StateMachineEngine _stateMachineEngine;
 
-
   public ParticipantManagerHelper(AbstractManager manager, ZkClient zkclient, int sessionTimeout) {
     _zkclient = zkclient;
     _manager = manager;
@@ -82,7 +80,7 @@ public class ParticipantManagerHelper {
     _instanceType = manager.getInstanceType();
     _helixAdmin = manager.getClusterManagmentTool();
     _dataAccessor = (ZKHelixDataAccessor) manager.getHelixDataAccessor();
-    _messagingService = (DefaultMessagingService)manager.getMessagingService();
+    _messagingService = (DefaultMessagingService) manager.getMessagingService();
     _stateMachineEngine = manager.getStateMachineEngine();
   }
 
@@ -90,9 +88,12 @@ public class ParticipantManagerHelper {
     // Read cluster config and see if instance can auto join the cluster
     boolean autoJoin = false;
     try {
-      HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
-          _manager.getClusterName()).build();
-      autoJoin = Boolean.parseBoolean(_configAccessor.get(scope, HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
+      HelixConfigScope scope =
+          new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
+              _manager.getClusterName()).build();
+      autoJoin =
+          Boolean
+              .parseBoolean(_configAccessor.get(scope, HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
       LOG.info("instance: " + _instanceName + " auto-joining " + _clusterName + " is " + autoJoin);
     } catch (Exception e) {
       // autoJoin is false
@@ -133,8 +134,8 @@ public class ParticipantManagerHelper {
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
       } catch (ZkNodeExistsException e) {
-        LOG.warn("found another instance with same instanceName: " + _instanceName
-            + " in cluster " + _clusterName);
+        LOG.warn("found another instance with same instanceName: " + _instanceName + " in cluster "
+            + _clusterName);
 
         Stat stat = new Stat();
         ZNRecord record = _zkclient.readData(liveInstancePath, stat, true);
@@ -157,8 +158,8 @@ public class ParticipantManagerHelper {
                * just update session-id field
                */
               LOG.info("overwriting session-id by ephemeralOwner: " + ephemeralOwner
-                       + ", old-sessionId: " + curLiveInstance.getSessionId()
-                       + ", new-sessionId: " + _sessionId);
+                  + ", old-sessionId: " + curLiveInstance.getSessionId() + ", new-sessionId: "
+                  + _sessionId);
 
               curLiveInstance.setSessionId(_sessionId);
               _zkclient.writeData(liveInstancePath, curLiveInstance.getRecord());
@@ -170,10 +171,8 @@ public class ParticipantManagerHelper {
              */
             try {
               TimeUnit.MILLISECONDS.sleep(_sessionTimeout + 5000);
-            } catch (InterruptedException ex)
-            {
-              LOG.warn("Sleep interrupted while waiting for previous live-instance to go away.",
-                          ex);
+            } catch (InterruptedException ex) {
+              LOG.warn("Sleep interrupted while waiting for previous live-instance to go away.", ex);
             }
             /**
              * give a last try after exit while loop
@@ -192,21 +191,20 @@ public class ParticipantManagerHelper {
       try {
         _zkclient.createEphemeral(liveInstancePath, liveInstance.getRecord());
       } catch (Exception e) {
-        String errorMessage = "instance: " + _instanceName
-            + " already has a live-instance in cluster " + _clusterName;
+        String errorMessage =
+            "instance: " + _instanceName + " already has a live-instance in cluster "
+                + _clusterName;
         LOG.error(errorMessage);
         throw new HelixException(errorMessage);
       }
     }
   }
 
-
   /**
    * carry over current-states from last sessions
    * set to initial state for current session only when state doesn't exist in current session
    */
-  public void carryOverPreviousCurrentState()
-  {
+  public void carryOverPreviousCurrentState() {
     List<String> sessions = _dataAccessor.getChildNames(_keyBuilder.sessions(_instanceName));
 
     for (String session : sessions) {
@@ -218,11 +216,10 @@ public class ParticipantManagerHelper {
           _dataAccessor.getChildValues(_keyBuilder.currentStates(_instanceName, session));
 
       for (CurrentState lastCurState : lastCurStates) {
-        LOG.info("Carrying over old session: " + session + ", resource: "
-            + lastCurState.getId() + " to current session: " + _sessionId);
+        LOG.info("Carrying over old session: " + session + ", resource: " + lastCurState.getId()
+            + " to current session: " + _sessionId);
         String stateModelDefRef = lastCurState.getStateModelDefRef();
-        if (stateModelDefRef == null)
-        {
+        if (stateModelDefRef == null) {
           LOG.error("skip carry-over because previous current state doesn't have a state model definition. previous current-state: "
               + lastCurState);
           continue;
@@ -230,17 +227,19 @@ public class ParticipantManagerHelper {
         StateModelDefinition stateModel =
             _dataAccessor.getProperty(_keyBuilder.stateModelDef(stateModelDefRef));
 
-        String curStatePath = _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName()).getPath();
+        String curStatePath =
+            _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
+                .getPath();
         _dataAccessor.getBaseDataAccessor().update(curStatePath,
-           new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState), AccessOption.PERSISTENT);
+            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState),
+            AccessOption.PERSISTENT);
       }
     }
 
     /**
      * remove previous current state parent nodes
      */
-    for (String session : sessions)
-    {
+    for (String session : sessions) {
       if (session.equals(_sessionId)) {
         continue;
       }
@@ -257,10 +256,10 @@ public class ParticipantManagerHelper {
     _manager.addMessageListener(_messagingService.getExecutor(), _instanceName);
     _manager.addControllerListener(_dataAccessor);
 
-    ScheduledTaskStateModelFactory stStateModelFactory
-              = new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
-    _stateMachineEngine.registerStateModelFactory(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE,
-                                                  stStateModelFactory);
+    ScheduledTaskStateModelFactory stStateModelFactory =
+        new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
+    _stateMachineEngine.registerStateModelFactory(
+        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
 
   }
 
@@ -269,10 +268,8 @@ public class ParticipantManagerHelper {
    * TODO move it to cluster-setup
    */
   public void createHealthCheckPath() {
-    String healthCheckInfoPath =
-        _dataAccessor.keyBuilder().healthReports(_instanceName).getPath();
-    if (!_zkclient.exists(healthCheckInfoPath))
-    {
+    String healthCheckInfoPath = _dataAccessor.keyBuilder().healthReports(_instanceName).getPath();
+    if (!_zkclient.exists(healthCheckInfoPath)) {
       _zkclient.createPersistent(healthCheckInfoPath, true);
       LOG.info("Created healthcheck info path " + healthCheckInfoPath);
     }

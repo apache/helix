@@ -29,13 +29,10 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestZNRecord
-{
+public class TestZNRecord {
 
   @Test
-  public void testEquals()
-  {
+  public void testEquals() {
     ZNRecord record1 = new ZNRecord("id");
     record1.setSimpleField("k1", "v1");
     record1.setMapField("m1", new HashMap<String, String>());
@@ -55,8 +52,7 @@ public class TestZNRecord
   }
 
   @Test
-  public void testMerge()
-  {
+  public void testMerge() {
     ZNRecord record = new ZNRecord("record1");
 
     // set simple field

@@ -43,8 +43,7 @@ public class ConstraintResource extends Resource {
 
   private final static Logger LOG = Logger.getLogger(ConstraintResource.class);
 
-  public ConstraintResource(Context context, Request request, Response response)
-  {
+  public ConstraintResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -52,14 +51,12 @@ public class ConstraintResource extends Resource {
   }
 
   // TODO move to a util function
-  String getValue(String key)
-  {
+  String getValue(String key) {
     return (String) getRequest().getAttributes().get(key);
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation representation = null;
     String clusterName = getValue("clusterName");
     String constraintTypeStr = getValue("constraintType").toUpperCase();
@@ -70,33 +67,34 @@ public class ConstraintResource extends Resource {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       // ClusterSetup setupTool = new ClusterSetup(zkClient);
-      HelixAdmin admin = new ZKHelixAdmin(zkClient);  // setupTool.getClusterManagementTool();
-  
+      HelixAdmin admin = new ZKHelixAdmin(zkClient); // setupTool.getClusterManagementTool();
+
       ZNRecord record = admin.getConstraints(clusterName, constraintType).getRecord();
       if (constraintId == null) {
         // get all message constraints
-        representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(record),
-                                         MediaType.APPLICATION_JSON);
+        representation =
+            new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(record),
+                MediaType.APPLICATION_JSON);
       } else {
         // get a specific constraint
         Map<String, String> constraint = record.getMapField(constraintId);
         if (constraint == null) {
-          representation = new StringRepresentation("No constraint of type: " 
-              + constraintType + " associated with id: " + constraintId, MediaType.APPLICATION_JSON);
+          representation =
+              new StringRepresentation("No constraint of type: " + constraintType
+                  + " associated with id: " + constraintId, MediaType.APPLICATION_JSON);
         } else {
           ZNRecord subRecord = new ZNRecord(record.getId());
           subRecord.setMapField(constraintId, constraint);
-          representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(subRecord),
-              MediaType.APPLICATION_JSON);
+          representation =
+              new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(subRecord),
+                  MediaType.APPLICATION_JSON);
         }
       }
-    }
-    catch (IllegalArgumentException e) {
-      representation = new StringRepresentation("constraint-type: " + constraintTypeStr + " not recognized.", 
-          MediaType.APPLICATION_JSON);
-    }
-    catch (Exception e)
-    {
+    } catch (IllegalArgumentException e) {
+      representation =
+          new StringRepresentation("constraint-type: " + constraintTypeStr + " not recognized.",
+              MediaType.APPLICATION_JSON);
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
       LOG.error("", e);
@@ -104,10 +102,9 @@ public class ConstraintResource extends Resource {
 
     return representation;
   }
-  
+
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
+  public void acceptRepresentation(Representation entity) {
     String clusterName = getValue("clusterName");
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
@@ -117,23 +114,20 @@ public class ConstraintResource extends Resource {
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       JsonParameters jsonParameters = new JsonParameters(entity);
-     
+
       String constraintAttrStr = jsonParameters.getParameter(JsonParameters.CONSTRAINT_ATTRIBUTES);
       setupTool.setConstraint(clusterName, constraintTypeStr, constraintId, constraintAttrStr);
 
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("Error in posting " + entity, e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }
-  
+
   @Override
-  public void removeRepresentations()
-  {
+  public void removeRepresentations() {
     String clusterName = getValue("clusterName");
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
@@ -142,17 +136,15 @@ public class ConstraintResource extends Resource {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
-     
+
       setupTool.removeConstraint(clusterName, constraintTypeStr, constraintId);
 
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("Error in deleting ", e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-    
+
   }
 }

@@ -36,16 +36,13 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 
-public class LockManagerDemo
-{
+public class LockManagerDemo {
   /**
    * LockManagerDemo clusterName, numInstances, lockGroupName, numLocks
-   * 
    * @param args
    * @throws Exception
    */
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     final String zkAddress = "localhost:2199";
     final String clusterName = "lock-manager-demo";
     final String lockGroupName = "lock-group";
@@ -55,43 +52,34 @@ public class LockManagerDemo
     HelixManager controllerManager = null;
     Thread[] processArray;
     processArray = new Thread[numInstances];
-    try
-    {
+    try {
       startLocalZookeeper(2199);
       HelixAdmin admin = new ZKHelixAdmin(zkAddress);
       admin.addCluster(clusterName, true);
       StateModelConfigGenerator generator = new StateModelConfigGenerator();
       admin.addStateModelDef(clusterName, "OnlineOffline",
           new StateModelDefinition(generator.generateConfigForOnlineOffline()));
-      admin.addResource(clusterName, lockGroupName, numPartitions,
-          "OnlineOffline", RebalanceMode.FULL_AUTO.toString());
+      admin.addResource(clusterName, lockGroupName, numPartitions, "OnlineOffline",
+          RebalanceMode.FULL_AUTO.toString());
       admin.rebalance(clusterName, lockGroupName, 1);
-      for (int i = 0; i < numInstances; i++)
-      {
+      for (int i = 0; i < numInstances; i++) {
         final String instanceName = "localhost_" + (12000 + i);
-        processArray[i] = new Thread(new Runnable()
-        {
+        processArray[i] = new Thread(new Runnable() {
 
           @Override
-          public void run()
-          {
+          public void run() {
             LockProcess lockProcess = null;
 
-            try
-            {
-              lockProcess = new LockProcess(clusterName, zkAddress,
-                  instanceName, startController);
+            try {
+              lockProcess = new LockProcess(clusterName, zkAddress, instanceName, startController);
               lockProcess.start();
               Thread.currentThread().join();
-            } catch (InterruptedException e)
-            {
+            } catch (InterruptedException e) {
               System.out.println(instanceName + "Interrupted");
-              if (lockProcess != null)
-              {
+              if (lockProcess != null) {
                 lockProcess.stop();
               }
-            } catch (Exception e)
-            {
+            } catch (Exception e) {
               e.printStackTrace();
             }
           }
@@ -100,8 +88,9 @@ public class LockManagerDemo
         processArray[i].start();
       }
       Thread.sleep(3000);
-      controllerManager = HelixControllerMain.startHelixController(zkAddress,
-          clusterName, "controller", HelixControllerMain.STANDALONE);
+      controllerManager =
+          HelixControllerMain.startHelixController(zkAddress, clusterName, "controller",
+              HelixControllerMain.STANDALONE);
       Thread.sleep(5000);
       printStatus(admin, clusterName, lockGroupName);
       System.out.println("Stopping localhost_12000");
@@ -109,55 +98,42 @@ public class LockManagerDemo
       Thread.sleep(3000);
       printStatus(admin, clusterName, lockGroupName);
       Thread.currentThread().join();
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       e.printStackTrace();
-    } finally
-    {
-      if (controllerManager != null)
-      {
+    } finally {
+      if (controllerManager != null) {
         controllerManager.disconnect();
       }
-      for (Thread process : processArray)
-      {
-        if (process != null)
-        {
+      for (Thread process : processArray) {
+        if (process != null) {
           process.interrupt();
         }
       }
     }
   }
 
-  private static void printStatus(HelixAdmin admin, String cluster,
-      String resource)
-  {
-    ExternalView externalView = admin
-        .getResourceExternalView(cluster, resource);
-    //System.out.println(externalView);
-    TreeSet<String> treeSet = new TreeSet<String>(
-        externalView.getPartitionSet());
+  private static void printStatus(HelixAdmin admin, String cluster, String resource) {
+    ExternalView externalView = admin.getResourceExternalView(cluster, resource);
+    // System.out.println(externalView);
+    TreeSet<String> treeSet = new TreeSet<String>(externalView.getPartitionSet());
     System.out.println("lockName" + "\t" + "acquired By");
     System.out.println("======================================");
-    for (String lockName : treeSet)
-    {
+    for (String lockName : treeSet) {
       Map<String, String> stateMap = externalView.getStateMap(lockName);
       String acquiredBy = null;
-      if (stateMap != null)
-      {
-        for(String instanceName:stateMap.keySet()){
-          if ("ONLINE".equals(stateMap.get(instanceName))){
+      if (stateMap != null) {
+        for (String instanceName : stateMap.keySet()) {
+          if ("ONLINE".equals(stateMap.get(instanceName))) {
             acquiredBy = instanceName;
             break;
           }
         }
       }
-      System.out.println(lockName + "\t"
-          + ((acquiredBy != null) ? acquiredBy : "NONE"));
+      System.out.println(lockName + "\t" + ((acquiredBy != null) ? acquiredBy : "NONE"));
     }
   }
 
-  private static void startLocalZookeeper(int port) throws Exception
-  {
+  private static void startLocalZookeeper(int port) throws Exception {
     ZkServer server = null;
     String baseDir = "/tmp/IntegrationTest/";
     final String dataDir = baseDir + "zk/dataDir";
@@ -165,11 +141,9 @@ public class LockManagerDemo
     FileUtils.deleteDirectory(new File(dataDir));
     FileUtils.deleteDirectory(new File(logDir));
 
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
+    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
-      {
+      public void createDefaultNameSpace(ZkClient zkClient) {
 
       }
     };

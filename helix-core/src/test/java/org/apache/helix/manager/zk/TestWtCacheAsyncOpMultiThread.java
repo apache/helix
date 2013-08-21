@@ -38,67 +38,54 @@ import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
-{
-  class TestCreateZkCacheBaseDataAccessor implements Callable<Boolean>
-  {
+public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
+  class TestCreateZkCacheBaseDataAccessor implements Callable<Boolean> {
     final ZkCacheBaseDataAccessor<ZNRecord> _accessor;
-    final String                         _clusterName;
+    final String _clusterName;
     final int _id;
 
-    public TestCreateZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor, String clusterName, int id)
-    {
+    public TestCreateZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor,
+        String clusterName, int id) {
       _accessor = accessor;
       _clusterName = clusterName;
       _id = id;
     }
 
     @Override
-    public Boolean call() throws Exception
-    {
+    public Boolean call() throws Exception {
       // create 10 current states in 2 steps
       List<String> paths = new ArrayList<String>();
       List<ZNRecord> records = new ArrayList<ZNRecord>();
-      for (int j = 0; j < 2; j++)
-      {
+      for (int j = 0; j < 2; j++) {
         paths.clear();
         records.clear();
 
-        if (_id == 1 && j == 0)
-        {
+        if (_id == 1 && j == 0) {
           // let thread_0 create 0-4
           Thread.sleep(30);
         }
 
-        if (_id == 0 && j == 1)
-        {
+        if (_id == 0 && j == 1) {
           // let thread_1 create 5-9
           Thread.sleep(100);
         }
-        
-        
-        for (int i = 0; i < 5; i++)
-        {
+
+        for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
           String path =
-              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                         _clusterName,
-                                         "localhost_8901",
-                                         "session_0",
-                                         "TestDB" + k);
+              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
+                  "localhost_8901", "session_0", "TestDB" + k);
           ZNRecord record = new ZNRecord("TestDB" + k);
 
           paths.add(path);
           records.add(record);
         }
-        
+
         boolean[] success = _accessor.createChildren(paths, records, AccessOption.PERSISTENT);
-        // System.out.println("thread-" + _id + " creates " + j  + ": " + Arrays.toString(success));
-        
+        // System.out.println("thread-" + _id + " creates " + j + ": " + Arrays.toString(success));
+
         // create all all sync'ed, so we shall see either all true or all false
-        for (int i = 1; i < 5; i++)
-        {
+        for (int i = 1; i < 5; i++) {
           Assert.assertEquals(success[i], success[0], "Should be either all succeed of all fail");
         }
       }
@@ -106,52 +93,44 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
       return true;
     }
   }
-  
-  class TestUpdateZkCacheBaseDataAccessor implements Callable<Boolean>
-  {
+
+  class TestUpdateZkCacheBaseDataAccessor implements Callable<Boolean> {
     final ZkCacheBaseDataAccessor<ZNRecord> _accessor;
-    final String                         _clusterName;
+    final String _clusterName;
     final int _id;
 
-    public TestUpdateZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor, String clusterName, int id)
-    {
+    public TestUpdateZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor,
+        String clusterName, int id) {
       _accessor = accessor;
       _clusterName = clusterName;
       _id = id;
     }
 
     @Override
-    public Boolean call() throws Exception
-    {
+    public Boolean call() throws Exception {
       // create 10 current states in 2 steps
       List<String> paths = new ArrayList<String>();
       List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
-      for (int j = 0; j < 10; j++)
-      {
+      for (int j = 0; j < 10; j++) {
         paths.clear();
         updaters.clear();
 
-        for (int i = 0; i < 10; i++)
-        {
+        for (int i = 0; i < 10; i++) {
           String path =
-              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                         _clusterName,
-                                         "localhost_8901",
-                                         "session_0",
-                                         "TestDB" + i);
-          
+              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
+                  "localhost_8901", "session_0", "TestDB" + i);
+
           ZNRecord newRecord = new ZNRecord("TestDB" + i);
           newRecord.setSimpleField("" + j, "" + j);
           DataUpdater<ZNRecord> updater = new ZNRecordUpdater(newRecord);
           paths.add(path);
           updaters.add(updater);
         }
-        
+
         boolean[] success = _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
         // System.out.println("thread-" + _id + " updates " + j + ": " + Arrays.toString(success));
-        
-        for (int i = 0; i < 10; i++)
-        {
+
+        for (int i = 0; i < 10; i++) {
           Assert.assertEquals(success[i], true, "Should be all succeed");
         }
       }
@@ -159,45 +138,39 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
       return true;
     }
   }
-  
-  class TestSetZkCacheBaseDataAccessor implements Callable<Boolean>
-  {
+
+  class TestSetZkCacheBaseDataAccessor implements Callable<Boolean> {
     final ZkCacheBaseDataAccessor<ZNRecord> _accessor;
-    final String                         _clusterName;
+    final String _clusterName;
     final int _id;
 
-    public TestSetZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor, String clusterName, int id)
-    {
+    public TestSetZkCacheBaseDataAccessor(ZkCacheBaseDataAccessor<ZNRecord> accessor,
+        String clusterName, int id) {
       _accessor = accessor;
       _clusterName = clusterName;
       _id = id;
     }
 
     @Override
-    public Boolean call() throws Exception
-    {
+    public Boolean call() throws Exception {
       // create 10 current states in 2 steps
       List<String> paths = new ArrayList<String>();
       List<ZNRecord> records = new ArrayList<ZNRecord>();
-      for (int j = 0; j < 2; j++)
-      {
+      for (int j = 0; j < 2; j++) {
         paths.clear();
         records.clear();
 
-        if (_id == 1 && j == 0)
-        {
+        if (_id == 1 && j == 0) {
           // let thread_0 create 0-4
           Thread.sleep(30);
         }
 
-        if (_id == 0 && j == 1)
-        {
+        if (_id == 0 && j == 1) {
           // let thread_1 create 5-9
           Thread.sleep(100);
         }
 
-        for (int i = 0; i < 5; i++)
-        {
+        for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
           String path =
               PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, _clusterName, "TestDB" + k);
@@ -207,10 +180,9 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
           records.add(record);
         }
         boolean[] success = _accessor.setChildren(paths, records, AccessOption.PERSISTENT);
-        // System.out.println("thread-" + _id + " sets " + j  + ": " + Arrays.toString(success));
-        
-        for (int i = 0; i < 5; i++)
-        {
+        // System.out.println("thread-" + _id + " sets " + j + ": " + Arrays.toString(success));
+
+        for (int i = 0; i < 5; i++) {
           Assert.assertEquals(success[i], true);
         }
       }
@@ -218,35 +190,26 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
       return true;
     }
   }
-  
+
   @Test
-  public void testHappyPathZkCacheBaseDataAccessor()
-  {
+  public void testHappyPathZkCacheBaseDataAccessor() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                   clusterName,
-                                   "localhost_8901");
-    String extViewPath =
-        PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor =
-        new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
     List<String> cachePaths = Arrays.asList(curStatePath, extViewPath);
     ZkCacheBaseDataAccessor<ZNRecord> accessor =
-        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor,
-                                           null,
-                                           cachePaths,
-                                           null);
+        new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, cachePaths, null);
 
     // TestHelper.printCache(accessor._wtCache);
     boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
@@ -254,8 +217,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
 
     // create 10 current states using 2 threads
     List<Callable<Boolean>> threads = new ArrayList<Callable<Boolean>>();
-    for (int i = 0; i < 2; i++)
-    {
+    for (int i = 0; i < 2; i++) {
       threads.add(new TestCreateZkCacheBaseDataAccessor(accessor, clusterName, i));
     }
     TestHelper.startThreadsConcurrently(threads, 1000);
@@ -264,15 +226,14 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
     // TestHelper.printCache(accessor._wtCache);
     ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
-    
+
     // update 10 current states 10 times using 2 threads
     threads.clear();
-    for (int i = 0; i < 2; i++)
-    {
+    for (int i = 0; i < 2; i++) {
       threads.add(new TestUpdateZkCacheBaseDataAccessor(accessor, clusterName, i));
     }
     TestHelper.startThreadsConcurrently(threads, 1000);
-    
+
     // verify wtCache
     // TestHelper.printCache(accessor._wtCache);
     ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
@@ -280,18 +241,16 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase
 
     // set 10 external views using 2 threads
     threads.clear();
-    for (int i = 0; i < 2; i++)
-    {
+    for (int i = 0; i < 2; i++) {
       threads.add(new TestSetZkCacheBaseDataAccessor(accessor, clusterName, i));
     }
     TestHelper.startThreadsConcurrently(threads, 1000);
-    
+
     // verify wtCache
     // TestHelper.printCache(accessor._wtCache);
     ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
-    
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

@@ -29,29 +29,22 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
+public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   @Test
-  public void testInstanceBounce() throws Exception
-  {
+  public void testInstanceBounce() throws Exception {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult controllerResult = _startCMResultMap.get(controllerName);
     ZkHelixTestManager controller = (ZkHelixTestManager) controllerResult._manager;
     int handlerSize = controller.getHandlers().size();
 
-    for (int i = 0; i < 2; i++)
-    {
+    for (int i = 0; i < 2; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       // kill 2 participants
       _startCMResultMap.get(instanceName)._manager.disconnect();
       _startCMResultMap.get(instanceName)._thread.interrupt();
-      try
-      {
+      try {
         Thread.sleep(1000);
-      }
-      catch (InterruptedException e)
-      {
+      } catch (InterruptedException e) {
         e.printStackTrace();
       }
       // restart the participant
@@ -61,21 +54,20 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertySe
     }
     Thread.sleep(4000);
 
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME), 50 * 1000);
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME), 50 * 1000);
     Assert.assertTrue(result);
 
     // When a new live instance is created, we add current state listener to it
     // and we will remove current-state listener on expired session
     // so the number of callback handlers is unchanged
-    for (int j = 0; j < 10; j++)
-    {
-      if(controller.getHandlers().size() == (handlerSize))
-      {
+    for (int j = 0; j < 10; j++) {
+      if (controller.getHandlers().size() == (handlerSize)) {
         break;
       }
       Thread.sleep(400);
     }
-    Assert.assertEquals( controller.getHandlers().size(), handlerSize);
+    Assert.assertEquals(controller.getHandlers().size(), handlerSize);
   }
 }

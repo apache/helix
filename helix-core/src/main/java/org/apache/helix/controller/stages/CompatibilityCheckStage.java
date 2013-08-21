@@ -29,38 +29,32 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 
 /**
- * controller checks if participant version is compatible 
- *
+ * controller checks if participant version is compatible
  */
 public class CompatibilityCheckStage extends AbstractBaseStage {
-  private static final Logger LOG = Logger
-      .getLogger(CompatibilityCheckStage.class.getName());
+  private static final Logger LOG = Logger.getLogger(CompatibilityCheckStage.class.getName());
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    if (manager == null || cache == null)
-    {
+    if (manager == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager | DataCache");
     }
 
     HelixManagerProperties properties = manager.getProperties();
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
-    for (LiveInstance liveInstance : liveInstanceMap.values())
-    {
+    for (LiveInstance liveInstance : liveInstanceMap.values()) {
       String participantVersion = liveInstance.getHelixVersion();
-      if (!properties.isParticipantCompatible(participantVersion))
-      {
-        String errorMsg = "incompatible participant. pipeline will not continue. "
-                        + "controller: " + manager.getInstanceName() 
-                        + ", controllerVersion: " + properties.getVersion()
-                        + ", minimumSupportedParticipantVersion: " 
-                        + properties.getProperty("miminum_supported_version.participant")
-                        + ", participant: " + liveInstance.getInstanceName() 
-                        + ", participantVersion: " + participantVersion;
+      if (!properties.isParticipantCompatible(participantVersion)) {
+        String errorMsg =
+            "incompatible participant. pipeline will not continue. " + "controller: "
+                + manager.getInstanceName() + ", controllerVersion: " + properties.getVersion()
+                + ", minimumSupportedParticipantVersion: "
+                + properties.getProperty("miminum_supported_version.participant")
+                + ", participant: " + liveInstance.getInstanceName() + ", participantVersion: "
+                + participantVersion;
         LOG.error(errorMsg);
         throw new StageException(errorMsg);
       }

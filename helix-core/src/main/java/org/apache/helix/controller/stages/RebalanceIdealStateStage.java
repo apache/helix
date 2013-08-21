@@ -34,48 +34,39 @@ import org.apache.log4j.Logger;
  * Check and invoke custom implementation idealstate rebalancers.<br/>
  * If the resourceConfig has specified className of the customized rebalancer, <br/>
  * the rebalancer will be invoked to re-write the idealstate of the resource<br/>
- * 
  */
-public class RebalanceIdealStateStage extends AbstractBaseStage
-{
-  private static final Logger LOG =
-      Logger.getLogger(RebalanceIdealStateStage.class.getName());
+public class RebalanceIdealStateStage extends AbstractBaseStage {
+  private static final Logger LOG = Logger.getLogger(RebalanceIdealStateStage.class.getName());
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, IdealState> idealStateMap = cache.getIdealStates();
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    
+
     Map<String, IdealState> updatedIdealStates = new HashMap<String, IdealState>();
-    for(String resourceName : idealStateMap.keySet())
-    {
+    for (String resourceName : idealStateMap.keySet()) {
       IdealState currentIdealState = idealStateMap.get(resourceName);
-      if(currentIdealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
-          && currentIdealState.getRebalancerClassName() != null)
-      {
+      if (currentIdealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
+          && currentIdealState.getRebalancerClassName() != null) {
         String rebalancerClassName = currentIdealState.getRebalancerClassName();
         LOG.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
-        try
-        {
-          Rebalancer balancer = (Rebalancer) (HelixUtil.loadClass(
-              getClass(), rebalancerClassName).newInstance());
+        try {
+          Rebalancer balancer =
+              (Rebalancer) (HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
           balancer.init(manager);
-          IdealState newIdealState = balancer.computeNewIdealState(
-              resourceName, idealStateMap.get(resourceName), currentStateOutput, cache);
+          IdealState newIdealState =
+              balancer.computeNewIdealState(resourceName, idealStateMap.get(resourceName),
+                  currentStateOutput, cache);
           updatedIdealStates.put(resourceName, newIdealState);
-        }
-        catch(Exception e)
-        {
-          LOG.error("Exception while invoking custom rebalancer class:" + rebalancerClassName , e);
+        } catch (Exception e) {
+          LOG.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
         }
       }
     }
-    if(updatedIdealStates.size() > 0)
-    {
+    if (updatedIdealStates.size() > 0) {
       cache.getIdealStates().putAll(updatedIdealStates);
     }
   }

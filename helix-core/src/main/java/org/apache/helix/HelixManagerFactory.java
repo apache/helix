@@ -31,25 +31,20 @@ import org.apache.log4j.Logger;
 /**
  * Obtain one of a set of Helix cluster managers, organized by the backing system.
  */
-public final class HelixManagerFactory
-{
+public final class HelixManagerFactory {
   private static final Logger logger = Logger.getLogger(HelixManagerFactory.class);
 
   /**
    * Construct a zk-based cluster manager that enforces all types (PARTICIPANT, CONTROLLER, and
    * SPECTATOR) to have a name
-   * 
    * @param clusterName
    * @param instanceName
    * @param type
    * @param zkAddr
    * @return a HelixManager backed by Zookeeper
    */
-  public static HelixManager getZKHelixManager(String clusterName,
-                                               String instanceName,
-                                               InstanceType type,
-                                               String zkAddr)
-  {
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, String zkAddr) {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr);
   }
 

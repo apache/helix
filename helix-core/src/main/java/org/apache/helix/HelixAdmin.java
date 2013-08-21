@@ -28,18 +28,15 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 /*
  * Helix cluster management
  */
-public interface HelixAdmin
-{
+public interface HelixAdmin {
   /**
    * Get a list of clusters under "/"
-   * 
    * @return a list of cluster names
    */
   List<String> getClusters();
 
   /**
    * Get a list of instances under a cluster
-   * 
    * @param clusterName
    * @return a list of instance names
    */
@@ -47,7 +44,6 @@ public interface HelixAdmin
 
   /**
    * Get an instance config
-   * 
    * @param clusterName
    * @param instanceName
    * @return InstanceConfig corresponding to the specified instance
@@ -56,7 +52,6 @@ public interface HelixAdmin
 
   /**
    * Get a list of resources in a cluster
-   * 
    * @param clusterName
    * @return a list of resource names in the cluster
    */
@@ -64,14 +59,13 @@ public interface HelixAdmin
 
   /**
    * Add a cluster
-   * 
    * @param clusterName
    * @return true if successfully created, or if cluster already exists
-     */
+   */
   boolean addCluster(String clusterName);
+
   /**
    * Add a cluster
-   * 
    * @param clusterName
    * @param recreateIfExists If the cluster already exists, it will delete it and recreate
    * @return true if successfully created, or if cluster already exists
@@ -80,7 +74,6 @@ public interface HelixAdmin
 
   /**
    * Add a cluster and also add this cluster as a resource group in the super cluster
-   * 
    * @param clusterName
    * @param grandCluster
    */
@@ -88,44 +81,33 @@ public interface HelixAdmin
 
   /**
    * Add a resource to a cluster, using the default ideal state mode AUTO
-   * 
    * @param clusterName
    * @param resourceName
    * @param numPartitions
    * @param stateModelRef
    */
-  void addResource(String clusterName,
-                   String resourceName,
-                   int numPartitions,
-                   String stateModelRef);
+  void addResource(String clusterName, String resourceName, int numPartitions, String stateModelRef);
+
   /**
-   * 
    * @param clusterName
    * @param resourceName
    * @param idealstate
    */
-  void addResource(String clusterName,
-                   String resourceName,
-                   IdealState idealstate);
+  void addResource(String clusterName, String resourceName, IdealState idealstate);
 
   /**
    * Add a resource to a cluster
-   * 
    * @param clusterName
    * @param resourceName
    * @param numPartitions
    * @param stateModelRef
    * @param rebalancerMode
    */
-  void addResource(String clusterName,
-                   String resourceName,
-                   int numPartitions,
-                   String stateModelRef,
-                   String rebalancerMode);
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef, String rebalancerMode);
 
   /**
    * Add a resource to a cluster, using a bucket size > 1
-   * 
    * @param clusterName
    * @param resourceName
    * @param numPartitions
@@ -133,16 +115,11 @@ public interface HelixAdmin
    * @param rebalancerMode
    * @param bucketSize
    */
-  void addResource(String clusterName,
-                   String resourceName,
-                   int numPartitions,
-                   String stateModelRef,
-                   String rebalancerMode,
-                   int bucketSize);
-  
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef, String rebalancerMode, int bucketSize);
+
   /**
    * Add a resource to a cluster, using a bucket size > 1
-   * 
    * @param clusterName
    * @param resourceName
    * @param numPartitions
@@ -151,17 +128,11 @@ public interface HelixAdmin
    * @param bucketSize
    * @param maxPartitionsPerInstance
    */
-  void addResource(String clusterName,
-                   String resourceName,
-                   int numPartitions,
-                   String stateModelRef,
-                   String rebalancerMode,
-                   int bucketSize,
-                   int maxPartitionsPerInstance);
-  
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance);
+
   /**
    * Add an instance to a cluster
-   * 
    * @param clusterName
    * @param instanceConfig
    */
@@ -169,7 +140,6 @@ public interface HelixAdmin
 
   /**
    * Drop an instance from a cluster
-   * 
    * @param clusterName
    * @param instanceConfig
    */
@@ -177,7 +147,6 @@ public interface HelixAdmin
 
   /**
    * Get ideal state for a resource
-   * 
    * @param clusterName
    * @param resourceName
    * @return
@@ -186,18 +155,14 @@ public interface HelixAdmin
 
   /**
    * Set ideal state for a resource
-   * 
    * @param clusterName
    * @param resourceName
    * @param idealState
    */
-  void setResourceIdealState(String clusterName,
-                             String resourceName,
-                             IdealState idealState);
+  void setResourceIdealState(String clusterName, String resourceName, IdealState idealState);
 
   /**
    * Disable or enable an instance
-   * 
    * @param clusterName
    * @param instanceName
    * @param enabled
@@ -206,22 +171,17 @@ public interface HelixAdmin
 
   /**
    * Disable or enable a list of partitions on an instance
-   * 
    * @param enabled
    * @param clusterName
    * @param instanceName
    * @param resourceName
    * @param partitionNames
    */
-  void enablePartition(boolean enabled,
-                       String clusterName,
-                       String instanceName,
-                       String resourceName,
-                       List<String> partitionNames);
+  void enablePartition(boolean enabled, String clusterName, String instanceName,
+      String resourceName, List<String> partitionNames);
 
   /**
    * Disable or enable a cluster
-   * 
    * @param clusterName
    * @param enabled
    */
@@ -229,23 +189,18 @@ public interface HelixAdmin
 
   /**
    * Reset a list of partitions in error state for an instance
-   * 
    * The partitions are assume to be in error state and reset will bring them from error
    * to initial state. An error to initial state transition is required for reset.
-   * 
    * @param clusterName
    * @param instanceName
    * @param resourceName
    * @param partitionNames
    */
-  void resetPartition(String clusterName,
-                      String instanceName,
-                      String resourceName,
-                      List<String> partitionNames);
+  void resetPartition(String clusterName, String instanceName, String resourceName,
+      List<String> partitionNames);
 
   /**
    * Reset all the partitions in error state for a list of instances
-   * 
    * @param clusterName
    * @param instanceNames
    */
@@ -253,7 +208,6 @@ public interface HelixAdmin
 
   /**
    * Reset all partitions in error state for a list of resources
-   * 
    * @param clusterName
    * @param resourceNames
    */
@@ -261,18 +215,14 @@ public interface HelixAdmin
 
   /**
    * Add a state model definition
-   * 
    * @param clusterName
    * @param stateModelDef
    * @param record
    */
-  void addStateModelDef(String clusterName,
-                        String stateModelDef,
-                        StateModelDefinition record);
+  void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record);
 
   /**
    * Drop a resource from a cluster
-   * 
    * @param clusterName
    * @param resourceName
    */
@@ -280,7 +230,6 @@ public interface HelixAdmin
 
   /**
    * Add a statistics to a cluster
-   * 
    * @param clusterName
    * @param statName
    */
@@ -288,7 +237,6 @@ public interface HelixAdmin
 
   /**
    * Add an alert to a cluster
-   * 
    * @param clusterName
    * @param alertName
    */
@@ -296,7 +244,6 @@ public interface HelixAdmin
 
   /**
    * Drop statistics from a cluster
-   * 
    * @param clusterName
    * @param statName
    */
@@ -304,7 +251,6 @@ public interface HelixAdmin
 
   /**
    * Drop an alert from a cluster
-   * 
    * @param clusterName
    * @param alertName
    */
@@ -312,7 +258,6 @@ public interface HelixAdmin
 
   /**
    * Get a list of state model definitions in a cluster
-   * 
    * @param clusterName
    * @return
    */
@@ -320,7 +265,6 @@ public interface HelixAdmin
 
   /**
    * Get a state model definition in a cluster
-   * 
    * @param clusterName
    * @param stateModelName
    * @return StateModelDefinition identified by stateModelName
@@ -329,7 +273,6 @@ public interface HelixAdmin
 
   /**
    * Get external view for a resource
-   * 
    * @param clusterName
    * @param resourceName
    * @return ExternalView for the resource
@@ -338,14 +281,12 @@ public interface HelixAdmin
 
   /**
    * Drop a cluster
-   * 
    * @param clusterName
    */
   void dropCluster(String clusterName);
 
   /**
    * Set configuration values
-   * 
    * @param scope
    * @param properties
    */
@@ -353,7 +294,6 @@ public interface HelixAdmin
 
   /**
    * Remove configuration values
-   * 
    * @param scope
    * @param keys
    */
@@ -361,7 +301,6 @@ public interface HelixAdmin
 
   /**
    * Get configuration values
-   * 
    * @param scope
    * @param keys
    * @return configuration values ordered by the provided keys
@@ -370,7 +309,6 @@ public interface HelixAdmin
 
   /**
    * Get configuration keys
-   * 
    * @param scope
    * @return keys mapping to valid configuration values
    */
@@ -378,7 +316,6 @@ public interface HelixAdmin
 
   /**
    * Rebalance a resource in cluster
-   * 
    * @param clusterName
    * @param resourceName
    * @param replica
@@ -387,113 +324,97 @@ public interface HelixAdmin
 
   /**
    * Add ideal state using a json format file
-   * 
    * @param clusterName
    * @param resourceName
    * @param idealStateFile
    * @throws IOException
    */
-  void addIdealState(String clusterName, String resourceName, String idealStateFile) throws IOException;
+  void addIdealState(String clusterName, String resourceName, String idealStateFile)
+      throws IOException;
 
   /**
    * Add state model definition using a json format file
-   * 
    * @param clusterName
    * @param stateModelDefName
    * @param stateModelDefFile
    * @throws IOException error reading the state model definition file
    */
-  void addStateModelDef(String clusterName,
-                        String stateModelDefName,
-                        String stateModelDefFile) throws IOException;
+  void addStateModelDef(String clusterName, String stateModelDefName, String stateModelDefFile)
+      throws IOException;
 
   /**
    * Add a constraint item; create if not exist
-   * 
    * @param clusterName
    * @param constraintType
    * @param constraintId
    * @param constraintItem
    */
-  void setConstraint(String clusterName,
-                     ConstraintType constraintType,
-                     String constraintId,
-                     ConstraintItem constraintItem);
+  void setConstraint(String clusterName, ConstraintType constraintType, String constraintId,
+      ConstraintItem constraintItem);
 
   /**
    * Remove a constraint item
-   * 
    * @param clusterName
    * @param constraintType
    * @param constraintId
    */
-  void removeConstraint(String clusterName, 
-                        ConstraintType constraintType, 
-                        String constraintId);
-  
+  void removeConstraint(String clusterName, ConstraintType constraintType, String constraintId);
+
   /**
    * Get all constraints for a type
-   * 
    * @param clusterName
    * @param constraintType
    * @return constraints of constraintType
    */
-  ClusterConstraints getConstraints(String clusterName,
-                                    ConstraintType constraintType);
-  
+  ClusterConstraints getConstraints(String clusterName, ConstraintType constraintType);
+
   /**
-   * 
    * @param clusterName
    * @param currentIdealState
    * @param instanceNames
    */
-  void rebalance(String clusterName, 
-                       IdealState currentIdealState,
-                       List<String> instanceNames);
+  void rebalance(String clusterName, IdealState currentIdealState, List<String> instanceNames);
+
   /**
-   * 
    * @param clusterName
    * @param resourceName
    * @param replica
    * @param instances
    */
-  void rebalance(String clusterName, String resourceName, int replica,
-      List<String> instances);
+  void rebalance(String clusterName, String resourceName, int replica, List<String> instances);
+
   /**
-   * 
    * @param clusterName
    * @param resourceName
    * @param replica
    * @param keyPrefix
    * @param group the group identifier of instances to rebalance
    */
-  void rebalance(String clusterName, String resourceName, int replica,
-      String keyPrefix, String group);
+  void rebalance(String clusterName, String resourceName, int replica, String keyPrefix,
+      String group);
+
   /**
-   * 
    * @param clusterName
    * @param tag
    */
   List<String> getInstancesInClusterWithTag(String clusterName, String tag);
-  
+
   /**
-   * 
    * @param clusterName
    * @param instanceNames
    * @param tag
    */
   void addInstanceTag(String clusterName, String instanceName, String tag);
-  
+
   /**
-   * 
    * @param clusterName
    * @param instanceNames
    * @param tag
    */
   void removeInstanceTag(String clusterName, String instanceName, String tag);
-  
+
   /**
-   * Release resources 
+   * Release resources
    */
   void close();
 }

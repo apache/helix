@@ -33,99 +33,87 @@ import org.apache.helix.model.Message;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase
-{
-  public static class TestMessagingHandlerFactory implements MessageHandlerFactory
-  {
+public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
+  public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
-    
+
     @Override
-    public MessageHandler createHandler(Message message,
-        NotificationContext context)
-    {
+    public MessageHandler createHandler(Message message, NotificationContext context) {
       return null;
     }
-    
+
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       return "TestMsg";
     }
-    
+
     @Override
-    public void reset()
-    {
+    public void reset() {
       // TODO Auto-generated method stub
     }
-    
+
   }
-  
-  public static class TestMessagingHandlerFactory2 implements MessageHandlerFactory
-  {
+
+  public static class TestMessagingHandlerFactory2 implements MessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
-    
+
     @Override
-    public MessageHandler createHandler(Message message,
-        NotificationContext context)
-    {
+    public MessageHandler createHandler(Message message, NotificationContext context) {
       return null;
     }
-    
+
     @Override
-    public String getMessageType()
-    {
+    public String getMessageType() {
       return "TestMsg2";
     }
-    
+
     @Override
-    public void reset()
-    {
+    public void reset() {
       // TODO Auto-generated method stub
     }
-    
+
   }
+
   @Test
-  public void TestThreadPoolSizeConfig()
-  {
+  public void TestThreadPoolSizeConfig() {
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     HelixManager manager = _startCMResultMap.get(instanceName)._manager;
-    
+
     ConfigAccessor accessor = manager.getConfigAccessor();
     ConfigScope scope =
-        new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(instanceName).build();
-    accessor.set(scope, "TestMsg."+ HelixTaskExecutor.MAX_THREADS, ""+12);
-    
-    scope =
-        new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
-    accessor.set(scope, "TestMsg."+ HelixTaskExecutor.MAX_THREADS, ""+8);
-    
-    for (int i = 0; i < NODE_NR; i++)
-    {
+        new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(instanceName)
+            .build();
+    accessor.set(scope, "TestMsg." + HelixTaskExecutor.MAX_THREADS, "" + 12);
+
+    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
+    accessor.set(scope, "TestMsg." + HelixTaskExecutor.MAX_THREADS, "" + 8);
+
+    for (int i = 0; i < NODE_NR; i++) {
       instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      
-      _startCMResultMap.get(instanceName)._manager.getMessagingService().registerMessageHandlerFactory("TestMsg", new TestMessagingHandlerFactory());
-      _startCMResultMap.get(instanceName)._manager.getMessagingService().registerMessageHandlerFactory("TestMsg2", new TestMessagingHandlerFactory2());
-      
-    
+
+      _startCMResultMap.get(instanceName)._manager.getMessagingService()
+          .registerMessageHandlerFactory("TestMsg", new TestMessagingHandlerFactory());
+      _startCMResultMap.get(instanceName)._manager.getMessagingService()
+          .registerMessageHandlerFactory("TestMsg2", new TestMessagingHandlerFactory2());
+
     }
-    
-    for (int i = 0; i < NODE_NR; i++)
-    {
+
+    for (int i = 0; i < NODE_NR; i++) {
       instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      
-      DefaultMessagingService svc = (DefaultMessagingService)(_startCMResultMap.get(instanceName)._manager.getMessagingService());
+
+      DefaultMessagingService svc =
+          (DefaultMessagingService) (_startCMResultMap.get(instanceName)._manager
+              .getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
-      ThreadPoolExecutor executor = (ThreadPoolExecutor)(helixExecutor._executorMap.get("TestMsg"));
-      
-      ThreadPoolExecutor executor2 = (ThreadPoolExecutor)(helixExecutor._executorMap.get("TestMsg2"));
-      if(i != 0)
-      {
-        
+      ThreadPoolExecutor executor =
+          (ThreadPoolExecutor) (helixExecutor._executorMap.get("TestMsg"));
+
+      ThreadPoolExecutor executor2 =
+          (ThreadPoolExecutor) (helixExecutor._executorMap.get("TestMsg2"));
+      if (i != 0) {
+
         Assert.assertEquals(8, executor.getMaximumPoolSize());
-      }
-      else
-      {
+      } else {
         Assert.assertEquals(12, executor.getMaximumPoolSize());
       }
       Assert.assertEquals(HelixTaskExecutor.DEFAULT_PARALLEL_TASKS, executor2.getMaximumPoolSize());

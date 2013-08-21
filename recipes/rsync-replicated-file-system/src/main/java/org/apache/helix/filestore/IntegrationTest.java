@@ -38,27 +38,22 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 
-public class IntegrationTest
-{
+public class IntegrationTest {
 
-  public static void main(String[] args) throws InterruptedException
-  {
+  public static void main(String[] args) throws InterruptedException {
     ZkServer server = null;
     ;
 
-    try
-    {
+    try {
       String baseDir = "/tmp/IntegrationTest/";
       final String dataDir = baseDir + "zk/dataDir";
       final String logDir = baseDir + "/tmp/logDir";
       FileUtils.deleteDirectory(new File(dataDir));
       FileUtils.deleteDirectory(new File(logDir));
 
-      IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-      {
+      IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
         @Override
-        public void createDefaultNameSpace(ZkClient zkClient)
-        {
+        public void createDefaultNameSpace(ZkClient zkClient) {
 
         }
       };
@@ -83,19 +78,15 @@ public class IntegrationTest
       addConfiguration(setup, baseDir, clusterName, instanceName2);
       final String instanceName3 = "localhost_12003";
       addConfiguration(setup, baseDir, clusterName, instanceName3);
-      Thread thread1 = new Thread(new Runnable()
-      {
+      Thread thread1 = new Thread(new Runnable() {
         @Override
-        public void run()
-        {
+        public void run() {
           FileStore fileStore = null;
 
-          try
-          {
+          try {
             fileStore = new FileStore(zkAddress, clusterName, instanceName1);
             fileStore.connect();
-          } catch (Exception e)
-          {
+          } catch (Exception e) {
             System.err.println("Exception" + e);
             fileStore.disconnect();
           }
@@ -103,26 +94,20 @@ public class IntegrationTest
 
       });
       // START NODES
-      Thread thread2 = new Thread(new Runnable()
-      {
+      Thread thread2 = new Thread(new Runnable() {
 
         @Override
-        public void run()
-        {
-          FileStore fileStore = new FileStore(zkAddress, clusterName,
-              instanceName2);
+        public void run() {
+          FileStore fileStore = new FileStore(zkAddress, clusterName, instanceName2);
           fileStore.connect();
         }
       });
       // START NODES
-      Thread thread3 = new Thread(new Runnable()
-      {
+      Thread thread3 = new Thread(new Runnable() {
 
         @Override
-        public void run()
-        {
-          FileStore fileStore = new FileStore(zkAddress, clusterName,
-              instanceName3);
+        public void run() {
+          FileStore fileStore = new FileStore(zkAddress, clusterName, instanceName3);
           fileStore.connect();
         }
       });
@@ -132,17 +117,18 @@ public class IntegrationTest
       thread3.start();
 
       // Start Controller
-      final HelixManager manager = HelixControllerMain.startHelixController(
-          zkAddress, clusterName, "controller", HelixControllerMain.STANDALONE);
+      final HelixManager manager =
+          HelixControllerMain.startHelixController(zkAddress, clusterName, "controller",
+              HelixControllerMain.STANDALONE);
       Thread.sleep(5000);
       printStatus(manager);
       listFiles(baseDir);
-      System.out.println("Writing files a.txt and b.txt to current master "
-          + baseDir + "localhost_12001" + "/filestore");
-      FileUtils.writeStringToFile(new File(baseDir + "localhost_12001"
-          + "/filestore/a.txt"), "some_data in a");
-      FileUtils.writeStringToFile(new File(baseDir + "localhost_12001"
-          + "/filestore/b.txt"), "some_data in b");
+      System.out.println("Writing files a.txt and b.txt to current master " + baseDir
+          + "localhost_12001" + "/filestore");
+      FileUtils.writeStringToFile(new File(baseDir + "localhost_12001" + "/filestore/a.txt"),
+          "some_data in a");
+      FileUtils.writeStringToFile(new File(baseDir + "localhost_12001" + "/filestore/b.txt"),
+          "some_data in b");
       Thread.sleep(10000);
       listFiles(baseDir);
       Thread.sleep(5000);
@@ -150,48 +136,41 @@ public class IntegrationTest
       thread1.interrupt();
       Thread.sleep(10000);
       printStatus(manager);
-      System.out.println("Writing files c.txt and d.txt to current master "
-          + baseDir + "localhost_12002" + "/filestore");
-      FileUtils.writeStringToFile(new File(baseDir + "localhost_12002"
-          + "/filestore/c.txt"), "some_data in c");
-      FileUtils.writeStringToFile(new File(baseDir + "localhost_12002"
-          + "/filestore/d.txt"), "some_data in d");
+      System.out.println("Writing files c.txt and d.txt to current master " + baseDir
+          + "localhost_12002" + "/filestore");
+      FileUtils.writeStringToFile(new File(baseDir + "localhost_12002" + "/filestore/c.txt"),
+          "some_data in c");
+      FileUtils.writeStringToFile(new File(baseDir + "localhost_12002" + "/filestore/d.txt"),
+          "some_data in d");
       Thread.sleep(10000);
       listFiles(baseDir);
-      System.out.println("Create or modify any files under " + baseDir
-          + "localhost_12002" + "/filestore"
-          + " and it should get replicated to " + baseDir + "localhost_12003"
+      System.out.println("Create or modify any files under " + baseDir + "localhost_12002"
+          + "/filestore" + " and it should get replicated to " + baseDir + "localhost_12003"
           + "/filestore");
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       e.printStackTrace();
-    } finally
-    {
-      if (server != null)
-      {
+    } finally {
+      if (server != null) {
         // server.shutdown();
       }
     }
     Thread.currentThread().join();
   }
 
-  private static void listFiles(String baseDir)
-  {
+  private static void listFiles(String baseDir) {
     System.out.println("===============FILES===============================");
-    String[] instances = new String[] { "localhost_12001", "localhost_12002",
-        "localhost_12003" };
-    for (String instance : instances)
-    {
+    String[] instances = new String[] {
+        "localhost_12001", "localhost_12002", "localhost_12003"
+    };
+    for (String instance : instances) {
       String dir = baseDir + instance + "/filestore";
       String[] list = new File(dir).list();
-      System.out.println(dir + ":"
-          + ((list != null) ? Arrays.toString(list) : "NONE"));
+      System.out.println(dir + ":" + ((list != null) ? Arrays.toString(list) : "NONE"));
     }
     System.out.println("===============FILES===============================");
   }
 
-  private static void printStatus(final HelixManager manager)
-  {
+  private static void printStatus(final HelixManager manager) {
     System.out.println("CLUSTER STATUS");
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
@@ -199,13 +178,12 @@ public class IntegrationTest
         + helixDataAccessor.getProperty(keyBuilder.externalView("repository")));
   }
 
-  private static void addConfiguration(ClusterSetup setup, String baseDir,
-      String clusterName, String instanceName) throws IOException
-  {
+  private static void addConfiguration(ClusterSetup setup, String baseDir, String clusterName,
+      String instanceName) throws IOException {
     Map<String, String> properties = new HashMap<String, String>();
     HelixConfigScopeBuilder builder = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT);
-    HelixConfigScope instanceScope = builder.forCluster(clusterName)
-        .forParticipant(instanceName).build();
+    HelixConfigScope instanceScope =
+        builder.forCluster(clusterName).forParticipant(instanceName).build();
     properties.put("change_log_dir", baseDir + instanceName + "/translog");
     properties.put("file_store_dir", baseDir + instanceName + "/filestore");
     properties.put("check_point_dir", baseDir + instanceName + "/checkpoint");

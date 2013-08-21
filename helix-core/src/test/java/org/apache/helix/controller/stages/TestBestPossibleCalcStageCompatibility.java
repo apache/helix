@@ -44,31 +44,29 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     System.out.println("START TestBestPossibleStateCalcStage at "
         + new Date(System.currentTimeMillis()));
 
-    String[] resources = new String[]{ "testResourceName" };
+    String[] resources = new String[] {
+      "testResourceName"
+    };
     setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.AUTO);
     setupLiveInstances(5);
     setupStateModel();
 
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    event.addAttribute(AttributeName.RESOURCES.toString(),
-        resourceMap);
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
-        currentStateOutput);
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
     BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    BestPossibleStateOutput output = event
-        .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    BestPossibleStateOutput output =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Partition resource = new Partition("testResourceName_" + p);
-      AssertJUnit.assertEquals(
-          "MASTER",
-          output.getInstanceStateMap("testResourceName", resource).get(
-              "localhost_" + (p + 1) % 5));
+      AssertJUnit.assertEquals("MASTER", output.getInstanceStateMap("testResourceName", resource)
+          .get("localhost_" + (p + 1) % 5));
     }
     System.out.println("END TestBestPossibleStateCalcStage at "
         + new Date(System.currentTimeMillis()));
@@ -79,30 +77,29 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     System.out.println("START TestBestPossibleStateCalcStage at "
         + new Date(System.currentTimeMillis()));
 
-    String[] resources = new String[]{ "testResourceName" };
+    String[] resources = new String[] {
+      "testResourceName"
+    };
     setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.CUSTOMIZED);
     setupLiveInstances(5);
     setupStateModel();
 
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    event.addAttribute(AttributeName.RESOURCES.toString(),
-        resourceMap);
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
-        currentStateOutput);
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
     BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    BestPossibleStateOutput output = event
-        .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    BestPossibleStateOutput output =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Partition resource = new Partition("testResourceName_" + p);
-      AssertJUnit.assertNull(
-          output.getInstanceStateMap("testResourceName", resource).get(
-              "localhost_" + (p + 1) % 5));
+      AssertJUnit.assertNull(output.getInstanceStateMap("testResourceName", resource).get(
+          "localhost_" + (p + 1) % 5));
     }
     System.out.println("END TestBestPossibleStateCalcStage at "
         + new Date(System.currentTimeMillis()));
@@ -121,8 +118,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
       ZNRecord record = new ZNRecord(resourceName);
       for (int p = 0; p < partitions; p++) {
         List<String> value = new ArrayList<String>();
-        for (int r = 0; r < replicas; r++)
-        {
+        for (int r = 0; r < replicas; r++) {
           value.add("localhost_" + (p + r + 1) % nodes);
         }
         record.setListField(resourceName + "_" + p, value);
@@ -133,7 +129,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 
-      //System.out.println(idealState);
+      // System.out.println(idealState);
 
       Builder keyBuilder = accessor.keyBuilder();
 

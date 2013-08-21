@@ -1,4 +1,5 @@
 package org.apache.helix.servicediscovery;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,42 +19,34 @@ package org.apache.helix.servicediscovery;
  * under the License.
  */
 
-public class MyService
-{
+public class MyService {
   private final ServiceDiscovery serviceDiscovery;
   private final ServiceMetadata metadata;
   private final String serviceId;
 
-  public MyService(String serviceId, ServiceMetadata metadata,
-      ServiceDiscovery serviceDiscovery)
-  {
+  public MyService(String serviceId, ServiceMetadata metadata, ServiceDiscovery serviceDiscovery) {
     this.serviceId = serviceId;
     this.serviceDiscovery = serviceDiscovery;
     this.metadata = metadata;
   }
 
-  public void start() throws Exception
-  {
+  public void start() throws Exception {
     serviceDiscovery.register(serviceId, metadata);
   }
 
-  public void stop()
-  {
+  public void stop() {
     serviceDiscovery.deregister(serviceId);
   }
 
-  public ServiceDiscovery getServiceDiscovery()
-  {
+  public ServiceDiscovery getServiceDiscovery() {
     return serviceDiscovery;
   }
 
-  public ServiceMetadata getMetadata()
-  {
+  public ServiceMetadata getMetadata() {
     return metadata;
   }
 
-  public String getServiceId()
-  {
+  public String getServiceId() {
     return serviceId;
   }
 

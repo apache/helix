@@ -25,145 +25,127 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 
 public abstract class IdealStateBuilder {
-    /**
-     * Resource name e.g. myDB,
-     */
-    private String resourceName;
-    /**
-     * Number of partitions/subresources
-     */
-    private int numPartitions;
-    /**
-     * Number of replicas for each partition
-     */
-    private int numReplica;
-    /**
-     * State model that is applicable for this resource
-     */
-    private String stateModel;
-    /**
-     * The state model factory implementation in the participant. Allows
-     * participants to plugin resource specific implementation, by default Helix
-     * uses the implementation specified per state model.<br/>
-     * This is optional
-     */
-    private String stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
-    /**
-     * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
-     */
-    protected IdealState.RebalanceMode rebalancerMode;
-    /**
-     * A constraint that limits the maximum number of partitions per Node.
-     */
-    private int maxPartitionsPerNode;
-    /**
-     * Allocate the resource to nodes that are tagged with a specific "nodeGroup"
-     * name. By default a resource will be allocated to all nodes registered to
-     * the cluster.
-     */
-    private String nodeGroup = "*";
+  /**
+   * Resource name e.g. myDB,
+   */
+  private String resourceName;
+  /**
+   * Number of partitions/subresources
+   */
+  private int numPartitions;
+  /**
+   * Number of replicas for each partition
+   */
+  private int numReplica;
+  /**
+   * State model that is applicable for this resource
+   */
+  private String stateModel;
+  /**
+   * The state model factory implementation in the participant. Allows
+   * participants to plugin resource specific implementation, by default Helix
+   * uses the implementation specified per state model.<br/>
+   * This is optional
+   */
+  private String stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+  /**
+   * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
+   */
+  protected IdealState.RebalanceMode rebalancerMode;
+  /**
+   * A constraint that limits the maximum number of partitions per Node.
+   */
+  private int maxPartitionsPerNode;
+  /**
+   * Allocate the resource to nodes that are tagged with a specific "nodeGroup"
+   * name. By default a resource will be allocated to all nodes registered to
+   * the cluster.
+   */
+  private String nodeGroup = "*";
 
-    protected ZNRecord _record;
+  protected ZNRecord _record;
 
-    /**
-     *
-     * @param resourceName
-     */
-    public IdealStateBuilder(String resourceName)
-    {
-        this.resourceName = resourceName;
-        _record = new ZNRecord(resourceName);
+  /**
+   * @param resourceName
+   */
+  public IdealStateBuilder(String resourceName) {
+    this.resourceName = resourceName;
+    _record = new ZNRecord(resourceName);
+  }
+
+  /**
+   * @param numReplica
+   */
+  public IdealStateBuilder setNumReplica(int numReplica) {
+    this.numReplica = numReplica;
+    return this;
+  }
+
+  /**
+   * @param numPartitions
+   */
+  public IdealStateBuilder setNumPartitions(int numPartitions) {
+    this.numPartitions = numPartitions;
+    return this;
+  }
+
+  /**
+   * @param stateModel
+   */
+  public IdealStateBuilder setStateModel(String stateModel) {
+    this.stateModel = stateModel;
+    return this;
+  }
+
+  /**
+   * @param stateModelFactoryName
+   */
+  public IdealStateBuilder setStateModelFactoryName(String stateModelFactoryName) {
+    this.stateModelFactoryName = stateModelFactoryName;
+    return this;
+  }
+
+  /**
+   * @param maxPartitionsPerNode
+   */
+  public IdealStateBuilder setMaxPartitionsPerNode(int maxPartitionsPerNode) {
+    this.maxPartitionsPerNode = maxPartitionsPerNode;
+    return this;
+  }
+
+  /**
+   * @param nodeGroup
+   */
+  public IdealStateBuilder setNodeGroup(String nodeGroup) {
+    this.nodeGroup = nodeGroup;
+    return this;
+  }
+
+  /**
+   * sub-class should implement this to set ideal-state mode
+   * @return
+   */
+  public IdealStateBuilder setRebalancerMode(IdealState.RebalanceMode rebalancerMode) {
+    this.rebalancerMode = rebalancerMode;
+    return this;
+  }
+
+  /**
+   * @return
+   */
+  public IdealState build() {
+    IdealState idealstate = new IdealState(_record);
+    idealstate.setNumPartitions(numPartitions);
+    idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
+    idealstate.setStateModelDefRef(stateModel);
+    idealstate.setStateModelFactoryName(stateModelFactoryName);
+    idealstate.setRebalanceMode(rebalancerMode);
+    idealstate.setReplicas("" + numReplica);
+
+    if (!idealstate.isValid()) {
+      throw new HelixException("invalid ideal-state: " + idealstate);
     }
-
-    /**
-     *
-     * @param numReplica
-     */
-    public IdealStateBuilder setNumReplica(int numReplica)
-    {
-        this.numReplica = numReplica;
-        return this;
-    }
-
-    /**
-     *
-     * @param numPartitions
-     */
-    public IdealStateBuilder setNumPartitions(int numPartitions)
-    {
-        this.numPartitions = numPartitions;
-        return this;
-    }
-
-    /**
-     *
-     * @param stateModel
-     */
-    public IdealStateBuilder setStateModel(String stateModel)
-    {
-        this.stateModel = stateModel;
-        return this;
-    }
-
-    /**
-     *
-     * @param stateModelFactoryName
-     */
-    public IdealStateBuilder setStateModelFactoryName(String stateModelFactoryName)
-    {
-        this.stateModelFactoryName = stateModelFactoryName;
-        return this;
-    }
-
-    /**
-     *
-     * @param maxPartitionsPerNode
-     */
-    public IdealStateBuilder setMaxPartitionsPerNode(int maxPartitionsPerNode)
-    {
-        this.maxPartitionsPerNode = maxPartitionsPerNode;
-        return this;
-    }
-
-    /**
-     *
-     * @param nodeGroup
-     */
-    public IdealStateBuilder setNodeGroup(String nodeGroup)
-    {
-        this.nodeGroup = nodeGroup;
-        return this;
-    }
-
-    /**
-     * sub-class should implement this to set ideal-state mode
-     *
-     * @return
-     */
-    public IdealStateBuilder setRebalancerMode(
-        IdealState.RebalanceMode rebalancerMode) {
-      this.rebalancerMode = rebalancerMode;
-      return this;
-    }
-
-    /**
-     *
-     * @return
-     */
-    public IdealState build()
-    {
-        IdealState idealstate = new IdealState(_record);
-        idealstate.setNumPartitions(numPartitions);
-        idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
-        idealstate.setStateModelDefRef(stateModel);
-        idealstate.setStateModelFactoryName(stateModelFactoryName);
-        idealstate.setRebalanceMode(rebalancerMode);
-        idealstate.setReplicas("" + numReplica);
-        
-        if (!idealstate.isValid()) {
-            throw new HelixException("invalid ideal-state: " + idealstate);
-        }
-        return idealstate;
-    }
+    return idealstate;
+  }
 
 }

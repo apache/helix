@@ -21,13 +21,12 @@ package org.apache.helix.monitoring.mbeans;
 
 import org.apache.helix.monitoring.SensorNameProvider;
 
-public interface ResourceMonitorMBean extends SensorNameProvider
-{
+public interface ResourceMonitorMBean extends SensorNameProvider {
   public long getPartitionGauge();
-  
+
   public long getErrorPartitionGauge();
-  
+
   public long getDifferenceWithIdealStateGauge();
-  
+
   public long getExternalViewPartitionGauge();
 }

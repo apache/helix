@@ -21,8 +21,8 @@ package org.apache.helix.mock.participant;
 
 import org.apache.helix.HelixManager;
 
-public interface MockJobIntf
-{
+public interface MockJobIntf {
   public void doPreConnectJob(HelixManager manager);
+
   public void doPostConnectJob(HelixManager manager);
 }

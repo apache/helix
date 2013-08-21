@@ -31,9 +31,7 @@ import java.util.regex.Pattern;
 import org.apache.helix.HelixException;
 import org.apache.log4j.Logger;
 
-
-public class ExpressionParser
-{
+public class ExpressionParser {
   private static Logger logger = Logger.getLogger(ExpressionParser.class);
 
   final static String opDelim = "|";
@@ -48,8 +46,7 @@ public class ExpressionParser
   static Map<String, Operator> operatorMap = new HashMap<String, Operator>();
   static Map<String, Aggregator> aggregatorMap = new HashMap<String, Aggregator>();
 
-  static
-  {
+  static {
 
     addOperatorEntry("EXPAND", new ExpandOperator());
     addOperatorEntry("DIVIDE", new DivideOperator());
@@ -69,19 +66,15 @@ public class ExpressionParser
 
   // static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 
-  private static void addOperatorEntry(String label, Operator op)
-  {
-    if (!operatorMap.containsKey(label))
-    {
+  private static void addOperatorEntry(String label, Operator op) {
+    if (!operatorMap.containsKey(label)) {
       operatorMap.put(label, op);
     }
     logger.info("Adding operator: " + op);
   }
 
-  private static void addAggregatorEntry(String label, Aggregator agg)
-  {
-    if (!aggregatorMap.containsKey(label.toUpperCase()))
-    {
+  private static void addAggregatorEntry(String label, Aggregator agg) {
+    if (!aggregatorMap.containsKey(label.toUpperCase())) {
       aggregatorMap.put(label.toUpperCase(), agg);
     }
     logger.info("Adding aggregator: " + agg);
@@ -93,8 +86,7 @@ public class ExpressionParser
    * logger.info("Adding operator type: "+type); }
    */
 
-  public static boolean isExpressionNested(String expression)
-  {
+  public static boolean isExpressionNested(String expression) {
     return expression.contains("(");
   }
 
@@ -105,10 +97,8 @@ public class ExpressionParser
    * Exception(op+" is not a valid op type"); } return operatorMap.get(op); }
    */
 
-  public static String getInnerExpression(String expression)
-  {
-    return expression.substring(expression.indexOf("(") + 1,
-        expression.lastIndexOf(")"));
+  public static String getInnerExpression(String expression) {
+    return expression.substring(expression.indexOf("(") + 1, expression.lastIndexOf(")"));
   }
 
   /*
@@ -118,12 +108,10 @@ public class ExpressionParser
    * getOperatorType(expression); String innerExp =
    * getInnerExpression(expression); items = getBaseStats(nextType, innerExp); }
    * else { //base class, no nesting items = expression.split(","); }
-   * 
    * if (type != null && type.isBaseOp()) { //surround items with type. for (int
    * i=0; i<items.length; i++) { items[i] = type + "(" + items[i] + ")"; //!!!!
    * NEED type to behave like string here
    * logger.debug("Forming item "+items[i]); } } return items; }
-   * 
    * public static String[] getBaseStats(String expression) throws Exception {
    * expression = expression.replaceAll("\\s+", ""); return getBaseStats(null,
    * expression); }
@@ -131,12 +119,9 @@ public class ExpressionParser
 
   /*
    * Validate 2 sets of parenthesis exist, all before first opDelim
-   * 
    * extract agg type and validate it exists. validate number of args passed in
    */
-  public static void validateAggregatorFormat(String expression)
-      throws HelixException
-  {
+  public static void validateAggregatorFormat(String expression) throws HelixException {
     logger.debug("validating aggregator for expression: " + expression);
     // have 0 or more args, 1 or more stats...e.g. ()(x) or (2)(x,y)
     Pattern pattern = Pattern.compile("\\(.*?\\)");
@@ -144,47 +129,34 @@ public class ExpressionParser
     String aggComponent = null;
     String statComponent = null;
     int lastMatchEnd = -1;
-    if (matcher.find())
-    {
+    if (matcher.find()) {
       aggComponent = matcher.group();
       aggComponent = aggComponent.substring(1, aggComponent.length() - 1);
-      if (aggComponent.contains(")") || aggComponent.contains("("))
-      {
-        throw new HelixException(expression
-            + " has invalid aggregate component");
+      if (aggComponent.contains(")") || aggComponent.contains("(")) {
+        throw new HelixException(expression + " has invalid aggregate component");
       }
-    }
-    else
-    {
+    } else {
       throw new HelixException(expression + " has invalid aggregate component");
     }
-    if (matcher.find())
-    {
+    if (matcher.find()) {
       statComponent = matcher.group();
       statComponent = statComponent.substring(1, statComponent.length() - 1);
       // statComponent must have at least 1 arg between paren
-      if (statComponent.contains(")") || statComponent.contains("(")
-          || statComponent.length() == 0)
-      {
+      if (statComponent.contains(")") || statComponent.contains("(") || statComponent.length() == 0) {
         throw new HelixException(expression + " has invalid stat component");
       }
       lastMatchEnd = matcher.end();
-    }
-    else
-    {
+    } else {
       throw new HelixException(expression + " has invalid stat component");
     }
-    if (matcher.find())
-    {
-      throw new HelixException(expression
-          + " has too many parenthesis components");
+    if (matcher.find()) {
+      throw new HelixException(expression + " has too many parenthesis components");
     }
 
-    if (expression.length() >= lastMatchEnd + 1)
-    { // lastMatchEnd is pos 1 past the pattern. check if there are paren there
+    if (expression.length() >= lastMatchEnd + 1) { // lastMatchEnd is pos 1 past the pattern. check
+                                                   // if there are paren there
       if (expression.substring(lastMatchEnd).contains("(")
-          || expression.substring(lastMatchEnd).contains(")"))
-      {
+          || expression.substring(lastMatchEnd).contains(")")) {
         throw new HelixException(expression + " has extra parenthesis");
       }
     }
@@ -192,16 +164,12 @@ public class ExpressionParser
     // check wildcard locations. each part can have at most 1 wildcard, and must
     // be at end
     // String expStatNamePart = expression.substring(expression.)
-    StringTokenizer fieldTok = new StringTokenizer(statComponent,
-        statFieldDelim);
-    while (fieldTok.hasMoreTokens())
-    {
+    StringTokenizer fieldTok = new StringTokenizer(statComponent, statFieldDelim);
+    while (fieldTok.hasMoreTokens()) {
       String currTok = fieldTok.nextToken();
-      if (currTok.contains(wildcardChar))
-      {
+      if (currTok.contains(wildcardChar)) {
         if (currTok.indexOf(wildcardChar) != currTok.length() - 1
-            || currTok.lastIndexOf(wildcardChar) != currTok.length() - 1)
-        {
+            || currTok.lastIndexOf(wildcardChar) != currTok.length() - 1) {
           throw new HelixException(currTok
               + " is illegal stat name.  Single wildcard must appear at end.");
         }
@@ -209,15 +177,13 @@ public class ExpressionParser
     }
   }
 
-  public static boolean statContainsWildcards(String stat)
-  {
+  public static boolean statContainsWildcards(String stat) {
     return stat.contains(wildcardChar);
   }
 
   /*
    * Return true if stat name matches exactly...incomingStat has no agg type
    * currentStat can have any
-   * 
    * Function can match for 2 cases extractStatFromAgg=false. Match
    * accumulate()(dbFoo.partition10.latency) with
    * accumulate()(dbFoo.partition10.latency)...trival extractStatFromAgg=true.
@@ -225,11 +191,9 @@ public class ExpressionParser
    * dbFoo.partition10.latency
    */
   public static boolean isExactMatch(String currentStat, String incomingStat,
-      boolean extractStatFromAgg)
-  {
+      boolean extractStatFromAgg) {
     String currentStatName = currentStat;
-    if (extractStatFromAgg)
-    {
+    if (extractStatFromAgg) {
       currentStatName = getSingleAggregatorStat(currentStat);
     }
     return (incomingStat.equals(currentStatName));
@@ -238,21 +202,17 @@ public class ExpressionParser
   /*
    * Return true if incomingStat matches wildcardStat except currentStat has 1+
    * fields with "*" a*.c* matches a5.c7 a*.c* does not match a5.b6.c7
-   * 
    * Function can match for 2 cases extractStatFromAgg=false. Match
    * accumulate()(dbFoo.partition*.latency) with
    * accumulate()(dbFoo.partition10.latency) extractStatFromAgg=true. Match
    * accumulate()(dbFoo.partition*.latency) with dbFoo.partition10.latency
    */
-  public static boolean isWildcardMatch(String currentStat,
-      String incomingStat, boolean statCompareOnly, ArrayList<String> bindings)
-  {
-    if (!statCompareOnly)
-    { // need to check for match on agg type and stat
+  public static boolean isWildcardMatch(String currentStat, String incomingStat,
+      boolean statCompareOnly, ArrayList<String> bindings) {
+    if (!statCompareOnly) { // need to check for match on agg type and stat
       String currentStatAggType = (currentStat.split("\\)"))[0];
       String incomingStatAggType = (incomingStat.split("\\)"))[0];
-      if (!currentStatAggType.equals(incomingStatAggType))
-      {
+      if (!currentStatAggType.equals(incomingStatAggType)) {
         return false;
       }
     }
@@ -260,90 +220,86 @@ public class ExpressionParser
     String currentStatName = getSingleAggregatorStat(currentStat);
     String incomingStatName = getSingleAggregatorStat(incomingStat);
 
-    if (!currentStatName.contains(wildcardChar))
-    { // no wildcards in stat name
+    if (!currentStatName.contains(wildcardChar)) { // no wildcards in stat name
       return false;
     }
-    
+
     String currentStatNamePattern = currentStatName.replace(".", "\\.");
     currentStatNamePattern = currentStatNamePattern.replace("*", ".*");
-    boolean result =  Pattern.matches(currentStatNamePattern, incomingStatName);
-    if(result && bindings != null)
-    {
+    boolean result = Pattern.matches(currentStatNamePattern, incomingStatName);
+    if (result && bindings != null) {
       bindings.add(incomingStatName);
     }
     return result;
     /*
-    StringTokenizer currentStatTok = new StringTokenizer(currentStatName,
-        statFieldDelim);
-    StringTokenizer incomingStatTok = new StringTokenizer(incomingStatName,
-        statFieldDelim);
-    if (currentStatTok.countTokens() != incomingStatTok.countTokens())
-    { // stat names different numbers of fields
-      return false;
-    }
-    // for each token, if not wildcarded, must be an exact match
-    while (currentStatTok.hasMoreTokens())
-    {
-      String currTok = currentStatTok.nextToken();
-      String incomingTok = incomingStatTok.nextToken();
-      logger.debug("curTok: " + currTok);
-      logger.debug("incomingTok: " + incomingTok);
-      if (!currTok.contains(wildcardChar))
-      { // no wildcard, but have exact match
-        if (!currTok.equals(incomingTok))
-        { // not exact match
-          return false;
-        }
-      }
-      else
-      { // currTok has a wildcard
-        if (currTok.indexOf(wildcardChar) != currTok.length() - 1
-            || currTok.lastIndexOf(wildcardChar) != currTok.length() - 1)
-        {
-          throw new HelixException(currTok
-              + " is illegal stat name.  Single wildcard must appear at end.");
-        }
-        // for wildcard matching, need to escape parentheses on currTok, so
-        // regex works
-        // currTok = currTok.replace("(", "\\(");
-        // currTok = currTok.replace(")", "\\)");
-        // incomingTok = incomingTok.replace("(", "\\(");
-        // incomingTok = incomingTok.replace(")", "\\)");
-        String currTokPreWildcard = currTok.substring(0, currTok.length() - 1);
-        // TODO: if current token has a "(" in it, pattern compiling throws
-        // error
-        // Pattern pattern = Pattern.compile(currTokPreWildcard+".+"); //form
-        // pattern...wildcard part can be anything
-        // Matcher matcher = pattern.matcher(incomingTok); //see if incomingTok
-        // matches
-        if (incomingTok.indexOf(currTokPreWildcard) != 0)
-        {
-          // if (!matcher.find()) { //no match on one tok, return false
-          return false;
-        }
-        // get the binding
-
-        if (bindings != null)
-        {
-          // TODO: debug me!
-          String wildcardBinding = incomingTok.substring(incomingTok
-              .indexOf(currTokPreWildcard) + currTokPreWildcard.length());
-          bindings.add(wildcardBinding);
-        }
-      }
-    }
-    // all fields match or wildcard match...return true!
-    return true;*/
+     * StringTokenizer currentStatTok = new StringTokenizer(currentStatName,
+     * statFieldDelim);
+     * StringTokenizer incomingStatTok = new StringTokenizer(incomingStatName,
+     * statFieldDelim);
+     * if (currentStatTok.countTokens() != incomingStatTok.countTokens())
+     * { // stat names different numbers of fields
+     * return false;
+     * }
+     * // for each token, if not wildcarded, must be an exact match
+     * while (currentStatTok.hasMoreTokens())
+     * {
+     * String currTok = currentStatTok.nextToken();
+     * String incomingTok = incomingStatTok.nextToken();
+     * logger.debug("curTok: " + currTok);
+     * logger.debug("incomingTok: " + incomingTok);
+     * if (!currTok.contains(wildcardChar))
+     * { // no wildcard, but have exact match
+     * if (!currTok.equals(incomingTok))
+     * { // not exact match
+     * return false;
+     * }
+     * }
+     * else
+     * { // currTok has a wildcard
+     * if (currTok.indexOf(wildcardChar) != currTok.length() - 1
+     * || currTok.lastIndexOf(wildcardChar) != currTok.length() - 1)
+     * {
+     * throw new HelixException(currTok
+     * + " is illegal stat name.  Single wildcard must appear at end.");
+     * }
+     * // for wildcard matching, need to escape parentheses on currTok, so
+     * // regex works
+     * // currTok = currTok.replace("(", "\\(");
+     * // currTok = currTok.replace(")", "\\)");
+     * // incomingTok = incomingTok.replace("(", "\\(");
+     * // incomingTok = incomingTok.replace(")", "\\)");
+     * String currTokPreWildcard = currTok.substring(0, currTok.length() - 1);
+     * // TODO: if current token has a "(" in it, pattern compiling throws
+     * // error
+     * // Pattern pattern = Pattern.compile(currTokPreWildcard+".+"); //form
+     * // pattern...wildcard part can be anything
+     * // Matcher matcher = pattern.matcher(incomingTok); //see if incomingTok
+     * // matches
+     * if (incomingTok.indexOf(currTokPreWildcard) != 0)
+     * {
+     * // if (!matcher.find()) { //no match on one tok, return false
+     * return false;
+     * }
+     * // get the binding
+     * if (bindings != null)
+     * {
+     * // TODO: debug me!
+     * String wildcardBinding = incomingTok.substring(incomingTok
+     * .indexOf(currTokPreWildcard) + currTokPreWildcard.length());
+     * bindings.add(wildcardBinding);
+     * }
+     * }
+     * }
+     * // all fields match or wildcard match...return true!
+     * return true;
+     */
   }
 
   /*
    * For checking if an incoming stat (no agg type defined) matches a persisted
    * stat (with agg type defined)
    */
-  public static boolean isIncomingStatExactMatch(String currentStat,
-      String incomingStat)
-  {
+  public static boolean isIncomingStatExactMatch(String currentStat, String incomingStat) {
     return isExactMatch(currentStat, incomingStat, true);
   }
 
@@ -352,18 +308,14 @@ public class ExpressionParser
    * persisted stat (with agg type defined) The persisted stat may have
    * wildcards
    */
-  public static boolean isIncomingStatWildcardMatch(String currentStat,
-      String incomingStat)
-  {
+  public static boolean isIncomingStatWildcardMatch(String currentStat, String incomingStat) {
     return isWildcardMatch(currentStat, incomingStat, true, null);
   }
 
   /*
    * For checking if a persisted stat matches a stat defined in an alert
    */
-  public static boolean isAlertStatExactMatch(String alertStat,
-      String currentStat)
-  {
+  public static boolean isAlertStatExactMatch(String alertStat, String currentStat) {
     return isExactMatch(alertStat, currentStat, false);
   }
 
@@ -371,42 +323,33 @@ public class ExpressionParser
    * For checking if a maintained stat wildcard matches a stat defined in an
    * alert. The alert may have wildcards
    */
-  public static boolean isAlertStatWildcardMatch(String alertStat,
-      String currentStat, ArrayList<String> wildcardBindings)
-  {
+  public static boolean isAlertStatWildcardMatch(String alertStat, String currentStat,
+      ArrayList<String> wildcardBindings) {
     return isWildcardMatch(alertStat, currentStat, false, wildcardBindings);
   }
 
-  public static Aggregator getAggregator(String aggStr) throws HelixException
-  {
+  public static Aggregator getAggregator(String aggStr) throws HelixException {
     aggStr = aggStr.toUpperCase();
     Aggregator agg = aggregatorMap.get(aggStr);
-    if (agg == null)
-    {
+    if (agg == null) {
       throw new HelixException("Unknown aggregator type " + aggStr);
     }
     return agg;
   }
 
-  public static String getAggregatorStr(String expression)
-      throws HelixException
-  {
-    if (!expression.contains("("))
-    {
+  public static String getAggregatorStr(String expression) throws HelixException {
+    if (!expression.contains("(")) {
       throw new HelixException(expression
           + " does not contain a valid aggregator.  No parentheses found");
     }
     String aggName = expression.substring(0, expression.indexOf("("));
-    if (!aggregatorMap.containsKey(aggName.toUpperCase()))
-    {
+    if (!aggregatorMap.containsKey(aggName.toUpperCase())) {
       throw new HelixException("aggregator <" + aggName + "> is unknown type");
     }
     return aggName;
   }
 
-  public static String[] getAggregatorArgs(String expression)
-      throws HelixException
-  {
+  public static String[] getAggregatorArgs(String expression) throws HelixException {
     String aggregator = getAggregatorStr(expression);
     String argsStr = getAggregatorArgsStr(expression);
     String[] args = argsStr.split(argDelim);
@@ -415,10 +358,8 @@ public class ExpressionParser
     // String[] argList = (expression.substring(expression.indexOf("(")+1,
     // expression.indexOf(")"))).split(argDelim);
     // verify correct number of args
-    int requiredNumArgs = aggregatorMap.get(aggregator.toUpperCase())
-        .getRequiredNumArgs();
-    if (numArgs != requiredNumArgs)
-    {
+    int requiredNumArgs = aggregatorMap.get(aggregator.toUpperCase()).getRequiredNumArgs();
+    if (numArgs != requiredNumArgs) {
       throw new HelixException(expression + " contains " + args.length
           + " arguments, but requires " + requiredNumArgs);
     }
@@ -431,44 +372,32 @@ public class ExpressionParser
    * argsStr.split(argDelim); return args; }
    */
 
-  public static String getAggregatorArgsStr(String expression)
-  {
-    return expression.substring(expression.indexOf("(") + 1,
-        expression.indexOf(")"));
+  public static String getAggregatorArgsStr(String expression) {
+    return expression.substring(expression.indexOf("(") + 1, expression.indexOf(")"));
   }
 
-  public static String[] getAggregatorStats(String expression)
-      throws HelixException
-  {
+  public static String[] getAggregatorStats(String expression) throws HelixException {
     String justStats = expression;
-    if (expression.contains("(") && expression.contains(")"))
-    {
-      justStats = (expression.substring(expression.lastIndexOf("(") + 1,
-          expression.lastIndexOf(")")));
+    if (expression.contains("(") && expression.contains(")")) {
+      justStats =
+          (expression.substring(expression.lastIndexOf("(") + 1, expression.lastIndexOf(")")));
     }
     String[] statList = justStats.split(argDelim);
-    if (statList.length < 1)
-    {
-      throw new HelixException(expression
-          + " does not contain any aggregator stats");
+    if (statList.length < 1) {
+      throw new HelixException(expression + " does not contain any aggregator stats");
     }
     return statList;
   }
 
-  public static String getSingleAggregatorStat(String expression)
-      throws HelixException
-  {
+  public static String getSingleAggregatorStat(String expression) throws HelixException {
     String[] stats = getAggregatorStats(expression);
-    if (stats.length > 1)
-    {
+    if (stats.length > 1) {
       throw new HelixException(expression + " contains more than 1 stat");
     }
     return stats[0];
   }
 
-  public static String getWildcardStatSubstitution(String wildcardStat,
-      String fixedStat)
-  {
+  public static String getWildcardStatSubstitution(String wildcardStat, String fixedStat) {
     int lastOpenParenLoc = wildcardStat.lastIndexOf("(");
     int lastCloseParenLoc = wildcardStat.lastIndexOf(")");
     StringBuilder builder = new StringBuilder();
@@ -484,8 +413,7 @@ public class ExpressionParser
   // XXX: each op type should have number of inputs, number of outputs. do
   // validation.
   // (dbFoo.partition*.latency, dbFoo.partition*.count)|EACH|ACCUMULATE|DIVIDE
-  public static String[] getBaseStats(String expression) throws HelixException
-  {
+  public static String[] getBaseStats(String expression) throws HelixException {
     expression = expression.replaceAll("\\s+", "");
     validateAggregatorFormat(expression);
 
@@ -497,8 +425,7 @@ public class ExpressionParser
     String aggArgList = getAggregatorArgsStr(expression);
 
     String[] baseStats = new String[aggStats.length];
-    for (int i = 0; i < aggStats.length; i++)
-    {
+    for (int i = 0; i < aggStats.length; i++) {
       StringBuilder stat = new StringBuilder();
       stat.append(aggName);
       stat.append("(");
@@ -512,13 +439,11 @@ public class ExpressionParser
     return baseStats;
   }
 
-  public static String[] getOperators(String expression) throws HelixException
-  {
+  public static String[] getOperators(String expression) throws HelixException {
     String[] ops = null;
     int numAggStats = (getAggregatorStats(expression)).length;
     int opDelimLoc = expression.indexOf(opDelim);
-    if (opDelimLoc < 0)
-    {
+    if (opDelimLoc < 0) {
       return null;
     }
     logger.debug("ops str: " + expression.substring(opDelimLoc + 1));
@@ -529,51 +454,39 @@ public class ExpressionParser
     // take num input tuples sets and verify ops will output exactly 1 tuple
     // sets
     int currNumTuples = numAggStats;
-    for (String op : ops)
-    {
+    for (String op : ops) {
       logger.debug("op: " + op);
-      if (!operatorMap.containsKey(op.toUpperCase()))
-      {
+      if (!operatorMap.containsKey(op.toUpperCase())) {
         throw new HelixException("<" + op + "> is not a valid operator type");
       }
       Operator currOpType = operatorMap.get(op.toUpperCase());
       if (currNumTuples < currOpType.minInputTupleLists
-          || currNumTuples > currOpType.maxInputTupleLists)
-      {
-        throw new HelixException("<" + op + "> cannot process " + currNumTuples
-            + " input tuples");
+          || currNumTuples > currOpType.maxInputTupleLists) {
+        throw new HelixException("<" + op + "> cannot process " + currNumTuples + " input tuples");
       }
       // reset num tuples to this op's output size
-      if (!currOpType.inputOutputTupleListsCountsEqual)
-      { // if equal, this number does not change
+      if (!currOpType.inputOutputTupleListsCountsEqual) { // if equal, this number does not change
         currNumTuples = currOpType.numOutputTupleLists;
       }
     }
-    if (currNumTuples != 1)
-    {
-      throw new HelixException(expression
-          + " does not terminate in a single tuple set");
+    if (currNumTuples != 1) {
+      throw new HelixException(expression + " does not terminate in a single tuple set");
     }
     return ops;
   }
 
-  public static void validateOperators(String expression) throws HelixException
-  {
+  public static void validateOperators(String expression) throws HelixException {
     getOperators(expression);
   }
 
-  public static Operator getOperator(String opName) throws HelixException
-  {
-    if (!operatorMap.containsKey(opName))
-    {
+  public static Operator getOperator(String opName) throws HelixException {
+    if (!operatorMap.containsKey(opName)) {
       throw new HelixException(opName + " is unknown op type");
     }
     return operatorMap.get(opName);
   }
 
-  public static void validateExpression(String expression)
-      throws HelixException
-  {
+  public static void validateExpression(String expression) throws HelixException {
     // 1. extract stats part and validate
     validateAggregatorFormat(expression);
     // 2. extract ops part and validate the ops exist and the inputs/outputs are

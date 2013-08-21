@@ -23,12 +23,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public enum CommandAttribute {
-  COMMAND ("command"),
-  WORKING_DIR ("command.workingDir"),
-  TIMEOUT ("command.timeout"),
+  COMMAND("command"),
+  WORKING_DIR("command.workingDir"),
+  TIMEOUT("command.timeout"),
   PID_FILE("command.pidFile"),
-  NOP ("nop");
-  
+  NOP("nop");
+
   // map from name to value
   private static final Map<String, CommandAttribute> map = new HashMap<String, CommandAttribute>();
   static {
@@ -36,9 +36,9 @@ public enum CommandAttribute {
       map.put(attr.getName(), attr);
     }
   }
-  
+
   private final String _name;
-  
+
   private CommandAttribute(String name) {
     _name = name;
   }
@@ -46,7 +46,7 @@ public enum CommandAttribute {
   public String getName() {
     return _name;
   }
-  
+
   public static CommandAttribute getCommandAttributeByName(String name) {
     return map.get(name);
   }

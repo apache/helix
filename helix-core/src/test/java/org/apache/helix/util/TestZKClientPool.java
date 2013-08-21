@@ -30,45 +30,39 @@ import org.apache.helix.util.ZKClientPool;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestZKClientPool
-{
+public class TestZKClientPool {
 
   @Test
-  public void test() throws Exception
-  {
+  public void test() throws Exception {
     String testName = "TestZKClientPool";
     System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
 
     String zkAddr = "localhost:2189";
     ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     ZkClient zkClient = ZKClientPool.getZkClient(zkAddr);
-    
+
     zkClient.createPersistent("/" + testName, new ZNRecord(testName));
     ZNRecord record = zkClient.readData("/" + testName);
     Assert.assertEquals(record.getId(), testName);
-    
+
     TestHelper.stopZkServer(zkServer);
-    
-    // restart zk 
+
+    // restart zk
     zkServer = TestHelper.startZkServer(zkAddr);
-    try
-    {
+    try {
       zkClient = ZKClientPool.getZkClient(zkAddr);
       record = zkClient.readData("/" + testName);
       Assert.fail("should fail on zk no node exception");
-    } catch (ZkNoNodeException e)
-    {
+    } catch (ZkNoNodeException e) {
       // OK
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       Assert.fail("should not fail on exception other than ZkNoNodeException");
     }
-    
+
     zkClient.createPersistent("/" + testName, new ZNRecord(testName));
     record = zkClient.readData("/" + testName);
     Assert.assertEquals(record.getId(), testName);
-    
+
     zkClient.close();
     TestHelper.stopZkServer(zkServer);
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));

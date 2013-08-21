@@ -32,37 +32,35 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-
-public class TestAddPersistentStats
-{
+public class TestAddPersistentStats {
 
   protected static final String CLUSTER_NAME = "TestCluster";
 
-  MockManager                   _helixManager;
-  StatsHolder                   _statsHolder;
+  MockManager _helixManager;
+  StatsHolder _statsHolder;
 
-  @BeforeMethod(groups = { "unitTest" })
-  public void setup()
-  {
+  @BeforeMethod(groups = {
+    "unitTest"
+  })
+  public void setup() {
     _helixManager = new MockManager(CLUSTER_NAME);
     _statsHolder = new StatsHolder(_helixManager, new HealthDataCache());
   }
 
-  public boolean statRecordContains(ZNRecord rec, String statName)
-  {
+  public boolean statRecordContains(ZNRecord rec, String statName) {
     Map<String, Map<String, String>> stats = rec.getMapFields();
     return stats.containsKey(statName);
   }
 
-  public int statsSize(ZNRecord rec)
-  {
+  public int statsSize(ZNRecord rec) {
     Map<String, Map<String, String>> stats = rec.getMapFields();
     return stats.size();
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddStat() throws Exception {
     String stat = "window(5)(dbFoo.partition10.latency)";
     _statsHolder.addStat(stat);
     _statsHolder.persistStats();
@@ -76,9 +74,10 @@ public class TestAddPersistentStats
     AssertJUnit.assertEquals(1, statsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddTwoStats() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddTwoStats() throws Exception {
     String stat1 = "window(5)(dbFoo.partition10.latency)";
     _statsHolder.addStat(stat1);
     _statsHolder.persistStats();
@@ -97,9 +96,10 @@ public class TestAddPersistentStats
     AssertJUnit.assertEquals(2, statsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddDuplicateStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddDuplicateStat() throws Exception {
     String stat = "window(5)(dbFoo.partition10.latency)";
     _statsHolder.addStat(stat);
     _statsHolder.addStat(stat);
@@ -115,9 +115,10 @@ public class TestAddPersistentStats
     AssertJUnit.assertEquals(1, statsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddPairOfStats() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddPairOfStats() throws Exception {
     String exp = "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)";
     _statsHolder.addStat(exp);
     _statsHolder.persistStats();
@@ -127,16 +128,15 @@ public class TestAddPersistentStats
 
     ZNRecord rec = accessor.getProperty(keyBuilder.persistantStat()).getRecord();
     System.out.println("rec: " + rec.toString());
-    AssertJUnit.assertTrue(statRecordContains(rec,
-                                              "accumulate()(dbFoo.partition10.latency)"));
-    AssertJUnit.assertTrue(statRecordContains(rec,
-                                              "accumulate()(dbFoo.partition10.count)"));
+    AssertJUnit.assertTrue(statRecordContains(rec, "accumulate()(dbFoo.partition10.latency)"));
+    AssertJUnit.assertTrue(statRecordContains(rec, "accumulate()(dbFoo.partition10.count)"));
     AssertJUnit.assertEquals(2, statsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddStatsWithOperators() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddStatsWithOperators() throws Exception {
     String exp =
         "accumulate()(dbFoo.partition10.latency, dbFoo.partition10.count)|EACH|ACCUMULATE|DIVIDE";
     _statsHolder.addStat(exp);
@@ -148,72 +148,62 @@ public class TestAddPersistentStats
     ZNRecord rec = accessor.getProperty(keyBuilder.persistantStat()).getRecord();
 
     System.out.println("rec: " + rec.toString());
-    AssertJUnit.assertTrue(statRecordContains(rec,
-                                              "accumulate()(dbFoo.partition10.latency)"));
-    AssertJUnit.assertTrue(statRecordContains(rec,
-                                              "accumulate()(dbFoo.partition10.count)"));
+    AssertJUnit.assertTrue(statRecordContains(rec, "accumulate()(dbFoo.partition10.latency)"));
+    AssertJUnit.assertTrue(statRecordContains(rec, "accumulate()(dbFoo.partition10.count)"));
     AssertJUnit.assertEquals(2, statsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddNonExistentAggregator() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddNonExistentAggregator() throws Exception {
     String exp = "fakeagg()(dbFoo.partition10.latency)";
     boolean caughtException = false;
-    try
-    {
+    try {
       _statsHolder.addStat(exp);
-    }
-    catch (HelixException e)
-    {
+    } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test(groups = { "unitTest" })
-  public void testGoodAggregatorBadArgs() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testGoodAggregatorBadArgs() throws Exception {
     String exp = "accumulate(10)(dbFoo.partition10.latency)";
     boolean caughtException = false;
-    try
-    {
+    try {
       _statsHolder.addStat(exp);
-    }
-    catch (HelixException e)
-    {
+    } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddBadNestingStat1() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddBadNestingStat1() throws Exception {
     String exp = "window((5)(dbFoo.partition10.latency)";
     boolean caughtException = false;
-    try
-    {
+    try {
       _statsHolder.addStat(exp);
-    }
-    catch (HelixException e)
-    {
+    } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddBadNestingStat2() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddBadNestingStat2() throws Exception {
     String exp = "window(5)(dbFoo.partition10.latency))";
     boolean caughtException = false;
-    try
-    {
+    try {
       _statsHolder.addStat(exp);
-    }
-    catch (HelixException e)
-    {
+    } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);

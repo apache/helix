@@ -23,10 +23,9 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 @Test
-public class TestClusterEvent
-{
+public class TestClusterEvent {
   @Test
-  public void testSimplePutandGet(){
+  public void testSimplePutandGet() {
     ClusterEvent event = new ClusterEvent("name");
     AssertJUnit.assertEquals(event.getName(), "name");
     event.addAttribute("attr1", "value");

@@ -59,21 +59,21 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     String clusterName = className + "_" + methodName;
     int n = 1;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            4, // partitions per resource
-                            n, // number of nodes
-                            1, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        4, // partitions per resource
+        n, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
 
-    ParticipantManager participant = new ParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
-    participant.getStateMachineEngine().registerStateModelFactory("MasterSlave", new MockMSModelFactory());
+    ParticipantManager participant =
+        new ParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
+    participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
+        new MockMSModelFactory());
     participant.connect();
 
     ControllerManager controller = new ControllerManager(ZK_ADDR, clusterName, "controller_0");
@@ -81,7 +81,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     // cleanup
@@ -89,58 +89,51 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     participant.disconnect();
 
     // verify all live-instances and leader nodes are gone
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
-  public void simpleSessionExpiryTest() throws Exception
-  {
-//    Logger.getRootLogger().setLevel(Level.WARN);
+  public void simpleSessionExpiryTest() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.WARN);
 
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
     int n = 1;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            1, // partitions per resource
-                            n, // number of nodes
-                            1, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        1, // partitions per resource
+        n, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
     ControllerManager controller = new ControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.connect();
 
     // start participants
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR,
-                                 clusterName,
-                                 instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
     String oldSessionId = participants[0].getSessionId();
 
@@ -152,7 +145,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
     String newSessionId = participants[0].getSessionId();
     Assert.assertNotSame(newSessionId, oldSessionId);
@@ -163,13 +156,11 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
-  class SessionExpiryTransition extends MockTransition
-  {
+  class SessionExpiryTransition extends MockTransition {
     private final AtomicBoolean _done = new AtomicBoolean();
     private final CountDownLatch _startCountdown;
     private final CountDownLatch _endCountdown;
@@ -180,14 +171,12 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     }
 
     @Override
-    public void doTransition(Message message, NotificationContext context) throws InterruptedException
-    {
+    public void doTransition(Message message, NotificationContext context)
+        throws InterruptedException {
       String instance = message.getTgtName();
       String partition = message.getPartitionName();
-      if (instance.equals("localhost_12918")
-          && partition.equals("TestDB0_0")
-          && _done.getAndSet(true) == false)
-      {
+      if (instance.equals("localhost_12918") && partition.equals("TestDB0_0")
+          && _done.getAndSet(true) == false) {
         _startCountdown.countDown();
         // this await will be interrupted since we cancel the task during handleNewSession
         _endCountdown.await();
@@ -204,34 +193,27 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     CountDownLatch startCountdown = new CountDownLatch(1);
     CountDownLatch endCountdown = new CountDownLatch(1);
 
-
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            1, // partitions per resource
-                            n, // number of nodes
-                            1, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        1, // partitions per resource
+        n, // number of nodes
+        1, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
     ControllerManager controller = new ControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.connect();
 
     // start participants
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR,
-                                 clusterName,
-                                 instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].setTransition(new SessionExpiryTransition(startCountdown, endCountdown));
       participants[i].syncStart();
     }
@@ -244,16 +226,21 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     String newSessionId = participants[0].getSessionId();
     Assert.assertNotSame(newSessionId, oldSessionId);
 
     // assert interrupt exception error in old session
-    String errPath = PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, "localhost_12918", oldSessionId, "TestDB0", "TestDB0_0");
+    String errPath =
+        PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, "localhost_12918",
+            oldSessionId, "TestDB0", "TestDB0_0");
     ZNRecord error = _gZkClient.readData(errPath);
-    Assert.assertNotNull(error, "InterruptedException should happen in old session since task is being cancelled during handleNewSession");
+    Assert
+        .assertNotNull(
+            error,
+            "InterruptedException should happen in old session since task is being cancelled during handleNewSession");
     String errString = new String(new ZNRecordSerializer().serialize(error));
     Assert.assertTrue(errString.indexOf("InterruptedException") != -1);
 
@@ -263,7 +250,6 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

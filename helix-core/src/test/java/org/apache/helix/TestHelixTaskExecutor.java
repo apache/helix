@@ -35,12 +35,10 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestHelixTaskExecutor
-{
+public class TestHelixTaskExecutor {
 
   @Test()
-  public void testCMTaskExecutor() throws Exception
-  {
+  public void testCMTaskExecutor() throws Exception {
     System.out.println("START TestCMTaskExecutor");
     String msgId = "TestMessageId";
     Message message = new Message(MessageType.TASK_REPLY, msgId);
@@ -64,32 +62,30 @@ public class TestHelixTaskExecutor
 
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
-    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(), new AsyncCallbackService());
+    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+        new AsyncCallbackService());
 
     NotificationContext context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");
 
-    StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>()
-    {
+    StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>() {
 
       @Override
-      public MockStateModel createNewStateModel(String partitionName)
-      {
+      public MockStateModel createNewStateModel(String partitionName) {
         // TODO Auto-generated method stub
         return new MockStateModel();
       }
 
     };
     HelixStateTransitionHandler handler =
-        new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context, currentStateDelta);
+        new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
+            currentStateDelta);
 
     HelixTask task = new HelixTask(message, context, handler, executor);
     executor.scheduleTask(task);
-    for (int i = 0; i < 10; i++)
-    {
-      if (!executor.isDone(task.getTaskId()))
-      {
+    for (int i = 0; i < 10; i++) {
+      if (!executor.isDone(task.getTaskId())) {
         Thread.sleep(500);
       }
     }

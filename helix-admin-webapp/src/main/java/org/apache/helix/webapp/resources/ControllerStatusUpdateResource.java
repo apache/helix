@@ -37,85 +37,68 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ControllerStatusUpdateResource extends Resource
-{
+public class ControllerStatusUpdateResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ControllerStatusUpdateResource.class);
 
-  public ControllerStatusUpdateResource(Context context, Request request,
-      Response response)
-  {
+  public ControllerStatusUpdateResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return false;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
-      String zkServer = (String) getContext().getAttributes().get(
-          RestAdminApplication.ZKSERVERADDRESS);
-      String clusterName = (String) getRequest().getAttributes().get(
-          "clusterName");
-      String messageType = (String) getRequest().getAttributes().get(
-          "MessageType");
+    try {
+      String zkServer =
+          (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String messageType = (String) getRequest().getAttributes().get("MessageType");
       String messageId = (String) getRequest().getAttributes().get("MessageId");
       // TODO: need pass sessionId to this represent()
       String sessionId = (String) getRequest().getAttributes().get("SessionId");
 
-      presentation = getControllerStatusUpdateRepresentation(zkServer,
-          clusterName, sessionId, messageType, messageId);
-    } catch (Exception e)
-    {
-      String error = ClusterRepresentationUtil
-          .getErrorAsJsonStringFromException(e);
+      presentation =
+          getControllerStatusUpdateRepresentation(zkServer, clusterName, sessionId, messageType,
+              messageId);
+    } catch (Exception e) {
+      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
       LOG.error("", e);
     }
     return presentation;
   }
 
-  StringRepresentation getControllerStatusUpdateRepresentation(
-      String zkServerAddress, String clusterName, String sessionId,
-      String messageType, String messageId) throws JsonGenerationException,
-      JsonMappingException, IOException
-  {
+  StringRepresentation getControllerStatusUpdateRepresentation(String zkServerAddress,
+      String clusterName, String sessionId, String messageType, String messageId)
+      throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    String message = ClusterRepresentationUtil.getPropertyAsString(
-        zkClient,
-        clusterName,
-        keyBuilder.controllerTaskStatus(messageType, messageId),
-        MediaType.APPLICATION_JSON);
-    StringRepresentation representation = new StringRepresentation(message,
-        MediaType.APPLICATION_JSON);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    String message =
+        ClusterRepresentationUtil.getPropertyAsString(zkClient, clusterName,
+            keyBuilder.controllerTaskStatus(messageType, messageId), MediaType.APPLICATION_JSON);
+    StringRepresentation representation =
+        new StringRepresentation(message, MediaType.APPLICATION_JSON);
     return representation;
   }
 }

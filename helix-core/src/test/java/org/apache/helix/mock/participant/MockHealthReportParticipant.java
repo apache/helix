@@ -35,24 +35,19 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.healthcheck.HealthReportProvider;
 import org.apache.log4j.Logger;
 
+public class MockHealthReportParticipant {
+  private static final Logger LOG = Logger.getLogger(MockHealthReportParticipant.class);
+  public static final String zkServer = "zkSvr";
+  public static final String cluster = "cluster";
+  public static final String host = "host";
+  public static final String port = "port";
+  public static final String help = "help";
 
-public class MockHealthReportParticipant
-{
-  private static final Logger LOG      =
-                                           Logger.getLogger(MockHealthReportParticipant.class);
-  public static final String  zkServer = "zkSvr";
-  public static final String  cluster  = "cluster";
-  public static final String  host     = "host";
-  public static final String  port     = "port";
-  public static final String  help     = "help";
-
-  static class MockHealthReportProvider extends HealthReportProvider
-  {
-    private final String                           _reportName = "MockRestQueryStats";
+  static class MockHealthReportProvider extends HealthReportProvider {
+    private final String _reportName = "MockRestQueryStats";
     private final Map<String, Map<String, String>> _mockHealthReport;
 
-    public MockHealthReportProvider()
-    {
+    public MockHealthReportProvider() {
       _mockHealthReport = new HashMap<String, Map<String, String>>();
 
       Map<String, String> reportMap = new HashMap<String, String>();
@@ -93,28 +88,23 @@ public class MockHealthReportParticipant
     }
 
     @Override
-    public Map<String, String> getRecentHealthReport()
-    {
+    public Map<String, String> getRecentHealthReport() {
       // TODO Auto-generated method stub
       return null;
     }
 
     @Override
-    public void resetStats()
-    {
+    public void resetStats() {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public Map<String, Map<String, String>> getRecentPartitionHealthReport()
-    {
+    public Map<String, Map<String, String>> getRecentPartitionHealthReport() {
       // tweak: randomly change the last digit
-      for (String key1 : _mockHealthReport.keySet())
-      {
+      for (String key1 : _mockHealthReport.keySet()) {
         Map<String, String> reportMap = _mockHealthReport.get(key1);
-        for (String key2 : reportMap.keySet())
-        {
+        for (String key2 : reportMap.keySet()) {
           String value = reportMap.get(key2);
           String lastDigit = "" + new Random().nextInt(10);
           value = value.substring(0, value.length() - 1) + lastDigit;
@@ -126,51 +116,44 @@ public class MockHealthReportParticipant
     }
 
     @Override
-    public String getReportName()
-    {
+    public String getReportName() {
       return _reportName;
     }
   }
 
-  static class MockHealthReportJob implements MockJobIntf
-  {
+  static class MockHealthReportJob implements MockJobIntf {
 
     @Override
-    public void doPreConnectJob(HelixManager manager)
-    {
+    public void doPreConnectJob(HelixManager manager) {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void doPostConnectJob(HelixManager manager)
-    {
+    public void doPostConnectJob(HelixManager manager) {
       // TODO Auto-generated method stub
-      manager.getHealthReportCollector()
-             .addHealthReportProvider(new MockHealthReportProvider());
+      manager.getHealthReportCollector().addHealthReportProvider(new MockHealthReportProvider());
 
-//      // set property store path for perf test
-//      final String setPath = "/TEST_PERF/set";
-//      final String updatePath = "/TEST_PERF/update";
-//      manager.getHelixPropertyStore().create(setPath, new ZNRecord(setPath), BaseDataAccessor.Option.PERSISTENT);
-//      manager.getHelixPropertyStore().set(updatePath, new ZNRecord(updatePath), BaseDataAccessor.Option.PERSISTENT);
+      // // set property store path for perf test
+      // final String setPath = "/TEST_PERF/set";
+      // final String updatePath = "/TEST_PERF/update";
+      // manager.getHelixPropertyStore().create(setPath, new ZNRecord(setPath),
+      // BaseDataAccessor.Option.PERSISTENT);
+      // manager.getHelixPropertyStore().set(updatePath, new ZNRecord(updatePath),
+      // BaseDataAccessor.Option.PERSISTENT);
     }
 
   }
 
   // hack OptionBuilder is not thread safe
   @SuppressWarnings("static-access")
-  synchronized private static Options constructCommandLineOptions()
-  {
+  synchronized private static Options constructCommandLineOptions() {
     Option helpOption =
-        OptionBuilder.withLongOpt(help)
-                     .withDescription("Prints command-line options info")
-                     .create();
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
     Option clusterOption =
-        OptionBuilder.withLongOpt(cluster)
-                     .withDescription("Provide cluster name")
-                     .create();
+        OptionBuilder.withLongOpt(cluster).withDescription("Provide cluster name").create();
     clusterOption.setArgs(1);
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
@@ -188,9 +171,7 @@ public class MockHealthReportParticipant
     portOption.setArgName("Host port (Required)");
 
     Option zkServerOption =
-        OptionBuilder.withLongOpt(zkServer)
-                     .withDescription("Provide zookeeper address")
-                     .create();
+        OptionBuilder.withLongOpt(zkServer).withDescription("Provide zookeeper address").create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("Zookeeper server address(Required)");
@@ -205,25 +186,19 @@ public class MockHealthReportParticipant
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.printHelp("java " + MockHealthReportParticipant.class.getName(),
-                            cliOptions);
+    helpFormatter.printHelp("java " + MockHealthReportParticipant.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
 
-    try
-    {
+    try {
 
       return cliParser.parse(cliOptions, cliArgs);
-    }
-    catch (ParseException pe)
-    {
+    } catch (ParseException pe) {
       System.err.println("CommandLineClient: failed to parse command-line options: "
           + pe.toString());
       printUsage(cliOptions);
@@ -233,25 +208,21 @@ public class MockHealthReportParticipant
   }
 
   // NOT working for kill -9, working for kill -2/-15
-  static class MockHealthReportParticipantShutdownHook extends Thread
-  {
+  static class MockHealthReportParticipantShutdownHook extends Thread {
     final MockParticipant _participant;
 
-    MockHealthReportParticipantShutdownHook(MockParticipant participant)
-    {
+    MockHealthReportParticipantShutdownHook(MockParticipant participant) {
       _participant = participant;
     }
 
     @Override
-    public void run()
-    {
+    public void run() {
       LOG.info("MockHealthReportParticipantShutdownHook invoked");
       _participant.syncStop();
     }
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     CommandLine cmd = processCommandLineArgs(args);
     String zkConnectStr = cmd.getOptionValue(zkServer);
     String clusterName = cmd.getOptionValue(cluster);
@@ -261,17 +232,16 @@ public class MockHealthReportParticipant
     String instanceName = hostStr + "_" + portStr;
 
     MockParticipant participant =
-        new MockParticipant(clusterName,
-                            instanceName,
-                            zkConnectStr,
-                            null,   // new StoreAccessDiffNodeTransition(), // new StoreAccessOneNodeTransition(),
-                            new MockHealthReportJob());
-    Runtime.getRuntime()
-           .addShutdownHook(new MockHealthReportParticipantShutdownHook(participant));
+        new MockParticipant(clusterName, instanceName, zkConnectStr, null, // new
+                                                                           // StoreAccessDiffNodeTransition(),
+                                                                           // // new
+                                                                           // StoreAccessOneNodeTransition(),
+            new MockHealthReportJob());
+    Runtime.getRuntime().addShutdownHook(new MockHealthReportParticipantShutdownHook(participant));
 
     // Espresso_driver.py will consume this
-    System.out.println("MockHealthReportParticipant process started, instanceName: "
-        + instanceName);
+    System.out
+        .println("MockHealthReportParticipant process started, instanceName: " + instanceName);
 
     participant.run();
   }

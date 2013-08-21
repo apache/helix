@@ -22,11 +22,9 @@ package org.apache.helix;
 /*
  * Identifying constants of the components in a Helix-managed cluster
  */
-public interface HelixConstants
-{
+public interface HelixConstants {
   // TODO: ChangeType and PropertyType are duplicated, consider unifying
-  enum ChangeType
-  {
+  enum ChangeType {
     // @formatter:off
     IDEAL_STATE,
     CONFIG,
@@ -41,15 +39,13 @@ public interface HelixConstants
     // @formatter:on
   }
 
-  enum StateModelToken
-  {
+  enum StateModelToken {
     ANY_LIVEINSTANCE
   }
 
-  enum ClusterConfigType
-  {
+  enum ClusterConfigType {
     HELIX_DISABLE_PIPELINE_TRIGGERS
   }
-  
+
   static final String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";
 }

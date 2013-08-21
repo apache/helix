@@ -19,46 +19,38 @@ package org.apache.helix.model;
  * under the License.
  */
 
-public class Transition
-{
+public class Transition {
   final private String _fromState;
   final private String _toState;
 
-  public Transition(String fromState, String toState)
-  {
+  public Transition(String fromState, String toState) {
     _fromState = fromState;
     _toState = toState;
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     return _fromState + "-" + _toState;
   }
 
   @Override
-  public int hashCode()
-  {
+  public int hashCode() {
     return toString().hashCode();
   }
 
   @Override
-  public boolean equals(Object that)
-  {
-    if (that == null || !(that instanceof Transition))
-    {
+  public boolean equals(Object that) {
+    if (that == null || !(that instanceof Transition)) {
       return false;
     }
     return this.toString().equalsIgnoreCase(that.toString());
   }
 
-  public String getFromState()
-  {
+  public String getFromState() {
     return _fromState;
   }
 
-  public String getToState()
-  {
+  public String getToState() {
     return _toState;
   }
 

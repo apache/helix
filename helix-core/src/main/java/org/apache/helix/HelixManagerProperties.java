@@ -25,36 +25,29 @@ import java.util.Properties;
 import org.apache.log4j.Logger;
 
 /**
- * hold helix-manager properties read from 
- * helix-core/src/main/resources/cluster-manager.properties 
- *
+ * hold helix-manager properties read from
+ * helix-core/src/main/resources/cluster-manager.properties
  */
-public class HelixManagerProperties
-{
-  private static final Logger LOG = Logger
-      .getLogger(HelixManagerProperties.class.getName());
-  
+public class HelixManagerProperties {
+  private static final Logger LOG = Logger.getLogger(HelixManagerProperties.class.getName());
+
   private final Properties _properties = new Properties();
 
   /**
    * Initialize properties from a file
    * @param propertyFileName
    */
-  public HelixManagerProperties(String propertyFileName)
-  {
-    try
-    {
-      InputStream stream = Thread.currentThread().getContextClassLoader()
-          .getResourceAsStream(propertyFileName);
+  public HelixManagerProperties(String propertyFileName) {
+    try {
+      InputStream stream =
+          Thread.currentThread().getContextClassLoader().getResourceAsStream(propertyFileName);
       _properties.load(stream);
-      
-    }
-    catch (Exception e)
-    {
+
+    } catch (Exception e) {
       String errMsg = "fail to open properties file: " + propertyFileName;
       throw new IllegalArgumentException(errMsg, e);
     }
-    
+
     LOG.info("load helix-manager properties: " + _properties);
   }
 
@@ -70,7 +63,7 @@ public class HelixManagerProperties
   public Properties getProperties() {
     return _properties;
   }
-  
+
   /**
    * get helix version
    * @return version read from properties
@@ -78,15 +71,13 @@ public class HelixManagerProperties
   public String getVersion() {
     return this.getProperty("clustermanager.version");
   }
-  
+
   /**
    * get property for key
-   * 
    * @param key
    * @return property associated by key
    */
-  public String getProperty(String key)
-  {
+  public String getProperty(String key) {
     String value = _properties.getProperty(key);
     if (value == null) {
       LOG.warn("no property for key: " + key);
@@ -94,12 +85,11 @@ public class HelixManagerProperties
 
     return value;
   }
-    
+
   /**
    * return true if version1 >= version2, false otherwise, ignore non-numerical strings
    * assume version in format of n.n.n-x-x, where n is number and x is any string
    * e.g. 0.6.0-incubating-SNAPSHOT
-   * 
    * @param version1
    * @param version2
    * @return true if version1 >= version2, false otherwise
@@ -109,20 +99,20 @@ public class HelixManagerProperties
       LOG.warn("fail to compare versions. version1: " + version1 + ", version2: " + version2);
       return true;
     }
-    
+
     String[] version1Splits = version1.split("(\\.|-)");
     String[] version2Splits = version2.split("(\\.|-)");
-    
-    if (version1Splits == null || version1Splits.length == 0 
-        || version2Splits == null || version2Splits.length == 0) {
+
+    if (version1Splits == null || version1Splits.length == 0 || version2Splits == null
+        || version2Splits.length == 0) {
       LOG.warn("fail to compare versions. version1: " + version1 + ", version2: " + version2);
     }
-    
+
     for (int i = 0; i < version1Splits.length && i < version2Splits.length; i++) {
       try {
         int versionNum1 = Integer.parseInt(version1Splits[i]);
         int versionNum2 = Integer.parseInt(version2Splits[i]);
-        
+
         if (versionNum1 < versionNum2) {
           return false;
         }
@@ -131,33 +121,31 @@ public class HelixManagerProperties
         break;
       }
     }
-    
+
     return true;
   }
-  
+
   /**
    * return true if participantVersion is no less than minimum supported version for participant
    * false otherwise
-   * 
    * @param participantVersion
    * @return true if compatible, false otherwise
    */
   public boolean isParticipantCompatible(String participantVersion) {
     return isFeatureSupported("participant", participantVersion);
   }
-  
+
   /**
    * return true if participantVersion is no less than minimum supported version for the feature
    * false otherwise
-   * 
    * @param featureName
    * @param participantVersion
    * @return true if supported, false otherwise
    */
   public boolean isFeatureSupported(String featureName, String participantVersion) {
-    String  minSupportedVersion = getProperty("minimum_supported_version." + featureName);
-    
+    String minSupportedVersion = getProperty("minimum_supported_version." + featureName);
+
     return versionNoLessThan(participantVersion, minSupportedVersion);
   }
-  
+
 }

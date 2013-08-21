@@ -32,9 +32,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.healthcheck.StatHealthReportProvider;
 import org.apache.log4j.Logger;
 
-
-public class AlertProcessor
-{
+public class AlertProcessor {
   private static Logger logger = Logger.getLogger(AlertProcessor.class);
 
   private static final String bindingDelim = ",";
@@ -46,23 +44,19 @@ public class AlertProcessor
 
   /*
    * public AlertProcessor(StatHealthReportProvider statProvider) {
-   * 
    * }
    */
 
-  public AlertProcessor(StatsHolder sh)
-  {
+  public AlertProcessor(StatsHolder sh) {
     _statsHolder = sh;
   }
 
-  public static Map<String, List<Tuple<String>>> initAlertStatTuples(Alert alert)
-  {
+  public static Map<String, List<Tuple<String>>> initAlertStatTuples(Alert alert) {
     // get the stats out of the alert
     String[] alertStats = ExpressionParser.getBaseStats(alert.getExpression());
     // init a tuple list for each alert stat
     Map<String, List<Tuple<String>>> alertStatTuples = new HashMap<String, List<Tuple<String>>>();
-    for (String currAlertStat : alertStats)
-    {
+    for (String currAlertStat : alertStats) {
       List<Tuple<String>> currList = new ArrayList<Tuple<String>>();
       alertStatTuples.put(currAlertStat, currList);
     }
@@ -87,18 +81,14 @@ public class AlertProcessor
    * tupleLists.get(currAlertStat).add(persistentStat.getValue()); } } } }
    */
 
-  public static String formAlertKey(ArrayList<String> bindings)
-  {
-    if (bindings.size() == 0)
-    {
+  public static String formAlertKey(ArrayList<String> bindings) {
+    if (bindings.size() == 0) {
       return null;
     }
     StringBuilder alertKey = new StringBuilder();
     boolean emptyKey = true;
-    for (String binding : bindings)
-    {
-      if (!emptyKey)
-      {
+    for (String binding : bindings) {
+      if (!emptyKey) {
         alertKey.append(bindingDelim);
       }
       alertKey.append(binding);
@@ -109,46 +99,36 @@ public class AlertProcessor
 
   // XXX: major change here. return ArrayList of Stats instead of ArrayList of
   // Tuple<String>'s
-  public static Map<String, ArrayList<Tuple<String>>> populateAlertStatTuples(
-      String[] alertStats, List<Stat> persistentStats)
-  {
-    Map<String, ArrayList<Tuple<String>>> tupleSets = new HashMap<String, ArrayList<Tuple<String>>>();
+  public static Map<String, ArrayList<Tuple<String>>> populateAlertStatTuples(String[] alertStats,
+      List<Stat> persistentStats) {
+    Map<String, ArrayList<Tuple<String>>> tupleSets =
+        new HashMap<String, ArrayList<Tuple<String>>>();
 
     // check each persistentStat, alertStat pair
-    for (Stat persistentStat : persistentStats)
-    {
+    for (Stat persistentStat : persistentStats) {
       // ignore stats with wildcards, they don't have values...they are just
       // there to catch new actual stats
-      if (ExpressionParser.statContainsWildcards(persistentStat.getName()))
-      {
+      if (ExpressionParser.statContainsWildcards(persistentStat.getName())) {
         continue;
       }
-      for (int i = 0; i < alertStats.length; i++)
-      {
+      for (int i = 0; i < alertStats.length; i++) {
         String alertStat = alertStats[i];
         ArrayList<String> wildcardBindings = new ArrayList<String>();
         // if match, then proceed. If the match is wildcard, additionally fill
         // in the wildcard bindings
-        if (ExpressionParser.isAlertStatExactMatch(alertStat,
-            persistentStat.getName())
-            || ExpressionParser.isAlertStatWildcardMatch(alertStat,
-                persistentStat.getName(), wildcardBindings))
-        {
+        if (ExpressionParser.isAlertStatExactMatch(alertStat, persistentStat.getName())
+            || ExpressionParser.isAlertStatWildcardMatch(alertStat, persistentStat.getName(),
+                wildcardBindings)) {
           String alertKey;
-          if (wildcardBindings.size() == 0)
-          {
+          if (wildcardBindings.size() == 0) {
             alertKey = noWildcardAlertKey;
-          }
-          else
-          {
+          } else {
             alertKey = formAlertKey(wildcardBindings);
           }
-          if (!tupleSets.containsKey(alertKey))
-          { // don't have an entry for alertKey yet, create one
-            ArrayList<Tuple<String>> tuples = new ArrayList<Tuple<String>>(
-                alertStats.length);
-            for (int j = 0; j < alertStats.length; j++)
-            { // init all entries to null
+          if (!tupleSets.containsKey(alertKey)) { // don't have an entry for alertKey yet, create
+                                                  // one
+            ArrayList<Tuple<String>> tuples = new ArrayList<Tuple<String>>(alertStats.length);
+            for (int j = 0; j < alertStats.length; j++) { // init all entries to null
               tuples.add(j, null);
             }
             tupleSets.put(alertKey, tuples); // add to map
@@ -161,20 +141,16 @@ public class AlertProcessor
     // post-processing step to discard any rows with null vals...
     // TODO: decide if this is best thing to do with incomplete rows
     List<String> selectedKeysToRemove = new ArrayList<String>();
-    for (String setKey : tupleSets.keySet())
-    {
+    for (String setKey : tupleSets.keySet()) {
       ArrayList<Tuple<String>> tupleSet = tupleSets.get(setKey);
-      for (Tuple<String> tup : tupleSet)
-      {
-        if (tup == null)
-        {
+      for (Tuple<String> tup : tupleSet) {
+        if (tup == null) {
           selectedKeysToRemove.add(setKey);
           break; // move on to next setKey
         }
       }
     }
-    for(String keyToRemove : selectedKeysToRemove)
-    {
+    for (String keyToRemove : selectedKeysToRemove) {
       tupleSets.remove(keyToRemove);
     }
 
@@ -184,29 +160,24 @@ public class AlertProcessor
   }
 
   public static List<Iterator<Tuple<String>>> convertTupleRowsToTupleColumns(
-      Map<String, ArrayList<Tuple<String>>> tupleMap)
-  {
+      Map<String, ArrayList<Tuple<String>>> tupleMap) {
     // input is a map of key -> list of tuples. each tuple list is same length
     // output should be a list of iterators. each column in input becomes
     // iterator in output
 
     ArrayList<ArrayList<Tuple<String>>> columns = new ArrayList<ArrayList<Tuple<String>>>();
     ArrayList<Iterator<Tuple<String>>> columnIters = new ArrayList<Iterator<Tuple<String>>>();
-    for (String currStat : tupleMap.keySet())
-    {
+    for (String currStat : tupleMap.keySet()) {
       List<Tuple<String>> currSet = tupleMap.get(currStat);
-      for (int i = 0; i < currSet.size(); i++)
-      {
-        if (columns.size() < (i + 1))
-        {
+      for (int i = 0; i < currSet.size(); i++) {
+        if (columns.size() < (i + 1)) {
           ArrayList<Tuple<String>> col = new ArrayList<Tuple<String>>();
           columns.add(col);
         }
         columns.get(i).add(currSet.get(i));
       }
     }
-    for (ArrayList<Tuple<String>> al : columns)
-    {
+    for (ArrayList<Tuple<String>> al : columns) {
       columnIters.add(al.iterator());
     }
     return columnIters;
@@ -214,20 +185,16 @@ public class AlertProcessor
   }
 
   public static Iterator<Tuple<String>> executeOperatorPipeline(
-      List<Iterator<Tuple<String>>> tupleIters, String[] operators)
-  {
+      List<Iterator<Tuple<String>>> tupleIters, String[] operators) {
     List<Iterator<Tuple<String>>> nextIters = tupleIters;
-    if (operators != null)
-    {
-      for (String opName : operators)
-      {
+    if (operators != null) {
+      for (String opName : operators) {
         Operator op = ExpressionParser.getOperator(opName);
         nextIters = op.execute(nextIters);
       }
     }
 
-    if (nextIters.size() != 1)
-    {
+    if (nextIters.size() != 1) {
       throw new HelixException("operator pipeline produced " + nextIters.size()
           + " tuple sets instead of exactly 1");
     }
@@ -239,15 +206,12 @@ public class AlertProcessor
    * TODO: consider returning actual values, rather than bools. Could just
    * return the triggered alerts
    */
-  public static ArrayList<AlertValueAndStatus> executeComparator(
-      Iterator<Tuple<String>> tuples, String comparatorName,
-      Tuple<String> constant)
-  {
+  public static ArrayList<AlertValueAndStatus> executeComparator(Iterator<Tuple<String>> tuples,
+      String comparatorName, Tuple<String> constant) {
     ArrayList<AlertValueAndStatus> results = new ArrayList<AlertValueAndStatus>();
     AlertComparator cmp = AlertParser.getComparator(comparatorName);
 
-    while (tuples.hasNext())
-    {
+    while (tuples.hasNext()) {
       Tuple<String> currTup = tuples.next();
       boolean fired = cmp.evaluate(currTup, constant);
       results.add(new AlertValueAndStatus(currTup, fired));
@@ -272,31 +236,23 @@ public class AlertProcessor
    * tuple list ArrayList<Boolean> evalResults =
    * executeComparator(opResultTuples, alert.getComparator(),
    * alert.getConstant());
-   * 
    * //TODO: convey this back to execute all
-   * 
    * }
    */
 
   public static HashMap<String, AlertValueAndStatus> generateResultMap(
-      Set<String> alertStatBindings, ArrayList<AlertValueAndStatus> evalResults)
-  {
+      Set<String> alertStatBindings, ArrayList<AlertValueAndStatus> evalResults) {
     HashMap<String, AlertValueAndStatus> resultMap = new HashMap<String, AlertValueAndStatus>();
     Iterator<String> bindingIter = alertStatBindings.iterator();
     Iterator<AlertValueAndStatus> resultIter = evalResults.iterator();
-    if (alertStatBindings.size() != evalResults.size())
-    {
+    if (alertStatBindings.size() != evalResults.size()) {
       // can't match up alerts bindings to results
-      while (resultIter.hasNext())
-      {
+      while (resultIter.hasNext()) {
         resultMap.put(noWildcardAlertKey, resultIter.next());
       }
-    }
-    else
-    {
+    } else {
       // they do match up
-      while (resultIter.hasNext())
-      {
+      while (resultIter.hasNext()) {
         resultMap.put(bindingIter.next(), resultIter.next());
       }
     }
@@ -304,19 +260,17 @@ public class AlertProcessor
   }
 
   public static HashMap<String, AlertValueAndStatus> executeAlert(Alert alert,
-      List<Stat> persistedStats)
-  {
+      List<Stat> persistedStats) {
     // init tuple lists and populate them
     // Map<String,List<Tuple<String>>> alertStatTupleSets =
     // initAlertStatTuples(alert);
 
     String[] alertStats = ExpressionParser.getBaseStats(alert.getExpression());
 
-    Map<String, ArrayList<Tuple<String>>> alertsToTupleRows = populateAlertStatTuples(
-        alertStats, persistedStats);
+    Map<String, ArrayList<Tuple<String>>> alertsToTupleRows =
+        populateAlertStatTuples(alertStats, persistedStats);
 
-    if (alertsToTupleRows.size() == 0)
-    {
+    if (alertsToTupleRows.size() == 0) {
       return null;
     }
     // convert to operator friendly format
@@ -324,31 +278,29 @@ public class AlertProcessor
     // get the operators
     String[] operators = ExpressionParser.getOperators(alert.getExpression());
     // do operator pipeline
-    Iterator<Tuple<String>> opResultTuples = executeOperatorPipeline(
-        tupleIters, operators);
+    Iterator<Tuple<String>> opResultTuples = executeOperatorPipeline(tupleIters, operators);
     // execute comparator for tuple list
-    ArrayList<AlertValueAndStatus> evalResults = executeComparator(
-        opResultTuples, alert.getComparator(), alert.getConstant());
+    ArrayList<AlertValueAndStatus> evalResults =
+        executeComparator(opResultTuples, alert.getComparator(), alert.getConstant());
 
     // stitch alert bindings back together with final result
     // XXX: there is a non-critical bug here. if we have an aggregating
     // operator, but that operator only takes one input,
     // we bind to original wildcard binding, instead of to "*"
 
-    HashMap<String, AlertValueAndStatus> alertBindingsToResult = generateResultMap(
-        alertsToTupleRows.keySet(), evalResults);
+    HashMap<String, AlertValueAndStatus> alertBindingsToResult =
+        generateResultMap(alertsToTupleRows.keySet(), evalResults);
 
     return alertBindingsToResult;
 
   }
 
-  public static Map<String, Map<String, AlertValueAndStatus>> executeAllAlerts(
-      List<Alert> alerts, List<Stat> stats)
-  {
-    Map<String, Map<String, AlertValueAndStatus>> alertsResults = new HashMap<String, Map<String, AlertValueAndStatus>>();
+  public static Map<String, Map<String, AlertValueAndStatus>> executeAllAlerts(List<Alert> alerts,
+      List<Stat> stats) {
+    Map<String, Map<String, AlertValueAndStatus>> alertsResults =
+        new HashMap<String, Map<String, AlertValueAndStatus>>();
 
-    for (Alert alert : alerts)
-    {
+    for (Alert alert : alerts) {
       HashMap<String, AlertValueAndStatus> result = executeAlert(alert, stats);
       // TODO: decide if sticking null results in here is ok
       alertsResults.put(alert.getName(), result);

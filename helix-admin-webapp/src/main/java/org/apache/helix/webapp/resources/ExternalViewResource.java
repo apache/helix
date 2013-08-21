@@ -37,55 +37,45 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ExternalViewResource extends Resource
-{
+public class ExternalViewResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ExternalViewResource.class);
 
-  public ExternalViewResource(Context context, Request request, Response response)
-  {
+  public ExternalViewResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return false;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
-      presentation = getExternalViewRepresentation( clusterName, resourceName);
+      presentation = getExternalViewRepresentation(clusterName, resourceName);
     }
 
-    catch (Exception e)
-    {
+    catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -94,19 +84,15 @@ public class ExternalViewResource extends Resource
     return presentation;
   }
 
-  StringRepresentation getExternalViewRepresentation(String clusterName,
-                                                     String resourceName) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  StringRepresentation getExternalViewRepresentation(String clusterName, String resourceName)
+      throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-    
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ;
+
     String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient,
-                                                             clusterName,
-                                                             keyBuilder.externalView(resourceName),
-                                                             MediaType.APPLICATION_JSON);
+        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
+            keyBuilder.externalView(resourceName), MediaType.APPLICATION_JSON);
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);
 

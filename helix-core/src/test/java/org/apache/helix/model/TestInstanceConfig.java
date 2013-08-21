@@ -30,9 +30,10 @@ import org.testng.annotations.Test;
  * To change this template use File | Settings | File Templates.
  */
 public class TestInstanceConfig {
-    @Test
-    public void testNotCheckingHostPortExistence() {
-        InstanceConfig config = new InstanceConfig("node_0");
-        Assert.assertTrue(config.isValid(), "HELIX-65: should not check host/port existence for instance-config");
-    }
+  @Test
+  public void testNotCheckingHostPortExistence() {
+    InstanceConfig config = new InstanceConfig("node_0");
+    Assert.assertTrue(config.isValid(),
+        "HELIX-65: should not check host/port existence for instance-config");
+  }
 }

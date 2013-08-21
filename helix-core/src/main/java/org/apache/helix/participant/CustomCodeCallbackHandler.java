@@ -25,8 +25,7 @@ import org.apache.helix.NotificationContext;
  * Callback interface to running custom code on Helix participant manager
  * The custom code will be triggered on user specified cluster changes
  */
-public interface CustomCodeCallbackHandler
-{
+public interface CustomCodeCallbackHandler {
   /**
    * callback
    * @param context

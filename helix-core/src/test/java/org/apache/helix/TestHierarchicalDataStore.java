@@ -29,14 +29,13 @@ import java.io.FileFilter;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestHierarchicalDataStore extends ZkUnitTestBase
-{
+public class TestHierarchicalDataStore extends ZkUnitTestBase {
   protected static ZkClient _zkClientString = null;
 
-  @Test (groups = {"unitTest"})
-  public void testHierarchicalDataStore()
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testHierarchicalDataStore() {
     _zkClientString = new ZkClient(ZK_ADDR, 1000, 3000);
 
     String path = "/tmp/testHierarchicalDataStore";
@@ -44,8 +43,8 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase
     // _zkClient.setZkSerializer(new ZNRecordSerializer());
 
     _zkClientString.deleteRecursive(path);
-    HierarchicalDataHolder<ZNRecord> dataHolder = new HierarchicalDataHolder<ZNRecord>(
-        _zkClientString, path, filter);
+    HierarchicalDataHolder<ZNRecord> dataHolder =
+        new HierarchicalDataHolder<ZNRecord>(_zkClientString, path, filter);
     dataHolder.print();
     AssertJUnit.assertFalse(dataHolder.refreshData());
 
@@ -65,21 +64,19 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase
     add(path + "/child1" + "/grandchild2", "grand child 2 data");
     AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
-    
+
     AssertJUnit.assertFalse(dataHolder.refreshData());
-    
+
     set(path + "/child1", "new child 1 data");
     AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
   }
 
-  private void set(String path, String data)
-  {
+  private void set(String path, String data) {
     _zkClientString.writeData(path, data);
   }
 
-  private void add(String path, String data)
-  {
+  private void add(String path, String data) {
     _zkClientString.createPersistent(path, true);
     _zkClientString.writeData(path, data);
   }

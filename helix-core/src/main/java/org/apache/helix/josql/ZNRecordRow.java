@@ -27,31 +27,27 @@ import java.util.Map;
 
 import org.apache.helix.ZNRecord;
 
-
 /**
- * A Normalized form of ZNRecord 
- * */
-public class ZNRecordRow
-{
+ * A Normalized form of ZNRecord
+ */
+public class ZNRecordRow {
   // "Field names" in the flattened ZNRecord
   public static final String SIMPLE_KEY = "simpleKey";
   public static final String SIMPLE_VALUE = "simpleValue";
-  
+
   public static final String LIST_KEY = "listKey";
   public static final String LIST_VALUE = "listValue";
   public static final String LIST_VALUE_INDEX = "listValueIndex";
-  
+
   public static final String MAP_KEY = "mapKey";
   public static final String MAP_SUBKEY = "mapSubKey";
   public static final String MAP_VALUE = "mapValue";
   public static final String ZNRECORD_ID = "recordId";
-  // ZNRECORD path ? 
-  
-  
+  // ZNRECORD path ?
+
   final Map<String, String> _rowDataMap = new HashMap<String, String>();
-  
-  public ZNRecordRow()
-  {
+
+  public ZNRecordRow() {
     _rowDataMap.put(SIMPLE_KEY, "");
     _rowDataMap.put(SIMPLE_VALUE, "");
     _rowDataMap.put(LIST_KEY, "");
@@ -62,71 +58,59 @@ public class ZNRecordRow
     _rowDataMap.put(MAP_VALUE, "");
     _rowDataMap.put(ZNRECORD_ID, "");
   }
-  
-  public String getField(String rowField)
-  {
+
+  public String getField(String rowField) {
     return _rowDataMap.get(rowField);
   }
-  
-  public void putField(String fieldName, String fieldValue)
-  {
+
+  public void putField(String fieldName, String fieldValue) {
     _rowDataMap.put(fieldName, fieldValue);
   }
-  public String getListValueIndex()
-  {
+
+  public String getListValueIndex() {
     return getField(LIST_VALUE_INDEX);
   }
-  public String getSimpleKey()
-  {
+
+  public String getSimpleKey() {
     return getField(SIMPLE_KEY);
   }
-  
-  public String getSimpleValue()
-  {
+
+  public String getSimpleValue() {
     return getField(SIMPLE_VALUE);
   }
-  
-  public String getListKey()
-  {
+
+  public String getListKey() {
     return getField(LIST_KEY);
   }
-  
-  public String getListValue()
-  {
+
+  public String getListValue() {
     return getField(LIST_VALUE);
   }
-  
-  public String getMapKey()
-  {
+
+  public String getMapKey() {
     return getField(MAP_KEY);
   }
-  
-  public String getMapSubKey()
-  {
+
+  public String getMapSubKey() {
     return getField(MAP_SUBKEY);
   }
-  
-  public String getMapValue()
-  {
+
+  public String getMapValue() {
     return getField(MAP_VALUE);
   }
-  
-  public String getRecordId()
-  {
+
+  public String getRecordId() {
     return getField(ZNRECORD_ID);
   }
-  
+
   /* Josql function handlers */
-  public static String getField(ZNRecordRow row, String rowField)
-  {
+  public static String getField(ZNRecordRow row, String rowField) {
     return row.getField(rowField);
   }
-  
-  public static List<ZNRecordRow> convertSimpleFields(ZNRecord record)
-  {
+
+  public static List<ZNRecordRow> convertSimpleFields(ZNRecord record) {
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
-    for(String key : record.getSimpleFields().keySet())
-    {
+    for (String key : record.getSimpleFields().keySet()) {
       ZNRecordRow row = new ZNRecordRow();
       row.putField(ZNRECORD_ID, record.getId());
       row.putField(SIMPLE_KEY, key);
@@ -135,34 +119,28 @@ public class ZNRecordRow
     }
     return result;
   }
-  
-  public static List<ZNRecordRow> convertListFields(ZNRecord record)
-  {
+
+  public static List<ZNRecordRow> convertListFields(ZNRecord record) {
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
-    for(String key : record.getListFields().keySet())
-    {
+    for (String key : record.getListFields().keySet()) {
       int order = 0;
-      for(String value : record.getListField(key))
-      {
+      for (String value : record.getListField(key)) {
         ZNRecordRow row = new ZNRecordRow();
         row.putField(ZNRECORD_ID, record.getId());
         row.putField(LIST_KEY, key);
         row.putField(LIST_VALUE, record.getSimpleField(key));
-        row.putField(LIST_VALUE_INDEX, ""+order);
+        row.putField(LIST_VALUE_INDEX, "" + order);
         order++;
         result.add(row);
       }
     }
     return result;
   }
-  
-  public static List<ZNRecordRow> convertMapFields(ZNRecord record)
-  {
+
+  public static List<ZNRecordRow> convertMapFields(ZNRecord record) {
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
-    for(String key0 : record.getMapFields().keySet())
-    {
-      for(String key1 : record.getMapField(key0).keySet())
-      {
+    for (String key0 : record.getMapFields().keySet()) {
+      for (String key1 : record.getMapField(key0).keySet()) {
         ZNRecordRow row = new ZNRecordRow();
         row.putField(ZNRECORD_ID, record.getId());
         row.putField(MAP_KEY, key0);
@@ -173,27 +151,24 @@ public class ZNRecordRow
     }
     return result;
   }
-  
-  public static List<ZNRecordRow> flatten(ZNRecord record)
-  {
+
+  public static List<ZNRecordRow> flatten(ZNRecord record) {
     List<ZNRecordRow> result = convertMapFields(record);
     result.addAll(convertListFields(record));
     result.addAll(convertSimpleFields(record));
     return result;
   }
-  
-  public static List<ZNRecordRow> flatten(Collection<ZNRecord> recordList)
-  {
+
+  public static List<ZNRecordRow> flatten(Collection<ZNRecord> recordList) {
     List<ZNRecordRow> result = new ArrayList<ZNRecordRow>();
-    for(ZNRecord record : recordList)
-    {
+    for (ZNRecord record : recordList) {
       result.addAll(flatten(record));
     }
     return result;
   }
-  
-  public static List<ZNRecordRow> getRowListFromMap(Map<String, List<ZNRecordRow>> rowMap, String key)
-  {
+
+  public static List<ZNRecordRow> getRowListFromMap(Map<String, List<ZNRecordRow>> rowMap,
+      String key) {
     return rowMap.get(key);
   }
 }

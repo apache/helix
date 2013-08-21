@@ -34,49 +34,38 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
-
 /**
  * For partition compute best possible (instance,state) pair based on
  * IdealState,StateModel,LiveInstance
- *
  */
-public class BestPossibleStateCalcStage extends AbstractBaseStage
-{
-  private static final Logger logger =
-      Logger.getLogger(BestPossibleStateCalcStage.class.getName());
+public class BestPossibleStateCalcStage extends AbstractBaseStage {
+  private static final Logger logger = Logger.getLogger(BestPossibleStateCalcStage.class.getName());
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
     logger.info("START BestPossibleStateCalcStage.process()");
 
     CurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    Map<String, Resource> resourceMap =
-        event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
-    if (currentStateOutput == null || resourceMap == null || cache == null)
-    {
+    if (currentStateOutput == null || resourceMap == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires CURRENT_STATE|RESOURCES|DataCache");
     }
 
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
-    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(),
-                       bestPossibleStateOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
 
     long endTime = System.currentTimeMillis();
-    logger.info("END BestPossibleStateCalcStage.process(). took: "
-        + (endTime - startTime) + " ms");
+    logger.info("END BestPossibleStateCalcStage.process(). took: " + (endTime - startTime) + " ms");
   }
 
-  private BestPossibleStateOutput compute(ClusterEvent event,
-                                          Map<String, Resource> resourceMap,
-                                          CurrentStateOutput currentStateOutput)
-  {
+  private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
+      CurrentStateOutput currentStateOutput) {
     // for each ideal state
     // read the state model def
     // for each resource
@@ -86,8 +75,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
 
     BestPossibleStateOutput output = new BestPossibleStateOutput();
 
-    for (String resourceName : resourceMap.keySet())
-    {
+    for (String resourceName : resourceMap.keySet()) {
       logger.debug("Processing resource:" + resourceName);
 
       Resource resource = resourceMap.get(resourceName);
@@ -95,54 +83,40 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       // from the current state
       IdealState idealState = cache.getIdealState(resourceName);
 
-      if (idealState == null)
-      {
+      if (idealState == null) {
         // if ideal state is deleted, use an empty one
         logger.info("resource:" + resourceName + " does not exist anymore");
         idealState = new IdealState(resourceName);
       }
 
       Rebalancer rebalancer = null;
-      if(idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
-          && idealState.getRebalancerClassName() != null)
-      {
+      if (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
+          && idealState.getRebalancerClassName() != null) {
         String rebalancerClassName = idealState.getRebalancerClassName();
-        logger.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
-        try
-        {
-          rebalancer = (Rebalancer) (HelixUtil.loadClass(
-              getClass(), rebalancerClassName).newInstance());
-        }
-        catch(Exception e)
-        {
-          logger.warn("Exception while invoking custom rebalancer class:" + rebalancerClassName , e);
+        logger
+            .info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+        try {
+          rebalancer =
+              (Rebalancer) (HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
+        } catch (Exception e) {
+          logger.warn("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
         }
       }
-      if (rebalancer == null)
-      {
-        if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO)
-        {
+      if (rebalancer == null) {
+        if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
           rebalancer = new AutoRebalancer();
-        }
-        else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO)
-        {
+        } else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
           rebalancer = new SemiAutoRebalancer();
-        }
-        else
-        {
+        } else {
           rebalancer = new CustomRebalancer();
         }
       }
 
-      ResourceMapping partitionStateAssignment
-        = rebalancer.computeBestPossiblePartitionState(cache,
-                                                       idealState,
-                                                       resource,
-                                                       currentStateOutput);
-      for (Partition partition : resource.getPartitions())
-      {
-        Map<String, String> newStateMap =
-            partitionStateAssignment.getInstanceStateMap(partition);
+      ResourceMapping partitionStateAssignment =
+          rebalancer.computeBestPossiblePartitionState(cache, idealState, resource,
+              currentStateOutput);
+      for (Partition partition : resource.getPartitions()) {
+        Map<String, String> newStateMap = partitionStateAssignment.getInstanceStateMap(partition);
         output.setState(resourceName, partition, newStateMap);
       }
     }

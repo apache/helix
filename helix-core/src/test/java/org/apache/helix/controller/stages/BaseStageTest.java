@@ -44,58 +44,47 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
-
-public class BaseStageTest
-{
+public class BaseStageTest {
   protected HelixManager manager;
   protected HelixDataAccessor accessor;
   protected ClusterEvent event;
 
   @BeforeClass()
-  public void beforeClass()
-  {
+  public void beforeClass() {
     String className = this.getClass().getName();
-    System.out.println("START " + className.substring(className.lastIndexOf('.') + 1)
-                       + " at "+ new Date(System.currentTimeMillis()));
+    System.out.println("START " + className.substring(className.lastIndexOf('.') + 1) + " at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @AfterClass()
-  public void afterClass()
-  {
+  public void afterClass() {
     String className = this.getClass().getName();
-    System.out.println("END " + className.substring(className.lastIndexOf('.') + 1)
-                       + " at "+ new Date(System.currentTimeMillis()));
+    System.out.println("END " + className.substring(className.lastIndexOf('.') + 1) + " at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod()
-  public void setup()
-  {
+  public void setup() {
     String clusterName = "testCluster-" + UUID.randomUUID().toString();
     manager = new Mocks.MockManager(clusterName);
     accessor = manager.getHelixDataAccessor();
     event = new ClusterEvent("sampleEvent");
   }
 
-  protected List<IdealState> setupIdealState(int nodes, String[] resources,
-                                             int partitions, int replicas,
-                                             RebalanceMode rebalanceMode)
-  {
+  protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
+      int replicas, RebalanceMode rebalanceMode) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
-    for (int i = 0; i < nodes; i++)
-    {
+    for (int i = 0; i < nodes; i++) {
       instances.add("localhost_" + i);
     }
 
-    for (int i = 0; i < resources.length; i++)
-    {
+    for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
       ZNRecord record = new ZNRecord(resourceName);
-      for (int p = 0; p < partitions; p++)
-      {
+      for (int p = 0; p < partitions; p++) {
         List<String> value = new ArrayList<String>();
-        for (int r = 0; r < replicas; r++)
-        {
+        for (int r = 0; r < replicas; r++) {
           value.add("localhost_" + (p + r + 1) % nodes);
         }
         record.setListField(resourceName + "_" + p, value);
@@ -106,7 +95,7 @@ public class BaseStageTest
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
 
-//      System.out.println(idealState);
+      // System.out.println(idealState);
 
       Builder keyBuilder = accessor.keyBuilder();
 
@@ -115,54 +104,47 @@ public class BaseStageTest
     return idealStates;
   }
 
-  protected void setupLiveInstances(int numLiveInstances)
-  {
+  protected void setupLiveInstances(int numLiveInstances) {
     // setup liveInstances
-    for (int i = 0; i < numLiveInstances; i++)
-    {
+    for (int i = 0; i < numLiveInstances; i++) {
       LiveInstance liveInstance = new LiveInstance("localhost_" + i);
       liveInstance.setSessionId("session_" + i);
-      
+
       Builder keyBuilder = accessor.keyBuilder();
       accessor.setProperty(keyBuilder.liveInstance("localhost_" + i), liveInstance);
     }
   }
 
-  protected void runStage(ClusterEvent event, Stage stage)
-  {
+  protected void runStage(ClusterEvent event, Stage stage) {
     event.addAttribute("helixmanager", manager);
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
-    try
-    {
+    try {
       stage.process(event);
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       e.printStackTrace();
     }
     stage.postProcess();
   }
 
-  protected void setupStateModel()
-  {
-    ZNRecord masterSlave = new StateModelConfigGenerator()
-        .generateConfigForMasterSlave();
-    
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(masterSlave));
-    
-    ZNRecord leaderStandby = new StateModelConfigGenerator()
-        .generateConfigForLeaderStandby();
-    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), new StateModelDefinition(leaderStandby));
+  protected void setupStateModel() {
+    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
 
-    ZNRecord onlineOffline = new StateModelConfigGenerator()
-        .generateConfigForOnlineOffline();
-    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), new StateModelDefinition(onlineOffline));
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(
+        masterSlave));
+
+    ZNRecord leaderStandby = new StateModelConfigGenerator().generateConfigForLeaderStandby();
+    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), new StateModelDefinition(
+        leaderStandby));
+
+    ZNRecord onlineOffline = new StateModelConfigGenerator().generateConfigForOnlineOffline();
+    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), new StateModelDefinition(
+        onlineOffline));
   }
 
-  protected Map<String, Resource> getResourceMap()
-  {
+  protected Map<String, Resource> getResourceMap() {
     Map<String, Resource> resourceMap = new HashMap<String, Resource>();
     Resource testResource = new Resource("testResourceName");
     testResource.setStateModelDefRef("MasterSlave");

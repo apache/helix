@@ -21,25 +21,21 @@ package org.apache.helix.healthcheck;
 
 import org.apache.log4j.Logger;
 
-public class DecayAggregationType implements AggregationType
-{
+public class DecayAggregationType implements AggregationType {
 
-  private static final Logger logger = Logger
-      .getLogger(DecayAggregationType.class);
+  private static final Logger logger = Logger.getLogger(DecayAggregationType.class);
 
   public final static String TYPE_NAME = "decay";
 
   double _decayFactor = 0.1;
 
-  public DecayAggregationType(double df)
-  {
+  public DecayAggregationType(double df) {
     super();
     _decayFactor = df;
   }
 
   @Override
-  public String getName()
-  {
+  public String getName() {
     StringBuilder sb = new StringBuilder();
     sb.append(TYPE_NAME);
     sb.append(DELIM);
@@ -48,8 +44,7 @@ public class DecayAggregationType implements AggregationType
   }
 
   @Override
-  public String merge(String iv, String ev, long prevTimestamp)
-  {
+  public String merge(String iv, String ev, long prevTimestamp) {
     double incomingVal = Double.parseDouble(iv);
     double existingVal = Double.parseDouble(ev);
     long currTimestamp = System.currentTimeMillis();
@@ -58,7 +53,6 @@ public class DecayAggregationType implements AggregationType
     // decays
     double oldDecayCoeff = Math.pow((1 - _decayFactor), minutesOld);
     return String
-        .valueOf((double) (oldDecayCoeff * existingVal + (1 - oldDecayCoeff)
-            * incomingVal));
+        .valueOf((double) (oldDecayCoeff * existingVal + (1 - oldDecayCoeff) * incomingVal));
   }
 }

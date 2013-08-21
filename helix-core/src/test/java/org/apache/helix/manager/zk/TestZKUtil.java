@@ -35,21 +35,17 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestZKUtil extends ZkUnitTestBase
-{
+public class TestZKUtil extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestZKUtil.class);
 
   String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   ZkClient _zkClient;
 
   @BeforeClass()
-  public void beforeClass() throws IOException, Exception
-  {
+  public void beforeClass() throws IOException, Exception {
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
-    if (_zkClient.exists("/" + clusterName))
-    {
+    if (_zkClient.exists("/" + clusterName)) {
       _zkClient.deleteRecursive("/" + clusterName);
     }
 
@@ -68,26 +64,24 @@ public class TestZKUtil extends ZkUnitTestBase
   }
 
   @AfterClass()
-  public void afterClass()
-  {
+  public void afterClass() {
     _zkClient.close();
   }
 
   @Test()
-  public void testIsClusterSetup()
-  {
+  public void testIsClusterSetup() {
     boolean result = ZKUtil.isClusterSetup(clusterName, _zkClient);
     AssertJUnit.assertTrue(result);
   }
 
   @Test()
-  public void testChildrenOperations()
-  {
+  public void testChildrenOperations() {
     List<ZNRecord> list = new ArrayList<ZNRecord>();
     list.add(new ZNRecord("id1"));
     list.add(new ZNRecord("id2"));
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString());
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString());
     ZKUtil.createChildren(_zkClient, path, list);
     list = ZKUtil.getChildren(_zkClient, path);
     AssertJUnit.assertEquals(2, list.size());
@@ -101,10 +95,10 @@ public class TestZKUtil extends ZkUnitTestBase
   }
 
   @Test()
-  public void testUpdateIfExists()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString(), "id3");
+  public void testUpdateIfExists() {
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString(), "id3");
     ZNRecord record = new ZNRecord("id4");
     ZKUtil.updateIfExists(_zkClient, path, record, false);
     AssertJUnit.assertFalse(_zkClient.exists(path));
@@ -116,10 +110,10 @@ public class TestZKUtil extends ZkUnitTestBase
   }
 
   @Test()
-  public void testSubtract()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString(), "id5");
+  public void testSubtract() {
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString(), "id5");
     ZNRecord record = new ZNRecord("id5");
     record.setSimpleField("key1", "value1");
     _zkClient.createPersistent(path, record);
@@ -129,18 +123,18 @@ public class TestZKUtil extends ZkUnitTestBase
   }
 
   @Test()
-  public void testNullChildren()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString(), "id6");
+  public void testNullChildren() {
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString(), "id6");
     ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
 
   @Test()
-  public void testCreateOrUpdate()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString(), "id7");
+  public void testCreateOrUpdate() {
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString(), "id7");
     ZNRecord record = new ZNRecord("id7");
     ZKUtil.createOrUpdate(_zkClient, path, record, true, true);
     record = _zkClient.<ZNRecord> readData(path);
@@ -148,10 +142,10 @@ public class TestZKUtil extends ZkUnitTestBase
   }
 
   @Test()
-  public void testCreateOrReplace()
-  {
-    String path = PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString(), "id8");
+  public void testCreateOrReplace() {
+    String path =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString(), "id8");
     ZNRecord record = new ZNRecord("id8");
     ZKUtil.createOrReplace(_zkClient, path, record, true);
     record = _zkClient.<ZNRecord> readData(path);

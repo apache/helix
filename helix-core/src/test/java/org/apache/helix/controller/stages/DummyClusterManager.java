@@ -45,241 +45,208 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
-public class DummyClusterManager implements HelixManager
-{
+public class DummyClusterManager implements HelixManager {
   HelixDataAccessor _accessor;
   String _clusterName;
   String _sessionId;
 
-  public DummyClusterManager(String clusterName, HelixDataAccessor accessor)
-  {
+  public DummyClusterManager(String clusterName, HelixDataAccessor accessor) {
     _clusterName = clusterName;
     _accessor = accessor;
     _sessionId = "session_" + clusterName;
   }
 
   @Override
-  public void connect() throws Exception
-  {
+  public void connect() throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public boolean isConnected()
-  {
+  public boolean isConnected() {
     // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public void disconnect()
-  {
+  public void disconnect() {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception
-  {
+  public void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception
-  {
+  public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void addConfigChangeListener(ConfigChangeListener listener) throws Exception
-  {
+  public void addConfigChangeListener(ConfigChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void addMessageListener(MessageListener listener, String instanceName) throws Exception
-  {
+  public void addMessageListener(MessageListener listener, String instanceName) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
   public void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-                                            String instanceName,
-                                            String sessionId) throws Exception
-  {
+      String instanceName, String sessionId) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception
-  {
+  public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public boolean removeListener(PropertyKey key, Object listener)
-  {
+  public boolean removeListener(PropertyKey key, Object listener) {
     // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public String getClusterName()
-  {
+  public String getClusterName() {
     return _clusterName;
   }
 
   @Override
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public String getSessionId()
-  {
+  public String getSessionId() {
     return _sessionId;
   }
 
   @Override
-  public long getLastNotificationTime()
-  {
+  public long getLastNotificationTime() {
     // TODO Auto-generated method stub
     return 0;
   }
 
   @Override
-  public void addControllerListener(ControllerChangeListener listener)
-  {
+  public void addControllerListener(ControllerChangeListener listener) {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public HelixAdmin getClusterManagmentTool()
-  {
+  public HelixAdmin getClusterManagmentTool() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public ClusterMessagingService getMessagingService()
-  {
+  public ClusterMessagingService getMessagingService() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public ParticipantHealthReportCollector getHealthReportCollector()
-  {
+  public ParticipantHealthReportCollector getHealthReportCollector() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public InstanceType getInstanceType()
-  {
+  public InstanceType getInstanceType() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public String getVersion()
-  {
+  public String getVersion() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public void addHealthStateChangeListener(HealthStateChangeListener listener,
-                                           String instanceName) throws Exception
-  {
+  public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
+      throws Exception {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public StateMachineEngine getStateMachineEngine()
-  {
+  public StateMachineEngine getStateMachineEngine() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public boolean isLeader()
-  {
+  public boolean isLeader() {
     // TODO Auto-generated method stub
     return false;
   }
 
   @Override
-  public ConfigAccessor getConfigAccessor()
-  {
+  public ConfigAccessor getConfigAccessor() {
     // TODO Auto-generated method stub
     return null;
   }
 
   @Override
-  public void startTimerTasks()
-  {
+  public void startTimerTasks() {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void stopTimerTasks()
-  {
+  public void stopTimerTasks() {
     // TODO Auto-generated method stub
 
   }
 
   @Override
-  public HelixDataAccessor getHelixDataAccessor()
-  {
+  public HelixDataAccessor getHelixDataAccessor() {
     return _accessor;
   }
 
   @Override
-  public void addPreConnectCallback(PreConnectCallback callback)
-  {
+  public void addPreConnectCallback(PreConnectCallback callback) {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override
-  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore()
-  {
+  public ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore() {
     // TODO Auto-generated method stub
     return null;
   }
-  
+
   @Override
-  public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception {
-  	// TODO Auto-generated method stub
+  public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
+      throws Exception {
+    // TODO Auto-generated method stub
 
   }
 
   @Override
   public void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
-          throws Exception {
-  	// TODO Auto-generated method stub
+      throws Exception {
+    // TODO Auto-generated method stub
 
   }
 
   @Override
-  public void setLiveInstanceInfoProvider(
-      LiveInstanceInfoProvider liveInstanceInfoProvider)
-  {
+  public void setLiveInstanceInfoProvider(LiveInstanceInfoProvider liveInstanceInfoProvider) {
     // TODO Auto-generated method stub
-    
+
   }
 
   @Override

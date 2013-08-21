@@ -30,32 +30,25 @@ import org.apache.helix.HelixException;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
 
-public class RebalanceUtil
-{
-  public static Map<String, Object> buildInternalIdealState(IdealState state)
-  {
+public class RebalanceUtil {
+  public static Map<String, Object> buildInternalIdealState(IdealState state) {
     // Try parse the partition number from name DB_n. If not, sort the partitions and
     // assign id
     Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
     Map<String, String> reversePartitionIndex = new HashMap<String, String>();
     boolean indexInPartitionName = true;
-    for (String partitionId : state.getPartitionSet())
-    {
+    for (String partitionId : state.getPartitionSet()) {
       int lastPos = partitionId.lastIndexOf("_");
-      if (lastPos < 0)
-      {
+      if (lastPos < 0) {
         indexInPartitionName = false;
         break;
       }
-      try
-      {
+      try {
         String idStr = partitionId.substring(lastPos + 1);
         int partition = Integer.parseInt(idStr);
         partitionIndex.put(partitionId, partition);
         reversePartitionIndex.put(state.getResourceName() + "_" + partition, partitionId);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         indexInPartitionName = false;
         partitionIndex.clear();
         reversePartitionIndex.clear();
@@ -63,41 +56,33 @@ public class RebalanceUtil
       }
     }
 
-    if (indexInPartitionName == false)
-    {
+    if (indexInPartitionName == false) {
       List<String> partitions = new ArrayList<String>();
       partitions.addAll(state.getPartitionSet());
       Collections.sort(partitions);
-      for (int i = 0; i < partitions.size(); i++)
-      {
+      for (int i = 0; i < partitions.size(); i++) {
         partitionIndex.put(partitions.get(i), i);
         reversePartitionIndex.put(state.getResourceName() + "_" + i, partitions.get(i));
       }
     }
 
-    Map<String, List<Integer>> nodeMasterAssignmentMap =
-        new TreeMap<String, List<Integer>>();
+    Map<String, List<Integer>> nodeMasterAssignmentMap = new TreeMap<String, List<Integer>>();
     Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap =
         new TreeMap<String, Map<String, List<Integer>>>();
-    for (String partition : state.getPartitionSet())
-    {
+    for (String partition : state.getPartitionSet()) {
       List<String> instances = state.getRecord().getListField(partition);
       String master = instances.get(0);
-      if (!nodeMasterAssignmentMap.containsKey(master))
-      {
+      if (!nodeMasterAssignmentMap.containsKey(master)) {
         nodeMasterAssignmentMap.put(master, new ArrayList<Integer>());
       }
-      if (!combinedNodeSlaveAssignmentMap.containsKey(master))
-      {
+      if (!combinedNodeSlaveAssignmentMap.containsKey(master)) {
         combinedNodeSlaveAssignmentMap.put(master, new TreeMap<String, List<Integer>>());
       }
       nodeMasterAssignmentMap.get(master).add(partitionIndex.get(partition));
-      for (int i = 1; i < instances.size(); i++)
-      {
+      for (int i = 1; i < instances.size(); i++) {
         String instance = instances.get(i);
         Map<String, List<Integer>> slaveMap = combinedNodeSlaveAssignmentMap.get(master);
-        if (!slaveMap.containsKey(instance))
-        {
+        if (!slaveMap.containsKey(instance)) {
           slaveMap.put(instance, new ArrayList<Integer>());
         }
         slaveMap.get(instance).add(partitionIndex.get(partition));
@@ -112,8 +97,8 @@ public class RebalanceUtil
     result.put("reversePartitionIndex", reversePartitionIndex);
     return result;
   }
-  public static String[] parseStates(String clusterName, StateModelDefinition stateModDef)
-  {
+
+  public static String[] parseStates(String clusterName, StateModelDefinition stateModDef) {
     String[] result = new String[2];
     String masterStateValue = null, slaveStateValue = null;
 
@@ -121,41 +106,30 @@ public class RebalanceUtil
 
     List<String> statePriorityList = stateModDef.getStatesPriorityList();
 
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String count = stateModDef.getNumInstancesPerState(state);
-      if (count.equals("1"))
-      {
-        if (masterStateValue != null)
-        {
+      if (count.equals("1")) {
+        if (masterStateValue != null) {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         masterStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("R"))
-      {
-        if (slaveStateValue != null)
-        {
+      } else if (count.equalsIgnoreCase("R")) {
+        if (slaveStateValue != null) {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         slaveStateValue = state;
-      }
-      else if (count.equalsIgnoreCase("N"))
-      {
-        if (!(masterStateValue == null && slaveStateValue == null))
-        {
+      } else if (count.equalsIgnoreCase("N")) {
+        if (!(masterStateValue == null && slaveStateValue == null)) {
           throw new HelixException("Invalid or unsupported state model definition");
         }
         masterStateValue = slaveStateValue = state;
       }
     }
-    if (masterStateValue == null && slaveStateValue == null)
-    {
+    if (masterStateValue == null && slaveStateValue == null) {
       throw new HelixException("Invalid or unsupported state model definition");
     }
 
-    if (masterStateValue == null)
-    {
+    if (masterStateValue == null) {
       masterStateValue = slaveStateValue;
     }
     result[0] = masterStateValue;

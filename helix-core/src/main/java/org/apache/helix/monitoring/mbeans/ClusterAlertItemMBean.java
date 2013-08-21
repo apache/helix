@@ -19,12 +19,11 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public interface ClusterAlertItemMBean
-{
+public interface ClusterAlertItemMBean {
   String getSensorName();
-  
+
   double getAlertValue();
-  
+
   int getAlertFired();
 
   String getAdditionalInfo();

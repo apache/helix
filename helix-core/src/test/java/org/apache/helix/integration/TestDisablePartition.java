@@ -33,26 +33,25 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
+public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
 
   @Test()
-  public void testDisablePartition() throws Exception
-  {
+  public void testDisablePartition() throws Exception {
     LOG.info("START testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
     // localhost_12919 is MASTER for TestDB_0
-    String command = "--zkSvr " + ZK_ADDR +" --enablePartition false " + CLUSTER_NAME +
-        " localhost_12919 TestDB TestDB_0 TestDB_9";
+    String command =
+        "--zkSvr " + ZK_ADDR + " --enablePartition false " + CLUSTER_NAME
+            + " localhost_12919 TestDB TestDB_0 TestDB_9";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Map<String, Set<String>> map = new HashMap<String, Set<String>>();
     map.put("TestDB_0", TestHelper.setOf("localhost_12919"));
     map.put("TestDB_9", TestHelper.setOf("localhost_12919"));
 
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "OFFLINE");
@@ -60,8 +59,9 @@ public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServ
     ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enablePartition(true, CLUSTER_NAME, "localhost_12919", "TestDB", Arrays.asList("TestDB_9"));
 
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     map.clear();

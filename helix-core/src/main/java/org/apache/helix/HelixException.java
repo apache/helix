@@ -22,18 +22,15 @@ package org.apache.helix;
 /**
  * Base class for an exception thrown by Helix due to inconsistencies caught by Helix itself.
  */
-public class HelixException extends RuntimeException
-{
+public class HelixException extends RuntimeException {
 
   private static final long serialVersionUID = 6558251214364526257L;
 
-  public HelixException(String message)
-  {
+  public HelixException(String message) {
     super(message);
   }
 
-  public HelixException(Throwable cause)
-  {
+  public HelixException(Throwable cause) {
     super(cause);
   }
 }

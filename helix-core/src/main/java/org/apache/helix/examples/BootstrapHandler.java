@@ -34,43 +34,36 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
-
-public class BootstrapHandler extends StateModelFactory<StateModel>
-{
+public class BootstrapHandler extends StateModelFactory<StateModel> {
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey)
-  {
+  public StateModel createNewStateModel(String stateUnitKey) {
     return new BootstrapStateModel(stateUnitKey);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = "{'OFFLINE','SLAVE','MASTER'}")
-  public static class BootstrapStateModel extends StateModel
-  {
+  public static class BootstrapStateModel extends StateModel {
 
     private final String _stateUnitKey;
 
-    public BootstrapStateModel(String stateUnitKey)
-    {
+    public BootstrapStateModel(String stateUnitKey) {
       _stateUnitKey = stateUnitKey;
 
     }
+
     @Transition(from = "MASTER", to = "SLAVE")
-    public void masterToSlave(Message message, NotificationContext context)
-    {
-      
+    public void masterToSlave(Message message, NotificationContext context) {
+
     }
+
     @Transition(from = "OFFLINE", to = "SLAVE")
-    public void offlineToSlave(Message message, NotificationContext context)
-    {
-      System.out
-          .println("BootstrapProcess.BootstrapStateModel.offlineToSlave()");
+    public void offlineToSlave(Message message, NotificationContext context) {
+      System.out.println("BootstrapProcess.BootstrapStateModel.offlineToSlave()");
       HelixManager manager = context.getManager();
       ClusterMessagingService messagingService = manager.getMessagingService();
-      Message requestBackupUriRequest = new Message(
-          MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
-      requestBackupUriRequest
-          .setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
+      Message requestBackupUriRequest =
+          new Message(MessageType.USER_DEFINE_MSG, UUID.randomUUID().toString());
+      requestBackupUriRequest.setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
       requestBackupUriRequest.setMsgState(MessageState.NEW);
       Criteria recipientCriteria = new Criteria();
       recipientCriteria.setInstanceName("*");
@@ -82,34 +75,30 @@ public class BootstrapHandler extends StateModelFactory<StateModel>
       int timeout = 30000;
       BootstrapReplyHandler responseHandler = new BootstrapReplyHandler();
 
-      int sentMessageCount = messagingService.sendAndWait(recipientCriteria,
-          requestBackupUriRequest, responseHandler, timeout);
-      if (sentMessageCount == 0)
-      {
+      int sentMessageCount =
+          messagingService.sendAndWait(recipientCriteria, requestBackupUriRequest, responseHandler,
+              timeout);
+      if (sentMessageCount == 0) {
         // could not find any other node hosting the partition
-      } else if (responseHandler.getBootstrapUrl() != null)
-      {
-        System.out.println("Got bootstrap url:"+ responseHandler.getBootstrapUrl() );
-        System.out.println("Got backup time:"+ responseHandler.getBootstrapTime() );
+      } else if (responseHandler.getBootstrapUrl() != null) {
+        System.out.println("Got bootstrap url:" + responseHandler.getBootstrapUrl());
+        System.out.println("Got backup time:" + responseHandler.getBootstrapTime());
         // Got the url fetch it
-      } else
-      {
+      } else {
         // Either go to error state
         // throw new Exception("Cant find backup/bootstrap data");
         // Request some node to start backup process
       }
     }
+
     @Transition(from = "SLAVE", to = "OFFLINE")
-    public void slaveToOffline(Message message, NotificationContext context)
-    {
-      System.out
-          .println("BootstrapProcess.BootstrapStateModel.slaveToOffline()");
+    public void slaveToOffline(Message message, NotificationContext context) {
+      System.out.println("BootstrapProcess.BootstrapStateModel.slaveToOffline()");
     }
+
     @Transition(from = "SLAVE", to = "MASTER")
-    public void slaveToMaster(Message message, NotificationContext context)
-    {
-      System.out
-          .println("BootstrapProcess.BootstrapStateModel.slaveToMaster()");
+    public void slaveToMaster(Message message, NotificationContext context) {
+      System.out.println("BootstrapProcess.BootstrapStateModel.slaveToMaster()");
     }
 
   }

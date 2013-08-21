@@ -27,19 +27,16 @@ import org.apache.log4j.Logger;
 /**
  * Operations to divide a ZNRecord into specified buckets
  */
-public class ZNRecordBucketizer
-{
+public class ZNRecordBucketizer {
   private static Logger LOG = Logger.getLogger(ZNRecordBucketizer.class);
-  final int             _bucketSize;
+  final int _bucketSize;
 
   /**
    * Instantiate a bucketizer with the number of buckets
    * @param bucketSize
    */
-  public ZNRecordBucketizer(int bucketSize)
-  {
-    if (bucketSize <= 0)
-    {
+  public ZNRecordBucketizer(int bucketSize) {
+    if (bucketSize <= 0) {
       LOG.debug("bucketSize <= 0 (was " + bucketSize
           + "). Set to 0 to use non-bucketized HelixProperty.");
       bucketSize = 0;
@@ -50,37 +47,30 @@ public class ZNRecordBucketizer
 
   /**
    * Calculate bucketName in form of "resourceName_p{startPartition}-p{endPartition}
-   * 
    * @param partitionName
    * @return the bucket name
    */
-  public String getBucketName(String key)
-  {
-    if (_bucketSize == 0)
-    {
+  public String getBucketName(String key) {
+    if (_bucketSize == 0) {
       // no bucketize
       return null;
     }
 
     int idx = key.lastIndexOf('_');
-    if (idx < 0)
-    {
+    if (idx < 0) {
       throw new IllegalArgumentException("Could NOT find partition# in " + key
           + ". partitionName should be in format of resourceName_partition#");
     }
 
-    try
-    {
+    try {
       int partitionNb = Integer.parseInt(key.substring(idx + 1));
       int bucketNb = partitionNb / _bucketSize;
       int startPartition = bucketNb * _bucketSize;
       int endPartition = bucketNb * _bucketSize + (_bucketSize - 1);
       return key.substring(0, idx) + "_p" + startPartition + "-p" + endPartition;
-    }
-    catch (NumberFormatException e)
-    {
-      throw new IllegalArgumentException("Could NOT parse partition# ("
-          + key.substring(idx + 1) + ") in " + key);
+    } catch (NumberFormatException e) {
+      throw new IllegalArgumentException("Could NOT parse partition# (" + key.substring(idx + 1)
+          + ") in " + key);
     }
   }
 
@@ -89,56 +79,43 @@ public class ZNRecordBucketizer
    * @param record
    * @return A map of bucket names to bucketized records
    */
-  public Map<String, ZNRecord> bucketize(ZNRecord record)
-  {
+  public Map<String, ZNRecord> bucketize(ZNRecord record) {
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
-    if (_bucketSize == 0)
-    {
+    if (_bucketSize == 0) {
       map.put(record.getId(), record);
       return map;
     }
-    
+
     // bucketize list field
-    for (String partitionName : record.getListFields().keySet())
-    {
+    for (String partitionName : record.getListFields().keySet()) {
       String bucketName = getBucketName(partitionName);
-      if (bucketName != null)
-      {
-        if (!map.containsKey(bucketName))
-        {
+      if (bucketName != null) {
+        if (!map.containsKey(bucketName)) {
           map.put(bucketName, new ZNRecord(bucketName));
         }
         ZNRecord bucketizedRecord = map.get(bucketName);
         bucketizedRecord.setListField(partitionName, record.getListField(partitionName));
-      }
-      else
-      {
+      } else {
         LOG.error("Can't bucketize " + partitionName + " in list field");
       }
     }
 
     // bucketize map field
-    for (String partitionName : record.getMapFields().keySet())
-    {
+    for (String partitionName : record.getMapFields().keySet()) {
       String bucketName = getBucketName(partitionName);
-      if (bucketName != null)
-      {
-        if (!map.containsKey(bucketName))
-        {
+      if (bucketName != null) {
+        if (!map.containsKey(bucketName)) {
           map.put(bucketName, new ZNRecord(bucketName));
         }
         ZNRecord bucketizedRecord = map.get(bucketName);
         bucketizedRecord.setMapField(partitionName, record.getMapField(partitionName));
-      }
-      else
-      {
+      } else {
         LOG.error("Can't bucketize " + partitionName + " in map field");
       }
     }
-    
+
     // copy all simple fields
-    for (ZNRecord bucketizedRecord : map.values())
-    {
+    for (ZNRecord bucketizedRecord : map.values()) {
       bucketizedRecord.setSimpleFields(record.getSimpleFields());
     }
     return map;

@@ -24,26 +24,22 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import java.util.ArrayList;
 
 public class AutoRebalanceModeISBuilder extends IdealStateBuilder {
-    public AutoRebalanceModeISBuilder(String resourceName)
-    {
-        super(resourceName);
-        setRebalancerMode(RebalanceMode.FULL_AUTO);
+  public AutoRebalanceModeISBuilder(String resourceName) {
+    super(resourceName);
+    setRebalancerMode(RebalanceMode.FULL_AUTO);
+  }
+
+  /**
+   * Add a partition, Helix will automatically assign the placement and state
+   * for this partition at runtime.
+   * @param partitionName
+   */
+  public AutoRebalanceModeISBuilder add(String partitionName) {
+    if (_record.getListField(partitionName) == null) {
+      _record.setListField(partitionName, new ArrayList<String>());
     }
 
-    /**
-     * Add a partition, Helix will automatically assign the placement and state
-     * for this partition at runtime.
-     *
-     * @param partitionName
-     */
-    public AutoRebalanceModeISBuilder add(String partitionName)
-    {
-        if (_record.getListField(partitionName) == null)
-        {
-            _record.setListField(partitionName, new ArrayList<String>());
-        }
-
-        return this;
-    }
+    return this;
+  }
 
 }

@@ -23,69 +23,60 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 
+public abstract class StateModel {
+  static final String DEFAULT_INITIAL_STATE = "OFFLINE";
+  Logger logger = Logger.getLogger(StateModel.class);
 
-public abstract class StateModel
-{
-	static final String DEFAULT_INITIAL_STATE = "OFFLINE";
-	Logger logger = Logger.getLogger(StateModel.class);
+  // TODO Get default state from implementation or from state model annotation
+  // StateModel with initial state other than OFFLINE should override this field
+  protected String _currentState = DEFAULT_INITIAL_STATE;
 
-	// TODO Get default state from implementation or from state model annotation
-	// StateModel with initial state other than OFFLINE should override this field
-	protected String _currentState = DEFAULT_INITIAL_STATE;
+  public String getCurrentState() {
+    return _currentState;
+  }
 
-	public String getCurrentState()
-	{
-		return _currentState;
-	}
+  // @transition(from='from', to='to')
+  public void defaultTransitionHandler() {
+    logger
+        .error("Default default handler. The idea is to invoke this if no transition method is found. Yet to be implemented");
+  }
 
-	// @transition(from='from', to='to')
-	public void defaultTransitionHandler()
-	{
-		logger
-		    .error("Default default handler. The idea is to invoke this if no transition method is found. Yet to be implemented");
-	}
+  public boolean updateState(String newState) {
+    _currentState = newState;
+    return true;
+  }
 
-	public boolean updateState(String newState)
-	{
-		_currentState = newState;
-		return true;
-	}
+  /**
+   * Called when error occurs in state transition
+   * TODO:enforce subclass to write this
+   * @param message
+   * @param context
+   * @param error
+   */
+  public void rollbackOnError(Message message, NotificationContext context,
+      StateTransitionError error) {
 
-	/**
-	 * Called when error occurs in state transition
-	 *
-	 * TODO:enforce subclass to write this
-	 * @param message
-	 * @param context
-	 * @param error
-	 */
-	public void rollbackOnError(Message message, NotificationContext context,
-	    StateTransitionError error)
-	{
+    logger.error("Default rollback method invoked on error. Error Code: " + error.getCode());
 
-		logger.error("Default rollback method invoked on error. Error Code: "
-		    + error.getCode());
+  }
 
-	}
+  /**
+   * Called when the state model is reset
+   */
+  public void reset() {
+    logger
+        .warn("Default reset method invoked. Either because the process longer own this resource or session timedout");
+  }
 
-	/**
-	 * Called when the state model is reset
-	 */
-	public void reset()
-	{
-    logger.warn("Default reset method invoked. Either because the process longer own this resource or session timedout");
-	}
-
-	/**
-	 * default transition for drop partition in error state
-	 *
-	 * @param message
-	 * @param context
-	 * @throws InterruptedException
-	 */
+  /**
+   * default transition for drop partition in error state
+   * @param message
+   * @param context
+   * @throws InterruptedException
+   */
   @Transition(to = "DROPPED", from = "ERROR")
-  public void onBecomeDroppedFromError(Message message, NotificationContext context) throws Exception
-  {
+  public void onBecomeDroppedFromError(Message message, NotificationContext context)
+      throws Exception {
     logger.info("Default ERROR->DROPPED transition invoked.");
   }
 

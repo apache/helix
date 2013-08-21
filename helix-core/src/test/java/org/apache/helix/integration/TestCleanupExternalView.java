@@ -34,91 +34,91 @@ import org.testng.annotations.Test;
 import java.util.Date;
 
 /**
- *
- * Test clean external-view - if current-state is remove externally, controller should remove the orphan external-view
+ * Test clean external-view - if current-state is remove externally, controller should remove the
+ * orphan external-view
  */
 public class TestCleanupExternalView extends ZkUnitTestBase {
-    @Test
-    public void test() throws Exception {
-        // Logger.getRootLogger().setLevel(Level.INFO);
-        String className = TestHelper.getTestClassName();
-        String methodName = TestHelper.getTestMethodName();
-        String clusterName = className + "_" + methodName;
-        int n = 2;
+  @Test
+  public void test() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    int n = 2;
 
-        System.out.println("START " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-        TestHelper.setupCluster(clusterName,
-                ZK_ADDR,
-                12918, // participant port
-                "localhost", // participant name prefix
-                "TestDB", // resource name prefix
-                1, // resources
-                2, // partitions per resource
-                n, // number of nodes
-                2, // replicas
-                "MasterSlave",
-                true); // do rebalance
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        2, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
 
-        ClusterController controller =
-                new ClusterController(clusterName, "controller_0", ZK_ADDR);
-        controller.syncStart();
+    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    controller.syncStart();
 
-        // start participants
-        MockParticipant[] participants = new MockParticipant[n];
-        for (int i = 0; i < n; i++)
-        {
-            String instanceName = "localhost_" + (12918 + i);
+    // start participants
+    MockParticipant[] participants = new MockParticipant[n];
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
 
-            participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
-            participants[i].syncStart();
-        }
-
-        boolean result =
-                ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                        clusterName));
-        Assert.assertTrue(result);
-
-        // disable controller
-        ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
-        admin.enableCluster(clusterName, false);
-        // wait all pending zk-events being processed, otherwise remove current-state will cause controller send O->S message
-        ZkTestHelper.tryWaitZkEventsCleaned(controller.getManager().getZkClient());
-        // System.out.println("paused controller");
-
-        // drop resource
-        admin.dropResource(clusterName, "TestDB0");
-
-        // delete current-state manually, controller shall remove external-view when cluster is enabled again
-        ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-
-        // System.out.println("remove current-state");
-        LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
-        accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getSessionId(), "TestDB0"));
-        liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12919"));
-        accessor.removeProperty(keyBuilder.currentState("localhost_12919", liveInstance.getSessionId(), "TestDB0"));
-
-        // re-enable controller shall remove orphan external-view
-        // System.out.println("re-enabling controller");
-        admin.enableCluster(clusterName, true);
-
-        ExternalView externalView = null;
-        for (int i = 0; i < 10; i++) {
-            Thread.sleep(100);
-            externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
-            // System.out.println("externalView: " + externalView);
-            if (externalView == null) {
-                break;
-            }
-        }
-
-        Assert.assertNull(externalView, "external-view for TestDB0 should be removed, but was: " + externalView);
-
-        System.out.println("END " + clusterName + " at "
-                + new Date(System.currentTimeMillis()));
-
+      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i].syncStart();
     }
+
+    boolean result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                clusterName));
+    Assert.assertTrue(result);
+
+    // disable controller
+    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.enableCluster(clusterName, false);
+    // wait all pending zk-events being processed, otherwise remove current-state will cause
+    // controller send O->S message
+    ZkTestHelper.tryWaitZkEventsCleaned(controller.getManager().getZkClient());
+    // System.out.println("paused controller");
+
+    // drop resource
+    admin.dropResource(clusterName, "TestDB0");
+
+    // delete current-state manually, controller shall remove external-view when cluster is enabled
+    // again
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    // System.out.println("remove current-state");
+    LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
+    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getSessionId(),
+        "TestDB0"));
+    liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12919"));
+    accessor.removeProperty(keyBuilder.currentState("localhost_12919", liveInstance.getSessionId(),
+        "TestDB0"));
+
+    // re-enable controller shall remove orphan external-view
+    // System.out.println("re-enabling controller");
+    admin.enableCluster(clusterName, true);
+
+    ExternalView externalView = null;
+    for (int i = 0; i < 10; i++) {
+      Thread.sleep(100);
+      externalView = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+      // System.out.println("externalView: " + externalView);
+      if (externalView == null) {
+        break;
+      }
+    }
+
+    Assert.assertNull(externalView, "external-view for TestDB0 should be removed, but was: "
+        + externalView);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+  }
 
 }

@@ -36,71 +36,69 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
-@StateModelInfo(initialState = "OFFLINE", states = { "ONLINE", "ERROR" })
+@StateModelInfo(initialState = "OFFLINE", states = {
+    "ONLINE", "ERROR"
+})
 public class TaskStateModel extends StateModel {
-	private static Logger LOG = Logger.getLogger(TaskStateModel.class);
+  private static Logger LOG = Logger.getLogger(TaskStateModel.class);
 
-	private final String _workerId;
-	private final String _partition;
+  private final String _workerId;
+  private final String _partition;
 
-	private final TaskFactory _taskFactory;
+  private final TaskFactory _taskFactory;
 
-	private TaskResultStore _taskResultStore;
+  private TaskResultStore _taskResultStore;
 
-	public TaskStateModel(String workerId, String partition, TaskFactory taskFactory, TaskResultStore taskResultStore) {
-		_partition = partition;
-		_workerId = workerId;
-		_taskFactory = taskFactory;
-		_taskResultStore = taskResultStore;
-	}
+  public TaskStateModel(String workerId, String partition, TaskFactory taskFactory,
+      TaskResultStore taskResultStore) {
+    _partition = partition;
+    _workerId = workerId;
+    _taskFactory = taskFactory;
+    _taskResultStore = taskResultStore;
+  }
 
-	@Transition(to = "ONLINE", from = "OFFLINE")
-	public void onBecomeOnlineFromOffline(Message message,
-			NotificationContext context) throws Exception {
-		LOG.debug(_workerId + " becomes ONLINE from OFFLINE for "
-				+ _partition);
-		ConfigAccessor clusterConfig = context.getManager().getConfigAccessor();
-		HelixManager manager = context.getManager();
-		HelixConfigScope clusterScope = new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER)
-		                                    .forCluster(manager.getClusterName())
-		                                    .build();
-		String json = clusterConfig.get(clusterScope, message.getResourceName());
-		Dag.Node node = Dag.Node.fromJson(json); 
-		Set<String> parentIds = node.getParentIds();
-		String resourceName = message.getResourceName();
-		int numPartitions = node.getNumPartitions();
-		Task task = _taskFactory.createTask(resourceName, parentIds, manager, _taskResultStore);
-		manager.addExternalViewChangeListener(task);
-		
-		LOG.debug("Starting task for " + _partition + "...");
-		int partitionNum = Integer.parseInt(_partition.split("_")[1]);
-		task.execute(resourceName, numPartitions, partitionNum);
-		LOG.debug("Task for " + _partition + " done");
-	}
+  @Transition(to = "ONLINE", from = "OFFLINE")
+  public void onBecomeOnlineFromOffline(Message message, NotificationContext context)
+      throws Exception {
+    LOG.debug(_workerId + " becomes ONLINE from OFFLINE for " + _partition);
+    ConfigAccessor clusterConfig = context.getManager().getConfigAccessor();
+    HelixManager manager = context.getManager();
+    HelixConfigScope clusterScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
+            manager.getClusterName()).build();
+    String json = clusterConfig.get(clusterScope, message.getResourceName());
+    Dag.Node node = Dag.Node.fromJson(json);
+    Set<String> parentIds = node.getParentIds();
+    String resourceName = message.getResourceName();
+    int numPartitions = node.getNumPartitions();
+    Task task = _taskFactory.createTask(resourceName, parentIds, manager, _taskResultStore);
+    manager.addExternalViewChangeListener(task);
 
-	@Transition(to = "OFFLINE", from = "ONLINE")
-	public void onBecomeOfflineFromOnline(Message message,
-			NotificationContext context) throws InterruptedException {
-		LOG.debug(_workerId + " becomes OFFLINE from ONLINE for "
-				+ _partition);
-		
-	}
+    LOG.debug("Starting task for " + _partition + "...");
+    int partitionNum = Integer.parseInt(_partition.split("_")[1]);
+    task.execute(resourceName, numPartitions, partitionNum);
+    LOG.debug("Task for " + _partition + " done");
+  }
 
-	@Transition(to = "DROPPED", from = "OFFLINE")
-	public void onBecomeDroppedFromOffline(Message message,
-			NotificationContext context) {
-		LOG.debug(_workerId + " becomes DROPPED from OFFLINE for "
-				+ _partition);
-	}
+  @Transition(to = "OFFLINE", from = "ONLINE")
+  public void onBecomeOfflineFromOnline(Message message, NotificationContext context)
+      throws InterruptedException {
+    LOG.debug(_workerId + " becomes OFFLINE from ONLINE for " + _partition);
 
-	@Transition(to = "OFFLINE", from = "ERROR")
-	public void onBecomeOfflineFromError(Message message,
-			NotificationContext context) {
-		LOG.debug(_workerId + " becomes OFFLINE from ERROR for " + _partition);
-	}
+  }
 
-	@Override
-	public void reset() {
-		LOG.warn("Default reset() invoked");
-	}
+  @Transition(to = "DROPPED", from = "OFFLINE")
+  public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
+    LOG.debug(_workerId + " becomes DROPPED from OFFLINE for " + _partition);
+  }
+
+  @Transition(to = "OFFLINE", from = "ERROR")
+  public void onBecomeOfflineFromError(Message message, NotificationContext context) {
+    LOG.debug(_workerId + " becomes OFFLINE from ERROR for " + _partition);
+  }
+
+  @Override
+  public void reset() {
+    LOG.warn("Default reset() invoked");
+  }
 }

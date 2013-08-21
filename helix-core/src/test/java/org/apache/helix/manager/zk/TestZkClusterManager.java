@@ -52,32 +52,26 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestZkClusterManager extends ZkUnitTestBase
-{
+public class TestZkClusterManager extends ZkUnitTestBase {
   final String className = getShortClassName();
 
   @Test()
-  public void testController() throws Exception
-  {
-    System.out.println("START " + className + ".testController() at " + new Date(System.currentTimeMillis()));
+  public void testController() throws Exception {
+    System.out.println("START " + className + ".testController() at "
+        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_controller";
 
     // basic test
-    if (_gZkClient.exists("/" + clusterName))
-    {
+    if (_gZkClient.exists("/" + clusterName)) {
       _gZkClient.deleteRecursive("/" + clusterName);
     }
 
-    ZKHelixManager controller = new ZKHelixManager(clusterName, null,
-                                                   InstanceType.CONTROLLER,
-                                                   ZK_ADDR);
-    try
-    {
+    ZKHelixManager controller =
+        new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
+    try {
       controller.connect();
       Assert.fail("Should throw HelixException if initial cluster structure is not setup");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
 
@@ -91,12 +85,10 @@ public class TestZkClusterManager extends ZkUnitTestBase
     MockListener listener = new MockListener();
     listener.reset();
 
-    try
-    {
+    try {
       controller.addControllerListener(null);
       Assert.fail("Should throw HelixException");
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       // OK
     }
 
@@ -110,7 +102,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
     int options = 0;
     store.set("/node_1", record, AccessOption.PERSISTENT);
     Stat stat = new Stat();
-    record = store.get("/node_1",stat, options);
+    record = store.get("/node_1", stat, options);
     AssertJUnit.assertEquals("node_1", record.getId());
 
     controller.getMessagingService();
@@ -121,24 +113,24 @@ public class TestZkClusterManager extends ZkUnitTestBase
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
 
-    System.out.println("END " + className + ".testController() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + className + ".testController() at "
+        + new Date(System.currentTimeMillis()));
   }
-  
+
   @Test
-  public void testLiveInstanceInfoProvider() throws Exception
-  {
-    System.out.println("START " + className + ".testLiveInstanceInfoProvider() at " + new Date(System.currentTimeMillis()));
+  public void testLiveInstanceInfoProvider() throws Exception {
+    System.out.println("START " + className + ".testLiveInstanceInfoProvider() at "
+        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_liveInstanceInfoProvider";
-    class provider implements LiveInstanceInfoProvider
-    {
+    class provider implements LiveInstanceInfoProvider {
       boolean _flag = false;
-      public provider(boolean genSessionId)
-      {
+
+      public provider(boolean genSessionId) {
         _flag = genSessionId;
       }
+
       @Override
-      public ZNRecord getAdditionalLiveInstanceInfo()
-      {
+      public ZNRecord getAdditionalLiveInstanceInfo() {
         ZNRecord record = new ZNRecord("info");
         record.setSimpleField("simple", "value");
         List<String> listFieldVal = new ArrayList<String>();
@@ -146,13 +138,12 @@ public class TestZkClusterManager extends ZkUnitTestBase
         listFieldVal.add("val2");
         listFieldVal.add("val3");
         record.setListField("list", listFieldVal);
-        Map<String,String> mapFieldVal = new HashMap<String, String>();
+        Map<String, String> mapFieldVal = new HashMap<String, String>();
         mapFieldVal.put("k1", "val1");
-        mapFieldVal.put("k2","val2");
-        mapFieldVal.put("k3","val3");
+        mapFieldVal.put("k2", "val2");
+        mapFieldVal.put("k3", "val3");
         record.setMapField("map", mapFieldVal);
-        if(_flag)
-        {
+        if (_flag) {
           record.setSimpleField("SESSION_ID", "value");
           record.setSimpleField("LIVE_INSTANCE", "value");
           record.setSimpleField("Others", "value");
@@ -160,62 +151,58 @@ public class TestZkClusterManager extends ZkUnitTestBase
         return record;
       }
     }
-    
-    
+
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    int[] ids = {0,1,2,3, 4, 5};
+    int[] ids = {
+        0, 1, 2, 3, 4, 5
+    };
     setupInstances(clusterName, ids);
 
-    /////////////////////
-    ZKHelixManager manager = new ZKHelixManager(clusterName, "localhost_0",
-        InstanceType.PARTICIPANT,
-        ZK_ADDR);
+    // ///////////////////
+    ZKHelixManager manager =
+        new ZKHelixManager(clusterName, "localhost_0", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.connect();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    
-    LiveInstance liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_0"));
+
+    LiveInstance liveInstance =
+        accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_0"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 0);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 0);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 3);
-    
-    manager = new ZKHelixManager(clusterName, "localhost_1",
-        InstanceType.PARTICIPANT,
-        ZK_ADDR);
+
+    manager = new ZKHelixManager(clusterName, "localhost_1", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.setLiveInstanceInfoProvider(new provider(false));
-    
+
     manager.connect();
     accessor = manager.getHelixDataAccessor();
-    
+
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_1"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 4);
-    
-    manager = new ZKHelixManager(clusterName, "localhost_2",
-        InstanceType.PARTICIPANT,
-        ZK_ADDR);
+
+    manager = new ZKHelixManager(clusterName, "localhost_2", InstanceType.PARTICIPANT, ZK_ADDR);
     manager.setLiveInstanceInfoProvider(new provider(true));
-    
+
     manager.connect();
     accessor = manager.getHelixDataAccessor();
-    
+
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_2"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
     Assert.assertFalse(liveInstance.getSessionId().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-    
-    ////////////////////////////////////
-    
-    ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, "localhost_3",
-        InstanceType.PARTICIPANT,
-        ZK_ADDR);
+
+    // //////////////////////////////////
+
+    ZkHelixTestManager manager2 =
+        new ZkHelixTestManager(clusterName, "localhost_3", InstanceType.PARTICIPANT, ZK_ADDR);
     manager2.setLiveInstanceInfoProvider(new provider(true));
-    
+
     manager2.connect();
     accessor = manager2.getHelixDataAccessor();
-    
+
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
@@ -223,10 +210,10 @@ public class TestZkClusterManager extends ZkUnitTestBase
     Assert.assertFalse(liveInstance.getSessionId().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     String sessionId = liveInstance.getSessionId();
-    
+
     ZkTestHelper.expireSession(manager2.getZkClient());
     Thread.sleep(1000);
-    
+
     liveInstance = accessor.getProperty(accessor.keyBuilder().liveInstance("localhost_3"));
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
@@ -235,24 +222,23 @@ public class TestZkClusterManager extends ZkUnitTestBase
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     Assert.assertFalse(sessionId.equals(liveInstance.getSessionId()));
 
-    System.out.println("END " + className + ".testLiveInstanceInfoProvider() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @Test()
-  public void testAdministrator() throws Exception
-  {
-    System.out.println("START " + className + ".testAdministrator() at " + new Date(System.currentTimeMillis()));
+  public void testAdministrator() throws Exception {
+    System.out.println("START " + className + ".testAdministrator() at "
+        + new Date(System.currentTimeMillis()));
     final String clusterName = CLUSTER_PREFIX + "_" + className + "_admin";
 
     // basic test
-    if (_gZkClient.exists("/" + clusterName))
-    {
+    if (_gZkClient.exists("/" + clusterName)) {
       _gZkClient.deleteRecursive("/" + clusterName);
     }
 
-    ZKHelixManager admin = new ZKHelixManager(clusterName, null,
-                                              InstanceType.ADMINISTRATOR,
-                                              ZK_ADDR);
+    ZKHelixManager admin =
+        new ZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR, ZK_ADDR);
 
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
 
@@ -260,13 +246,11 @@ public class TestZkClusterManager extends ZkUnitTestBase
     AssertJUnit.assertTrue(admin.isConnected());
 
     HelixAdmin adminTool = admin.getClusterManagmentTool();
-//    ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-//        .forResource("testResource").forPartition("testPartition").build();
-    HelixConfigScope scope = new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION)
-                                      .forCluster(clusterName)
-                                      .forResource("testResource")
-                                      .forPartition("testPartition")
-                                      .build();
+    // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
+    // .forResource("testResource").forPartition("testPartition").build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
+            .forResource("testResource").forPartition("testPartition").build();
 
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("pKey1", "pValue1");
@@ -281,6 +265,7 @@ public class TestZkClusterManager extends ZkUnitTestBase
     admin.disconnect();
     AssertJUnit.assertFalse(admin.isConnected());
 
-    System.out.println("END " + className + ".testAdministrator() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + className + ".testAdministrator() at "
+        + new Date(System.currentTimeMillis()));
   }
 }

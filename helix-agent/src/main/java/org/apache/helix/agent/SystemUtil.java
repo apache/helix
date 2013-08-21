@@ -35,32 +35,33 @@ public class SystemUtil {
    * PROCESS STATE CODES
    */
   public static enum ProcessStateCode {
-    // Here are the different values that the s, stat and state output specifiers (header "STAT" or "S") 
-    //   will display to describe the state of a process.
-    D ("Uninterruptible sleep (usually IO)"),
-    R ("Running or runnable (on run queue)"),
-    S ("Interruptible sleep (waiting for an event to complete)"),
-    T ("Stopped, either by a job control signal or because it is being traced."),
-    W ("paging (not valid since the 2.6.xx kernel)"),
-    X ("dead (should never be seen)"),
-    Z ("Defunct (\"zombie\") process, terminated but not reaped by its parent.");
+    // Here are the different values that the s, stat and state output specifiers (header "STAT" or
+    // "S")
+    // will display to describe the state of a process.
+    D("Uninterruptible sleep (usually IO)"),
+    R("Running or runnable (on run queue)"),
+    S("Interruptible sleep (waiting for an event to complete)"),
+    T("Stopped, either by a job control signal or because it is being traced."),
+    W("paging (not valid since the 2.6.xx kernel)"),
+    X("dead (should never be seen)"),
+    Z("Defunct (\"zombie\") process, terminated but not reaped by its parent.");
 
     private final String _description;
-        
+
     private ProcessStateCode(String description) {
       _description = description;
     }
-    
+
     public String getDescription() {
       return _description;
     }
   }
-  
+
   public static ProcessStateCode getProcessState(String processId) throws Exception {
     if (OS_NAME.equals("Mac OS X") || OS_NAME.equals("Linux")) {
       ExternalCommand cmd = ExternalCommand.start("ps", processId);
       cmd.waitFor();
-      
+
       // split by new lines
       // should return 2 lines for an existing process, or 1 line for a non-existing process
       String lines[] = cmd.getStringOutput().split("[\\r\\n]+");
@@ -68,12 +69,12 @@ public class SystemUtil {
         LOG.info("process: " + processId + " not exist");
         return null;
       }
-      
+
       // split by whitespace, 1st line is attributes, 2nd line is actual values
       // should be parallel arrays
       String attributes[] = lines[0].trim().split("\\s+");
       String values[] = lines[1].trim().split("\\s+");
-      
+
       Character processStateCodeChar = null;
       for (int i = 0; i < attributes.length; i++) {
         String attribute = attributes[i];
@@ -84,13 +85,13 @@ public class SystemUtil {
           break;
         }
       }
-      
+
       return ProcessStateCode.valueOf(Character.toString(processStateCodeChar));
     } else {
       throw new UnsupportedOperationException("Not supported OS: " + OS_NAME);
     }
   }
-  
+
   public static String getPidFromFile(File file) {
     BufferedReader br = null;
     try {

@@ -30,17 +30,14 @@ import org.apache.helix.model.Resource;
  * Allows one to come up with custom implementation of a rebalancer.<br/>
  * This will be invoked on all changes that happen in the cluster.<br/>
  * Simply return the newIdealState for a resource in this method.<br/>
- * 
  */
-public interface Rebalancer
-{
+public interface Rebalancer {
   void init(HelixManager manager);
 
   /**
-   * This method provides all the relevant information needed to rebalance a resource. 
+   * This method provides all the relevant information needed to rebalance a resource.
    * If you need additional information use manager.getAccessor to read the cluster data.
    * This allows one to compute the newIdealState according to app specific requirement.
-   * 
    * @param resourceName Name of the resource to be rebalanced
    * @param currentIdealState
    * @param currentStateOutput
@@ -49,10 +46,8 @@ public interface Rebalancer
    * @param clusterData Provides additional methods to retrieve cluster data.
    * @return
    */
-  IdealState computeNewIdealState(String resourceName,
-                                  IdealState currentIdealState,
-                                  final CurrentStateOutput currentStateOutput,
-                                  final ClusterDataCache clusterData);
+  IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      final CurrentStateOutput currentStateOutput, final ClusterDataCache clusterData);
 
   /**
    * Given an ideal state for a resource and the liveness of instances, compute the best possible
@@ -64,7 +59,6 @@ public interface Rebalancer
    *          Provides the current state and pending state transitions for all partitions
    * @return
    */
-  ResourceMapping computeBestPossiblePartitionState(
-      ClusterDataCache cache, IdealState idealState, Resource resource,
-      CurrentStateOutput currentStateOutput);
+  ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache, IdealState idealState,
+      Resource resource, CurrentStateOutput currentStateOutput);
 }

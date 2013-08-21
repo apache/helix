@@ -38,8 +38,7 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
 
   @Override
   public <T> byte[] serialize(final T data) {
-    if (data == null)
-    {
+    if (data == null) {
       return null;
     }
 
@@ -49,12 +48,9 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     StringWriter sw = new StringWriter();
-    try
-    {
+    try {
       mapper.writeValue(sw, data);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       logger.error("Exception during payload data serialization.", e);
       throw new HelixException(e);
     }
@@ -63,8 +59,7 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
 
   @Override
   public <T> T deserialize(final Class<T> clazz, final byte[] bytes) {
-    if (bytes == null || bytes.length == 0)
-    {
+    if (bytes == null || bytes.length == 0) {
       return null;
     }
 
@@ -75,13 +70,10 @@ public class JacksonPayloadSerializer implements PayloadSerializer {
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
     deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
-    try
-    {
+    try {
       T payload = mapper.readValue(bais, clazz);
       return payload;
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       logger.error("Exception during deserialization of payload bytes: " + new String(bytes), e);
       return null;
     }

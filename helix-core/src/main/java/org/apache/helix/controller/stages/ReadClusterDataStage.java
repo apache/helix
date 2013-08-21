@@ -27,55 +27,45 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
-
-public class ReadClusterDataStage extends AbstractBaseStage
-{
-  private static final Logger logger = Logger
-      .getLogger(ReadClusterDataStage.class.getName());
+public class ReadClusterDataStage extends AbstractBaseStage {
+  private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
   ClusterDataCache _cache;
 
-  public ReadClusterDataStage()
-  {
+  public ReadClusterDataStage() {
     _cache = new ClusterDataCache();
   }
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
     logger.info("START ReadClusterDataStage.process()");
 
-    
     HelixManager manager = event.getAttribute("helixmanager");
-    if (manager == null)
-    {
+    if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
     }
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
-    
-    ClusterStatusMonitor clusterStatusMonitor = (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-    if(clusterStatusMonitor != null)
-    {
+
+    ClusterStatusMonitor clusterStatusMonitor =
+        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    if (clusterStatusMonitor != null) {
       int disabledInstances = 0;
       int disabledPartitions = 0;
-      for(InstanceConfig  config : _cache._instanceConfigMap.values())
-      {
-        if(config.getInstanceEnabled() == false)
-        {
+      for (InstanceConfig config : _cache._instanceConfigMap.values()) {
+        if (config.getInstanceEnabled() == false) {
           disabledInstances++;
         }
-        if(config.getDisabledPartitions() != null)
-        {
+        if (config.getDisabledPartitions() != null) {
           disabledPartitions += config.getDisabledPartitions().size();
         }
       }
-      clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(), _cache._instanceConfigMap.size(), 
-          disabledInstances, disabledPartitions);
+      clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(),
+          _cache._instanceConfigMap.size(), disabledInstances, disabledPartitions);
     }
 
     event.addAttribute("ClusterDataCache", _cache);
-    
+
     long endTime = System.currentTimeMillis();
     logger.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
   }

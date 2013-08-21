@@ -46,50 +46,43 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ConfigResource extends Resource
-{
+public class ConfigResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ConfigResource.class);
 
-  public ConfigResource(Context context, Request request, Response response)
-  {
+  public ConfigResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
     setModifiable(true);
   }
 
-  String getValue(String key)
-  {
+  String getValue(String key) {
     return (String) getRequest().getAttributes().get(key);
   }
 
-  static StringRepresentation getConfigScopes() throws Exception
-  {
+  static StringRepresentation getConfigScopes() throws Exception {
     StringRepresentation representation = null;
     ZNRecord record = new ZNRecord("Config");
 
     List<String> scopeList =
         Arrays.asList(ConfigScopeProperty.CLUSTER.toString(),
-                      ConfigScopeProperty.RESOURCE.toString(),
-                      ConfigScopeProperty.PARTICIPANT.toString(),
-                      ConfigScopeProperty.PARTITION.toString());
+            ConfigScopeProperty.RESOURCE.toString(), ConfigScopeProperty.PARTICIPANT.toString(),
+            ConfigScopeProperty.PARTITION.toString());
     record.setListField("scopes", scopeList);
 
     representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(record),
-                                 MediaType.APPLICATION_JSON);
+            MediaType.APPLICATION_JSON);
 
     return representation;
   }
 
-  StringRepresentation getConfigKeys(ConfigScopeProperty scopeProperty, String... keys) throws Exception
-  {
+  StringRepresentation getConfigKeys(ConfigScopeProperty scopeProperty, String... keys)
+      throws Exception {
     StringRepresentation representation = null;
     // String clusterName = getValue("clusterName");
 
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
@@ -101,20 +94,17 @@ public class ConfigResource extends Resource
 
     representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(record),
-                                 MediaType.APPLICATION_JSON);
+            MediaType.APPLICATION_JSON);
 
     return representation;
   }
 
   StringRepresentation getConfigs(// ConfigScope scope,
-                                  ConfigScopeProperty scopeProperty,
-                                  String... keys) throws Exception
-  {
+      ConfigScopeProperty scopeProperty, String... keys) throws Exception {
     StringRepresentation representation = null;
-//    String clusterName = getValue("clusterName");
+    // String clusterName = getValue("clusterName");
 
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
@@ -126,22 +116,19 @@ public class ConfigResource extends Resource
 
     representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(record),
-                                 MediaType.APPLICATION_JSON);
+            MediaType.APPLICATION_JSON);
 
     return representation;
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation representation = null;
 
     String clusterName = getValue("clusterName");
     String scopeStr = getValue("scope");
-    try
-    {
-      if (scopeStr == null)
-      {
+    try {
+      if (scopeStr == null) {
         // path is "/clusters/{clusterName}/configs"
         return getConfigScopes();
       }
@@ -149,64 +136,53 @@ public class ConfigResource extends Resource
       scopeStr = scopeStr.toUpperCase();
 
       ConfigScopeProperty scopeProperty = ConfigScopeProperty.valueOf(scopeStr);
-      switch (scopeProperty)
-      {
+      switch (scopeProperty) {
       case CLUSTER:
       case PARTICIPANT:
       case RESOURCE:
         String scopeKey1 = getValue("scopeKey1");
-        if (scopeKey1 == null)
-        {
+        if (scopeKey1 == null) {
           // path is "/clusters/{clusterName}/configs/cluster|participant|resource"
           representation = getConfigKeys(scopeProperty, clusterName);
-        }
-        else
-        {
+        } else {
           // path is "/clusters/{clusterName}/configs/cluster|participant|resource/
           // {clusterName}|{participantName}|{resourceName}"
-//          ConfigScope scope;
-//          if (scopeProperty == ConfigScopeProperty.CLUSTER)
-//          {
-//            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
-//          }
-//          else
-//          {
-//            scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
-//          }
+          // ConfigScope scope;
+          // if (scopeProperty == ConfigScopeProperty.CLUSTER)
+          // {
+          // scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
+          // }
+          // else
+          // {
+          // scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
+          // }
           representation = getConfigs(scopeProperty, clusterName, scopeKey1);
         }
         break;
       case PARTITION:
         scopeKey1 = getValue("scopeKey1");
         String scopeKey2 = getValue("scopeKey2");
-        if (scopeKey1 == null)
-        {
+        if (scopeKey1 == null) {
           // path is "/clusters/{clusterName}/configs/partition"
           throw new HelixException("Missing resourceName");
-        }
-        else if (scopeKey2 == null)
-        {
+        } else if (scopeKey2 == null) {
           // path is "/clusters/{clusterName}/configs/partition/resourceName"
           representation = getConfigKeys(scopeProperty, clusterName, scopeKey1);
-        }
-        else
-        {
+        } else {
           // path is
           // "/clusters/{clusterName}/configs/partition/resourceName/partitionName"
-//          ConfigScope scope =
-//              new ConfigScopeBuilder().build(scopeProperty,
-//                                             clusterName,
-//                                             scopeKey1,
-//                                             scopeKey2);
+          // ConfigScope scope =
+          // new ConfigScopeBuilder().build(scopeProperty,
+          // clusterName,
+          // scopeKey1,
+          // scopeKey2);
           representation = getConfigs(scopeProperty, clusterName, scopeKey1, scopeKey2);
         }
         break;
       default:
         break;
       }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
       LOG.error("", e);
@@ -217,36 +193,29 @@ public class ConfigResource extends Resource
 
   /**
    * set or remove configs depends on "command" field of jsonParameters in POST body
-   * 
    * @param entity
    * @param scopeStr
    * @throws Exception
    */
-  void setConfigs(Representation entity, ConfigScopeProperty type, String scopeArgs) throws Exception
-  {
+  void setConfigs(Representation entity, ConfigScopeProperty type, String scopeArgs)
+      throws Exception {
     JsonParameters jsonParameters = new JsonParameters(entity);
     String command = jsonParameters.getCommand();
 
-    ZkClient zkClient =
-        (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
-    if (command.equalsIgnoreCase(ClusterSetup.setConfig))
-    {
+    if (command.equalsIgnoreCase(ClusterSetup.setConfig)) {
       jsonParameters.verifyCommand(ClusterSetup.setConfig);
       String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
 
       // setupTool.setConfig(scopeStr, propertiesStr);
       setupTool.setConfig(type, scopeArgs, propertiesStr);
-    }
-    else if (command.equalsIgnoreCase(ClusterSetup.removeConfig))
-    {
+    } else if (command.equalsIgnoreCase(ClusterSetup.removeConfig)) {
       jsonParameters.verifyCommand(ClusterSetup.removeConfig);
       String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
 
       setupTool.removeConfig(type, scopeArgs, propertiesStr);
-    }
-    else
-    {
+    } else {
       throw new HelixException("Unsupported command: " + command + ". Should be one of ["
           + ClusterSetup.setConfig + ", " + ClusterSetup.removeConfig + "]");
 
@@ -257,17 +226,14 @@ public class ConfigResource extends Resource
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
+  public void acceptRepresentation(Representation entity) {
     String clusterName = getValue("clusterName");
 
     String scopeStr = getValue("scope").toUpperCase();
-    try
-    {
+    try {
       ConfigScopeProperty scopeProperty = ConfigScopeProperty.valueOf(scopeStr);
 
-      switch (scopeProperty)
-      {
+      switch (scopeProperty) {
       case CLUSTER:
         String scopeArgs = clusterName;
         setConfigs(entity, scopeProperty, scopeArgs);
@@ -276,12 +242,9 @@ public class ConfigResource extends Resource
       case RESOURCE:
         String scopeKey1 = getValue("scopeKey1");
 
-        if (scopeKey1 == null)
-        {
+        if (scopeKey1 == null) {
           throw new HelixException("Missing resourceName|participantName");
-        }
-        else
-        {
+        } else {
           scopeArgs = clusterName + "," + scopeKey1;
           setConfigs(entity, scopeProperty, scopeArgs);
         }
@@ -289,12 +252,9 @@ public class ConfigResource extends Resource
       case PARTITION:
         scopeKey1 = getValue("scopeKey1");
         String scopeKey2 = getValue("scopeKey2");
-        if (scopeKey1 == null || scopeKey2 == null)
-        {
+        if (scopeKey1 == null || scopeKey2 == null) {
           throw new HelixException("Missing resourceName|partitionName");
-        }
-        else
-        {
+        } else {
           scopeArgs = clusterName + "," + scopeKey1 + "," + scopeKey2;
           setConfigs(entity, scopeProperty, scopeArgs);
         }
@@ -302,12 +262,10 @@ public class ConfigResource extends Resource
       default:
         break;
       }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("Error in posting " + entity, e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
   }

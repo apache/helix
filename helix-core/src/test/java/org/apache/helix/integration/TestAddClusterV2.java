@@ -38,9 +38,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestAddClusterV2 extends ZkIntegrationTestBase
-{
+public class TestAddClusterV2 extends ZkIntegrationTestBase {
   private static Logger LOG = Logger.getLogger(TestAddClusterV2.class);
 
   protected static final int CLUSTER_NR = 10;
@@ -56,81 +54,63 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
   protected static final String TEST_DB = "TestDB";
 
   @BeforeClass
-  public void beforeClass() throws Exception
-  {
+  public void beforeClass() throws Exception {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CONTROLLER_CLUSTER;
-    if (_gZkClient.exists(namespace))
-    {
+    if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
     }
 
-    for (int i = 0; i < CLUSTER_NR; i++)
-    {
+    for (int i = 0; i < CLUSTER_NR; i++) {
       namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      if (_gZkClient.exists(namespace))
-      {
+      if (_gZkClient.exists(namespace)) {
         _gZkClient.deleteRecursive(namespace);
       }
     }
 
     _setupTool = new ClusterSetup(ZK_ADDR);
 
-
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String controllerName = CONTROLLER_PREFIX + "_" + i;
       _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controllerName);
     }
 
-
     // setup cluster of clusters
-    for (int i = 0; i < CLUSTER_NR; i++)
-    {
+    for (int i = 0; i < CLUSTER_NR; i++) {
       String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
       _setupTool.addCluster(clusterName, true);
-      _setupTool.activateCluster(clusterName,  CONTROLLER_CLUSTER, true);
+      _setupTool.activateCluster(clusterName, CONTROLLER_CLUSTER, true);
     }
 
     final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
-    setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, PARTICIPANT_PREFIX,
-                        START_PORT, "MasterSlave", 3, true);
+    setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, PARTICIPANT_PREFIX, START_PORT,
+        "MasterSlave", 3, true);
 
     // start dummy participants for the first cluster
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      if (_startCMResultMap.get(instanceName) != null)
-      {
+      if (_startCMResultMap.get(instanceName) != null) {
         LOG.error("fail to start participant:" + instanceName
-                     + "(participant with the same name already running");
-      }
-      else
-      {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster,
-                                                            instanceName);
+            + "(participant with the same name already running");
+      } else {
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }
 
     // start distributed cluster controllers
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String controllerName = CONTROLLER_PREFIX + "_" + i;
-      if (_startCMResultMap.get(controllerName) != null)
-      {
+      if (_startCMResultMap.get(controllerName) != null) {
         LOG.error("fail to start controller:" + controllerName
-                     + "(controller with the same name already running");
-      }
-      else
-      {
-        StartCMResult result = TestHelper.startController(CONTROLLER_CLUSTER,
-                                                                 controllerName,
-                                                                 ZK_ADDR,
-                                                                 HelixControllerMain.DISTRIBUTED);
+            + "(controller with the same name already running");
+      } else {
+        StartCMResult result =
+            TestHelper.startController(CONTROLLER_CLUSTER, controllerName, ZK_ADDR,
+                HelixControllerMain.DISTRIBUTED);
         _startCMResultMap.put(controllerName, result);
       }
     }
@@ -139,21 +119,19 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
   }
 
   @Test
-  public void Test()
-  {
+  public void Test() {
 
   }
 
   @AfterClass
-  public void afterClass() throws Exception
-  {
+  public void afterClass() throws Exception {
     System.out.println("AFTERCLASS " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     /**
      * shutdown order:
-     *   1) pause the leader (optional)
-     *   2) disconnect all controllers
-     *   3) disconnect leader/disconnect participant
+     * 1) pause the leader (optional)
+     * 2) disconnect all controllers
+     * 3) disconnect leader/disconnect participant
      */
     String leader = getCurrentLeader(_gZkClient, CONTROLLER_CLUSTER);
     // pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
@@ -162,11 +140,9 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
 
     Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
 
-    while (it.hasNext())
-    {
+    while (it.hasNext()) {
       String instanceName = it.next().getKey();
-      if (!instanceName.equals(leader) && instanceName.startsWith(CONTROLLER_PREFIX))
-      {
+      if (!instanceName.equals(leader) && instanceName.startsWith(CONTROLLER_PREFIX)) {
         result = _startCMResultMap.get(instanceName);
         result._manager.disconnect();
         result._thread.interrupt();
@@ -180,8 +156,7 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     result._thread.interrupt();
 
     it = _startCMResultMap.entrySet().iterator();
-    while (it.hasNext())
-    {
+    while (it.hasNext()) {
       String instanceName = it.next().getKey();
       result = _startCMResultMap.get(instanceName);
       result._manager.disconnect();
@@ -192,33 +167,31 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 
-
   /**
    * verify the external view (against the best possible state)
-   *   in the controller cluster and the first cluster
+   * in the controller cluster and the first cluster
    */
-  protected void verifyClusters()
-  {
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CONTROLLER_CLUSTER));
+  protected void verifyClusters() {
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CONTROLLER_CLUSTER));
     Assert.assertTrue(result);
-    
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+
+    result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
     Assert.assertTrue(result);
   }
 
-  protected void setupStorageCluster(ClusterSetup setupTool, String clusterName,
-       String dbName, int partitionNr, String prefix, int startPort, String stateModel, int replica, boolean rebalance)
-  {
+  protected void setupStorageCluster(ClusterSetup setupTool, String clusterName, String dbName,
+      int partitionNr, String prefix, int startPort, String stateModel, int replica,
+      boolean rebalance) {
     setupTool.addResourceToCluster(clusterName, dbName, partitionNr, stateModel);
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String instanceName = prefix + "_" + (startPort + i);
       setupTool.addInstanceToCluster(clusterName, instanceName);
     }
-    if(rebalance)
-    {
+    if (rebalance) {
       setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
     }
   }

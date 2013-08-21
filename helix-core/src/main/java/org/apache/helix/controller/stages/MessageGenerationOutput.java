@@ -28,51 +28,38 @@ import java.util.Map;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
-
-public class MessageGenerationOutput
-{
+public class MessageGenerationOutput {
 
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 
-  public MessageGenerationOutput()
-  {
+  public MessageGenerationOutput() {
     _messagesMap = new HashMap<String, Map<Partition, List<Message>>>();
 
   }
 
-  public void addMessage(String resourceName, Partition partition,
-      Message message)
-  {
-    if (!_messagesMap.containsKey(resourceName))
-    {
-      _messagesMap.put(resourceName,
-          new HashMap<Partition, List<Message>>());
+  public void addMessage(String resourceName, Partition partition, Message message) {
+    if (!_messagesMap.containsKey(resourceName)) {
+      _messagesMap.put(resourceName, new HashMap<Partition, List<Message>>());
     }
-    if (!_messagesMap.get(resourceName).containsKey(partition))
-    {
-      _messagesMap.get(resourceName).put(partition,
-          new ArrayList<Message>());
+    if (!_messagesMap.get(resourceName).containsKey(partition)) {
+      _messagesMap.get(resourceName).put(partition, new ArrayList<Message>());
 
     }
     _messagesMap.get(resourceName).get(partition).add(message);
 
   }
 
-  public List<Message> getMessages(String resourceName,
-      Partition resource)
-  {
+  public List<Message> getMessages(String resourceName, Partition resource) {
     Map<Partition, List<Message>> map = _messagesMap.get(resourceName);
-    if (map != null)
-    {
+    if (map != null) {
       return map.get(resource);
     }
     return Collections.emptyList();
 
   }
-  
+
   @Override
-  public String toString()
-  {
+  public String toString() {
     return _messagesMap.toString();
   }
 }

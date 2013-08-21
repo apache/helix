@@ -1,6 +1,5 @@
 package org.apache.helix.manager.zk;
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,23 +25,19 @@ import org.I0Itec.zkclient.serialize.ZkSerializer;
  * Basic path based serializer which ignores the path and delegates
  * serialization into a regular {@link ZkSerializer}
  */
-public class BasicZkSerializer implements PathBasedZkSerializer
-{
+public class BasicZkSerializer implements PathBasedZkSerializer {
   private final ZkSerializer _delegate;
-  
-  public BasicZkSerializer(ZkSerializer delegate) 
-  {
+
+  public BasicZkSerializer(ZkSerializer delegate) {
     _delegate = delegate;
   }
 
-  public byte[] serialize(Object data, String path)
-  {
+  public byte[] serialize(Object data, String path) {
     return _delegate.serialize(data);
   }
 
   @Override
-  public Object deserialize(byte[] bytes, String path)
-  {
+  public Object deserialize(byte[] bytes, String path) {
     return _delegate.deserialize(bytes);
   }
 }

@@ -29,40 +29,31 @@ import org.apache.helix.model.Message;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 // simulate access property store and update one znode
-public class StoreAccessOneNodeTransition extends MockTransition
-{
+public class StoreAccessOneNodeTransition extends MockTransition {
   @Override
-  public void doTransition(Message message, NotificationContext context)
-  {
+  public void doTransition(Message message, NotificationContext context) {
     HelixManager manager = context.getManager();
     ZkHelixPropertyStore<ZNRecord> store = manager.getHelixPropertyStore();
     final String setPath = "/TEST_PERF/set";
     final String updatePath = "/TEST_PERF/update";
     final String key = message.getPartitionName();
-    try
-    {
+    try {
       // get/set once
       ZNRecord record = null;
-      try
-      {
+      try {
         record = store.get(setPath, null, 0);
-      }
-      catch (ZkNoNodeException e)
-      {
+      } catch (ZkNoNodeException e) {
         record = new ZNRecord(setPath);
       }
       record.setSimpleField("setTimestamp", "" + System.currentTimeMillis());
       store.set(setPath, record, AccessOption.PERSISTENT);
 
       // update once
-      store.update(updatePath, new DataUpdater<ZNRecord>()
-      {
+      store.update(updatePath, new DataUpdater<ZNRecord>() {
 
         @Override
-        public ZNRecord update(ZNRecord currentData)
-        {
-          if (currentData == null)
-          {
+        public ZNRecord update(ZNRecord currentData) {
+          if (currentData == null) {
             currentData = new ZNRecord(updatePath);
           }
           currentData.setSimpleField(key, "" + System.currentTimeMillis());
@@ -71,9 +62,7 @@ public class StoreAccessOneNodeTransition extends MockTransition
         }
 
       }, AccessOption.PERSISTENT);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

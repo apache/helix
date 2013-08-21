@@ -38,72 +38,60 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.log4j.Logger;
 
-
-public class TaskAssignmentStage extends AbstractBaseStage
-{
+public class TaskAssignmentStage extends AbstractBaseStage {
   private static Logger logger = Logger.getLogger(TaskAssignmentStage.class);
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
     logger.info("START TaskAssignmentStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, Resource> resourceMap =
-        event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
     MessageThrottleStageOutput messageOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 
-    if (manager == null || resourceMap == null || messageOutput == null
-        || cache == null || liveInstanceMap == null)
-    {
+    if (manager == null || resourceMap == null || messageOutput == null || cache == null
+        || liveInstanceMap == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE|DataCache|liveInstanceMap");
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     List<Message> messagesToSend = new ArrayList<Message>();
-    for (String resourceName : resourceMap.keySet())
-    {
+    for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);
-      for (Partition partition : resource.getPartitions())
-      {
+      for (Partition partition : resource.getPartitions()) {
         List<Message> messages = messageOutput.getMessages(resourceName, partition);
         messagesToSend.addAll(messages);
       }
     }
 
-    
-    List<Message> outputMessages = batchMessage(dataAccessor.keyBuilder(), 
-                  messagesToSend, resourceMap, liveInstanceMap, manager.getProperties());
+    List<Message> outputMessages =
+        batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
+            manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
 
     long endTime = System.currentTimeMillis();
-    logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime)
-        + " ms");
+    logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");
 
   }
 
-  List<Message> batchMessage(Builder keyBuilder,
-                             List<Message> messages,
-                             Map<String, Resource> resourceMap,
-                             Map<String, LiveInstance> liveInstanceMap,
-                             HelixManagerProperties properties)
-  {
+  List<Message> batchMessage(Builder keyBuilder, List<Message> messages,
+      Map<String, Resource> resourceMap, Map<String, LiveInstance> liveInstanceMap,
+      HelixManagerProperties properties) {
     // group messages by its CurrentState path + "/" + fromState + "/" + toState
     Map<String, Message> batchMessages = new HashMap<String, Message>();
     List<Message> outputMessages = new ArrayList<Message>();
 
     Iterator<Message> iter = messages.iterator();
-    while (iter.hasNext())
-    {
+    while (iter.hasNext()) {
       Message message = iter.next();
       String resourceName = message.getResourceName();
       Resource resource = resourceMap.get(resourceName);
-      
+
       String instanceName = message.getTgtName();
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       String participantVersion = null;
@@ -111,22 +99,18 @@ public class TaskAssignmentStage extends AbstractBaseStage
         participantVersion = liveInstance.getHelixVersion();
       }
 
-      if (resource == null || !resource.getBatchMessageMode() 
-          || participantVersion == null 
-          || !properties.isFeatureSupported("batch_message", participantVersion))
-      {
+      if (resource == null || !resource.getBatchMessageMode() || participantVersion == null
+          || !properties.isFeatureSupported("batch_message", participantVersion)) {
         outputMessages.add(message);
         continue;
       }
 
       String key =
-          keyBuilder.currentState(message.getTgtName(),
-                                  message.getTgtSessionId(),
-                                  message.getResourceName()).getPath()
+          keyBuilder.currentState(message.getTgtName(), message.getTgtSessionId(),
+              message.getResourceName()).getPath()
               + "/" + message.getFromState() + "/" + message.getToState();
 
-      if (!batchMessages.containsKey(key))
-      {
+      if (!batchMessages.containsKey(key)) {
         Message batchMessage = new Message(message.getRecord());
         batchMessage.setBatchMessageMode(true);
         outputMessages.add(batchMessage);
@@ -138,25 +122,23 @@ public class TaskAssignmentStage extends AbstractBaseStage
     return outputMessages;
   }
 
-  protected void sendMessages(HelixDataAccessor dataAccessor, List<Message> messages)
-  {
-    if (messages == null || messages.isEmpty())
-    {
+  protected void sendMessages(HelixDataAccessor dataAccessor, List<Message> messages) {
+    if (messages == null || messages.isEmpty()) {
       return;
     }
 
     Builder keyBuilder = dataAccessor.keyBuilder();
 
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
-    for (Message message : messages)
-    {
+    for (Message message : messages) {
       logger.info("Sending Message " + message.getMsgId() + " to " + message.getTgtName()
-          + " transit " + message.getPartitionName() + "|" + message.getPartitionNames()
-          + " from:" + message.getFromState() + " to:" + message.getToState());
+          + " transit " + message.getPartitionName() + "|" + message.getPartitionNames() + " from:"
+          + message.getFromState() + " to:" + message.getToState());
 
-//      System.out.println("[dbg] Sending Message " + message.getMsgId() + " to " + message.getTgtName()
-//              + " transit " + message.getPartitionName() + "|" + message.getPartitionNames()
-//              + " from: " + message.getFromState() + " to: " + message.getToState());
+      // System.out.println("[dbg] Sending Message " + message.getMsgId() + " to " +
+      // message.getTgtName()
+      // + " transit " + message.getPartitionName() + "|" + message.getPartitionNames()
+      // + " from: " + message.getFromState() + " to: " + message.getToState());
 
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }

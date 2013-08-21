@@ -34,14 +34,12 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestJacksonPayloadSerializer
-{
+public class TestJacksonPayloadSerializer {
   /**
    * Ensure that the JacksonPayloadSerializer can serialize and deserialize arbitrary objects
    */
   @Test
-  public void testJacksonSerializeDeserialize()
-  {
+  public void testJacksonSerializeDeserialize() {
     final String RECORD_ID = "testJacksonSerializeDeserialize";
     SampleDeserialized sample = getSample();
     ZNRecord znRecord = new ZNRecord(RECORD_ID);
@@ -56,8 +54,7 @@ public class TestJacksonPayloadSerializer
    * that encloses it. This uses ZNRecordSerializer.
    */
   @Test
-  public void testFullZNRecordSerializeDeserialize()
-  {
+  public void testFullZNRecordSerializeDeserialize() {
     final String RECORD_ID = "testFullZNRecordSerializeDeserialize";
     SampleDeserialized sample = getSample();
     ZNRecord znRecord = new ZNRecord(RECORD_ID);
@@ -76,8 +73,7 @@ public class TestJacksonPayloadSerializer
    * that encloses it. This uses ZNRecordStreamingSerializer.
    */
   @Test
-  public void testFullZNRecordStreamingSerializeDeserialize()
-  {
+  public void testFullZNRecordStreamingSerializeDeserialize() {
     final String RECORD_ID = "testFullZNRecordStreamingSerializeDeserialize";
     SampleDeserialized sample = getSample();
     ZNRecord znRecord = new ZNRecord(RECORD_ID);
@@ -92,12 +88,12 @@ public class TestJacksonPayloadSerializer
   }
 
   /**
-   * Test that the payload is not included whenever it is not null. This is mainly to maintain backward
+   * Test that the payload is not included whenever it is not null. This is mainly to maintain
+   * backward
    * compatibility.
    */
   @Test
-  public void testRawPayloadMissingIfUnspecified()
-  {
+  public void testRawPayloadMissingIfUnspecified() {
     final String RECORD_ID = "testRawPayloadMissingIfUnspecified";
     ZNRecord znRecord = new ZNRecord(RECORD_ID);
     ZNRecordSerializer znRecordSerializer = new ZNRecordSerializer();
@@ -105,19 +101,14 @@ public class TestJacksonPayloadSerializer
     ZNRecordStreamingSerializer znRecordStreamingSerializer = new ZNRecordStreamingSerializer();
     byte[] streamingSerialized = znRecordStreamingSerializer.serialize(znRecord);
     ObjectMapper mapper = new ObjectMapper();
-    try
-    {
+    try {
       JsonNode jsonNode = mapper.readTree(new String(serialized));
       Assert.assertFalse(jsonNode.has("rawPayload"));
       JsonNode streamingJsonNode = mapper.readTree(new String(streamingSerialized));
       Assert.assertFalse(streamingJsonNode.has("rawPayload"));
-    }
-    catch (JsonProcessingException e)
-    {
+    } catch (JsonProcessingException e) {
       Assert.fail();
-    }
-    catch (IOException e)
-    {
+    } catch (IOException e) {
       Assert.fail();
     }
   }
@@ -126,89 +117,69 @@ public class TestJacksonPayloadSerializer
    * Get an object which can be tested for serialization success or failure
    * @return Initialized SampleDeserialized object
    */
-  private SampleDeserialized getSample()
-  {
+  private SampleDeserialized getSample() {
     final int INT_FIELD_VALUE = 12345;
     final int LIST_FIELD_COUNT = 5;
     List<Integer> intList = new LinkedList<Integer>();
-    for (int i = 0; i < LIST_FIELD_COUNT; i++)
-    {
+    for (int i = 0; i < LIST_FIELD_COUNT; i++) {
       intList.add(i);
     }
     return new SampleDeserialized(INT_FIELD_VALUE, intList);
   }
 
   @JsonIgnoreProperties(ignoreUnknown = true)
-  public static class SampleDeserialized
-  {
+  public static class SampleDeserialized {
     private int _intField;
     private List<Integer> _listField;
 
-    public SampleDeserialized()
-    {
+    public SampleDeserialized() {
     }
 
-    public SampleDeserialized(int intField, List<Integer> listField)
-    {
+    public SampleDeserialized(int intField, List<Integer> listField) {
       _intField = intField;
       _listField = listField;
     }
 
     @JsonProperty
-    public void setIntField(int value)
-    {
+    public void setIntField(int value) {
       _intField = value;
     }
 
     @JsonProperty
-    public int getIntField()
-    {
+    public int getIntField() {
       return _intField;
     }
 
     @JsonProperty
-    public void setListField(final List<Integer> listField)
-    {
+    public void setListField(final List<Integer> listField) {
       _listField = listField;
     }
 
     @JsonProperty
-    public List<Integer> getListField()
-    {
+    public List<Integer> getListField() {
       return _listField;
     }
 
     @Override
-    public boolean equals(Object other)
-    {
+    public boolean equals(Object other) {
       boolean result = true;
-      if (other instanceof SampleDeserialized)
-      {
-        SampleDeserialized that = (SampleDeserialized)other;
-        if (_intField != that._intField)
-        {
+      if (other instanceof SampleDeserialized) {
+        SampleDeserialized that = (SampleDeserialized) other;
+        if (_intField != that._intField) {
           // ints must match
-          result =  false;
-        }
-        else if (_listField != null)
-        {
+          result = false;
+        } else if (_listField != null) {
           // lists must match if one is not null
-          if (!_listField.equals(that._listField))
-          {
+          if (!_listField.equals(that._listField)) {
             result = false;
           }
-        }
-        else
-        {
+        } else {
           // both must be null if one is null
-          if (that._listField != null)
-          {
+          if (that._listField != null) {
             result = false;
           }
         }
-      }
-      else
-      {
+      } else {
         // only compare objects of the same type
         result = false;
       }

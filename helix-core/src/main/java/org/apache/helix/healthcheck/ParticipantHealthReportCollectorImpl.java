@@ -30,9 +30,9 @@ import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.HealthStat;
 import org.apache.log4j.Logger;
 
-public class ParticipantHealthReportCollectorImpl implements
-    ParticipantHealthReportCollector {
-  private final LinkedList<HealthReportProvider> _healthReportProviderList = new LinkedList<HealthReportProvider>();
+public class ParticipantHealthReportCollectorImpl implements ParticipantHealthReportCollector {
+  private final LinkedList<HealthReportProvider> _healthReportProviderList =
+      new LinkedList<HealthReportProvider>();
   private static final Logger _logger = Logger
       .getLogger(ParticipantHealthReportCollectorImpl.class);
   private final HelixManager _helixManager;
@@ -89,8 +89,8 @@ public class ParticipantHealthReportCollectorImpl implements
       for (HealthReportProvider provider : _healthReportProviderList) {
         try {
           Map<String, String> report = provider.getRecentHealthReport();
-          Map<String, Map<String, String>> partitionReport = provider
-              .getRecentPartitionHealthReport();
+          Map<String, Map<String, String>> partitionReport =
+              provider.getRecentPartitionHealthReport();
           ZNRecord record = new ZNRecord(provider.getReportName());
           if (report != null) {
             record.setSimpleFields(report);

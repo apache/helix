@@ -33,48 +33,40 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
 
-
-public final class ZKUtil
-{
+public final class ZKUtil {
   private static Logger logger = Logger.getLogger(ZKUtil.class);
   private static int RETRYLIMIT = 3;
 
-  private ZKUtil()
-  {
+  private ZKUtil() {
   }
 
-  public static boolean isClusterSetup(String clusterName, ZkClient zkClient)
-  {
-    if (clusterName == null || zkClient == null)
-    {
+  public static boolean isClusterSetup(String clusterName, ZkClient zkClient) {
+    if (clusterName == null || zkClient == null) {
       return false;
     }
     ArrayList<String> requiredPaths = new ArrayList<String>();
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                 clusterName,
-                                                 ConfigScopeProperty.CLUSTER.toString(),
-                                                 clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                 clusterName, 
-                                                 ConfigScopeProperty.PARTICIPANT.toString()));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                 clusterName, 
-                                                 ConfigScopeProperty.RESOURCE.toString()));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE,clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES,clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.INSTANCES,clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.CLUSTER.toString(), clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.RESOURCE.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName));
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS,clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName));
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY,clusterName));
-    boolean isValid =true;
-    
-    for(String path:requiredPaths){
-      if(!zkClient.exists(path)){
+    requiredPaths.add(PropertyPathConfig
+        .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
+    boolean isValid = true;
+
+    for (String path : requiredPaths) {
+      if (!zkClient.exists(path)) {
         isValid = false;
         logger.info("Invalid cluster setup, missing znode path: " + path);
       }
@@ -82,59 +74,43 @@ public final class ZKUtil
     return isValid;
   }
 
-    public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName, InstanceType type)
-    {
-        if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT)
-        {
-            ArrayList<String> requiredPaths = new ArrayList<String>();
-            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS,
-                                                         clusterName,
-                                                         ConfigScopeProperty.PARTICIPANT.toString(),
-                                                         instanceName));
-            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES,
-                                                         clusterName,
-                                                         instanceName));
-            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                                         clusterName,
-                                                         instanceName));
-            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES,
-                                                         clusterName,
-                                                         instanceName));
-            requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS,
-                                                         clusterName,
-                                                         instanceName));
-            boolean isValid =true;
+  public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName,
+      InstanceType type) {
+    if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
+      ArrayList<String> requiredPaths = new ArrayList<String>();
+      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+          ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
+      requiredPaths.add(PropertyPathConfig
+          .getPath(PropertyType.MESSAGES, clusterName, instanceName));
+      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName,
+          instanceName));
+      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, clusterName,
+          instanceName));
+      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, instanceName));
+      boolean isValid = true;
 
-            for(String path:requiredPaths){
-                if(!zkclient.exists(path)){
-                    isValid =false;
-                    logger.info("Invalid instance setup, missing znode path: " + path);
-                }
-            }
-            return isValid;
+      for (String path : requiredPaths) {
+        if (!zkclient.exists(path)) {
+          isValid = false;
+          logger.info("Invalid instance setup, missing znode path: " + path);
         }
-
-        return true;
+      }
+      return isValid;
     }
 
-  public static void createChildren(ZkClient client,
-                                    String parentPath,
-                                    List<ZNRecord> list)
-  {
+    return true;
+  }
+
+  public static void createChildren(ZkClient client, String parentPath, List<ZNRecord> list) {
     client.createPersistent(parentPath, true);
-    if (list != null)
-    {
-      for (ZNRecord record : list)
-      {
+    if (list != null) {
+      for (ZNRecord record : list) {
         createChildren(client, parentPath, record);
       }
     }
   }
 
-  public static void createChildren(ZkClient client,
-                                    String parentPath,
-                                    ZNRecord nodeRecord)
-  {
+  public static void createChildren(ZkClient client, String parentPath, ZNRecord nodeRecord) {
     client.createPersistent(parentPath, true);
 
     String id = nodeRecord.getId();
@@ -142,43 +118,35 @@ public final class ZKUtil
     client.createPersistent(temp, nodeRecord);
   }
 
-  public static void dropChildren(ZkClient client, String parentPath, List<ZNRecord> list)
-  {
+  public static void dropChildren(ZkClient client, String parentPath, List<ZNRecord> list) {
     // TODO: check if parentPath exists
-    if (list != null)
-    {
-      for (ZNRecord record : list)
-      {
+    if (list != null) {
+      for (ZNRecord record : list) {
         dropChildren(client, parentPath, record);
       }
     }
   }
 
-  public static void dropChildren(ZkClient client, String parentPath, ZNRecord nodeRecord)
-  {
+  public static void dropChildren(ZkClient client, String parentPath, ZNRecord nodeRecord) {
     // TODO: check if parentPath exists
     String id = nodeRecord.getId();
     String temp = parentPath + "/" + id;
     client.deleteRecursive(temp);
   }
 
-  public static List<ZNRecord> getChildren(ZkClient client, String path)
-  {
+  public static List<ZNRecord> getChildren(ZkClient client, String path) {
     // parent watch will be set by zkClient
     List<String> children = client.getChildren(path);
-    if (children == null || children.size() == 0)
-    {
+    if (children == null || children.size() == 0) {
       return Collections.emptyList();
     }
 
     List<ZNRecord> childRecords = new ArrayList<ZNRecord>();
-    for (String child : children)
-    {
+    for (String child : children) {
       String childPath = path + "/" + child;
       Stat newStat = new Stat();
       ZNRecord record = client.readDataAndStat(childPath, newStat, true);
-      if (record != null)
-      {
+      if (record != null) {
         record.setVersion(newStat.getVersion());
         record.setCreationTime(newStat.getCtime());
         record.setModifiedTime(newStat.getMtime());
@@ -188,18 +156,12 @@ public final class ZKUtil
     return childRecords;
   }
 
-  public static void updateIfExists(ZkClient client,
-                                    String path,
-                                    final ZNRecord record,
-                                    boolean mergeOnUpdate)
-  {
-    if (client.exists(path))
-    {
-      DataUpdater<Object> updater = new DataUpdater<Object>()
-      {
+  public static void updateIfExists(ZkClient client, String path, final ZNRecord record,
+      boolean mergeOnUpdate) {
+    if (client.exists(path)) {
+      DataUpdater<Object> updater = new DataUpdater<Object>() {
         @Override
-        public Object update(Object currentData)
-        {
+        public Object update(Object currentData) {
           return record;
         }
       };
@@ -207,26 +169,16 @@ public final class ZKUtil
     }
   }
 
-  public static void createOrUpdate(ZkClient client,
-                                    String path,
-                                    final ZNRecord record,
-                                    final boolean persistent,
-                                    final boolean mergeOnUpdate)
-  {
+  public static void createOrUpdate(ZkClient client, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
-    while (retryCount < RETRYLIMIT)
-    {
-      try
-      {
-        if (client.exists(path))
-        {
-          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
-          {
+    while (retryCount < RETRYLIMIT) {
+      try {
+        if (client.exists(path)) {
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
             @Override
-            public ZNRecord update(ZNRecord currentData)
-            {
-              if (currentData != null && mergeOnUpdate)
-              {
+            public ZNRecord update(ZNRecord currentData) {
+              if (currentData != null && mergeOnUpdate) {
                 currentData.merge(record);
                 return currentData;
               }
@@ -234,25 +186,18 @@ public final class ZKUtil
             }
           };
           client.updateDataSerialized(path, updater);
-        }
-        else
-        {
+        } else {
           CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;
-          if (record.getDeltaList().size() > 0)
-          {
+          if (record.getDeltaList().size() > 0) {
             ZNRecord value = new ZNRecord(record.getId());
             value.merge(record);
             client.create(path, value, mode);
-          }
-          else
-          {
+          } else {
             client.create(path, record, mode);
           }
         }
         break;
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         retryCount = retryCount + 1;
         logger.warn("Exception trying to update " + path + " Exception:" + e.getMessage()
             + ". Will retry.");
@@ -260,114 +205,75 @@ public final class ZKUtil
     }
   }
 
-  public static void asyncCreateOrUpdate(ZkClient client,
-                                         String path,
-                                         final ZNRecord record,
-                                         final boolean persistent,
-                                         final boolean mergeOnUpdate)
-  {
-    try
-    {
-      if (client.exists(path))
-      {
-        if (mergeOnUpdate)
-        {
+  public static void asyncCreateOrUpdate(ZkClient client, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
+    try {
+      if (client.exists(path)) {
+        if (mergeOnUpdate) {
           ZNRecord curRecord = client.readData(path);
-          if (curRecord != null)
-          {
+          if (curRecord != null) {
             curRecord.merge(record);
             client.asyncSetData(path, curRecord, -1, null);
-          }
-          else
-          {
+          } else {
             client.asyncSetData(path, record, -1, null);
           }
-        }
-        else
-        {
+        } else {
           client.asyncSetData(path, record, -1, null);
         }
-      }
-      else
-      {
+      } else {
         CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;
-        if (record.getDeltaList().size() > 0)
-        {
+        if (record.getDeltaList().size() > 0) {
           ZNRecord newRecord = new ZNRecord(record.getId());
           newRecord.merge(record);
           client.create(path, null, mode);
 
           client.asyncSetData(path, newRecord, -1, null);
-        }
-        else
-        {
+        } else {
           client.create(path, null, mode);
 
           client.asyncSetData(path, record, -1, null);
         }
       }
-    }
-    catch (Exception e)
-    {
-      logger.error("Exception in async create or update " + path + ". Exception: "
-          + e.getMessage() + ". Give up.");
+    } catch (Exception e) {
+      logger.error("Exception in async create or update " + path + ". Exception: " + e.getMessage()
+          + ". Give up.");
     }
   }
 
-  public static void createOrReplace(ZkClient client,
-                                     String path,
-                                     final ZNRecord record,
-                                     final boolean persistent)
-  {
+  public static void createOrReplace(ZkClient client, String path, final ZNRecord record,
+      final boolean persistent) {
     int retryCount = 0;
-    while (retryCount < RETRYLIMIT)
-    {
-      try
-      {
-        if (client.exists(path))
-        {
-          DataUpdater<Object> updater = new DataUpdater<Object>()
-          {
+    while (retryCount < RETRYLIMIT) {
+      try {
+        if (client.exists(path)) {
+          DataUpdater<Object> updater = new DataUpdater<Object>() {
             @Override
-            public Object update(Object currentData)
-            {
+            public Object update(Object currentData) {
               return record;
             }
           };
           client.updateDataSerialized(path, updater);
-        }
-        else
-        {
+        } else {
           CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;
           client.create(path, record, mode);
         }
         break;
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         retryCount = retryCount + 1;
-        logger.warn("Exception trying to createOrReplace " + path + " Exception:"
-            + e.getMessage() + ". Will retry.");
+        logger.warn("Exception trying to createOrReplace " + path + " Exception:" + e.getMessage()
+            + ". Will retry.");
       }
     }
   }
 
-  public static void subtract(ZkClient client,
-                              String path,
-                              final ZNRecord recordTosubtract)
-  {
+  public static void subtract(ZkClient client, String path, final ZNRecord recordTosubtract) {
     int retryCount = 0;
-    while (retryCount < RETRYLIMIT)
-    {
-      try
-      {
-        if (client.exists(path))
-        {
-          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>()
-          {
+    while (retryCount < RETRYLIMIT) {
+      try {
+        if (client.exists(path)) {
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
             @Override
-            public ZNRecord update(ZNRecord currentData)
-            {
+            public ZNRecord update(ZNRecord currentData) {
               currentData.subtract(recordTosubtract);
               return currentData;
             }
@@ -375,12 +281,10 @@ public final class ZKUtil
           client.updateDataSerialized(path, updater);
           break;
         }
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         retryCount = retryCount + 1;
-        logger.warn("Exception trying to createOrReplace " + path + " Exception:"
-            + e.getMessage() + ". Will retry.");
+        logger.warn("Exception trying to createOrReplace " + path + " Exception:" + e.getMessage()
+            + ". Will retry.");
         e.printStackTrace();
       }
     }

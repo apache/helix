@@ -26,32 +26,32 @@ import org.apache.helix.HelixManager;
 
 public class ReportTask extends Task {
 
-	public ReportTask(String id, Set<String> parentIds,
-			HelixManager helixManager, TaskResultStore resultStore) {
-		super(id, parentIds, helixManager, resultStore);
-	}
+  public ReportTask(String id, Set<String> parentIds, HelixManager helixManager,
+      TaskResultStore resultStore) {
+    super(id, parentIds, helixManager, resultStore);
+  }
 
-	@Override
-	protected void executeImpl(String resourceName, int numPartitions,
-			int partitionNum) throws Exception {
-		System.out.println("Running reports task");
-		
-		System.out.println("Impression counts per country");
-		printCounts(FilterTask.FILTERED_IMPRESSIONS + "_country_counts");
-		
-		System.out.println("Click counts per country");
-		printCounts(JoinTask.JOINED_CLICKS + "_country_counts");
-		
-		System.out.println("Impression counts per gender");
-		printCounts(FilterTask.FILTERED_IMPRESSIONS + "_gender_counts");
+  @Override
+  protected void executeImpl(String resourceName, int numPartitions, int partitionNum)
+      throws Exception {
+    System.out.println("Running reports task");
 
-		System.out.println("Click counts per gender");
-		printCounts(JoinTask.JOINED_CLICKS + "_gender_counts");
-	}
+    System.out.println("Impression counts per country");
+    printCounts(FilterTask.FILTERED_IMPRESSIONS + "_country_counts");
 
-	private void printCounts(String tableName) throws Exception {
-		Map<String, String> counts = resultStore.hgetAll(tableName);
-		System.out.println(counts);
-	}
+    System.out.println("Click counts per country");
+    printCounts(JoinTask.JOINED_CLICKS + "_country_counts");
+
+    System.out.println("Impression counts per gender");
+    printCounts(FilterTask.FILTERED_IMPRESSIONS + "_gender_counts");
+
+    System.out.println("Click counts per gender");
+    printCounts(JoinTask.JOINED_CLICKS + "_gender_counts");
+  }
+
+  private void printCounts(String tableName) throws Exception {
+    Map<String, String> counts = resultStore.hgetAll(tableName);
+    System.out.println(counts);
+  }
 
 }

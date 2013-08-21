@@ -25,26 +25,25 @@ import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 
 public class MessageTimeoutTask extends TimerTask {
-	private static Logger LOG = Logger.getLogger(MessageTimeoutTask.class);
+  private static Logger LOG = Logger.getLogger(MessageTimeoutTask.class);
 
-	final HelixTaskExecutor _executor;
-	final MessageTask _task;
+  final HelixTaskExecutor _executor;
+  final MessageTask _task;
 
-	public MessageTimeoutTask(HelixTaskExecutor executor, MessageTask task)
-	{
-		_executor = executor;
-		_task = task;
-	}
+  public MessageTimeoutTask(HelixTaskExecutor executor, MessageTask task) {
+    _executor = executor;
+    _task = task;
+  }
 
-	@Override
-	public void run() {
-		Message message = _task.getMessage();
-		// NotificationContext context = _task.getNotificationContext();
-		// System.out.println("msg: " + message.getMsgId() + " timeouot.");
-		LOG.warn("Message time out, canceling. id:" + message.getMsgId() + " timeout : "
-		        + message.getExecutionTimeout());
-		_task.onTimeout();
-		_executor.cancelTask(_task);
-	}
+  @Override
+  public void run() {
+    Message message = _task.getMessage();
+    // NotificationContext context = _task.getNotificationContext();
+    // System.out.println("msg: " + message.getMsgId() + " timeouot.");
+    LOG.warn("Message time out, canceling. id:" + message.getMsgId() + " timeout : "
+        + message.getExecutionTimeout());
+    _task.onTimeout();
+    _executor.cancelTask(_task);
+  }
 
 }

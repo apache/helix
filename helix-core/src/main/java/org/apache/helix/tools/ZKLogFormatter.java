@@ -54,68 +54,58 @@ import org.apache.zookeeper.server.persistence.FileTxnLog;
 import org.apache.zookeeper.server.util.SerializeUtils;
 import org.apache.zookeeper.txn.TxnHeader;
 
-public class ZKLogFormatter
-{
+public class ZKLogFormatter {
   private static final Logger LOG = Logger.getLogger(ZKLogFormatter.class);
-  private static DateFormat dateTimeInstance = DateFormat.getDateTimeInstance(
-      DateFormat.SHORT, DateFormat.LONG);
+  private static DateFormat dateTimeInstance = DateFormat.getDateTimeInstance(DateFormat.SHORT,
+      DateFormat.LONG);
   private static HexBinaryAdapter adapter = new HexBinaryAdapter();
   private static String fieldDelim = ":";
   private static String fieldSep = " ";
 
   static BufferedWriter bw = null;
+
   /**
    * @param args
    */
-  public static void main(String[] args) throws Exception
-  {
-    if (args.length != 2 && args.length != 3)
-    {
+  public static void main(String[] args) throws Exception {
+    if (args.length != 2 && args.length != 3) {
       System.err.println("USAGE: LogFormatter <log|snapshot> log_file");
       System.exit(2);
     }
-    
-    if (args.length == 3)
-    {
+
+    if (args.length == 3) {
       bw = new BufferedWriter(new FileWriter(new File(args[2])));
     }
-    
-    if (args[0].equals("log"))
-    {
+
+    if (args[0].equals("log")) {
       readTransactionLog(args[1]);
-    } else if (args[0].equals("snapshot"))
-    {
+    } else if (args[0].equals("snapshot")) {
       readSnapshotLog(args[1]);
     }
-    
-    if (bw != null)
-    {
+
+    if (bw != null) {
       bw.close();
     }
   }
 
-  private static void readSnapshotLog(String snapshotPath) throws Exception
-  {
+  private static void readSnapshotLog(String snapshotPath) throws Exception {
     FileInputStream fis = new FileInputStream(snapshotPath);
     BinaryInputArchive ia = BinaryInputArchive.getArchive(fis);
     Map<Long, Integer> sessions = new HashMap<Long, Integer>();
     DataTree dt = new DataTree();
     FileHeader header = new FileHeader();
     header.deserialize(ia, "fileheader");
-    if (header.getMagic() != FileSnap.SNAP_MAGIC)
-    {
-      throw new IOException("mismatching magic headers " + header.getMagic()
-          + " !=  " + FileSnap.SNAP_MAGIC);
+    if (header.getMagic() != FileSnap.SNAP_MAGIC) {
+      throw new IOException("mismatching magic headers " + header.getMagic() + " !=  "
+          + FileSnap.SNAP_MAGIC);
     }
     SerializeUtils.deserializeSnapshot(dt, ia, sessions);
 
-    if (bw != null)
-    {
+    if (bw != null) {
       bw.write(sessions.toString());
       bw.newLine();
-    } else
-    {
-      System.out.println(sessions);      
+    } else {
+      System.out.println(sessions);
     }
     traverse(dt, 1, "/");
 
@@ -124,37 +114,29 @@ public class ZKLogFormatter
   /*
    * Level order traversal
    */
-  private static void traverse(DataTree dt, int startId, String startPath) throws Exception
-  {
+  private static void traverse(DataTree dt, int startId, String startPath) throws Exception {
     LinkedList<Pair> queue = new LinkedList<Pair>();
     queue.add(new Pair(startPath, startId));
-    while (!queue.isEmpty())
-    {
+    while (!queue.isEmpty()) {
       Pair pair = queue.removeFirst();
       String path = pair._path;
       DataNode head = dt.getNode(path);
       Stat stat = new Stat();
       byte[] data = null;
-      try
-      {
+      try {
         data = dt.getData(path, stat, null);
-      } catch (NoNodeException e)
-      {
+      } catch (NoNodeException e) {
         e.printStackTrace();
       }
       // print the node
       format(startId, pair, head, data);
       Set<String> children = head.getChildren();
-      if (children != null)
-      {
-        for (String child : children)
-        {
+      if (children != null) {
+        for (String child : children) {
           String childPath;
-          if (path.endsWith("/"))
-          {
+          if (path.endsWith("/")) {
             childPath = path + child;
-          } else
-          {
+          } else {
             childPath = path + "/" + child;
           }
           queue.add(new Pair(childPath, startId));
@@ -165,114 +147,99 @@ public class ZKLogFormatter
 
   }
 
-  static class Pair
-  {
+  static class Pair {
 
     private final String _path;
     private final int _parentId;
 
-    public Pair(String path, int parentId)
-    {
+    public Pair(String path, int parentId) {
       _path = path;
       _parentId = parentId;
     }
 
   }
 
-  private static void format(int id, Pair pair, DataNode head, byte[] data) throws Exception
-  {
+  private static void format(int id, Pair pair, DataNode head, byte[] data) throws Exception {
     String dataStr = "";
-    if (data != null)
-    {
+    if (data != null) {
       dataStr = new String(data).replaceAll("[\\s]+", "");
     }
     StringBuffer sb = new StringBuffer();
-    //@formatter:off
+    // @formatter:off
     sb.append("id").append(fieldDelim).append(id).append(fieldSep);
     sb.append("parent").append(fieldDelim).append(pair._parentId).append(fieldSep);
     sb.append("path").append(fieldDelim).append(pair._path).append(fieldSep);
-    sb.append("session").append(fieldDelim).append("0x" +Long.toHexString(head.stat.getEphemeralOwner())).append(fieldSep);
-    sb.append("czxid").append(fieldDelim).append("0x" +Long.toHexString(head.stat.getCzxid())).append(fieldSep);
+    sb.append("session").append(fieldDelim)
+        .append("0x" + Long.toHexString(head.stat.getEphemeralOwner())).append(fieldSep);
+    sb.append("czxid").append(fieldDelim).append("0x" + Long.toHexString(head.stat.getCzxid()))
+        .append(fieldSep);
     sb.append("ctime").append(fieldDelim).append(head.stat.getCtime()).append(fieldSep);
     sb.append("mtime").append(fieldDelim).append(head.stat.getMtime()).append(fieldSep);
-    sb.append("cmzxid").append(fieldDelim).append("0x" +Long.toHexString(head.stat.getMzxid())).append(fieldSep);
-    sb.append("pzxid").append(fieldDelim).append("0x" +Long.toHexString(head.stat.getPzxid())).append(fieldSep);
+    sb.append("cmzxid").append(fieldDelim).append("0x" + Long.toHexString(head.stat.getMzxid()))
+        .append(fieldSep);
+    sb.append("pzxid").append(fieldDelim).append("0x" + Long.toHexString(head.stat.getPzxid()))
+        .append(fieldSep);
     sb.append("aversion").append(fieldDelim).append(head.stat.getAversion()).append(fieldSep);
     sb.append("cversion").append(fieldDelim).append(head.stat.getCversion()).append(fieldSep);
     sb.append("version").append(fieldDelim).append(head.stat.getVersion()).append(fieldSep);
     sb.append("data").append(fieldDelim).append(dataStr).append(fieldSep);
-    //@formatter:on
+    // @formatter:on
 
-    if (bw != null)
-    {
+    if (bw != null) {
       bw.write(sb.toString());
       bw.newLine();
-    } else
-    {
-      System.out.println(sb);      
+    } else {
+      System.out.println(sb);
     }
 
   }
 
-  private static void readTransactionLog(String logfilepath)
-      throws FileNotFoundException, IOException, EOFException
-  {
+  private static void readTransactionLog(String logfilepath) throws FileNotFoundException,
+      IOException, EOFException {
     FileInputStream fis = new FileInputStream(logfilepath);
     BinaryInputArchive logStream = BinaryInputArchive.getArchive(fis);
     FileHeader fhdr = new FileHeader();
     fhdr.deserialize(logStream, "fileheader");
 
-    if (fhdr.getMagic() != FileTxnLog.TXNLOG_MAGIC)
-    {
+    if (fhdr.getMagic() != FileTxnLog.TXNLOG_MAGIC) {
       System.err.println("Invalid magic number for " + logfilepath);
       System.exit(2);
     }
 
-    if (bw != null)
-    {
-      bw.write("ZooKeeper Transactional Log File with dbid "
-          + fhdr.getDbid() + " txnlog format version " + fhdr.getVersion());
+    if (bw != null) {
+      bw.write("ZooKeeper Transactional Log File with dbid " + fhdr.getDbid()
+          + " txnlog format version " + fhdr.getVersion());
       bw.newLine();
-    } else
-    {
-      System.out.println("ZooKeeper Transactional Log File with dbid "
-          + fhdr.getDbid() + " txnlog format version " + fhdr.getVersion());
+    } else {
+      System.out.println("ZooKeeper Transactional Log File with dbid " + fhdr.getDbid()
+          + " txnlog format version " + fhdr.getVersion());
     }
 
-    
     int count = 0;
-    while (true)
-    {
+    while (true) {
       long crcValue;
       byte[] bytes;
-      try
-      {
+      try {
         crcValue = logStream.readLong("crcvalue");
 
         bytes = logStream.readBuffer("txnEntry");
-      } catch (EOFException e)
-      {
-        if (bw != null)
-        {
+      } catch (EOFException e) {
+        if (bw != null) {
           bw.write("EOF reached after " + count + " txns.");
           bw.newLine();
-        } else
-        {
+        } else {
           System.out.println("EOF reached after " + count + " txns.");
         }
 
         break;
       }
-      if (bytes.length == 0)
-      {
+      if (bytes.length == 0) {
         // Since we preallocate, we define EOF to be an
         // empty transaction
-        if (bw != null)
-        {
+        if (bw != null) {
           bw.write("EOF reached after " + count + " txns.");
           bw.newLine();
-        } else
-        {
+        } else {
           System.out.println("EOF reached after " + count + " txns.");
         }
 
@@ -280,26 +247,20 @@ public class ZKLogFormatter
       }
       Checksum crc = new Adler32();
       crc.update(bytes, 0, bytes.length);
-      if (crcValue != crc.getValue())
-      {
-        throw new IOException("CRC doesn't match " + crcValue + " vs "
-            + crc.getValue());
+      if (crcValue != crc.getValue()) {
+        throw new IOException("CRC doesn't match " + crcValue + " vs " + crc.getValue());
       }
-      InputArchive iab = BinaryInputArchive
-          .getArchive(new ByteArrayInputStream(bytes));
+      InputArchive iab = BinaryInputArchive.getArchive(new ByteArrayInputStream(bytes));
       TxnHeader hdr = new TxnHeader();
       Record txn = SerializeUtils.deserializeTxn(iab, hdr);
-      if (bw != null)
-      {
+      if (bw != null) {
         bw.write(formatTransaction(hdr, txn));
         bw.newLine();
-      } else
-      {
+      } else {
         System.out.println(formatTransaction(hdr, txn));
       }
 
-      if (logStream.readByte("EOR") != 'B')
-      {
+      if (logStream.readByte("EOR") != 'B') {
         LOG.error("Last transaction was partial.");
         throw new EOFException("Last transaction was partial.");
       }
@@ -307,10 +268,8 @@ public class ZKLogFormatter
     }
   }
 
-  static String op2String(int op)
-  {
-    switch (op)
-    {
+  static String op2String(int op) {
+    switch (op) {
     case OpCode.notification:
       return "notification";
     case OpCode.create:
@@ -344,8 +303,7 @@ public class ZKLogFormatter
     }
   }
 
-  private static String formatTransaction(TxnHeader header, Record txn)
-  {
+  private static String formatTransaction(TxnHeader header, Record txn) {
     StringBuilder sb = new StringBuilder();
 
     sb.append("time").append(fieldDelim).append(header.getTime());
@@ -355,41 +313,27 @@ public class ZKLogFormatter
         .append(Long.toHexString(header.getCxid()));
     sb.append(fieldSep).append("zxid").append(fieldDelim).append("0x")
         .append(Long.toHexString(header.getZxid()));
-    sb.append(fieldSep).append("type").append(fieldDelim)
-        .append(op2String(header.getType()));
-    if (txn != null)
-    {
-      try
-      {
+    sb.append(fieldSep).append("type").append(fieldDelim).append(op2String(header.getType()));
+    if (txn != null) {
+      try {
         byte[] data = null;
         for (PropertyDescriptor pd : Introspector.getBeanInfo(txn.getClass())
-            .getPropertyDescriptors())
-        {
-          if (pd.getName().equalsIgnoreCase("data"))
-          {
+            .getPropertyDescriptors()) {
+          if (pd.getName().equalsIgnoreCase("data")) {
             data = (byte[]) pd.getReadMethod().invoke(txn);
             continue;
           }
-          if (pd.getReadMethod() != null && !"class".equals(pd.getName()))
-          {
-            sb.append(fieldSep)
-                .append(pd.getDisplayName())
-                .append(fieldDelim)
-                .append(
-                    pd.getReadMethod().invoke(txn).toString()
-                        .replaceAll("[\\s]+", ""));
+          if (pd.getReadMethod() != null && !"class".equals(pd.getName())) {
+            sb.append(fieldSep).append(pd.getDisplayName()).append(fieldDelim)
+                .append(pd.getReadMethod().invoke(txn).toString().replaceAll("[\\s]+", ""));
           }
         }
-        if (data != null)
-        {
+        if (data != null) {
           sb.append(fieldSep).append("data").append(fieldDelim)
               .append(new String(data).replaceAll("[\\s]+", ""));
         }
-      } catch (Exception e)
-      {
-        LOG.error(
-            "Error while retrieving bean property values for " + txn.getClass(),
-            e);
+      } catch (Exception e) {
+        LOG.error("Error while retrieving bean property values for " + txn.getClass(), e);
       }
     }
 

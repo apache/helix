@@ -30,9 +30,7 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestControllerManager extends ZkUnitTestBase
-{
+public class TestControllerManager extends ZkUnitTestBase {
 
   @Test
   public void testMultipleControllersOfSameName() throws Exception {
@@ -42,18 +40,16 @@ public class TestControllerManager extends ZkUnitTestBase
     String clusterName = className + "_" + methodName;
     int n = 5;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            16, // partitions per resource
-                            n, // number of nodes
-                            3, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        16, // partitions per resource
+        n, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start multiple controllers of same name
     int m = 3;
@@ -74,19 +70,18 @@ public class TestControllerManager extends ZkUnitTestBase
     Assert.assertEquals(leaderCnt, 1, "Should have only 1 leader but was " + leaderCnt);
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
 
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                      clusterName));
+        ClusterStateVerifier
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                clusterName));
     Assert.assertTrue(result);
 
     // cleanup
@@ -98,53 +93,46 @@ public class TestControllerManager extends ZkUnitTestBase
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
-  public void simpleSessionExpiryTest() throws Exception
-  {
-//    Logger.getRootLogger().setLevel(Level.WARN);
+  public void simpleSessionExpiryTest() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.WARN);
 
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
     int n = 5;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            16, // partitions per resource
-                            n, // number of nodes
-                            3, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        16, // partitions per resource
+        n, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
     controller.syncStart();
 
     // start participants
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR,
-                                 clusterName,
-                                 instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
     String oldSessionId = controller.getSessionId();
 
@@ -156,7 +144,7 @@ public class TestControllerManager extends ZkUnitTestBase
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
     String newSessionId = controller.getSessionId();
     Assert.assertNotSame(newSessionId, oldSessionId);
@@ -167,8 +155,7 @@ public class TestControllerManager extends ZkUnitTestBase
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

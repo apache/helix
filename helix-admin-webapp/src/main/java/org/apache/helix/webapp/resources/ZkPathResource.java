@@ -40,53 +40,43 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class ZkPathResource extends Resource
-{
+public class ZkPathResource extends Resource {
   private final static Logger LOG = Logger.getLogger(ZkPathResource.class);
 
-  public ZkPathResource(Context context, Request request, Response response)
-  {
+  public ZkPathResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
 
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
 
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
 
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return true;
   }
 
-  private String getZKPath()
-  {
+  private String getZKPath() {
     String relativeRef = getRequest().getResourceRef().getRelativeRef().toString();
-    if (relativeRef.equals("."))
-    {
+    if (relativeRef.equals(".")) {
       relativeRef = "";
     }
 
     // strip off trailing "/"
-    while (relativeRef.endsWith("/"))
-    {
+    while (relativeRef.endsWith("/")) {
       relativeRef = relativeRef.substring(0, relativeRef.length() - 1);
     }
 
@@ -94,65 +84,52 @@ public class ZkPathResource extends Resource
   }
 
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
+  public void acceptRepresentation(Representation entity) {
     String zkPath = getZKPath();
 
-    try
-    {
+    try {
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      
-      if (command.equalsIgnoreCase(JsonParameters.ZK_DELETE_CHILDREN))
-      {
+
+      if (command.equalsIgnoreCase(JsonParameters.ZK_DELETE_CHILDREN)) {
         List<String> childNames = zkClient.getChildren(zkPath);
-        if (childNames != null)
-        {
-          for (String childName : childNames)
-          {
-            String childPath = zkPath.equals("/")? "/" + childName : zkPath + "/" + childName;
+        if (childNames != null) {
+          for (String childName : childNames) {
+            String childPath = zkPath.equals("/") ? "/" + childName : zkPath + "/" + childName;
             zkClient.deleteRecursive(childPath);
           }
         }
-      }
-      else
-      {
-        throw new HelixException("Unsupported command: " + command
-            + ". Should be one of [" + JsonParameters.ZK_DELETE_CHILDREN + "]");
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + JsonParameters.ZK_DELETE_CHILDREN + "]");
       }
 
       getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in post zkPath: " + zkPath, e);
     }
   }
 
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
     String zkPath = getZKPath();
 
-    try
-    {
+    try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ZNRecord result = readZkDataStatAndChild(zkPath, zkClient);
 
       presentation =
           new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(result),
-                                   MediaType.APPLICATION_JSON);
-    }
-    catch (Exception e)
-    {
+              MediaType.APPLICATION_JSON);
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -162,19 +139,15 @@ public class ZkPathResource extends Resource
     return presentation;
   }
 
-  private ZNRecord readZkDataStatAndChild(String zkPath, ZkClient zkClient)
-  {
+  private ZNRecord readZkDataStatAndChild(String zkPath, ZkClient zkClient) {
     ZNRecord result = null;
 
     // read data and stat
     Stat stat = new Stat();
     ZNRecord data = zkClient.readDataAndStat(zkPath, stat, true);
-    if (data != null)
-    {
+    if (data != null) {
       result = data;
-    }
-    else
-    {
+    } else {
       result = new ZNRecord("");
     }
     result.setSimpleField("zkPath", zkPath);
@@ -186,29 +159,24 @@ public class ZkPathResource extends Resource
 
     // read childrenList
     List<String> children = zkClient.getChildren(zkPath);
-    if (children != null && children.size() > 0)
-    {
+    if (children != null && children.size() > 0) {
       result.setListField("children", children);
     }
     return result;
   }
 
   @Override
-  public void removeRepresentations()
-  {
+  public void removeRepresentations() {
     String zkPath = getZKPath();
-    try
-    {
+    try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       zkClient.deleteRecursive(zkPath);
-      
+
       getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
-                              MediaType.APPLICATION_JSON);
+          MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in delete zkPath: " + zkPath, e);
     }

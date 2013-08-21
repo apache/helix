@@ -67,74 +67,59 @@ import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
+public class ClusterStateVerifier {
+  public static String cluster = "cluster";
+  public static String zkServerAddress = "zkSvr";
+  public static String help = "help";
+  public static String timeout = "timeout";
+  public static String period = "period";
 
-public class ClusterStateVerifier
-{
-  public static String  cluster         = "cluster";
-  public static String  zkServerAddress = "zkSvr";
-  public static String  help            = "help";
-  public static String  timeout         = "timeout";
-  public static String  period          = "period";
+  private static Logger LOG = Logger.getLogger(ClusterStateVerifier.class);
 
-  private static Logger LOG             = Logger.getLogger(ClusterStateVerifier.class);
-
-  public interface Verifier
-  {
+  public interface Verifier {
     boolean verify();
   }
 
-  public interface ZkVerifier extends Verifier
-  {
+  public interface ZkVerifier extends Verifier {
     ZkClient getZkClient();
 
     String getClusterName();
   }
 
-  static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener
-  {
+  static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener {
     final CountDownLatch _countDown;
-    final ZkClient       _zkClient;
-    final Verifier       _verifier;
+    final ZkClient _zkClient;
+    final Verifier _verifier;
 
-    public ExtViewVeriferZkListener(CountDownLatch countDown,
-                                    ZkClient zkClient,
-                                    ZkVerifier verifier)
-    {
+    public ExtViewVeriferZkListener(CountDownLatch countDown, ZkClient zkClient, ZkVerifier verifier) {
       _countDown = countDown;
       _zkClient = zkClient;
       _verifier = verifier;
     }
 
     @Override
-    public void handleDataChange(String dataPath, Object data) throws Exception
-    {
+    public void handleDataChange(String dataPath, Object data) throws Exception {
       boolean result = _verifier.verify();
-      if (result == true)
-      {
+      if (result == true) {
         _countDown.countDown();
       }
     }
 
     @Override
-    public void handleDataDeleted(String dataPath) throws Exception
-    {
+    public void handleDataDeleted(String dataPath) throws Exception {
       // TODO Auto-generated method stub
 
     }
 
     @Override
-    public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception
-    {
-      for (String child : currentChilds)
-      {
-        String childPath =
-            parentPath.equals("/") ? parentPath + child : parentPath + "/" + child;
+    public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
+      for (String child : currentChilds) {
+        String childPath = parentPath.equals("/") ? parentPath + child : parentPath + "/" + child;
         _zkClient.subscribeDataChanges(childPath, this);
       }
 
       boolean result = _verifier.verify();
-      if (result == true)
-      {
+      if (result == true) {
         _countDown.countDown();
       }
     }
@@ -144,24 +129,19 @@ public class ClusterStateVerifier
   /**
    * verifier that verifies best possible state and external view
    */
-  public static class BestPossAndExtViewZkVerifier implements ZkVerifier
-  {
-    private final String                           zkAddr;
-    private final String                           clusterName;
+  public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
+    private final String zkAddr;
+    private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
-    private final ZkClient                         zkClient;
+    private final ZkClient zkClient;
 
-    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName)
-    {
+    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName) {
       this(zkAddr, clusterName, null);
     }
 
-    public BestPossAndExtViewZkVerifier(String zkAddr,
-                                        String clusterName,
-                                        Map<String, Map<String, String>> errStates)
-    {
-      if (zkAddr == null || clusterName == null)
-      {
+    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
+        Map<String, Map<String, String>> errStates) {
+      if (zkAddr == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkAddr|clusterName");
       }
       this.zkAddr = zkAddr;
@@ -171,38 +151,30 @@ public class ClusterStateVerifier
     }
 
     @Override
-    public boolean verify()
-    {
-      try
-      {
+    public boolean verify() {
+      try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName,
-                                    new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
       return false;
     }
 
     @Override
-    public ZkClient getZkClient()
-    {
+    public ZkClient getZkClient() {
       return zkClient;
     }
 
     @Override
-    public String getClusterName()
-    {
+    public String getClusterName() {
       return clusterName;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
       String verifierName = getClass().getName();
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
@@ -210,16 +182,13 @@ public class ClusterStateVerifier
     }
   }
 
-  public static class MasterNbInExtViewVerifier implements ZkVerifier
-  {
-    private final String   zkAddr;
-    private final String   clusterName;
+  public static class MasterNbInExtViewVerifier implements ZkVerifier {
+    private final String zkAddr;
+    private final String clusterName;
     private final ZkClient zkClient;
 
-    public MasterNbInExtViewVerifier(String zkAddr, String clusterName)
-    {
-      if (zkAddr == null || clusterName == null)
-      {
+    public MasterNbInExtViewVerifier(String zkAddr, String clusterName) {
+      if (zkAddr == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkAddr|clusterName");
       }
       this.zkAddr = zkAddr;
@@ -228,86 +197,71 @@ public class ClusterStateVerifier
     }
 
     @Override
-    public boolean verify()
-    {
-      try
-      {
+    public boolean verify() {
+      try {
         ZKHelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName,
-                                    new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
       return false;
     }
 
     @Override
-    public ZkClient getZkClient()
-    {
+    public ZkClient getZkClient() {
       return zkClient;
     }
 
     @Override
-    public String getClusterName()
-    {
+    public String getClusterName() {
       return clusterName;
     }
 
   }
 
   static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
-                                          Map<String, Map<String, String>> errStates)
-  {
-    try
-    {
+      Map<String, Map<String, String>> errStates) {
+    try {
       Builder keyBuilder = accessor.keyBuilder();
       // read cluster once and do verification
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
 
       Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null)  // || idealStates.isEmpty())
+      if (idealStates == null) // || idealStates.isEmpty())
       {
         // ideal state is null because ideal state is dropped
         idealStates = Collections.emptyMap();
       }
 
-      Map<String, ExternalView> extViews =
-          accessor.getChildValuesMap(keyBuilder.externalViews());
+      Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
       if (extViews == null) // || extViews.isEmpty())
       {
         extViews = Collections.emptyMap();
       }
 
       // if externalView is not empty and idealState doesn't exist
-      //  add empty idealState for the resource
-      for (String resource : extViews.keySet())
-      {
-        if (!idealStates.containsKey(resource))
-        {
+      // add empty idealState for the resource
+      for (String resource : extViews.keySet()) {
+        if (!idealStates.containsKey(resource)) {
           idealStates.put(resource, new IdealState(resource));
         }
       }
-      
+
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput =
-          ClusterStateVerifier.calcBestPossState(cache);
-      Map<String, Map<Partition, Map<String, String>>> bestPossStateMap = bestPossOutput.getStateMap();
+      BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cache);
+      Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
+          bestPossOutput.getStateMap();
 
       // set error states
-      if (errStates != null)
-      {
-        for (String resourceName : errStates.keySet())
-        {
+      if (errStates != null) {
+        for (String resourceName : errStates.keySet()) {
           Map<String, String> partErrStates = errStates.get(resourceName);
-          for (String partitionName : partErrStates.keySet())
-          {
+          for (String partitionName : partErrStates.keySet()) {
             String instanceName = partErrStates.get(partitionName);
-            
+
             if (!bestPossStateMap.containsKey(resourceName)) {
               bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
             }
@@ -315,19 +269,17 @@ public class ClusterStateVerifier
             if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
               bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
             }
-            bestPossStateMap.get(resourceName).get(partition).put(instanceName, HelixDefinedState.ERROR.toString());
+            bestPossStateMap.get(resourceName).get(partition)
+                .put(instanceName, HelixDefinedState.ERROR.toString());
           }
         }
       }
-      
+
       // System.out.println("stateMap: " + bestPossStateMap);
 
-      
-      for (String resourceName : idealStates.keySet())
-      {
+      for (String resourceName : idealStates.keySet()) {
         ExternalView extView = extViews.get(resourceName);
-        if (extView == null)
-        {
+        if (extView == null) {
           LOG.info("externalView for " + resourceName + " is not available");
           return false;
         }
@@ -335,27 +287,21 @@ public class ClusterStateVerifier
         // step 0: remove empty map and DROPPED state from best possible state
         Map<Partition, Map<String, String>> bpStateMap =
             bestPossOutput.getResourceMap(resourceName);
-        Iterator<Entry<Partition, Map<String, String>>> iter =
-            bpStateMap.entrySet().iterator();
-        while (iter.hasNext())
-        {
+        Iterator<Entry<Partition, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
+        while (iter.hasNext()) {
           Map.Entry<Partition, Map<String, String>> entry = iter.next();
           Map<String, String> instanceStateMap = entry.getValue();
-          if (instanceStateMap.isEmpty())
-          {
+          if (instanceStateMap.isEmpty()) {
             iter.remove();
-          } else
-          {
+          } else {
             // remove instances with DROPPED state
             Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
-            while (insIter.hasNext())
-            {
+            while (insIter.hasNext()) {
               Map.Entry<String, String> insEntry = insIter.next();
               String state = insEntry.getValue();
-              if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString()))
-              {
+              if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
                 insIter.remove();
-              }   
+              }
             }
           }
         }
@@ -365,15 +311,13 @@ public class ClusterStateVerifier
         // step 1: externalView and bestPossibleState has equal size
         int extViewSize = extView.getRecord().getMapFields().size();
         int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
-        if (extViewSize != bestPossStateSize)
-        {
-          LOG.info("exterView size (" + extViewSize
-              + ") is different from bestPossState size (" + bestPossStateSize
-              + ") for resource: " + resourceName);
-          
-//          System.err.println("exterView size (" + extViewSize
-//              + ") is different from bestPossState size (" + bestPossStateSize
-//              + ") for resource: " + resourceName);
+        if (extViewSize != bestPossStateSize) {
+          LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
+              + bestPossStateSize + ") for resource: " + resourceName);
+
+          // System.err.println("exterView size (" + extViewSize
+          // + ") is different from bestPossState size (" + bestPossStateSize
+          // + ") for resource: " + resourceName);
           // System.out.println("extView: " + extView.getRecord().getMapFields());
           // System.out.println("bestPossState: " +
           // bestPossOutput.getResourceMap(resourceName));
@@ -381,82 +325,66 @@ public class ClusterStateVerifier
         }
 
         // step 2: every entry in external view is contained in best possible state
-        for (String partition : extView.getRecord().getMapFields().keySet())
-        {
-          Map<String, String> evInstanceStateMap =
-              extView.getRecord().getMapField(partition);
+        for (String partition : extView.getRecord().getMapFields().keySet()) {
+          Map<String, String> evInstanceStateMap = extView.getRecord().getMapField(partition);
           Map<String, String> bpInstanceStateMap =
               bestPossOutput.getInstanceStateMap(resourceName, new Partition(partition));
 
           boolean result =
               ClusterStateVerifier.<String, String> compareMap(evInstanceStateMap,
-                                                               bpInstanceStateMap);
-          if (result == false)
-          {
-            LOG.info("externalView is different from bestPossibleState for partition:"
-                + partition);
-            
-//            System.err.println("externalView is different from bestPossibleState for partition: "
-//                + partition + ", actual: " + evInstanceStateMap + ", bestPoss: " + bpInstanceStateMap);
+                  bpInstanceStateMap);
+          if (result == false) {
+            LOG.info("externalView is different from bestPossibleState for partition:" + partition);
+
+            // System.err.println("externalView is different from bestPossibleState for partition: "
+            // + partition + ", actual: " + evInstanceStateMap + ", bestPoss: " +
+            // bpInstanceStateMap);
             return false;
           }
         }
       }
       return true;
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("exception in verification", e);
       return false;
     }
 
   }
 
-  static boolean verifyMasterNbInExtView(HelixDataAccessor accessor)
-  {
+  static boolean verifyMasterNbInExtView(HelixDataAccessor accessor) {
     Builder keyBuilder = accessor.keyBuilder();
 
-    Map<String, IdealState> idealStates =
-        accessor.getChildValuesMap(keyBuilder.idealStates());
-    if (idealStates == null || idealStates.size() == 0)
-    {
+    Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+    if (idealStates == null || idealStates.size() == 0) {
       LOG.info("No resource idealState");
       return true;
     }
 
-    Map<String, ExternalView> extViews =
-        accessor.getChildValuesMap(keyBuilder.externalViews());
-    if (extViews == null || extViews.size() < idealStates.size())
-    {
+    Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+    if (extViews == null || extViews.size() < idealStates.size()) {
       LOG.info("No externalViews | externalView.size() < idealState.size()");
       return false;
     }
 
-    for (String resource : extViews.keySet())
-    {
+    for (String resource : extViews.keySet()) {
       int partitions = idealStates.get(resource).getNumPartitions();
       Map<String, Map<String, String>> instanceStateMap =
           extViews.get(resource).getRecord().getMapFields();
-      if (instanceStateMap.size() < partitions)
-      {
-        LOG.info("Number of externalViews (" + instanceStateMap.size()
-            + ") < partitions (" + partitions + ")");
+      if (instanceStateMap.size() < partitions) {
+        LOG.info("Number of externalViews (" + instanceStateMap.size() + ") < partitions ("
+            + partitions + ")");
         return false;
       }
 
-      for (String partition : instanceStateMap.keySet())
-      {
+      for (String partition : instanceStateMap.keySet()) {
         boolean foundMaster = false;
-        for (String instance : instanceStateMap.get(partition).keySet())
-        {
-          if (instanceStateMap.get(partition).get(instance).equalsIgnoreCase("MASTER"))
-          {
+        for (String instance : instanceStateMap.get(partition).keySet()) {
+          if (instanceStateMap.get(partition).get(instance).equalsIgnoreCase("MASTER")) {
             foundMaster = true;
             break;
           }
         }
-        if (!foundMaster)
-        {
+        if (!foundMaster) {
           LOG.info("No MASTER for partition: " + partition);
           return false;
         }
@@ -465,8 +393,7 @@ public class ClusterStateVerifier
     return true;
   }
 
-  static void runStage(ClusterEvent event, Stage stage) throws Exception
-  {
+  static void runStage(ClusterEvent event, Stage stage) throws Exception {
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -477,14 +404,12 @@ public class ClusterStateVerifier
   /**
    * calculate the best possible state note that DROPPED states are not checked since when
    * kick off the BestPossibleStateCalcStage we are providing an empty current state map
-   * 
    * @param cache
    * @return
    * @throws Exception
    */
 
-  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception
-  {
+  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
     event.addAttribute("ClusterDataCache", cache);
 
@@ -503,41 +428,28 @@ public class ClusterStateVerifier
     return output;
   }
 
-  public static <K, V> boolean compareMap(Map<K, V> map1, Map<K, V> map2)
-  {
+  public static <K, V> boolean compareMap(Map<K, V> map1, Map<K, V> map2) {
     boolean isEqual = true;
-    if (map1 == null && map2 == null)
-    {
+    if (map1 == null && map2 == null) {
       // OK
-    }
-    else if (map1 == null && map2 != null)
-    {
-      if (!map2.isEmpty())
-      {
+    } else if (map1 == null && map2 != null) {
+      if (!map2.isEmpty()) {
         isEqual = false;
       }
-    }
-    else if (map1 != null && map2 == null)
-    {
-      if (!map1.isEmpty())
-      {
+    } else if (map1 != null && map2 == null) {
+      if (!map1.isEmpty()) {
         isEqual = false;
       }
-    }
-    else
-    {
+    } else {
       // verify size
-      if (map1.size() != map2.size())
-      {
+      if (map1.size() != map2.size()) {
         isEqual = false;
       }
       // verify each <key, value> in map1 is contained in map2
-      for (K key : map1.keySet())
-      {
-        if (!map1.get(key).equals(map2.get(key)))
-        {
-          LOG.debug("different value for key: " + key + "(map1: " + map1.get(key)
-              + ", map2: " + map2.get(key) + ")");
+      for (K key : map1.keySet()) {
+        if (!map1.get(key).equals(map2.get(key))) {
+          LOG.debug("different value for key: " + key + "(map1: " + map1.get(key) + ", map2: "
+              + map2.get(key) + ")");
           isEqual = false;
           break;
         }
@@ -546,43 +458,32 @@ public class ClusterStateVerifier
     return isEqual;
   }
 
-  public static boolean verifyByPolling(Verifier verifier)
-  {
+  public static boolean verifyByPolling(Verifier verifier) {
     return verifyByPolling(verifier, 30 * 1000);
   }
 
-  public static boolean verifyByPolling(Verifier verifier, long timeout)
-  {
+  public static boolean verifyByPolling(Verifier verifier, long timeout) {
     return verifyByPolling(verifier, timeout, 1000);
   }
 
-  public static boolean verifyByPolling(Verifier verifier, long timeout, long period)
-  {
+  public static boolean verifyByPolling(Verifier verifier, long timeout, long period) {
     long startTime = System.currentTimeMillis();
     boolean result = false;
-    try
-    {
+    try {
       long curTime;
-      do
-      {
+      do {
         Thread.sleep(period);
         result = verifier.verify();
-        if (result == true)
-        {
+        if (result == true) {
           break;
         }
         curTime = System.currentTimeMillis();
-      }
-      while (curTime <= startTime + timeout);
+      } while (curTime <= startTime + timeout);
       return result;
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       long endTime = System.currentTimeMillis();
 
       // debug
@@ -593,13 +494,11 @@ public class ClusterStateVerifier
     return false;
   }
 
-  public static boolean verifyByZkCallback(ZkVerifier verifier)
-  {
+  public static boolean verifyByZkCallback(ZkVerifier verifier) {
     return verifyByZkCallback(verifier, 30000);
   }
 
-  public static boolean verifyByZkCallback(ZkVerifier verifier, long timeout)
-  {
+  public static boolean verifyByZkCallback(ZkVerifier verifier, long timeout) {
     long startTime = System.currentTimeMillis();
     CountDownLatch countDown = new CountDownLatch(1);
     ZkClient zkClient = verifier.getZkClient();
@@ -609,34 +508,25 @@ public class ClusterStateVerifier
     // so when analyze zk log, we know when a test ends
     zkClient.createEphemeral("/" + clusterName + "/CONFIGS/CLUSTER/verify");
 
-    ExtViewVeriferZkListener listener =
-        new ExtViewVeriferZkListener(countDown, zkClient, verifier);
+    ExtViewVeriferZkListener listener = new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 
-    String extViewPath =
-        PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
     zkClient.subscribeChildChanges(extViewPath, listener);
-    for (String child : zkClient.getChildren(extViewPath))
-    {
-      String childPath =
-          extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
+    for (String child : zkClient.getChildren(extViewPath)) {
+      String childPath = extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
       zkClient.subscribeDataChanges(childPath, listener);
     }
 
     // do initial verify
     boolean result = verifier.verify();
-    if (result == false)
-    {
-      try
-      {
+    if (result == false) {
+      try {
         result = countDown.await(timeout, TimeUnit.MILLISECONDS);
-        if (result == false)
-        {
+        if (result == false) {
           // make a final try if timeout
           result = verifier.verify();
         }
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
@@ -644,10 +534,8 @@ public class ClusterStateVerifier
 
     // clean up
     zkClient.unsubscribeChildChanges(extViewPath, listener);
-    for (String child : zkClient.getChildren(extViewPath))
-    {
-      String childPath =
-          extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
+    for (String child : zkClient.getChildren(extViewPath)) {
+      String childPath = extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;
       zkClient.unsubscribeDataChanges(childPath, listener);
     }
 
@@ -661,40 +549,33 @@ public class ClusterStateVerifier
   }
 
   @SuppressWarnings("static-access")
-  private static Options constructCommandLineOptions()
-  {
+  private static Options constructCommandLineOptions() {
     Option helpOption =
-        OptionBuilder.withLongOpt(help)
-                     .withDescription("Prints command-line options info")
-                     .create();
+        OptionBuilder.withLongOpt(help).withDescription("Prints command-line options info")
+            .create();
 
     Option zkServerOption =
-        OptionBuilder.withLongOpt(zkServerAddress)
-                     .withDescription("Provide zookeeper address")
-                     .create();
+        OptionBuilder.withLongOpt(zkServerAddress).withDescription("Provide zookeeper address")
+            .create();
     zkServerOption.setArgs(1);
     zkServerOption.setRequired(true);
     zkServerOption.setArgName("ZookeeperServerAddress(Required)");
 
     Option clusterOption =
-        OptionBuilder.withLongOpt(cluster)
-                     .withDescription("Provide cluster name")
-                     .create();
+        OptionBuilder.withLongOpt(cluster).withDescription("Provide cluster name").create();
     clusterOption.setArgs(1);
     clusterOption.setRequired(true);
     clusterOption.setArgName("Cluster name (Required)");
 
     Option timeoutOption =
-        OptionBuilder.withLongOpt(timeout)
-                     .withDescription("Timeout value for verification")
-                     .create();
+        OptionBuilder.withLongOpt(timeout).withDescription("Timeout value for verification")
+            .create();
     timeoutOption.setArgs(1);
     timeoutOption.setArgName("Timeout value (Optional), default=30s");
 
     Option sleepIntervalOption =
-        OptionBuilder.withLongOpt(period)
-                     .withDescription("Polling period for verification")
-                     .create();
+        OptionBuilder.withLongOpt(period).withDescription("Polling period for verification")
+            .create();
     sleepIntervalOption.setArgs(1);
     sleepIntervalOption.setArgName("Polling period value (Optional), default=1s");
 
@@ -708,25 +589,20 @@ public class ClusterStateVerifier
     return options;
   }
 
-  public static void printUsage(Options cliOptions)
-  {
+  public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + ClusterSetup.class.getName(), cliOptions);
   }
 
-  public static CommandLine processCommandLineArgs(String[] cliArgs)
-  {
+  public static CommandLine processCommandLineArgs(String[] cliArgs) {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
     // CommandLine cmd = null;
 
-    try
-    {
+    try {
       return cliParser.parse(cliOptions, cliArgs);
-    }
-    catch (ParseException pe)
-    {
+    } catch (ParseException pe) {
       System.err.println("CommandLineClient: failed to parse command-line options: "
           + pe.toString());
       printUsage(cliOptions);
@@ -735,42 +611,31 @@ public class ClusterStateVerifier
     return null;
   }
 
-  public static boolean verifyState(String[] args)
-  {
+  public static boolean verifyState(String[] args) {
     // TODO Auto-generated method stub
     String clusterName = "storage-cluster";
     String zkServer = "localhost:2181";
     long timeoutValue = 0;
     long periodValue = 1000;
 
-    if (args.length > 0)
-    {
+    if (args.length > 0) {
       CommandLine cmd = processCommandLineArgs(args);
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
       String timeoutStr = cmd.getOptionValue(timeout);
       String periodStr = cmd.getOptionValue(period);
-      if (timeoutStr != null)
-      {
-        try
-        {
+      if (timeoutStr != null) {
+        try {
           timeoutValue = Long.parseLong(timeoutStr);
-        }
-        catch (Exception e)
-        {
-          System.err.println("Exception in converting " + timeoutStr
-              + " to long. Use default (0)");
+        } catch (Exception e) {
+          System.err.println("Exception in converting " + timeoutStr + " to long. Use default (0)");
         }
       }
 
-      if (periodStr != null)
-      {
-        try
-        {
+      if (periodStr != null) {
+        try {
           periodValue = Long.parseLong(periodStr);
-        }
-        catch (Exception e)
-        {
+        } catch (Exception e) {
           System.err.println("Exception in converting " + periodStr
               + " to long. Use default (1000)");
         }
@@ -781,12 +646,10 @@ public class ClusterStateVerifier
     // timeoutValue,
     // periodValue);
 
-    return verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkServer, clusterName),
-                              timeoutValue);
+    return verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkServer, clusterName), timeoutValue);
   }
 
-  public static void main(String[] args)
-  {
+  public static void main(String[] args) {
     boolean result = verifyState(args);
     System.out.println(result ? "Successful" : "failed");
     System.exit(1);

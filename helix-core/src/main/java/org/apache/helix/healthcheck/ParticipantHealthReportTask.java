@@ -37,7 +37,7 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
 
     @Override
     public void run() {
-      _healthReportCollector.transmitHealthReports();      
+      _healthReportCollector.transmitHealthReports();
     }
   }
 
@@ -68,5 +68,4 @@ public class ParticipantHealthReportTask extends HelixTimerTask {
     }
   }
 
-  
 }

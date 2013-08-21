@@ -19,84 +19,72 @@ package org.apache.helix.model;
  * under the License.
  */
 
-
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
-public class PersistentStats extends HelixProperty
-{
+public class PersistentStats extends HelixProperty {
   private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
 
-  public enum PersistentStatsProperty
-	  {
-	    SESSION_ID,
-	    FIELDS
-	  }
-	
-//  private final ZNRecord _record;
-	
+  public enum PersistentStatsProperty {
+    SESSION_ID,
+    FIELDS
+  }
+
+  // private final ZNRecord _record;
+
   public final static String nodeName = "PersistentStats";
-	
-  
-  public PersistentStats(String id)
-  {
+
+  public PersistentStats(String id) {
     super(id);
   }
-  
-  public PersistentStats(ZNRecord record)
-  {
-//    _record = record;
+
+  public PersistentStats(ZNRecord record) {
+    // _record = record;
     super(record);
 
   }
 
   /*
-  public PersistentStats(ZNRecord record, Stat stat)
-  {
-    super(record, stat);
-  }
-*/
+   * public PersistentStats(ZNRecord record, Stat stat)
+   * {
+   * super(record, stat);
+   * }
+   */
 
-  public void setSessionId(String sessionId){
+  public void setSessionId(String sessionId) {
     _record.setSimpleField(PersistentStatsProperty.SESSION_ID.toString(), sessionId);
   }
-  public String getSessionId()
-  {
+
+  public String getSessionId() {
     return _record.getSimpleField(PersistentStatsProperty.SESSION_ID.toString());
   }
 
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     return _record.getId();
   }
 
   /*
-  public String getVersion()
-  {
-    return _record.getSimpleField(CLUSTER_MANAGER_VERSION.toString());
-  }
-  */
-  
-  
+   * public String getVersion()
+   * {
+   * return _record.getSimpleField(CLUSTER_MANAGER_VERSION.toString());
+   * }
+   */
+
   public Map<String, Map<String, String>> getMapFields() {
-	  return _record.getMapFields();
+    return _record.getMapFields();
   }
-  
-  
+
   public Map<String, String> getStatFields(String statName) {
-	  return _record.getMapField(statName);
+    return _record.getMapField(statName);
   }
 
-@Override
-public boolean isValid() {
-	// TODO Auto-generated method stub
-	return true;
-}
-  
-}
+  @Override
+  public boolean isValid() {
+    // TODO Auto-generated method stub
+    return true;
+  }
 
-
+}

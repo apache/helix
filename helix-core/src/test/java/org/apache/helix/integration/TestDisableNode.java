@@ -25,25 +25,25 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
+public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
 
   @Test()
-  public void testDisableNode() throws Exception
-  {
-    String command = "-zkSvr " + ZK_ADDR +" -enableInstance " + CLUSTER_NAME + " "+
-        PARTICIPANT_PREFIX + "_12918" + " TestDB TestDB_0 false";
+  public void testDisableNode() throws Exception {
+    String command =
+        "-zkSvr " + ZK_ADDR + " -enableInstance " + CLUSTER_NAME + " " + PARTICIPANT_PREFIX
+            + "_12918" + " TestDB TestDB_0 false";
     ClusterSetup.processCommandLineArgs(command.split(" "));
-    boolean result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
-    
-    result = ClusterStateVerifier.verifyByPolling(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
+
+    result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
   }

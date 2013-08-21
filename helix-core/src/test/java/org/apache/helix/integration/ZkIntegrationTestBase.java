@@ -42,30 +42,26 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
+public class ZkIntegrationTestBase {
+  private static Logger LOG = Logger.getLogger(ZkIntegrationTestBase.class);
 
-public class ZkIntegrationTestBase
-{
-  private static Logger         LOG                       =
-                                                              Logger.getLogger(ZkIntegrationTestBase.class);
-
-  protected static ZkServer     _zkServer;
-  protected static ZkClient     _gZkClient;
+  protected static ZkServer _zkServer;
+  protected static ZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
 
-  public static final String    ZK_ADDR                   = "localhost:2183";
-  protected static final String CLUSTER_PREFIX            = "CLUSTER";
+  public static final String ZK_ADDR = "localhost:2183";
+  protected static final String CLUSTER_PREFIX = "CLUSTER";
   protected static final String CONTROLLER_CLUSTER_PREFIX = "CONTROLLER_CLUSTER";
 
-  protected final String        CONTROLLER_PREFIX         = "controller";
-  protected final String        PARTICIPANT_PREFIX        = "localhost";
+  protected final String CONTROLLER_PREFIX = "controller";
+  protected final String PARTICIPANT_PREFIX = "localhost";
 
   @BeforeSuite
-  public void beforeSuite() throws Exception
-  {
+  public void beforeSuite() throws Exception {
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
-    
+
     _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
@@ -76,28 +72,24 @@ public class ZkIntegrationTestBase
   }
 
   @AfterSuite
-  public void afterSuite()
-  {
+  public void afterSuite() {
     ZKClientPool.reset();
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
   }
 
-  protected String getShortClassName()
-  {
+  protected String getShortClassName() {
     String className = this.getClass().getName();
     return className.substring(className.lastIndexOf('.') + 1);
   }
 
-  protected String getCurrentLeader(ZkClient zkClient, String clusterName)
-  {
+  protected String getCurrentLeader(ZkClient zkClient, String clusterName) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
-    if (leader == null)
-    {
+    if (leader == null) {
       return null;
     }
     return leader.getInstanceName();
@@ -105,16 +97,13 @@ public class ZkIntegrationTestBase
 
   /**
    * Stop current leader and returns the new leader
-   * 
    * @param zkClient
    * @param clusterName
    * @param startCMResultMap
    * @return
    */
-  protected String stopCurrentLeader(ZkClient zkClient,
-                                     String clusterName,
-                                     Map<String, StartCMResult> startCMResultMap)
-  {
+  protected String stopCurrentLeader(ZkClient zkClient, String clusterName,
+      Map<String, StartCMResult> startCMResultMap) {
     String leader = getCurrentLeader(zkClient, clusterName);
     Assert.assertTrue(leader != null);
     System.out.println("stop leader: " + leader + " in " + clusterName);
@@ -129,34 +118,27 @@ public class ZkIntegrationTestBase
 
     boolean isNewLeaderElected = false;
     String newLeader = null;
-    try
-    {
-      for (int i = 0; i < 5; i++)
-      {
+    try {
+      for (int i = 0; i < 5; i++) {
         Thread.sleep(1000);
         newLeader = getCurrentLeader(zkClient, clusterName);
-        if (!newLeader.equals(leader))
-        {
+        if (!newLeader.equals(leader)) {
           isNewLeaderElected = true;
           System.out.println("new leader elected: " + newLeader + " in " + clusterName);
           break;
         }
       }
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       e.printStackTrace();
     }
-    if (isNewLeaderElected == false)
-    {
+    if (isNewLeaderElected == false) {
       System.out.println("fail to elect a new leader in " + clusterName);
     }
     AssertJUnit.assertTrue(isNewLeaderElected);
     return newLeader;
   }
 
-  protected void enableHealthCheck(String clusterName)
-  {
+  protected void enableHealthCheck(String clusterName) {
     ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName).build();
     new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
   }

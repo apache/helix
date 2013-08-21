@@ -21,29 +21,24 @@ package org.apache.helix.store.zk;
 
 import org.apache.zookeeper.data.Stat;
 
-public class PropertyItem
-{
+public class PropertyItem {
   byte[] _value;
   Stat _stat;
-  
-  public PropertyItem(byte[] value, Stat stat)
-  {
+
+  public PropertyItem(byte[] value, Stat stat) {
     _value = value;
     _stat = stat;
   }
-  
-  public byte[] getBytes()
-  {
+
+  public byte[] getBytes() {
     return _value;
   }
-  
-  public int getVersion()
-  {
+
+  public int getVersion() {
     return _stat.getVersion();
   }
-  
-  public long getLastModifiedTime()
-  {
+
+  public long getLastModifiedTime() {
     return _stat.getMtime();
   }
 }

@@ -39,47 +39,38 @@ import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 
-
 /**
- * 
  * setup a storage cluster and start a zk-based cluster controller in stand-alone mode
  * start 5 dummy participants verify the current states at end
  */
 
-public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
-{
-  private static Logger                LOG               =
-                                                             Logger.getLogger(ZkStandAloneCMTestBase.class);
+public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
+  private static Logger LOG = Logger.getLogger(ZkStandAloneCMTestBase.class);
 
-  protected static final int           NODE_NR           = 5;
-  protected static final int           START_PORT        = 12918;
-  protected static final String        STATE_MODEL       = "MasterSlave";
-  protected static final String        TEST_DB           = "TestDB";
-  protected static final int           _PARTITIONS       = 20;
+  protected static final int NODE_NR = 5;
+  protected static final int START_PORT = 12918;
+  protected static final String STATE_MODEL = "MasterSlave";
+  protected static final String TEST_DB = "TestDB";
+  protected static final int _PARTITIONS = 20;
 
-  protected ClusterSetup               _setupTool        = null;
-  protected final String               CLASS_NAME        = getShortClassName();
-  protected final String               CLUSTER_NAME      = CLUSTER_PREFIX + "_"
-                                                             + CLASS_NAME;
+  protected ClusterSetup _setupTool = null;
+  protected final String CLASS_NAME = getShortClassName();
+  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
-  protected Map<String, StartCMResult> _startCMResultMap =
-                                                             new HashMap<String, StartCMResult>();
-  protected ZkClient                   _zkClient;
-  
+  protected Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
+  protected ZkClient _zkClient;
+
   int _replica = 3;
 
   @BeforeClass
-  public void beforeClass() throws Exception
-  {
-//    Logger.getRootLogger().setLevel(Level.INFO);
-    System.out.println("START " + CLASS_NAME + " at "
-        + new Date(System.currentTimeMillis()));
+  public void beforeClass() throws Exception {
+    // Logger.getRootLogger().setLevel(Level.INFO);
+    System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     _zkClient = new ZkClient(ZK_ADDR);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     String namespace = "/" + CLUSTER_NAME;
-    if (_zkClient.exists(namespace))
-    {
+    if (_zkClient.exists(namespace)) {
       _zkClient.deleteRecursive(namespace);
     }
     _setupTool = new ClusterSetup(ZK_ADDR);
@@ -87,26 +78,20 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
 
     // start dummy participants
-    for (int i = 0; i < NODE_NR; i++)
-    {
+    for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      if (_startCMResultMap.get(instanceName) != null)
-      {
+      if (_startCMResultMap.get(instanceName) != null) {
         LOG.error("fail to start particpant:" + instanceName
             + "(participant with same name already exists)");
-      }
-      else
-      {
-        StartCMResult result =
-            TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
+      } else {
+        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
         _startCMResultMap.put(instanceName, result);
       }
     }
@@ -114,36 +99,31 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult startResult =
-        TestHelper.startController(CLUSTER_NAME,
-                                   controllerName,
-                                   ZK_ADDR,
-                                   HelixControllerMain.STANDALONE);
+        TestHelper.startController(CLUSTER_NAME, controllerName, ZK_ADDR,
+            HelixControllerMain.STANDALONE);
     _startCMResultMap.put(controllerName, startResult);
-    
+
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-                                                                              CLUSTER_NAME));
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 CLUSTER_NAME));
+            CLUSTER_NAME));
     Assert.assertTrue(result);
   }
 
   @AfterClass
-  public void afterClass() throws Exception
-  {
+  public void afterClass() throws Exception {
     /**
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
-   
+
     StartCMResult result;
     Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
-    while (it.hasNext())
-    {
+    while (it.hasNext()) {
       String instanceName = it.next().getKey();
-      if (instanceName.startsWith(CONTROLLER_PREFIX))
-      {
+      if (instanceName.startsWith(CONTROLLER_PREFIX)) {
         result = _startCMResultMap.get(instanceName);
         result._manager.disconnect();
         result._thread.interrupt();
@@ -153,8 +133,7 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     Thread.sleep(100);
     it = _startCMResultMap.entrySet().iterator();
-    while (it.hasNext())
-    {
+    while (it.hasNext()) {
       String instanceName = it.next().getKey();
       result = _startCMResultMap.get(instanceName);
       result._manager.disconnect();
@@ -164,7 +143,6 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase
 
     _zkClient.close();
     // logger.info("END at " + new Date(System.currentTimeMillis()));
-    System.out.println("END " + CLASS_NAME + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

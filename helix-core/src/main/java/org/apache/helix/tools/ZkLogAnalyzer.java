@@ -41,38 +41,31 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.log4j.Logger;
 
-
-public class ZkLogAnalyzer
-{
-  private static Logger           LOG           = Logger.getLogger(ZkLogAnalyzer.class);
-  private static boolean          dump          = false;                                 ;
+public class ZkLogAnalyzer {
+  private static Logger LOG = Logger.getLogger(ZkLogAnalyzer.class);
+  private static boolean dump = false;;
   final static ZNRecordSerializer _deserializer = new ZNRecordSerializer();
 
-  static class Stats
-  {
-    int msgSentCount        = 0;
-    int msgSentCount_O2S    = 0; // Offline to Slave
-    int msgSentCount_S2M    = 0; // Slave to Master
-    int msgSentCount_M2S    = 0; // Master to Slave
-    int msgDeleteCount      = 0;
-    int msgModifyCount      = 0;
+  static class Stats {
+    int msgSentCount = 0;
+    int msgSentCount_O2S = 0; // Offline to Slave
+    int msgSentCount_S2M = 0; // Slave to Master
+    int msgSentCount_M2S = 0; // Master to Slave
+    int msgDeleteCount = 0;
+    int msgModifyCount = 0;
     int curStateCreateCount = 0;
     int curStateUpdateCount = 0;
-    int extViewCreateCount  = 0;
-    int extViewUpdateCount  = 0;
+    int extViewCreateCount = 0;
+    int extViewUpdateCount = 0;
   }
 
-  static String getAttributeValue(String line, String attribute)
-  {
+  static String getAttributeValue(String line, String attribute) {
     if (line == null)
       return null;
     String[] parts = line.split("\\s");
-    if (parts != null && parts.length > 0)
-    {
-      for (int i = 0; i < parts.length; i++)
-      {
-        if (parts[i].startsWith(attribute))
-        {
+    if (parts != null && parts.length > 0) {
+      for (int i = 0; i < parts.length; i++) {
+        if (parts[i].startsWith(attribute)) {
           String val = parts[i].substring(attribute.length());
           return val;
         }
@@ -81,16 +74,13 @@ public class ZkLogAnalyzer
     return null;
   }
 
-  static String findLastCSUpdateBetween(List<String> csUpdateLines, long start, long end)
-  {
+  static String findLastCSUpdateBetween(List<String> csUpdateLines, long start, long end) {
     long lastCSUpdateTimestamp = Long.MIN_VALUE;
     String lastCSUpdateLine = null;
-    for (String line : csUpdateLines)
-    {
+    for (String line : csUpdateLines) {
       // ZNRecord record = getZNRecord(line);
       long timestamp = Long.parseLong(getAttributeValue(line, "time:"));
-      if (timestamp >= start && timestamp <= end && timestamp > lastCSUpdateTimestamp)
-      {
+      if (timestamp >= start && timestamp <= end && timestamp > lastCSUpdateTimestamp) {
         lastCSUpdateTimestamp = timestamp;
         lastCSUpdateLine = line;
       }
@@ -99,12 +89,10 @@ public class ZkLogAnalyzer
     return lastCSUpdateLine;
   }
 
-  static ZNRecord getZNRecord(String line)
-  {
+  static ZNRecord getZNRecord(String line) {
     ZNRecord record = null;
     String value = getAttributeValue(line, "data:");
-    if (value != null)
-    {
+    if (value != null) {
       record = (ZNRecord) _deserializer.deserialize(value.getBytes());
       // if (record == null)
       // {
@@ -114,11 +102,10 @@ public class ZkLogAnalyzer
     return record;
   }
 
-  public static void main(String[] args) throws Exception
-  {
-    if (args.length != 3)
-    {
-      System.err.println("USAGE: ZkLogAnalyzer zkLogDir clusterName testStartTime (yyMMdd_hhmmss_SSS)");
+  public static void main(String[] args) throws Exception {
+    if (args.length != 3) {
+      System.err
+          .println("USAGE: ZkLogAnalyzer zkLogDir clusterName testStartTime (yyMMdd_hhmmss_SSS)");
       System.exit(1);
     }
 
@@ -138,48 +125,42 @@ public class ZkLogAnalyzer
     long startTimeStamp = date.getTime();
 
     System.out.println(clusterName + " created at " + date);
-    while (zkLogDir.endsWith("/"))
-    {
+    while (zkLogDir.endsWith("/")) {
       zkLogDir = zkLogDir.substring(0, zkLogDir.length() - 1);
     }
-    if (!zkLogDir.endsWith("/version-2"))
-    {
+    if (!zkLogDir.endsWith("/version-2")) {
       zkLogDir = zkLogDir + "/version-2";
     }
     File dir = new File(zkLogDir);
-    File[] zkLogs = dir.listFiles(new FileFilter()
-    {
+    File[] zkLogs = dir.listFiles(new FileFilter() {
 
       @Override
-      public boolean accept(File file)
-      {
+      public boolean accept(File file) {
         return file.isFile() && (file.getName().indexOf("log") != -1);
       }
     });
 
     // lastModified time -> zkLog
     TreeMap<Long, String> lastZkLogs = new TreeMap<Long, String>();
-    for (File file : zkLogs)
-    {
-      if (file.lastModified() > startTimeStamp)
-      {
+    for (File file : zkLogs) {
+      if (file.lastModified() > startTimeStamp) {
         lastZkLogs.put(file.lastModified(), file.getAbsolutePath());
       }
     }
 
     List<String> parsedZkLogs = new ArrayList<String>();
     int i = 0;
-    System.out.println("zk logs last modified later than "
-        + new Timestamp(startTimeStamp));
-    for (Long lastModified : lastZkLogs.keySet())
-    {
+    System.out.println("zk logs last modified later than " + new Timestamp(startTimeStamp));
+    for (Long lastModified : lastZkLogs.keySet()) {
       String fileName = lastZkLogs.get(lastModified);
       System.out.println(new Timestamp(lastModified) + ": "
           + (fileName.substring(fileName.lastIndexOf('/') + 1)));
 
       String parsedFileName = "zkLogAnalyzor_zklog.parsed" + i;
       i++;
-      ZKLogFormatter.main(new String[] { "log", fileName, parsedFileName });
+      ZKLogFormatter.main(new String[] {
+          "log", fileName, parsedFileName
+      });
       parsedZkLogs.add(parsedFileName);
     }
 
@@ -198,48 +179,40 @@ public class ZkLogAnalyzer
     Stats stats = new Stats();
     long lastTestStartTimestamp = Long.MAX_VALUE;
     long controllerStartTime = 0;
-    for (String parsedZkLog : parsedZkLogs)
-    {
+    for (String parsedZkLog : parsedZkLogs) {
 
       FileInputStream fis = new FileInputStream(parsedZkLog);
       BufferedReader br = new BufferedReader(new InputStreamReader(fis));
 
       String inputLine;
-      while ((inputLine = br.readLine()) != null)
-      {
+      while ((inputLine = br.readLine()) != null) {
         String timestamp = getAttributeValue(inputLine, "time:");
-        if (timestamp == null)
-        {
+        if (timestamp == null) {
           continue;
         }
         long timestampVal = Long.parseLong(timestamp);
-        if (timestampVal < startTimeStamp)
-        {
+        if (timestampVal < startTimeStamp) {
           continue;
         }
 
-        if (dump == true)
-        {
+        if (dump == true) {
           String printLine = inputLine.replaceAll("data:.*", "");
-          printLine = new Timestamp(timestampVal) + " " + printLine.substring(printLine.indexOf("session:"));
+          printLine =
+              new Timestamp(timestampVal) + " "
+                  + printLine.substring(printLine.indexOf("session:"));
           System.err.println(printLine);
         }
 
-        if (inputLine.indexOf("/start_disable") != -1)
-        {
+        if (inputLine.indexOf("/start_disable") != -1) {
           dump = true;
         }
-        if (inputLine.indexOf("/" + clusterName + "/CONFIGS/CLUSTER/verify") != -1)
-        {
+        if (inputLine.indexOf("/" + clusterName + "/CONFIGS/CLUSTER/verify") != -1) {
           String type = getAttributeValue(inputLine, "type:");
-          if (type.equals("delete"))
-          {
+          if (type.equals("delete")) {
             System.out.println(timestamp + ": verify done");
             System.out.println("lastTestStartTimestamp:" + lastTestStartTimestamp);
             String lastCSUpdateLine =
-                findLastCSUpdateBetween(csUpdateLines,
-                                        lastTestStartTimestamp,
-                                        timestampVal);
+                findLastCSUpdateBetween(csUpdateLines, lastTestStartTimestamp, timestampVal);
             long lastCSUpdateTimestamp =
                 Long.parseLong(getAttributeValue(lastCSUpdateLine, "time:"));
             System.out.println("Last CS Update:" + lastCSUpdateTimestamp);
@@ -250,9 +223,8 @@ public class ZkLogAnalyzer
             System.out.println("state transition latency since controller start: "
                 + +(lastCSUpdateTimestamp - controllerStartTime) + "ms");
 
-            System.out.println("Create MSG\t" + stats.msgSentCount + "\t"
-                + stats.msgSentCount_O2S + "\t" + stats.msgSentCount_S2M + "\t"
-                + stats.msgSentCount_M2S);
+            System.out.println("Create MSG\t" + stats.msgSentCount + "\t" + stats.msgSentCount_O2S
+                + "\t" + stats.msgSentCount_S2M + "\t" + stats.msgSentCount_M2S);
             System.out.println("Modify MSG\t" + stats.msgModifyCount);
             System.out.println("Delete MSG\t" + stats.msgDeleteCount);
             System.out.println("Create CS\t" + stats.curStateCreateCount);
@@ -264,12 +236,9 @@ public class ZkLogAnalyzer
             stats = new Stats();
             lastTestStartTimestamp = Long.MAX_VALUE;
           }
-        }
-        else if (inputLine.indexOf("/" + clusterName + "/LIVEINSTANCES/") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/LIVEINSTANCES/") != -1) {
           // cluster startup
-          if (timestampVal < lastTestStartTimestamp)
-          {
+          if (timestampVal < lastTestStartTimestamp) {
             System.out.println("START cluster. SETTING lastTestStartTimestamp to "
                 + new Timestamp(timestampVal) + "\nline:" + inputLine);
             lastTestStartTimestamp = timestampVal;
@@ -281,15 +250,11 @@ public class ZkLogAnalyzer
           sessionMap.put(session, inputLine);
           System.out.println(new Timestamp(Long.parseLong(timestamp)) + ": create LIVEINSTANCE "
               + liveInstance.getInstanceName());
-        }
-        else if (inputLine.indexOf("closeSession") != -1)
-        {
+        } else if (inputLine.indexOf("closeSession") != -1) {
           // kill any instance
           String session = getAttributeValue(inputLine, "session:");
-          if (sessionMap.containsKey(session))
-          {
-            if (timestampVal < lastTestStartTimestamp)
-            {
+          if (sessionMap.containsKey(session)) {
+            if (timestampVal < lastTestStartTimestamp) {
               System.out.println("KILL node. SETTING lastTestStartTimestamp to " + timestampVal
                   + " line:" + inputLine);
               lastTestStartTimestamp = timestampVal;
@@ -302,22 +267,17 @@ public class ZkLogAnalyzer
                 + liveInstance.getInstanceName());
             dump = true;
           }
-        }
-        else if (inputLine.indexOf("/" + clusterName + "/CONFIGS/PARTICIPANT") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/CONFIGS/PARTICIPANT") != -1) {
           // disable a partition
           String type = getAttributeValue(inputLine, "type:");
-          if (type.equals("setData") && inputLine.indexOf("HELIX_DISABLED_PARTITION") != -1)
-          {
-            if (timestampVal < lastTestStartTimestamp)
-            {
-              System.out.println("DISABLE partition. SETTING lastTestStartTimestamp to " + timestampVal
-                  + " line:" + inputLine);
+          if (type.equals("setData") && inputLine.indexOf("HELIX_DISABLED_PARTITION") != -1) {
+            if (timestampVal < lastTestStartTimestamp) {
+              System.out.println("DISABLE partition. SETTING lastTestStartTimestamp to "
+                  + timestampVal + " line:" + inputLine);
               lastTestStartTimestamp = timestampVal;
             }
           }
-        } else if (inputLine.indexOf("/" + clusterName + "/CONTROLLER/LEADER") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/CONTROLLER/LEADER") != -1) {
           // leaderLine = inputLine;
           ZNRecord record = getZNRecord(inputLine);
           LiveInstance liveInstance = new LiveInstance(record);
@@ -327,38 +287,26 @@ public class ZkLogAnalyzer
           sessionMap.put(session, inputLine);
           System.out.println(new Timestamp(Long.parseLong(timestamp)) + ": create LEADER "
               + liveInstance.getInstanceName());
-        }
-        else if (inputLine.indexOf("/" + clusterName + "/") != -1
-            && inputLine.indexOf("/CURRENTSTATES/") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/") != -1
+            && inputLine.indexOf("/CURRENTSTATES/") != -1) {
           String type = getAttributeValue(inputLine, "type:");
-          if (type.equals("create"))
-          {
+          if (type.equals("create")) {
             stats.curStateCreateCount++;
-          }
-          else if (type.equals("setData"))
-          {
+          } else if (type.equals("setData")) {
             String path = getAttributeValue(inputLine, "path:");
             csUpdateLines.add(inputLine);
             stats.curStateUpdateCount++;
             // getAttributeValue(line, "data");
-            System.out.println("Update currentstate:"
-                + new Timestamp(Long.parseLong(timestamp)) + ":" + timestamp + " path:"
-                + path);
+            System.out.println("Update currentstate:" + new Timestamp(Long.parseLong(timestamp))
+                + ":" + timestamp + " path:" + path);
           }
-        }
-        else if (inputLine.indexOf("/" + clusterName + "/EXTERNALVIEW/") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/EXTERNALVIEW/") != -1) {
           String session = getAttributeValue(inputLine, "session:");
-          if (session.equals(leaderSession))
-          {
+          if (session.equals(leaderSession)) {
             String type = getAttributeValue(inputLine, "type:");
-            if (type.equals("create"))
-            {
+            if (type.equals("create")) {
               stats.extViewCreateCount++;
-            }
-            else if (type.equals("setData"))
-            {
+            } else if (type.equals("setData")) {
               stats.extViewUpdateCount++;
             }
           }
@@ -381,37 +329,24 @@ public class ZkLogAnalyzer
           // + " has " + masterCnt + " MASTER, " + slaveCnt + " SLAVE");
           // }
           // }
-        }
-        else if (inputLine.indexOf("/" + clusterName + "/") != -1
-            && inputLine.indexOf("/MESSAGES/") != -1)
-        {
+        } else if (inputLine.indexOf("/" + clusterName + "/") != -1
+            && inputLine.indexOf("/MESSAGES/") != -1) {
           String type = getAttributeValue(inputLine, "type:");
 
-          if (type.equals("create"))
-          {
+          if (type.equals("create")) {
             ZNRecord record = getZNRecord(inputLine);
             Message msg = new Message(record);
             String sendSession = getAttributeValue(inputLine, "session:");
-            if (sendSession.equals(leaderSession)
-                && msg.getMsgType().equals("STATE_TRANSITION")
-                && msg.getMsgState() == MessageState.NEW)
-            {
+            if (sendSession.equals(leaderSession) && msg.getMsgType().equals("STATE_TRANSITION")
+                && msg.getMsgState() == MessageState.NEW) {
               // sendMessageLines.add(inputLine);
               stats.msgSentCount++;
 
-              if (msg.getFromState().equals("OFFLINE")
-                  && msg.getToState().equals("SLAVE"))
-              {
+              if (msg.getFromState().equals("OFFLINE") && msg.getToState().equals("SLAVE")) {
                 stats.msgSentCount_O2S++;
-              }
-              else if (msg.getFromState().equals("SLAVE")
-                  && msg.getToState().equals("MASTER"))
-              {
+              } else if (msg.getFromState().equals("SLAVE") && msg.getToState().equals("MASTER")) {
                 stats.msgSentCount_S2M++;
-              }
-              else if (msg.getFromState().equals("MASTER")
-                  && msg.getToState().equals("SLAVE"))
-              {
+              } else if (msg.getFromState().equals("MASTER") && msg.getToState().equals("SLAVE")) {
                 stats.msgSentCount_M2S++;
               }
               // System.out.println("Message create:"+new
@@ -444,9 +379,7 @@ public class ZkLogAnalyzer
             // + msg.getTgtName() + ", size: " + msgBytes.length);
             // }
             // }
-          }
-          else if (type.equals("setData"))
-          {
+          } else if (type.equals("setData")) {
             stats.msgModifyCount++;
             // pos = inputLine.indexOf("MESSAGES");
             // pos = inputLine.indexOf("data:{", pos);
@@ -481,9 +414,7 @@ public class ZkLogAnalyzer
             //
             // }
             // }
-          }
-          else if (type.equals("delete"))
-          {
+          } else if (type.equals("delete")) {
             stats.msgDeleteCount++;
             // String msgId = path.substring(path.lastIndexOf('/') + 1);
             // if (msgs.containsKey(msgId))

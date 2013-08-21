@@ -26,11 +26,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-public class StatHealthReportProvider extends HealthReportProvider
-{
+public class StatHealthReportProvider extends HealthReportProvider {
 
-  private static final Logger _logger = Logger
-      .getLogger(StatHealthReportProvider.class);
+  private static final Logger _logger = Logger.getLogger(StatHealthReportProvider.class);
 
   /*
    * public final static String _testStat = "testStat"; public final static
@@ -55,26 +53,24 @@ public class StatHealthReportProvider extends HealthReportProvider
 
   // private final Map<String, HashMap<String,String>> _partitionStatMaps = new
   // HashMap<String, HashMap<String,String>>();
-  private final ConcurrentHashMap<String, String> _statsToValues = new ConcurrentHashMap<String, String>();
-  private final ConcurrentHashMap<String, String> _statsToTimestamps = new ConcurrentHashMap<String, String>();
+  private final ConcurrentHashMap<String, String> _statsToValues =
+      new ConcurrentHashMap<String, String>();
+  private final ConcurrentHashMap<String, String> _statsToTimestamps =
+      new ConcurrentHashMap<String, String>();
 
-  public StatHealthReportProvider()
-  {
+  public StatHealthReportProvider() {
   }
 
   @Override
-  public Map<String, String> getRecentHealthReport()
-  {
+  public Map<String, String> getRecentHealthReport() {
     return null;
   }
 
   // TODO: function is misnamed, but return type is what I want
   @Override
-  public Map<String, Map<String, String>> getRecentPartitionHealthReport()
-  {
+  public Map<String, Map<String, String>> getRecentPartitionHealthReport() {
     Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-    for (String stat : _statsToValues.keySet())
-    {
+    for (String stat : _statsToValues.keySet()) {
       Map<String, String> currStat = new HashMap<String, String>();
       /*
        * currStat.put(Stat.OP_TYPE, stat._opType);
@@ -93,23 +89,19 @@ public class StatHealthReportProvider extends HealthReportProvider
     return result;
   }
 
-  public boolean contains(Stat inStat)
-  {
+  public boolean contains(Stat inStat) {
     return _statsToValues.containsKey(inStat);
   }
 
-  public Set<String> keySet()
-  {
+  public Set<String> keySet() {
     return _statsToValues.keySet();
   }
 
-  public String getStatValue(Stat inStat)
-  {
+  public String getStatValue(Stat inStat) {
     return _statsToValues.get(inStat);
   }
 
-  public long getStatTimestamp(Stat inStat)
-  {
+  public long getStatTimestamp(Stat inStat) {
     return Long.parseLong(_statsToTimestamps.get(inStat));
   }
 
@@ -122,8 +114,7 @@ public class StatHealthReportProvider extends HealthReportProvider
    * _statsToValues.put(rs, val); } return val; }
    */
 
-  public void writeStat(String statName, String val, String timestamp)
-  {
+  public void writeStat(String statName, String val, String timestamp) {
     _statsToValues.put(statName, val);
     _statsToTimestamps.put(statName, timestamp);
   }
@@ -131,47 +122,38 @@ public class StatHealthReportProvider extends HealthReportProvider
   /*
    * public void setStat(Stat es, String val, String timestamp) { writeStat(es,
    * val, timestamp); }
-   * 
    * public void setStat(String opType, String measurementType, String
    * resourceName, String partitionName, String nodeName, double val, String
    * timestamp) { Stat rs = new Stat(opType, measurementType, resourceName,
    * partitionName, nodeName); writeStat(rs, String.valueOf(val), timestamp); }
    */
 
-  public void incrementStat(String statName, String timestamp)
-  {
+  public void incrementStat(String statName, String timestamp) {
     // Stat rs = new Stat(opType, measurementType, resourceName, partitionName,
     // nodeName);
     String val = _statsToValues.get(statName);
-    if (val == null)
-    {
+    if (val == null) {
       val = "0";
-    }
-    else
-    {
+    } else {
       val = String.valueOf(Double.parseDouble(val) + 1);
     }
     writeStat(statName, val, timestamp);
   }
 
-  public int size()
-  {
+  public int size() {
     return _statsToValues.size();
   }
 
-  public void resetStats()
-  {
+  public void resetStats() {
     _statsToValues.clear();
     _statsToTimestamps.clear();
   }
 
-  public void setReportName(String name)
-  {
+  public void setReportName(String name) {
     _reportName = name;
   }
 
-  public String getReportName()
-  {
+  public String getReportName() {
     return _reportName;
   }
 }

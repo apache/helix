@@ -38,67 +38,63 @@ import org.josql.QueryParseException;
 import org.josql.QueryResults;
 import org.testng.annotations.Test;
 
-
-public class TestClusterJosqlQueryProcessor
-{
-  @Test (groups = {"unitTest"})
-  public void queryClusterDataSample() 
-  {
+public class TestClusterJosqlQueryProcessor {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void queryClusterDataSample() {
     List<ZNRecord> liveInstances = new ArrayList<ZNRecord>();
     Map<String, ZNRecord> liveInstanceMap = new HashMap<String, ZNRecord>();
     List<String> instances = new ArrayList<String>();
-    for(int i = 0;i<5; i++)
-    {
-      String instance = "localhost_"+(12918+i);
+    for (int i = 0; i < 5; i++) {
+      String instance = "localhost_" + (12918 + i);
       instances.add(instance);
       ZNRecord metaData = new ZNRecord(instance);
-      metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(),
-          UUID.randomUUID().toString());
-      metaData.setSimpleField("SCN", "" + (10-i));
+      metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), UUID.randomUUID()
+          .toString());
+      metaData.setSimpleField("SCN", "" + (10 - i));
       liveInstances.add(metaData);
       liveInstanceMap.put(instance, metaData);
     }
-    
-    //liveInstances.remove(0);
-    ZNRecord externalView = DefaultIdealStateCalculator.calculateIdealState(
-        instances, 21, 3, "TestDB", "MASTER", "SLAVE");
-    
-    
+
+    // liveInstances.remove(0);
+    ZNRecord externalView =
+        DefaultIdealStateCalculator.calculateIdealState(instances, 21, 3, "TestDB", "MASTER",
+            "SLAVE");
+
     Criteria criteria = new Criteria();
     criteria.setInstanceName("%");
     criteria.setResource("TestDB");
     criteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
     criteria.setPartition("TestDB_2%");
     criteria.setPartitionState("SLAVE");
-    
-    String josql = 
-      " SELECT DISTINCT mapSubKey AS 'subkey', mapValue AS 'mapValue' , getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN') AS 'SCN'" +
-      " FROM org.apache.helix.josql.ZNRecordRow " + 
-      " WHERE mapKey LIKE 'TestDB_2%' " +
-        " AND mapSubKey LIKE '%' " +
-        " AND mapValue LIKE 'SLAVE' " +
-        " AND mapSubKey IN ((SELECT [*]id FROM :LIVEINSTANCES)) " +
-        " ORDER BY parseInt(getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN'))";
-    
+
+    String josql =
+        " SELECT DISTINCT mapSubKey AS 'subkey', mapValue AS 'mapValue' , getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN') AS 'SCN'"
+            + " FROM org.apache.helix.josql.ZNRecordRow "
+            + " WHERE mapKey LIKE 'TestDB_2%' "
+            + " AND mapSubKey LIKE '%' "
+            + " AND mapValue LIKE 'SLAVE' "
+            + " AND mapSubKey IN ((SELECT [*]id FROM :LIVEINSTANCES)) "
+            + " ORDER BY parseInt(getSimpleFieldValue(getZNRecordFromMap(:LIVEINSTANCESMAP, mapSubKey), 'SCN'))";
+
     Query josqlQuery = new Query();
     josqlQuery.setVariable("LIVEINSTANCES", liveInstances);
     josqlQuery.setVariable("LIVEINSTANCESMAP", liveInstanceMap);
     josqlQuery.addFunctionHandler(new ZNRecordRow());
     josqlQuery.addFunctionHandler(new ZNRecordJosqlFunctionHandler());
     josqlQuery.addFunctionHandler(new Integer(0));
-    try
-    {
+    try {
       josqlQuery.parse(josql);
       QueryResults qr = josqlQuery.execute(ZNRecordRow.convertMapFields(externalView));
-      @SuppressWarnings({ "unchecked", "unused" })
+      @SuppressWarnings({
+          "unchecked", "unused"
+      })
       List<Object> result = qr.getResults();
-      
-    } 
-    catch (QueryParseException e)
-    {
+
+    } catch (QueryParseException e) {
       e.printStackTrace();
-    } catch (QueryExecutionException e)
-    {
+    } catch (QueryExecutionException e) {
       e.printStackTrace();
     }
 

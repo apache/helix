@@ -26,46 +26,35 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck
-{
+public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   @Test()
-  public void testDropResource() throws Exception
-  {
+  public void testDropResource() throws Exception {
     // add a resource to be dropped
     _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", 6, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 3);
 
     boolean result =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                   CLUSTER_NAME));
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    String command =
-        "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
+    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
-                                 30 * 1000,
-                                 CLUSTER_NAME,
-                                 "MyDB",
-                                 TestHelper.<String> setOf("localhost_12918",
-                                                           "localhost_12919",
-                                                           "localhost_12920",
-                                                           "localhost_12921",
-                                                           "localhost_12922"),
-                                 ZK_ADDR);
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB",
+        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
+            "localhost_12921", "localhost_12922"), ZK_ADDR);
   }
 
   @Test()
-  public void testDropResourceWhileNodeDead() throws Exception
-  {
+  public void testDropResourceWhileNodeDead() throws Exception {
     // add a resource to be dropped
     _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", 16, STATE_MODEL);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
 
     boolean verifyResult =
-        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                                   CLUSTER_NAME));
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(verifyResult);
 
     String hostToKill = "localhost_12920";
@@ -74,33 +63,18 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
     Thread.sleep(1000);
     _startCMResultMap.get(hostToKill)._thread.interrupt();
 
-    String command =
-        "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
+    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
-                                 30 * 1000,
-                                 CLUSTER_NAME,
-                                 "MyDB2",
-                                 TestHelper.<String> setOf("localhost_12918",
-                                                           "localhost_12919",
-                                                           /* "localhost_12920", */"localhost_12921",
-                                                           "localhost_12922"),
-                                 ZK_ADDR);
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
+        TestHelper.<String> setOf("localhost_12918", "localhost_12919",
+        /* "localhost_12920", */"localhost_12921", "localhost_12922"), ZK_ADDR);
 
-    StartCMResult result =
-        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, hostToKill);
+    StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, hostToKill);
     _startCMResultMap.put(hostToKill, result);
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView",
-                                 30 * 1000,
-                                 CLUSTER_NAME,
-                                 "MyDB2",
-                                 TestHelper.<String> setOf("localhost_12918",
-                                                           "localhost_12919",
-                                                           "localhost_12920",
-                                                           "localhost_12921",
-                                                           "localhost_12922"),
-                                 ZK_ADDR);
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
+        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
+            "localhost_12921", "localhost_12922"), ZK_ADDR);
   }
 }

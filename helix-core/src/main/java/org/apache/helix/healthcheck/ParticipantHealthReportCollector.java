@@ -21,8 +21,7 @@ package org.apache.helix.healthcheck;
 
 import org.apache.helix.ZNRecord;
 
-public interface ParticipantHealthReportCollector
-{
+public interface ParticipantHealthReportCollector {
   public abstract void addHealthReportProvider(HealthReportProvider provider);
 
   public abstract void removeHealthReportProvider(HealthReportProvider provider);

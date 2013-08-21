@@ -72,7 +72,6 @@ public class ParticipantManager extends AbstractManager {
   public void handleNewSession() {
     waitUntilConnected();
 
-
     /**
      * stop timer tasks, reset all handlers, make sure cleanup completed for previous session
      * disconnect if cleanup fails
@@ -85,27 +84,24 @@ public class ParticipantManager extends AbstractManager {
      */
     _baseDataAccessor.reset();
 
-
     /**
      * from here on, we are dealing with new session
      */
     if (!ZKUtil.isClusterSetup(_clusterName, _zkclient)) {
-      throw new HelixException("Cluster structure is not set up for cluster: "
-          + _clusterName);
+      throw new HelixException("Cluster structure is not set up for cluster: " + _clusterName);
     }
 
     /**
      * auto-join
      */
-    ParticipantManagerHelper participantHelper
-          = new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
+    ParticipantManagerHelper participantHelper =
+        new ParticipantManagerHelper(this, _zkclient, _sessionTimeout);
     participantHelper.joinCluster();
 
     /**
      * Invoke PreConnectCallbacks
      */
-    for (PreConnectCallback callback : _preConnectCallbacks)
-    {
+    for (PreConnectCallback callback : _preConnectCallbacks) {
       callback.onPreConnect();
     }
 
@@ -135,15 +131,12 @@ public class ParticipantManager extends AbstractManager {
 
   /**
    * helix-participant uses a write-through cache for current-state
-   *
    */
   @Override
   BaseDataAccessor<ZNRecord> createBaseDataAccessor(ZkBaseDataAccessor<ZNRecord> baseDataAccessor) {
-    String curStatePath = PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-        _clusterName,
-        _instanceName);
-      return new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor,
-                         Arrays.asList(curStatePath));
+    String curStatePath =
+        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName, _instanceName);
+    return new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor, Arrays.asList(curStatePath));
 
   }
 

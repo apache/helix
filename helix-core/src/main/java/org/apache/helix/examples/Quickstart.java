@@ -40,8 +40,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.StateMachineEngine;
 
-public class Quickstart
-{
+public class Quickstart {
 
   private static String ZK_ADDRESS = "localhost:2199";
   private static String CLUSTER_NAME = "HELIX_QUICKSTART";
@@ -61,12 +60,10 @@ public class Quickstart
   private static List<InstanceConfig> INSTANCE_CONFIG_LIST;
   private static List<MyProcess> PROCESS_LIST;
   private static HelixAdmin admin;
-  static
-  {
+  static {
     INSTANCE_CONFIG_LIST = new ArrayList<InstanceConfig>();
     PROCESS_LIST = new ArrayList<Quickstart.MyProcess>();
-    for (int i = 0; i < NUM_NODES; i++)
-    {
+    for (int i = 0; i < NUM_NODES; i++) {
       int port = 12000 + i;
       InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
       instanceConfig.setHostName("localhost");
@@ -77,8 +74,7 @@ public class Quickstart
 
   }
 
-  public static void setup()
-  {
+  public static void setup() {
     admin = new ZKHelixAdmin(ZK_ADDRESS);
     // create cluster
     echo("Creating cluster: " + CLUSTER_NAME);
@@ -86,11 +82,9 @@ public class Quickstart
 
     // Add nodes to the cluster
     echo("Adding " + NUM_NODES + " participants to the cluster");
-    for (int i = 0; i < NUM_NODES; i++)
-    {
+    for (int i = 0; i < NUM_NODES; i++) {
       admin.addInstance(CLUSTER_NAME, INSTANCE_CONFIG_LIST.get(i));
-      echo("\t Added participant: "
-          + INSTANCE_CONFIG_LIST.get(i).getInstanceName());
+      echo("\t Added participant: " + INSTANCE_CONFIG_LIST.get(i).getInstanceName());
     }
 
     // Add a state model
@@ -100,17 +94,14 @@ public class Quickstart
 
     // Add a resource with 6 partitions and 2 replicas
     echo("Adding a resource MyResource: " + "with 6 partitions and 2 replicas");
-    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS,
-        STATE_MODEL_NAME, "AUTO");
+    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, "AUTO");
     // this will set up the ideal state, it calculates the preference list for
     // each partition similar to consistent hashing
     admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
   }
 
-  private static StateModelDefinition defineStateModel()
-  {
-    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(
-        STATE_MODEL_NAME);
+  private static StateModelDefinition defineStateModel() {
+    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(STATE_MODEL_NAME);
     // Add states and their rank to indicate priority. Lower the rank higher the
     // priority
     builder.addState(MASTER, 1);
@@ -138,19 +129,16 @@ public class Quickstart
     return statemodelDefinition;
   }
 
-  public static void startController()
-  {
+  public static void startController() {
     // start controller
     echo("Starting Helix Controller");
-    HelixControllerMain.startHelixController(ZK_ADDRESS, CLUSTER_NAME,
-        "localhost_9100", HelixControllerMain.STANDALONE);
+    HelixControllerMain.startHelixController(ZK_ADDRESS, CLUSTER_NAME, "localhost_9100",
+        HelixControllerMain.STANDALONE);
   }
 
-  public static void startNodes() throws Exception
-  {
+  public static void startNodes() throws Exception {
     echo("Starting Participants");
-    for (int i = 0; i < NUM_NODES; i++)
-    {
+    for (int i = 0; i < NUM_NODES; i++) {
       MyProcess process = new MyProcess(INSTANCE_CONFIG_LIST.get(i).getId());
       PROCESS_LIST.add(process);
       process.start();
@@ -158,30 +146,26 @@ public class Quickstart
     }
   }
 
-  public static void startZookeeper()
-  {
+  public static void startZookeeper() {
     echo("STARTING Zookeeper at " + ZK_ADDRESS);
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
+    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(ZkClient zkClient)
-      {
+      public void createDefaultNameSpace(ZkClient zkClient) {
       }
     };
     new File("/tmp/helix-quickstart").mkdirs();
     // start zookeeper
-    ZkServer server = new ZkServer("/tmp/helix-quickstart/dataDir",
-        "/tmp/helix-quickstart/logDir", defaultNameSpace, 2199);
+    ZkServer server =
+        new ZkServer("/tmp/helix-quickstart/dataDir", "/tmp/helix-quickstart/logDir",
+            defaultNameSpace, 2199);
     server.start();
   }
 
-  public static void echo(Object obj)
-  {
+  public static void echo(Object obj) {
     System.out.println(obj);
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     startZookeeper();
     setup();
     startNodes();
@@ -198,8 +182,7 @@ public class Quickstart
     System.exit(0);
   }
 
-  private static void addNode() throws Exception
-  {
+  private static void addNode() throws Exception {
 
     NUM_NODES = NUM_NODES + 1;
     int port = 12000 + NUM_NODES - 1;
@@ -207,7 +190,8 @@ public class Quickstart
     instanceConfig.setHostName("localhost");
     instanceConfig.setPort("" + port);
     instanceConfig.setInstanceEnabled(true);
-    echo("ADDING NEW NODE :" + instanceConfig.getInstanceName()+ ". Partitions will move from old nodes to the new node.");
+    echo("ADDING NEW NODE :" + instanceConfig.getInstanceName()
+        + ". Partitions will move from old nodes to the new node.");
     admin.addInstance(CLUSTER_NAME, instanceConfig);
     INSTANCE_CONFIG_LIST.add(instanceConfig);
     MyProcess process = new MyProcess(instanceConfig.getInstanceName());
@@ -216,43 +200,31 @@ public class Quickstart
     process.start();
   }
 
-  private static void stopNode()
-  {
+  private static void stopNode() {
     int nodeId = NUM_NODES - 1;
-    echo("STOPPING " + INSTANCE_CONFIG_LIST.get(nodeId).getInstanceName()+". Mastership will be transferred to the remaining nodes");
+    echo("STOPPING " + INSTANCE_CONFIG_LIST.get(nodeId).getInstanceName()
+        + ". Mastership will be transferred to the remaining nodes");
     PROCESS_LIST.get(nodeId).stop();
   }
 
-  private static void printState(String msg)
-  {
-    System.out.println("CLUSTER STATE: "+ msg);
-    ExternalView resourceExternalView = admin.getResourceExternalView(
-        CLUSTER_NAME, RESOURCE_NAME);
-    TreeSet<String> sortedSet = new TreeSet<String>(
-        resourceExternalView.getPartitionSet());
+  private static void printState(String msg) {
+    System.out.println("CLUSTER STATE: " + msg);
+    ExternalView resourceExternalView = admin.getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME);
+    TreeSet<String> sortedSet = new TreeSet<String>(resourceExternalView.getPartitionSet());
     StringBuilder sb = new StringBuilder("\t\t");
-    for (int i = 0; i < NUM_NODES; i++)
-    {
+    for (int i = 0; i < NUM_NODES; i++) {
       sb.append(INSTANCE_CONFIG_LIST.get(i).getInstanceName()).append("\t");
     }
     System.out.println(sb);
-    for (String partitionName : sortedSet)
-    {
+    for (String partitionName : sortedSet) {
       sb.delete(0, sb.length() - 1);
       sb.append(partitionName).append("\t");
-      for (int i = 0; i < NUM_NODES; i++)
-      {
-        Map<String, String> stateMap = resourceExternalView
-            .getStateMap(partitionName);
-        if (stateMap != null
-            && stateMap.containsKey(INSTANCE_CONFIG_LIST.get(i)
-                .getInstanceName()))
-        {
-          sb.append(
-              stateMap.get(INSTANCE_CONFIG_LIST.get(i).getInstanceName())
-                  .charAt(0)).append("\t\t");
-        } else
-        {
+      for (int i = 0; i < NUM_NODES; i++) {
+        Map<String, String> stateMap = resourceExternalView.getStateMap(partitionName);
+        if (stateMap != null && stateMap.containsKey(INSTANCE_CONFIG_LIST.get(i).getInstanceName())) {
+          sb.append(stateMap.get(INSTANCE_CONFIG_LIST.get(i).getInstanceName()).charAt(0)).append(
+              "\t\t");
+        } else {
           sb.append("-").append("\t\t");
         }
       }
@@ -261,31 +233,28 @@ public class Quickstart
     System.out.println("###################################################################");
   }
 
-  static final class MyProcess
-  {
+  static final class MyProcess {
     private final String instanceName;
     private HelixManager manager;
 
-    public MyProcess(String instanceName)
-    {
+    public MyProcess(String instanceName) {
       this.instanceName = instanceName;
     }
 
-    public void start() throws Exception
-    {
-      manager = HelixManagerFactory.getZKHelixManager(CLUSTER_NAME,
-          instanceName, InstanceType.PARTICIPANT, ZK_ADDRESS);
+    public void start() throws Exception {
+      manager =
+          HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, instanceName,
+              InstanceType.PARTICIPANT, ZK_ADDRESS);
 
-      MasterSlaveStateModelFactory stateModelFactory = new MasterSlaveStateModelFactory(
-          instanceName);
+      MasterSlaveStateModelFactory stateModelFactory =
+          new MasterSlaveStateModelFactory(instanceName);
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
       stateMach.registerStateModelFactory(STATE_MODEL_NAME, stateModelFactory);
       manager.connect();
     }
 
-    public void stop()
-    {
+    public void stop() {
       manager.disconnect();
     }
   }

@@ -32,44 +32,37 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-
-public class TestAddAlerts
-{
+public class TestAddAlerts {
 
   protected static final String CLUSTER_NAME = "TestCluster";
 
-  MockManager                   _helixManager;
-  AlertsHolder                  _alertsHolder;
+  MockManager _helixManager;
+  AlertsHolder _alertsHolder;
 
-  public final String           EXP          = AlertParser.EXPRESSION_NAME;
-  public final String           CMP          = AlertParser.COMPARATOR_NAME;
-  public final String           CON          = AlertParser.CONSTANT_NAME;
+  public final String EXP = AlertParser.EXPRESSION_NAME;
+  public final String CMP = AlertParser.COMPARATOR_NAME;
+  public final String CON = AlertParser.CONSTANT_NAME;
 
   @BeforeMethod()
-  public void setup()
-  {
+  public void setup() {
     _helixManager = new MockManager(CLUSTER_NAME);
     _alertsHolder = new AlertsHolder(_helixManager, new HealthDataCache());
   }
 
-  public boolean alertRecordContains(ZNRecord rec, String alertName)
-  {
+  public boolean alertRecordContains(ZNRecord rec, String alertName) {
     Map<String, Map<String, String>> alerts = rec.getMapFields();
     return alerts.containsKey(alertName);
   }
 
-  public int alertsSize(ZNRecord rec)
-  {
+  public int alertsSize(ZNRecord rec) {
     Map<String, Map<String, String>> alerts = rec.getMapFields();
     return alerts.size();
   }
 
   @Test()
-  public void testAddAlert() throws Exception
-  {
+  public void testAddAlert() throws Exception {
     String alert =
-        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON
-            + "(10)";
+        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON + "(10)";
     _alertsHolder.addAlert(alert);
     HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
@@ -82,14 +75,11 @@ public class TestAddAlerts
   }
 
   @Test()
-  public void testAddTwoAlerts() throws Exception
-  {
+  public void testAddTwoAlerts() throws Exception {
     String alert1 =
-        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON
-            + "(10)";
+        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON + "(10)";
     String alert2 =
-        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON
-            + "(100)";
+        EXP + "(accumulate()(dbFoo.partition10.latency))" + CMP + "(GREATER)" + CON + "(100)";
     _alertsHolder.addAlert(alert1);
     _alertsHolder.addAlert(alert2);
 
@@ -104,13 +94,14 @@ public class TestAddAlerts
     AssertJUnit.assertEquals(2, alertsSize(rec));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddTwoWildcardAlert() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddTwoWildcardAlert() throws Exception {
     String alert1 =
         EXP + "(accumulate()(dbFoo.partition*.put*))" + CMP + "(GREATER)" + CON + "(10)";
     _alertsHolder.addAlert(alert1);
-    
+
     HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 

@@ -26,38 +26,32 @@ import java.util.List;
 
 import org.apache.helix.servicediscovery.ServiceDiscovery.Mode;
 
-public class ServiceDiscoveryDemo
-{
-  public static void main(String[] args) throws Exception
-  {
+public class ServiceDiscoveryDemo {
+  public static void main(String[] args) throws Exception {
 
     String clusterName = "service-discovery-demo";
     String zkAddress = "localhost:2199";
     String serviceName = "myServiceName";
     int numServices = 5;
-    
-    //registration + zk watch
+
+    // registration + zk watch
     demo(clusterName, zkAddress, serviceName, numServices, Mode.WATCH);
-    //registration + periodic poll 
+    // registration + periodic poll
     demo(clusterName, zkAddress, serviceName, numServices, Mode.POLL);
-    //only registration + ondemand 
+    // only registration + ondemand
     demo(clusterName, zkAddress, serviceName, numServices, Mode.NONE);
 
   }
 
-  private static void demo(String clusterName, String zkAddress,
-      String serviceName, int numServices, Mode mode) throws Exception,
-      UnknownHostException
-  {
-    System.out.println("START:Service discovery demo mode:"+ mode);
-    ServiceDiscovery serviceDiscovery = new ServiceDiscovery(zkAddress,
-        clusterName, mode);
+  private static void demo(String clusterName, String zkAddress, String serviceName,
+      int numServices, Mode mode) throws Exception, UnknownHostException {
+    System.out.println("START:Service discovery demo mode:" + mode);
+    ServiceDiscovery serviceDiscovery = new ServiceDiscovery(zkAddress, clusterName, mode);
     serviceDiscovery.start();
     int startPort = 12000;
     List<MyService> serviceList = new ArrayList<MyService>();
     System.out.println("\tRegistering service");
-    for (int i = 0; i < numServices; i++)
-    {
+    for (int i = 0; i < numServices; i++) {
       String host = InetAddress.getLocalHost().getHostName();
       int port = startPort + i;
       String serviceId = host + "_" + port;
@@ -68,17 +62,16 @@ public class ServiceDiscoveryDemo
       MyService service = new MyService(serviceId, metadata, serviceDiscovery);
       service.start();
       serviceList.add(service);
-      System.out.println("\t\t"+serviceId);
+      System.out.println("\t\t" + serviceId);
     }
     listAvailableServices(serviceDiscovery);
     stopAndStartServices(serviceDiscovery, serviceList, mode);
 
-    for (MyService service : serviceList)
-    {
+    for (MyService service : serviceList) {
       serviceDiscovery.deregister(service.getServiceId());
     }
     serviceDiscovery.stop();
-    System.out.println("END:Service discovery demo mode:"+ mode);
+    System.out.println("END:Service discovery demo mode:" + mode);
     System.out.println("=============================================");
   }
 
@@ -86,23 +79,20 @@ public class ServiceDiscoveryDemo
    * Randomly stop and start some services, list all the available services.
    * This demonstrates that the list is dynamically updated when services
    * starts/stops
-   * 
    * @param serviceDiscovery
    * @param serviceList
    * @param mode
    * @throws Exception
    */
   private static void stopAndStartServices(ServiceDiscovery serviceDiscovery,
-      List<MyService> serviceList, Mode mode) throws Exception
-  {
+      List<MyService> serviceList, Mode mode) throws Exception {
     // randomly select some services stop
     int index = ((int) (Math.random() * 1000)) % serviceList.size();
     MyService service = serviceList.get(index);
     String serviceId = service.getServiceId();
     System.out.println("\tDeregistering service:\n\t\t" + serviceId);
     serviceDiscovery.deregister(serviceId);
-    switch (mode)
-    {
+    switch (mode) {
     case WATCH:
       Thread.sleep(100);// callback should be immediate
       break;
@@ -120,13 +110,11 @@ public class ServiceDiscoveryDemo
     serviceDiscovery.register(serviceId, service.getMetadata());
   }
 
-  private static void listAvailableServices(ServiceDiscovery serviceDiscovery)
-  {
+  private static void listAvailableServices(ServiceDiscovery serviceDiscovery) {
     List<ServiceMetadata> findAllServices = serviceDiscovery.findAllServices();
     System.out.println("\tSERVICES AVAILABLE");
     System.out.printf("\t\t%s \t%s \t\t\t%s\n", "SERVICENAME", "HOST", "PORT");
-    for (ServiceMetadata serviceMetadata : findAllServices)
-    {
+    for (ServiceMetadata serviceMetadata : findAllServices) {
       System.out.printf("\t\t%s \t%s \t\t%s\n", serviceMetadata.getServiceName(),
           serviceMetadata.getHost(), serviceMetadata.getPort());
     }

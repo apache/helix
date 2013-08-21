@@ -32,255 +32,187 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
+public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
+  private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
-public class ClusterStatusMonitor implements ClusterStatusMonitorMBean
-{
-  private static final Logger                                  LOG                       =
-                                                                                             Logger.getLogger(ClusterStatusMonitor.class);
+  static final String CLUSTER_STATUS_KEY = "ClusterStatus";
+  static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
+  static final String RESOURCE_STATUS_KEY = "ResourceStatus";
+  static final String CLUSTER_DN_KEY = "cluster";
+  static final String RESOURCE_DN_KEY = "resourceName";
+  static final String INSTANCE_DN_KEY = "instanceName";
 
-  static final String                                          CLUSTER_STATUS_KEY        =
-                                                                                             "ClusterStatus";
-  static final String                                          MESSAGE_QUEUE_STATUS_KEY  =
-                                                                                             "MessageQueueStatus";
-  static final String                                          RESOURCE_STATUS_KEY       =
-                                                                                             "ResourceStatus";
-  static final String                                          CLUSTER_DN_KEY            =
-                                                                                             "cluster";
-  static final String                                          RESOURCE_DN_KEY           =
-                                                                                             "resourceName";
-  static final String                                          INSTANCE_DN_KEY           =
-                                                                                             "instanceName";
+  private final String _clusterName;
+  private final MBeanServer _beanServer;
 
-  private final String                                         _clusterName;
-  private final MBeanServer                                    _beanServer;
+  private int _numOfLiveInstances = 0;
+  private int _numOfInstances = 0;
+  private int _numOfDisabledInstances = 0;
+  private int _numOfDisabledPartitions = 0;
 
-  private int                                                  _numOfLiveInstances       =
-                                                                                             0;
-  private int                                                  _numOfInstances           =
-                                                                                             0;
-  private int                                                  _numOfDisabledInstances   =
-                                                                                             0;
-  private int                                                  _numOfDisabledPartitions  =
-                                                                                             0;
-
-  private final ConcurrentHashMap<String, ResourceMonitor>     _resourceMbeanMap         =
-                                                                                             new ConcurrentHashMap<String, ResourceMonitor>();
+  private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
+      new ConcurrentHashMap<String, ResourceMonitor>();
 
   private final ConcurrentHashMap<String, MessageQueueMonitor> _instanceMsgQueueMbeanMap =
-                                                                                             new ConcurrentHashMap<String, MessageQueueMonitor>();
+      new ConcurrentHashMap<String, MessageQueueMonitor>();
 
-  public ClusterStatusMonitor(String clusterName)
-  {
+  public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
-    try
-    {
+    try {
       register(this, getObjectName(CLUSTER_DN_KEY + "=" + _clusterName));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("Register self failed.", e);
     }
   }
 
-  public ObjectName getObjectName(String name) throws MalformedObjectNameException
-  {
+  public ObjectName getObjectName(String name) throws MalformedObjectNameException {
     return new ObjectName(CLUSTER_STATUS_KEY + ": " + name);
   }
 
   // Used by other external JMX consumers like ingraph
-  public String getBeanName()
-  {
+  public String getBeanName() {
     return CLUSTER_STATUS_KEY + " " + _clusterName;
   }
 
   @Override
-  public long getDownInstanceGauge()
-  {
+  public long getDownInstanceGauge() {
     return _numOfInstances - _numOfLiveInstances;
   }
 
   @Override
-  public long getInstancesGauge()
-  {
+  public long getInstancesGauge() {
     return _numOfInstances;
   }
 
   @Override
-  public long getDisabledInstancesGauge()
-  {
+  public long getDisabledInstancesGauge() {
     return _numOfDisabledInstances;
   }
 
   @Override
-  public long getDisabledPartitionsGauge()
-  {
+  public long getDisabledPartitionsGauge() {
     return _numOfDisabledPartitions;
   }
 
   @Override
-  public long getMaxMessageQueueSizeGauge()
-  {
+  public long getMaxMessageQueueSizeGauge() {
     long maxQueueSize = 0;
-    for (MessageQueueMonitor msgQueue : _instanceMsgQueueMbeanMap.values())
-    {
-      if (msgQueue.getMaxMessageQueueSize() > maxQueueSize)
-      {
-        maxQueueSize = (long)msgQueue.getMaxMessageQueueSize();
+    for (MessageQueueMonitor msgQueue : _instanceMsgQueueMbeanMap.values()) {
+      if (msgQueue.getMaxMessageQueueSize() > maxQueueSize) {
+        maxQueueSize = (long) msgQueue.getMaxMessageQueueSize();
       }
     }
-    
+
     return maxQueueSize;
   }
 
   @Override
-  public String getMessageQueueSizes()
-  {
+  public String getMessageQueueSizes() {
     Map<String, Long> msgQueueSizes = new TreeMap<String, Long>();
-    for (String instance : _instanceMsgQueueMbeanMap.keySet())
-    {
+    for (String instance : _instanceMsgQueueMbeanMap.keySet()) {
       MessageQueueMonitor msgQueue = _instanceMsgQueueMbeanMap.get(instance);
-        msgQueueSizes.put(instance, new Long( (long)msgQueue.getMaxMessageQueueSize()));
+      msgQueueSizes.put(instance, new Long((long) msgQueue.getMaxMessageQueueSize()));
     }
-    
+
     return msgQueueSizes.toString();
   }
 
-  private void register(Object bean, ObjectName name)
-  {
-    try
-    {
-      if (_beanServer.isRegistered(name))
-      {
+  private void register(Object bean, ObjectName name) {
+    try {
+      if (_beanServer.isRegistered(name)) {
         _beanServer.unregisterMBean(name);
       }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
 
-    try
-    {
+    try {
       LOG.info("Registering " + name.toString());
       _beanServer.registerMBean(bean, name);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn("Could not register MBean" + name, e);
     }
   }
 
-  private void unregister(ObjectName name)
-  {
-    try
-    {
-      if (_beanServer.isRegistered(name))
-      {
+  private void unregister(ObjectName name) {
+    try {
+      if (_beanServer.isRegistered(name)) {
         LOG.info("Unregistering " + name.toString());
         _beanServer.unregisterMBean(name);
       }
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn("Could not unregister MBean" + name, e);
     }
   }
 
-  public void setClusterStatusCounters(int numberLiveInstances,
-                                       int numberOfInstances,
-                                       int disabledInstances,
-                                       int disabledPartitions)
-  {
+  public void setClusterStatusCounters(int numberLiveInstances, int numberOfInstances,
+      int disabledInstances, int disabledPartitions) {
     _numOfInstances = numberOfInstances;
     _numOfLiveInstances = numberLiveInstances;
     _numOfDisabledInstances = disabledInstances;
     _numOfDisabledPartitions = disabledPartitions;
   }
 
-  public void onExternalViewChange(ExternalView externalView, IdealState idealState)
-  {
-    try
-    {
+  public void onExternalViewChange(ExternalView externalView, IdealState idealState) {
+    try {
       String resourceName = externalView.getId();
-      if (!_resourceMbeanMap.containsKey(resourceName))
-      {
-        synchronized (this)
-        {
-          if (!_resourceMbeanMap.containsKey(resourceName))
-          {
+      if (!_resourceMbeanMap.containsKey(resourceName)) {
+        synchronized (this) {
+          if (!_resourceMbeanMap.containsKey(resourceName)) {
             ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
             String beanName =
-                CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "="
-                    + resourceName;
+                CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
             register(bean, getObjectName(beanName));
             _resourceMbeanMap.put(resourceName, bean);
           }
         }
       }
       _resourceMbeanMap.get(resourceName).updateExternalView(externalView, idealState);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn(e);
     }
   }
 
-  public void addMessageQueueSize(String instanceName, int msgQueueSize)
-  {
-    try
-    {
-      if (!_instanceMsgQueueMbeanMap.containsKey(instanceName))
-      {
-        synchronized (this)
-        {
-          if (!_instanceMsgQueueMbeanMap.containsKey(instanceName))
-          {
-            MessageQueueMonitor bean =
-                new MessageQueueMonitor(_clusterName, instanceName);
+  public void addMessageQueueSize(String instanceName, int msgQueueSize) {
+    try {
+      if (!_instanceMsgQueueMbeanMap.containsKey(instanceName)) {
+        synchronized (this) {
+          if (!_instanceMsgQueueMbeanMap.containsKey(instanceName)) {
+            MessageQueueMonitor bean = new MessageQueueMonitor(_clusterName, instanceName);
             _instanceMsgQueueMbeanMap.put(instanceName, bean);
           }
         }
       }
       _instanceMsgQueueMbeanMap.get(instanceName).addMessageQueueSize(msgQueueSize);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn("fail to add message queue size to mbean", e);
     }
   }
 
-  public void reset()
-  {
+  public void reset() {
     LOG.info("Resetting ClusterStatusMonitor");
-    try
-    {
-      for (String resourceName : _resourceMbeanMap.keySet())
-      {
+    try {
+      for (String resourceName : _resourceMbeanMap.keySet()) {
         String beanName =
-            CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "="
-                + resourceName;
+            CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
         unregister(getObjectName(beanName));
       }
       _resourceMbeanMap.clear();
 
-      for (MessageQueueMonitor bean : _instanceMsgQueueMbeanMap.values())
-      {
+      for (MessageQueueMonitor bean : _instanceMsgQueueMbeanMap.values()) {
         bean.reset();
       }
       _instanceMsgQueueMbeanMap.clear();
 
       unregister(getObjectName(CLUSTER_DN_KEY + "=" + _clusterName));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("fail to reset ClusterStatusMonitor", e);
     }
   }
 
   @Override
-  public String getSensorName()
-  {
+  public String getSensorName() {
     return CLUSTER_STATUS_KEY + "_" + _clusterName;
   }
 

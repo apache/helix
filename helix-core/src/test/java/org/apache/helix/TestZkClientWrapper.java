@@ -34,92 +34,80 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+public class TestZkClientWrapper extends ZkUnitTestBase {
+  ZkClient _zkClient;
 
-public class TestZkClientWrapper extends ZkUnitTestBase
-{
-	ZkClient _zkClient;
+  @BeforeClass
+  public void beforeClass() {
+    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient.setZkSerializer(new ZNRecordSerializer());
+  }
 
-	@BeforeClass
-	public void beforeClass()
-	{
-		_zkClient = new ZkClient(ZK_ADDR);
-		_zkClient.setZkSerializer(new ZNRecordSerializer());
-	}
+  @AfterClass
+  public void afterClass() {
+    _zkClient.close();
+  }
 
-	@AfterClass
-	public void afterClass()
-	{
-		_zkClient.close();
-	}
+  @Test()
+  void testGetStat() {
+    String path = "/tmp/getStatTest";
+    _zkClient.deleteRecursive(path);
 
-	@Test ()
-	void testGetStat()
-	{
-		String path = "/tmp/getStatTest";
-		_zkClient.deleteRecursive(path);
+    Stat stat, newStat;
+    stat = _zkClient.getStat(path);
+    AssertJUnit.assertNull(stat);
+    _zkClient.createPersistent(path, true);
 
-		Stat stat, newStat;
-		stat = _zkClient.getStat(path);
-		AssertJUnit.assertNull(stat);
-		_zkClient.createPersistent(path, true);
+    stat = _zkClient.getStat(path);
+    AssertJUnit.assertNotNull(stat);
 
-		stat = _zkClient.getStat(path);
-		AssertJUnit.assertNotNull(stat);
+    newStat = _zkClient.getStat(path);
+    AssertJUnit.assertEquals(stat, newStat);
 
-		newStat = _zkClient.getStat(path);
-		AssertJUnit.assertEquals(stat, newStat);
+    _zkClient.writeData(path, new ZNRecord("Test"));
+    newStat = _zkClient.getStat(path);
+    AssertJUnit.assertNotSame(stat, newStat);
+  }
 
-		_zkClient.writeData(path, new ZNRecord("Test"));
-		newStat = _zkClient.getStat(path);
-		AssertJUnit.assertNotSame(stat, newStat);
-	}
+  @Test()
+  void testSessioExpire() {
+    IZkStateListener listener = new IZkStateListener() {
 
-  @Test ()
-	void testSessioExpire()
-	{
-		IZkStateListener listener = new IZkStateListener()
-		{
+      @Override
+      public void handleStateChanged(KeeperState state) throws Exception {
+        System.out.println("In Old connection New state " + state);
+      }
 
-			@Override
-			public void handleStateChanged(KeeperState state) throws Exception
-			{
-				System.out.println("In Old connection New state " + state);
-			}
-
-			@Override
-			public void handleNewSession() throws Exception
-			{
-				System.out.println("In Old connection New session");
-			}
-		};
-		_zkClient.subscribeStateChanges(listener);
-		ZkConnection connection = ((ZkConnection) _zkClient.getConnection());
-		ZooKeeper zookeeper = connection.getZookeeper();
-		System.out.println("old sessionId= " + zookeeper.getSessionId());
-		try
-		{
-			Watcher watcher = new Watcher(){
-				@Override
-        public void process(WatchedEvent event)
-        {
-					System.out.println("In New connection In process event:"+ event);
+      @Override
+      public void handleNewSession() throws Exception {
+        System.out.println("In Old connection New session");
+      }
+    };
+    _zkClient.subscribeStateChanges(listener);
+    ZkConnection connection = ((ZkConnection) _zkClient.getConnection());
+    ZooKeeper zookeeper = connection.getZookeeper();
+    System.out.println("old sessionId= " + zookeeper.getSessionId());
+    try {
+      Watcher watcher = new Watcher() {
+        @Override
+        public void process(WatchedEvent event) {
+          System.out.println("In New connection In process event:" + event);
         }
-			};
-			ZooKeeper newZookeeper = new ZooKeeper(connection.getServers(),
-			    zookeeper.getSessionTimeout(), watcher , zookeeper.getSessionId(),
-			    zookeeper.getSessionPasswd());
-			Thread.sleep(3000);
-			System.out.println("New sessionId= " + newZookeeper.getSessionId());
-			Thread.sleep(3000);
-			newZookeeper.close();
-			Thread.sleep(10000);
-			connection = ((ZkConnection) _zkClient.getConnection());
-			zookeeper = connection.getZookeeper();
-			System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
-		} catch (Exception e)
-		{
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
+      };
+      ZooKeeper newZookeeper =
+          new ZooKeeper(connection.getServers(), zookeeper.getSessionTimeout(), watcher,
+              zookeeper.getSessionId(), zookeeper.getSessionPasswd());
+      Thread.sleep(3000);
+      System.out.println("New sessionId= " + newZookeeper.getSessionId());
+      Thread.sleep(3000);
+      newZookeeper.close();
+      Thread.sleep(10000);
+      connection = ((ZkConnection) _zkClient.getConnection());
+      zookeeper = connection.getZookeeper();
+      System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
+    } catch (Exception e) {
+      // TODO Auto-generated catch block
+      e.printStackTrace();
+    }
+  }
 }

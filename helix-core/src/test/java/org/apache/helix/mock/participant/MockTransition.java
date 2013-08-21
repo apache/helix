@@ -23,20 +23,17 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 
-
-public class MockTransition
-{
+public class MockTransition {
   private static Logger LOG = Logger.getLogger(MockTransition.class);
 
   // called by state model transition functions
-  public void doTransition(Message message, NotificationContext context) throws InterruptedException
-  {
+  public void doTransition(Message message, NotificationContext context)
+      throws InterruptedException {
     LOG.info("default doTransition() invoked");
   }
 
   // called by state model reset function
-  public void doReset()
-  {
+  public void doReset() {
     LOG.info("default doReset() invoked");
   }
 

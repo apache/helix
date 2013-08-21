@@ -33,53 +33,49 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-
-public class TestArrivingParticipantStats
-{
+public class TestArrivingParticipantStats {
   protected static final String CLUSTER_NAME = "TestCluster";
 
-  MockManager                   _helixManager;
-  StatsHolder                   _statsHolder;
+  MockManager _helixManager;
+  StatsHolder _statsHolder;
 
-  @BeforeMethod(groups = { "unitTest" })
-  public void setup()
-  {
+  @BeforeMethod(groups = {
+    "unitTest"
+  })
+  public void setup() {
     _helixManager = new MockManager(CLUSTER_NAME);
     _statsHolder = new StatsHolder(_helixManager, new HealthDataCache());
   }
 
-  public Map<String, String> getStatFields(String value, String timestamp)
-  {
+  public Map<String, String> getStatFields(String value, String timestamp) {
     Map<String, String> statMap = new HashMap<String, String>();
     statMap.put(StatsHolder.VALUE_NAME, value);
     statMap.put(StatsHolder.TIMESTAMP_NAME, timestamp);
     return statMap;
   }
 
-  public boolean statRecordContains(ZNRecord rec, String statName)
-  {
+  public boolean statRecordContains(ZNRecord rec, String statName) {
     Map<String, Map<String, String>> stats = rec.getMapFields();
     return stats.containsKey(statName);
   }
 
-  public boolean statRecordHasValue(ZNRecord rec, String statName, String value)
-  {
+  public boolean statRecordHasValue(ZNRecord rec, String statName, String value) {
     Map<String, Map<String, String>> stats = rec.getMapFields();
     Map<String, String> statFields = stats.get(statName);
     return (statFields.get(StatsHolder.VALUE_NAME).equals(value));
   }
 
-  public boolean statRecordHasTimestamp(ZNRecord rec, String statName, String timestamp)
-  {
+  public boolean statRecordHasTimestamp(ZNRecord rec, String statName, String timestamp) {
     Map<String, Map<String, String>> stats = rec.getMapFields();
     Map<String, String> statFields = stats.get(statName);
     return (statFields.get(StatsHolder.TIMESTAMP_NAME).equals(timestamp));
   }
 
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testAddFirstParticipantStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddFirstParticipantStat() throws Exception {
     // add a persistent stat
     String persistentStat = "accumulate()(dbFoo.partition10.latency)";
     _statsHolder.addStat(persistentStat);
@@ -102,9 +98,10 @@ public class TestArrivingParticipantStats
   }
 
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testAddRepeatParticipantStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddRepeatParticipantStat() throws Exception {
     // add a persistent stat
     String persistentStat = "accumulate()(dbFoo.partition10.latency)";
     _statsHolder.addStat(persistentStat);
@@ -130,9 +127,10 @@ public class TestArrivingParticipantStats
   }
 
   // test to ensure backdated stats not applied
-  @Test(groups = { "unitTest" })
-  public void testBackdatedParticipantStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testBackdatedParticipantStat() throws Exception {
     // add a persistent stat
     String persistentStat = "accumulate()(dbFoo.partition10.latency)";
     _statsHolder.addStat(persistentStat);
@@ -162,9 +160,10 @@ public class TestArrivingParticipantStats
   }
 
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testAddFirstParticipantStatToWildCard() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddFirstParticipantStatToWildCard() throws Exception {
     // add a persistent stat
     String persistentWildcardStat = "accumulate()(dbFoo.partition*.latency)";
     _statsHolder.addStat(persistentWildcardStat);
@@ -188,9 +187,10 @@ public class TestArrivingParticipantStats
   }
 
   // test to add 2nd report to same stat
-  @Test(groups = { "unitTest" })
-  public void testAddSecondParticipantStatToWildCard() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddSecondParticipantStatToWildCard() throws Exception {
     // add a persistent stat
     String persistentWildcardStat = "accumulate()(dbFoo.partition*.latency)";
     _statsHolder.addStat(persistentWildcardStat);
@@ -216,9 +216,10 @@ public class TestArrivingParticipantStats
   }
 
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testAddParticipantStatToDoubleWildCard() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddParticipantStatToDoubleWildCard() throws Exception {
     // add a persistent stat
     String persistentWildcardStat = "accumulate()(db*.partition*.latency)";
     _statsHolder.addStat(persistentWildcardStat);
@@ -241,9 +242,10 @@ public class TestArrivingParticipantStats
     AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "0.0"));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testAddWildcardInFirstStatToken() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddWildcardInFirstStatToken() throws Exception {
     String persistentWildcardStat = "accumulate()(instance*.reportingage)";
     _statsHolder.addStat(persistentWildcardStat);
 
@@ -267,9 +269,10 @@ public class TestArrivingParticipantStats
   }
 
   // test to add report to same wildcard stat, different actual stat
-  @Test(groups = { "unitTest" })
-  public void testAddTwoDistinctParticipantStatsToSameWildCard() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddTwoDistinctParticipantStatsToSameWildCard() throws Exception {
     // add a persistent stat
     String persistentWildcardStat = "accumulate()(dbFoo.partition*.latency)";
     _statsHolder.addStat(persistentWildcardStat);
@@ -299,9 +302,10 @@ public class TestArrivingParticipantStats
   }
 
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testWindowStat() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testWindowStat() throws Exception {
     // add a persistent stat
     String persistentWildcardStat = "window(3)(dbFoo.partition*.latency)";
     _statsHolder.addStat(persistentWildcardStat);
@@ -338,7 +342,7 @@ public class TestArrivingParticipantStats
     statFields = getStatFields("20", "2");
     _statsHolder.applyStat(incomingStatName, statFields);
     _statsHolder.persistStats();
-    
+
     rec = accessor.getProperty(keyBuilder.persistantStat()).getRecord();
 
     System.out.println("rec: " + rec.toString());
@@ -347,9 +351,10 @@ public class TestArrivingParticipantStats
 
   }
 
-  @Test(groups = { "unitTest" })
-  public void testWindowStatExpiration() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testWindowStatExpiration() throws Exception {
     String persistentWildcardStat = "window(3)(dbFoo.partition*.latency)";
     String persistentStat = "window(3)(dbFoo.partition10.latency)";
     // init with 3 elements
@@ -370,9 +375,10 @@ public class TestArrivingParticipantStats
     AssertJUnit.assertTrue(statRecordHasTimestamp(rec, persistentStat, "1.0,2.0,3.0"));
   }
 
-  @Test(groups = { "unitTest" })
-  public void testWindowStatStale() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testWindowStatStale() throws Exception {
     String persistentWildcardStat = "window(3)(dbFoo.partition*.latency)";
     String persistentStat = "window(3)(dbFoo.partition10.latency)";
     // init with 3 elements
@@ -395,9 +401,10 @@ public class TestArrivingParticipantStats
 
   // test that has 2 agg stats for same raw stat
   // Exact matching persistent stat, but has no values yet
-  @Test(groups = { "unitTest" })
-  public void testAddStatForTwoAggTypes() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testAddStatForTwoAggTypes() throws Exception {
     // add a persistent stat
     String persistentStatOne = "accumulate()(dbFoo.partition10.latency)";
     String persistentStatTwo = "window(3)(dbFoo.partition10.latency)";
@@ -426,9 +433,10 @@ public class TestArrivingParticipantStats
   }
 
   // test merging 2 window stats, new is applied
-  @Test(groups = { "unitTest" })
-  public void testMergeTwoWindowsYesMerge() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testMergeTwoWindowsYesMerge() throws Exception {
     String persistentWildcardStat = "window(3)(dbFoo.partition*.latency)";
     String persistentStat = "window(3)(dbFoo.partition10.latency)";
     String incomingStatName = "dbFoo.partition10.latency";
@@ -442,8 +450,7 @@ public class TestArrivingParticipantStats
     valTuple.add("40.0");
     timeTuple.add("3.0");
     timeTuple.add("4.0");
-    Map<String, String> statFields =
-        getStatFields(valTuple.toString(), timeTuple.toString());
+    Map<String, String> statFields = getStatFields(valTuple.toString(), timeTuple.toString());
     _statsHolder.applyStat(incomingStatName, statFields);
     _statsHolder.persistStats();
 
@@ -458,9 +465,10 @@ public class TestArrivingParticipantStats
   }
 
   // test merging 2 window stats, new is ignored
-  @Test(groups = { "unitTest" })
-  public void testMergeTwoWindowsNoMerge() throws Exception
-  {
+  @Test(groups = {
+    "unitTest"
+  })
+  public void testMergeTwoWindowsNoMerge() throws Exception {
     String persistentWildcardStat = "window(3)(dbFoo.partition*.latency)";
     String persistentStat = "window(3)(dbFoo.partition10.latency)";
     String incomingStatName = "dbFoo.partition10.latency";
@@ -474,8 +482,7 @@ public class TestArrivingParticipantStats
     valTuple.add("40.0");
     timeTuple.add("0.0");
     timeTuple.add("4.0");
-    Map<String, String> statFields =
-        getStatFields(valTuple.toString(), timeTuple.toString());
+    Map<String, String> statFields = getStatFields(valTuple.toString(), timeTuple.toString());
     _statsHolder.applyStat(incomingStatName, statFields);
     _statsHolder.persistStats();
 

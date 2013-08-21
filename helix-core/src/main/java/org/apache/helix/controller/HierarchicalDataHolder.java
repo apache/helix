@@ -30,15 +30,11 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-
 /**
  * Generic class that will read the data given the root path.
- * 
  */
-public class HierarchicalDataHolder<T>
-{
-  private static final Logger logger = Logger
-      .getLogger(HierarchicalDataHolder.class.getName());
+public class HierarchicalDataHolder<T> {
+  private static final Logger logger = Logger.getLogger(HierarchicalDataHolder.class.getName());
   AtomicReference<Node<T>> root;
 
   /**
@@ -49,9 +45,7 @@ public class HierarchicalDataHolder<T>
   private final String _rootPath;
   private final FileFilter _filter;
 
-  public HierarchicalDataHolder(ZkClient client, String rootPath,
-      FileFilter filter)
-  {
+  public HierarchicalDataHolder(ZkClient client, String rootPath, FileFilter filter) {
     this._zkClient = client;
     this._rootPath = rootPath;
     this._filter = filter;
@@ -61,66 +55,52 @@ public class HierarchicalDataHolder<T>
     refreshData();
   }
 
-  public long getVersion()
-  {
+  public long getVersion() {
     return currentVersion.get();
   }
 
-  public boolean refreshData()
-  {
+  public boolean refreshData() {
     Node<T> newRoot = new Node<T>();
     boolean dataChanged = refreshRecursively(root.get(), newRoot, _rootPath);
-    if (dataChanged)
-    {
+    if (dataChanged) {
       currentVersion.getAndIncrement();
       root.set(newRoot);
       return true;
-    } else
-    {
+    } else {
       return false;
     }
   }
 
   // private void refreshRecursively(Node<T> oldRoot, Stat oldStat, Node<T>
   // newRoot,Stat newStat, String path)
-  private boolean refreshRecursively(Node<T> oldRoot, Node<T> newRoot,
-      String path)
-  {
+  private boolean refreshRecursively(Node<T> oldRoot, Node<T> newRoot, String path) {
     boolean dataChanged = false;
     Stat newStat = _zkClient.getStat(path);
     Stat oldStat = (oldRoot != null) ? oldRoot.stat : null;
     newRoot.name = path;
-    if (newStat != null)
-    {
-      if (oldStat == null)
-      {
+    if (newStat != null) {
+      if (oldStat == null) {
         newRoot.stat = newStat;
         newRoot.data = _zkClient.<T> readData(path, true);
         dataChanged = true;
-      } else if (newStat.equals(oldStat))
-      {
+      } else if (newStat.equals(oldStat)) {
         newRoot.stat = oldStat;
         newRoot.data = oldRoot.data;
-      } else
-      {
+      } else {
         dataChanged = true;
         newRoot.stat = newStat;
         newRoot.data = _zkClient.<T> readData(path, true);
       }
-      if (newStat.getNumChildren() > 0)
-      {
+      if (newStat.getNumChildren() > 0) {
         List<String> children = _zkClient.getChildren(path);
-        for (String child : children)
-        {
+        for (String child : children) {
           String newPath = path + "/" + child;
-          Node<T> oldChild = (oldRoot != null && oldRoot.children != null) ? oldRoot.children
-              .get(child) : null;
-          if (newRoot.children == null)
-          {
+          Node<T> oldChild =
+              (oldRoot != null && oldRoot.children != null) ? oldRoot.children.get(child) : null;
+          if (newRoot.children == null) {
             newRoot.children = new ConcurrentHashMap<String, HierarchicalDataHolder.Node<T>>();
           }
-          if (!newRoot.children.contains(child))
-          {
+          if (!newRoot.children.contains(child)) {
             newRoot.children.put(child, new Node<T>());
           }
           Node<T> newChild = newRoot.children.get(child);
@@ -128,15 +108,13 @@ public class HierarchicalDataHolder<T>
           dataChanged = dataChanged || childChanged;
         }
       }
-    } else
-    {
+    } else {
       logger.info(path + " does not exist");
     }
     return dataChanged;
   }
 
-  static class Node<T>
-  {
+  static class Node<T> {
     String name;
     Stat stat;
     T data;
@@ -144,27 +122,22 @@ public class HierarchicalDataHolder<T>
 
   }
 
-  public void print()
-  {
-    logger.info("START "+ _rootPath);
+  public void print() {
+    logger.info("START " + _rootPath);
     LinkedList<Node<T>> stack = new LinkedList<HierarchicalDataHolder.Node<T>>();
     stack.push(root.get());
-    while (!stack.isEmpty())
-    {
+    while (!stack.isEmpty()) {
       Node<T> pop = stack.pop();
-      if (pop != null)
-      {
-        logger.info("name:"+ pop.name);
-        logger.info("\tdata:"+pop.data);
-        if (pop.children != null)
-        {
-          for (Node<T> child : pop.children.values())
-          {
+      if (pop != null) {
+        logger.info("name:" + pop.name);
+        logger.info("\tdata:" + pop.data);
+        if (pop.children != null) {
+          for (Node<T> child : pop.children.values()) {
             stack.push(child);
           }
         }
       }
     }
-    logger.info("END "+ _rootPath);
+    logger.info("END " + _rootPath);
   }
 }

@@ -19,11 +19,10 @@ package org.apache.helix.store.zk;
  * under the License.
  */
 
-public interface ZkListener
-{
+public interface ZkListener {
   void handleDataChange(String path);
-  
+
   void handleNodeCreate(String path);
-  
+
   void handleNodeDelete(String path);
 }

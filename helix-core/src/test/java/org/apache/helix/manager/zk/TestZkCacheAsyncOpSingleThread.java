@@ -39,34 +39,25 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
-{
+public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
   @Test
-  public void testHappyPathExtOpZkCacheBaseDataAccessor() throws Exception
-  {
+  public void testHappyPathExtOpZkCacheBaseDataAccessor() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init external base data accessor
     ZkClient extZkclient = new ZkClient(ZK_ADDR);
     extZkclient.setZkSerializer(new ZNRecordSerializer());
-    ZkBaseDataAccessor<ZNRecord> extBaseAccessor =
-        new ZkBaseDataAccessor<ZNRecord>(extZkclient);
+    ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(extZkclient);
 
     // init zkCacheBaseDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                   clusterName,
-                                   "localhost_8901");
-    String extViewPath =
-        PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor =
-        new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
     extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -76,23 +67,16 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
 
     // TestHelper.printCache(accessor._zkCache);
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
     List<String> paths = new ArrayList<String>();
     List<ZNRecord> records = new ArrayList<ZNRecord>();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                     clusterName,
-                                     "localhost_8901",
-                                     "session_0",
-                                     "TestDB" + i);
+          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901",
+              "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -100,37 +84,29 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
     }
 
     boolean[] success = extBaseAccessor.createChildren(paths, records, AccessOption.PERSISTENT);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
     }
 
     // wait zkEventThread update zkCache
     // verify wtCache
-    for (int i = 0; i < 10; i++)
-    {
-        // TestHelper.printCache(accessor._zkCache);
-    	ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
-    	if (ret == true)
-    		break;
-        Thread.sleep(100);
+    for (int i = 0; i < 10; i++) {
+      // TestHelper.printCache(accessor._zkCache);
+      ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+      if (ret == true)
+        break;
+      Thread.sleep(100);
     }
-    
+
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by external base accessor
     List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
-    for (int j = 0; j < 10; j++)
-    {
+    for (int j = 0; j < 10; j++) {
       paths.clear();
       updaters.clear();
-      for (int i = 0; i < 10; i++)
-      {
+      for (int i = 0; i < 10; i++) {
         String path = curStatePath + "/session_0/TestDB" + i;
         ZNRecord newRecord = new ZNRecord("TestDB" + i);
         newRecord.setSimpleField("" + j, "" + j);
@@ -140,8 +116,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
       }
       success = extBaseAccessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
 
-      for (int i = 0; i < 10; i++)
-      {
+      for (int i = 0; i < 10; i++) {
         Assert.assertTrue(success[i], "Should succeed in update: " + paths.get(i));
       }
     }
@@ -151,18 +126,13 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // set 10 external views by external accessor
     paths.clear();
     records.clear();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path =
           PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
@@ -171,8 +141,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
       records.add(record);
     }
     success = extBaseAccessor.setChildren(paths, records, AccessOption.PERSISTENT);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertTrue(success[i], "Should succeed in set: " + paths.get(i));
     }
 
@@ -181,25 +150,19 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // remove 10 external views by external accessor
     paths.clear();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path =
           PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
 
       paths.add(path);
     }
     success = extBaseAccessor.remove(paths, 0);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertTrue(success[i], "Should succeed in remove: " + paths.get(i));
     }
 
@@ -208,39 +171,28 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // clean up
     extZkclient.close();
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
   @Test
-  public void testHappyPathSelfOpZkCacheBaseDataAccessor() throws Exception
-  {
+  public void testHappyPathSelfOpZkCacheBaseDataAccessor() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                   clusterName,
-                                   "localhost_8901");
-    String extViewPath =
-        PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor =
-        new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -250,23 +202,16 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
 
     // TestHelper.printCache(accessor._zkCache._cache);
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using this accessor
     List<String> paths = new ArrayList<String>();
     List<ZNRecord> records = new ArrayList<ZNRecord>();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
-                                     clusterName,
-                                     "localhost_8901",
-                                     "session_0",
-                                     "TestDB" + i);
+          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901",
+              "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -274,28 +219,21 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
     }
 
     boolean[] success = accessor.createChildren(paths, records, AccessOption.PERSISTENT);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertTrue(success[i], "Should succeed in create: " + paths.get(i));
     }
 
     // verify cache
-//    TestHelper.printCache(accessor._zkCache._cache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 false);
+    // TestHelper.printCache(accessor._zkCache._cache);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, false);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by this accessor
     List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
-    for (int j = 0; j < 10; j++)
-    {
+    for (int j = 0; j < 10; j++) {
       paths.clear();
       updaters.clear();
-      for (int i = 0; i < 10; i++)
-      {
+      for (int i = 0; i < 10; i++) {
         String path = curStatePath + "/session_0/TestDB" + i;
         ZNRecord newRecord = new ZNRecord("TestDB" + i);
         newRecord.setSimpleField("" + j, "" + j);
@@ -305,8 +243,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
       }
       success = accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
 
-      for (int i = 0; i < 10; i++)
-      {
+      for (int i = 0; i < 10; i++) {
         Assert.assertTrue(success[i], "Should succeed in update: " + paths.get(i));
       }
     }
@@ -314,11 +251,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
     ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+        TestHelper.verifyZkCache(zkCacheInitPaths, zkCacheInitPaths, accessor._zkCache._cache,
+            _gZkClient, true);
     // ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor, _gZkClient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
@@ -326,13 +260,10 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
     // set 10 external views 10 times by this accessor
     paths.clear();
     records.clear();
-    for (int j = 0; j < 10; j++)
-    {
-      for (int i = 0; i < 10; i++)
-      {
+    for (int j = 0; j < 10; j++) {
+      for (int i = 0; i < 10; i++) {
         String path =
-            PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB"
-                + i);
+            PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
         ZNRecord record = new ZNRecord("TestDB" + i);
         record.setSimpleField("setKey", "" + j);
 
@@ -340,49 +271,40 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
         records.add(record);
       }
       success = accessor.setChildren(paths, records, AccessOption.PERSISTENT);
-      for (int i = 0; i < 10; i++)
-      {
+      for (int i = 0; i < 10; i++) {
         Assert.assertTrue(success[i], "Should succeed in set: " + paths.get(i));
       }
     }
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths,
-                                 accessor._zkCache._cache,
-                                 _gZkClient,
-                                 true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // get 10 external views
     paths.clear();
     records.clear();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path = extViewPath + "/TestDB" + i;
       paths.add(path);
     }
 
     records = accessor.get(paths, null, 0);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertEquals(records.get(i).getId(), "TestDB" + i);
     }
 
     // getChildren
     records.clear();
     records = accessor.getChildren(extViewPath, null, 0);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertEquals(records.get(i).getId(), "TestDB" + i);
     }
 
     // // exists
     paths.clear();
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       String path = curStatePath + "/session_0/TestDB" + i;
       // // PropertyPathConfig.getPath(PropertyType.CURRENTSTATES,
       // // clusterName,
@@ -392,13 +314,11 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase
       paths.add(path);
     }
     success = accessor.exists(paths, 0);
-    for (int i = 0; i < 10; i++)
-    {
+    for (int i = 0; i < 10; i++) {
       Assert.assertTrue(success[i], "Should exits: " + paths.get(i));
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 

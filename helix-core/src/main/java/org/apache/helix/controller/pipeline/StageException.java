@@ -19,15 +19,13 @@ package org.apache.helix.controller.pipeline;
  * under the License.
  */
 
-public class StageException extends Exception
-{
+public class StageException extends Exception {
 
-  public StageException(String message)
-  {
+  public StageException(String message) {
     super(message);
   }
-  public StageException(String message,Exception e)
-  {
-    super(message,e);
+
+  public StageException(String message, Exception e) {
+    super(message, e);
   }
 }

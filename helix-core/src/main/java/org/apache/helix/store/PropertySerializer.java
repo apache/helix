@@ -20,12 +20,11 @@ package org.apache.helix.store;
  */
 
 /**
- * Serializer interface for property store 
+ * Serializer interface for property store
  * @param <T>
  */
-    
-public interface PropertySerializer<T>
-{
+
+public interface PropertySerializer<T> {
   /**
    * Serialize data object of type T to byte array
    * @param data

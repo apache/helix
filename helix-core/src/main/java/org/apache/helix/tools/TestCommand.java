@@ -21,23 +21,19 @@ package org.apache.helix.tools;
 
 import org.apache.helix.HelixManager;
 
-public class TestCommand
-{
-  public enum CommandType
-  {
+public class TestCommand {
+  public enum CommandType {
     MODIFY,
     VERIFY,
     START,
     STOP
   }
 
-  public static class NodeOpArg
-  {
+  public static class NodeOpArg {
     public HelixManager _manager;
     public Thread _thread;
 
-    public NodeOpArg(HelixManager manager, Thread thread)
-    {
+    public NodeOpArg(HelixManager manager, Thread thread) {
       _manager = manager;
       _thread = thread;
     }
@@ -52,56 +48,46 @@ public class TestCommand
   public long _finishTimestamp;
 
   /**
-   *
    * @param type
    * @param arg
    */
-  public TestCommand(CommandType type, ZnodeOpArg arg)
-  {
+  public TestCommand(CommandType type, ZnodeOpArg arg) {
     this(type, new TestTrigger(), arg);
   }
 
   /**
-   *
    * @param type
    * @param trigger
    * @param arg
    */
-  public TestCommand(CommandType type, TestTrigger trigger, ZnodeOpArg arg)
-  {
+  public TestCommand(CommandType type, TestTrigger trigger, ZnodeOpArg arg) {
     _commandType = type;
     _trigger = trigger;
     _znodeOpArg = arg;
   }
 
   /**
-   *
    * @param type
    * @param trigger
    * @param arg
    */
-  public TestCommand(CommandType type, TestTrigger trigger, NodeOpArg arg)
-  {
+  public TestCommand(CommandType type, TestTrigger trigger, NodeOpArg arg) {
     _commandType = type;
     _trigger = trigger;
     _nodeOpArg = arg;
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     String ret = super.toString().substring(super.toString().lastIndexOf(".") + 1) + " ";
-    if (_finishTimestamp > 0)
-    {
-      ret += "FINISH@" + _finishTimestamp + "-START@" + _startTimestamp
-               + "=" + (_finishTimestamp - _startTimestamp) + "ms ";
+    if (_finishTimestamp > 0) {
+      ret +=
+          "FINISH@" + _finishTimestamp + "-START@" + _startTimestamp + "="
+              + (_finishTimestamp - _startTimestamp) + "ms ";
     }
-    if (_commandType == CommandType.MODIFY || _commandType == CommandType.VERIFY)
-    {
+    if (_commandType == CommandType.MODIFY || _commandType == CommandType.VERIFY) {
       ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _znodeOpArg.toString();
-    }
-    else if (_commandType == CommandType.START || _commandType == CommandType.STOP)
-    {
+    } else if (_commandType == CommandType.START || _commandType == CommandType.STOP) {
       ret += _commandType.toString() + "|" + _trigger.toString() + "|" + _nodeOpArg.toString();
     }
 

@@ -23,18 +23,16 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
 // simulate long transition
-public class SleepTransition extends MockTransition
-{
+public class SleepTransition extends MockTransition {
   private final long _delay;
 
-  public SleepTransition(long delay)
-  {
+  public SleepTransition(long delay) {
     _delay = delay > 0 ? delay : 0;
   }
 
   @Override
-  public void doTransition(Message message, NotificationContext context) throws InterruptedException
-  {
-      Thread.sleep(_delay);
+  public void doTransition(Message message, NotificationContext context)
+      throws InterruptedException {
+    Thread.sleep(_delay);
   }
 }

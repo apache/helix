@@ -26,18 +26,15 @@ import org.apache.helix.model.CurrentState;
 /**
  * Interface to implement to respond to changes in the current state
  */
-public interface CurrentStateChangeListener
-{
+public interface CurrentStateChangeListener {
 
   /**
    * Invoked when current state changes
-   * 
    * @param instanceName name of the instance whose state changed
    * @param statesInfo a list of the current states
    * @param changeContext the change event and state
    */
-  public void onStateChange(String instanceName,
-                            List<CurrentState> statesInfo,
-                            NotificationContext changeContext);
+  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext);
 
 }

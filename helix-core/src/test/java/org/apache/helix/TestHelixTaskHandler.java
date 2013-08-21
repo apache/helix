@@ -40,11 +40,9 @@ import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestHelixTaskHandler
-{
+public class TestHelixTaskHandler {
   @Test()
-  public void testInvocation() throws Exception
-  {
+  public void testInvocation() throws Exception {
     HelixTaskExecutor executor = new HelixTaskExecutor();
     System.out.println("START TestCMTaskHandler.testInvocation()");
     Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
@@ -78,13 +76,14 @@ public class TestHelixTaskHandler
     handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocation() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestCMTaskHandler.testInvocation() at "
+        + new Date(System.currentTimeMillis()));
   }
 
   @Test()
-  public void testInvocationAnnotated() throws Exception
-  {
-    System.out.println("START TestCMTaskHandler.testInvocationAnnotated() at " + new Date(System.currentTimeMillis()));
+  public void testInvocationAnnotated() throws Exception {
+    System.out.println("START TestCMTaskHandler.testInvocationAnnotated() at "
+        + new Date(System.currentTimeMillis()));
     HelixTaskExecutor executor = new HelixTaskExecutor();
     Message message = new Message(MessageType.STATE_TRANSITION, "Some unique id");
     message.setSrcName("cm-instance-0");
@@ -113,25 +112,26 @@ public class TestHelixTaskHandler
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState("TestDB_0", "OFFLINE");
 
-    StateModelFactory<MockStateModelAnnotated> stateModelFactory = new StateModelFactory<MockStateModelAnnotated>()
-    {
+    StateModelFactory<MockStateModelAnnotated> stateModelFactory =
+        new StateModelFactory<MockStateModelAnnotated>() {
 
-      @Override
-      public MockStateModelAnnotated createNewStateModel(String partitionName)
-      {
-        // TODO Auto-generated method stub
-        return new MockStateModelAnnotated();
-      }
+          @Override
+          public MockStateModelAnnotated createNewStateModel(String partitionName) {
+            // TODO Auto-generated method stub
+            return new MockStateModelAnnotated();
+          }
 
-    };
+        };
 
     HelixStateTransitionHandler stHandler =
-        new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context, currentStateDelta);
+        new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
+            currentStateDelta);
 
     HelixTask handler = new HelixTask(message, context, stHandler, executor);
     handler.call();
     AssertJUnit.assertTrue(stateModel.stateModelInvoked);
-    System.out.println("END TestCMTaskHandler.testInvocationAnnotated() at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestCMTaskHandler.testInvocationAnnotated() at "
+        + new Date(System.currentTimeMillis()));
   }
 
 }

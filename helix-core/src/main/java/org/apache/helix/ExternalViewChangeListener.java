@@ -26,16 +26,14 @@ import org.apache.helix.model.ExternalView;
 /**
  * Interface to implement to be notified of changes to the external view
  */
-public interface ExternalViewChangeListener
-{
+public interface ExternalViewChangeListener {
 
   /**
    * Invoked when external view changes
-   * 
    * @param externalViewList a list of ExternalViews
    * @param changeContext the change event and state
    */
   public void onExternalViewChange(List<ExternalView> externalViewList,
-                                   NotificationContext changeContext);
+      NotificationContext changeContext);
 
 }

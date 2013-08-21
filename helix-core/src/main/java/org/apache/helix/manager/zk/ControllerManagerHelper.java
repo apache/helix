@@ -32,46 +32,41 @@ import org.apache.log4j.Logger;
 
 /**
  * helper class for controller manager
- *
  */
 public class ControllerManagerHelper {
   private static Logger LOG = Logger.getLogger(ControllerManagerHelper.class);
-  
+
   final AbstractManager _manager;
   final DefaultMessagingService _messagingService;
   final List<HelixTimerTask> _controllerTimerTasks;
 
   public ControllerManagerHelper(AbstractManager manager) {
     _manager = manager;
-    _messagingService = (DefaultMessagingService)manager.getMessagingService();
+    _messagingService = (DefaultMessagingService) manager.getMessagingService();
     _controllerTimerTasks = manager.getControllerHelixTimerTasks();
   }
 
-  public void addListenersToController(GenericHelixController controller)
-  {
-    try
-    {
+  public void addListenersToController(GenericHelixController controller) {
+    try {
       /**
-       *  setup controller message listener and register message handlers
+       * setup controller message listener and register message handlers
        */
       _manager.addControllerMessageListener(_messagingService.getExecutor());
       MessageHandlerFactory defaultControllerMsgHandlerFactory =
           new DefaultControllerMessageHandlerFactory();
-      _messagingService.getExecutor()
-                       .registerMessageHandlerFactory(defaultControllerMsgHandlerFactory.getMessageType(),
-                                                      defaultControllerMsgHandlerFactory);
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
       MessageHandlerFactory defaultSchedulerMsgHandlerFactory =
           new DefaultSchedulerMessageHandlerFactory(_manager);
-      _messagingService.getExecutor()
-                       .registerMessageHandlerFactory(defaultSchedulerMsgHandlerFactory.getMessageType(),
-                                                      defaultSchedulerMsgHandlerFactory);
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultSchedulerMsgHandlerFactory.getMessageType(), defaultSchedulerMsgHandlerFactory);
       MessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
           new DefaultParticipantErrorMessageHandlerFactory(_manager);
-      _messagingService.getExecutor()
-                       .registerMessageHandlerFactory(defaultParticipantErrorMessageHandlerFactory.getMessageType(),
-       
-                           defaultParticipantErrorMessageHandlerFactory);
-      
+      _messagingService.getExecutor().registerMessageHandlerFactory(
+          defaultParticipantErrorMessageHandlerFactory.getMessageType(),
+
+          defaultParticipantErrorMessageHandlerFactory);
+
       /**
        * setup generic-controller
        */
@@ -81,16 +76,14 @@ public class ControllerManagerHelper {
       // no need for controller to listen on external-view
       // _manager.addExternalViewChangeListener(controller);
       _manager.addControllerListener(controller);
-    } catch (ZkInterruptedException e)
-    {
+    } catch (ZkInterruptedException e) {
       LOG.warn("zk connection is interrupted during HelixManagerMain.addListenersToController(). "
-              + e);
-    } catch (Exception e)
-    {
+          + e);
+    } catch (Exception e) {
       LOG.error("Error when creating HelixManagerContollerMonitor", e);
     }
   }
-  
+
   public void removeListenersFromController(GenericHelixController controller) {
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(_manager.getClusterName());
     /**
@@ -100,20 +93,19 @@ public class ControllerManagerHelper {
     _manager.removeListener(keyBuilder.liveInstances(), controller);
     _manager.removeListener(keyBuilder.idealStates(), controller);
     _manager.removeListener(keyBuilder.controller(), controller);
-    
+
     /**
      * reset controller message listener and unregister all message handlers
      */
     _manager.removeListener(keyBuilder.controllerMessages(), _messagingService.getExecutor());
   }
-  
-  
+
   public void startControllerTimerTasks() {
     for (HelixTimerTask task : _controllerTimerTasks) {
       task.start();
     }
   }
-  
+
   public void stopControllerTimerTasks() {
     for (HelixTimerTask task : _controllerTimerTasks) {
       task.stop();

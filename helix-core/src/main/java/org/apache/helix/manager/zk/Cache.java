@@ -31,90 +31,69 @@ import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.zookeeper.data.Stat;
 
-
-public abstract class Cache<T>
-{
-  final ReadWriteLock                    _lock;
+public abstract class Cache<T> {
+  final ReadWriteLock _lock;
   final ConcurrentHashMap<String, ZNode> _cache;
 
-  public Cache()
-  {
+  public Cache() {
     _lock = new ReentrantReadWriteLock();
     _cache = new ConcurrentHashMap<String, ZNode>();
   }
 
-  public void addToParentChildSet(String parentPath, String childName)
-  {
+  public void addToParentChildSet(String parentPath, String childName) {
     ZNode znode = _cache.get(parentPath);
-    if (znode != null)
-    {
+    if (znode != null) {
       znode.addChild(childName);
     }
   }
 
-  public void addToParentChildSet(String parentPath, List<String> childNames)
-  {
-    if (childNames != null && !childNames.isEmpty())
-    {
+  public void addToParentChildSet(String parentPath, List<String> childNames) {
+    if (childNames != null && !childNames.isEmpty()) {
       ZNode znode = _cache.get(parentPath);
-      if (znode != null)
-      {
+      if (znode != null) {
         znode.addChildren(childNames);
       }
     }
   }
 
-  public void removeFromParentChildSet(String parentPath, String name)
-  {
+  public void removeFromParentChildSet(String parentPath, String name) {
     ZNode zNode = _cache.get(parentPath);
-    if (zNode != null)
-    {
+    if (zNode != null) {
       zNode.removeChild(name);
     }
   }
 
-  public boolean exists(String path)
-  {
+  public boolean exists(String path) {
     return _cache.containsKey(path);
   }
 
-  public ZNode get(String path)
-  {
-    try
-    {
+  public ZNode get(String path) {
+    try {
       _lock.readLock().lock();
       return _cache.get(path);
-    } 
-    finally
-    {
+    } finally {
       _lock.readLock().unlock();
     }
   }
 
-  public void lockWrite()
-  {
+  public void lockWrite() {
     _lock.writeLock().lock();
   }
 
-  public void unlockWrite()
-  {
+  public void unlockWrite() {
     _lock.writeLock().unlock();
   }
 
-  public void lockRead()
-  {
+  public void lockRead() {
     _lock.readLock().lock();
   }
 
-  public void unlockRead()
-  {
+  public void unlockRead() {
     _lock.readLock().unlock();
   }
 
-  public void purgeRecursive(String path)
-  {
-    try
-    {
+  public void purgeRecursive(String path) {
+    try {
       _lock.writeLock().lock();
 
       String parentPath = HelixUtil.getZkParentPath(path);
@@ -122,45 +101,35 @@ public abstract class Cache<T>
       removeFromParentChildSet(parentPath, name);
 
       ZNode znode = _cache.remove(path);
-      if (znode != null)
-      {
+      if (znode != null) {
         // recursively remove children nodes
         Set<String> childNames = znode.getChildSet();
-        for (String childName : childNames)
-        {
+        for (String childName : childNames) {
           String childPath = path + "/" + childName;
           purgeRecursive(childPath);
         }
       }
-    }
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
   }
-  
-  public void reset()
-  {
-    try
-    {
+
+  public void reset() {
+    try {
       _lock.writeLock().lock();
       _cache.clear();
-    } 
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
   }
-  
+
   public abstract void update(String path, T data, Stat stat);
-  
+
   public abstract void updateRecursive(String path);
-  
-  
+
   // debug
-  public Map<String, ZNode> getCache()
-  {
+  public Map<String, ZNode> getCache() {
     return _cache;
   }
-  
+
 }

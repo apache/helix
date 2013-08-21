@@ -35,15 +35,13 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.annotate.JsonSerialize;
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion;
 
-
 /**
  * Generic Record Format to store data at a Node This can be used to store
  * simpleFields mapFields listFields
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonSerialize(include = Inclusion.NON_NULL)
-public class ZNRecord
-{
+public class ZNRecord {
   static Logger _logger = Logger.getLogger(ZNRecord.class);
   private final String id;
 
@@ -51,7 +49,7 @@ public class ZNRecord
   public static final String LIST_FIELD_BOUND = "listField.bound";
 
   @JsonIgnore(true)
-  public static final int SIZE_LIMIT = 1000 * 1024;  // leave a margin out of 1M
+  public static final int SIZE_LIMIT = 1000 * 1024; // leave a margin out of 1M
 
   // We don't want the _deltaList to be serialized and deserialized
   private List<ZNRecordDelta> _deltaList = new ArrayList<ZNRecordDelta>();
@@ -75,8 +73,7 @@ public class ZNRecord
    * @param id
    */
   @JsonCreator
-  public ZNRecord(@JsonProperty("id") String id)
-  {
+  public ZNRecord(@JsonProperty("id") String id) {
     this.id = id;
     simpleFields = new TreeMap<String, String>();
     mapFields = new TreeMap<String, Map<String, String>>();
@@ -89,8 +86,7 @@ public class ZNRecord
    * Initialize with a pre-populated ZNRecord
    * @param record
    */
-  public ZNRecord(ZNRecord record)
-  {
+  public ZNRecord(ZNRecord record) {
     this(record, record.getId());
   }
 
@@ -99,19 +95,15 @@ public class ZNRecord
    * @param record
    * @param id
    */
-  public ZNRecord(ZNRecord record, String id)
-  {
+  public ZNRecord(ZNRecord record, String id) {
     this(id);
     simpleFields.putAll(record.getSimpleFields());
     mapFields.putAll(record.getMapFields());
     listFields.putAll(record.getListFields());
-    if (record.rawPayload != null)
-    {
+    if (record.rawPayload != null) {
       rawPayload = new byte[record.rawPayload.length];
       System.arraycopy(record.rawPayload, 0, rawPayload, 0, record.rawPayload.length);
-    }
-    else
-    {
+    } else {
       rawPayload = null;
     }
     _version = record.getVersion();
@@ -124,8 +116,7 @@ public class ZNRecord
    * @param serializer
    */
   @JsonIgnore(true)
-  public void setPayloadSerializer(PayloadSerializer serializer)
-  {
+  public void setPayloadSerializer(PayloadSerializer serializer) {
     _serializer = serializer;
   }
 
@@ -134,8 +125,7 @@ public class ZNRecord
    * @param deltaList
    */
   @JsonIgnore(true)
-  public void setDeltaList(List<ZNRecordDelta> deltaList)
-  {
+  public void setDeltaList(List<ZNRecordDelta> deltaList) {
     _deltaList = deltaList;
   }
 
@@ -144,8 +134,7 @@ public class ZNRecord
    * @return list of {@link ZNRecordDelta}
    */
   @JsonIgnore(true)
-  public List<ZNRecordDelta> getDeltaList()
-  {
+  public List<ZNRecordDelta> getDeltaList() {
     return _deltaList;
   }
 
@@ -154,8 +143,7 @@ public class ZNRecord
    * @return Map of simple fields
    */
   @JsonProperty
-  public Map<String, String> getSimpleFields()
-  {
+  public Map<String, String> getSimpleFields() {
     return simpleFields;
   }
 
@@ -164,8 +152,7 @@ public class ZNRecord
    * @param simpleFields
    */
   @JsonProperty
-  public void setSimpleFields(Map<String, String> simpleFields)
-  {
+  public void setSimpleFields(Map<String, String> simpleFields) {
     this.simpleFields = simpleFields;
   }
 
@@ -174,8 +161,7 @@ public class ZNRecord
    * @return all map fields
    */
   @JsonProperty
-  public Map<String, Map<String, String>> getMapFields()
-  {
+  public Map<String, Map<String, String>> getMapFields() {
     return mapFields;
   }
 
@@ -184,8 +170,7 @@ public class ZNRecord
    * @param mapFields
    */
   @JsonProperty
-  public void setMapFields(Map<String, Map<String, String>> mapFields)
-  {
+  public void setMapFields(Map<String, Map<String, String>> mapFields) {
     this.mapFields = mapFields;
   }
 
@@ -194,8 +179,7 @@ public class ZNRecord
    * @return all list fields
    */
   @JsonProperty
-  public Map<String, List<String>> getListFields()
-  {
+  public Map<String, List<String>> getListFields() {
     return listFields;
   }
 
@@ -204,8 +188,7 @@ public class ZNRecord
    * @param listFields
    */
   @JsonProperty
-  public void setListFields(Map<String, List<String>> listFields)
-  {
+  public void setListFields(Map<String, List<String>> listFields) {
     this.listFields = listFields;
   }
 
@@ -215,14 +198,12 @@ public class ZNRecord
    * @param v
    */
   @JsonProperty
-  public void setSimpleField(String k, String v)
-  {
+  public void setSimpleField(String k, String v) {
     simpleFields.put(k, v);
   }
 
   @JsonProperty
-  public String getId()
-  {
+  public String getId() {
     return id;
   }
 
@@ -232,8 +213,7 @@ public class ZNRecord
    * @param payload
    */
   @JsonProperty
-  public void setRawPayload(byte[] payload)
-  {
+  public void setRawPayload(byte[] payload) {
     rawPayload = payload;
   }
 
@@ -243,8 +223,7 @@ public class ZNRecord
    * @return
    */
   @JsonProperty
-  public byte[] getRawPayload()
-  {
+  public byte[] getRawPayload() {
     return rawPayload;
   }
 
@@ -253,14 +232,10 @@ public class ZNRecord
    * @param payload
    */
   @JsonIgnore(true)
-  public <T> void setPayload(T payload)
-  {
-    if (_serializer != null && payload != null)
-    {
+  public <T> void setPayload(T payload) {
+    if (_serializer != null && payload != null) {
       rawPayload = _serializer.serialize(payload);
-    }
-    else
-    {
+    } else {
       rawPayload = null;
     }
   }
@@ -271,14 +246,10 @@ public class ZNRecord
    * @return
    */
   @JsonIgnore(true)
-  public <T> T getPayload(Class<T> clazz)
-  {
-    if (_serializer != null && rawPayload != null)
-    {
+  public <T> T getPayload(Class<T> clazz) {
+    if (_serializer != null && rawPayload != null) {
       return _serializer.deserialize(clazz, rawPayload);
-    }
-    else
-    {
+    } else {
       return null;
     }
   }
@@ -288,8 +259,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setMapField(String k, Map<String, String> v)
-  {
+  public void setMapField(String k, Map<String, String> v) {
     mapFields.put(k, v);
   }
 
@@ -298,8 +268,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setListField(String k, List<String> v)
-  {
+  public void setListField(String k, List<String> v) {
     listFields.put(k, v);
   }
 
@@ -308,8 +277,7 @@ public class ZNRecord
    * @param k
    * @return String field
    */
-  public String getSimpleField(String k)
-  {
+  public String getSimpleField(String k) {
     return simpleFields.get(k);
   }
 
@@ -318,8 +286,7 @@ public class ZNRecord
    * @param k
    * @return String --> String map
    */
-  public Map<String, String> getMapField(String k)
-  {
+  public Map<String, String> getMapField(String k) {
     return mapFields.get(k);
   }
 
@@ -328,8 +295,7 @@ public class ZNRecord
    * @param k
    * @return String list
    */
-  public List<String> getListField(String k)
-  {
+  public List<String> getListField(String k) {
     return listFields.get(k);
   }
 
@@ -338,8 +304,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setIntField(String k, int v)
-  {
+  public void setIntField(String k, int v) {
     setSimpleField(k, Integer.toString(v));
   }
 
@@ -349,18 +314,13 @@ public class ZNRecord
    * @param defaultValue
    * @return the int value, or defaultValue if not present
    */
-  public int getIntField(String k, int defaultValue)
-  {
+  public int getIntField(String k, int defaultValue) {
     int v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
-      try
-      {
+    if (valueStr != null) {
+      try {
         v = Integer.parseInt(valueStr);
-      }
-      catch (NumberFormatException e)
-      {
+      } catch (NumberFormatException e) {
         _logger.warn("", e);
       }
     }
@@ -372,8 +332,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setLongField(String k, long v)
-  {
+  public void setLongField(String k, long v) {
     setSimpleField(k, Long.toString(v));
   }
 
@@ -383,18 +342,13 @@ public class ZNRecord
    * @param defaultValue
    * @return the long value, or defaultValue if not present
    */
-  public long getLongField(String k, long defaultValue)
-  {
+  public long getLongField(String k, long defaultValue) {
     long v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
-      try
-      {
+    if (valueStr != null) {
+      try {
         v = Long.parseLong(valueStr);
-      }
-      catch (NumberFormatException e)
-      {
+      } catch (NumberFormatException e) {
         _logger.warn("", e);
       }
     }
@@ -406,8 +360,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setDoubleField(String k, double v)
-  {
+  public void setDoubleField(String k, double v) {
     setSimpleField(k, Double.toString(v));
   }
 
@@ -417,18 +370,13 @@ public class ZNRecord
    * @param defaultValue
    * @return the double value, or defaultValue if not present
    */
-  public double getDoubleField(String k, double defaultValue)
-  {
+  public double getDoubleField(String k, double defaultValue) {
     double v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
-      try
-      {
+    if (valueStr != null) {
+      try {
         v = Double.parseDouble(valueStr);
-      }
-      catch (NumberFormatException e)
-      {
+      } catch (NumberFormatException e) {
         _logger.warn("", e);
       }
     }
@@ -440,8 +388,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public void setBooleanField(String k, boolean v)
-  {
+  public void setBooleanField(String k, boolean v) {
     setSimpleField(k, Boolean.toString(v));
   }
 
@@ -451,21 +398,16 @@ public class ZNRecord
    * @param defaultValue
    * @return the boolean field, or defaultValue if not present
    */
-  public boolean getBooleanField(String k, boolean defaultValue)
-  {
+  public boolean getBooleanField(String k, boolean defaultValue) {
     boolean v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
+    if (valueStr != null) {
       // Boolean.parseBoolean() doesn't throw an exception if the string isn't a valid boolean.
       // Thus, a direct comparison is necessary to make sure the value is actually "true" or
       // "false"
-      if (valueStr.equalsIgnoreCase(Boolean.TRUE.toString()))
-      {
+      if (valueStr.equalsIgnoreCase(Boolean.TRUE.toString())) {
         v = true;
-      }
-      else if (valueStr.equalsIgnoreCase(Boolean.FALSE.toString()))
-      {
+      } else if (valueStr.equalsIgnoreCase(Boolean.FALSE.toString())) {
         v = false;
       }
     }
@@ -477,8 +419,7 @@ public class ZNRecord
    * @param k
    * @param v
    */
-  public <T extends Enum<T>> void setEnumField(String k, T v)
-  {
+  public <T extends Enum<T>> void setEnumField(String k, T v) {
     setSimpleField(k, v.toString());
   }
 
@@ -489,22 +430,15 @@ public class ZNRecord
    * @param defaultValue
    * @return the Enum field of enumType, or defaultValue if not present
    */
-  public <T extends Enum<T>> T getEnumField(String k, Class<T> enumType, T defaultValue)
-  {
+  public <T extends Enum<T>> T getEnumField(String k, Class<T> enumType, T defaultValue) {
     T v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
-      try
-      {
+    if (valueStr != null) {
+      try {
         v = Enum.valueOf(enumType, valueStr);
-      }
-      catch (NullPointerException e)
-      {
+      } catch (NullPointerException e) {
         _logger.warn("", e);
-      }
-      catch (IllegalArgumentException e)
-      {
+      } catch (IllegalArgumentException e) {
         _logger.warn("", e);
       }
     }
@@ -517,32 +451,26 @@ public class ZNRecord
    * @param defaultValue
    * @return the String value, or defaultValue if not present
    */
-  public String getStringField(String k, String defaultValue)
-  {
+  public String getStringField(String k, String defaultValue) {
     String v = defaultValue;
     String valueStr = getSimpleField(k);
-    if (valueStr != null)
-    {
+    if (valueStr != null) {
       v = valueStr;
     }
     return v;
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuffer sb = new StringBuffer();
     sb.append(id + ", ");
-    if (simpleFields != null)
-    {
+    if (simpleFields != null) {
       sb.append(simpleFields);
     }
-    if (mapFields != null)
-    {
+    if (mapFields != null) {
       sb.append(mapFields);
     }
-    if (listFields != null)
-    {
+    if (listFields != null) {
       sb.append(listFields);
     }
     return sb.toString();
@@ -552,43 +480,32 @@ public class ZNRecord
    * merge functionality is used to merge multiple znrecord into a single one.
    * This will make use of the id of each ZNRecord and append it to every key
    * thus making key unique. This is needed to optimize on the watches.
-   *
    * @param record
    */
-  public void merge(ZNRecord record)
-  {
-    if (record == null)
-    {
+  public void merge(ZNRecord record) {
+    if (record == null) {
       return;
     }
 
-    if (record.getDeltaList().size() > 0)
-    {
-      _logger.info("Merging with delta list, recordId = " + id + " other:"
-          + record.getId());
+    if (record.getDeltaList().size() > 0) {
+      _logger.info("Merging with delta list, recordId = " + id + " other:" + record.getId());
       merge(record.getDeltaList());
       return;
     }
     simpleFields.putAll(record.simpleFields);
-    for (String key : record.mapFields.keySet())
-    {
+    for (String key : record.mapFields.keySet()) {
       Map<String, String> map = mapFields.get(key);
-      if (map != null)
-      {
+      if (map != null) {
         map.putAll(record.mapFields.get(key));
-      } else
-      {
+      } else {
         mapFields.put(key, record.mapFields.get(key));
       }
     }
-    for (String key : record.listFields.keySet())
-    {
+    for (String key : record.listFields.keySet()) {
       List<String> list = listFields.get(key);
-      if (list != null)
-      {
+      if (list != null) {
         list.addAll(record.listFields.get(key));
-      } else
-      {
+      } else {
         listFields.put(key, record.listFields.get(key));
       }
     }
@@ -598,13 +515,10 @@ public class ZNRecord
    * Merge in a {@link ZNRecordDelta} corresponding to its merge policy
    * @param delta
    */
-  void merge(ZNRecordDelta delta)
-  {
-    if (delta.getMergeOperation() == MergeOperation.ADD)
-    {
+  void merge(ZNRecordDelta delta) {
+    if (delta.getMergeOperation() == MergeOperation.ADD) {
       merge(delta.getRecord());
-    } else if (delta.getMergeOperation() == MergeOperation.SUBTRACT)
-    {
+    } else if (delta.getMergeOperation() == MergeOperation.SUBTRACT) {
       subtract(delta.getRecord());
     }
   }
@@ -614,44 +528,34 @@ public class ZNRecord
    * @see #merge(ZNRecordDelta)
    * @param deltaList
    */
-  void merge(List<ZNRecordDelta> deltaList)
-  {
-    for (ZNRecordDelta delta : deltaList)
-    {
+  void merge(List<ZNRecordDelta> deltaList) {
+    for (ZNRecordDelta delta : deltaList) {
       merge(delta);
     }
   }
 
   @Override
-  public boolean equals(Object obj)
-  {
-    if (!(obj instanceof ZNRecord))
-    {
+  public boolean equals(Object obj) {
+    if (!(obj instanceof ZNRecord)) {
       return false;
     }
     ZNRecord that = (ZNRecord) obj;
-    if (this.getSimpleFields().size() != that.getSimpleFields().size())
-    {
+    if (this.getSimpleFields().size() != that.getSimpleFields().size()) {
       return false;
     }
-    if (this.getMapFields().size() != that.getMapFields().size())
-    {
+    if (this.getMapFields().size() != that.getMapFields().size()) {
       return false;
     }
-    if (this.getListFields().size() != that.getListFields().size())
-    {
+    if (this.getListFields().size() != that.getListFields().size()) {
       return false;
     }
-    if (!this.getSimpleFields().equals(that.getSimpleFields()))
-    {
+    if (!this.getSimpleFields().equals(that.getSimpleFields())) {
       return false;
     }
-    if (!this.getMapFields().equals(that.getMapFields()))
-    {
+    if (!this.getMapFields().equals(that.getMapFields())) {
       return false;
     }
-    if (!this.getListFields().equals(that.getListFields()))
-    {
+    if (!this.getListFields().equals(that.getListFields())) {
       return false;
     }
 
@@ -664,28 +568,21 @@ public class ZNRecord
    * mapFields
    * @param value
    */
-  public void subtract(ZNRecord value)
-  {
-    for (String key : value.getSimpleFields().keySet())
-    {
-      if (simpleFields.containsKey(key))
-      {
+  public void subtract(ZNRecord value) {
+    for (String key : value.getSimpleFields().keySet()) {
+      if (simpleFields.containsKey(key)) {
         simpleFields.remove(key);
       }
     }
 
-    for (String key : value.getListFields().keySet())
-    {
-      if (listFields.containsKey(key))
-      {
+    for (String key : value.getListFields().keySet()) {
+      if (listFields.containsKey(key)) {
         listFields.remove(key);
       }
     }
 
-    for (String key : value.getMapFields().keySet())
-    {
-      if (mapFields.containsKey(key))
-      {
+    for (String key : value.getMapFields().keySet()) {
+      if (mapFields.containsKey(key)) {
         mapFields.remove(key);
       }
     }
@@ -696,8 +593,7 @@ public class ZNRecord
    * @return version number
    */
   @JsonIgnore(true)
-  public int getVersion()
-  {
+  public int getVersion() {
     return _version;
   }
 
@@ -706,8 +602,7 @@ public class ZNRecord
    * @param version
    */
   @JsonIgnore(true)
-  public void setVersion(int version)
-  {
+  public void setVersion(int version) {
     _version = version;
   }
 
@@ -716,8 +611,7 @@ public class ZNRecord
    * @return UNIX timestamp
    */
   @JsonIgnore(true)
-  public long getCreationTime()
-  {
+  public long getCreationTime() {
     return _creationTime;
   }
 
@@ -726,8 +620,7 @@ public class ZNRecord
    * @param creationTime
    */
   @JsonIgnore(true)
-  public void setCreationTime(long creationTime)
-  {
+  public void setCreationTime(long creationTime) {
     _creationTime = creationTime;
   }
 
@@ -736,8 +629,7 @@ public class ZNRecord
    * @return UNIX timestamp
    */
   @JsonIgnore(true)
-  public long getModifiedTime()
-  {
+  public long getModifiedTime() {
     return _modifiedTime;
   }
 
@@ -746,8 +638,7 @@ public class ZNRecord
    * @param modifiedTime
    */
   @JsonIgnore(true)
-  public void setModifiedTime(long modifiedTime)
-  {
+  public void setModifiedTime(long modifiedTime) {
     _modifiedTime = modifiedTime;
   }
 }

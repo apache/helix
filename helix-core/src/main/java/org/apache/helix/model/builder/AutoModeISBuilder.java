@@ -25,26 +25,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 public class AutoModeISBuilder extends IdealStateBuilder {
-    public AutoModeISBuilder(String resourceName)
-    {
-        super(resourceName);
-        setRebalancerMode(RebalanceMode.SEMI_AUTO);
-    }
+  public AutoModeISBuilder(String resourceName) {
+    super(resourceName);
+    setRebalancerMode(RebalanceMode.SEMI_AUTO);
+  }
 
-    public void add(String partitionName)
-    {
-        if (_record.getListField(partitionName) == null)
-        {
-            _record.setListField(partitionName, new ArrayList<String>());
-        }
+  public void add(String partitionName) {
+    if (_record.getListField(partitionName) == null) {
+      _record.setListField(partitionName, new ArrayList<String>());
     }
+  }
 
-    public AutoModeISBuilder assignPreferenceList(String partitionName,
-                                     String... instanceNames)
-    {
-        add(partitionName);
-        _record.getListField(partitionName).addAll(Arrays.asList(instanceNames));
-        return this;
-    }
+  public AutoModeISBuilder assignPreferenceList(String partitionName, String... instanceNames) {
+    add(partitionName);
+    _record.getListField(partitionName).addAll(Arrays.asList(instanceNames));
+    return this;
+  }
 
 }

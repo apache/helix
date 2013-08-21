@@ -53,10 +53,8 @@ import org.apache.log4j.Logger;
  * state of a resource, fully adapting to the addition or removal of instances. This includes
  * computation of a new preference list and a partition to instance and state mapping based on the
  * computed instance preferences.
- *
  * The input is the current assignment of partitions to instances, as well as existing instance
  * preferences, if any.
- *
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
@@ -74,9 +72,8 @@ public class AutoRebalancer implements Rebalancer {
   }
 
   @Override
-  public IdealState computeNewIdealState(String resourceName,
-      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
@@ -86,8 +83,8 @@ public class AutoRebalancer implements Rebalancer {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
     stateCountMap = stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
-    Map<String, Map<String, String>> currentMapping = currentMapping(currentStateOutput,
-        resourceName, partitions, stateCountMap);
+    Map<String, Map<String, String>> currentMapping =
+        currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
 
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
@@ -101,10 +98,11 @@ public class AutoRebalancer implements Rebalancer {
     }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     placementScheme.init(_manager);
-    _algorithm = new AutoRebalanceStrategy(resourceName, partitions, stateCountMap,
-        maxPartition, placementScheme);
-    ZNRecord newMapping = _algorithm.computePartitionAssignment(liveNodes,currentMapping,
-        allNodes);
+    _algorithm =
+        new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition,
+            placementScheme);
+    ZNRecord newMapping =
+        _algorithm.computePartitionAssignment(liveNodes, currentMapping, allNodes);
 
     if (LOG.isInfoEnabled()) {
       LOG.info("newMapping: " + newMapping);
@@ -118,11 +116,10 @@ public class AutoRebalancer implements Rebalancer {
   }
 
   /**
-  *
-  * @return state count map: state->count
-  */
-  private LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef, int liveNodesNb,
-      int totalReplicas) {
+   * @return state count map: state->count
+   */
+  private LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
+      int liveNodesNb, int totalReplicas) {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
 
@@ -168,8 +165,8 @@ public class AutoRebalancer implements Rebalancer {
     Map<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
 
     for (String partition : partitions) {
-      Map<String, String> curStateMap = currentStateOutput.getCurrentStateMap(resourceName,
-          new Partition(partition));
+      Map<String, String> curStateMap =
+          currentStateOutput.getCurrentStateMap(resourceName, new Partition(partition));
       map.put(partition, new HashMap<String, String>());
       for (String node : curStateMap.keySet()) {
         String state = curStateMap.get(node);
@@ -178,8 +175,8 @@ public class AutoRebalancer implements Rebalancer {
         }
       }
 
-      Map<String, String> pendingStateMap = currentStateOutput.getPendingStateMap(resourceName,
-          new Partition(partition));
+      Map<String, String> pendingStateMap =
+          currentStateOutput.getPendingStateMap(resourceName, new Partition(partition));
       for (String node : pendingStateMap.keySet()) {
         String state = pendingStateMap.get(node);
         if (stateCountMap.containsKey(state)) {
@@ -205,8 +202,8 @@ public class AutoRebalancer implements Rebalancer {
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(partition.toString());
-      List<String> preferenceList = ConstraintBasedAssignment.getPreferenceList(cache, partition,
-          idealState, stateModelDef);
+      List<String> preferenceList =
+          ConstraintBasedAssignment.getPreferenceList(cache, partition, idealState, stateModelDef);
       Map<String, String> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, stateModelDef,
               preferenceList, currentStateMap, disabledInstancesForPartition);
@@ -219,7 +216,6 @@ public class AutoRebalancer implements Rebalancer {
    * Compute best state for resource in AUTO_REBALANCE ideal state mode. the algorithm
    * will make sure that the master partition are evenly distributed; Also when instances
    * are added / removed, the amount of diff in master partitions are minimized
-   *
    * @param cache
    * @param idealState
    * @param instancePreferenceList
@@ -227,23 +223,22 @@ public class AutoRebalancer implements Rebalancer {
    * @param currentStateOutput
    * @return
    */
-  private void calculateAutoBalancedIdealState(ClusterDataCache cache,
-                                               IdealState idealState,
-                                               StateModelDefinition stateModelDef) {
+  private void calculateAutoBalancedIdealState(ClusterDataCache cache, IdealState idealState,
+      StateModelDefinition stateModelDef) {
     String topStateValue = stateModelDef.getStatesPriorityList().get(0);
     Set<String> liveInstances = cache.getLiveInstances().keySet();
     Set<String> taggedInstances = new HashSet<String>();
 
     // If there are instances tagged with resource name, use only those instances
-    if(idealState.getInstanceGroupTag() != null) {
-      for(String instanceName : liveInstances) {
-        if(cache.getInstanceConfigMap().get(instanceName).containsTag(
-            idealState.getInstanceGroupTag())) {
+    if (idealState.getInstanceGroupTag() != null) {
+      for (String instanceName : liveInstances) {
+        if (cache.getInstanceConfigMap().get(instanceName)
+            .containsTag(idealState.getInstanceGroupTag())) {
           taggedInstances.add(instanceName);
         }
       }
     }
-    if(taggedInstances.size() > 0) {
+    if (taggedInstances.size() > 0) {
       if (LOG.isInfoEnabled()) {
         LOG.info("found the following instances with tag " + idealState.getResourceName() + " "
             + taggedInstances);
@@ -254,8 +249,7 @@ public class AutoRebalancer implements Rebalancer {
     int replicas = 1;
     try {
       replicas = Integer.parseInt(idealState.getReplicas());
-    }
-    catch (Exception e) {
+    } catch (Exception e) {
       LOG.error("", e);
     }
     // Init for all partitions with empty list
@@ -268,8 +262,7 @@ public class AutoRebalancer implements Rebalancer {
     // Return if no live instance
     if (liveInstances.size() == 0) {
       if (LOG.isInfoEnabled()) {
-        LOG.info("No live instances, return. Idealstate : "
-            + idealState.getResourceName());
+        LOG.info("No live instances, return. Idealstate : " + idealState.getResourceName());
       }
       return;
     }
@@ -283,9 +276,8 @@ public class AutoRebalancer implements Rebalancer {
     for (String liveInstanceName : liveInstances) {
       CurrentState currentState =
           cache.getCurrentState(liveInstanceName,
-                                cache.getLiveInstances()
-                                     .get(liveInstanceName)
-                                     .getSessionId()).get(idealState.getId());
+              cache.getLiveInstances().get(liveInstanceName).getSessionId())
+              .get(idealState.getId());
       if (currentState != null) {
         Map<String, String> partitionStates = currentState.getPartitionStateMap();
         for (String partitionName : partitionStates.keySet()) {
@@ -301,15 +293,13 @@ public class AutoRebalancer implements Rebalancer {
     orphanedPartitionsList.addAll(orphanedPartitions);
     int maxPartitionsPerInstance = idealState.getMaxPartitionsPerInstance();
     normalizeAssignmentMap(masterAssignmentMap, orphanedPartitionsList, maxPartitionsPerInstance);
-    idealState.getRecord()
-              .setListFields(generateListFieldFromMasterAssignment(masterAssignmentMap,
-                                                                   replicas));
+    idealState.getRecord().setListFields(
+        generateListFieldFromMasterAssignment(masterAssignmentMap, replicas));
   }
 
   /**
    * Given the current master assignment map and the partitions not hosted, generate an
    * evenly distributed partition assignment map
-   *
    * @param masterAssignmentMap
    *          current master assignment map
    * @param orphanPartitions
@@ -317,8 +307,7 @@ public class AutoRebalancer implements Rebalancer {
    * @return
    */
   private void normalizeAssignmentMap(Map<String, List<String>> masterAssignmentMap,
-                                      List<String> orphanPartitions,
-                                      int maxPartitionsPerInstance) {
+      List<String> orphanPartitions, int maxPartitionsPerInstance) {
     int totalPartitions = 0;
     String[] instanceNames = new String[masterAssignmentMap.size()];
     masterAssignmentMap.keySet().toArray(instanceNames);
@@ -340,8 +329,7 @@ public class AutoRebalancer implements Rebalancer {
       // For hosts that has more partitions, move those partitions to "orphaned"
       while (masterAssignmentMap.get(instanceNames[i]).size() > targetPartitionNo) {
         int lastElementIndex = masterAssignmentMap.get(instanceNames[i]).size() - 1;
-        orphanPartitions.add(masterAssignmentMap.get(instanceNames[i])
-                                                .get(lastElementIndex));
+        orphanPartitions.add(masterAssignmentMap.get(instanceNames[i]).get(lastElementIndex));
         masterAssignmentMap.get(instanceNames[i]).remove(lastElementIndex);
       }
     }
@@ -351,13 +339,12 @@ public class AutoRebalancer implements Rebalancer {
     for (int i = 0; i < instanceNames.length; i++) {
       int targetPartitionNo = leave > 0 ? (partitionNumber + 1) : partitionNumber;
       leave--;
-      if(targetPartitionNo > maxPartitionsPerInstance) {
+      if (targetPartitionNo > maxPartitionsPerInstance) {
         targetPartitionNo = maxPartitionsPerInstance;
       }
       while (masterAssignmentMap.get(instanceNames[i]).size() < targetPartitionNo) {
         int lastElementIndex = orphanPartitions.size() - 1;
-        masterAssignmentMap.get(instanceNames[i])
-                           .add(orphanPartitions.get(lastElementIndex));
+        masterAssignmentMap.get(instanceNames[i]).add(orphanPartitions.get(lastElementIndex));
         orphanPartitions.remove(lastElementIndex);
       }
     }
@@ -369,7 +356,6 @@ public class AutoRebalancer implements Rebalancer {
   /**
    * Generate full preference list from the master assignment map evenly distribute the
    * slave partitions mastered on a host to other hosts
-   *
    * @param masterAssignmentMap
    *          current master assignment map
    * @param orphanPartitions

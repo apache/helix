@@ -22,19 +22,15 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
-public class StatusUpdate extends HelixProperty
-{
+public class StatusUpdate extends HelixProperty {
 
-  public StatusUpdate(ZNRecord record)
-  {
+  public StatusUpdate(ZNRecord record) {
     super(record);
   }
 
   @Override
-  public boolean isValid()
-  {
+  public boolean isValid() {
     return true;
   }
 
-  
 }

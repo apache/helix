@@ -31,13 +31,10 @@ import org.apache.helix.model.Transition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 
-
 // TODO refactor to use StateModelDefinition.Builder
-public class StateModelConfigGenerator
-{
+public class StateModelConfigGenerator {
 
-  public static void main(String[] args)
-  {
+  public static void main(String[] args) {
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     StateModelConfigGenerator generator = new StateModelConfigGenerator();
     System.out.println(new String(serializer.serialize(generator.generateConfigForMasterSlave())));
@@ -50,62 +47,48 @@ public class StateModelConfigGenerator
    * to last state
    */
 
-  public static ZNRecord generateConfigForStorageSchemata()
-  {
+  public static ZNRecord generateConfigForStorageSchemata() {
     ZNRecord record = new ZNRecord("STORAGE_DEFAULT_SM_SCHEMATA");
-    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
-                          "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
     statePriorityList.add("ERROR");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("MASTER"))
-      {
+      if (state.equals("MASTER")) {
         metadata.put("count", "N");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("OFFLINE"))
-      {
+      } else if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("DROPPED"))
-      {
+      } else if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("ERROR"))
-      {
+      } else if (state.equals("ERROR")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
     }
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("MASTER"))
-      {
+      if (state.equals("MASTER")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("MASTER", "MASTER");
         metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
       }
-      if (state.equals("ERROR"))
-      {
+      if (state.equals("ERROR")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("OFFLINE", "OFFLINE");
         record.setMapField(key, metadata);
@@ -115,15 +98,13 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("MASTER-OFFLINE");
     stateTransitionPriorityList.add("OFFLINE-MASTER");
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return record;
   }
 
-  public static ZNRecord generateConfigForMasterSlave()
-  {
+  public static ZNRecord generateConfigForMasterSlave() {
     ZNRecord record = new ZNRecord("MasterSlave");
-    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
-                          "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("MASTER");
     statePriorityList.add("SLAVE");
@@ -131,66 +112,48 @@ public class StateModelConfigGenerator
     statePriorityList.add("DROPPED");
     statePriorityList.add("ERROR");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("MASTER"))
-      {
+      if (state.equals("MASTER")) {
         metadata.put("count", "1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("SLAVE"))
-      {
+      } else if (state.equals("SLAVE")) {
         metadata.put("count", "R");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("OFFLINE"))
-      {
+      } else if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("DROPPED"))
-      {
+      } else if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("ERROR"))
-      {
+      } else if (state.equals("ERROR")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
     }
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("MASTER"))
-      {
+      if (state.equals("MASTER")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("OFFLINE", "SLAVE");
         metadata.put("DROPPED", "SLAVE");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("SLAVE"))
-      {
+      } else if (state.equals("SLAVE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("MASTER", "MASTER");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("OFFLINE"))
-      {
+      } else if (state.equals("OFFLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("SLAVE", "SLAVE");
         metadata.put("MASTER", "SLAVE");
         metadata.put("DROPPED", "DROPPED");
         record.setMapField(key, metadata);
-      }
-      else if (state.equals("ERROR"))
-      {
+      } else if (state.equals("ERROR")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("OFFLINE", "OFFLINE");
         record.setMapField(key, metadata);
@@ -203,72 +166,61 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("SLAVE-OFFLINE");
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
 
-  public static ZNRecord generateConfigForLeaderStandby()
-  {
+  public static ZNRecord generateConfigForLeaderStandby() {
     ZNRecord record = new ZNRecord("LeaderStandby");
-    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
-                          "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("LEADER");
     statePriorityList.add("STANDBY");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("LEADER"))
-      {
+      if (state.equals("LEADER")) {
         metadata.put("count", "1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("STANDBY"))
-      {
+      if (state.equals("STANDBY")) {
         metadata.put("count", "R");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("DROPPED"))
-      {
+      if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
 
     }
 
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("LEADER"))
-      {
+      if (state.equals("LEADER")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("STANDBY", "STANDBY");
         metadata.put("OFFLINE", "STANDBY");
         metadata.put("DROPPED", "STANDBY");
         record.setMapField(key, metadata);
       }
-      if (state.equals("STANDBY"))
-      {
+      if (state.equals("STANDBY")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("LEADER", "LEADER");
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("STANDBY", "STANDBY");
         metadata.put("LEADER", "STANDBY");
@@ -285,56 +237,47 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
 
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
 
-  public static ZNRecord generateConfigForOnlineOffline()
-  {
+  public static ZNRecord generateConfigForOnlineOffline() {
     ZNRecord record = new ZNRecord("OnlineOffline");
-    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
-                          "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("ONLINE");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("ONLINE"))
-      {
+      if (state.equals("ONLINE")) {
         metadata.put("count", "R");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("DROPPED"))
-      {
+      if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
     }
 
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
-      if (state.equals("ONLINE"))
-      {
+      if (state.equals("ONLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("OFFLINE", "OFFLINE");
         metadata.put("DROPPED", "OFFLINE");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         Map<String, String> metadata = new HashMap<String, String>();
         metadata.put("ONLINE", "ONLINE");
         metadata.put("DROPPED", "DROPPED");
@@ -347,39 +290,33 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("OFFLINE-DROPPED");
 
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return record;
     // ZNRecordSerializer serializer = new ZNRecordSerializer();
     // System.out.println(new String(serializer.serialize(record)));
   }
-  
-  public static ZNRecord generateConfigForScheduledTaskQueue()
-  {
+
+  public static ZNRecord generateConfigForScheduledTaskQueue() {
     ZNRecord record = new ZNRecord(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
-    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(),
-                          "OFFLINE");
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), "OFFLINE");
     List<String> statePriorityList = new ArrayList<String>();
     statePriorityList.add("COMPLETED");
     statePriorityList.add("OFFLINE");
     statePriorityList.add("DROPPED");
     record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(),
-                        statePriorityList);
-    for (String state : statePriorityList)
-    {
+        statePriorityList);
+    for (String state : statePriorityList) {
       String key = state + ".meta";
       Map<String, String> metadata = new HashMap<String, String>();
-      if (state.equals("COMPLETED"))
-      {
+      if (state.equals("COMPLETED")) {
         metadata.put("count", "1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("OFFLINE"))
-      {
+      if (state.equals("OFFLINE")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
-      if (state.equals("DROPPED"))
-      {
+      if (state.equals("DROPPED")) {
         metadata.put("count", "-1");
         record.setMapField(key, metadata);
       }
@@ -398,8 +335,7 @@ public class StateModelConfigGenerator
     StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
     Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);
 
-    for (String state : statePriorityList)
-    {
+    for (String state : statePriorityList) {
       String key = state + ".next";
       record.setMapField(key, next.get(state));
     }
@@ -409,7 +345,7 @@ public class StateModelConfigGenerator
     stateTransitionPriorityList.add("COMPLETED-DROPPED");
 
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
-                        stateTransitionPriorityList);
+        stateTransitionPriorityList);
     return record;
   }
 }

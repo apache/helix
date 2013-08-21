@@ -66,20 +66,15 @@ import org.restlet.resource.Representation;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestHelixAdminScenariosRest extends AdminTestBase
-{
+public class TestHelixAdminScenariosRest extends AdminTestBase {
   Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
-  RestAdminApplication       _adminApp;
-  Component                  _component;
+  RestAdminApplication _adminApp;
+  Component _component;
   String _tag1 = "tag1123";
   String _tag2 = "tag212334";
-  
 
   public static String ObjectToJson(Object object) throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+      JsonMappingException, IOException {
     ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
@@ -90,18 +85,15 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     return sw.toString();
   }
 
-  public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString) throws JsonParseException,
-      JsonMappingException,
-      IOException
-  {
+  public static <T extends Object> T JsonToObject(Class<T> clazz, String jsonString)
+      throws JsonParseException, JsonMappingException, IOException {
     StringReader sr = new StringReader(jsonString);
     ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(sr, clazz);
   }
 
   @Test
-  public void testAddDeleteClusterAndInstanceAndResource() throws Exception
-  {
+  public void testAddDeleteClusterAndInstanceAndResource() throws Exception {
     // Helix bug helix-102
     // ZKPropertyTransferServer.PERIOD = 500;
     // ZkPropertyTransferClient.SEND_PERIOD = 500;
@@ -149,16 +141,14 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Thread.sleep(1000);
   }
 
-  static String assertSuccessPostOperation(String url,
-                                           Map<String, String> jsonParameters,
-                                           boolean hasException) throws IOException
-  {
+  static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters,
+      boolean hasException) throws IOException {
     Reference resourceRef = new Reference(url);
 
     Request request = new Request(Method.POST, resourceRef);
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-                          + ClusterRepresentationUtil.ObjectToJson(jsonParameters),
-                      MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "="
+            + ClusterRepresentationUtil.ObjectToJson(jsonParameters), MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
     Representation result = response.getEntity();
@@ -170,19 +160,15 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     return sw.toString();
   }
 
-  static String assertSuccessPostOperation(String url,
-                                           Map<String, String> jsonParameters,
-                                           Map<String, String> extraForm,
-                                           boolean hasException) throws IOException
-  {
+  static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters,
+      Map<String, String> extraForm, boolean hasException) throws IOException {
     Reference resourceRef = new Reference(url);
 
     Request request = new Request(Method.POST, resourceRef);
     String entity =
         JsonParameters.JSON_PARAMETERS + "="
             + ClusterRepresentationUtil.ObjectToJson(jsonParameters);
-    for (String key : extraForm.keySet())
-    {
+    for (String key : extraForm.keySet()) {
       entity = entity + "&" + (key + "=" + extraForm.get(key));
     }
     request.setEntity(entity, MediaType.APPLICATION_ALL);
@@ -197,8 +183,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     return sw.toString();
   }
 
-  void deleteUrl(String url, boolean hasException) throws IOException
-  {
+  void deleteUrl(String url, boolean hasException) throws IOException {
     Reference resourceRef = new Reference(url);
     Request request = new Request(Method.DELETE, resourceRef);
     Client client = new Client(Protocol.HTTP);
@@ -209,8 +194,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
   }
 
-  String getUrl(String url) throws IOException
-  {
+  String getUrl(String url) throws IOException {
     Reference resourceRef = new Reference(url);
     Request request = new Request(Method.GET, resourceRef);
     Client client = new Client(Protocol.HTTP);
@@ -221,39 +205,30 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     return sw.toString();
   }
 
-  String getClusterUrl(String cluster)
-  {
+  String getClusterUrl(String cluster) {
     return "http://localhost:" + ADMIN_PORT + "/clusters" + "/" + cluster;
   }
 
-  String getInstanceUrl(String cluster, String instance)
-  {
-    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/instances/"
-        + instance;
+  String getInstanceUrl(String cluster, String instance) {
+    return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/instances/" + instance;
   }
 
-  String getResourceUrl(String cluster, String resourceGroup)
-  {
+  String getResourceUrl(String cluster, String resourceGroup) {
     return "http://localhost:" + ADMIN_PORT + "/clusters/" + cluster + "/resourceGroups/"
         + resourceGroup;
   }
 
-  void assertClusterSetupException(String command)
-  {
+  void assertClusterSetupException(String command) {
     boolean exceptionThrown = false;
-    try
-    {
+    try {
       ClusterSetup.processCommandLineArgs(command.split(" "));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       exceptionThrown = true;
     }
     Assert.assertTrue(exceptionThrown);
   }
 
-  public void testAddCluster() throws Exception
-  {
+  public void testAddCluster() throws Exception {
     String url = "http://localhost:" + ADMIN_PORT + "/clusters";
     Map<String, String> paraMap = new HashMap<String, String>();
 
@@ -318,10 +293,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue(response.contains("clusterTest1"));
   }
 
-  public void testAddResource() throws Exception
-  {
-    String reourcesUrl =
-        "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
+  public void testAddResource() throws Exception {
+    String reourcesUrl = "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
 
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_22");
@@ -358,19 +331,17 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue(response.contains("db_11"));
 
     Assert.assertTrue(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
-    
+
     paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_33");
     response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
     Assert.assertTrue(response.contains("db_33"));
-    
+
     paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_44");
     response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
     Assert.assertTrue(response.contains("db_44"));
   }
 
-  private void testDeactivateCluster() throws Exception,
-      InterruptedException
-  {
+  private void testDeactivateCluster() throws Exception, InterruptedException {
     HelixDataAccessor accessor;
     String path;
     // deactivate cluster
@@ -392,8 +363,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     Assert.assertTrue(_gZkClient.exists("/clusterTest1"));
     // leader node should be gone
-    for (StartCMResult result : _startCMResultMap.values())
-    {
+    for (StartCMResult result : _startCMResultMap.values()) {
       result._manager.disconnect();
       result._thread.interrupt();
     }
@@ -402,10 +372,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
   }
 
-  private void testDropAddResource() throws Exception
-  {
-    ZNRecord record =
-        _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
+  private void testDropAddResource() throws Exception {
+    ZNRecord record = _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
     String x = ObjectToJson(record);
 
     FileWriter fos = new FileWriter("/tmp/temp.log");
@@ -418,7 +386,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
@@ -426,9 +394,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     paraMap.put(JsonParameters.PARTITIONS, "22");
     paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
     String response =
-        assertSuccessPostOperation(getClusterUrl("clusterTest1") + "/resourceGroups",
-                                   paraMap,
-                                   false);
+        assertSuccessPostOperation(getClusterUrl("clusterTest1") + "/resourceGroups", paraMap,
+            false);
 
     String idealStateUrl = getResourceUrl("clusterTest1", "db_11") + "/idealState";
     Assert.assertTrue(response.contains("db_11"));
@@ -439,7 +406,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
 
     ZNRecord record2 =
@@ -447,8 +414,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertTrue(record2.equals(record));
   }
 
-  private void testExpandCluster() throws Exception
-  {
+  private void testExpandCluster() throws Exception {
     boolean verifyResult;
 
     String clusterUrl = getClusterUrl("clusterTest1");
@@ -456,22 +422,19 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.INSTANCE_NAMES,
-                "localhost:12331;localhost:12341;localhost:12351;localhost:12361");
+        "localhost:12331;localhost:12341;localhost:12351;localhost:12361");
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
 
     String response = assertSuccessPostOperation(instancesUrl, paraMap, false);
-    String[] hosts =
-        "localhost:12331;localhost:12341;localhost:12351;localhost:12361".split(";");
-    for (String host : hosts)
-    {
+    String[] hosts = "localhost:12331;localhost:12341;localhost:12351;localhost:12361".split(";");
+    for (String host : hosts) {
       Assert.assertTrue(response.contains(host.replace(':', '_')));
     }
     paraMap.clear();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.expandCluster);
     response = assertSuccessPostOperation(clusterUrl, paraMap, false);
 
-    for (int i = 3; i <= 6; i++)
-    {
+    for (int i = 3; i <= 6; i++) {
       StartCMResult result =
           TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_123" + i + "1");
       _startCMResultMap.put("localhost_123" + i + "1", result);
@@ -479,18 +442,16 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-                                                                              "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
   }
 
-  private void testEnablePartitions() throws IOException,
-      InterruptedException
-  {
+  private void testEnablePartitions() throws IOException, InterruptedException {
     HelixDataAccessor accessor;
     accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
     // drop node should fail as not disabled
@@ -511,7 +472,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
 
     ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
@@ -525,7 +486,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
 
     ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
@@ -533,8 +494,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertEquals(ev.getStateMap("db_11_15").get(hostName), "SLAVE");
   }
 
-  private void testInstanceOperations() throws Exception
-  {
+  private void testInstanceOperations() throws Exception {
     HelixDataAccessor accessor;
     // drop node should fail as not disabled
     String instanceUrl = getInstanceUrl("clusterTest1", "localhost_1232");
@@ -579,30 +539,22 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     Assert.assertFalse(_gZkClient.exists(path));
 
     _startCMResultMap.put("localhost_12320",
-                          TestHelper.startDummyProcess(ZK_ADDR,
-                                                       "clusterTest1",
-                                                       "localhost_12320"));
+        TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_12320"));
   }
 
-  private void testStartCluster() throws Exception,
-      InterruptedException
-  {
+  private void testStartCluster() throws Exception, InterruptedException {
     // start mock nodes
-    for (int i = 0; i < 6; i++)
-    {
+    for (int i = 0; i < 6; i++) {
       StartCMResult result =
           TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_123" + i);
       _startCMResultMap.put("localhost_123" + i, result);
     }
 
     // start controller nodes
-    for (int i = 0; i < 2; i++)
-    {
+    for (int i = 0; i < 2; i++) {
       StartCMResult result =
-          TestHelper.startController("Klazt3rz",
-                                     "controller_900" + i,
-                                     ZK_ADDR,
-                                     HelixControllerMain.DISTRIBUTED);
+          TestHelper.startController("Klazt3rz", "controller_900" + i, ZK_ADDR,
+              HelixControllerMain.DISTRIBUTED);
 
       _startCMResultMap.put("controller_900" + i, result);
     }
@@ -636,16 +588,13 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     // verify leader node
     HelixDataAccessor accessor =
         _startCMResultMap.get("controller_9001")._manager.getHelixDataAccessor();
-    LiveInstance controllerLeader =
-        accessor.getProperty(accessor.keyBuilder().controllerLeader());
+    LiveInstance controllerLeader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
     Assert.assertTrue(controllerLeader.getInstanceName().startsWith("controller_900"));
 
     accessor = _startCMResultMap.get("localhost_1232")._manager.getHelixDataAccessor();
     LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
-    for(int i = 0; i < 5; i++)
-    {
-      if(leader != null)
-      {
+    for (int i = 0; i < 5; i++) {
+      if (leader != null) {
         break;
       }
       Thread.sleep(1000);
@@ -655,17 +604,16 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-                                                                              "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 "clusterTest1"));
+            "clusterTest1"));
     Assert.assertTrue(verifyResult);
   }
 
-  private void testRebalanceResource() throws Exception
-  {
+  private void testRebalanceResource() throws Exception {
     String resourceUrl = getResourceUrl("clusterTest1", "db_11");
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.REPLICAS, "3");
@@ -675,14 +623,15 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     String response = assertSuccessPostOperation(ISUrl, paraMap, false);
     ZNRecord record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
-    Assert.assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0]))).size() == 3);
+    Assert
+        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
+    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
+        .size() == 3);
 
     deleteUrl(resourceUrl, false);
 
     // re-add and rebalance
-    String reourcesUrl =
-        "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
+    String reourcesUrl = "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
     response = getUrl(reourcesUrl);
     Assert.assertFalse(response.contains("db_11"));
 
@@ -701,8 +650,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     response = assertSuccessPostOperation(ISUrl, paraMap, false);
     record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
-    Assert.assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0]))).size() == 3);
+    Assert
+        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
+    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
+        .size() == 3);
 
     // rebalance with key prefix
     resourceUrl = getResourceUrl("clusterTest1", "db_22");
@@ -713,71 +664,65 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     response = assertSuccessPostOperation(ISUrl, paraMap, false);
     record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_22"));
-    Assert.assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 2);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0]))).size() == 2);
-    Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0]))).startsWith("alias_"));
+    Assert
+        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 2);
+    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
+        .size() == 2);
+    Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0])))
+        .startsWith("alias_"));
     Assert.assertFalse(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
     resourceUrl = getResourceUrl("clusterTest1", "db_33");
     ISUrl = resourceUrl + "/idealState";
     paraMap.put(JsonParameters.REPLICAS, "2");
     paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    paraMap.put(ClusterSetup.instanceGroupTag,_tag1);
+    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
     response = assertSuccessPostOperation(ISUrl, paraMap, false);
 
     Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
     Assert.assertTrue(response.contains(_tag1));
-    for (int i = 0; i < 6; i++)
-    {
-      String instance = "localhost_123"+i;
-      if(i<3)
-      {
+    for (int i = 0; i < 6; i++) {
+      String instance = "localhost_123" + i;
+      if (i < 3) {
         Assert.assertTrue(response.contains(instance));
-      }
-      else
-      {
+      } else {
         Assert.assertFalse(response.contains(instance));
       }
     }
-    
+
     resourceUrl = getResourceUrl("clusterTest1", "db_44");
     ISUrl = resourceUrl + "/idealState";
     paraMap.put(JsonParameters.REPLICAS, "2");
     paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
     paraMap.put(JsonParameters.RESOURCE_KEY_PREFIX, "alias");
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    paraMap.put(ClusterSetup.instanceGroupTag,_tag1);
+    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
     response = assertSuccessPostOperation(ISUrl, paraMap, false);
     Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
     Assert.assertTrue(response.contains(_tag1));
 
     record = JsonToObject(ZNRecord.class, response);
-    Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0]))).startsWith("alias_"));
-    
-    for (int i = 0; i < 6; i++)
-    {
-      String instance = "localhost_123"+i;
-      if(i<3)
-      {
+    Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0])))
+        .startsWith("alias_"));
+
+    for (int i = 0; i < 6; i++) {
+      String instance = "localhost_123" + i;
+      if (i < 3) {
         Assert.assertTrue(response.contains(instance));
-      }
-      else
-      {
+      } else {
         Assert.assertFalse(response.contains(instance));
       }
     }
   }
 
-  private void testAddInstance() throws Exception
-  {
+  private void testAddInstance() throws Exception {
     String clusterUrl = getClusterUrl("clusterTest1");
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
     String response = null;
     // Add instances to cluster
     String instancesUrl = clusterUrl + "/instances";
-    for (int i = 0; i < 3; i++)
-    {
+    for (int i = 0; i < 3; i++) {
 
       paraMap.put(JsonParameters.INSTANCE_NAME, "localhost:123" + i);
       response = assertSuccessPostOperation(instancesUrl, paraMap, false);
@@ -785,11 +730,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     }
     paraMap.remove(JsonParameters.INSTANCE_NAME);
     paraMap.put(JsonParameters.INSTANCE_NAMES,
-                "localhost:1233;localhost:1234;localhost:1235;localhost:1236");
+        "localhost:1233;localhost:1234;localhost:1235;localhost:1236");
 
     response = assertSuccessPostOperation(instancesUrl, paraMap, false);
-    for (int i = 3; i <= 6; i++)
-    {
+    for (int i = 3; i <= 6; i++) {
       Assert.assertTrue(response.contains("localhost_123" + i));
     }
 
@@ -827,23 +771,22 @@ public class TestHelixAdminScenariosRest extends AdminTestBase
     paraMap.remove(JsonParameters.INSTANCE_NAMES);
     paraMap.put(JsonParameters.INSTANCE_NAME, "localhost:1234");
     response = assertSuccessPostOperation(instancesUrl, paraMap, true);
-    
+
     // add tags
-    
+
     paraMap.clear();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstanceTag);
     paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
-    for (int i = 0; i < 4; i++)
-    {
-      instanceUrl = instancesUrl + "/localhost_123"+i;
+    for (int i = 0; i < 4; i++) {
+      instanceUrl = instancesUrl + "/localhost_123" + i;
       response = assertSuccessPostOperation(instanceUrl, paraMap, false);
       Assert.assertTrue(response.contains(_tag1));
-      
+
     }
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.removeInstanceTag);
     instanceUrl = instancesUrl + "/localhost_1233";
     response = assertSuccessPostOperation(instanceUrl, paraMap, false);
     Assert.assertFalse(response.contains(_tag1));
-    
+
   }
 }

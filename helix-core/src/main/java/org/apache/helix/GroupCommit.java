@@ -32,48 +32,42 @@ import org.apache.log4j.Logger;
 /**
  * Support committing updates to data such that they are ordered for each key
  */
-public class GroupCommit
-{ 
-  private static Logger  LOG = Logger.getLogger(GroupCommit.class);
-  private static class Queue
-  {
-    final AtomicReference<Thread>      _running = new AtomicReference<Thread>();
+public class GroupCommit {
+  private static Logger LOG = Logger.getLogger(GroupCommit.class);
+
+  private static class Queue {
+    final AtomicReference<Thread> _running = new AtomicReference<Thread>();
     final ConcurrentLinkedQueue<Entry> _pending = new ConcurrentLinkedQueue<Entry>();
   }
 
-  private static class Entry
-  {
-    final String   _key;
+  private static class Entry {
+    final String _key;
     final ZNRecord _record;
-    AtomicBoolean  _sent = new AtomicBoolean(false);
+    AtomicBoolean _sent = new AtomicBoolean(false);
 
-    Entry(String key, ZNRecord record)
-    {
+    Entry(String key, ZNRecord record) {
       _key = key;
       _record = record;
     }
   }
 
-  private final Queue[]               _queues = new Queue[100];
-  
+  private final Queue[] _queues = new Queue[100];
+
   // potential memory leak if we add resource and remove resource
   // TODO: move the cache logic to data accessor
-//  private final Map<String, ZNRecord> _cache  = new ConcurrentHashMap<String, ZNRecord>();
+  // private final Map<String, ZNRecord> _cache = new ConcurrentHashMap<String, ZNRecord>();
 
   /**
    * Set up a group committer and its associated queues
    */
-  public GroupCommit()
-  {
+  public GroupCommit() {
     // Don't use Arrays.fill();
-    for (int i = 0; i < _queues.length; ++i)
-    {
+    for (int i = 0; i < _queues.length; ++i) {
       _queues[i] = new Queue();
     }
   }
 
-  private Queue getQueue(String key)
-  {
+  private Queue getQueue(String key) {
     return _queues[(key.hashCode() & Integer.MAX_VALUE) % _queues.length];
   }
 
@@ -85,20 +79,17 @@ public class GroupCommit
    * @param record the data to be merged in
    * @return true if successful, false otherwise
    */
-  public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key, ZNRecord record)
-  {
+  public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key,
+      ZNRecord record) {
     Queue queue = getQueue(key);
     Entry entry = new Entry(key, record);
 
     queue._pending.add(entry);
 
-    while (!entry._sent.get())
-    {
-      if (queue._running.compareAndSet(null, Thread.currentThread()))
-      {
+    while (!entry._sent.get()) {
+      if (queue._running.compareAndSet(null, Thread.currentThread())) {
         ArrayList<Entry> processed = new ArrayList<Entry>();
-        try
-        {
+        try {
           if (queue._pending.peek() == null)
             return true;
 
@@ -107,51 +98,44 @@ public class GroupCommit
           processed.add(first);
 
           String mergedKey = first._key;
-//          ZNRecord merged = _cache.get(mergedKey);
+          // ZNRecord merged = _cache.get(mergedKey);
           ZNRecord merged = null;
-          
-          try
-          {
+
+          try {
             // accessor will fallback to zk if not found in cache
             merged = accessor.get(mergedKey, null, options);
-          }
-          catch (ZkNoNodeException e)
-          {
+          } catch (ZkNoNodeException e) {
             // OK.
           }
-          
+
           /**
-           * If the local cache does not contain a value, need to check if there is a 
+           * If the local cache does not contain a value, need to check if there is a
            * value in ZK; use it as initial value if exists
            */
-          if (merged == null)
-          {
-//            ZNRecord valueOnZk = null;
-//            try
-//            {
-//              valueOnZk = accessor.get(mergedKey, null, 0);
-//            }
-//            catch(Exception e)
-//            {
-//              LOG.info(e);
-//            }
-//            if(valueOnZk != null)
-//            {
-//              merged = valueOnZk;
-//              merged.merge(first._record);
-//            }
-//            else // Zk path has null data. use the first record as initial record.
+          if (merged == null) {
+            // ZNRecord valueOnZk = null;
+            // try
+            // {
+            // valueOnZk = accessor.get(mergedKey, null, 0);
+            // }
+            // catch(Exception e)
+            // {
+            // LOG.info(e);
+            // }
+            // if(valueOnZk != null)
+            // {
+            // merged = valueOnZk;
+            // merged.merge(first._record);
+            // }
+            // else // Zk path has null data. use the first record as initial record.
             {
               merged = new ZNRecord(first._record);
             }
-          }
-          else
-          {
+          } else {
             merged.merge(first._record);
           }
           Iterator<Entry> it = queue._pending.iterator();
-          while (it.hasNext())
-          {
+          while (it.hasNext()) {
             Entry ent = it.next();
             if (!ent._key.equals(mergedKey))
               continue;
@@ -164,30 +148,20 @@ public class GroupCommit
           accessor.set(mergedKey, merged, options);
           // accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
           // _cache.put(mergedKey, merged);
-        }
-        finally
-        {
+        } finally {
           queue._running.set(null);
-          for (Entry e : processed)
-          {
-            synchronized (e)
-            {
+          for (Entry e : processed) {
+            synchronized (e) {
               e._sent.set(true);
               e.notify();
             }
           }
         }
-      }
-      else
-      {
-        synchronized (entry)
-        {
-          try
-          {
+      } else {
+        synchronized (entry) {
+          try {
             entry.wait(10);
-          }
-          catch (InterruptedException e)
-          {
+          } catch (InterruptedException e) {
             e.printStackTrace();
             return false;
           }

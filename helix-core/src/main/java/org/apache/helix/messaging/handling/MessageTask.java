@@ -25,12 +25,12 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
 public interface MessageTask extends Callable<HelixTaskResult> {
-	String getTaskId();
-	
-	Message getMessage();
-	
-	NotificationContext getNotificationContext();
-	
-	void onTimeout();
+  String getTaskId();
+
+  Message getMessage();
+
+  NotificationContext getNotificationContext();
+
+  void onTimeout();
 
 }

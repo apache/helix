@@ -30,13 +30,13 @@ public class CommandConfig {
   private final String _timeout;
   private final String _pidFile;
 
-  public CommandConfig(String fromState, String toState, String command,
-      String workingDir, String timeout, String pidFile) {
+  public CommandConfig(String fromState, String toState, String command, String workingDir,
+      String timeout, String pidFile) {
     if (command == null) {
       throw new IllegalArgumentException("command is null");
-      
+
     }
-    
+
     _fromState = fromState;
     _toState = toState;
     _command = command;
@@ -45,7 +45,7 @@ public class CommandConfig {
     _pidFile = pidFile;
 
   }
-  
+
   private String buildKey(String fromState, String toState, CommandAttribute attribute) {
     return fromState + "-" + toState + "." + attribute.getName();
   }
@@ -57,21 +57,20 @@ public class CommandConfig {
       if (_workingDir != null) {
         map.put(buildKey(_fromState, _toState, CommandAttribute.WORKING_DIR), _workingDir);
       }
-      
+
       if (_timeout != null) {
         map.put(buildKey(_fromState, _toState, CommandAttribute.TIMEOUT), _timeout);
       }
-      
+
       if (_pidFile != null) {
         map.put(buildKey(_fromState, _toState, CommandAttribute.PID_FILE), _pidFile);
       }
-    }  
+    }
     return map;
   }
-  
+
   /**
    * builder for command-config
-   *
    */
   public static class Builder {
     private String _fromState;
@@ -80,36 +79,35 @@ public class CommandConfig {
     private String _workingDir;
     private String _timeout;
     private String _pidFile;
-    
+
     public Builder setTransition(String fromState, String toState) {
       _fromState = fromState;
       _toState = toState;
       return this;
     }
-    
+
     public Builder setCommand(String command) {
       _command = command;
       return this;
     }
-    
+
     public Builder setCommandWorkingDir(String workingDir) {
       _workingDir = workingDir;
       return this;
     }
-    
+
     public Builder setCommandTimeout(String timeout) {
       _timeout = timeout;
       return this;
     }
-    
+
     public Builder setPidFile(String pidFile) {
       _pidFile = pidFile;
       return this;
     }
-    
+
     public CommandConfig build() {
-      return new CommandConfig(_fromState, _toState, _command, _workingDir, 
-          _timeout, _pidFile);
+      return new CommandConfig(_fromState, _toState, _command, _workingDir, _timeout, _pidFile);
     }
   }
 

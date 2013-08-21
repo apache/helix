@@ -52,7 +52,7 @@ public class TestZkReconnect {
     final String zkAddr = String.format("localhost:%d", zkPort);
     ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     zkServerRef.set(zkServer);
-    
+
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -64,7 +64,8 @@ public class TestZkReconnect {
 
     // Registers and starts controller
     LOG.info("Starts controller");
-    HelixManager controller = HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.CONTROLLER, zkAddr);
+    HelixManager controller =
+        HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.CONTROLLER, zkAddr);
     controller.connect();
 
     // Registers and starts participant
@@ -72,25 +73,25 @@ public class TestZkReconnect {
     String hostname = "localhost";
     String instanceId = String.format("%s_%d", hostname, 1);
     clusterSetup.addInstanceToCluster(clusterName, instanceId);
-    HelixManager participant = HelixManagerFactory.getZKHelixManager(clusterName, 
-        instanceId, InstanceType.PARTICIPANT, zkAddr);
+    HelixManager participant =
+        HelixManagerFactory.getZKHelixManager(clusterName, instanceId, InstanceType.PARTICIPANT,
+            zkAddr);
     participant.connect();
 
     LOG.info("Register state machine");
     final CountDownLatch latch = new CountDownLatch(1);
     participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-            new StateModelFactory<StateModel>() {
-                @Override
-                public StateModel createNewStateModel(String stateUnitKey) {
-                    return new SimpleStateModel(latch);
-                }
-            }, "test"
-    );
+        new StateModelFactory<StateModel>() {
+          @Override
+          public StateModel createNewStateModel(String stateUnitKey) {
+            return new SimpleStateModel(latch);
+          }
+        }, "test");
 
     String resourceName = "test-resource";
     LOG.info("Ideal state assignment");
     HelixAdmin helixAdmin = participant.getClusterManagmentTool();
-    helixAdmin.addResource(clusterName, resourceName, 1, "OnlineOffline", 
+    helixAdmin.addResource(clusterName, resourceName, 1, "OnlineOffline",
         IdealState.RebalanceMode.CUSTOMIZED.toString());
 
     IdealState idealState = helixAdmin.getResourceIdealState(clusterName, resourceName);
@@ -102,37 +103,37 @@ public class TestZkReconnect {
     TestHelper.stopZkServer(zkServerRef.get());
     Executors.newSingleThreadScheduledExecutor().schedule(new Runnable() {
 
-        @Override
-        public void run() {
-            try {
-                LOG.info("Restart ZK server");
-                // zkServer.set(TestUtils.startZookeeper(zkDir, zkPort));
-                zkServerRef.set(TestHelper.startZkServer(zkAddr, null, false));
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
-            }
+      @Override
+      public void run() {
+        try {
+          LOG.info("Restart ZK server");
+          // zkServer.set(TestUtils.startZookeeper(zkDir, zkPort));
+          zkServerRef.set(TestHelper.startZkServer(zkAddr, null, false));
+        } catch (Exception e) {
+          LOG.error(e.getMessage(), e);
         }
+      }
     }, 2L, TimeUnit.SECONDS);
 
     // future.get();
-    
+
     LOG.info("Before update ideal state");
     helixAdmin.setResourceIdealState(clusterName, resourceName, idealState);
     LOG.info("After update ideal state");
 
     LOG.info("Wait for OFFLINE->ONLINE state transition");
     try {
-        Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
-        
-        // wait until stable state
-        boolean result =
-            ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkAddr,
-                                                                                     clusterName));
-        Assert.assertTrue(result);
+      Assert.assertTrue(latch.await(10, TimeUnit.SECONDS));
+
+      // wait until stable state
+      boolean result =
+          ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkAddr,
+              clusterName));
+      Assert.assertTrue(result);
 
     } finally {
-        participant.disconnect();
-        zkServerRef.get().shutdown();
+      participant.disconnect();
+      zkServerRef.get().shutdown();
     }
   }
 
@@ -141,11 +142,11 @@ public class TestZkReconnect {
     private final CountDownLatch latch;
 
     public SimpleStateModel(CountDownLatch latch) {
-        this.latch = latch;
+      this.latch = latch;
     }
 
     public void onBecomeOnlineFromOffline(Message message, NotificationContext context) {
-        // LOG.info(HelixUtils.toString(message));
+      // LOG.info(HelixUtils.toString(message));
       LOG.info("message: " + message);
       latch.countDown();
     }

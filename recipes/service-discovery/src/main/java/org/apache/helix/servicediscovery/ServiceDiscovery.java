@@ -1,4 +1,5 @@
 package org.apache.helix.servicediscovery;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -43,8 +44,7 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 
-public class ServiceDiscovery
-{
+public class ServiceDiscovery {
   private final String zkAddress;
   private final String cluster;
   private HelixManager admin;
@@ -54,15 +54,13 @@ public class ServiceDiscovery
   Map<String, HelixManager> serviceMap;
   private Timer timer;
 
-  enum Mode
-  {
+  enum Mode {
     NONE, // No monitoring, only registration, on demand reading zk
     WATCH, // Watches ZK path
     POLL// Polls zk at some intervals
   }
 
-  public ServiceDiscovery(String zkAddress, String cluster, Mode mode)
-  {
+  public ServiceDiscovery(String zkAddress, String cluster, Mode mode) {
     this.zkAddress = zkAddress;
     this.cluster = cluster;
     this.mode = mode;
@@ -71,25 +69,22 @@ public class ServiceDiscovery
   }
 
   /**
-   * 
    * @return returns true if
    */
-  public boolean start() throws Exception
-  {
+  public boolean start() throws Exception {
     // auto create cluster and allow nodes to automatically join the cluster
-    admin = HelixManagerFactory.getZKHelixManager(cluster, "service-discovery",
-        InstanceType.ADMINISTRATOR, zkAddress);
+    admin =
+        HelixManagerFactory.getZKHelixManager(cluster, "service-discovery",
+            InstanceType.ADMINISTRATOR, zkAddress);
     admin.connect();
     admin.getClusterManagmentTool().addCluster(cluster, false);
-    HelixConfigScope scope = new HelixConfigScopeBuilder(
-        ConfigScopeProperty.CLUSTER).forCluster(cluster).build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(cluster).build();
 
     Map<String, String> properties = new HashMap<String, String>();
-    properties.put(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN,
-        String.valueOf(true));
+    properties.put(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, String.valueOf(true));
     admin.getClusterManagmentTool().setConfig(scope, properties);
-    switch (mode)
-    {
+    switch (mode) {
     case POLL:
       startBackgroundTask();
       break;
@@ -103,14 +98,11 @@ public class ServiceDiscovery
     return true;
   }
 
-  private void startBackgroundTask()
-  {
-    TimerTask timertask = new TimerTask()
-    {
+  private void startBackgroundTask() {
+    TimerTask timertask = new TimerTask() {
 
       @Override
-      public void run()
-      {
+      public void run() {
         refreshCache();
       }
     };
@@ -118,16 +110,13 @@ public class ServiceDiscovery
     timer.scheduleAtFixedRate(timertask, DEFAULT_POLL_INTERVAL, DEFAULT_POLL_INTERVAL);
   }
 
-  private void setupWatcher() throws Exception
-  {
+  private void setupWatcher() throws Exception {
 
-    LiveInstanceChangeListener listener = new LiveInstanceChangeListener()
-    {
+    LiveInstanceChangeListener listener = new LiveInstanceChangeListener() {
       @Override
       public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-          NotificationContext changeContext)
-      {
-        if(changeContext.getType() != NotificationContext.Type.FINALIZE){
+          NotificationContext changeContext) {
+        if (changeContext.getType() != NotificationContext.Type.FINALIZE) {
           refreshCache();
         }
       }
@@ -135,38 +124,31 @@ public class ServiceDiscovery
     admin.addLiveInstanceChangeListener(listener);
   }
 
-  public boolean stop()
-  {
-    if (admin != null && admin.isConnected())
-    {
+  public boolean stop() {
+    if (admin != null && admin.isConnected()) {
       admin.disconnect();
     }
-    if (timer != null)
-    {
+    if (timer != null) {
       timer.cancel();
     }
     return true;
   }
 
-  public void deregister(final String serviceId)
-  {
+  public void deregister(final String serviceId) {
     HelixManager helixManager = serviceMap.get(serviceId);
-    if (helixManager != null && helixManager.isConnected())
-    {
+    if (helixManager != null && helixManager.isConnected()) {
       helixManager.disconnect();
     }
   }
 
-  public boolean register(final String serviceId,
-      final ServiceMetadata serviceMetadata) throws Exception
-  {
-    HelixManager helixManager = HelixManagerFactory.getZKHelixManager(cluster,
-        serviceId, InstanceType.PARTICIPANT, zkAddress);
-    LiveInstanceInfoProvider liveInstanceInfoProvider = new LiveInstanceInfoProvider()
-    {
+  public boolean register(final String serviceId, final ServiceMetadata serviceMetadata)
+      throws Exception {
+    HelixManager helixManager =
+        HelixManagerFactory.getZKHelixManager(cluster, serviceId, InstanceType.PARTICIPANT,
+            zkAddress);
+    LiveInstanceInfoProvider liveInstanceInfoProvider = new LiveInstanceInfoProvider() {
       @Override
-      public ZNRecord getAdditionalLiveInstanceInfo()
-      {
+      public ZNRecord getAdditionalLiveInstanceInfo() {
         // serialize serviceMetadata to ZNRecord
         ZNRecord rec = new ZNRecord(serviceId);
         rec.setSimpleField("HOST", serviceMetadata.getHost());
@@ -182,20 +164,17 @@ public class ServiceDiscovery
     return true;
   }
 
-  private void refreshCache()
-  {
+  private void refreshCache() {
     Builder propertyKeyBuilder = new PropertyKey.Builder(cluster);
     HelixDataAccessor helixDataAccessor = admin.getHelixDataAccessor();
-    List<LiveInstance> liveInstances = helixDataAccessor
-        .getChildValues(propertyKeyBuilder.liveInstances());
+    List<LiveInstance> liveInstances =
+        helixDataAccessor.getChildValues(propertyKeyBuilder.liveInstances());
     refreshCache(liveInstances);
   }
 
-  private void refreshCache(List<LiveInstance> liveInstances)
-  {
+  private void refreshCache(List<LiveInstance> liveInstances) {
     List<ServiceMetadata> services = new ArrayList<ServiceMetadata>();
-    for (LiveInstance liveInstance : liveInstances)
-    {
+    for (LiveInstance liveInstance : liveInstances) {
       ServiceMetadata metadata = new ServiceMetadata();
       ZNRecord rec = liveInstance.getRecord();
       metadata.setPort(Integer.parseInt(rec.getSimpleField("PORT")));
@@ -203,17 +182,14 @@ public class ServiceDiscovery
       metadata.setServiceName(rec.getSimpleField("SERVICE_NAME"));
       services.add(metadata);
     }
-    //protect against multiple threads updating this
-    synchronized (this)
-    {
+    // protect against multiple threads updating this
+    synchronized (this) {
       cache = services;
     }
   }
 
-  public List<ServiceMetadata> findAllServices()
-  {
-    if (mode == Mode.NONE)
-    {
+  public List<ServiceMetadata> findAllServices() {
+    if (mode == Mode.NONE) {
       refreshCache();
     }
     return cache;

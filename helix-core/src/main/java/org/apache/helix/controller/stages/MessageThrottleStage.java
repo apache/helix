@@ -38,21 +38,15 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.log4j.Logger;
 
+public class MessageThrottleStage extends AbstractBaseStage {
+  private static final Logger LOG = Logger.getLogger(MessageThrottleStage.class.getName());
 
-public class MessageThrottleStage extends AbstractBaseStage
-{
-  private static final Logger LOG =
-                                      Logger.getLogger(MessageThrottleStage.class.getName());
-
-  int valueOf(String valueStr)
-  {
+  int valueOf(String valueStr) {
     int value = Integer.MAX_VALUE;
 
-    try
-    {
+    try {
       ConstraintValue valueToken = ConstraintValue.valueOf(valueStr);
-      switch (valueToken)
-      {
+      switch (valueToken) {
       case ANY:
         value = Integer.MAX_VALUE;
         break;
@@ -61,15 +55,10 @@ public class MessageThrottleStage extends AbstractBaseStage
             + Integer.MAX_VALUE);
         break;
       }
-    }
-    catch (Exception e)
-    {
-      try
-      {
+    } catch (Exception e) {
+      try {
         value = Integer.parseInt(valueStr);
-      }
-      catch (NumberFormatException ne)
-      {
+      } catch (NumberFormatException ne) {
         LOG.error("Invalid constraintValue string:" + valueStr + ". Use default value:"
             + Integer.MAX_VALUE);
       }
@@ -86,44 +75,31 @@ public class MessageThrottleStage extends AbstractBaseStage
    * value, select the first in alphabetic order
    */
   Set<ConstraintItem> selectConstraints(Set<ConstraintItem> items,
-                                        Map<ConstraintAttribute, String> attributes)
-  {
+      Map<ConstraintAttribute, String> attributes) {
     Map<String, ConstraintItem> selectedItems = new HashMap<String, ConstraintItem>();
-    for (ConstraintItem item : items)
-    {
+    for (ConstraintItem item : items) {
       // don't select constraints with CONSTRAINT_VALUE=ANY
-      if (item.getConstraintValue().equals(ConstraintValue.ANY.toString()))
-      {
+      if (item.getConstraintValue().equals(ConstraintValue.ANY.toString())) {
         continue;
       }
 
       String key = item.filter(attributes).toString();
-      if (!selectedItems.containsKey(key))
-      {
+      if (!selectedItems.containsKey(key)) {
         selectedItems.put(key, item);
-      }
-      else
-      {
+      } else {
         ConstraintItem existingItem = selectedItems.get(key);
-        if (existingItem.match(item.getAttributes()))
-        {
+        if (existingItem.match(item.getAttributes())) {
           // item is more specific than existingItem
           selectedItems.put(key, item);
-        }
-        else if (!item.match(existingItem.getAttributes()))
-        {
+        } else if (!item.match(existingItem.getAttributes())) {
           // existingItem and item are of incomparable specificity
           int value = valueOf(item.getConstraintValue());
           int existingValue = valueOf(existingItem.getConstraintValue());
-          if (value < existingValue)
-          {
+          if (value < existingValue) {
             // item's constraint value is less than that of existingItem
             selectedItems.put(key, item);
-          }
-          else if (value == existingValue)
-          {
-            if (item.toString().compareTo(existingItem.toString()) < 0)
-            {
+          } else if (value == existingValue) {
+            if (item.toString().compareTo(existingItem.toString()) < 0) {
               // item is ahead of existingItem in alphabetic order
               selectedItems.put(key, item);
             }
@@ -135,47 +111,37 @@ public class MessageThrottleStage extends AbstractBaseStage
   }
 
   @Override
-  public void process(ClusterEvent event) throws Exception
-  {
+  public void process(ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     MessageSelectionStageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
-    Map<String, Resource> resourceMap =
-        event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
 
-    if (cache == null || resourceMap == null || msgSelectionOutput == null)
-    {
+    if (cache == null || resourceMap == null || msgSelectionOutput == null) {
       throw new StageException("Missing attributes in event: " + event
           + ". Requires ClusterDataCache|RESOURCES|MESSAGES_SELECTED");
     }
 
     MessageThrottleStageOutput output = new MessageThrottleStageOutput();
 
-        ClusterConstraints constraint = cache.getConstraint(ConstraintType.MESSAGE_CONSTRAINT);
+    ClusterConstraints constraint = cache.getConstraint(ConstraintType.MESSAGE_CONSTRAINT);
     Map<String, Integer> throttleCounterMap = new HashMap<String, Integer>();
 
-    if (constraint != null)
-    {
+    if (constraint != null) {
       // go through all pending messages, they should be counted but not throttled
-      for (String instance : cache.getLiveInstances().keySet())
-      {
-        throttle(throttleCounterMap,
-                 constraint,
-                 new ArrayList<Message>(cache.getMessages(instance).values()),
-                 false);
+      for (String instance : cache.getLiveInstances().keySet()) {
+        throttle(throttleCounterMap, constraint, new ArrayList<Message>(cache.getMessages(instance)
+            .values()), false);
       }
     }
 
     // go through all new messages, throttle if necessary
     // assume messages should be sorted by state transition priority in messageSelection stage
-    for (String resourceName : resourceMap.keySet())
-    {
+    for (String resourceName : resourceMap.keySet()) {
       Resource resource = resourceMap.get(resourceName);
-      for (Partition partition : resource.getPartitions())
-      {
+      for (Partition partition : resource.getPartitions()) {
         List<Message> messages = msgSelectionOutput.getMessages(resourceName, partition);
-        if (constraint != null && messages != null && messages.size() > 0)
-        {
+        if (constraint != null && messages != null && messages.size() > 0) {
           messages = throttle(throttleCounterMap, constraint, messages, true);
         }
         output.addMessages(resourceName, partition, messages);
@@ -185,45 +151,36 @@ public class MessageThrottleStage extends AbstractBaseStage
     event.addAttribute(AttributeName.MESSAGES_THROTTLE.toString(), output);
   }
 
-  private List<Message> throttle(Map<String, Integer> throttleMap,
-                                 ClusterConstraints constraint,
-                                 List<Message> messages,
-                                 final boolean needThrottle)
-  {
-  
+  private List<Message> throttle(Map<String, Integer> throttleMap, ClusterConstraints constraint,
+      List<Message> messages, final boolean needThrottle) {
+
     List<Message> throttleOutputMsgs = new ArrayList<Message>();
-    for (Message message : messages)
-    {
+    for (Message message : messages) {
       Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(message);
 
       Set<ConstraintItem> matches = constraint.match(msgAttr);
       matches = selectConstraints(matches, msgAttr);
 
       boolean msgThrottled = false;
-      for (ConstraintItem item : matches)
-      {
+      for (ConstraintItem item : matches) {
         String key = item.filter(msgAttr).toString();
-        if (!throttleMap.containsKey(key))
-        {
+        if (!throttleMap.containsKey(key)) {
           throttleMap.put(key, valueOf(item.getConstraintValue()));
         }
         int value = throttleMap.get(key);
         throttleMap.put(key, --value);
 
-        if (needThrottle && value < 0)
-        {
+        if (needThrottle && value < 0) {
           msgThrottled = true;
-          
-          if (LOG.isDebugEnabled())
-          {
+
+          if (LOG.isDebugEnabled()) {
             // TODO: printout constraint item that throttles the message
             LOG.debug("message: " + message + " is throttled by constraint: " + item);
           }
         }
       }
 
-      if (!msgThrottled)
-      {
+      if (!msgThrottled) {
         throttleOutputMsgs.add(message);
       }
     }

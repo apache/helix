@@ -21,23 +21,22 @@ package org.apache.helix.monitoring.mbeans;
 
 import org.apache.helix.monitoring.SensorNameProvider;
 
-public interface ClusterStatusMonitorMBean extends SensorNameProvider
-{
+public interface ClusterStatusMonitorMBean extends SensorNameProvider {
   public long getDownInstanceGauge();
-  
+
   public long getInstancesGauge();
-  
+
   public long getDisabledInstancesGauge();
-  
+
   public long getDisabledPartitionsGauge();
-  
+
   /**
    * The max message queue size across all instances including controller
    * will report to ingraph
-   * @return 
+   * @return
    */
   public long getMaxMessageQueueSizeGauge();
-  
+
   /**
    * Get all message queue sizes as a string
    * will NOT report to ingraph

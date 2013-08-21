@@ -22,16 +22,17 @@ package org.apache.helix;
 /**
  * Types of nodes in a Helix cluster
  */
-enum Type
-{
-  CLUSTER, INSTANCE, CONTROLLER, RESOURCE;
+enum Type {
+  CLUSTER,
+  INSTANCE,
+  CONTROLLER,
+  RESOURCE;
 }
 
 /**
  * Types of data stored on Zookeeper by Helix
  */
-public enum PropertyType
-{
+public enum PropertyType {
 
   // @formatter:off
   // CLUSTER PROPERTIES
@@ -65,8 +66,8 @@ public enum PropertyType
 
   // @formatter:on
 
-  Type    type;
-  
+  Type type;
+
   boolean isPersistent;
 
   boolean mergeOnUpdate;
@@ -83,52 +84,27 @@ public enum PropertyType
 
   boolean usePropertyTransferServer;
 
-  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate)
-  {
+  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate) {
     this(type, isPersistent, mergeOnUpdate, false);
   }
 
-  private PropertyType(Type type,
-                       boolean isPersistent,
-                       boolean mergeOnUpdate,
-                       boolean updateOnlyOnExists)
-  {
+  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+      boolean updateOnlyOnExists) {
     this(type, isPersistent, mergeOnUpdate, false, false);
   }
 
-  private PropertyType(Type type,
-                       boolean isPersistent,
-                       boolean mergeOnUpdate,
-                       boolean updateOnlyOnExists,
-                       boolean createOnlyIfAbsent)
-  {
+  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+      boolean updateOnlyOnExists, boolean createOnlyIfAbsent) {
     this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, false);
   }
 
-  private PropertyType(Type type,
-                       boolean isPersistent,
-                       boolean mergeOnUpdate,
-                       boolean updateOnlyOnExists,
-                       boolean createOnlyIfAbsent,
-                       boolean isCached)
-  {
-    this(type,
-         isPersistent,
-         mergeOnUpdate,
-         updateOnlyOnExists,
-         createOnlyIfAbsent,
-         isCached,
-         false);
+  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+      boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached) {
+    this(type, isPersistent, mergeOnUpdate, updateOnlyOnExists, createOnlyIfAbsent, isCached, false);
   }
 
-  private PropertyType(Type type,
-                       boolean isPersistent,
-                       boolean mergeOnUpdate,
-                       boolean updateOnlyOnExists,
-                       boolean createOnlyIfAbsent,
-                       boolean isCached,
-                       boolean isAsyncWrite)
-  {
+  private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate,
+      boolean updateOnlyOnExists, boolean createOnlyIfAbsent, boolean isCached, boolean isAsyncWrite) {
     this.type = type;
     this.isPersistent = isPersistent;
     this.mergeOnUpdate = mergeOnUpdate;
@@ -142,8 +118,7 @@ public enum PropertyType
    * Determine if the property should only be created if it does not exist
    * @return true if it can only be created if absent, false otherwise
    */
-  public boolean isCreateOnlyIfAbsent()
-  {
+  public boolean isCreateOnlyIfAbsent() {
     return createOnlyIfAbsent;
   }
 
@@ -151,8 +126,7 @@ public enum PropertyType
    * Set policy for creating only if it does not already exist
    * @param createIfAbsent
    */
-  public void setCreateIfAbsent(boolean createIfAbsent)
-  {
+  public void setCreateIfAbsent(boolean createIfAbsent) {
     this.createOnlyIfAbsent = createIfAbsent;
   }
 
@@ -160,8 +134,7 @@ public enum PropertyType
    * Gets the type of the associated node
    * @return {@link Type}
    */
-  public Type getType()
-  {
+  public Type getType() {
     return type;
   }
 
@@ -169,8 +142,7 @@ public enum PropertyType
    * Set the type of the associated node
    * @param type {@link Type}
    */
-  public void setType(Type type)
-  {
+  public void setType(Type type) {
     this.type = type;
   }
 
@@ -178,8 +150,7 @@ public enum PropertyType
    * Get the persistent state of the property
    * @return true if persistent, false if ephemeral
    */
-  public boolean isPersistent()
-  {
+  public boolean isPersistent() {
     return isPersistent;
   }
 
@@ -187,8 +158,7 @@ public enum PropertyType
    * Set the persistent state of the property
    * @param isPersistent
    */
-  public void setPersistent(boolean isPersistent)
-  {
+  public void setPersistent(boolean isPersistent) {
     this.isPersistent = isPersistent;
   }
 
@@ -196,8 +166,7 @@ public enum PropertyType
    * Determine if the property is merged or replaced on update
    * @return true if merge occurs on update, false otherwise
    */
-  public boolean isMergeOnUpdate()
-  {
+  public boolean isMergeOnUpdate() {
     return mergeOnUpdate;
   }
 
@@ -205,8 +174,7 @@ public enum PropertyType
    * Enable or disable merging on an update to this property
    * @param mergeOnUpdate
    */
-  public void setMergeOnUpdate(boolean mergeOnUpdate)
-  {
+  public void setMergeOnUpdate(boolean mergeOnUpdate) {
     this.mergeOnUpdate = mergeOnUpdate;
   }
 
@@ -214,8 +182,7 @@ public enum PropertyType
    * Determine if this property is only updated if it exists
    * @return true if only updated when it exists, false otherwise
    */
-  public boolean isUpdateOnlyOnExists()
-  {
+  public boolean isUpdateOnlyOnExists() {
     return updateOnlyOnExists;
   }
 
@@ -223,8 +190,7 @@ public enum PropertyType
    * Enable or disable updating only on existence
    * @param updateOnlyOnExists
    */
-  public void setUpdateOnlyOnExists(boolean updateOnlyOnExists)
-  {
+  public void setUpdateOnlyOnExists(boolean updateOnlyOnExists) {
     this.updateOnlyOnExists = updateOnlyOnExists;
   }
 
@@ -232,8 +198,7 @@ public enum PropertyType
    * Check if value is cached
    * @return true if cached, false otherwise
    */
-  public boolean isCached()
-  {
+  public boolean isCached() {
     return isCached;
   }
 
@@ -241,8 +206,7 @@ public enum PropertyType
    * Check if this property uses a property transfer server
    * @return true if a property transfer server is used, false otherwise
    */
-  public boolean usePropertyTransferServer()
-  {
+  public boolean usePropertyTransferServer() {
     return usePropertyTransferServer;
   }
 

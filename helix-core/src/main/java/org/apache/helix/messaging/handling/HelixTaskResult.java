@@ -22,57 +22,47 @@ package org.apache.helix.messaging.handling;
 import java.util.HashMap;
 import java.util.Map;
 
-public class HelixTaskResult
-{
+public class HelixTaskResult {
 
   private boolean _success;
   private String _message = "";
   private Map<String, String> _taskResultMap = new HashMap<String, String>();
   private boolean _interrupted = false;
   Exception _exception = null;
-  
-  public boolean isSuccess()
-  {
+
+  public boolean isSuccess() {
     return _success;
   }
-  
-  public boolean isInterrupted()
-  {
-    return _interrupted; 
+
+  public boolean isInterrupted() {
+    return _interrupted;
   }
-  
-  public void setInterrupted(boolean interrupted)
-  {
+
+  public void setInterrupted(boolean interrupted) {
     _interrupted = interrupted;
   }
-  
-  public void setSuccess(boolean success)
-  {
+
+  public void setSuccess(boolean success) {
     this._success = success;
   }
 
-  public String getMessage()
-  {
+  public String getMessage() {
     return _message;
   }
 
-  public void setMessage(String message)
-  {
+  public void setMessage(String message) {
     this._message = message;
   }
-  
-  public Map<String, String> getTaskResultMap()
-  {
+
+  public Map<String, String> getTaskResultMap() {
     return _taskResultMap;
   }
-  
-  public void setException(Exception e)
-  {
+
+  public void setException(Exception e) {
     _exception = e;
   }
-  
-  public Exception getException()
-  {
+
+  public Exception getException() {
     return _exception;
   }
 }

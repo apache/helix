@@ -39,24 +39,19 @@ public class ConstraintItem {
     _attributes = builder.getAttributes();
     _constraintValue = builder.getConstraintValue();
   }
-  
-  public ConstraintItem(Map<ConstraintAttribute, String> attributes, String constraintValue)
-  {
+
+  public ConstraintItem(Map<ConstraintAttribute, String> attributes, String constraintValue) {
     _attributes = attributes;
     _constraintValue = constraintValue;
   }
 
-  public boolean match(Map<ConstraintAttribute, String> attributes)
-  {
-    for (ConstraintAttribute key : _attributes.keySet())
-    {
-      if (!attributes.containsKey(key))
-      {
+  public boolean match(Map<ConstraintAttribute, String> attributes) {
+    for (ConstraintAttribute key : _attributes.keySet()) {
+      if (!attributes.containsKey(key)) {
         return false;
       }
 
-      if (!attributes.get(key).matches(_attributes.get(key)))
-      {
+      if (!attributes.get(key).matches(_attributes.get(key))) {
         return false;
       }
     }
@@ -64,35 +59,30 @@ public class ConstraintItem {
   }
 
   // filter out attributes that are not specified by this constraint
-  public Map<ConstraintAttribute, String> filter(Map<ConstraintAttribute, String> attributes)
-  {
+  public Map<ConstraintAttribute, String> filter(Map<ConstraintAttribute, String> attributes) {
     Map<ConstraintAttribute, String> ret = new HashMap<ConstraintAttribute, String>();
-    for (ConstraintAttribute key : _attributes.keySet())
-    {
-      // TODO: what if attributes.get(key)==null? might need match function at constrait level  
+    for (ConstraintAttribute key : _attributes.keySet()) {
+      // TODO: what if attributes.get(key)==null? might need match function at constrait level
       ret.put(key, attributes.get(key));
     }
 
     return ret;
   }
 
-  public String getConstraintValue()
-  {
+  public String getConstraintValue() {
     return _constraintValue;
   }
 
-  public Map<ConstraintAttribute, String> getAttributes()
-  {
+  public Map<ConstraintAttribute, String> getAttributes() {
     return _attributes;
   }
-  
+
   public String getAttributeValue(ConstraintAttribute attr) {
     return _attributes.get(attr);
   }
 
   @Override
-  public String toString()
-  {
+  public String toString() {
     StringBuffer sb = new StringBuffer();
     sb.append(_attributes + ":" + _constraintValue);
     return sb.toString();

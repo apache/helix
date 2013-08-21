@@ -30,54 +30,47 @@ import org.testng.annotations.Test;
  * under the License.
  */
 
-public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase
-{
-  String db2 = TEST_DB+"2";
+public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
+  String db2 = TEST_DB + "2";
+
   @Test
-  public void testInstanceAutoJoin() throws Exception
-  {
+  public void testInstanceAutoJoin() throws Exception {
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     HelixManager manager = _startCMResultMap.get(instanceName)._manager;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    
-    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline",
-        RebalanceMode.FULL_AUTO+"");
-    
+
+    _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline", RebalanceMode.FULL_AUTO
+        + "");
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
     StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
-    
-    
+
     Thread.sleep(500);
     Assert.assertFalse(result._thread.isAlive());
-    Assert.assertTrue(null == manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
+    Assert.assertTrue(null == manager.getHelixDataAccessor().getProperty(
+        accessor.keyBuilder().liveInstance(instance2)));
 
-    ConfigScope scope =
-        new ConfigScopeBuilder().forCluster(CLUSTER_NAME)
-                                .build();
-    
+    ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+
     manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
-    
-    result =
-        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
-    
-    StartCMResult result2 =
-        TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
-    
+
+    result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+
+    StartCMResult result2 = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+
     Thread.sleep(500);
     Assert.assertTrue(result._thread.isAlive() || result2._thread.isAlive());
-    for(int i = 0; i< 20; i++)
-    {
-      if(null == manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)))
-      {
+    for (int i = 0; i < 20; i++) {
+      if (null == manager.getHelixDataAccessor().getProperty(
+          accessor.keyBuilder().liveInstance(instance2))) {
         Thread.sleep(100);
-      }
-      else
+      } else
         break;
     }
-    Assert.assertTrue(null != manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().liveInstance(instance2)));
-    
+    Assert.assertTrue(null != manager.getHelixDataAccessor().getProperty(
+        accessor.keyBuilder().liveInstance(instance2)));
+
     result._manager.disconnect();
     result2._manager.disconnect();
     result._thread.interrupt();

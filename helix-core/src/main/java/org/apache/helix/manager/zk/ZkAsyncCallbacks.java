@@ -29,26 +29,21 @@ import org.apache.zookeeper.AsyncCallback.VoidCallback;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 
-public class ZkAsyncCallbacks
-{
+public class ZkAsyncCallbacks {
   private static Logger LOG = Logger.getLogger(ZkAsyncCallbacks.class);
 
-  static class GetDataCallbackHandler extends DefaultCallback implements DataCallback
-  {
+  static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
     byte[] _data;
-    Stat   _stat;
+    Stat _stat;
 
     @Override
-    public void handle()
-    {
+    public void handle() {
       // TODO Auto-generated method stub
     }
 
     @Override
-    public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat)
-    {
-      if (rc == 0)
-      {
+    public void processResult(int rc, String path, Object ctx, byte[] data, Stat stat) {
+      if (rc == 0) {
         _data = data;
         _stat = stat;
       }
@@ -56,47 +51,38 @@ public class ZkAsyncCallbacks
     }
   }
 
-  static class SetDataCallbackHandler extends DefaultCallback implements StatCallback
-  {
+  static class SetDataCallbackHandler extends DefaultCallback implements StatCallback {
     Stat _stat;
 
     @Override
-    public void handle()
-    {
+    public void handle() {
       // TODO Auto-generated method stub
     }
 
     @Override
-    public void processResult(int rc, String path, Object ctx, Stat stat)
-    {
-      if (rc == 0)
-      {
+    public void processResult(int rc, String path, Object ctx, Stat stat) {
+      if (rc == 0) {
         _stat = stat;
       }
       callback(rc, path, ctx);
     }
-    
-    public Stat getStat()
-    {
+
+    public Stat getStat() {
       return _stat;
     }
   }
-  
-  static class ExistsCallbackHandler extends DefaultCallback implements StatCallback
-  {
+
+  static class ExistsCallbackHandler extends DefaultCallback implements StatCallback {
     Stat _stat;
 
     @Override
-    public void handle()
-    {
+    public void handle() {
       // TODO Auto-generated method stub
     }
 
     @Override
-    public void processResult(int rc, String path, Object ctx, Stat stat)
-    {
-      if (rc == 0)
-      {
+    public void processResult(int rc, String path, Object ctx, Stat stat) {
+      if (rc == 0) {
         _stat = stat;
       }
       callback(rc, path, ctx);
@@ -104,32 +90,26 @@ public class ZkAsyncCallbacks
 
   }
 
-  static class CreateCallbackHandler extends DefaultCallback implements StringCallback
-  {
+  static class CreateCallbackHandler extends DefaultCallback implements StringCallback {
     @Override
-    public void processResult(int rc, String path, Object ctx, String name)
-    {
+    public void processResult(int rc, String path, Object ctx, String name) {
       callback(rc, path, ctx);
     }
 
     @Override
-    public void handle()
-    {
+    public void handle() {
       // TODO Auto-generated method stub
     }
   }
 
-  static class DeleteCallbackHandler extends DefaultCallback implements VoidCallback
-  {
+  static class DeleteCallbackHandler extends DefaultCallback implements VoidCallback {
     @Override
-    public void processResult(int rc, String path, Object ctx)
-    {
+    public void processResult(int rc, String path, Object ctx) {
       callback(rc, path, ctx);
     }
 
     @Override
-    public void handle()
-    {
+    public void handle() {
       // TODO Auto-generated method stub
     }
 
@@ -138,49 +118,38 @@ public class ZkAsyncCallbacks
   /**
    * Default callback for zookeeper async api
    */
-  static abstract class DefaultCallback
-  {
+  static abstract class DefaultCallback {
     AtomicBoolean _lock = new AtomicBoolean(false);
-    int           _rc   = -1;
+    int _rc = -1;
 
-    public void callback(int rc, String path, Object ctx)
-    {
-      if (rc != 0)
-      {
+    public void callback(int rc, String path, Object ctx) {
+      if (rc != 0) {
         LOG.warn(this + ", rc:" + Code.get(rc) + ", path: " + path);
       }
       _rc = rc;
       handle();
-      
-      synchronized (_lock)
-      {
+
+      synchronized (_lock) {
         _lock.set(true);
         _lock.notify();
       }
     }
 
-    public boolean waitForSuccess()
-    {
-      try
-      {
-        synchronized (_lock)
-        {
-          while (!_lock.get())
-          {
+    public boolean waitForSuccess() {
+      try {
+        synchronized (_lock) {
+          while (!_lock.get()) {
             _lock.wait();
           }
         }
-      }
-      catch (InterruptedException e)
-      {
+      } catch (InterruptedException e) {
         // TODO Auto-generated catch block
         e.printStackTrace();
       }
       return true;
     }
 
-    public int getRc()
-    {
+    public int getRc() {
       return _rc;
     }
 

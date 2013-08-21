@@ -23,8 +23,7 @@ package org.apache.helix.store;
  * Callback interface on property changes
  * @param <T>
  */
-public interface PropertyChangeListener<T>
-{
+public interface PropertyChangeListener<T> {
   /**
    * Callback function when there is a change in any property that starts with key
    * It's upto the implementation to handle the following different cases 1) key
@@ -36,7 +35,6 @@ public interface PropertyChangeListener<T>
    * implementation must take care of the fact that there might be callback for
    * every child thats added/deleted. General way applications handle this is
    * keep a local cache of keys and compare against the latest keys.
-   * 
    * @param key
    */
   void onPropertyChange(String key);

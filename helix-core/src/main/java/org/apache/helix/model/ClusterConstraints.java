@@ -31,56 +31,53 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.log4j.Logger;
 
-
-public class ClusterConstraints extends HelixProperty
-{
+public class ClusterConstraints extends HelixProperty {
   private static Logger LOG = Logger.getLogger(ClusterConstraints.class);
 
-  public enum ConstraintAttribute
-  {
-    STATE, MESSAGE_TYPE, TRANSITION, RESOURCE, INSTANCE, CONSTRAINT_VALUE
+  public enum ConstraintAttribute {
+    STATE,
+    MESSAGE_TYPE,
+    TRANSITION,
+    RESOURCE,
+    INSTANCE,
+    CONSTRAINT_VALUE
   }
 
-  public enum ConstraintValue
-  {
+  public enum ConstraintValue {
     ANY
   }
 
-  public enum ConstraintType
-  {
-    STATE_CONSTRAINT, MESSAGE_CONSTRAINT
+  public enum ConstraintType {
+    STATE_CONSTRAINT,
+    MESSAGE_CONSTRAINT
   }
 
   // constraint-id -> constraint-item
   private final Map<String, ConstraintItem> _constraints = new HashMap<String, ConstraintItem>();
-  
+
   public ClusterConstraints(ConstraintType type) {
     super(type.toString());
   }
-  
-  public ClusterConstraints(ZNRecord record)
-  {
+
+  public ClusterConstraints(ZNRecord record) {
     super(record);
 
-    for (String constraintId : _record.getMapFields().keySet())
-    {
+    for (String constraintId : _record.getMapFields().keySet()) {
       ConstraintItemBuilder builder = new ConstraintItemBuilder();
-      ConstraintItem item =  builder.addConstraintAttributes(_record.getMapField(constraintId)).build();
+      ConstraintItem item =
+          builder.addConstraintAttributes(_record.getMapField(constraintId)).build();
       // ignore item with empty attributes or no constraint-value
-      if (item.getAttributes().size() > 0 && item.getConstraintValue() != null)
-      {
+      if (item.getAttributes().size() > 0 && item.getConstraintValue() != null) {
         addConstraintItem(constraintId, item);
-      } else
-      {
-        LOG.error("Skip invalid constraint. key: " + constraintId + ", value: " 
-              + _record.getMapField(constraintId));
+      } else {
+        LOG.error("Skip invalid constraint. key: " + constraintId + ", value: "
+            + _record.getMapField(constraintId));
       }
     }
   }
 
   /**
    * add the constraint, overwrite existing one if constraint with same constraint-id already exists
-   * 
    * @param constraintId
    * @param item
    */
@@ -93,43 +90,38 @@ public class ClusterConstraints extends HelixProperty
     _record.setMapField(constraintId, map);
     _constraints.put(constraintId, item);
   }
-  
+
   public void addConstraintItems(Map<String, ConstraintItem> items) {
     for (String constraintId : items.keySet()) {
       addConstraintItem(constraintId, items.get(constraintId));
     }
   }
-  
+
   /**
    * remove a constraint-item
-   * 
    * @param constraintId
    */
   public void removeConstraintItem(String constraintId) {
     _constraints.remove(constraintId);
     _record.getMapFields().remove(constraintId);
   }
-  
+
   /**
    * get a constraint-item
-   * 
    * @param constraintId
    * @return
    */
   public ConstraintItem getConstraintItem(String constraintId) {
     return _constraints.get(constraintId);
   }
-  
+
   /**
    * return a set of constraints that match the attribute pairs
    */
-  public Set<ConstraintItem> match(Map<ConstraintAttribute, String> attributes)
-  {
+  public Set<ConstraintItem> match(Map<ConstraintAttribute, String> attributes) {
     Set<ConstraintItem> matches = new HashSet<ConstraintItem>();
-    for (ConstraintItem item : _constraints.values())
-    {
-      if (item.match(attributes))
-      {
+    for (ConstraintItem item : _constraints.values()) {
+      if (item.match(attributes)) {
         matches.add(item);
       }
     }
@@ -137,24 +129,18 @@ public class ClusterConstraints extends HelixProperty
   }
 
   // convert a message to constraint attribute pairs
-  public static Map<ConstraintAttribute, String> toConstraintAttributes(Message msg)
-  {
+  public static Map<ConstraintAttribute, String> toConstraintAttributes(Message msg) {
     Map<ConstraintAttribute, String> attributes = new TreeMap<ConstraintAttribute, String>();
     String msgType = msg.getMsgType();
     attributes.put(ConstraintAttribute.MESSAGE_TYPE, msgType);
-    if (MessageType.STATE_TRANSITION.toString().equals(msgType))
-    {
-      if (msg.getFromState() != null && msg.getToState() != null)
-      {
-        attributes.put(ConstraintAttribute.TRANSITION,
-            msg.getFromState() + "-" + msg.getToState());
+    if (MessageType.STATE_TRANSITION.toString().equals(msgType)) {
+      if (msg.getFromState() != null && msg.getToState() != null) {
+        attributes.put(ConstraintAttribute.TRANSITION, msg.getFromState() + "-" + msg.getToState());
       }
-      if (msg.getResourceName() != null)
-      {
+      if (msg.getResourceName() != null) {
         attributes.put(ConstraintAttribute.RESOURCE, msg.getResourceName());
       }
-      if (msg.getTgtName() != null)
-      {
+      if (msg.getTgtName() != null) {
         attributes.put(ConstraintAttribute.INSTANCE, msg.getTgtName());
       }
     }
@@ -162,8 +148,7 @@ public class ClusterConstraints extends HelixProperty
   }
 
   @Override
-  public boolean isValid()
-  {
+  public boolean isValid() {
     // TODO Auto-generated method stub
     return true;
   }

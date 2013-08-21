@@ -33,9 +33,7 @@ import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.PersistentStats;
 
-
-public class HealthDataCache
-{
+public class HealthDataCache {
   Map<String, LiveInstance> _liveInstanceMap;
 
   Map<String, Map<String, HealthStat>> _healthStatMap;
@@ -44,57 +42,47 @@ public class HealthDataCache
   Alerts _alerts;
   AlertStatus _alertStatus;
 
-  public HealthStat getGlobalStats()
-  {
+  public HealthStat getGlobalStats() {
     return _globalStats;
   }
 
-  public PersistentStats getPersistentStats()
-  {
+  public PersistentStats getPersistentStats() {
     return _persistentStats;
   }
 
-  public Alerts getAlerts()
-  {
+  public Alerts getAlerts() {
     return _alerts;
   }
 
-  public AlertStatus getAlertStatus()
-  {
+  public AlertStatus getAlertStatus() {
     return _alertStatus;
   }
 
-  public Map<String, HealthStat> getHealthStats(String instanceName)
-  {
+  public Map<String, HealthStat> getHealthStats(String instanceName) {
     Map<String, HealthStat> map = _healthStatMap.get(instanceName);
-    if (map != null)
-    {
+    if (map != null) {
       return map;
-    } else
-    {
+    } else {
       return Collections.emptyMap();
     }
   }
 
-  public Map<String, LiveInstance> getLiveInstances()
-  {
+  public Map<String, LiveInstance> getLiveInstances() {
     return _liveInstanceMap;
   }
 
-  public boolean refresh(HelixDataAccessor accessor)
-  {
+  public boolean refresh(HelixDataAccessor accessor) {
     Builder keyBuilder = accessor.keyBuilder();
     _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
 
     Map<String, Map<String, HealthStat>> hsMap = new HashMap<String, Map<String, HealthStat>>();
 
-    for (String instanceName : _liveInstanceMap.keySet())
-    {
+    for (String instanceName : _liveInstanceMap.keySet()) {
       // xxx clearly getting znodes for the instance here...so get the
       // timestamp!
 
-      Map<String, HealthStat> childValuesMap = accessor
-          .getChildValuesMap(keyBuilder.healthReports(instanceName));
+      Map<String, HealthStat> childValuesMap =
+          accessor.getChildValuesMap(keyBuilder.healthReports(instanceName));
       hsMap.put(instanceName, childValuesMap);
     }
     _healthStatMap = Collections.unmodifiableMap(hsMap);

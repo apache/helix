@@ -38,13 +38,14 @@ import org.apache.helix.controller.stages.HealthDataCache;
 import org.apache.helix.model.PersistentStats;
 import org.apache.log4j.Logger;
 
+public class StatsHolder {
+  enum MatchResult {
+    WILDCARDMATCH,
+    EXACTMATCH,
+    NOMATCH
+  };
 
-public class StatsHolder
-{
-  enum MatchResult {WILDCARDMATCH, EXACTMATCH, NOMATCH};
-  
-  private static final Logger logger = Logger.getLogger(StatsHolder.class
-      .getName());
+  private static final Logger logger = Logger.getLogger(StatsHolder.class.getName());
 
   public static final String VALUE_NAME = "value";
   public static final String TIMESTAMP_NAME = "TimeStamp";
@@ -56,43 +57,38 @@ public class StatsHolder
   Map<String, Map<String, MatchResult>> _statAlertMatchResult;
 
   private Builder _keyBuilder;
+
   // PersistentStats _persistentStats;
 
-  public StatsHolder(HelixManager manager, HealthDataCache cache)
-  {
+  public StatsHolder(HelixManager manager, HealthDataCache cache) {
     _accessor = manager.getHelixDataAccessor();
     _cache = cache;
     _keyBuilder = new PropertyKey.Builder(manager.getClusterName());
     updateCache(_cache);
     _statAlertMatchResult = new HashMap<String, Map<String, MatchResult>>();
-    
+
   }
 
-  public void refreshStats()
-  {
+  public void refreshStats() {
     logger.info("Refreshing cached stats");
     _cache.refresh(_accessor);
     updateCache(_cache);
   }
 
-  public void persistStats()
-  {
+  public void persistStats() {
     // XXX: Am I using _accessor too directly here?
     // took around 35 ms from desktop to ESV4 machine
     PersistentStats stats = _accessor.getProperty(_keyBuilder.persistantStat());
-    if (stats == null)
-    {
+    if (stats == null) {
       stats = new PersistentStats(PersistentStats.nodeName); // TODO: fix naming of
-                                                         // this record, if it
-                                                         // matters
+      // this record, if it
+      // matters
     }
     stats.getRecord().setMapFields(_statMap);
-    boolean retVal = _accessor.setProperty(_keyBuilder.persistantStat(),
-        stats);
+    boolean retVal = _accessor.setProperty(_keyBuilder.persistantStat(), stats);
   }
 
-  public void getStatsFromCache(boolean refresh)
-  {
+  public void getStatsFromCache(boolean refresh) {
     long refreshStartTime = System.currentTimeMillis();
     if (refresh) {
       _cache.refresh(_accessor);
@@ -100,27 +96,24 @@ public class StatsHolder
     PersistentStats persistentStatRecord = _cache.getPersistentStats();
     if (persistentStatRecord != null) {
       _statMap = persistentStatRecord.getMapFields();
-    }
-    else {
-      _statMap = new HashMap<String,Map<String,String>>();
+    } else {
+      _statMap = new HashMap<String, Map<String, String>>();
     }
     /*
-		if (_cache.getPersistentStats() != null) {
-
-			_statMap = _cache.getPersistentStats();
-		}
+     * if (_cache.getPersistentStats() != null) {
+     * _statMap = _cache.getPersistentStats();
+     * }
      */
-    //TODO: confirm this a good place to init the _statMap when null
+    // TODO: confirm this a good place to init the _statMap when null
     /*
-		if (_statMap == null) {
-			_statMap = new HashMap<String, Map<String, String>>();
-		}
+     * if (_statMap == null) {
+     * _statMap = new HashMap<String, Map<String, String>>();
+     * }
      */
-    System.out.println("Refresh stats done: "+(System.currentTimeMillis() - refreshStartTime));
+    System.out.println("Refresh stats done: " + (System.currentTimeMillis() - refreshStartTime));
   }
 
-  public Iterator<String> getAllStats()
-  {
+  public Iterator<String> getAllStats() {
     return null;
   }
 
@@ -128,16 +121,12 @@ public class StatsHolder
    * TODO: figure out pre-conditions here. I think not allowing anything to be
    * null on input
    */
-  public Map<String, String> mergeStats(String statName,
-      Map<String, String> existingStat, Map<String, String> incomingStat)
-      throws HelixException
-  {
-    if (existingStat == null)
-    {
+  public Map<String, String> mergeStats(String statName, Map<String, String> existingStat,
+      Map<String, String> incomingStat) throws HelixException {
+    if (existingStat == null) {
       throw new HelixException("existing stat for merge is null");
     }
-    if (incomingStat == null)
-    {
+    if (incomingStat == null) {
       throw new HelixException("incoming stat for merge is null");
     }
     // get agg type and arguments, then get agg object
@@ -152,26 +141,21 @@ public class StatsHolder
     String incomingTime = incomingStat.get(TIMESTAMP_NAME);
     String incomingVal = incomingStat.get(VALUE_NAME);
     // parse values into tuples, if the values exist. else, tuples are null
-    Tuple<String> existingTimeTuple = (existingTime != null) ? Tuple
-        .fromString(existingTime) : null;
-    Tuple<String> existingValueTuple = (existingVal != null) ? Tuple
-        .fromString(existingVal) : null;
-    Tuple<String> incomingTimeTuple = (incomingTime != null) ? Tuple
-        .fromString(incomingTime) : null;
-    Tuple<String> incomingValueTuple = (incomingVal != null) ? Tuple
-        .fromString(incomingVal) : null;
+    Tuple<String> existingTimeTuple =
+        (existingTime != null) ? Tuple.fromString(existingTime) : null;
+    Tuple<String> existingValueTuple = (existingVal != null) ? Tuple.fromString(existingVal) : null;
+    Tuple<String> incomingTimeTuple =
+        (incomingTime != null) ? Tuple.fromString(incomingTime) : null;
+    Tuple<String> incomingValueTuple = (incomingVal != null) ? Tuple.fromString(incomingVal) : null;
 
     // dp merge
-    agg.merge(existingValueTuple, incomingValueTuple, existingTimeTuple,
-        incomingTimeTuple, aggArgs);
+    agg.merge(existingValueTuple, incomingValueTuple, existingTimeTuple, incomingTimeTuple, aggArgs);
     // put merged tuples back in map
     Map<String, String> mergedMap = new HashMap<String, String>();
-    if (existingTimeTuple.size() == 0)
-    {
+    if (existingTimeTuple.size() == 0) {
       throw new HelixException("merged time tuple has size zero");
     }
-    if (existingValueTuple.size() == 0)
-    {
+    if (existingValueTuple.size() == 0) {
       throw new HelixException("merged value tuple has size zero");
     }
 
@@ -188,84 +172,65 @@ public class StatsHolder
 
   // need to do a time check here!
 
-  public void applyStat(String incomingStatName, Map<String, String> statFields)
-  {
+  public void applyStat(String incomingStatName, Map<String, String> statFields) {
     // TODO: consider locking stats here
-    //refreshStats(); //will have refreshed by now during stage
+    // refreshStats(); //will have refreshed by now during stage
 
     Map<String, Map<String, String>> pendingAdds = new HashMap<String, Map<String, String>>();
-    
-    if(!_statAlertMatchResult.containsKey(incomingStatName))
-    {
+
+    if (!_statAlertMatchResult.containsKey(incomingStatName)) {
       _statAlertMatchResult.put(incomingStatName, new HashMap<String, MatchResult>());
     }
     Map<String, MatchResult> resultMap = _statAlertMatchResult.get(incomingStatName);
     // traverse through all persistent stats
-    for (String key : _statMap.keySet())
-    {
-      if(resultMap.containsKey(key))
-      {
+    for (String key : _statMap.keySet()) {
+      if (resultMap.containsKey(key)) {
         MatchResult cachedMatchResult = resultMap.get(key);
-        if(cachedMatchResult == MatchResult.EXACTMATCH)
-        {
+        if (cachedMatchResult == MatchResult.EXACTMATCH) {
           processExactMatch(key, statFields);
-        }
-        else if(cachedMatchResult == MatchResult.WILDCARDMATCH)
-        {
-          processWildcardMatch(incomingStatName, key,statFields, pendingAdds);
+        } else if (cachedMatchResult == MatchResult.WILDCARDMATCH) {
+          processWildcardMatch(incomingStatName, key, statFields, pendingAdds);
         }
         // don't care about NOMATCH
         continue;
       }
       // exact match on stat and stat portion of persisted stat, just update
-      if (ExpressionParser.isIncomingStatExactMatch(key, incomingStatName))
-      {
+      if (ExpressionParser.isIncomingStatExactMatch(key, incomingStatName)) {
         processExactMatch(key, statFields);
         resultMap.put(key, MatchResult.EXACTMATCH);
       }
       // wildcard match
-      else if (ExpressionParser.isIncomingStatWildcardMatch(key,
-          incomingStatName))
-      {
-        processWildcardMatch(incomingStatName, key,statFields, pendingAdds);
+      else if (ExpressionParser.isIncomingStatWildcardMatch(key, incomingStatName)) {
+        processWildcardMatch(incomingStatName, key, statFields, pendingAdds);
         resultMap.put(key, MatchResult.WILDCARDMATCH);
-      }
-      else
-      {
+      } else {
         resultMap.put(key, MatchResult.NOMATCH);
       }
     }
     _statMap.putAll(pendingAdds);
-  } 
-  
-  void processExactMatch(String key, Map<String, String> statFields)
-  {
-    Map<String, String> mergedStat = mergeStats(key, _statMap.get(key),
-        statFields);
+  }
+
+  void processExactMatch(String key, Map<String, String> statFields) {
+    Map<String, String> mergedStat = mergeStats(key, _statMap.get(key), statFields);
     // update in place, no problem with hash map
     _statMap.put(key, mergedStat);
   }
-  
-  void processWildcardMatch(String incomingStatName, String key, 
-      Map<String, String> statFields,  Map<String, Map<String, String>> pendingAdds)
-  {
+
+  void processWildcardMatch(String incomingStatName, String key, Map<String, String> statFields,
+      Map<String, Map<String, String>> pendingAdds) {
 
     // make sure incoming stat doesn't already exist, either in previous
     // round or this round
     // form new key (incomingStatName with agg type from the wildcarded
     // stat)
-    String statToAdd = ExpressionParser.getWildcardStatSubstitution(key,
-        incomingStatName);
+    String statToAdd = ExpressionParser.getWildcardStatSubstitution(key, incomingStatName);
     // if the stat already existed in _statMap, we have/will apply it as an
     // exact match
     // if the stat was added this round to pendingAdds, no need to recreate
     // (it would have same value)
-    if (!_statMap.containsKey(statToAdd)
-        && !pendingAdds.containsKey(statToAdd))
-    {
+    if (!_statMap.containsKey(statToAdd) && !pendingAdds.containsKey(statToAdd)) {
       // add this stat to persisted stats
-      Map<String, String> mergedStat = mergeStats(statToAdd,
-          getEmptyStat(), statFields);
+      Map<String, String> mergedStat = mergeStats(statToAdd, getEmptyStat(), statFields);
       // add to pendingAdds so we don't mess up ongoing traversal of
       // _statMap
       pendingAdds.put(statToAdd, mergedStat);
@@ -274,16 +239,13 @@ public class StatsHolder
 
   // add parsing of stat (or is that in expression holder?) at least add
   // validate
-  public void addStat(String exp) throws HelixException
-  {
+  public void addStat(String exp) throws HelixException {
     refreshStats(); // get current stats
 
     String[] parsedStats = ExpressionParser.getBaseStats(exp);
 
-    for (String stat : parsedStats)
-    {
-      if (_statMap.containsKey(stat))
-      {
+    for (String stat : parsedStats) {
+      if (_statMap.containsKey(stat)) {
         logger.debug("Stat " + stat + " already exists; not adding");
         continue;
       }
@@ -291,16 +253,12 @@ public class StatsHolder
     }
   }
 
-  public static Map<String, Map<String, String>> parseStat(String exp)
-      throws HelixException
-  {
+  public static Map<String, Map<String, String>> parseStat(String exp) throws HelixException {
     String[] parsedStats = ExpressionParser.getBaseStats(exp);
     Map<String, Map<String, String>> statMap = new HashMap<String, Map<String, String>>();
 
-    for (String stat : parsedStats)
-    {
-      if (statMap.containsKey(stat))
-      {
+    for (String stat : parsedStats) {
+      if (statMap.containsKey(stat)) {
         logger.debug("Stat " + stat + " already exists; not adding");
         continue;
       }
@@ -309,20 +267,16 @@ public class StatsHolder
     return statMap;
   }
 
-
-  public static Map<String, String> getEmptyStat()
-  {
+  public static Map<String, String> getEmptyStat() {
     Map<String, String> statFields = new HashMap<String, String>();
     statFields.put(TIMESTAMP_NAME, "");
     statFields.put(VALUE_NAME, "");
     return statFields;
   }
 
-  public List<Stat> getStatsList()
-  {
+  public List<Stat> getStatsList() {
     List<Stat> stats = new LinkedList<Stat>();
-    for (String stat : _statMap.keySet())
-    {
+    for (String stat : _statMap.keySet()) {
       Map<String, String> statFields = _statMap.get(stat);
       Tuple<String> valTup = Tuple.fromString(statFields.get(VALUE_NAME));
       Tuple<String> timeTup = Tuple.fromString(statFields.get(TIMESTAMP_NAME));
@@ -332,12 +286,10 @@ public class StatsHolder
     return stats;
   }
 
-  public Map<String, Tuple<String>> getStatsMap()
-  {
-    //refreshStats(); //don't refresh, stage will have refreshed by this time
+  public Map<String, Tuple<String>> getStatsMap() {
+    // refreshStats(); //don't refresh, stage will have refreshed by this time
     HashMap<String, Tuple<String>> stats = new HashMap<String, Tuple<String>>();
-    for (String stat : _statMap.keySet())
-    {
+    for (String stat : _statMap.keySet()) {
       Map<String, String> statFields = _statMap.get(stat);
       Tuple<String> valTup = Tuple.fromString(statFields.get(VALUE_NAME));
       Tuple<String> timeTup = Tuple.fromString(statFields.get(TIMESTAMP_NAME));
@@ -346,16 +298,12 @@ public class StatsHolder
     return stats;
   }
 
-  public void updateCache(HealthDataCache cache)
-  {
+  public void updateCache(HealthDataCache cache) {
     _cache = cache;
     PersistentStats persistentStatRecord = _cache.getPersistentStats();
-    if (persistentStatRecord != null)
-    {
+    if (persistentStatRecord != null) {
       _statMap = persistentStatRecord.getMapFields();
-    }
-    else
-    {
+    } else {
       _statMap = new HashMap<String, Map<String, String>>();
     }
   }

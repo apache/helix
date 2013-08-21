@@ -22,49 +22,39 @@ package org.apache.helix.monitoring.mbeans;
 import org.apache.helix.monitoring.StatCollector;
 import org.apache.log4j.Logger;
 
-
-public class MessageQueueMonitor implements MessageQueueMonitorMBean
-{
+public class MessageQueueMonitor implements MessageQueueMonitorMBean {
   private static final Logger LOG = Logger.getLogger(MessageQueueMonitor.class);
 
   private final StatCollector _messageQueueSizeStat;
-  private final String        _clusterName;
-  private final String        _instanceName;
+  private final String _clusterName;
+  private final String _instanceName;
 
-  public MessageQueueMonitor(String clusterName, String instanceName)
-  {
+  public MessageQueueMonitor(String clusterName, String instanceName) {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _messageQueueSizeStat = new StatCollector();
   }
 
-
-  public void addMessageQueueSize(long size)
-  {
+  public void addMessageQueueSize(long size) {
     _messageQueueSizeStat.addData(size);
   }
 
-  public void reset()
-  {
+  public void reset() {
     _messageQueueSizeStat.reset();
   }
 
   @Override
-  public double getMaxMessageQueueSize()
-  {
+  public double getMaxMessageQueueSize() {
     return _messageQueueSizeStat.getMax();
   }
 
   @Override
-  public double getMeanMessageQueueSize()
-  {
+  public double getMeanMessageQueueSize() {
     return _messageQueueSizeStat.getMean();
   }
 
   @Override
-  public String getSensorName()
-  {
-    return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "_" + _clusterName + "_"
-        + _instanceName;
+  public String getSensorName() {
+    return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "_" + _clusterName + "_" + _instanceName;
   }
 }

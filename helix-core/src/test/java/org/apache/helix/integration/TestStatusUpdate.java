@@ -32,15 +32,12 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.testng.Assert;
 
-
-public class TestStatusUpdate extends ZkStandAloneCMTestBase
-{
+public class TestStatusUpdate extends ZkStandAloneCMTestBase {
   // For now write participant StatusUpdates to log4j.
   // TODO: Need to investigate another data channel to report to controller and re-enable
   // this test
   // @Test
-  public void testParticipantStatusUpdates() throws Exception
-  {
+  public void testParticipantStatusUpdates() throws Exception {
     ZkClient zkClient = new ZkClient(ZkIntegrationTestBase.ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
@@ -50,54 +47,34 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase
     List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());
     Assert.assertNotNull(extViews);
 
-    for (ExternalView extView : extViews)
-    {
+    for (ExternalView extView : extViews) {
       String resourceName = extView.getResourceName();
       Set<String> partitionSet = extView.getPartitionSet();
-      for (String partition : partitionSet)
-      {
+      for (String partition : partitionSet) {
         Map<String, String> stateMap = extView.getStateMap(partition);
-        for (String instance : stateMap.keySet())
-        {
+        for (String instance : stateMap.keySet()) {
           String state = stateMap.get(instance);
           StatusUpdateUtil.StatusUpdateContents statusUpdates =
-              StatusUpdateUtil.StatusUpdateContents.getStatusUpdateContents(accessor,
-                                                                            instance,
-                                                                            resourceName,
-                                                                            partition);
+              StatusUpdateUtil.StatusUpdateContents.getStatusUpdateContents(accessor, instance,
+                  resourceName, partition);
 
-          Map<String, StatusUpdateUtil.TaskStatus> taskMessages =
-              statusUpdates.getTaskMessages();
+          Map<String, StatusUpdateUtil.TaskStatus> taskMessages = statusUpdates.getTaskMessages();
           List<StatusUpdateUtil.Transition> transitions = statusUpdates.getTransitions();
-          if (state.equals("MASTER"))
-          {
-            Assert.assertEquals(transitions.size() >= 2,
-                                true,
-                                "Invalid number of transitions");
-            StatusUpdateUtil.Transition lastTransition =
-                transitions.get(transitions.size() - 1);
-            StatusUpdateUtil.Transition prevTransition =
-                transitions.get(transitions.size() - 2);
+          if (state.equals("MASTER")) {
+            Assert.assertEquals(transitions.size() >= 2, true, "Invalid number of transitions");
+            StatusUpdateUtil.Transition lastTransition = transitions.get(transitions.size() - 1);
+            StatusUpdateUtil.Transition prevTransition = transitions.get(transitions.size() - 2);
             Assert.assertEquals(taskMessages.get(lastTransition.getMsgID()),
-                                StatusUpdateUtil.TaskStatus.COMPLETED,
-                                "Incomplete transition");
+                StatusUpdateUtil.TaskStatus.COMPLETED, "Incomplete transition");
             Assert.assertEquals(taskMessages.get(prevTransition.getMsgID()),
-                                StatusUpdateUtil.TaskStatus.COMPLETED,
-                                "Incomplete transition");
+                StatusUpdateUtil.TaskStatus.COMPLETED, "Incomplete transition");
             Assert.assertEquals(lastTransition.getFromState(), "SLAVE", "Invalid State");
             Assert.assertEquals(lastTransition.getToState(), "MASTER", "Invalid State");
-          }
-          else if (state.equals("SLAVE"))
-          {
-            Assert.assertEquals(transitions.size() >= 1,
-                                true,
-                                "Invalid number of transitions");
-            StatusUpdateUtil.Transition lastTransition =
-                transitions.get(transitions.size() - 1);
+          } else if (state.equals("SLAVE")) {
+            Assert.assertEquals(transitions.size() >= 1, true, "Invalid number of transitions");
+            StatusUpdateUtil.Transition lastTransition = transitions.get(transitions.size() - 1);
             Assert.assertEquals(lastTransition.getFromState().equals("MASTER")
-                                    || lastTransition.getFromState().equals("OFFLINE"),
-                                true,
-                                "Invalid transition");
+                || lastTransition.getFromState().equals("OFFLINE"), true, "Invalid transition");
             Assert.assertEquals(lastTransition.getToState(), "SLAVE", "Invalid State");
           }
         }

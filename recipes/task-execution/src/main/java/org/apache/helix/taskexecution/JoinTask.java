@@ -27,48 +27,49 @@ import java.util.Set;
 import org.apache.helix.HelixManager;
 
 public class JoinTask extends Task {
-	public static final String JOINED_CLICKS = "joined_clicks_demo";
+  public static final String JOINED_CLICKS = "joined_clicks_demo";
 
-	private final String _impressionList;
-	private final String _clickList;
+  private final String _impressionList;
+  private final String _clickList;
 
-	public JoinTask(String id, Set<String> parentIds,
-			HelixManager helixManager, TaskResultStore resultStore, String impressionList, String clickList) {
-		super(id, parentIds, helixManager, resultStore);
-		_impressionList = impressionList;
-		_clickList = clickList;
-	}
+  public JoinTask(String id, Set<String> parentIds, HelixManager helixManager,
+      TaskResultStore resultStore, String impressionList, String clickList) {
+    super(id, parentIds, helixManager, resultStore);
+    _impressionList = impressionList;
+    _clickList = clickList;
+  }
 
-	@Override
-	protected void executeImpl(String resourceName, int numPartitions, int partitionNum) throws Exception {
-		System.out.println("Executing JoinTask for " + resourceName + "_" + partitionNum);
-		long numClicks = resultStore.llen(_clickList);
-		List<String> clickEvents = resultStore.lrange(_clickList, 0, numClicks-1);
-		Map<String, String[]> clickIndex = getClickIndex(clickEvents);
-		
-		long len = resultStore.llen(_impressionList);
-		long bucketSize = len/numPartitions;
-		long start = partitionNum * bucketSize;
-		long end = start + bucketSize -1;
-		List<String> impressions = resultStore.lrange(_impressionList, start, end);
-		for(String impression : impressions) {
-			String[] fields = impression.split(",");
-			if(clickIndex.containsKey(fields[0])) {
-				String clickId = clickIndex.get(fields[0])[0];
-				String joinedClick = clickId + "," + impression;
-				resultStore.rpush(JOINED_CLICKS, joinedClick);
-			}
-		}
-	}
+  @Override
+  protected void executeImpl(String resourceName, int numPartitions, int partitionNum)
+      throws Exception {
+    System.out.println("Executing JoinTask for " + resourceName + "_" + partitionNum);
+    long numClicks = resultStore.llen(_clickList);
+    List<String> clickEvents = resultStore.lrange(_clickList, 0, numClicks - 1);
+    Map<String, String[]> clickIndex = getClickIndex(clickEvents);
 
-	//return map of impression id to click (fields of the click event)
-	private Map<String, String[]> getClickIndex(List<String> clickEvents) {
-		Map<String, String[]> clickIndex = new HashMap<String, String[]>();
-		for(String click : clickEvents) {
-			String fields[] = click.split(",");
-			clickIndex.put(fields[2], fields);
-		}
-		return clickIndex;
-	}
+    long len = resultStore.llen(_impressionList);
+    long bucketSize = len / numPartitions;
+    long start = partitionNum * bucketSize;
+    long end = start + bucketSize - 1;
+    List<String> impressions = resultStore.lrange(_impressionList, start, end);
+    for (String impression : impressions) {
+      String[] fields = impression.split(",");
+      if (clickIndex.containsKey(fields[0])) {
+        String clickId = clickIndex.get(fields[0])[0];
+        String joinedClick = clickId + "," + impression;
+        resultStore.rpush(JOINED_CLICKS, joinedClick);
+      }
+    }
+  }
+
+  // return map of impression id to click (fields of the click event)
+  private Map<String, String[]> getClickIndex(List<String> clickEvents) {
+    Map<String, String[]> clickIndex = new HashMap<String, String[]>();
+    for (String click : clickEvents) {
+      String fields[] = click.split(",");
+      clickIndex.put(fields[2], fields);
+    }
+    return clickIndex;
+  }
 
 }

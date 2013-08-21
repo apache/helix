@@ -19,7 +19,6 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-public interface SensorNameProvider
-{
+public interface SensorNameProvider {
   String getSensorName();
 }

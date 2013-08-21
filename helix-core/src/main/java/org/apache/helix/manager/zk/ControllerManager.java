@@ -49,7 +49,6 @@ public class ControllerManager extends AbstractManager {
 
   /**
    * status dump timer-task
-   *
    */
   static class StatusDumpTask extends HelixTimerTask {
     Timer _timer = null;
@@ -67,23 +66,18 @@ public class ControllerManager extends AbstractManager {
       long period = 120 * 60 * 1000;
       int timeThresholdNoChange = 180 * 60 * 1000;
 
-      if (_timer == null)
-      {
+      if (_timer == null) {
         LOG.info("Start StatusDumpTask");
         _timer = new Timer("StatusDumpTimerTask", true);
-        _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(helixController,
-                                                          zkclient,
-                                                          timeThresholdNoChange),
-                                   initialDelay,
-                                   period);
+        _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(helixController, zkclient,
+            timeThresholdNoChange), initialDelay, period);
       }
 
     }
 
     @Override
     public void stop() {
-      if (_timer != null)
-      {
+      if (_timer != null) {
         LOG.info("Stop StatusDumpTask");
         _timer.cancel();
         _timer = null;
@@ -124,13 +118,11 @@ public class ControllerManager extends AbstractManager {
     if (_leaderElectionHandler != null) {
       _leaderElectionHandler.init();
     } else {
-      _leaderElectionHandler = new CallbackHandler(this,
-                                                   _zkclient,
-                                                   _keyBuilder.controller(),
-                                  new DistributedLeaderElection(this, _controller),
-                                  new EventType[] { EventType.NodeChildrenChanged,
-                                      EventType.NodeDeleted, EventType.NodeCreated },
-                                  ChangeType.CONTROLLER);
+      _leaderElectionHandler =
+          new CallbackHandler(this, _zkclient, _keyBuilder.controller(),
+              new DistributedLeaderElection(this, _controller), new EventType[] {
+                  EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
+              }, ChangeType.CONTROLLER);
     }
 
     /**
@@ -143,28 +135,24 @@ public class ControllerManager extends AbstractManager {
 
   @Override
   void doDisconnect() {
-    if (_leaderElectionHandler != null)
-    {
+    if (_leaderElectionHandler != null) {
       _leaderElectionHandler.reset();
     }
   }
 
   @Override
   public boolean isLeader() {
-    if (!isConnected())
-    {
+    if (!isConnected()) {
       return false;
     }
 
     try {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
-      if (leader != null)
-      {
+      if (leader != null) {
         String leaderName = leader.getInstanceName();
         String sessionId = leader.getSessionId();
-        if (leaderName != null && leaderName.equals(_instanceName)
-            && sessionId != null && sessionId.equals(_sessionId))
-        {
+        if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
+            && sessionId.equals(_sessionId)) {
           return true;
         }
       }
@@ -176,13 +164,11 @@ public class ControllerManager extends AbstractManager {
 
   /**
    * helix-controller uses a write-through cache for external-view
-   *
    */
   @Override
   BaseDataAccessor<ZNRecord> createBaseDataAccessor(ZkBaseDataAccessor<ZNRecord> baseDataAccessor) {
     String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, _clusterName);
-    return new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor,
-                                                Arrays.asList(extViewPath));
+    return new ZkCacheBaseDataAccessor<ZNRecord>(baseDataAccessor, Arrays.asList(extViewPath));
 
   }
 

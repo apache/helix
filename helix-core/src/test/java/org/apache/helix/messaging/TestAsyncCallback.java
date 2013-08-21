@@ -29,30 +29,25 @@ import org.apache.helix.model.Message;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestAsyncCallback
-{
-  class AsyncCallbackSample extends AsyncCallback
-  {
+public class TestAsyncCallback {
+  class AsyncCallbackSample extends AsyncCallback {
     int _onTimeOutCalled = 0;
     int _onReplyMessageCalled = 0;
+
     @Override
-    public void onTimeOut()
-    {
+    public void onTimeOut() {
       // TODO Auto-generated method stub
-      _onTimeOutCalled ++;
+      _onTimeOutCalled++;
     }
 
     @Override
-    public void onReplyMessage(Message message)
-    {
+    public void onReplyMessage(Message message) {
       _onReplyMessageCalled++;
     }
   }
 
   @Test()
-  public void testAsyncCallback() throws Exception
-  {
+  public void testAsyncCallback() throws Exception {
     System.out.println("START TestAsyncCallback at " + new Date(System.currentTimeMillis()));
     AsyncCallbackSample callback = new AsyncCallbackSample();
     AssertJUnit.assertFalse(callback.isInterrupted());
@@ -62,21 +57,19 @@ public class TestAsyncCallback
     int nMsgs = 5;
 
     List<Message> messageSent = new ArrayList<Message>();
-    for(int i = 0;i < nMsgs; i++)
-    {
+    for (int i = 0; i < nMsgs; i++) {
       messageSent.add(new Message("Test", UUID.randomUUID().toString()));
     }
 
     callback.setMessagesSent(messageSent);
 
-    for(int i = 0;i < nMsgs; i++)
-    {
+    for (int i = 0; i < nMsgs; i++) {
       AssertJUnit.assertFalse(callback.isDone());
       callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
     }
     AssertJUnit.assertTrue(callback.isDone());
 
-    AssertJUnit.assertTrue(callback._onTimeOutCalled == 0 );
+    AssertJUnit.assertTrue(callback._onTimeOutCalled == 0);
 
     sleep(50);
     callback = new AsyncCallbackSample();
@@ -85,8 +78,7 @@ public class TestAsyncCallback
     sleep(50);
     callback.startTimer();
     AssertJUnit.assertFalse(callback.isTimedOut());
-    for(int i = 0;i < nMsgs - 1; i++)
-    {
+    for (int i = 0; i < nMsgs - 1; i++) {
       sleep(50);
       AssertJUnit.assertFalse(callback.isDone());
       AssertJUnit.assertTrue(callback._onReplyMessageCalled == i);
@@ -94,7 +86,7 @@ public class TestAsyncCallback
     }
     sleep(1000);
     AssertJUnit.assertTrue(callback.isTimedOut());
-    AssertJUnit.assertTrue(callback._onTimeOutCalled == 1 );
+    AssertJUnit.assertTrue(callback._onTimeOutCalled == 1);
     AssertJUnit.assertFalse(callback.isDone());
 
     callback = new AsyncCallbackSample();
@@ -103,8 +95,7 @@ public class TestAsyncCallback
     callback.startTimer();
     sleep(50);
     AssertJUnit.assertFalse(callback.isTimedOut());
-    for(int i = 0;i < nMsgs; i++)
-    {
+    for (int i = 0; i < nMsgs; i++) {
       AssertJUnit.assertFalse(callback.isDone());
       sleep(50);
       AssertJUnit.assertTrue(callback._onReplyMessageCalled == i);
@@ -113,18 +104,14 @@ public class TestAsyncCallback
     AssertJUnit.assertTrue(callback.isDone());
     sleep(1300);
     AssertJUnit.assertFalse(callback.isTimedOut());
-    AssertJUnit.assertTrue(callback._onTimeOutCalled == 0 );
+    AssertJUnit.assertTrue(callback._onTimeOutCalled == 0);
     System.out.println("END TestAsyncCallback at " + new Date(System.currentTimeMillis()));
   }
 
-  void sleep(int time)
-  {
-    try
-    {
+  void sleep(int time) {
+    try {
       Thread.sleep(time);
-    }
-    catch(Exception e)
-    {
+    } catch (Exception e) {
       System.out.println(e);
     }
   }

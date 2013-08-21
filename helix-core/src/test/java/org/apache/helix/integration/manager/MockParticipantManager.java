@@ -33,58 +33,44 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
+public class MockParticipantManager extends ParticipantManager implements Runnable, ZkTestManager {
+  private static Logger LOG = Logger.getLogger(MockParticipantManager.class);
 
-public class MockParticipantManager extends ParticipantManager implements Runnable, ZkTestManager
-{
-  private static Logger           LOG = Logger.getLogger(MockParticipantManager.class);
-
-  private final CountDownLatch    _startCountDown          = new CountDownLatch(1);
-  private final CountDownLatch    _stopCountDown           = new CountDownLatch(1);
-  private final CountDownLatch    _waitStopCompleteCountDown = new CountDownLatch(1);
+  private final CountDownLatch _startCountDown = new CountDownLatch(1);
+  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private final CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
 
   private final MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
 
-  public MockParticipantManager(String zkAddr, String clusterName, String instanceName)
-  {
+  public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
     super(zkAddr, clusterName, instanceName);
   }
 
-  public void setTransition(MockTransition transition)
-  {
+  public void setTransition(MockTransition transition) {
     _msModelFactory.setTrasition(transition);
   }
 
-  public void syncStop()
-  {
+  public void syncStop() {
     _stopCountDown.countDown();
-    try
-    {
+    try {
       _waitStopCompleteCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("exception in syncStop participant-manager", e);
     }
   }
 
-  public void syncStart()
-  {
-    try
-    {
+  public void syncStart() {
+    try {
       new Thread(this).start();
       _startCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       LOG.error("exception in syncStart participant-manager", e);
     }
   }
 
   @Override
-  public void run()
-  {
-    try
-    {
+  public void run() {
+    try {
       StateMachineEngine stateMach = getStateMachineEngine();
       stateMach.registerStateModelFactory("MasterSlave", _msModelFactory);
 
@@ -102,20 +88,14 @@ public class MockParticipantManager extends ParticipantManager implements Runnab
       _startCountDown.countDown();
 
       _stopCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       String msg =
           "participant: " + getInstanceName() + ", " + Thread.currentThread().getName()
               + " is interrupted";
       LOG.info(msg);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.error("exception running participant-manager", e);
-    }
-    finally
-    {
+    } finally {
       _startCountDown.countDown();
 
       disconnect();

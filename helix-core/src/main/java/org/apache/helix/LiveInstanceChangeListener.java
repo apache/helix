@@ -26,16 +26,14 @@ import org.apache.helix.model.LiveInstance;
 /**
  * Interface to implement to listen for live instance changes.
  */
-public interface LiveInstanceChangeListener
-{
+public interface LiveInstanceChangeListener {
 
   /**
    * Invoked when live instance changes
-   * 
    * @param liveInstances
    * @param changeContext
    */
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
-                                   NotificationContext changeContext);
+      NotificationContext changeContext);
 
 }

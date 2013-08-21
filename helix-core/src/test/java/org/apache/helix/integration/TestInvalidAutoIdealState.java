@@ -43,80 +43,80 @@ import org.testng.Assert;
 
 // Helix-50: integration test for generate message based on state priority
 public class TestInvalidAutoIdealState extends ZkUnitTestBase {
-    // TODO Disable this test, need refactor it for testing message generation based on state priority
-    // @Test
-    void testInvalidReplica2() throws Exception
-    {
-        HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
-        
-        // create cluster
-	    String className = TestHelper.getTestClassName();
-	    String methodName = TestHelper.getTestMethodName();
-	    String clusterName = className + "_" + methodName;
-	    String db = "TestDB";
+  // TODO Disable this test, need refactor it for testing message generation based on state priority
+  // @Test
+  void testInvalidReplica2() throws Exception {
+    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
 
-	    System.out.println("START " + clusterName + " at "
-	    		+ new Date(System.currentTimeMillis()));
+    // create cluster
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String db = "TestDB";
 
-        // System.out.println("Creating cluster: " + clusterName);
-        admin.addCluster(clusterName, true);
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-        // add MasterSlave state mode definition
-        admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
-                StateModelConfigGenerator.generateConfigForMasterSlave()));
+    // System.out.println("Creating cluster: " + clusterName);
+    admin.addCluster(clusterName, true);
 
-        // Add nodes to the cluster
-	    int n = 3;
-        System.out.println("Adding " + n + " participants to the cluster");
-        for (int i = 0; i < n; i++) {
-        	int port = 12918 + i;
-            InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
-            instanceConfig.setHostName("localhost");
-            instanceConfig.setPort("" + port);
-            instanceConfig.setInstanceEnabled(true);
-            admin.addInstance(clusterName, instanceConfig);
-            // System.out.println("\t Added participant: " + instanceConfig.getInstanceName());
-        }
+    // add MasterSlave state mode definition
+    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
 
-        // construct ideal-state manually
-        IdealState idealState = new IdealState(db);
-        idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
-        idealState.setNumPartitions(2);
-        idealState.setReplicas("" + 2);	// should be 3
-        idealState.setStateModelDefRef("MasterSlave");
-        idealState.getRecord().setListField("TestDB_0", Arrays.asList("localhost_12918", "localhost_12919", "localhost_12920"));
-        idealState.getRecord().setListField("TestDB_1", Arrays.asList("localhost_12919", "localhost_12918", "localhost_12920"));
-        
-        admin.setResourceIdealState(clusterName, "TestDB", idealState);
-
-	    // start participants
-	    MockParticipant[] participants = new MockParticipant[n];
-	    for (int i = 0; i < n; i++)
-	    {
-	      String instanceName = "localhost_" + (12918 + i);
-
-	      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
-	      participants[i].syncStart();
-	    }
-
-	    ClusterController controller =
-	        new ClusterController(clusterName, "controller_0", ZK_ADDR);
-	    controller.syncStart();
-
-	    boolean result =
-	        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-	                                                                                 clusterName));
-	    Assert.assertTrue(result);
-
-	    // make sure localhost_12919 is master on TestDB_1
-	    HelixDataAccessor accessor = controller.getManager().getHelixDataAccessor();
-	    Builder keyBuilder = accessor.keyBuilder();
-	    ExternalView extView = accessor.getProperty(keyBuilder.externalView(db));
-	    Map<String, String> stateMap = extView.getStateMap(db + "_1");
-	    Assert.assertEquals(stateMap.get("localhost_12919"), "MASTER", 
-	    		"localhost_12919 should be MASTER even though replicas is set to 2, since we generate message based on target-state priority");
-	    
-	    System.out.println("END " + clusterName + " at "
-	            + new Date(System.currentTimeMillis()));
+    // Add nodes to the cluster
+    int n = 3;
+    System.out.println("Adding " + n + " participants to the cluster");
+    for (int i = 0; i < n; i++) {
+      int port = 12918 + i;
+      InstanceConfig instanceConfig = new InstanceConfig("localhost_" + port);
+      instanceConfig.setHostName("localhost");
+      instanceConfig.setPort("" + port);
+      instanceConfig.setInstanceEnabled(true);
+      admin.addInstance(clusterName, instanceConfig);
+      // System.out.println("\t Added participant: " + instanceConfig.getInstanceName());
     }
+
+    // construct ideal-state manually
+    IdealState idealState = new IdealState(db);
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setNumPartitions(2);
+    idealState.setReplicas("" + 2); // should be 3
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.getRecord().setListField("TestDB_0",
+        Arrays.asList("localhost_12918", "localhost_12919", "localhost_12920"));
+    idealState.getRecord().setListField("TestDB_1",
+        Arrays.asList("localhost_12919", "localhost_12918", "localhost_12920"));
+
+    admin.setResourceIdealState(clusterName, "TestDB", idealState);
+
+    // start participants
+    MockParticipant[] participants = new MockParticipant[n];
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+
+      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i].syncStart();
+    }
+
+    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    controller.syncStart();
+
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(result);
+
+    // make sure localhost_12919 is master on TestDB_1
+    HelixDataAccessor accessor = controller.getManager().getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    ExternalView extView = accessor.getProperty(keyBuilder.externalView(db));
+    Map<String, String> stateMap = extView.getStateMap(db + "_1");
+    Assert
+        .assertEquals(
+            stateMap.get("localhost_12919"),
+            "MASTER",
+            "localhost_12919 should be MASTER even though replicas is set to 2, since we generate message based on target-state priority");
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 }

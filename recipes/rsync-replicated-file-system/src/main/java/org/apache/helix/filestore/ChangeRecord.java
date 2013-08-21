@@ -19,8 +19,7 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
-public class ChangeRecord
-{
+public class ChangeRecord {
   /**
    * Transaction Id corresponding to the change that increases monotonically. 31
    * LSB correspond to sequence number that increments every change. 31 MSB
@@ -46,11 +45,10 @@ public class ChangeRecord
   transient long startOffset;
 
   transient long endOffset;
-  
+
   public short fileFieldLength;
 
-  public String toString()
-  {
+  public String toString() {
     StringBuilder sb = new StringBuilder();
     sb.append(txid);
     sb.append("|");
@@ -66,14 +64,11 @@ public class ChangeRecord
     return sb.toString();
   }
 
-  public static ChangeRecord fromString(String line)
-  {
-    ChangeRecord record=null;
-    if (line != null)
-    {
+  public static ChangeRecord fromString(String line) {
+    ChangeRecord record = null;
+    if (line != null) {
       String[] split = line.split("\\|");
-      if (split.length == 6)
-      {
+      if (split.length == 6) {
         record = new ChangeRecord();
         record.txid = Long.parseLong(split[0]);
         record.timestamp = Long.parseLong(split[1]);

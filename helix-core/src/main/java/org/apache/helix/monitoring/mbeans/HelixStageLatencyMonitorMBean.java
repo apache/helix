@@ -19,8 +19,7 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-public interface HelixStageLatencyMonitorMBean
-{
+public interface HelixStageLatencyMonitorMBean {
   public long getMaxStgLatency();
 
   public long getMeanStgLatency();

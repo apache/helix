@@ -26,13 +26,12 @@ import org.apache.helix.model.InstanceConfig;
 /**
  * Interface to implement to listen for changes to instance configurations.
  */
-public interface InstanceConfigChangeListener 
-{
+public interface InstanceConfigChangeListener {
   /**
    * Invoked when participant config changes
-   * 
    * @param configs
    * @param changeContext
    */
-  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs, NotificationContext context);
+  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
+      NotificationContext context);
 }

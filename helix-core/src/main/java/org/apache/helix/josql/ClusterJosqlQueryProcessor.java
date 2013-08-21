@@ -39,27 +39,22 @@ import org.josql.QueryExecutionException;
 import org.josql.QueryParseException;
 import org.josql.QueryResults;
 
-
-public class ClusterJosqlQueryProcessor
-{
+public class ClusterJosqlQueryProcessor {
   public static final String PARTITIONS = "PARTITIONS";
   public static final String FLATTABLE = ".Table";
 
   HelixManager _manager;
   private static Logger _logger = Logger.getLogger(ClusterJosqlQueryProcessor.class);
 
-  public ClusterJosqlQueryProcessor(HelixManager manager)
-  {
+  public ClusterJosqlQueryProcessor(HelixManager manager) {
     _manager = manager;
   }
 
-  String parseFromTarget(String sql)
-  {
+  String parseFromTarget(String sql) {
     // We need to find out the "FROM" target, and replace it with liveInstances
     // / partitions etc
     int fromIndex = sql.indexOf("FROM");
-    if (fromIndex == -1)
-    {
+    if (fromIndex == -1) {
       throw new HelixException("Query must contain FROM target. Query: " + sql);
     }
     // Per JoSql, select FROM <target> the target must be a object class that
@@ -67,19 +62,16 @@ public class ClusterJosqlQueryProcessor
     // In out case, the row is always a ZNRecord
 
     int nextSpace = sql.indexOf(" ", fromIndex);
-    while (sql.charAt(nextSpace) == ' ')
-    {
+    while (sql.charAt(nextSpace) == ' ') {
       nextSpace++;
     }
     int nextnextSpace = sql.indexOf(" ", nextSpace);
-    if (nextnextSpace == -1)
-    {
+    if (nextnextSpace == -1) {
       nextnextSpace = sql.length();
     }
     String fromTarget = sql.substring(nextSpace, nextnextSpace).trim();
 
-    if (fromTarget.length() == 0)
-    {
+    if (fromTarget.length() == 0) {
       throw new HelixException("FROM target in the query cannot be empty. Query: " + sql);
     }
     return fromTarget;
@@ -87,8 +79,7 @@ public class ClusterJosqlQueryProcessor
 
   public List<Object> runJoSqlQuery(String josql, Map<String, Object> bindVariables,
       List<Object> additionalFunctionHandlers, List queryTarget) throws QueryParseException,
-      QueryExecutionException
-  {
+      QueryExecutionException {
     Query josqlQuery = prepareQuery(bindVariables, additionalFunctionHandlers);
 
     josqlQuery.parse(josql);
@@ -97,69 +88,68 @@ public class ClusterJosqlQueryProcessor
     return qr.getResults();
   }
 
-  Query prepareQuery(Map<String, Object> bindVariables, List<Object> additionalFunctionHandlers)
-  {
+  Query prepareQuery(Map<String, Object> bindVariables, List<Object> additionalFunctionHandlers) {
     // DataAccessor accessor = _manager.getDataAccessor();
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    
+
     // Get all the ZNRecords in the cluster and set them as bind variables
     Builder keyBuilder = accessor.keyBuilder();
-//    List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
-//        ConfigScopeProperty.PARTICIPANT.toString());
-    
-    List<ZNRecord> instanceConfigs = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
+    // List<ZNRecord> instanceConfigs = accessor.getChildValues(PropertyType.CONFIGS,
+    // ConfigScopeProperty.PARTICIPANT.toString());
 
-    List<ZNRecord> liveInstances = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.liveInstances()));
-    List<ZNRecord> stateModelDefs = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.stateModelDefs()));
-    
+    List<ZNRecord> instanceConfigs =
+        HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
+
+    List<ZNRecord> liveInstances =
+        HelixProperty.convertToList(accessor.getChildValues(keyBuilder.liveInstances()));
+    List<ZNRecord> stateModelDefs =
+        HelixProperty.convertToList(accessor.getChildValues(keyBuilder.stateModelDefs()));
+
     // Idealstates are stored in a map from resource name to idealState ZNRecord
-    List<ZNRecord> idealStateList = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.idealStates()));
-    
+    List<ZNRecord> idealStateList =
+        HelixProperty.convertToList(accessor.getChildValues(keyBuilder.idealStates()));
+
     Map<String, ZNRecord> idealStatesMap = new HashMap<String, ZNRecord>();
-    for (ZNRecord idealState : idealStateList)
-    {
+    for (ZNRecord idealState : idealStateList) {
       idealStatesMap.put(idealState.getId(), idealState);
     }
     // Make up the partition list: for selecting partitions
     List<ZNRecord> partitions = new ArrayList<ZNRecord>();
-    for (ZNRecord idealState : idealStateList)
-    {
-      for (String partitionName : idealState.getMapFields().keySet())
-      {
+    for (ZNRecord idealState : idealStateList) {
+      for (String partitionName : idealState.getMapFields().keySet()) {
         partitions.add(new ZNRecord(partitionName));
       }
     }
-    
-    List<ZNRecord> externalViewList = HelixProperty.convertToList(accessor.getChildValues(keyBuilder.externalViews()));
+
+    List<ZNRecord> externalViewList =
+        HelixProperty.convertToList(accessor.getChildValues(keyBuilder.externalViews()));
     // ExternalViews are stored in a map from resource name to idealState
     // ZNRecord
     Map<String, ZNRecord> externalViewMap = new HashMap<String, ZNRecord>();
-    for (ZNRecord externalView : externalViewList)
-    {
+    for (ZNRecord externalView : externalViewList) {
       externalViewMap.put(externalView.getId(), externalView);
     }
     // Map from instance name to a map from resource to current state ZNRecord
-    Map<String, Map<String, ZNRecord>> currentStatesMap = new HashMap<String, Map<String, ZNRecord>>();
+    Map<String, Map<String, ZNRecord>> currentStatesMap =
+        new HashMap<String, Map<String, ZNRecord>>();
     // Map from instance name to a list of combined flat ZNRecordRow
     Map<String, List<ZNRecordRow>> flatCurrentStateMap = new HashMap<String, List<ZNRecordRow>>();
 
-    for (ZNRecord instance : liveInstances)
-    {
+    for (ZNRecord instance : liveInstances) {
       String host = instance.getId();
       String sessionId = instance.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
       Map<String, ZNRecord> currentStates = new HashMap<String, ZNRecord>();
       List<ZNRecord> instanceCurrentStateList = new ArrayList<ZNRecord>();
-      for (ZNRecord idealState : idealStateList)
-      {
+      for (ZNRecord idealState : idealStateList) {
         String resourceName = idealState.getId();
-        
-        HelixProperty property = accessor.getProperty(keyBuilder.currentState(host, sessionId, resourceName));
-        ZNRecord currentState =null;
-        if (property == null)
-        {
+
+        HelixProperty property =
+            accessor.getProperty(keyBuilder.currentState(host, sessionId, resourceName));
+        ZNRecord currentState = null;
+        if (property == null) {
           _logger.warn("Resource " + resourceName + " has null currentState");
           currentState = new ZNRecord(resourceName);
-        }else{
+        } else {
           currentState = property.getRecord();
         }
         currentStates.put(resourceName, currentState);
@@ -171,10 +161,9 @@ public class ClusterJosqlQueryProcessor
     Query josqlQuery = new Query();
 
     // Set the default bind variables
-    josqlQuery
-.setVariable(
+    josqlQuery.setVariable(
         PropertyType.CONFIGS.toString() + "/" + ConfigScopeProperty.PARTICIPANT.toString(),
-            instanceConfigs);
+        instanceConfigs);
     josqlQuery.setVariable(PropertyType.IDEALSTATES.toString(), idealStatesMap);
     josqlQuery.setVariable(PropertyType.LIVEINSTANCES.toString(), liveInstances);
     josqlQuery.setVariable(PropertyType.STATEMODELDEFS.toString(), stateModelDefs);
@@ -185,8 +174,7 @@ public class ClusterJosqlQueryProcessor
     // Flat version of ZNRecords
     josqlQuery.setVariable(
         PropertyType.CONFIGS.toString() + "/" + ConfigScopeProperty.PARTICIPANT.toString()
-            + FLATTABLE,
-        ZNRecordRow.flatten(instanceConfigs));
+            + FLATTABLE, ZNRecordRow.flatten(instanceConfigs));
     josqlQuery.setVariable(PropertyType.IDEALSTATES.toString() + FLATTABLE,
         ZNRecordRow.flatten(idealStateList));
     josqlQuery.setVariable(PropertyType.LIVEINSTANCES.toString() + FLATTABLE,
@@ -199,10 +187,8 @@ public class ClusterJosqlQueryProcessor
         flatCurrentStateMap.values());
     josqlQuery.setVariable(PARTITIONS + FLATTABLE, ZNRecordRow.flatten(partitions));
     // Set additional bind variables
-    if (bindVariables != null)
-    {
-      for (String key : bindVariables.keySet())
-      {
+    if (bindVariables != null) {
+      for (String key : bindVariables.keySet()) {
         josqlQuery.setVariable(key, bindVariables.get(key));
       }
     }
@@ -210,10 +196,8 @@ public class ClusterJosqlQueryProcessor
     josqlQuery.addFunctionHandler(new ZNRecordJosqlFunctionHandler());
     josqlQuery.addFunctionHandler(new ZNRecordRow());
     josqlQuery.addFunctionHandler(new Integer(0));
-    if (additionalFunctionHandlers != null)
-    {
-      for (Object functionHandler : additionalFunctionHandlers)
-      {
+    if (additionalFunctionHandlers != null) {
+      for (Object functionHandler : additionalFunctionHandlers) {
         josqlQuery.addFunctionHandler(functionHandler);
       }
     }
@@ -221,8 +205,7 @@ public class ClusterJosqlQueryProcessor
   }
 
   public List<Object> runJoSqlQuery(String josql, Map<String, Object> bindVariables,
-      List<Object> additionalFunctionHandlers) throws QueryParseException, QueryExecutionException
-  {
+      List<Object> additionalFunctionHandlers) throws QueryParseException, QueryExecutionException {
     Query josqlQuery = prepareQuery(bindVariables, additionalFunctionHandlers);
 
     // Per JoSql, select FROM <target> the target must be a object class that
@@ -236,71 +219,58 @@ public class ClusterJosqlQueryProcessor
 
     List fromTargetList = null;
     Object fromTarget = null;
-    if (fromTargetString.equalsIgnoreCase(PARTITIONS))
-    {
+    if (fromTargetString.equalsIgnoreCase(PARTITIONS)) {
       fromTarget = josqlQuery.getVariable(PARTITIONS.toString());
-    } else if (fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString()))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString())) {
       fromTarget = josqlQuery.getVariable(PropertyType.LIVEINSTANCES.toString());
     } else if (fromTargetString.equalsIgnoreCase(PropertyType.CONFIGS.toString() + "/"
-        + ConfigScopeProperty.PARTICIPANT.toString()))
-    {
-      fromTarget = josqlQuery.getVariable(PropertyType.CONFIGS.toString() + "/"
-          + ConfigScopeProperty.PARTICIPANT.toString());
-    } else if (fromTargetString.equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString()))
-    {
+        + ConfigScopeProperty.PARTICIPANT.toString())) {
+      fromTarget =
+          josqlQuery.getVariable(PropertyType.CONFIGS.toString() + "/"
+              + ConfigScopeProperty.PARTICIPANT.toString());
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString())) {
       fromTarget = josqlQuery.getVariable(PropertyType.STATEMODELDEFS.toString());
-    } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString()))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString())) {
       fromTarget = josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString());
-    } 
-    else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString()))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString())) {
       fromTarget = josqlQuery.getVariable(PropertyType.IDEALSTATES.toString());
     }
-    
-    else if (fromTargetString.equalsIgnoreCase(PARTITIONS + FLATTABLE))
-    {
+
+    else if (fromTargetString.equalsIgnoreCase(PARTITIONS + FLATTABLE)) {
       fromTarget = josqlQuery.getVariable(PARTITIONS.toString() + FLATTABLE);
-    } else if (fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString() + FLATTABLE))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.LIVEINSTANCES.toString() + FLATTABLE)) {
       fromTarget = josqlQuery.getVariable(PropertyType.LIVEINSTANCES.toString() + FLATTABLE);
     } else if (fromTargetString.equalsIgnoreCase(PropertyType.CONFIGS.toString() + "/"
-        + ConfigScopeProperty.PARTICIPANT.toString()
-        + FLATTABLE))
-    {
-      fromTarget = josqlQuery.getVariable(PropertyType.CONFIGS.toString() + "/"
-          + ConfigScopeProperty.PARTICIPANT.toString() + FLATTABLE);
+        + ConfigScopeProperty.PARTICIPANT.toString() + FLATTABLE)) {
+      fromTarget =
+          josqlQuery.getVariable(PropertyType.CONFIGS.toString() + "/"
+              + ConfigScopeProperty.PARTICIPANT.toString() + FLATTABLE);
     } else if (fromTargetString
-        .equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString() + FLATTABLE))
-    {
+        .equalsIgnoreCase(PropertyType.STATEMODELDEFS.toString() + FLATTABLE)) {
       fromTarget = josqlQuery.getVariable(PropertyType.STATEMODELDEFS.toString() + FLATTABLE);
-    } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString() + FLATTABLE))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.EXTERNALVIEW.toString() + FLATTABLE)) {
       fromTarget = josqlQuery.getVariable(PropertyType.EXTERNALVIEW.toString() + FLATTABLE);
-    }
-    else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString() + FLATTABLE))
-    {
+    } else if (fromTargetString.equalsIgnoreCase(PropertyType.IDEALSTATES.toString() + FLATTABLE)) {
       fromTarget = josqlQuery.getVariable(PropertyType.IDEALSTATES.toString() + FLATTABLE);
-    }
-    else
-    {
+    } else {
       throw new HelixException(
           "Unknown query target "
               + fromTargetString
               + ". Target should be PARTITIONS, LIVEINSTANCES, CONFIGS, STATEMODELDEFS, IDEALSTATES, EXTERNALVIEW, and corresponding flat Tables");
     }
 
-    fromTargetList = fromTargetString.endsWith(FLATTABLE) ? ((List<ZNRecordRow>) fromTarget)
-        : ((List<ZNRecord>) fromTarget);
+    fromTargetList =
+        fromTargetString.endsWith(FLATTABLE) ? ((List<ZNRecordRow>) fromTarget)
+            : ((List<ZNRecord>) fromTarget);
 
     // Per JoSql, select FROM <target> the target must be a object class that
     // corresponds to a "table row"
     // In out case, the row is always a ZNRecord
-    josql = josql.replaceFirst(
-        fromTargetString,
-        fromTargetString.endsWith(FLATTABLE) ? ZNRecordRow.class.getName() : ZNRecord.class
-            .getName());
+    josql =
+        josql.replaceFirst(
+            fromTargetString,
+            fromTargetString.endsWith(FLATTABLE) ? ZNRecordRow.class.getName() : ZNRecord.class
+                .getName());
     josqlQuery.parse(josql);
     QueryResults qr = josqlQuery.execute(fromTargetList);
     return qr.getResults();

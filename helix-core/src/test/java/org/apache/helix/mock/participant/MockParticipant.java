@@ -45,71 +45,56 @@ import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.log4j.Logger;
 
-
-public class MockParticipant extends Thread
-{
-  private static Logger           LOG                      =
-                                                               Logger.getLogger(MockParticipant.class);
-  private final String            _clusterName;
-  private final String            _instanceName;
+public class MockParticipant extends Thread {
+  private static Logger LOG = Logger.getLogger(MockParticipant.class);
+  private final String _clusterName;
+  private final String _instanceName;
   // private final String _zkAddr;
 
-  private final CountDownLatch    _startCountDown          = new CountDownLatch(1);
-  private final CountDownLatch    _stopCountDown           = new CountDownLatch(1);
-  private final CountDownLatch    _waitStopFinishCountDown = new CountDownLatch(1);
+  private final CountDownLatch _startCountDown = new CountDownLatch(1);
+  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
   private final ZkHelixTestManager _manager;
   private final StateModelFactory _msModelFactory;
-  private final MockJobIntf       _job;
+  private final MockJobIntf _job;
 
-  public MockParticipant(String clusterName, String instanceName, String zkAddr) throws Exception
-  {
+  public MockParticipant(String clusterName, String instanceName, String zkAddr) throws Exception {
     this(clusterName, instanceName, zkAddr, null, null);
   }
 
-  public MockParticipant(String clusterName,
-                         String instanceName,
-                         String zkAddr,
-                         MockTransition transition) throws Exception
-  {
+  public MockParticipant(String clusterName, String instanceName, String zkAddr,
+      MockTransition transition) throws Exception {
     this(clusterName, instanceName, zkAddr, transition, null);
   }
 
-  public MockParticipant(String clusterName,
-                         String instanceName,
-                         String zkAddr,
-                         MockTransition transition,
-                         MockJobIntf job) throws Exception
-  {
+  public MockParticipant(String clusterName, String instanceName, String zkAddr,
+      MockTransition transition, MockJobIntf job) throws Exception {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _msModelFactory = new MockMSModelFactory(transition);
 
-    _manager = new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
+    _manager =
+        new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
     _job = job;
   }
 
-  public MockParticipant(StateModelFactory factory,
-                         String clusterName,
-                         String instanceName,
-                         String zkAddr,
-                         MockJobIntf job) throws Exception
-  {
+  public MockParticipant(StateModelFactory factory, String clusterName, String instanceName,
+      String zkAddr, MockJobIntf job) throws Exception {
     _clusterName = clusterName;
     _instanceName = instanceName;
     _msModelFactory = factory;
 
-    _manager = new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
+    _manager =
+        new ZkHelixTestManager(_clusterName, _instanceName, InstanceType.PARTICIPANT, zkAddr);
     _job = job;
   }
 
-  public StateModelFactory getStateModelFactory()
-  {
+  public StateModelFactory getStateModelFactory() {
     return _msModelFactory;
   }
 
-  public MockParticipant(ZkHelixTestManager manager, MockTransition transition)
-  {
+  public MockParticipant(ZkHelixTestManager manager, MockTransition transition) {
     _clusterName = manager.getClusterName();
     _instanceName = manager.getInstanceName();
     _manager = manager;
@@ -118,38 +103,29 @@ public class MockParticipant extends Thread
     _job = null;
   }
 
-  public void setTransition(MockTransition transition)
-  {
-    if (_msModelFactory instanceof MockMSModelFactory)
-    {
+  public void setTransition(MockTransition transition) {
+    if (_msModelFactory instanceof MockMSModelFactory) {
       ((MockMSModelFactory) _msModelFactory).setTrasition(transition);
     }
   }
 
-  public ZkHelixTestManager getManager()
-  {
+  public ZkHelixTestManager getManager() {
     return _manager;
   }
 
-  public String getInstanceName()
-  {
+  public String getInstanceName() {
     return _instanceName;
   }
 
-  public String getClusterName()
-  {
+  public String getClusterName() {
     return _clusterName;
   }
 
-  public void syncStop()
-  {
+  public void syncStop() {
     _stopCountDown.countDown();
-    try
-    {
+    try {
       _waitStopFinishCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -160,25 +136,19 @@ public class MockParticipant extends Thread
     // }
   }
 
-  public void syncStart()
-  {
+  public void syncStart() {
     super.start();
-    try
-    {
+    try {
       _startCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
   }
 
   @Override
-  public void run()
-  {
-    try
-    {
+  public void run() {
+    try {
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       stateMach.registerStateModelFactory("MasterSlave", _msModelFactory);
 
@@ -194,40 +164,31 @@ public class MockParticipant extends Thread
       // MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
       // stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
 
-      if (_job != null)
-      {
+      if (_job != null) {
         _job.doPreConnectJob(_manager);
       }
 
       _manager.connect();
       _startCountDown.countDown();
 
-      if (_job != null)
-      {
+      if (_job != null) {
         _job.doPostConnectJob(_manager);
       }
 
       _stopCountDown.await();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       String msg =
           "participant: " + _instanceName + ", " + Thread.currentThread().getName()
               + " is interrupted";
       LOG.info(msg);
       System.err.println(msg);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       _startCountDown.countDown();
 
-      synchronized (_manager)
-      {
+      synchronized (_manager) {
         _manager.disconnect();
       }
       _waitStopFinishCountDown.countDown();

@@ -22,12 +22,14 @@ package org.apache.helix;
 /**
  * A ZNRecord container that specifies how it should be merged with another ZNRecord
  */
-public class ZNRecordDelta
-{
+public class ZNRecordDelta {
   /**
    * Supported methods of updating a ZNRecord
    */
-  public enum MergeOperation {ADD, SUBTRACT};
+  public enum MergeOperation {
+    ADD,
+    SUBTRACT
+  };
 
   /**
    * Backing ZNRecord containing updates
@@ -44,8 +46,7 @@ public class ZNRecordDelta
    * @param record
    * @param _mergeOperation
    */
-  public ZNRecordDelta(ZNRecord record, MergeOperation mergeOperation)
-  {
+  public ZNRecordDelta(ZNRecord record, MergeOperation mergeOperation) {
     _record = new ZNRecord(record);
     _mergeOperation = mergeOperation;
   }
@@ -54,16 +55,14 @@ public class ZNRecordDelta
    * Initialize the delta with a record and a default update mode of add
    * @param record
    */
-  public ZNRecordDelta(ZNRecord record)
-  {
+  public ZNRecordDelta(ZNRecord record) {
     this(record, MergeOperation.ADD);
   }
 
   /**
    * Initialize with an empty ZNRecord and a default update mode of add
    */
-  public ZNRecordDelta()
-  {
+  public ZNRecordDelta() {
     this(new ZNRecord(""), MergeOperation.ADD);
   }
 
@@ -71,8 +70,7 @@ public class ZNRecordDelta
    * Get the backing ZNRecord
    * @return the ZNRecord containing the changes
    */
-  public ZNRecord getRecord()
-  {
+  public ZNRecord getRecord() {
     return _record;
   }
 
@@ -80,8 +78,7 @@ public class ZNRecordDelta
    * Get the selected update mode
    * @return MergeOperation currently in effect
    */
-  public MergeOperation getMergeOperation()
-  {
+  public MergeOperation getMergeOperation() {
     return _mergeOperation;
   }
 }

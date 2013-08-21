@@ -26,7 +26,6 @@ import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 
 /**
  * config-scope builder that replaces @link ConfigScopeBuilder
- *
  */
 public class HelixConfigScopeBuilder {
 
@@ -35,14 +34,14 @@ public class HelixConfigScopeBuilder {
   private String _participantName;
   private String _resourceName;
   private String _partitionName;
-  
+
   public HelixConfigScopeBuilder(ConfigScopeProperty type, String... keys) {
     int argNum = type.getZkPathArgNum() + type.getMapKeyArgNum();
-    if (keys == null || (keys.length != argNum && keys.length != argNum -1 )) {
-      throw new IllegalArgumentException("invalid keys. type: " + type 
-          + ", keys: " + Arrays.asList(keys));
+    if (keys == null || (keys.length != argNum && keys.length != argNum - 1)) {
+      throw new IllegalArgumentException("invalid keys. type: " + type + ", keys: "
+          + Arrays.asList(keys));
     }
-    
+
     _type = type;
     _clusterName = keys[0];
 
@@ -69,38 +68,34 @@ public class HelixConfigScopeBuilder {
       break;
     }
   }
-  
+
   public HelixConfigScopeBuilder(ConfigScopeProperty type) {
     _type = type;
   }
-  
-  public HelixConfigScopeBuilder forCluster(String clusterName)
-  {
+
+  public HelixConfigScopeBuilder forCluster(String clusterName) {
     _clusterName = clusterName;
     return this;
   }
 
-  public HelixConfigScopeBuilder forParticipant(String participantName)
-  {
+  public HelixConfigScopeBuilder forParticipant(String participantName) {
     _participantName = participantName;
     return this;
   }
 
-  public HelixConfigScopeBuilder forResource(String resourceName)
-  {
+  public HelixConfigScopeBuilder forResource(String resourceName) {
     _resourceName = resourceName;
     return this;
   }
 
-  public HelixConfigScopeBuilder forPartition(String partitionName)
-  {
+  public HelixConfigScopeBuilder forPartition(String partitionName) {
     _partitionName = partitionName;
     return this;
   }
-  
+
   public HelixConfigScope build() {
     HelixConfigScope scope = null;
-    switch(_type) {
+    switch (_type) {
     case CLUSTER:
       scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _clusterName), null);
       break;
@@ -122,7 +117,8 @@ public class HelixConfigScopeBuilder {
       if (_partitionName == null) {
         scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _resourceName), null);
       } else {
-        scope = new HelixConfigScope(_type, Arrays.asList(_clusterName, _resourceName), _partitionName);
+        scope =
+            new HelixConfigScope(_type, Arrays.asList(_clusterName, _resourceName), _partitionName);
       }
       break;
     default:

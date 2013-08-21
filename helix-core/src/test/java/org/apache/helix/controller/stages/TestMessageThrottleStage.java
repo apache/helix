@@ -52,19 +52,14 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestMessageThrottleStage extends ZkUnitTestBase
-{
-  private static final Logger LOG        =
-                                             Logger.getLogger(TestMessageThrottleStage.class.getName());
-  final String                _className = getShortClassName();
+public class TestMessageThrottleStage extends ZkUnitTestBase {
+  private static final Logger LOG = Logger.getLogger(TestMessageThrottleStage.class.getName());
+  final String _className = getShortClassName();
 
   @Test
-  public void testMsgThrottleBasic() throws Exception
-  {
+  public void testMsgThrottleBasic() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_basic";
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
@@ -72,21 +67,24 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] { 0, 1 }, new String[] { "TestDB" }, 1, 2);
-    setupLiveInstances(clusterName, new int[] { 0, 1 });
+    setupIdealState(clusterName, new int[] {
+        0, 1
+    }, new String[] {
+      "TestDB"
+    }, 1, 2);
+    setupLiveInstances(clusterName, new int[] {
+        0, 1
+    });
     setupStateModel(clusterName);
 
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
-    try
-    {
+    try {
       runStage(event, throttleStage);
       Assert.fail("Should throw exception since DATA_CACHE is null");
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
 
@@ -94,35 +92,25 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     dataRefresh.addStage(new ReadClusterDataStage());
     runPipeline(event, dataRefresh);
 
-    try
-    {
+    try {
       runStage(event, throttleStage);
       Assert.fail("Should throw exception since RESOURCE is null");
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
     runStage(event, new ResourceComputationStage());
 
-    try
-    {
+    try {
       runStage(event, throttleStage);
       Assert.fail("Should throw exception since MESSAGE_SELECT is null");
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // OK
     }
     MessageSelectionStageOutput msgSelectOutput = new MessageSelectionStageOutput();
     List<Message> selectMessages = new ArrayList<Message>();
     Message msg =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-001",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_0");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-001", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_0");
     selectMessages.add(msg);
 
     msgSelectOutput.addMessages("TestDB", new Partition("TestDB_0"), selectMessages);
@@ -132,21 +120,17 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     MessageThrottleStageOutput msgThrottleOutput =
         event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
-    Assert.assertEquals(msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0"))
-                                         .size(),
-                        1);
+    Assert.assertEquals(msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0")).size(),
+        1);
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
   @Test()
-  public void testMsgThrottleConstraints() throws Exception
-  {
+  public void testMsgThrottleConstraints() throws Exception {
     String clusterName = "CLUSTER_" + _className + "_constraints";
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
@@ -154,8 +138,14 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] { 0, 1 }, new String[] { "TestDB" }, 1, 2);
-    setupLiveInstances(clusterName, new int[] { 0, 1 });
+    setupIdealState(clusterName, new int[] {
+        0, 1
+    }, new String[] {
+      "TestDB"
+    }, 1, 2);
+    setupLiveInstances(clusterName, new int[] {
+        0, 1
+    });
     setupStateModel(clusterName);
 
     // setup constraints
@@ -218,7 +208,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
-                         new ClusterConstraints(record));
+        new ClusterConstraints(record));
 
     // ClusterConstraints constraint =
     // accessor.getProperty(ClusterConstraints.class,
@@ -233,15 +223,10 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     // test constraintSelection
     // message1: hit contraintSelection rule1 and rule2
     Message msg1 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-001",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_0");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-001", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_0");
 
-    Map<ConstraintAttribute, String> msgAttr =
-        ClusterConstraints.toConstraintAttributes(msg1);
+    Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
     Set<ConstraintItem> matches = constraint.match(msgAttr);
     System.out.println(msg1 + " matches(" + matches.size() + "): " + matches);
     Assert.assertEquals(matches.size(), 5);
@@ -259,12 +244,8 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
 
     // message2: hit contraintSelection rule1, rule2, and rule3
     Message msg2 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-002",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_1");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-002", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_1");
 
     msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
     matches = constraint.match(msgAttr);
@@ -293,36 +274,20 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     MessageSelectionStageOutput msgSelectOutput = new MessageSelectionStageOutput();
 
     Message msg3 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-003",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_0");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-003", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_0");
 
     Message msg4 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-004",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_0");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-004", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_0");
 
     Message msg5 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-005",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_0");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-005", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_0");
 
     Message msg6 =
-        createMessage(MessageType.STATE_TRANSITION,
-                      "msgId-006",
-                      "OFFLINE",
-                      "SLAVE",
-                      "TestDB",
-                      "localhost_1");
+        createMessage(MessageType.STATE_TRANSITION, "msgId-006", "OFFLINE", "SLAVE", "TestDB",
+            "localhost_1");
 
     List<Message> selectMessages = new ArrayList<Message>();
     selectMessages.add(msg1);
@@ -347,18 +312,13 @@ public class TestMessageThrottleStage extends ZkUnitTestBase
     Assert.assertTrue(throttleMessages.contains(msg3));
     Assert.assertTrue(throttleMessages.contains(msg4));
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
-  private boolean containsConstraint(Set<ConstraintItem> constraints,
-                                     ConstraintItem constraint)
-  {
-    for (ConstraintItem item : constraints)
-    {
-      if (item.toString().equals(constraint.toString()))
-      {
+  private boolean containsConstraint(Set<ConstraintItem> constraints, ConstraintItem constraint) {
+    for (ConstraintItem item : constraints) {
+      if (item.toString().equals(constraint.toString())) {
         return true;
       }
     }

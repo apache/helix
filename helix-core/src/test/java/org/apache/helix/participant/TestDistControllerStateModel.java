@@ -28,41 +28,32 @@ import org.apache.helix.participant.DistClusterControllerStateModel;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-
-public class TestDistControllerStateModel extends ZkUnitTestBase
-{
+public class TestDistControllerStateModel extends ZkUnitTestBase {
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   DistClusterControllerStateModel stateModel = null;
 
   @BeforeMethod()
-  public void beforeMethod()
-  {
+  public void beforeMethod() {
     stateModel = new DistClusterControllerStateModel(ZK_ADDR);
-    if (_gZkClient.exists("/" + clusterName))
-    {
+    if (_gZkClient.exists("/" + clusterName)) {
       _gZkClient.deleteRecursive("/" + clusterName);
     }
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
   }
 
   @Test()
-  public void testOnBecomeStandbyFromOffline()
-  {
+  public void testOnBecomeStandbyFromOffline() {
     stateModel.onBecomeStandbyFromOffline(null, null);
   }
 
   @Test()
-  public void testOnBecomeLeaderFromStandby()
-  {
+  public void testOnBecomeLeaderFromStandby() {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
     message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
-    try
-    {
+    try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -70,8 +61,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   }
 
   @Test()
-  public void testOnBecomeStandbyFromLeader()
-  {
+  public void testOnBecomeStandbyFromLeader() {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
     message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
@@ -79,8 +69,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   }
 
   @Test()
-  public void testOnBecomeOfflineFromStandby()
-  {
+  public void testOnBecomeOfflineFromStandby() {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
     message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
@@ -89,29 +78,23 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   }
 
   @Test()
-  public void testOnBecomeDroppedFromOffline()
-  {
+  public void testOnBecomeDroppedFromOffline() {
     stateModel.onBecomeDroppedFromOffline(null, null);
   }
 
   @Test()
-  public void testOnBecomeOfflineFromDropped()
-  {
+  public void testOnBecomeOfflineFromDropped() {
     stateModel.onBecomeOfflineFromDropped(null, null);
   }
 
   @Test()
-  public void testRollbackOnError()
-  {
+  public void testRollbackOnError() {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
     message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
-    try
-    {
+    try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -119,17 +102,13 @@ public class TestDistControllerStateModel extends ZkUnitTestBase
   }
 
   @Test()
-  public void testReset()
-  {
+  public void testReset() {
     Message message = new Message(MessageType.STATE_TRANSITION, "0");
     message.setPartitionName(clusterName);
     message.setTgtName("controller_0");
-    try
-    {
+    try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

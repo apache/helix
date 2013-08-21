@@ -33,13 +33,11 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestDefaultControllerMsgHandlerFactory
-{
+public class TestDefaultControllerMsgHandlerFactory {
   @Test()
-  public void testDefaultControllerMsgHandlerFactory()
-  {
-  	System.out.println("START TestDefaultControllerMsgHandlerFactory at " + new Date(System.currentTimeMillis()));
+  public void testDefaultControllerMsgHandlerFactory() {
+    System.out.println("START TestDefaultControllerMsgHandlerFactory at "
+        + new Date(System.currentTimeMillis()));
 
     DefaultControllerMessageHandlerFactory facotry = new DefaultControllerMessageHandlerFactory();
 
@@ -47,38 +45,31 @@ public class TestDefaultControllerMsgHandlerFactory
     NotificationContext context = new NotificationContext(null);
 
     boolean exceptionCaught = false;
-    try
-    {
+    try {
       MessageHandler handler = facotry.createHandler(message, context);
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       exceptionCaught = true;
     }
     AssertJUnit.assertTrue(exceptionCaught);
 
     message = new Message(MessageType.CONTROLLER_MSG, "1");
     exceptionCaught = false;
-    try
-    {
+    try {
       MessageHandler handler = facotry.createHandler(message, context);
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       exceptionCaught = true;
     }
     AssertJUnit.assertFalse(exceptionCaught);
 
     Map<String, String> resultMap = new HashMap<String, String>();
     message = new Message(MessageType.NO_OP, "3");
-    DefaultControllerMessageHandler defaultHandler = new DefaultControllerMessageHandler(message, context);
-    try
-    {
+    DefaultControllerMessageHandler defaultHandler =
+        new DefaultControllerMessageHandler(message, context);
+    try {
       defaultHandler.handleMessage();
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       exceptionCaught = true;
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
@@ -87,20 +78,17 @@ public class TestDefaultControllerMsgHandlerFactory
     message = new Message(MessageType.CONTROLLER_MSG, "4");
     defaultHandler = new DefaultControllerMessageHandler(message, context);
     exceptionCaught = false;
-    try
-    {
+    try {
       defaultHandler.handleMessage();
-    } catch (HelixException e)
-    {
+    } catch (HelixException e) {
       exceptionCaught = true;
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }
     AssertJUnit.assertFalse(exceptionCaught);
-    System.out.println("END TestDefaultControllerMsgHandlerFactory at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestDefaultControllerMsgHandlerFactory at "
+        + new Date(System.currentTimeMillis()));
   }
 
 }

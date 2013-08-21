@@ -38,12 +38,9 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestSchemataSM extends ZkIntegrationTestBase
-{
+public class TestSchemataSM extends ZkIntegrationTestBase {
   @Test
-  public void testSchemataSM() throws Exception
-  {
+  public void testSchemataSM() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
@@ -53,60 +50,50 @@ public class TestSchemataSM extends ZkIntegrationTestBase
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR,
-                            12918, // participant start port
-                            "localhost", // participant name prefix
-                            "TestSchemata", // resource name prefix
-                            1, // resources
-                            1, // partitions per resource
-                            n, // number of nodes
-                            0, // replicas
-                            "STORAGE_DEFAULT_SM_SCHEMATA",
-                            false); // don't rebalance
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start port
+        "localhost", // participant name prefix
+        "TestSchemata", // resource name prefix
+        1, // resources
+        1, // partitions per resource
+        n, // number of nodes
+        0, // replicas
+        "STORAGE_DEFAULT_SM_SCHEMATA", false); // don't rebalance
 
     // rebalance ideal-state to use ANY_LIVEINSTANCE for preference list
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey key = keyBuilder.idealStates("TestSchemata0");
     IdealState idealState = accessor.getProperty(key);
     idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
     idealState.getRecord().setListField("TestSchemata0_0",
-                                        Arrays.asList(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString()));
+        Arrays.asList(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString()));
     accessor.setProperty(key, idealState);
 
-    ClusterController controller =
-        new ClusterController(clusterName, "controller", ZK_ADDR);
+    ClusterController controller = new ClusterController(clusterName, "controller", ZK_ADDR);
     controller.syncStart();
 
     // start n-1 participants
-    for (int i = 1; i < n; i++)
-    {
+    for (int i = 1; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] =
-          new MockParticipant(clusterName,
-                              instanceName,
-                              ZK_ADDR,
-                              null);
+      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     // start the remaining 1 participant
-    participants[0] = new MockParticipant(clusterName,
-                                          "localhost_12918",
-                                          ZK_ADDR,
-                                          null);
+    participants[0] = new MockParticipant(clusterName, "localhost_12918", ZK_ADDR, null);
     participants[0].syncStart();
 
     // make sure we have all participants in MASTER state
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
     key = keyBuilder.externalView("TestSchemata0");
     ExternalView externalView = accessor.getProperty(key);
@@ -120,8 +107,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase
     }
 
     // clean up
-    for (int i = 0; i < n; i++)
-    {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
 

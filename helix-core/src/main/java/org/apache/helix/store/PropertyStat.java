@@ -19,41 +19,34 @@ package org.apache.helix.store;
  * under the License.
  */
 
-public class PropertyStat
-{
+public class PropertyStat {
   private long _lastModifiedTime; // time in milliseconds from epoch when this property
                                   // was last modified
   private int _version; // latest version number
 
-  public PropertyStat()
-  {
+  public PropertyStat() {
     this(0, 0);
   }
 
-  public PropertyStat(long lastModifiedTime, int version)
-  {
+  public PropertyStat(long lastModifiedTime, int version) {
     _lastModifiedTime = lastModifiedTime;
     _version = version;
   }
 
-  public long getLastModifiedTime()
-  {
+  public long getLastModifiedTime() {
     return _lastModifiedTime;
   }
 
-  public int getVersion()
-  {
+  public int getVersion() {
     return _version;
   }
 
-  public void setLastModifiedTime(long lastModifiedTime)
-  {
+  public void setLastModifiedTime(long lastModifiedTime) {
 
     _lastModifiedTime = lastModifiedTime;
   }
 
-  public void setVersion(int version)
-  {
+  public void setVersion(int version) {
     _version = version;
   }
 }

@@ -33,14 +33,11 @@ import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.HelixUtil;
 
-
 /**
  * A MockSpectatorProcess to demonstrate the integration with cluster manager.
  * This uses Zookeeper in local mode and runs at port 2188
- *
  */
-public class MockSpectatorProcess
-{
+public class MockSpectatorProcess {
   private static final int port = 2188;
   static long runId = System.currentTimeMillis();
   private static final String dataDir = "/tmp/zkDataDir-" + runId;
@@ -54,41 +51,36 @@ public class MockSpectatorProcess
   private final RoutingTableProvider _routingTableProvider;
   private static ZkServer zkServer;
 
-  public MockSpectatorProcess()
-  {
+  public MockSpectatorProcess() {
     _routingTableProvider = new RoutingTableProvider();
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     setup();
     zkServer.getZkClient().setZkSerializer(new ZNRecordSerializer());
-    ZNRecord record = zkServer.getZkClient().readData(
-        HelixUtil.getIdealStatePath(clusterName, "TestDB"));
+    ZNRecord record =
+        zkServer.getZkClient().readData(HelixUtil.getIdealStatePath(clusterName, "TestDB"));
 
     String externalViewPath = HelixUtil.getExternalViewPath(clusterName, "TestDB");
 
     MockSpectatorProcess process = new MockSpectatorProcess();
     process.start();
-    //try to route, there is no master or slave available
+    // try to route, there is no master or slave available
     process.routeRequest("TestDB", "TestDB_1");
 
-    //update the externalview on zookeeper
-    zkServer.getZkClient().createPersistent(externalViewPath,record);
-    //sleep for sometime so that the ZK Callback is received.
+    // update the externalview on zookeeper
+    zkServer.getZkClient().createPersistent(externalViewPath, record);
+    // sleep for sometime so that the ZK Callback is received.
     Thread.sleep(1000);
     process.routeRequest("TestDB", "TestDB_1");
     System.exit(1);
   }
 
-  private static void setup()
-  {
+  private static void setup() {
 
-    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace()
-    {
+    IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
       @Override
-      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient client)
-      {
+      public void createDefaultNameSpace(org.I0Itec.zkclient.ZkClient client) {
         client.deleteRecursive("/" + clusterName);
 
       }
@@ -98,62 +90,46 @@ public class MockSpectatorProcess
     zkServer.start();
     ClusterSetup clusterSetup = new ClusterSetup(zkConnectString);
     clusterSetup.setupTestCluster(clusterName);
-    try
-    {
+    try {
       Thread.sleep(1000);
-    } catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       e.printStackTrace();
     }
   }
 
-  public void routeRequest(String database, String partition)
-  {
+  public void routeRequest(String database, String partition) {
     List<InstanceConfig> masters;
     List<InstanceConfig> slaves;
     masters = _routingTableProvider.getInstances(database, partition, "MASTER");
-    if (masters != null && !masters.isEmpty())
-    {
+    if (masters != null && !masters.isEmpty()) {
       System.out.println("Available masters to route request");
-      for (InstanceConfig config : masters)
-      {
-        System.out.println("HostName:" + config.getHostName() + " Port:"
-            + config.getPort());
+      for (InstanceConfig config : masters) {
+        System.out.println("HostName:" + config.getHostName() + " Port:" + config.getPort());
       }
-    } else
-    {
+    } else {
       System.out.println("No masters available to route request");
     }
     slaves = _routingTableProvider.getInstances(database, partition, "SLAVE");
-    if (slaves != null && !slaves.isEmpty())
-    {
+    if (slaves != null && !slaves.isEmpty()) {
       System.out.println("Available slaves to route request");
-      for (InstanceConfig config : slaves)
-      {
-        System.out.println("HostName:" + config.getHostName() + " Port:"
-            + config.getPort());
+      for (InstanceConfig config : slaves) {
+        System.out.println("HostName:" + config.getHostName() + " Port:" + config.getPort());
       }
-    } else
-    {
+    } else {
       System.out.println("No slaves available to route request");
     }
   }
 
-  public void start()
-  {
+  public void start() {
 
-    try
-    {
-      HelixManager manager = HelixManagerFactory.getZKHelixManager(clusterName,
-                                                                         null,
-                                                                         InstanceType.SPECTATOR,
-                                                                         zkConnectString);
-
+    try {
+      HelixManager manager =
+          HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.SPECTATOR,
+              zkConnectString);
 
       manager.connect();
       manager.addExternalViewChangeListener(_routingTableProvider);
-    } catch (Exception e)
-    {
+    } catch (Exception e) {
       e.printStackTrace();
     }
   }

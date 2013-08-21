@@ -33,42 +33,38 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestBestPossibleStateCalcStage extends BaseStageTest
-{
+public class TestBestPossibleStateCalcStage extends BaseStageTest {
   @Test
-  public void testSimple()
-  {
-  	System.out.println("START TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
-//    List<IdealState> idealStates = new ArrayList<IdealState>();
+  public void testSimple() {
+    System.out.println("START TestBestPossibleStateCalcStage at "
+        + new Date(System.currentTimeMillis()));
+    // List<IdealState> idealStates = new ArrayList<IdealState>();
 
-    String[] resources = new String[]{ "testResourceName" };
+    String[] resources = new String[] {
+      "testResourceName"
+    };
     setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     setupLiveInstances(5);
     setupStateModel();
 
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    event.addAttribute(AttributeName.RESOURCES.toString(),
-        resourceMap);
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(),
-        currentStateOutput);
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
     BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    BestPossibleStateOutput output = event
-        .getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    for (int p = 0; p < 5; p++)
-    {
+    BestPossibleStateOutput output =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    for (int p = 0; p < 5; p++) {
       Partition resource = new Partition("testResourceName_" + p);
-      AssertJUnit.assertEquals(
-          "MASTER",
-          output.getInstanceStateMap("testResourceName", resource).get(
-              "localhost_" + (p + 1) % 5));
+      AssertJUnit.assertEquals("MASTER", output.getInstanceStateMap("testResourceName", resource)
+          .get("localhost_" + (p + 1) % 5));
     }
-    System.out.println("END TestBestPossibleStateCalcStage at " + new Date(System.currentTimeMillis()));
+    System.out.println("END TestBestPossibleStateCalcStage at "
+        + new Date(System.currentTimeMillis()));
   }
 }

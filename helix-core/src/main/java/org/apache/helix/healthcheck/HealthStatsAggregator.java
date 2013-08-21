@@ -48,8 +48,7 @@ public class HealthStatsAggregator {
   private final Map<String, HelixStageLatencyMonitor> _stageLatencyMonitorMap =
       new HashMap<String, HelixStageLatencyMonitor>();
 
-  public HealthStatsAggregator(HelixManager manager)
-  {
+  public HealthStatsAggregator(HelixManager manager) {
     _manager = manager;
 
     // health stats pipeline
@@ -62,102 +61,79 @@ public class HealthStatsAggregator {
     registerStageLatencyMonitor(_healthStatsAggregationPipeline);
   }
 
-  private void registerStageLatencyMonitor(Pipeline pipeline)
-  {
-    for (Stage stage : pipeline.getStages())
-    {
+  private void registerStageLatencyMonitor(Pipeline pipeline) {
+    for (Stage stage : pipeline.getStages()) {
       String stgName = stage.getStageName();
-      if (!_stageLatencyMonitorMap.containsKey(stgName))
-      {
-        try
-        {
+      if (!_stageLatencyMonitorMap.containsKey(stgName)) {
+        try {
           _stageLatencyMonitorMap.put(stage.getStageName(),
-                                      new HelixStageLatencyMonitor(_manager.getClusterName(),
-                                                                   stgName));
-        }
-        catch (Exception e)
-        {
+              new HelixStageLatencyMonitor(_manager.getClusterName(), stgName));
+        } catch (Exception e) {
           LOG.error("Couldn't create StageLatencyMonitor mbean for stage: " + stgName, e);
         }
-      }
-      else
-      {
-        LOG.error("StageLatencyMonitor for stage: " + stgName
-            + " already exists. Skip register it");
+      } else {
+        LOG.error("StageLatencyMonitor for stage: " + stgName + " already exists. Skip register it");
       }
     }
   }
 
-  public synchronized void aggregate()
-  {
-    if (!isEnabled())
-    {
+  public synchronized void aggregate() {
+    if (!isEnabled()) {
       LOG.info("HealthAggregationTask is disabled.");
       return;
     }
-    
-    if (!_manager.isLeader())
-    {
+
+    if (!_manager.isLeader()) {
       LOG.error("Cluster manager: " + _manager.getInstanceName()
           + " is not leader. Pipeline will not be invoked");
       return;
     }
 
-    try
-    {
+    try {
       ClusterEvent event = new ClusterEvent("healthChange");
       event.addAttribute("helixmanager", _manager);
       event.addAttribute("HelixStageLatencyMonitorMap", _stageLatencyMonitorMap);
 
       _healthStatsAggregationPipeline.handle(event);
       _healthStatsAggregationPipeline.finish();
-    }
-    catch (Exception e)
-    {
-      LOG.error("Exception while executing pipeline: " + _healthStatsAggregationPipeline,
-                e);
+    } catch (Exception e) {
+      LOG.error("Exception while executing pipeline: " + _healthStatsAggregationPipeline, e);
     }
   }
 
-  private boolean isEnabled()
-  {
+  private boolean isEnabled() {
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
     boolean enabled = true;
-    if (configAccessor != null)
-    {
+    if (configAccessor != null) {
       // zk-based cluster manager
-      ConfigScope scope =
-          new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
+      ConfigScope scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
       String isEnabled = configAccessor.get(scope, "healthChange.enabled");
-      if (isEnabled != null)
-      {
+      if (isEnabled != null) {
         enabled = new Boolean(isEnabled);
       }
-    }
-    else
-    {
+    } else {
       LOG.debug("File-based cluster manager doesn't support disable healthChange");
     }
     return enabled;
   }
-  
+
   public void init() {
     // Remove all the previous health check values, if any
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    List<String> existingHealthRecordNames = accessor.getChildNames(accessor.keyBuilder().healthReports(_manager.getInstanceName()));
-    for(String healthReportName : existingHealthRecordNames)
-    {
+    List<String> existingHealthRecordNames =
+        accessor.getChildNames(accessor.keyBuilder().healthReports(_manager.getInstanceName()));
+    for (String healthReportName : existingHealthRecordNames) {
       LOG.info("Removing old healthrecord " + healthReportName);
-      accessor.removeProperty(accessor.keyBuilder().healthReport(_manager.getInstanceName(),healthReportName));
+      accessor.removeProperty(accessor.keyBuilder().healthReport(_manager.getInstanceName(),
+          healthReportName));
     }
 
   }
-  
+
   public void reset() {
     _alertItemCollection.reset();
 
-    for (HelixStageLatencyMonitor stgLatencyMonitor : _stageLatencyMonitorMap.values())
-    {
+    for (HelixStageLatencyMonitor stgLatencyMonitor : _stageLatencyMonitorMap.values()) {
       stgLatencyMonitor.reset();
     }
 

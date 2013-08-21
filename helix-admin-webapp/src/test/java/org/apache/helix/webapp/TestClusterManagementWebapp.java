@@ -52,12 +52,9 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-
-public class TestClusterManagementWebapp extends AdminTestBase
-{
+public class TestClusterManagementWebapp extends AdminTestBase {
   @Test
-  public void testInvocation() throws Exception
-  {
+  public void testInvocation() throws Exception {
     verifyAddCluster();
     verifyAddStateModel();
     verifyAddHostedEntity();
@@ -75,18 +72,15 @@ public class TestClusterManagementWebapp extends AdminTestBase
   /*
    * Test case as steps
    */
-  String clusterName       = "cluster-12345";
+  String clusterName = "cluster-12345";
   String resourceGroupName = "new-entity-12345";
-  String instance1         = "test-1";
-  String statemodel        = "state_model";
-  int    instancePort      = 9999;
-  int    partitions        = 10;
-  int    replicas          = 3;
+  String instance1 = "test-1";
+  String statemodel = "state_model";
+  int instancePort = 9999;
+  int partitions = 10;
+  int replicas = 3;
 
-  void verifyAddStateModel() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  void verifyAddStateModel() throws JsonGenerationException, JsonMappingException, IOException {
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
             + "/StateModelDefs/MasterSlave";
@@ -102,22 +96,19 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Map<String, String> paraMap = new HashMap<String, String>();
 
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND,
-                ClusterSetup.addStateModelDef);
+    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addStateModelDef);
 
     ZNRecord r = new ZNRecord("Test");
     r.merge(zn);
     StateModelDefinition newStateModel = new StateModelDefinition(r);
 
-    httpUrlBase =
-        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/StateModelDefs";
+    httpUrlBase = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/StateModelDefs";
     resourceRef = new Reference(httpUrlBase);
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-                          + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-                          + JsonParameters.NEW_STATE_MODEL_DEF + "="
-                          + ClusterRepresentationUtil.ZNRecordToJson(r),
-                      MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap)
+            + "&" + JsonParameters.NEW_STATE_MODEL_DEF + "="
+            + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -130,9 +121,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     AssertJUnit.assertTrue(sw.toString().contains("Test"));
   }
 
-  void verifyAddCluster() throws IOException,
-      InterruptedException
-  {
+  void verifyAddCluster() throws IOException, InterruptedException {
     String httpUrlBase = "http://localhost:" + ADMIN_PORT + "/clusters";
     Map<String, String> paraMap = new HashMap<String, String>();
 
@@ -143,8 +132,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -160,10 +150,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
   }
 
-  void verifyAddHostedEntity() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  void verifyAddHostedEntity() throws JsonGenerationException, JsonMappingException, IOException {
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -177,8 +164,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -209,10 +197,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     // System.out.println(sw.toString());
   }
 
-  void verifyAddInstance() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  void verifyAddInstance() throws JsonGenerationException, JsonMappingException, IOException {
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances";
     Map<String, String> paraMap = new HashMap<String, String>();
@@ -224,8 +209,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -237,8 +223,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     ObjectMapper mapper = new ObjectMapper();
 
-    TypeReference<ArrayList<ZNRecord>> typeRef = new TypeReference<ArrayList<ZNRecord>>()
-    {
+    TypeReference<ArrayList<ZNRecord>> typeRef = new TypeReference<ArrayList<ZNRecord>>() {
     };
     List<ZNRecord> znList = mapper.readValue(new StringReader(sw.toString()), typeRef);
     AssertJUnit.assertTrue(znList.get(0).getId().equals(instance1 + "_" + instancePort));
@@ -247,18 +232,16 @@ public class TestClusterManagementWebapp extends AdminTestBase
     paraMap.clear();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
 
-    String[] instances = { "test2", "test3", "test4", "test5" };
+    String[] instances = {
+        "test2", "test3", "test4", "test5"
+    };
 
     String instanceNames = "";
     boolean first = true;
-    for (String instance : instances)
-    {
-      if (first == true)
-      {
+    for (String instance : instances) {
+      if (first == true) {
         first = false;
-      }
-      else
-      {
+      } else {
         instanceNames += ";";
       }
       instanceNames += (instance + ":" + instancePort);
@@ -267,8 +250,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -282,14 +266,11 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     znList = mapper.readValue(new StringReader(sw.toString()), typeRef);
 
-    for (String instance : instances)
-    {
+    for (String instance : instances) {
       boolean found = false;
-      for (ZNRecord r : znList)
-      {
+      for (ZNRecord r : znList) {
         String instanceId = instance + "_" + instancePort;
-        if (r.getId().equals(instanceId))
-        {
+        if (r.getId().equals(instanceId)) {
           found = true;
           break;
         }
@@ -298,10 +279,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     }
   }
 
-  void verifyRebalance() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  void verifyRebalance() throws JsonGenerationException, JsonMappingException, IOException {
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups/"
             + resourceGroupName + "/idealState";
@@ -314,8 +292,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -328,8 +307,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
 
-    for (int i = 0; i < partitions; i++)
-    {
+    for (int i = 0; i < partitions; i++) {
       String partitionName = resourceGroupName + "_" + i;
       assert (r.getMapField(partitionName).size() == replicas);
     }
@@ -347,13 +325,10 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
   }
 
-  void verifyEnableInstance() throws JsonGenerationException,
-      JsonMappingException,
-      IOException
-  {
+  void verifyEnableInstance() throws JsonGenerationException, JsonMappingException, IOException {
     String httpUrlBase =
-        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances/"
-            + instance1 + "_" + instancePort;
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances/" + instance1
+            + "_" + instancePort;
     Map<String, String> paraMap = new HashMap<String, String>();
     // Add 1 instance
     paraMap.put(JsonParameters.ENABLED, "" + false);
@@ -363,8 +338,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -377,14 +353,15 @@ public class TestClusterManagementWebapp extends AdminTestBase
     ObjectMapper mapper = new ObjectMapper();
     ZNRecord r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(r.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString())
-                            .equals("" + false));
+        .equals("" + false));
 
     // Then enable it
     paraMap.put(JsonParameters.ENABLED, "" + true);
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paraMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
+        MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -397,11 +374,10 @@ public class TestClusterManagementWebapp extends AdminTestBase
     mapper = new ObjectMapper();
     r = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(r.getSimpleField(InstanceConfigProperty.HELIX_ENABLED.toString())
-                            .equals("" + true));
+        .equals("" + true));
   }
 
-  void verifyAlterIdealState() throws IOException
-  {
+  void verifyAlterIdealState() throws IOException {
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups/"
             + resourceGroupName + "/idealState";
@@ -430,11 +406,10 @@ public class TestClusterManagementWebapp extends AdminTestBase
     resourceRef = new Reference(httpUrlBase);
 
     request = new Request(Method.POST, resourceRef);
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-                          + ClusterRepresentationUtil.ObjectToJson(paraMap) + "&"
-                          + JsonParameters.NEW_IDEAL_STATE + "="
-                          + ClusterRepresentationUtil.ZNRecordToJson(r),
-                      MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap)
+            + "&" + JsonParameters.NEW_IDEAL_STATE + "="
+            + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -448,15 +423,13 @@ public class TestClusterManagementWebapp extends AdminTestBase
     ZNRecord r2 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
     AssertJUnit.assertTrue(!r2.getMapFields().containsKey(partitionName));
 
-    for (String key : r2.getMapFields().keySet())
-    {
+    for (String key : r2.getMapFields().keySet()) {
       AssertJUnit.assertTrue(r.getMapFields().containsKey(key));
     }
   }
 
   // verify get/post configs in different scopes
-  void verifyConfigAccessor() throws Exception
-  {
+  void verifyConfigAccessor() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
     Client client = new Client(Protocol.HTTP);
 
@@ -475,8 +448,8 @@ public class TestClusterManagementWebapp extends AdminTestBase
     // set/get participant scope configs
     String participantName = "test2_9999";
     url =
-        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
-            + "/configs/participant/" + participantName;
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant/"
+            + participantName;
 
     postConfig(client, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
 
@@ -514,20 +487,17 @@ public class TestClusterManagementWebapp extends AdminTestBase
     record = get(client, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("scopes"));
-    Assert.assertTrue(contains(record.getListField("scopes"),
-                               "CLUSTER",
-                               "PARTICIPANT",
-                               "RESOURCE",
-                               "PARTITION"));
+    Assert.assertTrue(contains(record.getListField("scopes"), "CLUSTER", "PARTICIPANT", "RESOURCE",
+        "PARTITION"));
 
-//    url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/cluster";
-//    record = get(client, url, mapper);
-//    Assert.assertEquals(record.getListFields().size(), 1);
-//    Assert.assertTrue(record.getListFields().containsKey("CLUSTER"));
-//    Assert.assertTrue(contains(record.getListField("CLUSTER"), clusterName), "record: " + record);
+    // url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/cluster";
+    // record = get(client, url, mapper);
+    // Assert.assertEquals(record.getListFields().size(), 1);
+    // Assert.assertTrue(record.getListFields().containsKey("CLUSTER"));
+    // Assert.assertTrue(contains(record.getListField("CLUSTER"), clusterName), "record: " +
+    // record);
 
-    url =
-        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant";
+    url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant";
     record = get(client, url, mapper);
     Assert.assertTrue(record.getListFields().containsKey("PARTICIPANT"));
     Assert.assertTrue(contains(record.getListField("PARTICIPANT"), participantName));
@@ -548,8 +518,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
   }
 
-  private ZNRecord get(Client client, String url, ObjectMapper mapper) throws Exception
-  {
+  private ZNRecord get(Client client, String url, ObjectMapper mapper) throws Exception {
     Request request = new Request(Method.GET, new Reference(url));
     Response response = client.handle(request);
     Representation result = response.getEntity();
@@ -563,20 +532,17 @@ public class TestClusterManagementWebapp extends AdminTestBase
     return record;
   }
 
-  private void postConfig(Client client,
-                          String url,
-                          ObjectMapper mapper,
-                          String command,
-                          String configs) throws Exception
-  {
+  private void postConfig(Client client, String url, ObjectMapper mapper, String command,
+      String configs) throws Exception {
     Map<String, String> params = new HashMap<String, String>();
 
     params.put(JsonParameters.MANAGEMENT_COMMAND, command);
     params.put(JsonParameters.CONFIGS, configs);
 
     Request request = new Request(Method.POST, new Reference(url));
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(params), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(params),
+        MediaType.APPLICATION_ALL);
 
     Response response = client.handle(request);
     Representation result = response.getEntity();
@@ -587,8 +553,7 @@ public class TestClusterManagementWebapp extends AdminTestBase
     Assert.assertTrue(responseStr.toLowerCase().indexOf("exception") == -1);
   }
 
-  void verifyEnableCluster() throws Exception
-  {
+  void verifyEnableCluster() throws Exception {
     System.out.println("START: verifyEnableCluster()");
     String httpUrlBase =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/Controller";
@@ -601,8 +566,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
 
     Request request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paramMap),
+        MediaType.APPLICATION_ALL);
     Client client = new Client(Protocol.HTTP);
     Response response = client.handle(request);
 
@@ -622,8 +588,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
     paramMap.put(JsonParameters.ENABLED, "" + true);
     request = new Request(Method.POST, resourceRef);
 
-    request.setEntity(JsonParameters.JSON_PARAMETERS + "="
-        + ClusterRepresentationUtil.ObjectToJson(paramMap), MediaType.APPLICATION_ALL);
+    request.setEntity(
+        JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paramMap),
+        MediaType.APPLICATION_ALL);
     client = new Client(Protocol.HTTP);
     response = client.handle(request);
 
@@ -640,12 +607,9 @@ public class TestClusterManagementWebapp extends AdminTestBase
     System.out.println("END: verifyEnableCluster()");
   }
 
-  private boolean contains(List<String> list, String... items)
-  {
-    for (String item : items)
-    {
-      if (!list.contains(item))
-      {
+  private boolean contains(List<String> list, String... items) {
+    for (String item : items) {
+      if (!list.contains(item)) {
         return false;
       }
     }

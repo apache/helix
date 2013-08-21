@@ -22,21 +22,17 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
-public class PauseSignal extends HelixProperty
-{
-  public PauseSignal(String id)
-  {
+public class PauseSignal extends HelixProperty {
+  public PauseSignal(String id) {
     super(id);
   }
 
-  public PauseSignal(ZNRecord record)
-  {
+  public PauseSignal(ZNRecord record) {
     super(record);
   }
 
   @Override
-  public boolean isValid()
-  { 
+  public boolean isValid() {
     return true;
   }
 }

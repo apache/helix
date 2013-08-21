@@ -23,8 +23,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
 @Retention(RetentionPolicy.RUNTIME)
-public @interface StateModelInfo
-{
+public @interface StateModelInfo {
   String[] states();
 
   String initialState();

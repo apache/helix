@@ -35,49 +35,41 @@ import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestBucketizedResource extends ZkIntegrationTestBase
-{
+public class TestBucketizedResource extends ZkIntegrationTestBase {
   @Test()
-  public void testBucketizedResource() throws Exception
-  {
+  public void testBucketizedResource() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
 
-    
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
     MockParticipant[] participants = new MockParticipant[5];
-//    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
+    // ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            10, // partitions per resource
-                            5, // number of nodes
-                            3, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
-    
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    // String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    // String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName,
+    // "TestDB0");
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBucketSize(1);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    TestHelper.startController(clusterName,
-                               "controller_0",
-                               ZK_ADDR,
-                               HelixControllerMain.STANDALONE);
+    TestHelper
+        .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
     // start participants
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
@@ -85,22 +77,20 @@ public class TestBucketizedResource extends ZkIntegrationTestBase
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-                                                                              clusterName));
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
-    
+
     // clean up
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
-    
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

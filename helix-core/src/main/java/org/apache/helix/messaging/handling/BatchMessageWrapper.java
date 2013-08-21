@@ -23,12 +23,13 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
 /**
- * default implementation of handling start/end of batch messages 
- *
+ * default implementation of handling start/end of batch messages
  */
 public class BatchMessageWrapper {
 
-  public void start(Message batchMsg, NotificationContext context) { }
-  
-  public void end(Message batchMsg, NotificationContext context) { }
+  public void start(Message batchMsg, NotificationContext context) {
+  }
+
+  public void end(Message batchMsg, NotificationContext context) {
+  }
 }

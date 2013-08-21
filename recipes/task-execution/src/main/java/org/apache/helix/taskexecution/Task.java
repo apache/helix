@@ -34,95 +34,100 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.model.ExternalView;
 
 public abstract class Task implements ExternalViewChangeListener {
-	CountDownLatch parentDependencyLatch;
-	Set<String> completedParentTasks;
-	
-	private static final int TIMEOUT_SECONDS = 5;
-	protected final Set<String> parentIds;
-	protected final String id;
-	private final HelixManager helixManager;
-	protected final TaskResultStore resultStore;
+  CountDownLatch parentDependencyLatch;
+  Set<String> completedParentTasks;
 
-	public Task(String id, Set<String> parentIds, HelixManager helixManager, TaskResultStore resultStore) {
-		this.id = id;
-		this.parentIds = parentIds;
-		this.helixManager = helixManager;
-		this.resultStore = resultStore;
-		parentDependencyLatch = new CountDownLatch(1);
-		completedParentTasks = new HashSet<String>();
-	}
+  private static final int TIMEOUT_SECONDS = 5;
+  protected final Set<String> parentIds;
+  protected final String id;
+  private final HelixManager helixManager;
+  protected final TaskResultStore resultStore;
 
-	@Override
-	public void onExternalViewChange(List<ExternalView> externalViewList,
-			NotificationContext changeContext) {
+  public Task(String id, Set<String> parentIds, HelixManager helixManager,
+      TaskResultStore resultStore) {
+    this.id = id;
+    this.parentIds = parentIds;
+    this.helixManager = helixManager;
+    this.resultStore = resultStore;
+    parentDependencyLatch = new CountDownLatch(1);
+    completedParentTasks = new HashSet<String>();
+  }
 
-		if(areParentTasksDone(externalViewList)) {
-			parentDependencyLatch.countDown();
-		}
-	}
+  @Override
+  public void onExternalViewChange(List<ExternalView> externalViewList,
+      NotificationContext changeContext) {
 
-	private boolean areParentTasksDone(List<ExternalView> externalViewList) {
-		if(parentIds == null || parentIds.size() == 0) {
-			return true;
-		}
-		
-		for (ExternalView ev : externalViewList) {
-			String resourceName = ev.getResourceName();
-			if (parentIds.contains(resourceName)) {
-				if (isParentTaskDone(ev)) {
-					completedParentTasks.add(resourceName);
-				}
-			}
-		}
-		
-		return parentIds.equals(completedParentTasks);
-	}
+    if (areParentTasksDone(externalViewList)) {
+      parentDependencyLatch.countDown();
+    }
+  }
 
-	private boolean isParentTaskDone(ExternalView ev) {
-		Set<String> partitionSet = ev.getPartitionSet();
-		if(partitionSet.isEmpty()) {
-			return false;
-		}
-		
-		for (String partition : partitionSet) {
-			Map<String, String> stateMap = ev.getStateMap(partition);
-			for (String instance : stateMap.keySet()) {
-				if (!stateMap.get(instance).equalsIgnoreCase("Online")) {
-					return false;
-				}
-			}
-		}
-		return true;
-	}
-	
-	private List<ExternalView> getExternalViews() {
-		String clusterName = helixManager.getClusterName();
-		List<ExternalView> externalViewList = new ArrayList<ExternalView>();
-		HelixAdmin helixAdmin = helixManager.getClusterManagmentTool();
-		List<String> resourcesInCluster = helixAdmin.getResourcesInCluster(clusterName);
-		for(String resourceName : resourcesInCluster) {
-			ExternalView ev = helixManager.getClusterManagmentTool().getResourceExternalView(clusterName, resourceName);
-			if(ev != null) {
-				externalViewList.add(ev);
-			}
-		}
-		
-		return externalViewList;
-	}
+  private boolean areParentTasksDone(List<ExternalView> externalViewList) {
+    if (parentIds == null || parentIds.size() == 0) {
+      return true;
+    }
 
-	public final void execute(String resourceName, int numPartitions, int partitionNum) throws Exception {
-		if (!areParentTasksDone(getExternalViews())) {
-			if (!parentDependencyLatch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
-				Set<String> pendingTasks = new HashSet<String>();
-				pendingTasks.addAll(parentIds);
-				pendingTasks.removeAll(completedParentTasks);
-				throw new Exception(id + " timed out while waiting for the following parent tasks to finish : " + pendingTasks);
-			}
-		}
-		
-		executeImpl(resourceName, numPartitions, partitionNum);
-	}
+    for (ExternalView ev : externalViewList) {
+      String resourceName = ev.getResourceName();
+      if (parentIds.contains(resourceName)) {
+        if (isParentTaskDone(ev)) {
+          completedParentTasks.add(resourceName);
+        }
+      }
+    }
 
-	protected abstract void executeImpl(String resourceName, int numPartitions, int partitionNum) throws Exception;
+    return parentIds.equals(completedParentTasks);
+  }
+
+  private boolean isParentTaskDone(ExternalView ev) {
+    Set<String> partitionSet = ev.getPartitionSet();
+    if (partitionSet.isEmpty()) {
+      return false;
+    }
+
+    for (String partition : partitionSet) {
+      Map<String, String> stateMap = ev.getStateMap(partition);
+      for (String instance : stateMap.keySet()) {
+        if (!stateMap.get(instance).equalsIgnoreCase("Online")) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  private List<ExternalView> getExternalViews() {
+    String clusterName = helixManager.getClusterName();
+    List<ExternalView> externalViewList = new ArrayList<ExternalView>();
+    HelixAdmin helixAdmin = helixManager.getClusterManagmentTool();
+    List<String> resourcesInCluster = helixAdmin.getResourcesInCluster(clusterName);
+    for (String resourceName : resourcesInCluster) {
+      ExternalView ev =
+          helixManager.getClusterManagmentTool().getResourceExternalView(clusterName, resourceName);
+      if (ev != null) {
+        externalViewList.add(ev);
+      }
+    }
+
+    return externalViewList;
+  }
+
+  public final void execute(String resourceName, int numPartitions, int partitionNum)
+      throws Exception {
+    if (!areParentTasksDone(getExternalViews())) {
+      if (!parentDependencyLatch.await(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+        Set<String> pendingTasks = new HashSet<String>();
+        pendingTasks.addAll(parentIds);
+        pendingTasks.removeAll(completedParentTasks);
+        throw new Exception(id
+            + " timed out while waiting for the following parent tasks to finish : " + pendingTasks);
+      }
+    }
+
+    executeImpl(resourceName, numPartitions, partitionNum);
+  }
+
+  protected abstract void executeImpl(String resourceName, int numPartitions, int partitionNum)
+      throws Exception;
 
 }

@@ -22,11 +22,9 @@ package org.apache.helix.controller.pipeline;
 import org.apache.helix.controller.stages.ClusterEvent;
 
 /**
- * Logically independent unit in processing callbacks for cluster changes  
- *
+ * Logically independent unit in processing callbacks for cluster changes
  */
-public interface Stage
-{
+public interface Stage {
 
   /**
    * Initialize a stage

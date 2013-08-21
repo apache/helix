@@ -27,81 +27,79 @@ import redis.clients.jedis.JedisPool;
 import redis.clients.jedis.JedisPoolConfig;
 
 public class RedisTaskResultStore implements TaskResultStore {
-	private JedisPool _jedisPool;
+  private JedisPool _jedisPool;
 
-	public RedisTaskResultStore(String redisServer, int redisPort, int timeout) {
-		_jedisPool = new JedisPool(new JedisPoolConfig(), redisServer,
-				redisPort, timeout);
-	}
+  public RedisTaskResultStore(String redisServer, int redisPort, int timeout) {
+    _jedisPool = new JedisPool(new JedisPoolConfig(), redisServer, redisPort, timeout);
+  }
 
-	@Override
-	public boolean exists(String key) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			return jedis.exists(key);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public boolean exists(String key) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      return jedis.exists(key);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public void rpush(String key, String value) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			jedis.rpush(key, value);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public void rpush(String key, String value) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      jedis.rpush(key, value);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public List<String> lrange(String key, long start, long end)
-			throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			return jedis.lrange(key, start, end);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public List<String> lrange(String key, long start, long end) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      return jedis.lrange(key, start, end);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public void ltrim(String key, long start, long end) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			jedis.ltrim(key, start, end);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public void ltrim(String key, long start, long end) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      jedis.ltrim(key, start, end);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public long llen(String key) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			return jedis.llen(key);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public long llen(String key) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      return jedis.llen(key);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public Long hincrBy(String key, String field, long value) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			return jedis.hincrBy(key, field, value);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public Long hincrBy(String key, String field, long value) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      return jedis.hincrBy(key, field, value);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 
-	@Override
-	public Map<String, String> hgetAll(String key) throws Exception {
-		Jedis jedis = _jedisPool.getResource();
-		try {
-			return jedis.hgetAll(key);
-		} finally {
-			_jedisPool.returnResource(jedis);
-		}
-	}
+  @Override
+  public Map<String, String> hgetAll(String key) throws Exception {
+    Jedis jedis = _jedisPool.getResource();
+    try {
+      return jedis.hgetAll(key);
+    } finally {
+      _jedisPool.returnResource(jedis);
+    }
+  }
 }

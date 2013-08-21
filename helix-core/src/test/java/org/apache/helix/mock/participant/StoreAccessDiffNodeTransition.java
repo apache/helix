@@ -29,44 +29,34 @@ import org.apache.helix.model.Message;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 // simulate access property store and update different znodes
-public class StoreAccessDiffNodeTransition extends MockTransition
-{
+public class StoreAccessDiffNodeTransition extends MockTransition {
   @Override
-  public void doTransition(Message message, NotificationContext context)
-  {
+  public void doTransition(Message message, NotificationContext context) {
     HelixManager manager = context.getManager();
     ZkHelixPropertyStore<ZNRecord> store = manager.getHelixPropertyStore();
     final String setPath = "/TEST_PERF/set/" + message.getPartitionName();
     final String updatePath = "/TEST_PERF/update/" + message.getPartitionName();
     // final String key = message.getPartitionName();
-    try
-    {
+    try {
       // get/set once
       ZNRecord record = null;
-      try
-      {
+      try {
         record = store.get(setPath, null, 0);
-      }
-      catch (ZkNoNodeException e)
-      {
+      } catch (ZkNoNodeException e) {
         // record = new ZNRecord(setPath);
       }
-      if (record == null)
-      {
-          record = new ZNRecord(setPath);
+      if (record == null) {
+        record = new ZNRecord(setPath);
       }
       record.setSimpleField("setTimestamp", "" + System.currentTimeMillis());
       store.set(setPath, record, AccessOption.PERSISTENT);
 
       // update once
-      store.update(updatePath, new DataUpdater<ZNRecord>()
-      {
+      store.update(updatePath, new DataUpdater<ZNRecord>() {
 
         @Override
-        public ZNRecord update(ZNRecord currentData)
-        {
-          if (currentData == null)
-          {
+        public ZNRecord update(ZNRecord currentData) {
+          if (currentData == null) {
             currentData = new ZNRecord(updatePath);
           }
           currentData.setSimpleField("updateTimestamp", "" + System.currentTimeMillis());
@@ -75,9 +65,7 @@ public class StoreAccessDiffNodeTransition extends MockTransition
         }
 
       }, AccessOption.PERSISTENT);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
     }

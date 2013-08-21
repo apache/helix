@@ -28,8 +28,7 @@ import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.InstanceConfig;
 
-public class LockProcess
-{
+public class LockProcess {
   private String clusterName;
   private String zkAddress;
   private String instanceName;
@@ -37,9 +36,7 @@ public class LockProcess
   private boolean startController;
   private HelixManager controllerManager;
 
-  LockProcess(String clusterName, String zkAddress, String instanceName,
-      boolean startController)
-  {
+  LockProcess(String clusterName, String zkAddress, String instanceName, boolean startController) {
     this.clusterName = clusterName;
     this.zkAddress = zkAddress;
     this.instanceName = instanceName;
@@ -47,43 +44,38 @@ public class LockProcess
 
   }
 
-  public void start() throws Exception
-  {
-    System.out.println("STARTING "+ instanceName);
+  public void start() throws Exception {
+    System.out.println("STARTING " + instanceName);
     configureInstance(instanceName);
-    participantManager = HelixManagerFactory.getZKHelixManager(clusterName,
-        instanceName, InstanceType.PARTICIPANT, zkAddress);
-    participantManager.getStateMachineEngine().registerStateModelFactory(
-        "OnlineOffline", new LockFactory());
+    participantManager =
+        HelixManagerFactory.getZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT,
+            zkAddress);
+    participantManager.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
+        new LockFactory());
     participantManager.connect();
-    if (startController)
-    {
+    if (startController) {
       startController();
     }
-    System.out.println("STARTED "+ instanceName);
+    System.out.println("STARTED " + instanceName);
 
   }
 
-  private void startController()
-  {
-    controllerManager = HelixControllerMain.startHelixController(zkAddress,
-        clusterName, "controller", HelixControllerMain.STANDALONE);
+  private void startController() {
+    controllerManager =
+        HelixControllerMain.startHelixController(zkAddress, clusterName, "controller",
+            HelixControllerMain.STANDALONE);
   }
 
   /**
    * Configure the instance, the configuration of each node is available to
    * other nodes.
-   * 
    * @param instanceName
    */
-  private void configureInstance(String instanceName)
-  {
+  private void configureInstance(String instanceName) {
     ZKHelixAdmin helixAdmin = new ZKHelixAdmin(zkAddress);
 
-    List<String> instancesInCluster = helixAdmin
-        .getInstancesInCluster(clusterName);
-    if (instancesInCluster == null || !instancesInCluster.contains(instanceName))
-    {
+    List<String> instancesInCluster = helixAdmin.getInstancesInCluster(clusterName);
+    if (instancesInCluster == null || !instancesInCluster.contains(instanceName)) {
       InstanceConfig config = new InstanceConfig(instanceName);
       config.setHostName("localhost");
       config.setPort("12000");
@@ -91,33 +83,27 @@ public class LockProcess
     }
   }
 
-  public void stop()
-  {
-    if (participantManager != null)
-    {
+  public void stop() {
+    if (participantManager != null) {
       participantManager.disconnect();
     }
-    
-    if (controllerManager != null)
-    {
+
+    if (controllerManager != null) {
       controllerManager.disconnect();
     }
   }
 
-  public static void main(String[] args) throws Exception
-  {
+  public static void main(String[] args) throws Exception {
     String zkAddress = "localhost:2199";
     String clusterName = "lock-manager-demo";
     // Give a unique id to each process, most commonly used format hostname_port
     final String instanceName = "localhost_12000";
     boolean startController = true;
-    final LockProcess lockProcess = new LockProcess(clusterName, zkAddress,
-        instanceName, startController);
-    Runtime.getRuntime().addShutdownHook(new Thread()
-    {
+    final LockProcess lockProcess =
+        new LockProcess(clusterName, zkAddress, instanceName, startController);
+    Runtime.getRuntime().addShutdownHook(new Thread() {
       @Override
-      public void run()
-      {
+      public void run() {
         System.out.println("Shutting down " + instanceName);
         lockProcess.stop();
       }

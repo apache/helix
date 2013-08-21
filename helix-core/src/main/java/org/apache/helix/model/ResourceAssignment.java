@@ -19,7 +19,6 @@ package org.apache.helix.model;
  * under the License.
  */
 
-public class ResourceAssignment
-{
+public class ResourceAssignment {
 
 }

@@ -30,46 +30,34 @@ import javax.management.ObjectName;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.log4j.Logger;
 
-
-public class ParticipantMonitor
-{
-  private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap
-   = new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
+public class ParticipantMonitor {
+  private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
+      new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
   private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
 
   private MBeanServer _beanServer;
 
-  public ParticipantMonitor()
-  {
-    try
-    {
+  public ParticipantMonitor() {
+    try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
-    }
-    catch(Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn(e);
       e.printStackTrace();
       _beanServer = null;
     }
   }
 
-  public void reportTransitionStat(StateTransitionContext cxt,
-      StateTransitionDataPoint data)
-  {
-    if(_beanServer == null)
-    {
+  public void reportTransitionStat(StateTransitionContext cxt, StateTransitionDataPoint data) {
+    if (_beanServer == null) {
       LOG.warn("bean server is null, skip reporting");
       return;
     }
-    try
-    {
-      if(!_monitorMap.containsKey(cxt))
-      {
-        synchronized(this)
-        {
-          if(!_monitorMap.containsKey(cxt))
-          {
-            StateTransitionStatMonitor bean = new StateTransitionStatMonitor(cxt, TimeUnit.MILLISECONDS);
+    try {
+      if (!_monitorMap.containsKey(cxt)) {
+        synchronized (this) {
+          if (!_monitorMap.containsKey(cxt)) {
+            StateTransitionStatMonitor bean =
+                new StateTransitionStatMonitor(cxt, TimeUnit.MILLISECONDS);
             _monitorMap.put(cxt, bean);
             String beanName = cxt.toString();
             register(bean, getObjectName(beanName));
@@ -77,61 +65,43 @@ public class ParticipantMonitor
         }
       }
       _monitorMap.get(cxt).addDataPoint(data);
-    }
-    catch(Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn(e);
       e.printStackTrace();
     }
   }
 
-
-  private ObjectName getObjectName(String name) throws MalformedObjectNameException
-  {
-    LOG.info("Registering bean: "+name);
-    return new ObjectName("CLMParticipantReport:"+name);
+  private ObjectName getObjectName(String name) throws MalformedObjectNameException {
+    LOG.info("Registering bean: " + name);
+    return new ObjectName("CLMParticipantReport:" + name);
   }
 
-  private void register(Object bean, ObjectName name)
-  {
-    if(_beanServer == null)
-    {
+  private void register(Object bean, ObjectName name) {
+    if (_beanServer == null) {
       LOG.warn("bean server is null, skip reporting");
       return;
     }
-    try
-    {
+    try {
       _beanServer.unregisterMBean(name);
-    }
-    catch (Exception e1)
-    {
+    } catch (Exception e1) {
       // Swallow silently
     }
 
-    try
-    {
+    try {
       _beanServer.registerMBean(bean, name);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       LOG.warn("Could not register MBean", e);
     }
   }
 
-  public void shutDown()
-  {
-    for(StateTransitionContext cxt : _monitorMap.keySet() )
-    {
-      try
-      {
+  public void shutDown() {
+    for (StateTransitionContext cxt : _monitorMap.keySet()) {
+      try {
         ObjectName name = getObjectName(cxt.toString());
-        if (_beanServer.isRegistered(name))
-        {
+        if (_beanServer.isRegistered(name)) {
           _beanServer.unregisterMBean(name);
         }
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         LOG.warn("fail to unregister " + cxt.toString(), e);
       }
     }

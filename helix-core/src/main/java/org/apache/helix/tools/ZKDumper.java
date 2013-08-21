@@ -42,8 +42,6 @@ import org.apache.helix.manager.zk.ZkClient;
 
 /**
  * Dumps the Zookeeper file structure on to Disk
- * 
- * 
  */
 @SuppressWarnings("static-access")
 public class ZKDumper {
@@ -74,24 +72,28 @@ public class ZKDumper {
     options = new Options();
     OptionGroup optionGroup = new OptionGroup();
 
-    Option d = OptionBuilder.withLongOpt("download")
-        .withDescription("Download from ZK to File System").create();
+    Option d =
+        OptionBuilder.withLongOpt("download").withDescription("Download from ZK to File System")
+            .create();
     d.setArgs(0);
-    Option dSuffix = OptionBuilder.withLongOpt("addSuffix")
-        .withDescription("add suffix to every file downloaded from ZK").create();
+    Option dSuffix =
+        OptionBuilder.withLongOpt("addSuffix")
+            .withDescription("add suffix to every file downloaded from ZK").create();
     dSuffix.setArgs(1);
     dSuffix.setRequired(false);
 
-    Option u = OptionBuilder.withLongOpt("upload").withDescription("Upload from File System to ZK")
-        .create();
+    Option u =
+        OptionBuilder.withLongOpt("upload").withDescription("Upload from File System to ZK")
+            .create();
     u.setArgs(0);
-    Option uSuffix = OptionBuilder.withLongOpt("removeSuffix")
-        .withDescription("remove suffix from every file uploaded to ZK").create();
+    Option uSuffix =
+        OptionBuilder.withLongOpt("removeSuffix")
+            .withDescription("remove suffix from every file uploaded to ZK").create();
     uSuffix.setArgs(0);
     uSuffix.setRequired(false);
 
-    Option del = OptionBuilder.withLongOpt("delete").withDescription("Delete given path from ZK")
-        .create();
+    Option del =
+        OptionBuilder.withLongOpt("delete").withDescription("Delete given path from ZK").create();
 
     optionGroup.setRequired(true);
     optionGroup.addOption(del);

@@ -28,35 +28,26 @@ import java.util.Map;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
 //TODO find a proper place for these methods
-public final class ZNRecordUtil
-{
+public final class ZNRecordUtil {
   private static final Logger logger = Logger.getLogger(ZNRecordUtil.class.getName());
 
-  private ZNRecordUtil()
-  {
+  private ZNRecordUtil() {
   }
 
-  public static ZNRecord find(String id, List<ZNRecord> list)
-  {
-    for (ZNRecord record : list)
-    {
-      if (record.getId() != null && record.getId().equals(id))
-      {
+  public static ZNRecord find(String id, List<ZNRecord> list) {
+    for (ZNRecord record : list) {
+      if (record.getId() != null && record.getId().equals(id)) {
         return record;
       }
     }
     return null;
   }
 
-  public static Map<String, ZNRecord> convertListToMap(List<ZNRecord> recordList)
-  {
+  public static Map<String, ZNRecord> convertListToMap(List<ZNRecord> recordList) {
     Map<String, ZNRecord> recordMap = new HashMap<String, ZNRecord>();
-    for (ZNRecord record : recordList)
-    {
-      if (record.getId() != null)
-      {
+    for (ZNRecord record : recordList) {
+      if (record.getId() != null) {
         recordMap.put(record.getId(), record);
       }
     }
@@ -64,25 +55,21 @@ public final class ZNRecordUtil
   }
 
   public static <T extends Object> List<T> convertListToTypedList(List<ZNRecord> recordList,
-                                                                  Class<T> clazz)
-  {
+      Class<T> clazz) {
     List<T> list = new ArrayList<T>();
-    for (ZNRecord record : recordList)
-    {
-      if (record.getId() == null)
-      {
+    for (ZNRecord record : recordList) {
+      if (record.getId() == null) {
         logger.error("Invalid record: Id missing in " + record);
         continue;
       }
-      try
-      {
+      try {
 
-        Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class });
+        Constructor<T> constructor = clazz.getConstructor(new Class[] {
+          ZNRecord.class
+        });
         T instance = constructor.newInstance(record);
         list.add(instance);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
       }
     }
@@ -90,36 +77,30 @@ public final class ZNRecordUtil
   }
 
   public static <T extends Object> Map<String, T> convertListToTypedMap(List<ZNRecord> recordList,
-                                                                        Class<T> clazz)
-  {
+      Class<T> clazz) {
     Map<String, T> map = new HashMap<String, T>();
-    for (ZNRecord record : recordList)
-    {
-      if (record.getId() == null)
-      {
+    for (ZNRecord record : recordList) {
+      if (record.getId() == null) {
         logger.error("Invalid record: Id missing in " + record);
         continue;
       }
-      try
-      {
+      try {
 
-        Constructor<T> constructor = clazz.getConstructor(new Class[] { ZNRecord.class });
+        Constructor<T> constructor = clazz.getConstructor(new Class[] {
+          ZNRecord.class
+        });
         T instance = constructor.newInstance(record);
         map.put(record.getId(), instance);
-      }
-      catch (Exception e)
-      {
+      } catch (Exception e) {
         logger.error("Error creating an Object of type:" + clazz.getCanonicalName(), e);
       }
     }
     return map;
   }
 
-  public static <T extends Object> List<T> convertMapToList(Map<String, T> map)
-  {
+  public static <T extends Object> List<T> convertMapToList(Map<String, T> map) {
     List<T> list = new ArrayList<T>();
-    for (T t : map.values())
-    {
+    for (T t : map.values()) {
       list.add(t);
     }
     return list;

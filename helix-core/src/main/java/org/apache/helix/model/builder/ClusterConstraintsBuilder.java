@@ -30,20 +30,18 @@ public class ClusterConstraintsBuilder {
   private static Logger LOG = Logger.getLogger(ClusterConstraintsBuilder.class);
 
   final private ConstraintType _constraintType;
-  
+
   /**
    * constraint-id -> constraint-item-builder
-   * 
-   *   e.g. constraint_1: at most 1 offline->slave state transition message for MyDB:
-   *   constraint_1:
-   *     MESSAGE_TYPE     : StateTransition
-   *     RESOURCE         : MyDB
-   *     TRANSITION       : OFFLINE->SLAVE
-   *     CONSTRAINT_VALUE : 1     
-   *     
+   * e.g. constraint_1: at most 1 offline->slave state transition message for MyDB:
+   * constraint_1:
+   * MESSAGE_TYPE : StateTransition
+   * RESOURCE : MyDB
+   * TRANSITION : OFFLINE->SLAVE
+   * CONSTRAINT_VALUE : 1
    */
-  private final Map<String, ConstraintItemBuilder> _constraintBuilderMap = new HashMap<String, ConstraintItemBuilder>();
-
+  private final Map<String, ConstraintItemBuilder> _constraintBuilderMap =
+      new HashMap<String, ConstraintItemBuilder>();
 
   public ClusterConstraintsBuilder(ConstraintType type) {
     if (type == null) {
@@ -51,19 +49,20 @@ public class ClusterConstraintsBuilder {
     }
     _constraintType = type;
   }
-  
-  public ClusterConstraintsBuilder addConstraintAttribute(String constraintId, String attribute, String value) {
+
+  public ClusterConstraintsBuilder addConstraintAttribute(String constraintId, String attribute,
+      String value) {
     if (!_constraintBuilderMap.containsKey(constraintId)) {
       _constraintBuilderMap.put(constraintId, new ConstraintItemBuilder());
     }
-    ConstraintItemBuilder builder =  _constraintBuilderMap.get(constraintId);
+    ConstraintItemBuilder builder = _constraintBuilderMap.get(constraintId);
     builder.addConstraintAttribute(attribute, value);
     return this;
   }
-  
+
   public ClusterConstraints build() {
     ClusterConstraints constraints = new ClusterConstraints(_constraintType);
-    
+
     for (String constraintId : _constraintBuilderMap.keySet()) {
       ConstraintItemBuilder builder = _constraintBuilderMap.get(constraintId);
       constraints.addConstraintItem(constraintId, builder.build());

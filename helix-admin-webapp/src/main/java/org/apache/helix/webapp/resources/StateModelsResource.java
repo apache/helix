@@ -42,55 +42,43 @@ import org.restlet.resource.Resource;
 import org.restlet.resource.StringRepresentation;
 import org.restlet.resource.Variant;
 
-
-public class StateModelsResource extends Resource
-{
+public class StateModelsResource extends Resource {
   private final static Logger LOG = Logger.getLogger(StateModelsResource.class);
 
-  public StateModelsResource(Context context,
-      Request request,
-      Response response) 
-  {
+  public StateModelsResource(Context context, Request request, Response response) {
     super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
   }
 
   @Override
-  public boolean allowGet()
-  {
+  public boolean allowGet() {
     return true;
   }
-  
+
   @Override
-  public boolean allowPost()
-  {
+  public boolean allowPost() {
     return true;
   }
-  
+
   @Override
-  public boolean allowPut()
-  {
+  public boolean allowPut() {
     return false;
   }
-  
+
   @Override
-  public boolean allowDelete()
-  {
+  public boolean allowDelete() {
     return false;
   }
-  
+
   @Override
-  public Representation represent(Variant variant)
-  {
+  public Representation represent(Variant variant) {
     StringRepresentation presentation = null;
-    try
-    {
+    try {
       presentation = getStateModelsRepresentation();
     }
-    
-    catch(Exception e)
-    {
+
+    catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
@@ -98,57 +86,56 @@ public class StateModelsResource extends Resource
     }
     return presentation;
   }
-  
-  StringRepresentation getStateModelsRepresentation() throws JsonGenerationException, JsonMappingException, IOException
-  {
-    String clusterName = (String)getRequest().getAttributes().get("clusterName");
-    ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+
+  StringRepresentation getStateModelsRepresentation() throws JsonGenerationException,
+      JsonMappingException, IOException {
+    String clusterName = (String) getRequest().getAttributes().get("clusterName");
+    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
-    
+
     List<String> models = setupTool.getClusterManagementTool().getStateModelDefs(clusterName);
-    
+
     ZNRecord modelDefinitions = new ZNRecord("modelDefinitions");
     modelDefinitions.setListField("models", models);
-    
-    StringRepresentation representation = new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(modelDefinitions), MediaType.APPLICATION_JSON);
-    
+
+    StringRepresentation representation =
+        new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(modelDefinitions),
+            MediaType.APPLICATION_JSON);
+
     return representation;
   }
-  
+
   @Override
-  public void acceptRepresentation(Representation entity)
-  {
-    try
-    {
-      String clusterName = (String)getRequest().getAttributes().get("clusterName");
-      ZkClient zkClient = (ZkClient)getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);;
-      
+  public void acceptRepresentation(Representation entity) {
+    try {
+      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      ZkClient zkClient =
+          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      ;
+
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
-        
-      if(command.equalsIgnoreCase(ClusterSetup.addStateModelDef))
-      {
-        ZNRecord newStateModel = jsonParameters.getExtraParameter(JsonParameters.NEW_STATE_MODEL_DEF);
-        HelixDataAccessor accessor = ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
-         
-        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()), new StateModelDefinition(newStateModel) );
+      if (command.equalsIgnoreCase(ClusterSetup.addStateModelDef)) {
+        ZNRecord newStateModel =
+            jsonParameters.getExtraParameter(JsonParameters.NEW_STATE_MODEL_DEF);
+        HelixDataAccessor accessor =
+            ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
+
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()),
+            new StateModelDefinition(newStateModel));
         getResponse().setEntity(getStateModelsRepresentation());
+      } else {
+        throw new HelixException("Unsupported command: " + command + ". Should be one of ["
+            + ClusterSetup.addStateModelDef + "]");
       }
-      else
-      {
-          throw new HelixException("Unsupported command: " + command
-                                   + ". Should be one of [" + ClusterSetup.addStateModelDef + "]");
-      }
-      
+
       getResponse().setStatus(Status.SUCCESS_OK);
-    }
-    catch(Exception e)
-    {
+    } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
-    }  
+    }
   }
 }

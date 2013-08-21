@@ -34,22 +34,17 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
-{
-  static
-  {
+public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
+  static {
     // Logger.getRootLogger().setLevel(Level.INFO);
   }
 
-  class EnablePartitionTransition extends MockTransition
-  {
+  class EnablePartitionTransition extends MockTransition {
     int slaveToOfflineCnt = 0;
     int offlineToSlave = 0;
 
     @Override
-    public void doTransition(Message message, NotificationContext context)
-    {
+    public void doTransition(Message message, NotificationContext context) {
       HelixManager manager = context.getManager();
       String clusterName = manager.getClusterName();
 
@@ -57,29 +52,22 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
       String partitionName = message.getPartitionName();
       String fromState = message.getFromState();
       String toState = message.getToState();
-      if (instance.equals("localhost_12919") && partitionName.equals("TestDB0_0"))
-      {
-        if (fromState.equals("SLAVE") && toState.equals("OFFLINE"))
-        {
+      if (instance.equals("localhost_12919") && partitionName.equals("TestDB0_0")) {
+        if (fromState.equals("SLAVE") && toState.equals("OFFLINE")) {
           slaveToOfflineCnt++;
 
-          try
-          {
+          try {
             String command =
                 "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
                     + " localhost_12919 TestDB0 TestDB0_0";
 
             ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-          }
-          catch (Exception e)
-          {
+          } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
           }
 
-        }
-        else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE") && toState.equals("SLAVE"))
-        {
+        } else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE") && toState.equals("SLAVE")) {
           offlineToSlave++;
         }
       }
@@ -88,47 +76,35 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
   }
 
   @Test
-  public void testEnablePartitionDuringDisable() throws Exception
-  {
+  public void testEnablePartitionDuringDisable() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
-    System.out.println("START " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-                            "localhost", // participant name prefix
-                            "TestDB", // resource name prefix
-                            1, // resources
-                            10, // partitions per resource
-                            5, // number of nodes
-                            3, // replicas
-                            "MasterSlave",
-                            true); // do rebalance
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        10, // partitions per resource
+        5, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
 
-    ClusterController controller =
-        new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();
 
     // start participants
     EnablePartitionTransition transition = new EnablePartitionTransition();
     MockParticipant[] participants = new MockParticipant[5];
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      if (instanceName.equals("localhost_12919"))
-      {
-        participants[i] =
-            new MockParticipant(clusterName,
-                                instanceName,
-                                ZK_ADDR,
-                                transition);
-      }
-      else
-      {
+      if (instanceName.equals("localhost_12919")) {
+        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, transition);
+      } else {
         participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
       }
       participants[i].syncStart();
@@ -136,7 +112,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-                                                                                 clusterName));
+            clusterName));
     Assert.assertTrue(result);
 
     // disable partitions
@@ -148,10 +124,9 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
 
     // ensure we get 1 slaveToOffline and 1 offlineToSlave after disable partition
     long startT = System.currentTimeMillis();
-    while (System.currentTimeMillis() - startT < 10000)  // retry in 5s
+    while (System.currentTimeMillis() - startT < 10000) // retry in 5s
     {
-      if (transition.slaveToOfflineCnt > 0 && transition.offlineToSlave > 0)
-      {
+      if (transition.slaveToOfflineCnt > 0 && transition.offlineToSlave > 0) {
         break;
       }
 
@@ -166,13 +141,11 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase
     // wait for all zk callbacks done
     Thread.sleep(1000);
     controller.syncStop();
-    for (int i = 0; i < 5; i++)
-    {
+    for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
 
-    System.out.println("END " + clusterName + " at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 }

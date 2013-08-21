@@ -40,39 +40,34 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-
-public class TestRoutingTable
-{
+public class TestRoutingTable {
   NotificationContext changeContext = null;
 
   @BeforeClass()
-  public synchronized void setup()
-  {
+  public synchronized void setup() {
 
-    final String[] array = new String[] { "localhost_8900", "localhost_8901" };
+    final String[] array = new String[] {
+        "localhost_8900", "localhost_8901"
+    };
     HelixManager manager = new Mocks.MockManager() {
       private MockAccessor _mockAccessor;
 
       @Override
-//      public DataAccessor getDataAccessor()
-      public HelixDataAccessor getHelixDataAccessor()
-      {
-        if (_mockAccessor == null)
-        {
+      // public DataAccessor getDataAccessor()
+      public HelixDataAccessor getHelixDataAccessor() {
+        if (_mockAccessor == null) {
           _mockAccessor = new Mocks.MockAccessor() {
             @SuppressWarnings("unchecked")
             @Override
             public <T extends HelixProperty> List<T> getChildValues(PropertyKey key)
-//            public List<ZNRecord> getChildValues(PropertyType type, String... keys)
+            // public List<ZNRecord> getChildValues(PropertyType type, String... keys)
             {
               PropertyType type = key.getType();
               String[] keys = key.getParams();
               if (type == PropertyType.CONFIGS && keys != null && keys.length > 1
-                  && keys[1].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString()))
-              {
+                  && keys[1].equalsIgnoreCase(ConfigScopeProperty.PARTICIPANT.toString())) {
                 List<InstanceConfig> configs = new ArrayList<InstanceConfig>();
-                for (String instanceName : array)
-                {
+                for (String instanceName : array) {
                   InstanceConfig config = new InstanceConfig(instanceName);
                   String[] splits = instanceName.split("_");
                   config.setHostName(splits[0]);
@@ -92,8 +87,7 @@ public class TestRoutingTable
   }
 
   @Test()
-  public void testNullAndEmpty()
-  {
+  public void testNullAndEmpty() {
 
     RoutingTableProvider routingTable = new RoutingTableProvider();
     routingTable.onExternalViewChange(null, changeContext);
@@ -103,8 +97,7 @@ public class TestRoutingTable
   }
 
   @Test()
-  public void testSimple()
-  {
+  public void testSimple() {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
     ZNRecord record = new ZNRecord("TESTDB");
@@ -145,8 +138,7 @@ public class TestRoutingTable
   }
 
   @Test()
-  public void testStateUnitGroupDeletion()
-  {
+  public void testStateUnitGroupDeletion() {
     List<InstanceConfig> instances;
     RoutingTableProvider routingTable = new RoutingTableProvider();
 
@@ -169,8 +161,7 @@ public class TestRoutingTable
   }
 
   @Test()
-  public void testGetInstanceForAllStateUnits()
-  {
+  public void testGetInstanceForAllStateUnits() {
     List<InstanceConfig> instancesList;
     Set<InstanceConfig> instancesSet;
     InstanceConfig instancesArray[];
@@ -213,29 +204,24 @@ public class TestRoutingTable
   }
 
   @Test()
-  public void testMultiThread() throws Exception
-  {
+  public void testMultiThread() throws Exception {
     final RoutingTableProvider routingTable = new RoutingTableProvider();
     List<ExternalView> externalViewList = new ArrayList<ExternalView>();
     ZNRecord record = new ZNRecord("TESTDB");
-    for (int i = 0; i < 1000; i++)
-    {
+    for (int i = 0; i < 1000; i++) {
       add(record, "TESTDB_" + i, "localhost_8900", "MASTER");
     }
     externalViewList.add(new ExternalView(record));
     routingTable.onExternalViewChange(externalViewList, changeContext);
     Callable<Boolean> runnable = new Callable<Boolean>() {
       @Override
-      public Boolean call() throws Exception
-      {
+      public Boolean call() throws Exception {
 
-        try
-        {
+        try {
           int count = 0;
-          while (count < 100)
-          {
-            List<InstanceConfig> instancesList = routingTable.getInstances("TESTDB", "TESTDB_0",
-                "MASTER");
+          while (count < 100) {
+            List<InstanceConfig> instancesList =
+                routingTable.getInstances("TESTDB", "TESTDB_0", "MASTER");
             AssertJUnit.assertEquals(instancesList.size(), 1);
             // System.out.println(System.currentTimeMillis() + "-->"
             // + instancesList.size());
@@ -244,8 +230,7 @@ public class TestRoutingTable
 
             count++;
           }
-        } catch (InterruptedException e)
-        {
+        } catch (InterruptedException e) {
           // e.printStackTrace();
         }
         return true;
@@ -254,13 +239,10 @@ public class TestRoutingTable
     ScheduledExecutorService executor = Executors.newSingleThreadScheduledExecutor();
     Future<Boolean> submit = executor.submit(runnable);
     int count = 0;
-    while (count < 10)
-    {
-      try
-      {
+    while (count < 10) {
+      try {
         Thread.sleep(10);
-      } catch (InterruptedException e)
-      {
+      } catch (InterruptedException e) {
         e.printStackTrace();
       }
       routingTable.onExternalViewChange(externalViewList, changeContext);
@@ -272,11 +254,9 @@ public class TestRoutingTable
 
   }
 
-  private void add(ZNRecord record, String stateUnitKey, String instanceName, String state)
-  {
+  private void add(ZNRecord record, String stateUnitKey, String instanceName, String state) {
     Map<String, String> stateUnitKeyMap = record.getMapField(stateUnitKey);
-    if (stateUnitKeyMap == null)
-    {
+    if (stateUnitKeyMap == null) {
       stateUnitKeyMap = new HashMap<String, String>();
       record.setMapField(stateUnitKey, stateUnitKeyMap);
     }

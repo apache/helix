@@ -22,11 +22,10 @@ package org.apache.helix.messaging.handling;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
-public interface MessageHandlerFactory
-{
+public interface MessageHandlerFactory {
   MessageHandler createHandler(Message message, NotificationContext context);
-  
+
   String getMessageType();
-  
+
   void reset();
 }

@@ -1,4 +1,5 @@
 package org.apache.helix.servicediscovery;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,47 +19,39 @@ package org.apache.helix.servicediscovery;
  * under the License.
  */
 
-public class ServiceMetadata
-{
+public class ServiceMetadata {
 
   private int _port;
 
   private String _host;
 
-  public String getHost()
-  {
+  public String getHost() {
     return _host;
   }
 
-  public void setHost(String host)
-  {
+  public void setHost(String host) {
     this._host = host;
   }
 
   private String _serviceName;
 
-  public ServiceMetadata()
-  {
+  public ServiceMetadata() {
 
   }
 
-  public void setPort(int port)
-  {
+  public void setPort(int port) {
     _port = port;
   }
 
-  public int getPort()
-  {
+  public int getPort() {
     return _port;
   }
 
-  public String getServiceName()
-  {
+  public String getServiceName() {
     return _serviceName;
   }
 
-  public void setServiceName(String serviceName)
-  {
+  public void setServiceName(String serviceName) {
     this._serviceName = serviceName;
   }
 

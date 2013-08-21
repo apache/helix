@@ -44,27 +44,21 @@ import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
-
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These message
  * records are for diagnostics only, and they are stored on the "StatusUpdates" and
  * "errors" ZNodes in the zookeeper instances.
- * 
- * 
- * */
-public class StatusUpdateUtil
-{
+ */
+public class StatusUpdateUtil {
   static Logger _logger = Logger.getLogger(StatusUpdateUtil.class);
 
-  public static class Transition implements Comparable<Transition>
-  {
+  public static class Transition implements Comparable<Transition> {
     private final String _msgID;
-    private final long   _timeStamp;
+    private final long _timeStamp;
     private final String _from;
     private final String _to;
 
-    public Transition(String msgID, long timeStamp, String from, String to)
-    {
+    public Transition(String msgID, long timeStamp, String from, String to) {
       this._msgID = msgID;
       this._timeStamp = timeStamp;
       this._from = from;
@@ -72,8 +66,7 @@ public class StatusUpdateUtil
     }
 
     @Override
-    public int compareTo(Transition t)
-    {
+    public int compareTo(Transition t) {
       if (_timeStamp < t._timeStamp)
         return -1;
       else if (_timeStamp > t._timeStamp)
@@ -82,55 +75,48 @@ public class StatusUpdateUtil
         return 0;
     }
 
-    public boolean equals(Transition t)
-    {
+    public boolean equals(Transition t) {
       return (_timeStamp == t._timeStamp && _from.equals(t._from) && _to.equals(t._to));
     }
 
-    public String getFromState()
-    {
+    public String getFromState() {
       return _from;
     }
 
-    public String getToState()
-    {
+    public String getToState() {
       return _to;
     }
 
-    public String getMsgID()
-    {
+    public String getMsgID() {
       return _msgID;
     }
 
     @Override
-    public String toString()
-    {
+    public String toString() {
       return _msgID + ":" + _timeStamp + ":" + _from + "->" + _to;
     }
   }
 
-  public static enum TaskStatus
-  {
-    UNKNOWN, NEW, SCHEDULED, INVOKING, COMPLETED, FAILED
+  public static enum TaskStatus {
+    UNKNOWN,
+    NEW,
+    SCHEDULED,
+    INVOKING,
+    COMPLETED,
+    FAILED
   }
 
-  public static class StatusUpdateContents
-  {
-    private final List<Transition>        _transitions;
+  public static class StatusUpdateContents {
+    private final List<Transition> _transitions;
     private final Map<String, TaskStatus> _taskMessages;
 
-    private StatusUpdateContents(List<Transition> transitions,
-                                 Map<String, TaskStatus> taskMessages)
-    {
+    private StatusUpdateContents(List<Transition> transitions, Map<String, TaskStatus> taskMessages) {
       this._transitions = transitions;
       this._taskMessages = taskMessages;
     }
 
     public static StatusUpdateContents getStatusUpdateContents(HelixDataAccessor accessor,
-                                                               String instance,
-                                                               String resourceGroup,
-                                                               String partition)
-    {
+        String instance, String resourceGroup, String partition) {
       return getStatusUpdateContents(accessor, instance, resourceGroup, null, partition);
     }
 
@@ -140,57 +126,41 @@ public class StatusUpdateUtil
     // But such a map is very similar to what exists in ZNRecord
     // passing null for sessionID results in searching across all sessions
     public static StatusUpdateContents getStatusUpdateContents(HelixDataAccessor accessor,
-                                                               String instance,
-                                                               String resourceGroup,
-                                                               String sessionID,
-                                                               String partition)
-    {
+        String instance, String resourceGroup, String sessionID, String partition) {
       Builder keyBuilder = accessor.keyBuilder();
 
       List<ZNRecord> instances =
           HelixProperty.convertToList(accessor.getChildValues(keyBuilder.instanceConfigs()));
       List<ZNRecord> partitionRecords = new ArrayList<ZNRecord>();
-      for (ZNRecord znRecord : instances)
-      {
+      for (ZNRecord znRecord : instances) {
         String instanceName = znRecord.getId();
-        if (!instanceName.equals(instance))
-        {
+        if (!instanceName.equals(instance)) {
           continue;
         }
 
         List<String> sessions = accessor.getChildNames(keyBuilder.sessions(instanceName));
-        for (String session : sessions)
-        {
-          if (sessionID != null && !session.equals(sessionID))
-          {
+        for (String session : sessions) {
+          if (sessionID != null && !session.equals(sessionID)) {
             continue;
           }
 
           List<String> resourceGroups =
-              accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName,
-                                                                      session));
-          for (String resourceGroupName : resourceGroups)
-          {
-            if (!resourceGroupName.equals(resourceGroup))
-            {
+              accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName, session));
+          for (String resourceGroupName : resourceGroups) {
+            if (!resourceGroupName.equals(resourceGroup)) {
               continue;
             }
 
             List<String> partitionStrings =
-                accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName,
-                                                                        session,
-                                                                        resourceGroupName));
+                accessor.getChildNames(keyBuilder.stateTransitionStatus(instanceName, session,
+                    resourceGroupName));
 
-            for (String partitionString : partitionStrings)
-            {
+            for (String partitionString : partitionStrings) {
               ZNRecord partitionRecord =
-                  accessor.getProperty(keyBuilder.stateTransitionStatus(instanceName,
-                                                                        session,
-                                                                        resourceGroupName,
-                                                                        partitionString))
-                          .getRecord();
-              if (!partitionString.equals(partition))
-              {
+                  accessor.getProperty(
+                      keyBuilder.stateTransitionStatus(instanceName, session, resourceGroupName,
+                          partitionString)).getRecord();
+              if (!partitionString.equals(partition)) {
                 continue;
               }
               partitionRecords.add(partitionRecord);
@@ -200,45 +170,34 @@ public class StatusUpdateUtil
       }
 
       return new StatusUpdateContents(getSortedTransitions(partitionRecords),
-                                      getTaskMessages(partitionRecords));
+          getTaskMessages(partitionRecords));
     }
 
-    public List<Transition> getTransitions()
-    {
+    public List<Transition> getTransitions() {
       return _transitions;
     }
 
-    public Map<String, TaskStatus> getTaskMessages()
-    {
+    public Map<String, TaskStatus> getTaskMessages() {
       return _taskMessages;
     }
 
     // input: List<ZNRecord> corresponding to (instance, database,
     // partition) tuples across all sessions
     // return list of transitions sorted from earliest to latest
-    private static List<Transition> getSortedTransitions(List<ZNRecord> partitionRecords)
-    {
+    private static List<Transition> getSortedTransitions(List<ZNRecord> partitionRecords) {
       List<Transition> transitions = new ArrayList<Transition>();
-      for (ZNRecord partition : partitionRecords)
-      {
+      for (ZNRecord partition : partitionRecords) {
         Map<String, Map<String, String>> mapFields = partition.getMapFields();
-        for (String key : mapFields.keySet())
-        {
-          if (key.startsWith("MESSAGE"))
-          {
+        for (String key : mapFields.keySet()) {
+          if (key.startsWith("MESSAGE")) {
             Map<String, String> m = mapFields.get(key);
             long createTimeStamp = 0;
-            try
-            {
+            try {
               createTimeStamp = Long.parseLong(m.get("CREATE_TIMESTAMP"));
+            } catch (Exception e) {
             }
-            catch (Exception e)
-            {
-            }
-            transitions.add(new Transition(m.get("MSG_ID"),
-                                           createTimeStamp,
-                                           m.get("FROM_STATE"),
-                                           m.get("TO_STATE")));
+            transitions.add(new Transition(m.get("MSG_ID"), createTimeStamp, m.get("FROM_STATE"), m
+                .get("TO_STATE")));
           }
         }
       }
@@ -246,18 +205,14 @@ public class StatusUpdateUtil
       return transitions;
     }
 
-    private static Map<String, TaskStatus> getTaskMessages(List<ZNRecord> partitionRecords)
-    {
+    private static Map<String, TaskStatus> getTaskMessages(List<ZNRecord> partitionRecords) {
       Map<String, TaskStatus> taskMessages = new HashMap<String, TaskStatus>();
-      for (ZNRecord partition : partitionRecords)
-      {
+      for (ZNRecord partition : partitionRecords) {
         Map<String, Map<String, String>> mapFields = partition.getMapFields();
         // iterate over the task status updates in the order they occurred
         // so that the last status can be recorded
-        for (String key : mapFields.keySet())
-        {
-          if (key.contains("STATE_TRANSITION"))
-          {
+        for (String key : mapFields.keySet()) {
+          if (key.contains("STATE_TRANSITION")) {
             Map<String, String> m = mapFields.get(key);
             String id = m.get("MSG_ID");
             String statusString = m.get("AdditionalInfo");
@@ -277,18 +232,17 @@ public class StatusUpdateUtil
     }
   }
 
-  public enum Level
-  {
-    HELIX_ERROR, HELIX_WARNING, HELIX_INFO
+  public enum Level {
+    HELIX_ERROR,
+    HELIX_WARNING,
+    HELIX_INFO
   }
 
   /**
    * Creates an empty ZNRecord as the statusUpdate/error record
-   * 
    * @param id
    */
-  public ZNRecord createEmptyStatusUpdateRecord(String id)
-  {
+  public ZNRecord createEmptyStatusUpdateRecord(String id) {
     return new ZNRecord(id);
   }
 
@@ -297,23 +251,19 @@ public class StatusUpdateUtil
    * simple fields) into the ZNRecord mapFields. In this way, the message update can be
    * merged with the previous status update record in the zookeeper. See ZNRecord.merge()
    * for more details.
-   * */
-  ZNRecord createMessageLogRecord(Message message)
-  {
+   */
+  ZNRecord createMessageLogRecord(Message message) {
     ZNRecord result = new ZNRecord(getStatusUpdateRecordName(message));
     String mapFieldKey = "MESSAGE " + message.getMsgId();
     result.setMapField(mapFieldKey, new TreeMap<String, String>());
 
     // Store all the simple fields of the message in the new ZNRecord's map
     // field.
-    for (String simpleFieldKey : message.getRecord().getSimpleFields().keySet())
-    {
+    for (String simpleFieldKey : message.getRecord().getSimpleFields().keySet()) {
       result.getMapField(mapFieldKey).put(simpleFieldKey,
-                                          message.getRecord()
-                                                 .getSimpleField(simpleFieldKey));
+          message.getRecord().getSimpleField(simpleFieldKey));
     }
-    if (message.getResultMap() != null)
-    {
+    if (message.getResultMap() != null) {
       result.setMapField("MessageResult", message.getResultMap());
     }
     return result;
@@ -323,7 +273,6 @@ public class StatusUpdateUtil
 
   /**
    * Create a statusupdate that is related to a cluster manager message.
-   * 
    * @param message
    *          the related cluster manager message
    * @param level
@@ -333,11 +282,8 @@ public class StatusUpdateUtil
    * @param additional
    *          info the additional debug information
    */
-  public ZNRecord createMessageStatusUpdateRecord(Message message,
-                                                  Level level,
-                                                  Class classInfo,
-                                                  String additionalInfo)
-  {
+  public ZNRecord createMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
+      String additionalInfo) {
     ZNRecord result = createEmptyStatusUpdateRecord(getStatusUpdateRecordName(message));
     Map<String, String> contentMap = new TreeMap<String, String>();
 
@@ -349,24 +295,18 @@ public class StatusUpdateUtil
     DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
     String time = formatter.format(new Date());
 
-    String id =
-        String.format("%4s %26s ", level.toString(), time)
-            + getRecordIdForMessage(message);
+    String id = String.format("%4s %26s ", level.toString(), time) + getRecordIdForMessage(message);
 
     result.setMapField(id, contentMap);
 
     return result;
   }
 
-  String getRecordIdForMessage(Message message)
-  {
-    if (message.getMsgType().equals(MessageType.STATE_TRANSITION))
-    {
-      return message.getPartitionName() + " Trans:" + message.getFromState().charAt(0)
-          + "->" + message.getToState().charAt(0) + "  " + UUID.randomUUID().toString();
-    }
-    else
-    {
+  String getRecordIdForMessage(Message message) {
+    if (message.getMsgType().equals(MessageType.STATE_TRANSITION)) {
+      return message.getPartitionName() + " Trans:" + message.getFromState().charAt(0) + "->"
+          + message.getToState().charAt(0) + "  " + UUID.randomUUID().toString();
+    } else {
       return message.getMsgType() + " " + UUID.randomUUID().toString();
     }
   }
@@ -374,7 +314,6 @@ public class StatusUpdateUtil
   /**
    * Create a statusupdate that is related to a cluster manager message, then record it to
    * the zookeeper store.
-   * 
    * @param message
    *          the related cluster manager message
    * @param level
@@ -386,76 +325,42 @@ public class StatusUpdateUtil
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
    */
-  public void logMessageStatusUpdateRecord(Message message,
-                                           Level level,
-                                           Class classInfo,
-                                           String additionalInfo,
-                                           HelixDataAccessor accessor)
-  {
-    try
-    {
-      ZNRecord record =
-          createMessageStatusUpdateRecord(message, level, classInfo, additionalInfo);
+  public void logMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
+      String additionalInfo, HelixDataAccessor accessor) {
+    try {
+      ZNRecord record = createMessageStatusUpdateRecord(message, level, classInfo, additionalInfo);
       publishStatusUpdateRecord(record, message, level, accessor);
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       _logger.error("Exception while logging status update", e);
     }
   }
 
-  public void logError(Message message,
-                       Class classInfo,
-                       String additionalInfo,
-                       HelixDataAccessor accessor)
-  {
-    logMessageStatusUpdateRecord(message,
-                                 Level.HELIX_ERROR,
-                                 classInfo,
-                                 additionalInfo,
-                                 accessor);
+  public void logError(Message message, Class classInfo, String additionalInfo,
+      HelixDataAccessor accessor) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo, accessor);
   }
 
-  public void logError(Message message,
-                       Class classInfo,
-                       Exception e,
-                       String additionalInfo,
-                       HelixDataAccessor accessor)
-  {
+  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
+      HelixDataAccessor accessor) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
     e.printStackTrace(pw);
-    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo
-        + sw.toString(), accessor);
+    logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo,
+        additionalInfo + sw.toString(), accessor);
   }
 
-  public void logInfo(Message message,
-                      Class classInfo,
-                      String additionalInfo,
-                      HelixDataAccessor accessor)
-  {
-    logMessageStatusUpdateRecord(message,
-                                 Level.HELIX_INFO,
-                                 classInfo,
-                                 additionalInfo,
-                                 accessor);
+  public void logInfo(Message message, Class classInfo, String additionalInfo,
+      HelixDataAccessor accessor) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_INFO, classInfo, additionalInfo, accessor);
   }
 
-  public void logWarning(Message message,
-                         Class classInfo,
-                         String additionalInfo,
-                         HelixDataAccessor accessor)
-  {
-    logMessageStatusUpdateRecord(message,
-                                 Level.HELIX_WARNING,
-                                 classInfo,
-                                 additionalInfo,
-                                 accessor);
+  public void logWarning(Message message, Class classInfo, String additionalInfo,
+      HelixDataAccessor accessor) {
+    logMessageStatusUpdateRecord(message, Level.HELIX_WARNING, classInfo, additionalInfo, accessor);
   }
 
   /**
    * Write a status update record to zookeeper to the zookeeper store.
-   * 
    * @param record
    *          the status update record
    * @param message
@@ -465,91 +370,72 @@ public class StatusUpdateUtil
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
    */
-  void publishStatusUpdateRecord(ZNRecord record,
-                                 Message message,
-                                 Level level,
-                                 HelixDataAccessor accessor)
-  {
+  void publishStatusUpdateRecord(ZNRecord record, Message message, Level level,
+      HelixDataAccessor accessor) {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
     String sessionId = message.getExecutionSessionId();
-    if (sessionId == null)
-    {
+    if (sessionId == null) {
       sessionId = message.getTgtSessionId();
     }
-    if (sessionId == null)
-    {
+    if (sessionId == null) {
       sessionId = "*";
     }
 
     Builder keyBuilder = accessor.keyBuilder();
-    if (!_recordedMessages.containsKey(message.getMsgId()))
-    {
+    if (!_recordedMessages.containsKey(message.getMsgId())) {
       // TODO instanceName of a controller might be any string
-      if (instanceName.equalsIgnoreCase("Controller"))
-      {
-        accessor.updateProperty(keyBuilder.controllerTaskStatus(statusUpdateSubPath,
-                                                                statusUpdateKey),
-                                new StatusUpdate(createMessageLogRecord(message)));
+      if (instanceName.equalsIgnoreCase("Controller")) {
+        accessor.updateProperty(
+            keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey),
+            new StatusUpdate(createMessageLogRecord(message)));
 
-      }
-      else
-      {
-        
+      } else {
+
         PropertyKey propertyKey =
-            keyBuilder.stateTransitionStatus(instanceName,
-                                             sessionId,
-                                             statusUpdateSubPath,
-                                             statusUpdateKey);
+            keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
+                statusUpdateKey);
 
         ZNRecord statusUpdateRecord = createMessageLogRecord(message);
 
-        // For now write participant StatusUpdates to log4j. 
+        // For now write participant StatusUpdates to log4j.
         // we are using restlet as another data channel to report to controller.
-        if(_logger.isTraceEnabled()){
-           _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
+        if (_logger.isTraceEnabled()) {
+          _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:"
               + statusUpdateRecord);
         }
         accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
-        
+
       }
       _recordedMessages.put(message.getMsgId(), message.getMsgId());
     }
 
-    if (instanceName.equalsIgnoreCase("Controller"))
-    {
-      accessor.updateProperty(keyBuilder.controllerTaskStatus(statusUpdateSubPath,
-                                                              statusUpdateKey),
-                              new StatusUpdate(record));
-    }
-    else
-    {
-      
+    if (instanceName.equalsIgnoreCase("Controller")) {
+      accessor.updateProperty(
+          keyBuilder.controllerTaskStatus(statusUpdateSubPath, statusUpdateKey), new StatusUpdate(
+              record));
+    } else {
+
       PropertyKey propertyKey =
-          keyBuilder.stateTransitionStatus(instanceName,
-                                           sessionId,
-                                           statusUpdateSubPath,
-                                           statusUpdateKey);
-      // For now write participant StatusUpdates to log4j. 
+          keyBuilder.stateTransitionStatus(instanceName, sessionId, statusUpdateSubPath,
+              statusUpdateKey);
+      // For now write participant StatusUpdates to log4j.
       // we are using restlet as another data channel to report to controller.
-      if(_logger.isTraceEnabled()){
+      if (_logger.isTraceEnabled()) {
         _logger.trace("StatusUpdate path:" + propertyKey.getPath() + ", updates:" + record);
       }
       accessor.updateProperty(propertyKey, new StatusUpdate(record));
     }
 
     // If the error level is ERROR, also write the record to "ERROR" ZNode
-    if (Level.HELIX_ERROR == level)
-    {
+    if (Level.HELIX_ERROR == level) {
       publishErrorRecord(record, message, accessor);
     }
   }
 
-  private String getStatusUpdateKey(Message message)
-  {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
-    {
+  private String getStatusUpdateKey(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
       return message.getPartitionName();
     }
     return message.getMsgId();
@@ -557,24 +443,17 @@ public class StatusUpdateUtil
 
   /**
    * Generate the sub-path under STATUSUPDATE or ERROR path for a status update
-   * 
    */
-  String getStatusUpdateSubPath(Message message)
-  {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
-    {
+  String getStatusUpdateSubPath(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
       return message.getResourceName();
-    }
-    else
-    {
+    } else {
       return message.getMsgType();
     }
   }
 
-  String getStatusUpdateRecordName(Message message)
-  {
-    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString()))
-    {
+  String getStatusUpdateRecordName(Message message) {
+    if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
       return message.getTgtSessionId() + "__" + message.getResourceName();
     }
     return message.getMsgId();
@@ -582,7 +461,6 @@ public class StatusUpdateUtil
 
   /**
    * Write an error record to zookeeper to the zookeeper store.
-   * 
    * @param record
    *          the status update record
    * @param message
@@ -590,46 +468,36 @@ public class StatusUpdateUtil
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
    */
-  void publishErrorRecord(ZNRecord record, Message message, HelixDataAccessor accessor)
-  {
+  void publishErrorRecord(ZNRecord record, Message message, HelixDataAccessor accessor) {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
     String sessionId = message.getExecutionSessionId();
-    if (sessionId == null)
-    {
+    if (sessionId == null) {
       sessionId = message.getTgtSessionId();
     }
-    if (sessionId == null)
-    {
+    if (sessionId == null) {
       sessionId = "*";
     }
 
     Builder keyBuilder = accessor.keyBuilder();
 
     // TODO remove the hard code: "controller"
-    if (instanceName.equalsIgnoreCase("controller"))
-    {
+    if (instanceName.equalsIgnoreCase("controller")) {
       // TODO need to fix: ERRORS_CONTROLLER doesn't have a form of
       // ../{sessionId}/{subPath}
       // accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record,
       // statusUpdateSubPath);
-      accessor.setProperty(keyBuilder.controllerTaskError(statusUpdateSubPath),
-                           new Error(record));
-    }
-    else
-    {
+      accessor.setProperty(keyBuilder.controllerTaskError(statusUpdateSubPath), new Error(record));
+    } else {
       // accessor.updateProperty(PropertyType.ERRORS,
       // record,
       // instanceName,
       // sessionId,
       // statusUpdateSubPath,
       // statusUpdateKey);
-      accessor.updateProperty(keyBuilder.stateTransitionError(instanceName,
-                                                              sessionId,
-                                                              statusUpdateSubPath,
-                                                              statusUpdateKey),
-                              new Error(record));
+      accessor.updateProperty(keyBuilder.stateTransitionError(instanceName, sessionId,
+          statusUpdateSubPath, statusUpdateKey), new Error(record));
 
     }
   }

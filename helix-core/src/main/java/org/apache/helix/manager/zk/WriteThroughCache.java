@@ -1,6 +1,5 @@
 package org.apache.helix.manager.zk;
 
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,57 +30,45 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-
-public class WriteThroughCache<T> extends Cache<T>
-{
-  private static Logger     LOG = Logger.getLogger(WriteThroughCache.class);
+public class WriteThroughCache<T> extends Cache<T> {
+  private static Logger LOG = Logger.getLogger(WriteThroughCache.class);
 
   final BaseDataAccessor<T> _accessor;
 
-  public WriteThroughCache(BaseDataAccessor<T> accessor, List<String> paths)
-  {
+  public WriteThroughCache(BaseDataAccessor<T> accessor, List<String> paths) {
     super();
     _accessor = accessor;
 
     // init cache
-    if (paths != null && !paths.isEmpty())
-    {
-      for (String path : paths)
-      {
+    if (paths != null && !paths.isEmpty()) {
+      for (String path : paths) {
         updateRecursive(path);
       }
     }
   }
 
   @Override
-  public void update(String path, T data, Stat stat)
-  {
+  public void update(String path, T data, Stat stat) {
     String parentPath = HelixUtil.getZkParentPath(path);
     String childName = HelixUtil.getZkName(path);
     addToParentChildSet(parentPath, childName);
-    
+
     ZNode znode = _cache.get(path);
-    if (znode == null)
-    {
+    if (znode == null) {
       _cache.put(path, new ZNode(path, data, stat));
-    }
-    else
-    {
+    } else {
       znode.setData(data);
       znode.setStat(stat);
     }
   }
-  
+
   @Override
-  public void updateRecursive(String path)
-  {
-    if (path == null)
-    {
+  public void updateRecursive(String path) {
+    if (path == null) {
       return;
     }
 
-    try
-    {
+    try {
       _lock.writeLock().lock();
 
       // update this node
@@ -89,29 +76,22 @@ public class WriteThroughCache<T> extends Cache<T>
       T readData = _accessor.get(path, stat, AccessOption.THROW_EXCEPTION_IFNOTEXIST);
 
       update(path, readData, stat);
-      
+
       // recursively update children nodes if not exists
       ZNode znode = _cache.get(path);
       List<String> childNames = _accessor.getChildNames(path, 0);
-      if (childNames != null && childNames.size() > 0)
-      {
-        for (String childName : childNames)
-        {
+      if (childNames != null && childNames.size() > 0) {
+        for (String childName : childNames) {
           String childPath = path + "/" + childName;
-          if (!znode.hasChild(childName))
-          {
+          if (!znode.hasChild(childName)) {
             znode.addChild(childName);
             updateRecursive(childPath);
           }
         }
       }
-    }
-    catch (ZkNoNodeException e)
-    {
+    } catch (ZkNoNodeException e) {
       // OK. someone delete znode while we are updating cache
-    }
-    finally
-    {
+    } finally {
       _lock.writeLock().unlock();
     }
   }

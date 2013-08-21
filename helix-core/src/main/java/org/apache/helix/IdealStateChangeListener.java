@@ -26,12 +26,10 @@ import org.apache.helix.model.IdealState;
 /**
  * Interface to implement to listen for changes to the ideal state of resources.
  */
-public interface IdealStateChangeListener
-{
+public interface IdealStateChangeListener {
 
   /**
    * Invoed when ideal state changes
-   * 
    * @param idealState
    * @param changeContext
    */

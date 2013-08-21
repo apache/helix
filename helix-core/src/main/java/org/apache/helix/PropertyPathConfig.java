@@ -57,13 +57,14 @@ import org.apache.log4j.Logger;
 /**
  * Utility mapping properties to their Zookeeper locations
  */
-public class PropertyPathConfig
-{
+public class PropertyPathConfig {
   private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
 
-  static final Map<PropertyType, Map<Integer, String>> templateMap = new HashMap<PropertyType, Map<Integer, String>>();
-  static final Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping= new HashMap<PropertyType, Class<? extends HelixProperty>>();
-  static{
+  static final Map<PropertyType, Map<Integer, String>> templateMap =
+      new HashMap<PropertyType, Map<Integer, String>>();
+  static final Map<PropertyType, Class<? extends HelixProperty>> typeToClassMapping =
+      new HashMap<PropertyType, Class<? extends HelixProperty>>();
+  static {
     typeToClassMapping.put(LIVEINSTANCES, LiveInstance.class);
     typeToClassMapping.put(IDEALSTATES, IdealState.class);
     typeToClassMapping.put(CONFIGS, InstanceConfig.class);
@@ -144,10 +145,8 @@ public class PropertyPathConfig
   }
   static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 
-  private static void addEntry(PropertyType type, int numKeys, String template)
-  {
-    if (!templateMap.containsKey(type))
-    {
+  private static void addEntry(PropertyType type, int numKeys, String template) {
+    if (!templateMap.containsKey(type)) {
       templateMap.put(type, new HashMap<Integer, String>());
     }
     logger.trace("Adding template for type:" + type.getType() + " arguments:" + numKeys
@@ -162,46 +161,37 @@ public class PropertyPathConfig
    * @param keys
    * @return a valid path, or null if none exists
    */
-  public static String getPath(PropertyType type, String clusterName, String... keys)
-  {
-    if (clusterName == null)
-    {
+  public static String getPath(PropertyType type, String clusterName, String... keys) {
+    if (clusterName == null) {
       logger.warn("ClusterName can't be null for type:" + type);
       return null;
     }
-    if (keys == null)
-    {
+    if (keys == null) {
       keys = new String[] {};
     }
     String template = null;
-    if (templateMap.containsKey(type))
-    {
+    if (templateMap.containsKey(type)) {
       // keys.length+1 since we add clusterName
       template = templateMap.get(type).get(keys.length + 1);
     }
 
     String result = null;
 
-    if (template != null)
-    {
+    if (template != null) {
       result = template;
       Matcher matcher = pattern.matcher(template);
       int count = 0;
-      while (matcher.find())
-      {
+      while (matcher.find()) {
         count = count + 1;
         String var = matcher.group();
-        if (count == 1)
-        {
+        if (count == 1) {
           result = result.replace(var, clusterName);
-        } else
-        {
+        } else {
           result = result.replace(var, keys[count - 2]);
         }
       }
     }
-    if (result == null || result.indexOf('{') > -1 || result.indexOf('}') > -1)
-    {
+    if (result == null || result.indexOf('{') > -1 || result.indexOf('}') > -1) {
       logger.warn("Unable to instantiate template:" + template + " using clusterName:"
           + clusterName + " and keys:" + Arrays.toString(keys));
     }
@@ -213,15 +203,12 @@ public class PropertyPathConfig
    * @param path
    * @return a valid instance name, or null if none exists
    */
-  public static String getInstanceNameFromPath(String path)
-  {
+  public static String getInstanceNameFromPath(String path) {
     // path structure
     // /<cluster_name>/instances/<instance_name>/[currentStates/messages]
-    if (path.contains("/" + PropertyType.INSTANCES + "/"))
-    {
+    if (path.contains("/" + PropertyType.INSTANCES + "/")) {
       String[] split = path.split("\\/");
-      if (split.length > 3)
-      {
+      if (split.length > 3) {
         return split[3];
       }
     }

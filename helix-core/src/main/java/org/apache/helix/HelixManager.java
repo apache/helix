@@ -29,12 +29,10 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
-
 /**
  * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
- * 
  * <pre>
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
@@ -49,15 +47,12 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
- * 
  * </blockquote> Default implementations available
- * 
  * @see HelixStateMachineEngine HelixStateMachineEngine for participant
  * @see RoutingTableProvider RoutingTableProvider for spectator
  * @see GenericHelixController RoutingTableProvider for controller
  */
-public interface HelixManager
-{
+public interface HelixManager {
 
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "ALLOW_PARTICIPANT_AUTO_JOIN";
 
@@ -65,7 +60,6 @@ public interface HelixManager
    * Start participating in the cluster operations. All listeners will be
    * initialized and will be notified for every cluster state change This method
    * is not re-entrant. One cannot call this method twice.
-   * 
    * @throws Exception
    */
   void connect() throws Exception;
@@ -75,7 +69,6 @@ public interface HelixManager
    * always do this if( manager.isConnected()){ //custom code } This will
    * prevent client in doing anything when its disconnected from the cluster.
    * There is no need to invoke connect again if isConnected return false.
-   * 
    * @return true if connected, false otherwise
    */
   boolean isConnected();
@@ -92,21 +85,17 @@ public interface HelixManager
    * @param listener
    * @throws Exception
    */
-  void addIdealStateChangeListener(IdealStateChangeListener listener)
-      throws Exception;
+  void addIdealStateChangeListener(IdealStateChangeListener listener) throws Exception;
 
   /**
-   * @see LiveInstanceChangeListener#onLiveInstanceChange(List,
-   *      NotificationContext)
+   * @see LiveInstanceChangeListener#onLiveInstanceChange(List, NotificationContext)
    * @param listener
    */
-  void addLiveInstanceChangeListener(LiveInstanceChangeListener listener)
-      throws Exception;
+  void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception;
 
   /**
    * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
    * @param listener
-   * 
    * @deprecated replaced by addInstanceConfigChangeListener()
    */
   void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
@@ -114,7 +103,6 @@ public interface HelixManager
   /**
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
    * @param listener
-   * 
    */
   void addInstanceConfigChangeListener(InstanceConfigChangeListener listener) throws Exception;
 
@@ -123,46 +111,41 @@ public interface HelixManager
    * @param listener
    * @param scope
    */
-  void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope) throws Exception;
-  
+  void addConfigChangeListener(ScopedConfigChangeListener listener, ConfigScopeProperty scope)
+      throws Exception;
+
   /**
    * @see MessageListener#onMessage(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
-  void addMessageListener(MessageListener listener, String instanceName)
-      throws Exception;
+  void addMessageListener(MessageListener listener, String instanceName) throws Exception;
 
   /**
-   * @see CurrentStateChangeListener#onStateChange(String, List,
-   *      NotificationContext)
+   * @see CurrentStateChangeListener#onStateChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
 
-  void addCurrentStateChangeListener(CurrentStateChangeListener listener,
-      String instanceName, String sessionId) throws Exception;
+  void addCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
+      String sessionId) throws Exception;
 
   /**
-   * @see HealthStateChangeListener#onHealthChange(String, List,
-   *      NotificationContext)
+   * @see HealthStateChangeListener#onHealthChange(String, List, NotificationContext)
    * @param listener
    * @param instanceName
    */
-  void addHealthStateChangeListener(HealthStateChangeListener listener,
-      String instanceName) throws Exception;
+  void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
+      throws Exception;
 
   /**
-   * @see ExternalViewChangeListener#onExternalViewChange(List,
-   *      NotificationContext)
+   * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
    * @param listener
    */
-  void addExternalViewChangeListener(ExternalViewChangeListener listener)
-      throws Exception;
+  void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception;
 
   /**
    * Add listener for controller change
-   * 
    * Used in distributed cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
@@ -177,36 +160,32 @@ public interface HelixManager
    * automatically. <br/>
    * This provides the ability for listeners to either reset their state or do
    * any cleanup tasks.<br/>
-   * 
    * @param listener
    * @return true if removed successfully, false otherwise
    */
   boolean removeListener(PropertyKey key, Object listener);
+
   /**
    * Return the client to perform read/write operations on the cluster data
    * store
-   * 
    * @return ClusterDataAccessor
    */
   HelixDataAccessor getHelixDataAccessor();
 
   /**
    * Get config accessor
-   * 
    * @return ConfigAccessor
    */
   ConfigAccessor getConfigAccessor();
 
   /**
    * Returns the cluster name associated with this cluster manager
-   * 
    * @return the associated cluster name
    */
   String getClusterName();
 
   /**
    * Returns the instanceName used to connect to the cluster
-   * 
    * @return the associated instance name
    */
 
@@ -214,7 +193,6 @@ public interface HelixManager
 
   /**
    * Get the sessionId associated with the connection to cluster data store.
-   *
    * @return the session identifier
    */
   String getSessionId();
@@ -224,28 +202,24 @@ public interface HelixManager
    * be used to check if there was any new notification when previous
    * notification was being processed. This is updated based on the
    * notifications from listeners registered.
-   *
    * @return UNIX timestamp
    */
   long getLastNotificationTime();
 
   /**
    * Provides admin interface to setup and modify cluster.
-   * 
    * @return instantiated HelixAdmin
    */
   HelixAdmin getClusterManagmentTool();
 
   /**
    * Get property store
-   * 
    * @return the property store that works with ZNRecord objects
    */
   ZkHelixPropertyStore<ZNRecord> getHelixPropertyStore();
 
   /**
    * Messaging service which can be used to send cluster wide messages.
-   *
    * @return messaging service
    */
   ClusterMessagingService getMessagingService();
@@ -253,72 +227,66 @@ public interface HelixManager
   /**
    * Participant only component that periodically update participant health
    * report to cluster manager server.
-   *
    * @return ParticipantHealthReportCollector
    */
   ParticipantHealthReportCollector getHealthReportCollector();
 
   /**
    * Get cluster manager instance type
-   * 
    * @return instance type (e.g. PARTICIPANT, CONTROLLER, SPECTATOR)
    */
   InstanceType getInstanceType();
 
   /**
    * Get cluster manager version
-   * 
    * @return the cluster manager version
    */
   String getVersion();
 
   /**
-   * Get helix manager properties read from 
-   * helix-core/src/main/resources/cluster-manager.properties 
-   * 
+   * Get helix manager properties read from
+   * helix-core/src/main/resources/cluster-manager.properties
    * @return deserialized properties
    */
   HelixManagerProperties getProperties();
-  
+
   /**
-   * 
    * @return the state machine engine
    */
   StateMachineEngine getStateMachineEngine();
 
   /**
    * Check if the cluster manager is the leader
-   * 
    * @return true if this is a controller and a leader of the cluster
    */
   boolean isLeader();
 
   /**
    * start timer tasks when becomes leader
-   * 
    */
   void startTimerTasks();
 
   /**
    * stop timer tasks when becomes standby
-   * 
    */
   void stopTimerTasks();
-  
+
   /**
    * Add a callback that is invoked before a participant joins the cluster.</br>
-   * This zookeeper connection is established at this time and one can read existing cluster data</br>
-   * The purpose of this method is to allow application to have additional logic to validate their existing state and check for any errors.
+   * This zookeeper connection is established at this time and one can read existing cluster
+   * data</br>
+   * The purpose of this method is to allow application to have additional logic to validate their
+   * existing state and check for any errors.
    * If the validation fails, throw exception/disable the instance. s
    * @see PreConnectCallback#onPreConnect()
    * @param callback
    */
   void addPreConnectCallback(PreConnectCallback callback);
-  
+
   /**
    * Add a LiveInstanceInfoProvider that is invoked before creating liveInstance.</br>
-   * This allows applications to provide additional metadata that will be published to zk and made available for discovery</br>
-   * 
+   * This allows applications to provide additional metadata that will be published to zk and made
+   * available for discovery</br>
    * @see LiveInstanceInfoProvider#getAdditionalLiveInstanceInfo()
    * @param liveInstanceInfoProvider
    */

@@ -33,12 +33,9 @@ import org.apache.helix.model.Message;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
-public class TestMsgSelectionStage
-{
+public class TestMsgSelectionStage {
   @Test
-  public void testMasterXfer()
-  {
+  public void testMasterXfer() {
     System.out.println("START testMasterXfer at " + new Date(System.currentTimeMillis()));
 
     Map<String, LiveInstance> liveInstances = new HashMap<String, LiveInstance>();
@@ -52,18 +49,10 @@ public class TestMsgSelectionStage
     Map<String, String> pendingStates = new HashMap<String, String>();
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0",
-                                          "SLAVE",
-                                          "MASTER",
-                                          "localhost_0",
-                                          "TestDB",
-                                          "TestDB_0"));
-    messages.add(TestHelper.createMessage("msgId_1",
-                                          "MASTER",
-                                          "SLAVE",
-                                          "localhost_1",
-                                          "TestDB",
-                                          "TestDB_0"));
+    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
+        "TestDB_0"));
+    messages.add(TestHelper.createMessage("msgId_1", "MASTER", "SLAVE", "localhost_1", "TestDB",
+        "TestDB_0"));
 
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
     stateConstraints.put("MASTER", new Bounds(0, 1));
@@ -73,15 +62,9 @@ public class TestMsgSelectionStage
     stateTransitionPriorities.put("MASTER-SLAVE", 0);
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
-
     List<Message> selectedMsg =
-        new MessageSelectionStage().selectMessages(liveInstances,
-                                                   currentStates,
-                                                   pendingStates,
-                                                   messages,
-                                                   stateConstraints,
-                                                   stateTransitionPriorities,
-                                                   "OFFLINE");
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 1);
     Assert.assertEquals(selectedMsg.get(0).getMsgId(), "msgId_1");
@@ -89,8 +72,7 @@ public class TestMsgSelectionStage
   }
 
   @Test
-  public void testMasterXferAfterMasterResume()
-  {
+  public void testMasterXferAfterMasterResume() {
     System.out.println("START testMasterXferAfterMasterResume at "
         + new Date(System.currentTimeMillis()));
 
@@ -106,12 +88,8 @@ public class TestMsgSelectionStage
     pendingStates.put("localhost_1", "MASTER");
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0",
-                                          "SLAVE",
-                                          "MASTER",
-                                          "localhost_0",
-                                          "TestDB",
-                                          "TestDB_0"));
+    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
+        "TestDB_0"));
 
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
     stateConstraints.put("MASTER", new Bounds(0, 1));
@@ -122,13 +100,8 @@ public class TestMsgSelectionStage
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
     List<Message> selectedMsg =
-        new MessageSelectionStage().selectMessages(liveInstances,
-                                                   currentStates,
-                                                   pendingStates,
-                                                   messages,
-                                                   stateConstraints,
-                                                   stateTransitionPriorities,
-                                                   "OFFLINE");
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 0);
     System.out.println("END testMasterXferAfterMasterResume at "

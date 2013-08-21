@@ -22,12 +22,10 @@ package org.apache.helix;
 /**
  * Called to allow definition of tasks prior to connecting to Zookeeper
  */
-public interface PreConnectCallback
-{
+public interface PreConnectCallback {
   /**
    * Callback function that is called by HelixManager before connected to zookeeper. If
    * exception are thrown HelixManager will not connect and no live instance is created
-   * 
    * @see ZkHelixManager#handleNewSessionAsParticipant()
    */
   public void onPreConnect();

@@ -28,11 +28,8 @@ import java.util.TreeMap;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-
-class DefaultHealthReportProvider extends HealthReportProvider
-{
-  private static final Logger _logger = Logger
-      .getLogger(DefaultHealthReportProvider.class);
+class DefaultHealthReportProvider extends HealthReportProvider {
+  private static final Logger _logger = Logger.getLogger(DefaultHealthReportProvider.class);
 
   public final static String _availableCPUs = "availableCPUs";
   public final static String _freePhysicalMemory = "freePhysicalMemory";
@@ -40,32 +37,26 @@ class DefaultHealthReportProvider extends HealthReportProvider
   public final static String _freeJvmMemory = "freeJvmMemory";
   public final static String _averageSystemLoad = "averageSystemLoad";
 
-  public DefaultHealthReportProvider()
-  {
+  public DefaultHealthReportProvider() {
   }
 
   @Override
-  public Map<String, String> getRecentHealthReport()
-  {
-    OperatingSystemMXBean osMxBean = ManagementFactory
-        .getOperatingSystemMXBean();
+  public Map<String, String> getRecentHealthReport() {
+    OperatingSystemMXBean osMxBean = ManagementFactory.getOperatingSystemMXBean();
     long freeJvmMemory = Runtime.getRuntime().freeMemory();
     long totalJvmMemory = Runtime.getRuntime().totalMemory();
     int availableCPUs = osMxBean.getAvailableProcessors();
     double avgSystemLoad = osMxBean.getSystemLoadAverage();
     long freePhysicalMemory = Long.MAX_VALUE;
 
-    try
-    {
+    try {
       // if( osMxBean instanceof com.sun.management.OperatingSystemMXBean)
       // {
       // com.sun.management.OperatingSystemMXBean sunOsMxBean
       // = (com.sun.management.OperatingSystemMXBean) osMxBean;
       // freePhysicalMemory = sunOsMxBean.getFreePhysicalMemorySize();
       // }
-    }
-    catch (Throwable t)
-    {
+    } catch (Throwable t) {
       _logger.error(t);
     }
 
@@ -81,17 +72,15 @@ class DefaultHealthReportProvider extends HealthReportProvider
   }
 
   @Override
-  public Map<String, Map<String, String>> getRecentPartitionHealthReport()
-  {
+  public Map<String, Map<String, String>> getRecentPartitionHealthReport() {
     Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-    
+
     result.put(getReportName(), getRecentHealthReport());
     return result;
   }
 
   @Override
-  public void resetStats()
-  {
+  public void resetStats() {
     // TODO Auto-generated method stub
 
   }

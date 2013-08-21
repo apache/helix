@@ -31,31 +31,25 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 
-public class Consumer
-{
+public class Consumer {
   private final String _zkAddr;
   private final String _clusterName;
   private final String _consumerId;
   private final String _mqServer;
   private HelixManager _manager = null;
 
-  public Consumer(String zkAddr, String clusterName, String consumerId, String mqServer)
-  {
+  public Consumer(String zkAddr, String clusterName, String consumerId, String mqServer) {
     _zkAddr = zkAddr;
     _clusterName = clusterName;
     _consumerId = consumerId;
     _mqServer = mqServer;
   }
 
-  public void connect()
-  {
-    try
-    {
+  public void connect() {
+    try {
       _manager =
-          HelixManagerFactory.getZKHelixManager(_clusterName,
-                                                _consumerId,
-                                                InstanceType.PARTICIPANT,
-                                                _zkAddr);
+          HelixManagerFactory.getZKHelixManager(_clusterName, _consumerId,
+              InstanceType.PARTICIPANT, _zkAddr);
 
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       ConsumerStateModelFactory modelFactory =
@@ -65,35 +59,26 @@ public class Consumer
       _manager.connect();
 
       Thread.currentThread().join();
-    }
-    catch (InterruptedException e)
-    {
+    } catch (InterruptedException e) {
       System.err.println(" [-] " + _consumerId + " is interrupted ...");
-    }
-    catch (Exception e)
-    {
+    } catch (Exception e) {
       // TODO Auto-generated catch block
       e.printStackTrace();
-    }
-    finally
-    {
+    } finally {
       disconnect();
     }
   }
 
-  public void disconnect()
-  {
-    if (_manager != null)
-    {
+  public void disconnect() {
+    if (_manager != null) {
       _manager.disconnect();
     }
   }
 
-  public static void main(String[] args) throws Exception
-  {
-    if (args.length < 3)
-    {
-      System.err.println("USAGE: java Consumer zookeeperAddress (e.g. localhost:2181) consumerId (0-2), rabbitmqServer (e.g. localhost)");
+  public static void main(String[] args) throws Exception {
+    if (args.length < 3) {
+      System.err
+          .println("USAGE: java Consumer zookeeperAddress (e.g. localhost:2181) consumerId (0-2), rabbitmqServer (e.g. localhost)");
       System.exit(1);
     }
 
@@ -103,19 +88,15 @@ public class Consumer
     final String mqServer = args[2];
 
     ZkClient zkclient = null;
-    try
-    {
+    try {
       // add node to cluster if not already added
       zkclient =
-          new ZkClient(zkAddr,
-                       ZkClient.DEFAULT_SESSION_TIMEOUT,
-                       ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-                       new ZNRecordSerializer());
+          new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
+              ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
       ZKHelixAdmin admin = new ZKHelixAdmin(zkclient);
 
       List<String> nodes = admin.getInstancesInCluster(clusterName);
-      if (!nodes.contains("consumer_" + consumerId))
-      {
+      if (!nodes.contains("consumer_" + consumerId)) {
         InstanceConfig config = new InstanceConfig("consumer_" + consumerId);
         config.setHostName("localhost");
         config.setInstanceEnabled(true);
@@ -126,22 +107,17 @@ public class Consumer
       final Consumer consumer =
           new Consumer(zkAddr, clusterName, "consumer_" + consumerId, mqServer);
 
-      Runtime.getRuntime().addShutdownHook(new Thread()
-      {
+      Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override
-        public void run()
-        {
+        public void run() {
           System.out.println("Shutting down consumer_" + consumerId);
           consumer.disconnect();
         }
       });
 
       consumer.connect();
-    }
-    finally
-    {
-      if (zkclient != null)
-      {
+    } finally {
+      if (zkclient != null) {
         zkclient.close();
       }
     }

@@ -84,7 +84,7 @@ public abstract class StateModel
 	 * @throws InterruptedException
 	 */
   @Transition(to = "DROPPED", from = "ERROR")
-  public void defaultOnBecomeDroppedFromError(Message message, NotificationContext context)
+  public void onBecomeDroppedFromError(Message message, NotificationContext context)
   {
     logger.info("Default ERROR->DROPPED transition invoked.");
   }

@@ -1,11 +1,5 @@
 package org.apache.helix.controller.stages;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.helix.model.Partition;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -24,6 +18,12 @@ import org.apache.helix.model.Partition;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.helix.model.Partition;
 
 /**
  * Represents the assignments of replicas for an entire resource, keyed on partitions of the

@@ -30,7 +30,6 @@ import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -104,8 +103,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage
       }
 
       Rebalancer rebalancer = null;
-      if(idealState.getRecord().getSimpleFields().containsKey(
-          IdealStateProperty.REBALANCER_CLASS_NAME.toString()))
+      if(idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
+          && idealState.getRebalancerClassName() != null)
       {
         String rebalancerClassName = idealState.getRebalancerClassName();
         logger.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);

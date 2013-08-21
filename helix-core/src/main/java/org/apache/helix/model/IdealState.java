@@ -135,6 +135,7 @@ public class IdealState extends HelixProperty
     if (property == RebalanceMode.NONE)
     {
       property = normalizeRebalanceMode(getIdealStateMode());
+      setRebalanceMode(property);
     }
     return property;
   }
@@ -175,7 +176,8 @@ public class IdealState extends HelixProperty
   public Set<String> getInstanceSet(String partitionName)
   {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO)
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED)
     {
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null)
@@ -332,7 +334,8 @@ public class IdealState extends HelixProperty
       return false;
     }
 
-    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO)
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED)
     {
         String replicaStr = getReplicas();
         if (replicaStr == null) {

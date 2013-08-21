@@ -276,6 +276,8 @@ public class ZKHelixAdmin implements HelixAdmin
       {
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
               && idealState.getPreferenceList(partitionName) == null)
+            || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
+              && idealState.getPreferenceList(partitionName) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED
               && idealState.getInstanceStateMap(partitionName) == null))
         {
@@ -1268,8 +1270,9 @@ public class ZKHelixAdmin implements HelixAdmin
                                                                  masterStateValue,
                                                                  slaveStateValue);
 
-      // for now keep mapField in AUTO mode and remove listField in CUSTOMIZED mode
-      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO)
+      // for now keep mapField in SEMI_AUTO mode and remove listField in CUSTOMIZED mode
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
+          || idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED)
       {
         idealState.getRecord().setListFields(newIdealState.getListFields());
         idealState.getRecord().setMapFields(newIdealState.getMapFields());

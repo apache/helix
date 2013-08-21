@@ -25,7 +25,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -45,7 +45,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
   String db2 = TEST_DB+"2";
   static boolean testRebalancerCreated = false;
 
-  public static class TestRebalancer extends CustomRebalancer
+  public static class TestRebalancer extends SemiAutoRebalancer
   {
 
     @Override
@@ -77,8 +77,11 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBaseWi
   public void testCustomizedIdealStateRebalancer() throws InterruptedException
   {
     _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "MasterSlave");
-    _setupTool.addResourceProperty(CLUSTER_NAME, db2, IdealStateProperty.REBALANCER_CLASS_NAME.toString(), 
+    _setupTool.addResourceProperty(CLUSTER_NAME, db2,
+        IdealStateProperty.REBALANCER_CLASS_NAME.toString(),
         TestCustomizedIdealStateRebalancer.TestRebalancer.class.getName());
+    _setupTool.addResourceProperty(CLUSTER_NAME, db2, IdealStateProperty.REBALANCE_MODE.toString(),
+        RebalanceMode.USER_DEFINED.toString());
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
     

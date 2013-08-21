@@ -26,7 +26,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -54,8 +54,8 @@ public class RebalanceIdealStateStage extends AbstractBaseStage
     for(String resourceName : idealStateMap.keySet())
     {
       IdealState currentIdealState = idealStateMap.get(resourceName);
-      if(currentIdealState.getRecord().getSimpleFields().containsKey(
-          IdealStateProperty.REBALANCER_CLASS_NAME.toString()))
+      if(currentIdealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
+          && currentIdealState.getRebalancerClassName() != null)
       {
         String rebalancerClassName = currentIdealState.getRebalancerClassName();
         LOG.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);

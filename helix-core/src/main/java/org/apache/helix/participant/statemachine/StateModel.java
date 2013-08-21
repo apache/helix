@@ -28,7 +28,7 @@ public abstract class StateModel
 {
 	static final String DEFAULT_INITIAL_STATE = "OFFLINE";
 	Logger logger = Logger.getLogger(StateModel.class);
-	
+
 	// TODO Get default state from implementation or from state model annotation
 	// StateModel with initial state other than OFFLINE should override this field
 	protected String _currentState = DEFAULT_INITIAL_STATE;
@@ -53,7 +53,7 @@ public abstract class StateModel
 
 	/**
 	 * Called when error occurs in state transition
-	 * 
+	 *
 	 * TODO:enforce subclass to write this
 	 * @param message
 	 * @param context
@@ -78,13 +78,13 @@ public abstract class StateModel
 
 	/**
 	 * default transition for drop partition in error state
-	 * 
+	 *
 	 * @param message
 	 * @param context
 	 * @throws InterruptedException
 	 */
   @Transition(to = "DROPPED", from = "ERROR")
-  public void onBecomeDroppedFromError(Message message, NotificationContext context)
+  public void onBecomeDroppedFromError(Message message, NotificationContext context) throws Exception
   {
     logger.info("Default ERROR->DROPPED transition invoked.");
   }

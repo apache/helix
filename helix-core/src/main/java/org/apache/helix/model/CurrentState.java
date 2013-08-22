@@ -28,11 +28,14 @@ import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
 /**
- * Current states of partitions in a resource
+ * Current states of partitions in a resource for an instance.
  */
 public class CurrentState extends HelixProperty {
   private static Logger LOG = Logger.getLogger(CurrentState.class);
 
+  /**
+   * Lookup keys for the current state
+   */
   public enum CurrentStateProperty {
     SESSION_ID,
     CURRENT_STATE,
@@ -42,18 +45,34 @@ public class CurrentState extends HelixProperty {
              // BUCKET_SIZE
   }
 
+  /**
+   * Instantiate a current state with a resource
+   * @param resourceName name identifying the resource
+   */
   public CurrentState(String resourceName) {
     super(resourceName);
   }
 
+  /**
+   * Instantiate a current state with a pre-populated ZNRecord
+   * @param record a ZNRecord corresponding to the current state
+   */
   public CurrentState(ZNRecord record) {
     super(record);
   }
 
+  /**
+   * Get the name of the resource
+   * @return String resource identifier
+   */
   public String getResourceName() {
     return _record.getId();
   }
 
+  /**
+   * Get the partitions on this instance and the state that each partition is currently in.
+   * @return (partition, state) pairs
+   */
   public Map<String, String> getPartitionStateMap() {
     Map<String, String> map = new HashMap<String, String>();
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
@@ -66,14 +85,27 @@ public class CurrentState extends HelixProperty {
     return map;
   }
 
+  /**
+   * Get the session that this current state corresponds to
+   * @return String session identifier
+   */
   public String getSessionId() {
     return _record.getSimpleField(CurrentStateProperty.SESSION_ID.toString());
   }
 
+  /**
+   * Set the session that this current state corresponds to
+   * @param sessionId String session identifier
+   */
   public void setSessionId(String sessionId) {
     _record.setSimpleField(CurrentStateProperty.SESSION_ID.toString(), sessionId);
   }
 
+  /**
+   * Get the state of a partition on this instance
+   * @param partitionName the name of the partition
+   * @return the state, or null if the partition is not present
+   */
   public String getState(String partitionName) {
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
     Map<String, String> mapField = mapFields.get(partitionName);
@@ -83,14 +115,27 @@ public class CurrentState extends HelixProperty {
     return null;
   }
 
+  /**
+   * Set the state model that the resource follows
+   * @param stateModelName an identifier of the state model
+   */
   public void setStateModelDefRef(String stateModelName) {
     _record.setSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString(), stateModelName);
   }
 
+  /**
+   * Get the state model that the resource follows
+   * @return an identifier of the state model
+   */
   public String getStateModelDefRef() {
     return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString());
   }
 
+  /**
+   * Set the state that a partition is currently in on this instance
+   * @param partitionName the name of the partition
+   * @param state the state of the partition
+   */
   public void setState(String partitionName, String state) {
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
     if (mapFields.get(partitionName) == null) {
@@ -99,10 +144,18 @@ public class CurrentState extends HelixProperty {
     mapFields.get(partitionName).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
   }
 
+  /**
+   * Set the state model factory
+   * @param factoryName the name of the factory
+   */
   public void setStateModelFactoryName(String factoryName) {
     _record.setSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
 
+  /**
+   * Get the state model factory
+   * @return a name that identifies the state model factory
+   */
   public String getStateModelFactoryName() {
     return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString());
   }

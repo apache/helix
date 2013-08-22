@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
@@ -75,6 +74,10 @@ public class StateModelDefinition extends HelixProperty {
    */
   private final Map<String, Map<String, String>> _stateTransitionTable;
 
+  /**
+   * Instantiate from a pre-populated record
+   * @param record ZNRecord representing a state model definition
+   */
   public StateModelDefinition(ZNRecord record) {
     super(record);
 
@@ -120,9 +123,9 @@ public class StateModelDefinition extends HelixProperty {
   /**
    * add transitions involving helix-defines states
    * these transitions need not to be specified in state-model-definition
-   * @param from
-   * @param to
-   * @param next
+   * @param from source state
+   * @param to destination state
+   * @param next intermediate state to reach the destination
    */
   void addDefaultTransition(String from, String to, String next) {
     if (!_stateTransitionTable.containsKey(from)) {
@@ -134,14 +137,28 @@ public class StateModelDefinition extends HelixProperty {
     }
   }
 
+  /**
+   * Get an ordered priority list of transitions
+   * @return transitions in the form SRC-DEST, the first of which is highest priority
+   */
   public List<String> getStateTransitionPriorityList() {
     return _stateTransitionPriorityList;
   }
 
+  /**
+   * Get an ordered priority list of states
+   * @return state names, the first of which is highest priority
+   */
   public List<String> getStatesPriorityList() {
     return _statesPriorityList;
   }
 
+  /**
+   * Get the intermediate state required to transition from one state to the other
+   * @param fromState the source
+   * @param toState the destination
+   * @return the intermediate state
+   */
   public String getNextStateForTransition(String fromState, String toState) {
     Map<String, String> map = _stateTransitionTable.get(fromState);
     if (map != null) {
@@ -150,12 +167,21 @@ public class StateModelDefinition extends HelixProperty {
     return null;
   }
 
+  /**
+   * Get the starting state in the model
+   * @return name of the initial state
+   */
   public String getInitialState() {
     // return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
     // .toString());
     return _initialState;
   }
 
+  /**
+   * Number of instances that can be in each state
+   * @param state the state name
+   * @return maximum instance count per state, can be "N" or "R"
+   */
   public String getNumInstancesPerState(String state) {
     return _statesCountMap.get(state);
   }
@@ -176,8 +202,7 @@ public class StateModelDefinition extends HelixProperty {
 
   // TODO move this to model.builder package, refactor StateModelConfigGenerator to use this
   /**
-   * 
-   *
+   * Construct a state model
    */
   public static class Builder {
     private final String _statemodelName;
@@ -186,6 +211,10 @@ public class StateModelDefinition extends HelixProperty {
     Map<Transition, Integer> transitionMap;
     Map<String, String> stateConstraintMap;
 
+    /**
+     * Start building a state model with a name
+     * @param name state model name
+     */
     public Builder(String name) {
       this._statemodelName = name;
       statesMap = new HashMap<String, Integer>();
@@ -232,20 +261,34 @@ public class StateModelDefinition extends HelixProperty {
      * constraint. The transitions are first sorted based on priority and
      * transitions are selected in a greedy way until the constriants are not
      * violated.
-     * @param fromState
-     * @param toState
-     * @param priority
+     * @param fromState source
+     * @param toState destination
+     * @param priority priority, higher value is higher priority
+     * @return Builder
      */
     public Builder addTransition(String fromState, String toState, int priority) {
       transitionMap.put(new Transition(fromState, toState), priority);
       return this;
     }
 
+    /**
+     * Add a state transition with maximal priority value
+     * @see #addTransition(String, String, int)
+     * @param fromState
+     * @param toState
+     * @return Builder
+     */
     public Builder addTransition(String fromState, String toState) {
       addTransition(fromState, toState, Integer.MAX_VALUE);
       return this;
     }
 
+    /**
+     * Set a maximum for replicas in this state
+     * @param state state name
+     * @param upperBound maximum
+     * @return Builder
+     */
     public Builder upperBound(String state, int upperBound) {
       stateConstraintMap.put(state, String.valueOf(upperBound));
       return this;
@@ -263,12 +306,17 @@ public class StateModelDefinition extends HelixProperty {
      * the change the bounds.
      * @param state
      * @param bound
+     * @return Builder
      */
     public Builder dynamicUpperBound(String state, String bound) {
       stateConstraintMap.put(state, bound);
       return this;
     }
 
+    /**
+     * Create a StateModelDefinition from this Builder
+     * @return StateModelDefinition
+     */
     public StateModelDefinition build() {
       ZNRecord record = new ZNRecord(_statemodelName);
       ArrayList<String> statePriorityList = new ArrayList<String>(statesMap.keySet());

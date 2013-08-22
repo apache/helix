@@ -24,12 +24,22 @@ import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * Describe alerts and corresponding metrics. An alert is triggered when cluster health
+ * violates pre-defined constraints to ensure that the cluster meets SLAs.
+ */
 public class Alerts extends HelixProperty {
 
   // private final ZNRecord _record;
 
+  /**
+   * The name of the ZNode corresponding to this property
+   */
   public final static String nodeName = "Alerts";
 
+  /**
+   * Supported fields corresponding to a set of alerts
+   */
   public enum AlertsProperty {
     SESSION_ID,
     FIELDS
@@ -37,10 +47,18 @@ public class Alerts extends HelixProperty {
 
   // private final ZNRecord _record;
 
+  /**
+   * Instantiate with an identifier
+   * @param id A string that identifies the alerts
+   */
   public Alerts(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated Alerts record
+   * @param record ZNRecord representing Alerts
+   */
   public Alerts(ZNRecord record) {
     // _record = record;
     super(record);
@@ -51,14 +69,26 @@ public class Alerts extends HelixProperty {
    * public Alerts(ZNRecord record, Stat stat) { super(record, stat); }
    */
 
+  /**
+   * Set the session that the alerts correspond to
+   * @param sessionId the session for which alerts occurred
+   */
   public void setSessionId(String sessionId) {
     _record.setSimpleField(AlertsProperty.SESSION_ID.toString(), sessionId);
   }
 
+  /**
+   * Get the session that the alerts correspond to
+   * @return session identifier
+   */
   public String getSessionId() {
     return _record.getSimpleField(AlertsProperty.SESSION_ID.toString());
   }
 
+  /**
+   * Get the instance that the alerts correspond to
+   * @return the name of the instance
+   */
   public String getInstanceName() {
     return _record.getId();
   }
@@ -69,10 +99,19 @@ public class Alerts extends HelixProperty {
    * }
    */
 
+  /**
+   * Get the alerts
+   * @return a mapping of alert stat name to alert properties
+   */
   public Map<String, Map<String, String>> getMapFields() {
     return _record.getMapFields();
   }
 
+  /**
+   * Get specific alert statistics
+   * @param statName the name of the statistic group
+   * @return a mapping of property and value for the statistic
+   */
   public Map<String, String> getStatFields(String statName) {
     return _record.getMapField(statName);
   }

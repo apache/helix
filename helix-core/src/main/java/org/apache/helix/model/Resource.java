@@ -27,7 +27,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.log4j.Logger;
 
 /**
- * A resource contains a set of partitions
+ * A resource contains a set of partitions and its replicas are managed by a state model
  */
 public class Resource {
   private static Logger LOG = Logger.getLogger(Resource.class);
@@ -39,19 +39,35 @@ public class Resource {
   private int _bucketSize = 0;
   private boolean _batchMessageMode = false;
 
+  /**
+   * Instantiate a resource by its name
+   * @param resourceName the name of the resource that identifies it
+   */
   public Resource(String resourceName) {
     this._resourceName = resourceName;
     this._partitionMap = new LinkedHashMap<String, Partition>();
   }
 
+  /**
+   * Get the state model definition managing this resource
+   * @return a reference to the state model definition
+   */
   public String getStateModelDefRef() {
     return _stateModelDefRef;
   }
 
+  /**
+   * Set the state model definition managing this resource
+   * @param stateModelDefRef a reference to the state model definition
+   */
   public void setStateModelDefRef(String stateModelDefRef) {
     _stateModelDefRef = stateModelDefRef;
   }
 
+  /**
+   * Set the state model factory for this resource
+   * @param factoryName the name of the state model factory
+   */
   public void setStateModelFactoryName(String factoryName) {
     if (factoryName == null) {
       _stateModelFactoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
@@ -60,38 +76,75 @@ public class Resource {
     }
   }
 
+  /**
+   * Get the state model factory for this resource
+   * @return the state model factory name
+   */
   public String getStateModelFactoryname() {
     return _stateModelFactoryName;
   }
 
+  /**
+   * Get the resource name
+   * @return the name of the resource, should be unique
+   */
   public String getResourceName() {
     return _resourceName;
   }
 
+  /**
+   * Get the partitions of this resource
+   * @return {@link Partition} objects
+   */
   public Collection<Partition> getPartitions() {
     return _partitionMap.values();
   }
 
+  /**
+   * Add a partition to this resource
+   * @param partitionName the name of the partition
+   */
   public void addPartition(String partitionName) {
     _partitionMap.put(partitionName, new Partition(partitionName));
   }
 
+  /**
+   * Get a resource partition by name
+   * @param partitionName partition name
+   * @return the partition, or the name is not present
+   */
   public Partition getPartition(String partitionName) {
     return _partitionMap.get(partitionName);
   }
 
+  /**
+   * Get the bucket size of this resource
+   * @return the bucket size, or 0 if not specified
+   */
   public int getBucketSize() {
     return _bucketSize;
   }
 
+  /**
+   * Set the bucket size of this resource
+   * @param bucketSize the bucket size, or 0 to disable bucketizing
+   */
   public void setBucketSize(int bucketSize) {
     _bucketSize = bucketSize;
   }
 
+  /**
+   * Set whether or not messages for this resource should be batch processed
+   * @param mode true to batch process, false to disable batch processing
+   */
   public void setBatchMessageMode(boolean mode) {
     _batchMessageMode = mode;
   }
 
+  /**
+   * Get the batch message processing mode
+   * @return true if enabled, false if disabled
+   */
   public boolean getBatchMessageMode() {
     return _batchMessageMode;
   }

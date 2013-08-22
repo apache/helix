@@ -22,8 +22,15 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * Wraps updates to Helix constructs, e.g. state transitions and controller task statuses
+ */
 public class StatusUpdate extends HelixProperty {
 
+  /**
+   * Instantiate with a pre-populated record
+   * @param record ZNRecord corresponding to a status update
+   */
   public StatusUpdate(ZNRecord record) {
     super(record);
   }

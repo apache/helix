@@ -22,11 +22,22 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * Represent a pause in the cluster
+ */
 public class PauseSignal extends HelixProperty {
+  /**
+   * Instantiate with an identifier
+   * @param id pause signal identifier
+   */
   public PauseSignal(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated record
+   * @param record ZNRecord with fields corresponding to a pause
+   */
   public PauseSignal(ZNRecord record) {
     super(record);
   }

@@ -23,20 +23,31 @@ import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.model.Alerts.AlertsProperty;
 
+/**
+ * Get characteristics of alerts, whether they were fired, and their context. An alert is triggered
+ * when cluster health violates pre-defined constraints to ensure that the cluster meets SLAs.
+ */
 public class AlertStatus extends HelixProperty {
 
+  /**
+   * The name of the ZNode containing alert status
+   */
   public final static String nodeName = "AlertStatus";
 
-  public enum AlertsProperty {
-    SESSION_ID,
-    FIELDS
-  }
-
+  /**
+   * Instantiate with an identifier
+   * @param id identifier representing this group of alert statuses
+   */
   public AlertStatus(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated record corresponding to alert status
+   * @param record ZNRecord representing alert statuses
+   */
   public AlertStatus(ZNRecord record) {
     // _record = record;
     super(record);
@@ -47,14 +58,26 @@ public class AlertStatus extends HelixProperty {
    * public Alerts(ZNRecord record, Stat stat) { super(record, stat); }
    */
 
+  /**
+   * Set the session that these alerts correspond to
+   * @param sessionId session for which to look up alerts
+   */
   public void setSessionId(String sessionId) {
     _record.setSimpleField(AlertsProperty.SESSION_ID.toString(), sessionId);
   }
 
+  /**
+   * Get the session that these alerts correspond to
+   * @return session identifier
+   */
   public String getSessionId() {
     return _record.getSimpleField(AlertsProperty.SESSION_ID.toString());
   }
 
+  /**
+   * Get the instance that these alerts correspond to
+   * @return name of the instance
+   */
   public String getInstanceName() {
     return _record.getId();
   }
@@ -64,10 +87,19 @@ public class AlertStatus extends HelixProperty {
    * _record.getSimpleField(AlertsProperty.CLUSTER_MANAGER_VERSION.toString()); }
    */
 
+  /**
+   * Get the properties of all alerts, such as if they were fired
+   * @return all alert statuses as a Map of alert to the status properties
+   */
   public Map<String, Map<String, String>> getMapFields() {
     return _record.getMapFields();
   }
 
+  /**
+   * Get the statistics of a single alert
+   * @param statName Name of the alert
+   * @return alert statistics as a map of name, value pairs
+   */
   public Map<String, String> getStatFields(String statName) {
     return _record.getMapField(statName);
   }

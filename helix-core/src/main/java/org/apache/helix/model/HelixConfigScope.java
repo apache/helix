@@ -27,7 +27,9 @@ import org.apache.helix.util.StringTemplate;
  * config-scope that replaces @link ConfigScope
  */
 public class HelixConfigScope {
-
+  /**
+   * Defines the various scopes of configs, and how they are represented on Zookeeper
+   */
   public enum ConfigScopeProperty {
     CLUSTER(2, 0),
     PARTICIPANT(2, 0),
@@ -43,16 +45,26 @@ public class HelixConfigScope {
       _mapKeyArgNum = mapKeyArgNum;
     }
 
+    /**
+     * Get the number of template arguments required to generate a full path
+     * @return number of template arguments in the path
+     */
     public int getZkPathArgNum() {
       return _zkPathArgNum;
     }
 
+    /**
+     * Get the number of arguments corresponding to a lookup key
+     * @return number of map key arguments
+     */
     public int getMapKeyArgNum() {
       return _mapKeyArgNum;
     }
   }
 
-  // string templates to generate znode path
+  /**
+   * string templates to generate znode path
+   */
   private static final StringTemplate template = new StringTemplate();
   static {
     // get the znode
@@ -88,6 +100,12 @@ public class HelixConfigScope {
    */
   final boolean _isFullKey;
 
+  /**
+   * Initialize with a type of scope and unique identifiers
+   * @param type the scope
+   * @param zkPathKeys keys identifying a ZNode location
+   * @param mapKey a key for an additional lookup within a ZNode
+   */
   public HelixConfigScope(ConfigScopeProperty type, List<String> zkPathKeys, String mapKey) {
 
     if (zkPathKeys.size() != type.getZkPathArgNum()
@@ -117,26 +135,50 @@ public class HelixConfigScope {
     _mapKey = mapKey;
   }
 
+  /**
+   * Get the scope
+   * @return the type of scope
+   */
   public ConfigScopeProperty getType() {
     return _type;
   }
 
+  /**
+   * Get the cluster name
+   * @return the name of the associated cluster
+   */
   public String getClusterName() {
     return _clusterName;
   }
 
+  /**
+   * Get the participant name if it exists
+   * @return the participant name if the type is PARTICIPANT, or null
+   */
   public String getParticipantName() {
     return _participantName;
   }
 
+  /**
+   * Get the path to the corresponding ZNode
+   * @return a Zookeeper path
+   */
   public String getZkPath() {
     return _zkPath;
   }
 
+  /**
+   * Get the lookup key within the ZNode if it exists
+   * @return the lookup key, or null
+   */
   public String getMapKey() {
     return _mapKey;
   }
 
+  /**
+   * Determine if the key gets a config key or the actual config
+   * @return true if the key corresponds to a config, false if it corresponds to a config key
+   */
   public boolean isFullKey() {
     return _isFullKey;
   }

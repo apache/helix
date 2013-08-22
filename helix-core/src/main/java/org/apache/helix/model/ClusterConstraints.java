@@ -31,9 +31,15 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.log4j.Logger;
 
+/**
+ * All of the constraints on a given cluster and its subcomponents, both physical and logical.
+ */
 public class ClusterConstraints extends HelixProperty {
   private static Logger LOG = Logger.getLogger(ClusterConstraints.class);
 
+  /**
+   * Attributes on which constraints operate
+   */
   public enum ConstraintAttribute {
     STATE,
     MESSAGE_TYPE,
@@ -43,10 +49,16 @@ public class ClusterConstraints extends HelixProperty {
     CONSTRAINT_VALUE
   }
 
+  /**
+   * Possible special values that constraint attributes can take
+   */
   public enum ConstraintValue {
     ANY
   }
 
+  /**
+   * What is being constrained
+   */
   public enum ConstraintType {
     STATE_CONSTRAINT,
     MESSAGE_CONSTRAINT
@@ -55,10 +67,18 @@ public class ClusterConstraints extends HelixProperty {
   // constraint-id -> constraint-item
   private final Map<String, ConstraintItem> _constraints = new HashMap<String, ConstraintItem>();
 
+  /**
+   * Instantiate constraints as a given type
+   * @param type {@link ConstraintType} representing what this constrains
+   */
   public ClusterConstraints(ConstraintType type) {
     super(type.toString());
   }
 
+  /**
+   * Instantiate constraints from a pre-populated ZNRecord
+   * @param record ZNRecord containing all constraints
+   */
   public ClusterConstraints(ZNRecord record) {
     super(record);
 
@@ -78,8 +98,8 @@ public class ClusterConstraints extends HelixProperty {
 
   /**
    * add the constraint, overwrite existing one if constraint with same constraint-id already exists
-   * @param constraintId
-   * @param item
+   * @param constraintId unique constraint identifier
+   * @param item the constraint as a {@link ConstraintItem}
    */
   public void addConstraintItem(String constraintId, ConstraintItem item) {
     Map<String, String> map = new TreeMap<String, String>();
@@ -91,6 +111,10 @@ public class ClusterConstraints extends HelixProperty {
     _constraints.put(constraintId, item);
   }
 
+  /**
+   * Add multiple constraint items.
+   * @param items (constraint identifier, {@link ConstrantItem}) pairs
+   */
   public void addConstraintItems(Map<String, ConstraintItem> items) {
     for (String constraintId : items.keySet()) {
       addConstraintItem(constraintId, items.get(constraintId));
@@ -99,7 +123,7 @@ public class ClusterConstraints extends HelixProperty {
 
   /**
    * remove a constraint-item
-   * @param constraintId
+   * @param constraintId unique constraint identifier
    */
   public void removeConstraintItem(String constraintId) {
     _constraints.remove(constraintId);
@@ -108,8 +132,8 @@ public class ClusterConstraints extends HelixProperty {
 
   /**
    * get a constraint-item
-   * @param constraintId
-   * @return
+   * @param constraintId unique constraint identifier
+   * @return {@link ConstraintItem} or null if not present
    */
   public ConstraintItem getConstraintItem(String constraintId) {
     return _constraints.get(constraintId);
@@ -117,6 +141,8 @@ public class ClusterConstraints extends HelixProperty {
 
   /**
    * return a set of constraints that match the attribute pairs
+   * @param attributes (constraint scope, constraint string) pairs
+   * @return a set of {@link ConstraintItem}s with matching attributes
    */
   public Set<ConstraintItem> match(Map<ConstraintAttribute, String> attributes) {
     Set<ConstraintItem> matches = new HashSet<ConstraintItem>();
@@ -128,7 +154,11 @@ public class ClusterConstraints extends HelixProperty {
     return matches;
   }
 
-  // convert a message to constraint attribute pairs
+  /**
+   * convert a message to constraint attribute pairs
+   * @param msg a {@link Message} containing constraint attributes
+   * @return constraint attribute scope-value pairs
+   */
   public static Map<ConstraintAttribute, String> toConstraintAttributes(Message msg) {
     Map<ConstraintAttribute, String> attributes = new TreeMap<ConstraintAttribute, String>();
     String msgType = msg.getMsgType();

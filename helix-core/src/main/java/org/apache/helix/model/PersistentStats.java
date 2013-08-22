@@ -25,9 +25,15 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
+/**
+ * Statistics for an instance
+ */
 public class PersistentStats extends HelixProperty {
   private static final Logger _logger = Logger.getLogger(PersistentStats.class.getName());
 
+  /**
+   * High-level properties to provide context for these statistics
+   */
   public enum PersistentStatsProperty {
     SESSION_ID,
     FIELDS
@@ -35,12 +41,23 @@ public class PersistentStats extends HelixProperty {
 
   // private final ZNRecord _record;
 
+  /**
+   * The name of the statistics ZNode
+   */
   public final static String nodeName = "PersistentStats";
 
+  /**
+   * Instantiate with an identifier
+   * @param id record identifier
+   */
   public PersistentStats(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated record
+   * @param record ZNRecord with fields corresponding to persistent stats
+   */
   public PersistentStats(ZNRecord record) {
     // _record = record;
     super(record);
@@ -54,14 +71,26 @@ public class PersistentStats extends HelixProperty {
    * }
    */
 
+  /**
+   * Set the session corresponding to these statistics
+   * @param sessionId session id
+   */
   public void setSessionId(String sessionId) {
     _record.setSimpleField(PersistentStatsProperty.SESSION_ID.toString(), sessionId);
   }
 
+  /**
+   * Get the session corresponding to these statistics
+   * @return session id
+   */
   public String getSessionId() {
     return _record.getSimpleField(PersistentStatsProperty.SESSION_ID.toString());
   }
 
+  /**
+   * Get the instance for which these stats have been collected
+   * @return instance name
+   */
   public String getInstanceName() {
     return _record.getId();
   }
@@ -73,10 +102,19 @@ public class PersistentStats extends HelixProperty {
    * }
    */
 
+  /**
+   * Get all the statistics currently stored
+   * @return map of (stat name, stat attribute, value)
+   */
   public Map<String, Map<String, String>> getMapFields() {
     return _record.getMapFields();
   }
 
+  /**
+   * Get a specific statistic
+   * @param statName the statistic to look up
+   * @return map of (stat attribute, value)
+   */
   public Map<String, String> getStatFields(String statName) {
     return _record.getMapField(statName);
   }

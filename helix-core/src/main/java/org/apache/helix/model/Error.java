@@ -22,7 +22,14 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * Defines an error that occurs in computing a valid ideal state or external view
+ */
 public class Error extends HelixProperty {
+  /**
+   * Create an error from a record representing an existing one
+   * @param record ZNRecord corresponding to an error
+   */
   public Error(ZNRecord record) {
     super(record);
     // TODO Auto-generated constructor stub

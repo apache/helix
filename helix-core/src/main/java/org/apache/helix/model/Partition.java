@@ -20,15 +20,23 @@ package org.apache.helix.model;
  */
 
 /**
- * The name of a resource
+ * A distinct partition of a resource
  */
 public class Partition {
   private final String _partitionName;
 
+  /**
+   * Get the name of the partition, unique for the resource
+   * @return partition name
+   */
   public String getPartitionName() {
     return _partitionName;
   }
 
+  /**
+   * Instantiate with a partition name
+   * @param partitionName unique partition name within a resource
+   */
   public Partition(String partitionName) {
     this._partitionName = partitionName;
   }

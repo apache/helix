@@ -30,17 +30,32 @@ import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.log4j.Logger;
 
+/**
+ * Represents a set of properties that can be queried to determine the health of instances on a
+ * Helix-managed cluster
+ */
 public class HealthStat extends HelixProperty {
+  /**
+   * Queryable health statistic properties
+   */
   public enum HealthStatProperty {
     FIELDS
   }
 
   private static final Logger _logger = Logger.getLogger(HealthStat.class.getName());
 
+  /**
+   * Instantiate with an identifier
+   * @param id the name of these statistics
+   */
   public HealthStat(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated record
+   * @param record a ZNRecord corresponding to health statistics
+   */
   public HealthStat(ZNRecord record) {
     super(record);
     if (getCreateTimeStamp() == 0) {
@@ -48,27 +63,55 @@ public class HealthStat extends HelixProperty {
     }
   }
 
+  /**
+   * Get when these statistics were last modified
+   * @return a UNIX timestamp
+   */
   public long getLastModifiedTimeStamp() {
     return _record.getModifiedTime();
   }
 
+  /**
+   * Get when these statistics were created
+   * @return a UNIX timestamp
+   */
   public long getCreateTimeStamp() {
     return _record.getLongField(Attributes.CREATE_TIMESTAMP.toString(), 0L);
   }
 
+  /**
+   * Get the value of a test field corresponding to a request count
+   * @return the number of requests
+   */
   public String getTestField() {
     return _record.getSimpleField("requestCountStat");
   }
 
+  /**
+   * Set a group of heath statistics, grouped by the statistic
+   * @param healthFields a map of statistic name, the corresponding entity, and the value
+   */
   public void setHealthFields(Map<String, Map<String, String>> healthFields) {
     _record.setMapFields(healthFields);
   }
 
+  /**
+   * Create a key based on a parent key, instance, and statistic
+   * @param instance the instance for which these statistics exist
+   * @param parentKey the originating key
+   * @param statName the statistic
+   * @return a unified key
+   */
   public String buildCompositeKey(String instance, String parentKey, String statName) {
     String delim = ExpressionParser.statFieldDelim;
     return instance + delim + parentKey + delim + statName;
   }
 
+  /**
+   * Get all the health statistics for a given instance
+   * @param instanceName the instance for which to get health statistics
+   * @return a map of (instance and statistic, value or timestamp, value) triples
+   */
   public Map<String, Map<String, String>> getHealthFields(String instanceName) // ,
                                                                                // String
                                                                                // timestamp)

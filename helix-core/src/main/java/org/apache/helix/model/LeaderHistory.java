@@ -25,6 +25,9 @@ import java.util.List;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * The history of instances that have served as the leader controller
+ */
 public class LeaderHistory extends HelixProperty {
   private final static int HISTORY_SIZE = 8;
 
@@ -38,8 +41,8 @@ public class LeaderHistory extends HelixProperty {
 
   /**
    * Save up to HISTORY_SIZE number of leaders in FIFO order
-   * @param clusterName
-   * @param instanceName
+   * @param clusterName the cluster the instance leads
+   * @param instanceName the name of the leader instance
    */
   public void updateHistory(String clusterName, String instanceName) {
     List<String> list = _record.getListField(clusterName);

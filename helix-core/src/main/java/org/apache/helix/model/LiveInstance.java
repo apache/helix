@@ -24,9 +24,12 @@ import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
 /**
- * Instance that connects to zookeeper
+ * Instance that connects to zookeeper (stored ephemerally)
  */
 public class LiveInstance extends HelixProperty {
+  /**
+   * Saved properties of a live instance
+   */
   public enum LiveInstanceProperty {
     SESSION_ID,
     HELIX_VERSION,
@@ -36,50 +39,98 @@ public class LiveInstance extends HelixProperty {
 
   private static final Logger _logger = Logger.getLogger(LiveInstance.class.getName());
 
+  /**
+   * Instantiate with an instance identifier
+   * @param id instance identifier
+   */
   public LiveInstance(String id) {
     super(id);
   }
 
+  /**
+   * Instantiate with a pre-populated record
+   * @param record ZNRecord corresponding to a live instance
+   */
   public LiveInstance(ZNRecord record) {
     super(record);
   }
 
+  /**
+   * Set the session that this instance corresponds to
+   * @param sessionId session identifier
+   */
   public void setSessionId(String sessionId) {
     _record.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), sessionId);
   }
 
+  /**
+   * Get the session that this instance corresponds to
+   * @return session identifier
+   */
   public String getSessionId() {
     return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
   }
 
+  /**
+   * Get the name of this instance
+   * @return the instance name
+   */
   public String getInstanceName() {
     return _record.getId();
   }
 
+  /**
+   * Get the version of Helix that this instance is running
+   * @return the version
+   */
   public String getHelixVersion() {
     return _record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString());
   }
 
+  /**
+   * Set the version of Helix that this instance is running
+   * @param helixVersion the version
+   */
   public void setHelixVersion(String helixVersion) {
     _record.setSimpleField(LiveInstanceProperty.HELIX_VERSION.toString(), helixVersion);
   }
 
+  /**
+   * Get an identifier that represents the instance and where it is located
+   * @return identifier, e.g. process_id@host
+   */
   public String getLiveInstance() {
     return _record.getSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString());
   }
 
-  public void setLiveInstance(String leader) {
-    _record.setSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString(), leader);
+  /**
+   * Set an identifier that represents the process
+   * @param liveInstance process identifier, e.g. process_id@host
+   */
+  public void setLiveInstance(String liveInstance) {
+    _record.setSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString(), liveInstance);
   }
 
+  /**
+   * Get the last modified time of this live instance
+   * @return UNIX timestamp
+   */
   public long getModifiedTime() {
     return _record.getModifiedTime();
   }
 
+  /**
+   * Get a web service URL where ZK properties can be transferred to
+   * @return a fully-qualified URL
+   */
   public String getWebserviceUrl() {
     return _record.getSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString());
   }
 
+  /**
+   * Set a web service URL where ZK properties can be transferred to
+   * @param url a fully-qualified URL
+   */
   public void setWebserviceUrl(String url) {
     _record.setSimpleField(LiveInstanceProperty.ZKPROPERTYTRANSFERURL.toString(), url);
   }

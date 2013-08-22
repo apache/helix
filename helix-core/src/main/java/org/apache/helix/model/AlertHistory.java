@@ -21,8 +21,15 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 
+/**
+ * Maintains a history of alerts that have been fired, as well as actions taken, if any.
+ */
 public class AlertHistory extends HelixProperty {
 
+  /**
+   * Instantiate the alert history with a pre-populated record
+   * @param record ZNRecord representing the alert history
+   */
   public AlertHistory(ZNRecord record) {
     super(record);
     // TODO Auto-generated constructor stub

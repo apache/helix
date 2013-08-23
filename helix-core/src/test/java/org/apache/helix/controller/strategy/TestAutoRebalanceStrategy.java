@@ -21,6 +21,8 @@ package org.apache.helix.controller.strategy;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,57 +33,104 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.Mocks.MockAccessor;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
+import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
 public class TestAutoRebalanceStrategy {
   private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
 
-  @Test(groups = {
-    "unitTest"
-  })
-  public void simpleTest() {
+  /**
+   * Sanity test for a basic Master-Slave model
+   */
+  @Test
+  public void simpleMasterSlaveTest() {
     final int NUM_ITERATIONS = 10;
-
     final int NUM_PARTITIONS = 10;
     final int NUM_LIVE_NODES = 12;
     final int NUM_TOTAL_NODES = 20;
     final int MAX_PER_NODE = 5;
 
-    final String[] STATE_NAMES = new String[] {
+    final String[] STATE_NAMES = {
         "MASTER", "SLAVE"
     };
-    final int[] STATE_COUNTS = new int[] {
+    final int[] STATE_COUNTS = {
         1, 2
     };
 
-    List<String> partitions = new ArrayList<String>();
-    for (int i = 0; i < NUM_PARTITIONS; i++) {
-      partitions.add("p_" + i);
-    }
+    runTest("BasicMasterSlave", NUM_ITERATIONS, NUM_PARTITIONS, NUM_LIVE_NODES, NUM_TOTAL_NODES,
+        MAX_PER_NODE, STATE_NAMES, STATE_COUNTS);
+  }
 
-    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>();
-    int numStates = Math.min(STATE_NAMES.length, STATE_COUNTS.length);
-    for (int i = 0; i < numStates; i++) {
-      states.put(STATE_NAMES[i], STATE_COUNTS[i]);
+  /**
+   * Run a test for an arbitrary state model.
+   * @param name Name of the test state model
+   * @param numIterations Number of rebalance tasks to run
+   * @param numPartitions Number of partitions for the resource
+   * @param numLiveNodes Number of live nodes in the cluster
+   * @param numTotalNodes Number of nodes in the cluster, must be greater than or equal to
+   *          numLiveNodes
+   * @param maxPerNode Maximum number of replicas a node can serve
+   * @param stateNames States ordered by preference
+   * @param stateCounts Number of replicas that should be in each state
+   */
+  private void runTest(String name, int numIterations, int numPartitions, int numLiveNodes,
+      int numTotalNodes, int maxPerNode, String[] stateNames, int[] stateCounts) {
+    List<String> partitions = new ArrayList<String>();
+    for (int i = 0; i < numPartitions; i++) {
+      partitions.add("p_" + i);
     }
 
     List<String> liveNodes = new ArrayList<String>();
     List<String> allNodes = new ArrayList<String>();
-    for (int i = 0; i < NUM_TOTAL_NODES; i++) {
+    for (int i = 0; i < numTotalNodes; i++) {
       allNodes.add("n_" + i);
-      if (i < NUM_LIVE_NODES) {
+      if (i < numLiveNodes) {
         liveNodes.add("n_" + i);
       }
     }
 
     Map<String, Map<String, String>> currentMapping = new TreeMap<String, Map<String, String>>();
 
-    new AutoRebalanceTester(partitions, states, liveNodes, currentMapping, allNodes, MAX_PER_NODE,
-        new AutoRebalanceStrategy.DefaultPlacementScheme()).runRepeatedly(NUM_ITERATIONS);
+    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>();
+    for (int i = 0; i < Math.min(stateNames.length, stateCounts.length); i++) {
+      states.put(stateNames[i], stateCounts[i]);
+    }
+
+    StateModelDefinition stateModelDef = getIncompleteStateModelDef(name, stateNames[0], states);
+
+    new AutoRebalanceTester(partitions, states, liveNodes, currentMapping, allNodes, maxPerNode,
+        stateModelDef, new AutoRebalanceStrategy.DefaultPlacementScheme())
+        .runRepeatedly(numIterations);
+  }
+
+  /**
+   * Get a StateModelDefinition without transitions. The auto rebalancer doesn't take transitions
+   * into account when computing mappings, so this is acceptable.
+   * @param modelName name to give the model
+   * @param initialState initial state for all nodes
+   * @param states ordered map of state to count
+   * @return incomplete StateModelDefinition for rebalancing
+   */
+  private StateModelDefinition getIncompleteStateModelDef(String modelName, String initialState,
+      LinkedHashMap<String, Integer> states) {
+    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(modelName);
+    builder.initialState(initialState);
+    int i = states.size();
+    for (String state : states.keySet()) {
+      builder.addState(state, i);
+      builder.upperBound(state, states.get(state));
+      i--;
+    }
+    return builder.build();
   }
 
   class AutoRebalanceTester {
@@ -99,12 +148,14 @@ public class TestAutoRebalanceStrategy {
     private Map<String, Map<String, String>> _currentMapping;
     private List<String> _allNodes;
     private int _maxPerNode;
+    private StateModelDefinition _stateModelDef;
     private ReplicaPlacementScheme _placementScheme;
     private Random _random;
 
     public AutoRebalanceTester(List<String> partitions, LinkedHashMap<String, Integer> states,
         List<String> liveNodes, Map<String, Map<String, String>> currentMapping,
-        List<String> allNodes, int maxPerNode, ReplicaPlacementScheme placementScheme) {
+        List<String> allNodes, int maxPerNode, StateModelDefinition stateModelDef,
+        ReplicaPlacementScheme placementScheme) {
       _partitions = partitions;
       _states = states;
       _liveNodes = liveNodes;
@@ -122,6 +173,7 @@ public class TestAutoRebalanceStrategy {
         }
       }
       _maxPerNode = maxPerNode;
+      _stateModelDef = stateModelDef;
       _placementScheme = placementScheme;
       _random = new Random();
     }
@@ -136,20 +188,44 @@ public class TestAutoRebalanceStrategy {
       ZNRecord initialResult =
           new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
               _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
-      _currentMapping = initialResult.getMapFields();
+      _currentMapping = getMapping(initialResult.getListFields());
       logger.info(_currentMapping);
       getRunResult(_currentMapping, initialResult.getListFields());
       for (int i = 0; i < numIterations; i++) {
         logger.info("~~~~ Iteration " + i + " ~~~~~");
         ZNRecord znRecord = runOnceRandomly();
         if (znRecord != null) {
-          final Map<String, Map<String, String>> mapResult = znRecord.getMapFields();
           final Map<String, List<String>> listResult = znRecord.getListFields();
+          final Map<String, Map<String, String>> mapResult = getMapping(listResult);
           logger.info(mapResult);
+          logger.info(listResult);
           getRunResult(mapResult, listResult);
           _currentMapping = mapResult;
         }
       }
+    }
+
+    private Map<String, Map<String, String>> getMapping(final Map<String, List<String>> listResult) {
+      final Map<String, Map<String, String>> mapResult = new HashMap<String, Map<String, String>>();
+      ClusterDataCache cache = new ClusterDataCache();
+      MockAccessor accessor = new MockAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
+      for (String node : _liveNodes) {
+        LiveInstance liveInstance = new LiveInstance(node);
+        liveInstance.setSessionId("testSession");
+        accessor.setProperty(keyBuilder.liveInstance(node), liveInstance);
+      }
+      cache.refresh(accessor);
+      for (String partition : _partitions) {
+        List<String> preferenceList = listResult.get(partition);
+        Map<String, String> currentStateMap = _currentMapping.get(partition);
+        Set<String> disabled = Collections.emptySet();
+        Map<String, String> assignment =
+            ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, _stateModelDef,
+                preferenceList, currentStateMap, disabled);
+        mapResult.put(partition, assignment);
+      }
+      return mapResult;
     }
 
     /**
@@ -268,6 +344,9 @@ public class TestAutoRebalanceStrategy {
           }
         }
         for (String state : stateCounts.keySet()) {
+          if (state.equals(HelixDefinedState.DROPPED.toString())) {
+            continue;
+          }
           int count = stateCounts.get(state);
           int maximumCount = _states.get(state);
           if (count > maximumCount) {
@@ -337,6 +416,10 @@ public class TestAutoRebalanceStrategy {
       for (Entry<String, Map<String, String>> partitionEntry : assignment.entrySet()) {
         final Map<String, String> nodeMap = partitionEntry.getValue();
         for (String node : nodeMap.keySet()) {
+          String state = nodeMap.get(node);
+          if (state.equals(HelixDefinedState.DROPPED.toString())) {
+            continue;
+          }
           // add 1 for every occurrence of a node
           if (!partitionsPerNode.containsKey(node)) {
             partitionsPerNode.put(node, 1);

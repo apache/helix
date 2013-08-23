@@ -27,11 +27,11 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceMapping;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -53,29 +53,23 @@ public class CustomRebalancer implements Rebalancer {
   }
 
   @Override
-  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+  public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
-    return currentIdealState;
-  }
-
-  @Override
-  public ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache,
-      IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
-    String stateModelDefName = idealState.getStateModelDefRef();
-    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
+    String stateModelDefName = currentIdealState.getStateModelDefRef();
+    StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelDefName);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
-    ResourceMapping partitionMapping = new ResourceMapping();
+    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
-          cache.getDisabledInstancesForPartition(partition.toString());
+          clusterData.getDisabledInstancesForPartition(partition.toString());
       Map<String, String> idealStateMap =
-          idealState.getInstanceStateMap(partition.getPartitionName());
+          currentIdealState.getInstanceStateMap(partition.getPartitionName());
       Map<String, String> bestStateForPartition =
-          computeCustomizedBestStateForPartition(cache, stateModelDef, idealStateMap,
+          computeCustomizedBestStateForPartition(clusterData, stateModelDef, idealStateMap,
               currentStateMap, disabledInstancesForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }

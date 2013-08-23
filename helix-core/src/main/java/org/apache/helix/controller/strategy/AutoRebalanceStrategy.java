@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -54,6 +55,15 @@ public class AutoRebalanceStrategy {
   private Map<Replica, Node> _existingNonPreferredAssignment;
   private Set<Replica> _orphaned;
 
+  /**
+   * Initialize this strategy for a resource
+   * @param resourceName the resource for which an assignment will be computed
+   * @param partitions the partition names for the resource
+   * @param states the states and the number of replicas that should be in each state
+   * @param maximumPerNode the maximum number of replicas any note can hold
+   * @param placementScheme the scheme to use for preferred replica locations. If null, this is
+   *          {@link DefaultPlacementScheme}
+   */
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states, int maximumPerNode,
       ReplicaPlacementScheme placementScheme) {
@@ -68,11 +78,22 @@ public class AutoRebalanceStrategy {
     }
   }
 
+  /**
+   * Initialize the strategy with a default placement scheme and no
+   * @see #AutoRebalanceStrategy(String, List, LinkedHashMap, int, ReplicaPlacementScheme)
+   */
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states) {
     this(resourceName, partitions, states, Integer.MAX_VALUE, new DefaultPlacementScheme());
   }
 
+  /**
+   * Determine a preference list and mapping of partitions to nodes for all replicas
+   * @param liveNodes the current list of live participants
+   * @param currentMapping the current assignment of replicas to nodes
+   * @param allNodes the full list of known nodes in the system
+   * @return the preference list and replica mapping
+   */
   public ZNRecord computePartitionAssignment(final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, final List<String> allNodes) {
     int numReplicas = countStateReplicas();
@@ -276,15 +297,6 @@ public class AutoRebalanceStrategy {
       znRecord.setMapField(partition, new TreeMap<String, String>());
       znRecord.setListField(partition, new ArrayList<String>());
     }
-    for (Node node : _liveNodesList) {
-      for (Replica replica : node.preferred) {
-        znRecord.getMapField(replica.partition).put(node.id, _stateMap.get(replica.replicaId));
-      }
-      for (Replica replica : node.nonPreferred) {
-        znRecord.getMapField(replica.partition).put(node.id, _stateMap.get(replica.replicaId));
-      }
-    }
-
     int count = countStateReplicas();
     for (int replicaId = 0; replicaId < count; replicaId++) {
       for (Node node : _liveNodesList) {
@@ -300,6 +312,93 @@ public class AutoRebalanceStrategy {
         }
       }
     }
+    normalizePreferenceLists(znRecord.getListFields());
+
+    for (Node node : _liveNodesList) {
+      for (Replica replica : node.preferred) {
+        znRecord.getMapField(replica.partition).put(node.id, _stateMap.get(replica.replicaId));
+      }
+      for (Replica replica : node.nonPreferred) {
+        znRecord.getMapField(replica.partition).put(node.id, _stateMap.get(replica.replicaId));
+      }
+    }
+  }
+
+  /**
+   * Adjust preference lists to reduce the number of same replicas on an instance
+   * @param preferenceLists map of (partition --> list of nodes)
+   */
+  private void normalizePreferenceLists(Map<String, List<String>> preferenceLists) {
+    Map<String, Map<Integer, Integer>> nodeReplicaCounts =
+        new HashMap<String, Map<Integer, Integer>>();
+    for (String partition : preferenceLists.keySet()) {
+      normalizePreferenceList(preferenceLists.get(partition), nodeReplicaCounts);
+    }
+  }
+
+  /**
+   * Adjust a single preference list for replica assignment imbalance
+   * @param preferenceList list of node names
+   * @param nodeReplicaCounts map of (node --> replica id --> count)
+   */
+  private void normalizePreferenceList(List<String> preferenceList,
+      Map<String, Map<Integer, Integer>> nodeReplicaCounts) {
+    Set<String> notAssigned = new LinkedHashSet<String>(preferenceList);
+    List<String> newPreferenceList = new ArrayList<String>();
+    int replicas = Math.min(countStateReplicas(), preferenceList.size());
+    for (int i = 0; i < replicas; i++) {
+      String node = getMinimumNodeForReplica(i, notAssigned, nodeReplicaCounts);
+      newPreferenceList.add(node);
+      notAssigned.remove(node);
+      Map<Integer, Integer> counts = nodeReplicaCounts.get(node);
+      counts.put(i, counts.get(i) + 1);
+    }
+    preferenceList.clear();
+    preferenceList.addAll(newPreferenceList);
+  }
+
+  /**
+   * Get the node which hosts the fewest of a given replica
+   * @param replicaId the replica
+   * @param nodes nodes to check
+   * @param nodeReplicaCounts current assignment of replicas
+   * @return the node most willing to accept the replica
+   */
+  private String getMinimumNodeForReplica(int replicaId, Set<String> nodes,
+      Map<String, Map<Integer, Integer>> nodeReplicaCounts) {
+    String minimalNode = null;
+    int minimalCount = Integer.MAX_VALUE;
+    for (String node : nodes) {
+      int count = getReplicaCountForNode(replicaId, node, nodeReplicaCounts);
+      if (count < minimalCount) {
+        minimalCount = count;
+        minimalNode = node;
+      }
+    }
+    return minimalNode;
+  }
+
+  /**
+   * Safe check for the number of replicas of a given id assiged to a node
+   * @param replicaId the replica to assign
+   * @param node the node to check
+   * @param nodeReplicaCounts a map of node to replica id and counts
+   * @return the number of currently assigned replicas of the given id
+   */
+  private int getReplicaCountForNode(int replicaId, String node,
+      Map<String, Map<Integer, Integer>> nodeReplicaCounts) {
+    if (!nodeReplicaCounts.containsKey(node)) {
+      Map<Integer, Integer> replicaCounts = new HashMap<Integer, Integer>();
+      replicaCounts.put(replicaId, 0);
+      nodeReplicaCounts.put(node, replicaCounts);
+      return 0;
+    }
+    Map<Integer, Integer> replicaCounts = nodeReplicaCounts.get(node);
+    if (!replicaCounts.containsKey(replicaId)) {
+      replicaCounts.put(replicaId, 0);
+      return 0;
+    }
+    return replicaCounts.get(replicaId);
   }
 
   /**

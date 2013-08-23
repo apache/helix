@@ -24,9 +24,9 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -36,6 +36,9 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
@@ -46,7 +49,7 @@ public class TestCustomizedIdealStateRebalancer extends
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
 
-  public static class TestRebalancer extends SemiAutoRebalancer {
+  public static class TestRebalancer implements Rebalancer {
 
     @Override
     public void init(HelixManager manager) {
@@ -54,18 +57,22 @@ public class TestCustomizedIdealStateRebalancer extends
     }
 
     @Override
-    public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+    public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
         CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
-      for (String partition : currentIdealState.getPartitionSet()) {
-        String instance = currentIdealState.getPreferenceList(partition).get(0);
-        currentIdealState.getPreferenceList(partition).clear();
-        currentIdealState.getPreferenceList(partition).add(instance);
+      ResourceAssignment resourceMapping = new ResourceAssignment(resource.getResourceName());
+      for (Partition partition : resource.getPartitions()) {
+        String partitionName = partition.getPartitionName();
+        String instance = currentIdealState.getPreferenceList(partitionName).get(0);
+        currentIdealState.getPreferenceList(partitionName).clear();
+        currentIdealState.getPreferenceList(partitionName).add(instance);
 
-        currentIdealState.getInstanceStateMap(partition).clear();
-        currentIdealState.getInstanceStateMap(partition).put(instance, "MASTER");
+        currentIdealState.getInstanceStateMap(partitionName).clear();
+        currentIdealState.getInstanceStateMap(partitionName).put(instance, "MASTER");
+        resourceMapping.addReplicaMap(partition,
+            currentIdealState.getInstanceStateMap(partitionName));
       }
       currentIdealState.setReplicas("1");
-      return currentIdealState;
+      return resourceMapping;
     }
   }
 

@@ -32,6 +32,8 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
+import org.apache.helix.controller.rebalancer.Rebalancer;
+
 /**
  * The ideal states of all partitions in a resource
  */
@@ -217,6 +219,15 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the current mapping of a partition
+   * @param partition the partition to set
+   * @param instanceStateMap (instance name, state) pairs
+   */
+  public void setInstanceStateMap(String partition, Map<String, String> instanceStateMap) {
+    _record.setMapField(partition, instanceStateMap);
+  }
+
+  /**
    * Get the current mapping of a partition
    * @param partitionName the name of the partition
    * @return the instances where the replicas live and the state of each
@@ -254,6 +265,15 @@ public class IdealState extends HelixProperty {
       return Collections.emptySet();
     }
 
+  }
+
+  /**
+   * Set the preference list of a partition
+   * @param partitionName the name of the partition to set
+   * @param preferenceList a list of instances that can serve replicas of the partition
+   */
+  public void setPreferenceList(String partitionName, List<String> preferenceList) {
+    _record.setListField(partitionName, preferenceList);
   }
 
   /**
@@ -441,6 +461,16 @@ public class IdealState extends HelixProperty {
    */
   public String getInstanceGroupTag() {
     return _record.getSimpleField(IdealStateProperty.INSTANCE_GROUP_TAG.toString());
+  }
+
+  public void updateFromAssignment(ResourceAssignment assignment) {
+    _record.getMapFields().clear();
+    _record.getListFields().clear();
+    for (Partition partition : assignment.getMappedPartitions()) {
+      Map<String, String> replicaMap = assignment.getReplicaMap(partition);
+      setInstanceStateMap(partition.getPartitionName(), replicaMap);
+      setPreferenceList(partition.getPartitionName(), new ArrayList<String>(replicaMap.keySet()));
+    }
   }
 
   private RebalanceMode normalizeRebalanceMode(IdealStateModeProperty mode) {

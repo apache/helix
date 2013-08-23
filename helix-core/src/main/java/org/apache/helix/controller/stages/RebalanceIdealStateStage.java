@@ -27,6 +27,8 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -57,10 +59,15 @@ public class RebalanceIdealStateStage extends AbstractBaseStage {
           Rebalancer balancer =
               (Rebalancer) (HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
           balancer.init(manager);
-          IdealState newIdealState =
-              balancer.computeNewIdealState(resourceName, idealStateMap.get(resourceName),
-                  currentStateOutput, cache);
-          updatedIdealStates.put(resourceName, newIdealState);
+          Resource resource = new Resource(resourceName);
+          for (String partitionName : currentIdealState.getPartitionSet()) {
+            resource.addPartition(partitionName);
+          }
+          ResourceAssignment resourceAssignment =
+              balancer.computeResourceMapping(resource, currentIdealState, currentStateOutput,
+                  cache);
+          currentIdealState.updateFromAssignment(resourceAssignment);
+          updatedIdealStates.put(resourceName, currentIdealState);
         } catch (Exception e) {
           LOG.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
         }

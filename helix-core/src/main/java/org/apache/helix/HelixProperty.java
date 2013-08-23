@@ -55,6 +55,14 @@ public class HelixProperty {
   }
 
   /**
+   * Initialize the property by copying from another property
+   * @param property
+   */
+  public HelixProperty(HelixProperty property) {
+    _record = new ZNRecord(property.getRecord());
+  }
+
+  /**
    * Get the property identifier
    * @return the property id
    */

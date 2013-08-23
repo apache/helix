@@ -22,9 +22,9 @@ package org.apache.helix.controller.rebalancer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceMapping;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 
 /**
  * Allows one to come up with custom implementation of a rebalancer.<br/>
@@ -32,33 +32,24 @@ import org.apache.helix.model.Resource;
  * Simply return the newIdealState for a resource in this method.<br/>
  */
 public interface Rebalancer {
+  /**
+   * Initialize the rebalancer with a HelixManager if necessary
+   * @param manager
+   */
   void init(HelixManager manager);
 
   /**
-   * This method provides all the relevant information needed to rebalance a resource.
-   * If you need additional information use manager.getAccessor to read the cluster data.
-   * This allows one to compute the newIdealState according to app specific requirement.
-   * @param resourceName Name of the resource to be rebalanced
-   * @param currentIdealState
-   * @param currentStateOutput
-   *          Provides the current state and pending state transition for all
-   *          partitions
-   * @param clusterData Provides additional methods to retrieve cluster data.
-   * @return
+   * Given an ideal state for a resource and liveness of instances, compute a assignment of
+   * instances and states to each partition of a resource. This method provides all the relevant
+   * information needed to rebalance a resource. If you need additional information use
+   * manager.getAccessor to read the cluster data. This allows one to compute the newIdealState
+   * according to app specific requirements.
+   * @param resourceName the resource for which a mapping will be computed
+   * @param currentIdealState the IdealState that corresponds to this resource
+   * @param currentStateOutput the current states of all partitions
+   * @param clusterData cache of the cluster state
    */
-  IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      final CurrentStateOutput currentStateOutput, final ClusterDataCache clusterData);
-
-  /**
-   * Given an ideal state for a resource and the liveness of instances, compute the best possible
-   * state assignment for each partition's replicas.
-   * @param cache
-   * @param idealState
-   * @param resource
-   * @param currentStateOutput
-   *          Provides the current state and pending state transitions for all partitions
-   * @return
-   */
-  ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache, IdealState idealState,
-      Resource resource, CurrentStateOutput currentStateOutput);
+  ResourceAssignment computeResourceMapping(final Resource resource,
+      final IdealState currentIdealState, final CurrentStateOutput currentStateOutput,
+      final ClusterDataCache clusterData);
 }

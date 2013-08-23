@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -28,9 +29,10 @@ import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -112,11 +114,12 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         }
       }
 
-      ResourceMapping partitionStateAssignment =
-          rebalancer.computeBestPossiblePartitionState(cache, idealState, resource,
-              currentStateOutput);
+      HelixManager manager = event.getAttribute("helixmanager");
+      rebalancer.init(manager);
+      ResourceAssignment partitionStateAssignment =
+          rebalancer.computeResourceMapping(resource, idealState, currentStateOutput, cache);
       for (Partition partition : resource.getPartitions()) {
-        Map<String, String> newStateMap = partitionStateAssignment.getInstanceStateMap(partition);
+        Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
         output.setState(resourceName, partition, newStateMap);
       }
     }

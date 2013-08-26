@@ -30,9 +30,8 @@ import java.util.TreeSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
-
 import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.log4j.Logger;
 
 /**
  * The ideal states of all partitions in a resource
@@ -207,10 +206,10 @@ public class IdealState extends HelixProperty {
    */
   public Set<String> getPartitionSet() {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
       return _record.getListFields().keySet();
-    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
       return _record.getMapFields().keySet();
     } else {
       logger.error("Invalid ideal state mode:" + getResourceName());
@@ -243,8 +242,7 @@ public class IdealState extends HelixProperty {
    */
   public Set<String> getInstanceSet(String partitionName) {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null) {
         return new TreeSet<String>(prefList);
@@ -252,7 +250,8 @@ public class IdealState extends HelixProperty {
         logger.warn(partitionName + " does NOT exist");
         return Collections.emptySet();
       }
-    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
         return new TreeSet<String>(stateMap.keySet());
@@ -418,8 +417,7 @@ public class IdealState extends HelixProperty {
       return false;
     }
 
-    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
       String replicaStr = getReplicas();
       if (replicaStr == null) {
         logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record);

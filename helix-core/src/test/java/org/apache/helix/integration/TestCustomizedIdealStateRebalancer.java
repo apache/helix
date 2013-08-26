@@ -19,7 +19,9 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
@@ -39,6 +41,7 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
@@ -48,6 +51,7 @@ public class TestCustomizedIdealStateRebalancer extends
     ZkStandAloneCMTestBaseWithPropertyServerCheck {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
+  static boolean testRebalancerInvoked = false;
 
   public static class TestRebalancer implements Rebalancer {
 
@@ -56,22 +60,30 @@ public class TestCustomizedIdealStateRebalancer extends
       testRebalancerCreated = true;
     }
 
+    /**
+     * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
+     * which is in the highest-priority state.
+     */
     @Override
-    public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
-        CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+    public ResourceAssignment computeResourceMapping(Resource resource,
+        IdealState currentIdealState, CurrentStateOutput currentStateOutput,
+        ClusterDataCache clusterData) {
+      List<String> liveInstances = new ArrayList<String>(clusterData.getLiveInstances().keySet());
+      String stateModelName = currentIdealState.getStateModelDefRef();
+      StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
       ResourceAssignment resourceMapping = new ResourceAssignment(resource.getResourceName());
+      int i = 0;
       for (Partition partition : resource.getPartitions()) {
         String partitionName = partition.getPartitionName();
-        String instance = currentIdealState.getPreferenceList(partitionName).get(0);
-        currentIdealState.getPreferenceList(partitionName).clear();
-        currentIdealState.getPreferenceList(partitionName).add(instance);
-
+        int nodeIndex = i % liveInstances.size();
         currentIdealState.getInstanceStateMap(partitionName).clear();
-        currentIdealState.getInstanceStateMap(partitionName).put(instance, "MASTER");
+        currentIdealState.getInstanceStateMap(partitionName).put(liveInstances.get(nodeIndex),
+            stateModelDef.getStatesPriorityList().get(0));
         resourceMapping.addReplicaMap(partition,
             currentIdealState.getInstanceStateMap(partitionName));
+        i++;
       }
-      currentIdealState.setReplicas("1");
+      testRebalancerInvoked = true;
       return resourceMapping;
     }
   }
@@ -102,10 +114,11 @@ public class TestCustomizedIdealStateRebalancer extends
     }
     IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
     for (String partition : is.getPartitionSet()) {
-      Assert.assertEquals(is.getPreferenceList(partition).size(), 3);
-      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 3);
+      Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
+      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
     }
     Assert.assertTrue(testRebalancerCreated);
+    Assert.assertTrue(testRebalancerInvoked);
   }
 
   public static class ExternalViewBalancedVerifier implements ZkVerifier {

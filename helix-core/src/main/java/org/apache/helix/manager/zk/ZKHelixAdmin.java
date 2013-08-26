@@ -235,8 +235,6 @@ public class ZKHelixAdmin implements HelixAdmin {
       for (String partitionName : partitionNames) {
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
             .getPreferenceList(partitionName) == null)
-            || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED && idealState
-                .getPreferenceList(partitionName) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
                 .getInstanceStateMap(partitionName) == null)) {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName + ", partition: "
@@ -1021,14 +1019,14 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (masterStateValue == null) {
       masterStateValue = slaveStateValue;
     }
-    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO) {
+    if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
+        || idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
       ZNRecord newIdealState =
           DefaultTwoStateStrategy.calculateIdealState(instanceNames, partitions, replica,
               keyPrefix, masterStateValue, slaveStateValue);
 
       // for now keep mapField in SEMI_AUTO mode and remove listField in CUSTOMIZED mode
-      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
-          || idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         idealState.getRecord().setListFields(newIdealState.getListFields());
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }

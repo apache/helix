@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -32,7 +32,7 @@ import java.util.TreeSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 
-public class IdealCalculatorByConsistentHashing {
+public class ConsistentHashingMasterSlaveStrategy {
   /**
    * Interface to calculate the hash function value of a string
    */
@@ -456,8 +456,8 @@ public class IdealCalculatorByConsistentHashing {
   static int[] getFnvHashArray(List<String> strings) {
     int[] result = new int[strings.size()];
     int i = 0;
-    IdealCalculatorByConsistentHashing.FnvHash hashfunc =
-        new IdealCalculatorByConsistentHashing.FnvHash();
+    ConsistentHashingMasterSlaveStrategy.FnvHash hashfunc =
+        new ConsistentHashingMasterSlaveStrategy.FnvHash();
     for (String s : strings) {
       int val = hashfunc.getHashValue(s) % 65536;
       if (val < 0)
@@ -498,8 +498,8 @@ public class IdealCalculatorByConsistentHashing {
     String dbName = "espressoDB1";
 
     ZNRecord result =
-        IdealCalculatorByConsistentHashing.calculateIdealState(instanceNames, partitions, replicas,
-            dbName, new IdealCalculatorByConsistentHashing.FnvHash());
+        ConsistentHashingMasterSlaveStrategy.calculateIdealState(instanceNames, partitions,
+            replicas, dbName, new ConsistentHashingMasterSlaveStrategy.FnvHash());
     System.out.println("\nMaster :");
     printIdealStateStats(result, "MASTER");
 

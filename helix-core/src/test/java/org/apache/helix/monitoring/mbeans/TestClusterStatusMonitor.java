@@ -29,8 +29,8 @@ import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.annotations.Test;
 
 public class TestClusterStatusMonitor {
@@ -50,13 +50,11 @@ public class TestClusterStatusMonitor {
         _instances.add(instance);
       }
       ZNRecord externalView =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
+          DefaultTwoStateStrategy.calculateIdealState(_instances, _partitions, _replicas, _db,
               "MASTER", "SLAVE");
 
       ZNRecord externalView2 =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, 80, 2, _db2, "MASTER",
-              "SLAVE");
-
+          DefaultTwoStateStrategy.calculateIdealState(_instances, 80, 2, _db2, "MASTER", "SLAVE");
     }
 
     public ZNRecord getProperty(PropertyType type, String resource) {
@@ -100,12 +98,11 @@ public class TestClusterStatusMonitor {
       _liveInstances.add(metaData);
     }
     ZNRecord externalView =
-        DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
+        DefaultTwoStateStrategy.calculateIdealState(_instances, _partitions, _replicas, _db,
             "MASTER", "SLAVE");
 
     ZNRecord externalView2 =
-        DefaultIdealStateCalculator.calculateIdealState(_instances, 80, 2, "TestDB", "MASTER",
-            "SLAVE");
+        DefaultTwoStateStrategy.calculateIdealState(_instances, 80, 2, "TestDB", "MASTER", "SLAVE");
 
     List<ZNRecord> externalViews = new ArrayList<ZNRecord>();
     externalViews.add(externalView);

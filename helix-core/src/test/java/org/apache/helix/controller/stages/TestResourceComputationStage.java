@@ -25,19 +25,15 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -57,8 +53,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     int replicas = 1;
     String resourceName = "testResource";
     ZNRecord record =
-        DefaultIdealStateCalculator.calculateIdealState(instances, partitions, replicas,
-            resourceName, "MASTER", "SLAVE");
+        DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas, resourceName,
+            "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
 
@@ -122,7 +118,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       int replicas = 1;
       String resourceName = resources[i];
       ZNRecord record =
-          DefaultIdealStateCalculator.calculateIdealState(instances, partitions, replicas,
+          DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas,
               resourceName, "MASTER", "SLAVE");
       IdealState idealState = new IdealState(record);
       idealState.setStateModelDefRef("MasterSlave");

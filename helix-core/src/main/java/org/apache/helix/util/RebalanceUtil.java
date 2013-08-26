@@ -90,8 +90,8 @@ public class RebalanceUtil {
     }
 
     Map<String, Object> result = new TreeMap<String, Object>();
-    result.put("MasterAssignmentMap", nodeMasterAssignmentMap);
-    result.put("SlaveAssignmentMap", combinedNodeSlaveAssignmentMap);
+    result.put("PrimaryAssignmentMap", nodeMasterAssignmentMap);
+    result.put("SecondaryAssignmentMap", combinedNodeSlaveAssignmentMap);
     result.put("replicas", Integer.parseInt(state.getReplicas()));
     result.put("partitions", new Integer(state.getRecord().getListFields().size()));
     result.put("reversePartitionIndex", reversePartitionIndex);

@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,7 +29,7 @@ import java.util.TreeMap;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 
-public class IdealStateCalculatorByRush {
+public class RUSHMasterSlaveStrategy {
   /**
    * Build the config map for RUSH algorithm. The input of RUSH algorithm groups
    * nodes into "cluster"s, and different clusters can be assigned with
@@ -263,7 +263,7 @@ public class IdealStateCalculatorByRush {
     List<Integer> weights1 = new ArrayList<Integer>();
     weights1.add(1);
     ZNRecord result =
-        IdealStateCalculatorByRush.calculateIdealState(instanceCluster1, weights1, partitions,
+        RUSHMasterSlaveStrategy.calculateIdealState(instanceCluster1, weights1, partitions,
             replicas, resourceName);
 
     printIdealStateStats(result);
@@ -275,7 +275,7 @@ public class IdealStateCalculatorByRush {
     instanceCluster1.add(instanceNames2);
     weights1.add(1);
     ZNRecord result2 =
-        IdealStateCalculatorByRush.calculateIdealState(instanceCluster1, weights1, partitions,
+        RUSHMasterSlaveStrategy.calculateIdealState(instanceCluster1, weights1, partitions,
             replicas, resourceName);
 
     printDiff(result, result2);

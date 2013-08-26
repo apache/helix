@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

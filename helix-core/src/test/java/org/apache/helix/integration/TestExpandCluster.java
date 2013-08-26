@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Map;
 
-import org.apache.helix.TestEspressoStorageClusterIdealState;
+import org.apache.helix.controller.strategy.TestEspressoStorageClusterIdealState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.RebalanceUtil;

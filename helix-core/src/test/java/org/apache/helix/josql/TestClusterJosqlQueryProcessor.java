@@ -28,10 +28,8 @@ import java.util.UUID;
 import org.apache.helix.Criteria;
 import org.apache.helix.InstanceType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.josql.ZNRecordJosqlFunctionHandler;
-import org.apache.helix.josql.ZNRecordRow;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.josql.Query;
 import org.josql.QueryExecutionException;
 import org.josql.QueryParseException;
@@ -59,9 +57,7 @@ public class TestClusterJosqlQueryProcessor {
 
     // liveInstances.remove(0);
     ZNRecord externalView =
-        DefaultIdealStateCalculator.calculateIdealState(instances, 21, 3, "TestDB", "MASTER",
-            "SLAVE");
-
+        DefaultTwoStateStrategy.calculateIdealState(instances, 21, 3, "TestDB", "MASTER", "SLAVE");
     Criteria criteria = new Criteria();
     criteria.setInstanceName("%");
     criteria.setResource("TestDB");

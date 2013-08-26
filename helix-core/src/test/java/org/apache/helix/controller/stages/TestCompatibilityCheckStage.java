@@ -23,15 +23,13 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.helix.Mocks;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.CompatibilityCheckStage;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -50,8 +48,8 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     // set ideal state
     String resourceName = "testResource";
     ZNRecord record =
-        DefaultIdealStateCalculator.calculateIdealState(instances, partitions, replicas,
-            resourceName, "MASTER", "SLAVE");
+        DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas, resourceName,
+            "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
 

@@ -32,9 +32,10 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -43,14 +44,13 @@ import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.TestCommand;
-import org.apache.helix.tools.TestExecutor;
-import org.apache.helix.tools.TestTrigger;
-import org.apache.helix.tools.ZnodeOpArg;
 import org.apache.helix.tools.TestCommand.CommandType;
 import org.apache.helix.tools.TestCommand.NodeOpArg;
+import org.apache.helix.tools.TestExecutor;
 import org.apache.helix.tools.TestExecutor.ZnodePropertyType;
+import org.apache.helix.tools.TestTrigger;
+import org.apache.helix.tools.ZnodeOpArg;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 
@@ -331,8 +331,8 @@ public class TestDriver {
     for (int i = 0; i < testInfo._numDb; i++) {
       String dbName = TEST_DB_PREFIX + i;
       ZNRecord destIS =
-          DefaultIdealStateCalculator.calculateIdealState(instanceNames,
-              testInfo._numPartitionsPerDb, testInfo._replica - 1, dbName, "MASTER", "SLAVE");
+          DefaultTwoStateStrategy.calculateIdealState(instanceNames, testInfo._numPartitionsPerDb,
+              testInfo._replica - 1, dbName, "MASTER", "SLAVE");
       // destIS.setId(dbName);
       destIS.setSimpleField(IdealStateProperty.REBALANCE_MODE.toString(),
           RebalanceMode.CUSTOMIZED.toString());

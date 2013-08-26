@@ -28,10 +28,10 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -63,7 +63,7 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
       instanceNames.add("localhost_" + port);
     }
     ZNRecord idealState =
-        DefaultIdealStateCalculator.calculateIdealState(instanceNames, 10, 2, "TestDB0", "LEADER",
+        DefaultTwoStateStrategy.calculateIdealState(instanceNames, 10, 2, "TestDB0", "LEADER",
             "STANDBY");
     // System.out.println(idealState);
     // curIdealState.setSimpleField(IdealState.IdealStateProperty.IDEAL_STATE_MODE.toString(),

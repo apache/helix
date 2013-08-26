@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,7 +31,8 @@ import org.apache.helix.model.IdealState.IdealStateProperty;
 
 /*
  * Ideal state calculator for the cluster manager V1. The ideal state is
- * calculated by randomly assign master partitions to storage nodes.
+ * calculated by randomly assign primary partitions to storage nodes. This is intended for a
+ * two-state scheme where one is primary and the other is secondary.
  *
  * Note that the following code is a native strategy and is for cluster manager V1 only. We will
  * use the other algorithm to calculate the ideal state in future milestones.
@@ -39,19 +40,30 @@ import org.apache.helix.model.IdealState.IdealStateProperty;
  *
  * */
 
-public class IdealStateCalculatorByShuffling {
+public class ShufflingTwoStateStrategy {
   /*
    * Given the number of nodes, partitions and replica number, calculate the
-   * ideal state in the following manner: For the master partition assignment,
+   * ideal state in the following manner: For the primary partition assignment,
    * 1. construct Arraylist partitionList, with partitionList[i] = i; 2. Shuffle
    * the partitions array 3. Scan the shuffled array, then assign
    * partitionList[i] to node (i % nodes)
    * for the slave partitions, simply put them in the node after the node that
+   * <<<<<<<
+   * HEAD:helix-core/src/main/java/org/apache/helix/controller/strategy/ShufflingTwoStateStrategy
+   * .java
+   * contains the primary partition.
+   * =======
    * contains the master partition.
+   * >>>>>>>
+   * master:helix-core/src/main/java/org/apache/helix/tools/IdealStateCalculatorByShuffling.java
    * The result of the method is a ZNRecord, which contains a list of maps; each
-   * map is from the name of nodes to either "MASTER" or "SLAVE".
+   * map is from the name of nodes to either state name ("MASTER" or "SLAVE" for
+   * MasterSlave).
    */
 
+  /**
+   * Calculate an ideal state for a MasterSlave configuration
+   */
   public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions,
       int replicas, String resourceName, long randomSeed) {
     return calculateIdealState(instanceNames, partitions, replicas, resourceName, randomSeed,
@@ -59,9 +71,9 @@ public class IdealStateCalculatorByShuffling {
   }
 
   public static ZNRecord calculateIdealState(List<String> instanceNames, int partitions,
-      int replicas, String resourceName, long randomSeed, String masterValue, String slaveValue) {
+      int replicas, String resourceName, long randomSeed, String primaryValue, String secondaryValue) {
     if (instanceNames.size() <= replicas) {
-      throw new IllegalArgumentException("Replicas must be less than number of storage nodes");
+      throw new IllegalArgumentException("Replicas must be less than number of nodes");
     }
 
     Collections.sort(instanceNames);
@@ -79,18 +91,18 @@ public class IdealStateCalculatorByShuffling {
     for (int i = 0; i < partitionList.size(); i++) {
       int partitionId = partitionList.get(i);
       Map<String, String> partitionAssignment = new TreeMap<String, String>();
-      int masterNode = i % instanceNames.size();
-      // the first in the list is the node that contains the master
-      partitionAssignment.put(instanceNames.get(masterNode), masterValue);
+      int primaryNode = i % instanceNames.size();
+      // the first in the list is the node that contains the primary
+      partitionAssignment.put(instanceNames.get(primaryNode), primaryValue);
 
-      // for the jth replica, we put it on (masterNode + j) % nodes-th
+      // for the jth replica, we put it on (primaryNode + j) % nodes-th
       // node
       for (int j = 1; j <= replicas; j++) {
-        int index = (masterNode + j * partitionList.size()) % instanceNames.size();
+        int index = (primaryNode + j * partitionList.size()) % instanceNames.size();
         while (partitionAssignment.keySet().contains(instanceNames.get(index))) {
           index = (index + 1) % instanceNames.size();
         }
-        partitionAssignment.put(instanceNames.get(index), slaveValue);
+        partitionAssignment.put(instanceNames.get(index), secondaryValue);
       }
       String partitionName = resourceName + "_" + partitionId;
       result.setMapField(partitionName, partitionAssignment);

@@ -33,7 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -54,10 +53,10 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -74,7 +73,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.log4j.Logger;
@@ -1025,7 +1023,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO) {
       ZNRecord newIdealState =
-          DefaultIdealStateCalculator.calculateIdealState(instanceNames, partitions, replica,
+          DefaultTwoStateStrategy.calculateIdealState(instanceNames, partitions, replica,
               keyPrefix, masterStateValue, slaveStateValue);
 
       // for now keep mapField in SEMI_AUTO mode and remove listField in CUSTOMIZED mode
@@ -1156,7 +1154,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         RebalanceUtil.buildInternalIdealState(currentIdealState);
 
     Map<String, Object> balancedRecord =
-        DefaultIdealStateCalculator.calculateNextIdealState(instanceNames, previousIdealState);
+        DefaultTwoStateStrategy.calculateNextIdealState(instanceNames, previousIdealState);
     StateModelDefinition stateModDef =
         this.getStateModelDef(clusterName, currentIdealState.getStateModelDefRef());
 
@@ -1167,7 +1165,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     String[] states = RebalanceUtil.parseStates(clusterName, stateModDef);
 
     ZNRecord newIdealStateRecord =
-        DefaultIdealStateCalculator.convertToZNRecord(balancedRecord,
+        DefaultTwoStateStrategy.convertToZNRecord(balancedRecord,
             currentIdealState.getResourceName(), states[0], states[1]);
     Set<String> partitionSet = new HashSet<String>();
     partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());

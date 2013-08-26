@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,17 +20,15 @@ package org.apache.helix;
  */
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.IdealStateCalculatorForEspressoRelay;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRelayIdealStateCalculator {
+public class TestEspressoRelayStrategy {
   @Test()
   public void testEspressoStorageClusterIdealState() throws Exception {
     testEspressoStorageClusterIdealState(15, 9, 3);
@@ -52,8 +50,8 @@ public class TestRelayIdealStateCalculator {
     }
 
     IdealState idealstate =
-        IdealStateCalculatorForEspressoRelay.calculateRelayIdealState(storageNodes, relays, "TEST",
-            replica, "Leader", "Standby", "LeaderStandby");
+        EspressoRelayStrategy.calculateRelayIdealState(storageNodes, relays, "TEST", replica,
+            "Leader", "Standby", "LeaderStandby");
 
     Assert.assertEquals(idealstate.getRecord().getListFields().size(), idealstate.getRecord()
         .getMapFields().size());

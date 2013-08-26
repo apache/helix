@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,7 +29,7 @@ import java.util.TreeMap;
 import org.apache.helix.HelixException;
 import org.apache.helix.model.IdealState;
 
-public class IdealStateCalculatorForEspressoRelay {
+public class EspressoRelayStrategy {
   public static IdealState calculateRelayIdealState(List<String> partitions,
       List<String> instances, String resultRecordName, int replica, String firstValue,
       String restValue, String stateModelName) {

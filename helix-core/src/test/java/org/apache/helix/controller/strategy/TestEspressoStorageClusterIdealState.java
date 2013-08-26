@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,15 +29,13 @@ import java.util.TreeSet;
 
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.RebalanceUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestEspressoStorageClusterIdealState {
-  @Test()
+  @Test
   public void testEspressoStorageClusterIdealState() throws Exception {
     List<String> instanceNames = new ArrayList<String>();
     for (int i = 0; i < 5; i++) {
@@ -45,7 +43,7 @@ public class TestEspressoStorageClusterIdealState {
     }
     int partitions = 8, replicas = 0;
     Map<String, Object> result0 =
-        DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
+        DefaultTwoStateStrategy.calculateInitialIdealState(instanceNames, partitions, replicas);
     Verify(result0, partitions, replicas);
 
     partitions = 8192;
@@ -56,27 +54,27 @@ public class TestEspressoStorageClusterIdealState {
       instanceNames.add("localhost:123" + i);
     }
     Map<String, Object> resultOriginal =
-        DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
+        DefaultTwoStateStrategy.calculateInitialIdealState(instanceNames, partitions, replicas);
 
     Verify(resultOriginal, partitions, replicas);
     printStat(resultOriginal);
 
     Map<String, Object> result1 =
-        DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
+        DefaultTwoStateStrategy.calculateInitialIdealState(instanceNames, partitions, replicas);
 
     List<String> instanceNames2 = new ArrayList<String>();
     for (int i = 30; i < 35; i++) {
       instanceNames2.add("localhost:123" + i);
     }
 
-    DefaultIdealStateCalculator.calculateNextIdealState(instanceNames2, result1);
+    DefaultTwoStateStrategy.calculateNextIdealState(instanceNames2, result1);
 
     List<String> instanceNames3 = new ArrayList<String>();
     for (int i = 35; i < 40; i++) {
       instanceNames3.add("localhost:123" + i);
     }
 
-    DefaultIdealStateCalculator.calculateNextIdealState(instanceNames3, result1);
+    DefaultTwoStateStrategy.calculateNextIdealState(instanceNames3, result1);
     Double masterKeepRatio = 0.0, slaveKeepRatio = 0.0;
     Verify(result1, partitions, replicas);
     double[] result = compareResult(resultOriginal, result1);
@@ -97,21 +95,20 @@ public class TestEspressoStorageClusterIdealState {
     }
 
     Map<String, Object> resultOriginal =
-        DefaultIdealStateCalculator.calculateInitialIdealState(instanceNames, partitions, replicas);
+        DefaultTwoStateStrategy.calculateInitialIdealState(instanceNames, partitions, replicas);
 
     ZNRecord idealState1 =
-        DefaultIdealStateCalculator.convertToZNRecord(resultOriginal, "TestDB", "MASTER", "SLAVE");
+        DefaultTwoStateStrategy.convertToZNRecord(resultOriginal, "TestDB", "MASTER", "SLAVE");
 
     Map<String, Object> result1 =
         RebalanceUtil.buildInternalIdealState(new IdealState(idealState1));
-
     List<String> instanceNames2 = new ArrayList<String>();
     for (int i = 30; i < 35; i++) {
       instanceNames2.add("localhost:123" + i);
     }
 
     Map<String, Object> result2 =
-        DefaultIdealStateCalculator.calculateNextIdealState(instanceNames2, result1);
+        DefaultTwoStateStrategy.calculateNextIdealState(instanceNames2, result1);
 
     Verify(resultOriginal, partitions, replicas);
     Verify(result2, partitions, replicas);
@@ -125,9 +122,9 @@ public class TestEspressoStorageClusterIdealState {
 
   public static void Verify(Map<String, Object> result, int partitions, int replicas) {
     Map<String, List<Integer>> masterAssignmentMap =
-        (Map<String, List<Integer>>) (result.get("MasterAssignmentMap"));
+        (Map<String, List<Integer>>) (result.get("PrimaryAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap =
-        (Map<String, Map<String, List<Integer>>>) (result.get("SlaveAssignmentMap"));
+        (Map<String, Map<String, List<Integer>>>) (result.get("SecondaryAssignmentMap"));
 
     AssertJUnit.assertTrue(partitions == (Integer) (result.get("partitions")));
 
@@ -224,14 +221,14 @@ public class TestEspressoStorageClusterIdealState {
   public static double[] compareResult(Map<String, Object> result1, Map<String, Object> result2) {
     double[] result = new double[2];
     Map<String, List<Integer>> masterAssignmentMap1 =
-        (Map<String, List<Integer>>) (result1.get("MasterAssignmentMap"));
+        (Map<String, List<Integer>>) (result1.get("PrimaryAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap1 =
-        (Map<String, Map<String, List<Integer>>>) (result1.get("SlaveAssignmentMap"));
+        (Map<String, Map<String, List<Integer>>>) (result1.get("SecondaryAssignmentMap"));
 
     Map<String, List<Integer>> masterAssignmentMap2 =
-        (Map<String, List<Integer>>) (result2.get("MasterAssignmentMap"));
+        (Map<String, List<Integer>>) (result2.get("PrimaryAssignmentMap"));
     Map<String, Map<String, List<Integer>>> nodeSlaveAssignmentMap2 =
-        (Map<String, Map<String, List<Integer>>>) (result2.get("SlaveAssignmentMap"));
+        (Map<String, Map<String, List<Integer>>>) (result2.get("SecondaryAssignmentMap"));
 
     int commonMasters = 0;
     int commonSlaves = 0;

@@ -24,17 +24,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -95,8 +95,8 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
         Arrays.asList("localhost_12918", "localhost_12919", "localhost_12920", "localhost_12921",
             "localhost_12922");
     ZNRecord destIS =
-        DefaultIdealStateCalculator.calculateIdealState(instanceNames, 10, 3 - 1, "TestDB0",
-            "MASTER", "SLAVE");
+        DefaultTwoStateStrategy.calculateIdealState(instanceNames, 10, 3 - 1, "TestDB0", "MASTER",
+            "SLAVE");
     IdealState idealState = new IdealState(destIS);
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     idealState.setReplicas("3");

@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.controller.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,9 +29,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.tools.IdealCalculatorByConsistentHashing;
-import org.apache.helix.tools.IdealStateCalculatorByRush;
-import org.apache.helix.tools.IdealStateCalculatorByShuffling;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -39,7 +36,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestShuffledIdealState {
+public class TestShufflingTwoStateStrategy {
   @Test()
   public void testInvocation() throws Exception {
     int partitions = 6, replicas = 2;
@@ -51,22 +48,20 @@ public class TestShuffledIdealState {
     instanceNames.add("localhost_1234");
 
     ZNRecord result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
 
     ZNRecord result2 =
-        IdealStateCalculatorByRush.calculateIdealState(instanceNames, 1, partitions, replicas,
-            dbName);
+        RUSHMasterSlaveStrategy.calculateIdealState(instanceNames, 1, partitions, replicas, dbName);
 
     ZNRecord result3 =
-        IdealCalculatorByConsistentHashing.calculateIdealState(instanceNames, partitions, replicas,
-            dbName, new IdealCalculatorByConsistentHashing.FnvHash());
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "SLAVE");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result3, "");
-    IdealCalculatorByConsistentHashing.printNodeOfflineOverhead(result3);
+        ConsistentHashingMasterSlaveStrategy.calculateIdealState(instanceNames, partitions,
+            replicas, dbName, new ConsistentHashingMasterSlaveStrategy.FnvHash());
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result3, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result3, "SLAVE");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result3, "");
+    ConsistentHashingMasterSlaveStrategy.printNodeOfflineOverhead(result3);
 
     // System.out.println(result);
     ObjectMapper mapper = new ObjectMapper();
@@ -125,10 +120,9 @@ public class TestShuffledIdealState {
     instanceNames.add("localhost_1234");
 
     ZNRecord result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
 
     // partition is less than nodes
@@ -141,10 +135,9 @@ public class TestShuffledIdealState {
       instanceNames.add("localhost_" + (1231 + i));
     }
     result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
 
     // partitions is multiple of nodes
@@ -157,10 +150,9 @@ public class TestShuffledIdealState {
       instanceNames.add("localhost_" + (1231 + i));
     }
     result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
 
     // nodes are multiple of partitions
@@ -173,10 +165,9 @@ public class TestShuffledIdealState {
       instanceNames.add("localhost_" + (1231 + i));
     }
     result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
 
     // nodes are multiple of partitions
@@ -189,10 +180,9 @@ public class TestShuffledIdealState {
       instanceNames.add("localhost_" + (1231 + i));
     }
     result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
 
     // Just fits
@@ -205,10 +195,9 @@ public class TestShuffledIdealState {
       instanceNames.add("localhost_" + (1231 + i));
     }
     result =
-        IdealStateCalculatorByShuffling.calculateIdealState(instanceNames, partitions, replicas,
-            dbName);
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "MASTER");
-    IdealCalculatorByConsistentHashing.printIdealStateStats(result, "SLAVE");
+        ShufflingTwoStateStrategy.calculateIdealState(instanceNames, partitions, replicas, dbName);
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "MASTER");
+    ConsistentHashingMasterSlaveStrategy.printIdealStateStats(result, "SLAVE");
     Assert.assertTrue(verify(result));
   }
 

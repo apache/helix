@@ -33,13 +33,13 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -94,7 +94,7 @@ public class TestDefaultMessagingService {
         _liveInstances.add(metaData);
       }
       _externalView =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
+          DefaultTwoStateStrategy.calculateIdealState(_instances, _partitions, _replicas, _db,
               "MASTER", "SLAVE");
 
     }

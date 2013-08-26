@@ -26,6 +26,7 @@ First, let\'s get Helix, either build it, or download.
 
     git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
     cd incubator-helix
+    git checkout tags/helix-0.6.1-incubating
     mvn install package -DskipTests 
     cd helix-core/target/helix-core-pkg/bin //This folder contains all the scripts used in following sections
     chmod +x *

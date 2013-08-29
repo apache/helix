@@ -42,10 +42,10 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     ZNRecord idealStateOld1 = new ZNRecord("TestDB");
     ZNRecord idealStateOld2 = new ZNRecord("MyDB");
 
-    IdealState is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));
+    IdealState is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealState("TestDB"));
     idealStateOld1.merge(is1.getRecord());
 
-    IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
+    IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealState("MyDB"));
     idealStateOld2.merge(is2.getRecord());
 
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
@@ -88,9 +88,9 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
             ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));
+    is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealState("TestDB"));
 
-    is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
+    is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealState("MyDB"));
 
     for (String key : idealStateOld1.getMapFields().keySet()) {
       for (String host : idealStateOld1.getMapField(key).keySet()) {

@@ -186,7 +186,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
           int existingTopPartitionId = 0;
           IdealState currentTaskQueue =
               _manager.getHelixDataAccessor().getProperty(
-                  accessor.keyBuilder().idealStates(newAddedScheduledTasks.getId()));
+                  accessor.keyBuilder().idealState(newAddedScheduledTasks.getId()));
           if (currentTaskQueue != null) {
             existingTopPartitionId = findTopPartitionId(currentTaskQueue) + 1;
           }
@@ -213,7 +213,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
             }
           }
           _manager.getHelixDataAccessor().updateProperty(
-              accessor.keyBuilder().idealStates(newAddedScheduledTasks.getId()),
+              accessor.keyBuilder().idealState(newAddedScheduledTasks.getId()),
               newAddedScheduledTasks);
           sendSummary.put("MessageCount", "" + taskMessages.size());
         }

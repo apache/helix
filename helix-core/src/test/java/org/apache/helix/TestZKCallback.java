@@ -167,7 +167,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     idealState.setNumPartitions(400);
     idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModeldef");
-    accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
+    accessor.setProperty(keyBuilder.idealState("db-1234"), idealState);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();

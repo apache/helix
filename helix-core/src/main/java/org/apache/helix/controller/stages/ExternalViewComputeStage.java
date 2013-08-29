@@ -260,7 +260,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
       // Remove the finished (COMPLETED or ERROR) tasks from the SCHEDULER_TASK_RESOURCE idealstate
       keyBuilder = accessor.keyBuilder();
-      accessor.updateProperty(keyBuilder.idealStates(taskQueueIdealState.getResourceName()), delta);
+      accessor.updateProperty(keyBuilder.idealState(taskQueueIdealState.getResourceName()), delta);
     }
   }
 

@@ -83,9 +83,9 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
@@ -168,9 +168,9 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     // registry a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
@@ -224,9 +224,9 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     TestHelper
         .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);

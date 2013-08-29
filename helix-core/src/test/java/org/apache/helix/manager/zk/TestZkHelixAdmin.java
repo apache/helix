@@ -212,13 +212,13 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
         .forCluster(clusterName).forResource("test-db").build(), resourceConfig);
 
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    Assert.assertTrue(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
+    Assert.assertTrue(_gZkClient.exists(keyBuilder.idealState("test-db").getPath()),
         "test-db ideal-state should exist");
     Assert.assertTrue(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()),
         "test-db resource config should exist");
 
     tool.dropResource(clusterName, "test-db");
-    Assert.assertFalse(_gZkClient.exists(keyBuilder.idealStates("test-db").getPath()),
+    Assert.assertFalse(_gZkClient.exists(keyBuilder.idealState("test-db").getPath()),
         "test-db ideal-state should be dropped");
     Assert.assertFalse(_gZkClient.exists(keyBuilder.resourceConfig("test-db").getPath()),
         "test-db resource config should be dropped");

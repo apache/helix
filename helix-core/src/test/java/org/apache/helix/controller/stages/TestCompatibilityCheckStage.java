@@ -54,7 +54,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     idealState.setStateModelDefRef("MasterSlave");
 
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+    accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
 
     // set live instances
     record = new ZNRecord("localhost_0");

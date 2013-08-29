@@ -37,30 +37,36 @@ public class ResourceAccessor {
 
   /**
    * save resource assignment
+   * @param resourceId
+   * @param resourceAssignment
    */
-  public void setRresourceAssignment(ResourceId resourceId, RscAssignment resourceAssignment) {
+  public void setResourceAssignment(ResourceId resourceId, RscAssignment resourceAssignment) {
     // TODO impl this
   }
 
   /**
    * set ideal-state
+   * @param resourceId
+   * @param idealState
    */
-  public void setResourceIdealState(ResourceId resourceId, IdealState idealState) {
-    _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
+  public void setIdealState(ResourceId resourceId, IdealState idealState) {
+    _accessor.setProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
   }
 
   /**
    * set external view of a resource
+   * @param resourceId
    * @param extView
    */
-  public void setResourceExternalView(ResourceId resourceId, ExternalView extView) {
-    _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), extView);
+  public void setExternalView(ResourceId resourceId, ExternalView extView) {
+    _accessor.setProperty(_keyBuilder.externalView(resourceId.stringify()), extView);
   }
 
   /**
    * drop external view of a resource
+   * @param resourceId
    */
-  public void dropResourceExternalView(ResourceId resourceId) {
-    _accessor.removeProperty(_keyBuilder.idealStates(resourceId.stringify()));
+  public void dropExternalView(ResourceId resourceId) {
+    _accessor.removeProperty(_keyBuilder.externalView(resourceId.stringify()));
   }
 }

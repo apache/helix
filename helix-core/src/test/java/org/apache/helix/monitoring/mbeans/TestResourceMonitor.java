@@ -114,7 +114,7 @@ public class TestResourceMonitor {
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
     ExternalView externalView = helixDataAccessor.getProperty(keyBuilder.externalView(_dbName));
-    IdealState idealState = helixDataAccessor.getProperty(keyBuilder.idealStates(_dbName));
+    IdealState idealState = helixDataAccessor.getProperty(keyBuilder.idealState(_dbName));
 
     monitor.updateExternalView(externalView, idealState);
 

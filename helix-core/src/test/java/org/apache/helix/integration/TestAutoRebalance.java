@@ -258,7 +258,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
           new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
       Builder keyBuilder = accessor.keyBuilder();
       int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
+          accessor.getProperty(keyBuilder.idealState(_resourceName)).getRecord().getListFields()
               .size();
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);

@@ -142,7 +142,7 @@ public class HelixCustomCodeRunner {
 
       List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());
       while (idealStates == null || !idealStates.contains(_resourceName)) {
-        accessor.setProperty(keyBuilder.idealStates(_resourceName), idealState);
+        accessor.setProperty(keyBuilder.idealState(_resourceName), idealState);
         idealStates = accessor.getChildNames(keyBuilder.idealStates());
       }
 

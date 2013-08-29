@@ -133,7 +133,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
 
       Builder keyBuilder = accessor.keyBuilder();
 
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
     }
     return idealStates;
   }

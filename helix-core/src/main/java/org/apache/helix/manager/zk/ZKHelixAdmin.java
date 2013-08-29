@@ -303,7 +303,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check resource group exists
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState(resourceName));
     if (idealState == null) {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partitionNames
           + " on " + instanceName + ", because " + resourceName + " is not added");
@@ -659,7 +659,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    return accessor.getProperty(keyBuilder.idealStates(resourceName));
+    return accessor.getProperty(keyBuilder.idealState(resourceName));
   }
 
   @Override
@@ -668,7 +668,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+    accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
   }
 
   @Override
@@ -704,7 +704,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.removeProperty(keyBuilder.idealStates(resourceName));
+    accessor.removeProperty(keyBuilder.idealState(resourceName));
     accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
   }
 
@@ -910,7 +910,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
+    accessor.setProperty(keyBuilder.idealState(idealState.getResourceName()), idealState);
   }
 
   @Override

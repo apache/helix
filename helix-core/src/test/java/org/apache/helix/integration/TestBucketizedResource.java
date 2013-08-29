@@ -62,9 +62,9 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     // String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName,
     // "TestDB0");
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setBucketSize(1);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     TestHelper
         .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);

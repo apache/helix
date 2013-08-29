@@ -243,7 +243,7 @@ public class TestDrop extends ZkIntegrationTestBase {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuiler = accessor.keyBuilder();
-    accessor.setProperty(keyBuiler.idealStates("TestDB0"), isBuilder.build());
+    accessor.setProperty(keyBuiler.idealState("TestDB0"), isBuilder.build());
 
     // start controller
     ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);

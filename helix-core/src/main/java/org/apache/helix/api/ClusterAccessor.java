@@ -33,8 +33,11 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.log4j.Logger;
 
 public class ClusterAccessor {
+  private static Logger LOG = Logger.getLogger(ClusterAccessor.class);
+
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
   private final ClusterId _clusterId;
@@ -64,6 +67,27 @@ public class ClusterAccessor {
     for (PropertyKey key : createKeys) {
       _accessor.createProperty(key, null);
     }
+  }
+
+  /**
+   * drop a cluster
+   */
+  public void dropCluster() {
+    LOG.info("Dropping cluster: " + _clusterId);
+    List<String> liveInstanceNames =_accessor.getChildNames(_keyBuilder.liveInstances());
+    if (liveInstanceNames.size() > 0) {
+      throw new HelixException("Can't drop cluster: " + _clusterId
+          + " because there are running participant: " + liveInstanceNames
+          + ", shutdown participants first.");
+    }
+
+    LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
+    if (leader != null) {
+      throw new HelixException("Can't drop cluster: " + _clusterId + ", because leader: "
+          + leader.getId() + " are running, shutdown leader first.");
+    }
+
+    // TODO remove cluster structure from zookeeper
   }
 
   /**
@@ -103,14 +127,14 @@ public class ClusterAccessor {
      */
     Map<String, Map<String, CurrentState>> currentStateMap =
         new HashMap<String, Map<String, CurrentState>>();
-    for (String participantId : liveInstanceMap.keySet()) {
-      LiveInstance liveInstance = liveInstanceMap.get(participantId);
+    for (String participantName : liveInstanceMap.keySet()) {
+      LiveInstance liveInstance = liveInstanceMap.get(participantName);
       SessionId sessionId = liveInstance.getSessionId();
       Map<String, CurrentState> instanceCurStateMap =
-          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantId,
+          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
               sessionId.stringify()));
 
-      currentStateMap.put(participantId, instanceCurStateMap);
+      currentStateMap.put(participantName, instanceCurStateMap);
     }
 
     LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
@@ -130,12 +154,10 @@ public class ClusterAccessor {
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       Map<String, Message> instanceMsgMap = messageMap.get(participantName);
 
-      // TODO pass current-state map
       ParticipantId participantId = new ParticipantId(participantName);
 
-      // TODO construct participant
-      participantMap.put(participantId, new Participant(participantId, null, -1, false, null, null,
-          null, null, null));
+      participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
+          instanceConfig, liveInstance, instanceMsgMap, currentStateMap.get(participantName)));
     }
 
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
@@ -174,13 +196,13 @@ public class ClusterAccessor {
     }
 
     ResourceId resourceId = resource.getId();
-    if (_accessor.getProperty(_keyBuilder.idealStates(resourceId.stringify())) != null) {
+    if (_accessor.getProperty(_keyBuilder.idealState(resourceId.stringify())) != null) {
       throw new HelixException("Skip adding resource: " + resourceId
-          + " . Resource ideal state already exists in cluster: " + _clusterId);
+          + ", because resource ideal state already exists in cluster: " + _clusterId);
     }
 
     // TODO convert rebalancerConfig to idealState
-    _accessor.createProperty(_keyBuilder.idealStates(resourceId.stringify()), null);
+    _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), null);
   }
 
   /**
@@ -189,7 +211,7 @@ public class ClusterAccessor {
    */
   public void dropResourceFromCluster(ResourceId resourceId) {
     // TODO check existence
-    _accessor.removeProperty(_keyBuilder.idealStates(resourceId.stringify()));
+    _accessor.removeProperty(_keyBuilder.idealState(resourceId.stringify()));
     _accessor.removeProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
   }
 

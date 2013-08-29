@@ -112,7 +112,7 @@ public class TestCustomizedIdealStateRebalancer extends
     for (String partition : ev.getPartitionStringSet()) {
       Assert.assertEquals(ev.getStateMap(partition).size(), 1);
     }
-    IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
+    IdealState is = accessor.getProperty(keyBuilder.idealState(db2));
     for (String partition : is.getPartitionStringSet()) {
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
       Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
@@ -139,7 +139,7 @@ public class TestCustomizedIdealStateRebalancer extends
             new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
         Builder keyBuilder = accessor.keyBuilder();
         int numberOfPartitions =
-            accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
+            accessor.getProperty(keyBuilder.idealState(_resourceName)).getRecord().getListFields()
                 .size();
         ClusterDataCache cache = new ClusterDataCache();
         cache.refresh(accessor);

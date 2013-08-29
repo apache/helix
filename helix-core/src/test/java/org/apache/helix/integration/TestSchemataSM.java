@@ -63,7 +63,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    PropertyKey key = keyBuilder.idealStates("TestSchemata0");
+    PropertyKey key = keyBuilder.idealState("TestSchemata0");
     IdealState idealState = accessor.getProperty(key);
     idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
     idealState.getRecord().setListField("TestSchemata0_0",

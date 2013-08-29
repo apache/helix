@@ -86,9 +86,9 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
     controller.syncStart();

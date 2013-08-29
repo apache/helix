@@ -67,9 +67,9 @@ public class TestDisable extends ZkIntegrationTestBase {
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     // start controller
     ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
@@ -234,9 +234,9 @@ public class TestDisable extends ZkIntegrationTestBase {
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
     // start controller
     ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);

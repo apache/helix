@@ -342,7 +342,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     // save ideal state
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    IdealState idealState = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
+    IdealState idealState = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
     ZNRecordJsonSerializer serializer = new ZNRecordJsonSerializer();
 
     String tmpDir = System.getProperty("java.io.tmpdir");
@@ -371,7 +371,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(verifyResult);
 
-    IdealState idealState2 = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
+    IdealState idealState2 = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
     Assert.assertTrue(idealState2.getRecord().equals(idealState.getRecord()));
 
     // clean up
@@ -650,7 +650,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 2 -instanceGroupTag tag1";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    IdealState dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
+    IdealState dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
     Set<String> hosts = new HashSet<String>();
     for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
@@ -672,7 +672,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
+    dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
     hosts = new HashSet<String>();
     for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
@@ -700,7 +700,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
-    dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
+    dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
     hosts = new HashSet<String>();
     for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {

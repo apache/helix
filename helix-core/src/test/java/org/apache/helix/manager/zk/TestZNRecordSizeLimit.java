@@ -125,7 +125,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 1024; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    boolean succeed = accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
     Assert.assertFalse(succeed);
     HelixProperty property =
         accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918", "session_1",
@@ -141,9 +141,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 900; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    succeed = accessor.setProperty(keyBuilder.idealState("TestDB1"), idealState);
     Assert.assertTrue(succeed);
-    record = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
+    record = accessor.getProperty(keyBuilder.idealState("TestDB1")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data should not update existing data on zk
@@ -155,9 +155,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     // System.out.println("record: " + idealState.getRecord());
-    succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    succeed = accessor.updateProperty(keyBuilder.idealState("TestDB1"), idealState);
     Assert.assertFalse(succeed);
-    recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
+    recordNew = accessor.getProperty(keyBuilder.idealState("TestDB1")).getRecord();
     arr = serializer.serialize(record);
     arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
@@ -249,9 +249,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 1024; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB_1"), idealState);
+    boolean succeed = accessor.setProperty(keyBuilder.idealState("TestDB_1"), idealState);
     Assert.assertFalse(succeed);
-    HelixProperty property = accessor.getProperty(keyBuilder.idealStates("TestDB_1"));
+    HelixProperty property = accessor.getProperty(keyBuilder.idealState("TestDB_1"));
     Assert.assertNull(property);
 
     // legal sized data gets written to zk
@@ -263,9 +263,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 900; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB_2"), idealState);
+    succeed = accessor.setProperty(keyBuilder.idealState("TestDB_2"), idealState);
     Assert.assertTrue(succeed);
-    record = accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
+    record = accessor.getProperty(keyBuilder.idealState("TestDB_2")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data should not update existing data on zk
@@ -278,9 +278,9 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
     // System.out.println("record: " + idealState.getRecord());
-    succeed = accessor.updateProperty(keyBuilder.idealStates("TestDB_2"), idealState);
+    succeed = accessor.updateProperty(keyBuilder.idealState("TestDB_2"), idealState);
     Assert.assertFalse(succeed);
-    recordNew = accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
+    recordNew = accessor.getProperty(keyBuilder.idealState("TestDB_2")).getRecord();
     arr = serializer.serialize(record);
     arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));

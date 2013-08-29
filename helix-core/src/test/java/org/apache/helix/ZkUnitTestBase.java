@@ -176,7 +176,7 @@ public class ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState(resource));
     for (String partitionName : idealState.getPartitionStringSet()) {
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
@@ -295,7 +295,7 @@ public class ZkUnitTestBase {
       idealStates.add(idealState);
 
       // System.out.println(idealState);
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
     }
     return idealStates;
   }

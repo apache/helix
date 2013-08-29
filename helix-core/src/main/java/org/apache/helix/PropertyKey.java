@@ -156,7 +156,7 @@ public class PropertyKey {
      * @param resourceName
      * @return {@link PropertyKey}
      */
-    public PropertyKey idealStates(String resourceName) {
+    public PropertyKey idealState(String resourceName) {
       return new PropertyKey(IDEALSTATES, IdealState.class, _clusterName, resourceName);
     }
 

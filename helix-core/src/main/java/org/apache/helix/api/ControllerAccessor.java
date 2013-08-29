@@ -32,7 +32,7 @@ public class ControllerAccessor {
    * create leader
    * @param controllerId
    */
-  public void start(ControllerId controllerId) {
+  public void connectLeader(ControllerId controllerId) {
     // TODO impl this
   }
 }

@@ -60,7 +60,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+    accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -125,7 +125,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
 
       idealStates.add(idealState);
     }

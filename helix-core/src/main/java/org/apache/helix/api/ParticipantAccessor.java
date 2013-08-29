@@ -57,23 +57,26 @@ public class ParticipantAccessor {
   }
 
   /**
+   * enable/disable a participant
    * @param participantId
    * @param isEnabled
    */
   void enableParticipant(ParticipantId participantId, boolean isEnabled) {
-    if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
+    String participantName = participantId.stringify();
+    if (_accessor.getProperty(_keyBuilder.instanceConfig(participantName)) == null) {
       throw new HelixException("Config for participant: " + participantId
           + " does NOT exist in cluster: " + _clusterId);
     }
 
-    InstanceConfig config = new InstanceConfig(participantId.stringify());
+    InstanceConfig config = new InstanceConfig(participantName);
     config.setInstanceEnabled(isEnabled);
-    _accessor.updateProperty(_keyBuilder.instanceConfig(participantId.stringify()), config);
+    _accessor.updateProperty(_keyBuilder.instanceConfig(participantName), config);
 
   }
 
   /**
    * disable participant
+   * @param participantId
    */
   public void disableParticipant(ParticipantId participantId) {
     enableParticipant(participantId, false);
@@ -81,20 +84,23 @@ public class ParticipantAccessor {
 
   /**
    * enable participant
+   * @param participantId
    */
   public void enableParticipant(ParticipantId participantId) {
-    enableParticipant(participantId, false);
+    enableParticipant(participantId, true);
   }
 
   /**
    * create messages for participant
-   * @param msgs
+   * @param participantId
+   * @param msgMap map of message-id to message
    */
-  public void insertMessagesToParticipant(ParticipantId participantId, Map<MessageId, Message> msgMap) {
+  public void sendMessagesToParticipant(ParticipantId participantId, Map<MessageId, Message> msgMap) {
+    String participantName = participantId.stringify();
     List<PropertyKey> msgKeys = new ArrayList<PropertyKey>();
     List<Message> msgs = new ArrayList<Message>();
     for (MessageId msgId : msgMap.keySet()) {
-      msgKeys.add(_keyBuilder.message(participantId.stringify(), msgId.stringify()));
+      msgKeys.add(_keyBuilder.message(participantName, msgId.stringify()));
       msgs.add(msgMap.get(msgId));
     }
 
@@ -103,13 +109,15 @@ public class ParticipantAccessor {
 
   /**
    * set messages of participant
-   * @param msgs
+   * @param participantId
+   * @param msgMap map of message-id to message
    */
-  public void setMessagesOfParticipant(ParticipantId participantId, Map<MessageId, Message> msgMap) {
+  public void updateMessageStatus(ParticipantId participantId, Map<MessageId, Message> msgMap) {
+    String participantName = participantId.stringify();
     List<PropertyKey> msgKeys = new ArrayList<PropertyKey>();
     List<Message> msgs = new ArrayList<Message>();
     for (MessageId msgId : msgMap.keySet()) {
-      msgKeys.add(_keyBuilder.message(participantId.stringify(), msgId.stringify()));
+      msgKeys.add(_keyBuilder.message(participantName, msgId.stringify()));
       msgs.add(msgMap.get(msgId));
     }
     _accessor.setChildren(msgKeys, msgs);
@@ -117,12 +125,14 @@ public class ParticipantAccessor {
 
   /**
    * delete messages from participant
+   * @param participantId
    * @param msgIdSet
    */
   public void deleteMessagesFromParticipant(ParticipantId participantId, Set<MessageId> msgIdSet) {
+    String participantName = participantId.stringify();
     List<PropertyKey> msgKeys = new ArrayList<PropertyKey>();
     for (MessageId msgId : msgIdSet) {
-      msgKeys.add(_keyBuilder.message(participantId.stringify(), msgId.stringify()));
+      msgKeys.add(_keyBuilder.message(participantName, msgId.stringify()));
     }
 
     // TODO impl batch remove
@@ -132,6 +142,7 @@ public class ParticipantAccessor {
   }
 
   /**
+   * enable/disable partitions on a participant
    * @param enabled
    * @param participantId
    * @param resourceId
@@ -139,15 +150,18 @@ public class ParticipantAccessor {
    */
   void enablePartitionsForParticipant(final boolean enabled, final ParticipantId participantId,
       final ResourceId resourceId, final Set<PartitionId> partitionIdSet) {
+    String participantName = participantId.stringify();
+    String resourceName = resourceId.stringify();
+
     // check instanceConfig exists
-    PropertyKey instanceConfigKey = _keyBuilder.instanceConfig(participantId.stringify());
+    PropertyKey instanceConfigKey = _keyBuilder.instanceConfig(participantName);
     if (_accessor.getProperty(instanceConfigKey) == null) {
       throw new HelixException("Config for participant: " + participantId
           + " does NOT exist in cluster: " + _clusterId);
     }
 
     // check resource exist. warn if not
-    IdealState idealState = _accessor.getProperty(_keyBuilder.idealStates(resourceId.stringify()));
+    IdealState idealState = _accessor.getProperty(_keyBuilder.idealState(resourceName));
     if (idealState == null) {
       LOG.warn("Disable partitions: " + partitionIdSet + " but Cluster: " + _clusterId
           + ", resource: " + resourceId
@@ -156,12 +170,13 @@ public class ParticipantAccessor {
     } else {
       // check partitions exist. warn if not
       for (PartitionId partitionId : partitionIdSet) {
+        String partitionName = partitionId.stringify();
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
-            .getPreferenceList(partitionId.stringify()) == null)
+            .getPreferenceList(partitionName) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
-                .getInstanceStateMap(partitionId.stringify()) == null)) {
+                .getInstanceStateMap(partitionName) == null)) {
           LOG.warn("Cluster: " + _clusterId + ", resource: " + resourceId + ", partition: "
-              + partitionId + ", partition does not exist in ideal state");
+              + partitionId + ", partition does NOT exist in ideal state");
         }
       }
     }
@@ -174,6 +189,7 @@ public class ParticipantAccessor {
     for (PartitionId partitionId : partitionIdSet) {
       partitionNames.add(partitionId.stringify());
     }
+
     baseAccessor.update(instanceConfigKey.getPath(), new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -205,7 +221,10 @@ public class ParticipantAccessor {
   }
 
   /**
-   * @param disablePartitionSet
+   * disable partitions on a participant
+   * @param participantId
+   * @param resourceId
+   * @param disablePartitionIdSet
    */
   public void disablePartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
       Set<PartitionId> disablePartitionIdSet) {
@@ -213,7 +232,10 @@ public class ParticipantAccessor {
   }
 
   /**
-   * @param enablePartitionSet
+   * enable partitions on a participant
+   * @param participantId
+   * @param resourceId
+   * @param enablePartitionIdSet
    */
   public void enablePartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
       Set<PartitionId> enablePartitionIdSet) {
@@ -221,36 +243,37 @@ public class ParticipantAccessor {
   }
 
   /**
-   * create live instance for the participant
+   * reset partitions on a participant
    * @param participantId
+   * @param resourceId
+   * @param resetPartitionIdSet
    */
-  public void startParticipant(ParticipantId participantId) {
+  public void resetPartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
+      Set<PartitionId> resetPartitionIdSet) {
     // TODO impl this
   }
 
   /**
-   * read participant related data
+   * create live instance for the participant
    * @param participantId
-   * @return
    */
-  public Participant readParticipant(ParticipantId participantId) {
-    // read physical model
-    String participantName = participantId.stringify();
-    InstanceConfig instanceConfig = _accessor.getProperty(_keyBuilder.instance(participantName));
-    LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
+  public void connectParticipant(ParticipantId participantId) {
+    // TODO impl this
+  }
 
-    Map<String, Message> instanceMsgMap = Collections.emptyMap();
-    Map<String, CurrentState> instanceCurStateMap = Collections.emptyMap();
-    if (liveInstance != null) {
-      SessionId sessionId = liveInstance.getSessionId();
+  /**
+   * create a participant based on physical model
+   * @param participantId
+   * @param instanceConfig
+   * @param liveInstance
+   * @param instanceMsgMap map of message-id to message
+   * @param instanceCurStateMap map of resource-id to current-state
+   * @return participant
+   */
+  static Participant createParticipant(ParticipantId participantId, InstanceConfig instanceConfig,
+      LiveInstance liveInstance, Map<String, Message> instanceMsgMap,
+      Map<String, CurrentState> instanceCurStateMap) {
 
-      instanceMsgMap = _accessor.getChildValuesMap(_keyBuilder.messages(participantName));
-      instanceCurStateMap =
-          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
-              sessionId.stringify()));
-    }
-
-    // convert to logical model
     String hostName = instanceConfig.getHostName();
 
     int port = -1;
@@ -265,10 +288,8 @@ public class ParticipantAccessor {
     boolean isEnabled = instanceConfig.getInstanceEnabled();
 
     List<String> disabledPartitions = instanceConfig.getDisabledPartitions();
-    Set<PartitionId> disabledPartitionIdSet;
-    if (disabledPartitions == null) {
-      disabledPartitionIdSet = Collections.emptySet();
-    } else {
+    Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
+    if (disabledPartitions != null) {
       disabledPartitionIdSet = new HashSet<PartitionId>();
       for (String partitionId : disabledPartitions) {
         disabledPartitionIdSet.add(new PartitionId(PartitionId.extractResourceId(partitionId),
@@ -291,26 +312,53 @@ public class ParticipantAccessor {
       msgMap.put(new MessageId(msgId), message);
     }
 
-    // TODO convert current state
-    // Map<ParticipantId, CurState> curStateMap = new HashMap<ParticipantId, CurState>();
-    // if (currentStateMap != null) {
-    // for (String participantId : currentStateMap.keySet()) {
-    // CurState curState =
-    // new CurState(_id, new ParticipantId(participantId), currentStateMap.get(participantId));
-    // curStateMap.put(new ParticipantId(participantId), curState);
-    // }
-    // }
+    Map<ResourceId, CurrentState> curStateMap = new HashMap<ResourceId, CurrentState>();
+    if (instanceCurStateMap != null) {
+
+      for (String resourceName : instanceCurStateMap.keySet()) {
+        curStateMap.put(new ResourceId(resourceName), instanceCurStateMap.get(resourceName));
+      }
+    }
 
     return new Participant(participantId, hostName, port, isEnabled, disabledPartitionIdSet, tags,
         runningInstance, null, msgMap);
   }
 
   /**
+   * read participant related data
+   * @param participantId
+   * @return participant
+   */
+  public Participant readParticipant(ParticipantId participantId) {
+    // read physical model
+    String participantName = participantId.stringify();
+    InstanceConfig instanceConfig = _accessor.getProperty(_keyBuilder.instance(participantName));
+    LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
+
+    Map<String, Message> instanceMsgMap = Collections.emptyMap();
+    Map<String, CurrentState> instanceCurStateMap = Collections.emptyMap();
+    if (liveInstance != null) {
+      SessionId sessionId = liveInstance.getSessionId();
+
+      instanceMsgMap = _accessor.getChildValuesMap(_keyBuilder.messages(participantName));
+      instanceCurStateMap =
+          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
+              sessionId.stringify()));
+    }
+
+    return createParticipant(participantId, instanceConfig, liveInstance, instanceMsgMap,
+        instanceCurStateMap);
+  }
+
+  /**
    * update resource current state of a participant
+   * @param resourceId resource id
+   * @param participantId participant id
+   * @param sessionId session id
    * @param curStateUpdate current state change delta
    */
-  public void updateParticipantCurrentState(ParticipantId participantId, SessionId sessionId,
-      ResourceId resourceId, CurrentState curStateUpdate) {
+  public void updateCurrentState(ResourceId resourceId, ParticipantId participantId,
+      SessionId sessionId, CurrentState curStateUpdate) {
     _accessor.updateProperty(
         _keyBuilder.currentState(participantId.stringify(), sessionId.stringify(),
             resourceId.stringify()), curStateUpdate);
@@ -318,9 +366,12 @@ public class ParticipantAccessor {
 
   /**
    * drop resource current state of a participant
+   * @param resourceId resource id
+   * @param participantId participant id
+   * @param sessionId session id
    */
-  public void dropParticipantCurrentState(ParticipantId participantId, SessionId sessionId,
-      ResourceId resourceId) {
+  public void dropCurrentState(ResourceId resourceId, ParticipantId participantId,
+      SessionId sessionId) {
     _accessor.removeProperty(_keyBuilder.currentState(participantId.stringify(),
         sessionId.stringify(), resourceId.stringify()));
   }

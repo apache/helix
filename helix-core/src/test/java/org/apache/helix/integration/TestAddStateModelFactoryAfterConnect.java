@@ -86,9 +86,9 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB1"));
+    IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB1"));
     idealState.setStateModelFactoryName("TestDB1_Factory");
-    accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
+    accessor.setProperty(keyBuilder.idealState("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     // assert that we have received OFFLINE->SLAVE messages for all partitions

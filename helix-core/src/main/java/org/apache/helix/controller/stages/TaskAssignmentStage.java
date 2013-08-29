@@ -96,7 +96,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       String participantVersion = null;
       if (liveInstance != null) {
-        participantVersion = liveInstance.getHelixVersion();
+        participantVersion = liveInstance.getHelixVersionString();
       }
 
       if (resource == null || !resource.getBatchMessageMode() || participantVersion == null
@@ -106,9 +106,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       }
 
       String key =
-          keyBuilder.currentState(message.getTgtName(), message.getTgtSessionId(),
+          keyBuilder.currentState(message.getTgtName(), message.getTgtSessionIdString(),
               message.getResourceName()).getPath()
-              + "/" + message.getFromState() + "/" + message.getToState();
+              + "/" + message.getFromStateString() + "/" + message.getToStateString();
 
       if (!batchMessages.containsKey(key)) {
         Message batchMessage = new Message(message.getRecord());
@@ -131,9 +131,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
 
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages) {
-      logger.info("Sending Message " + message.getMsgId() + " to " + message.getTgtName()
+      logger.info("Sending Message " + message.getMsgIdString() + " to " + message.getTgtName()
           + " transit " + message.getPartitionName() + "|" + message.getPartitionNames() + " from:"
-          + message.getFromState() + " to:" + message.getToState());
+          + message.getFromStateString() + " to:" + message.getToStateString());
 
       // System.out.println("[dbg] Sending Message " + message.getMsgId() + " to " +
       // message.getTgtName()

@@ -46,8 +46,8 @@ public class ErrTransition extends MockTransition {
 
   @Override
   public void doTransition(Message message, NotificationContext context) {
-    String fromState = message.getFromState();
-    String toState = message.getToState();
+    String fromState = message.getFromStateString();
+    String toState = message.getToStateString();
     String partition = message.getPartitionName();
 
     String key = (fromState + "-" + toState).toUpperCase();

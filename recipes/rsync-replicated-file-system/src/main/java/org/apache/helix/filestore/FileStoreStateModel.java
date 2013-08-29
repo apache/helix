@@ -124,12 +124,12 @@ public class FileStoreStateModel extends StateModel {
   @Transition(from = "OFFLINE", to = "SLAVE")
   public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
       throws Exception {
-    System.out.println(_serverId + " transitioning from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    System.out.println(_serverId + " transitioning from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
 
     replicator.start();
-    System.out.println(_serverId + " transitioned from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    System.out.println(_serverId + " transitioned from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
   }
 
   /**
@@ -143,8 +143,8 @@ public class FileStoreStateModel extends StateModel {
   public void onBecomeMasterFromSlave(final Message message, NotificationContext context)
       throws Exception {
     replicator.stop();
-    System.out.println(_serverId + " transitioning from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    System.out.println(_serverId + " transitioning from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
     ZkHelixPropertyStore<ZNRecord> helixPropertyStore =
         context.getManager().getHelixPropertyStore();
     String checkpointDirPath = instanceConfig.getRecord().getSimpleField("check_point_dir");
@@ -168,8 +168,8 @@ public class FileStoreStateModel extends StateModel {
     long now = System.currentTimeMillis();
     service = new FileSystemWatchService(fileStoreDir, now, generator);
     service.start();
-    System.out.println(_serverId + " transitioned from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    System.out.println(_serverId + " transitioned from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
   }
 
   /**
@@ -183,16 +183,16 @@ public class FileStoreStateModel extends StateModel {
   public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
       throws Exception {
     service.stop();
-    LOG.info(_serverId + " transitioning from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    LOG.info(_serverId + " transitioning from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
     replicator.start();
   }
 
   @Transition(from = "SLAVE", to = "OFFLINE")
   public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
     replicator.stop();
-    LOG.info(_serverId + " transitioning from " + message.getFromState() + " to "
-        + message.getToState() + " for " + _partition);
+    LOG.info(_serverId + " transitioning from " + message.getFromStateString() + " to "
+        + message.getToStateString() + " for " + _partition);
   }
 
   public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {

@@ -46,7 +46,7 @@ public class Participant {
   /**
    * set of disabled partition id's
    */
-  private final Set<PartitionId> _disabledPartitionIds;
+  private final Set<PartitionId> _disabledPartitionIdSet;
   private final Set<String> _tags;
 
   private final RunningInstance _runningInstance;
@@ -54,81 +54,29 @@ public class Participant {
   /**
    * map of resource-id to current-state
    */
-  private final Map<ResourceId, CurState> _currentStateMap;
+  private final Map<ResourceId, CurrentState> _currentStateMap;
 
   /**
    * map of message-id to message
    */
-  private final Map<MsgId, Msg> _messageMap;
+  private final Map<MessageId, Message> _messageMap;
 
-  // TODO move this to ParticipantAccessor
   /**
    * Construct a participant
    * @param config
    */
-  public Participant(ParticipantId id, InstanceConfig config, LiveInstance liveInstance,
-      Map<String, CurrentState> currentStateMap, Map<String, Message> instanceMsgMap) {
+  public Participant(ParticipantId id, String hostName, int port, boolean isEnabled,
+      Set<PartitionId> disabledPartitionIdSet, Set<String> tags, RunningInstance runningInstance,
+      Map<ResourceId, CurrentState> currentStateMap, Map<MessageId, Message> messageMap) {
     _id = id;
-    _hostName = config.getHostName();
-
-    int port = -1;
-    try {
-      port = Integer.parseInt(config.getPort());
-    } catch (IllegalArgumentException e) {
-      // keep as -1
-    }
-    if (port < 0 || port > 65535) {
-      port = -1;
-    }
+    _hostName = hostName;
     _port = port;
-    _isEnabled = config.getInstanceEnabled();
-
-    List<String> disabledPartitions = config.getDisabledPartitions();
-    if (disabledPartitions == null) {
-      _disabledPartitionIds = Collections.emptySet();
-    } else {
-      Set<PartitionId> disabledPartitionSet = new HashSet<PartitionId>();
-      for (String partitionId : disabledPartitions) {
-        disabledPartitionSet.add(new PartitionId(PartitionId.extracResourceId(partitionId),
-            PartitionId.stripResourceId(partitionId)));
-      }
-      _disabledPartitionIds = ImmutableSet.copyOf(disabledPartitionSet);
-    }
-
-    List<String> tags = config.getTags();
-    if (tags == null) {
-      _tags = Collections.emptySet();
-    } else {
-      _tags = ImmutableSet.copyOf(config.getTags());
-    }
-
-    if (liveInstance != null) {
-      _runningInstance =
-          new RunningInstance(new SessionId(liveInstance.getSessionId()), new HelixVersion(
-              liveInstance.getHelixVersion()), new ProcId(liveInstance.getLiveInstance()));
-    } else {
-      _runningInstance = null;
-    }
-
-    // TODO set curstate
-    // Map<ParticipantId, CurState> curStateMap = new HashMap<ParticipantId, CurState>();
-    // if (currentStateMap != null) {
-    // for (String participantId : currentStateMap.keySet()) {
-    // CurState curState =
-    // new CurState(_id, new ParticipantId(participantId), currentStateMap.get(participantId));
-    // curStateMap.put(new ParticipantId(participantId), curState);
-    // }
-    // }
-    // _currentStateMap = ImmutableMap.copyOf(curStateMap);
-    _currentStateMap = null;
-
-    Map<MsgId, Msg> msgMap = new HashMap<MsgId, Msg>();
-    for (String msgId : instanceMsgMap.keySet()) {
-      Message message = instanceMsgMap.get(msgId);
-      msgMap.put(new MsgId(msgId), new Msg(message));
-    }
-    _messageMap = ImmutableMap.copyOf(msgMap);
-
+    _isEnabled = isEnabled;
+    _disabledPartitionIdSet = ImmutableSet.copyOf(disabledPartitionIdSet);
+    _tags = ImmutableSet.copyOf(tags);
+    _runningInstance = runningInstance;
+    _currentStateMap = ImmutableMap.copyOf(currentStateMap);
+    _messageMap = ImmutableMap.copyOf(messageMap);
   }
 
   /**
@@ -176,7 +124,7 @@ public class Participant {
    * @return set of disabled partition id's, or empty set if none
    */
   public Set<PartitionId> getDisablePartitionIds() {
-    return _disabledPartitionIds;
+    return _disabledPartitionIdSet;
   }
 
   /**
@@ -191,7 +139,7 @@ public class Participant {
    * Get message map
    * @return message map
    */
-  public Map<MsgId, Msg> getMessageMap() {
+  public Map<MessageId, Message> getMessageMap() {
     return _messageMap;
   }
 
@@ -199,7 +147,129 @@ public class Participant {
    * Get the current states of the resource
    * @return map of resource-id to current state, or empty map if none
    */
-  public Map<ResourceId, CurState> getCurrentStateMap() {
+  public Map<ResourceId, CurrentState> getCurrentStateMap() {
     return _currentStateMap;
+  }
+
+  public ParticipantId getId() {
+    return _id;
+  }
+
+  /**
+   * Assemble a participant
+   */
+  public static class Builder {
+    private final ParticipantId _id;
+    private final Set<PartitionId> _disabledPartitions;
+    private final Set<String> _tags;
+    private final Map<ResourceId, CurrentState> _currentStateMap;
+    private final Map<MessageId, Message> _messageMap;
+    private String _hostName;
+    private int _port;
+    private boolean _isEnabled;
+    private RunningInstance _runningInstance;
+
+    /**
+     * Build a participant with a given id
+     * @param id participant id
+     */
+    public Builder(ParticipantId id) {
+      _id = id;
+      _disabledPartitions = new HashSet<PartitionId>();
+      _tags = new HashSet<String>();
+      _currentStateMap = new HashMap<ResourceId, CurrentState>();
+      _messageMap = new HashMap<MessageId, Message>();
+      _isEnabled = true;
+    }
+
+    /**
+     * Set the participant host name
+     * @param hostName reachable host when live
+     * @return Builder
+     */
+    public Builder hostName(String hostName) {
+      _hostName = hostName;
+      return this;
+    }
+
+    /**
+     * Set the participant port
+     * @param port port number
+     * @return Builder
+     */
+    public Builder port(int port) {
+      _port = port;
+      return this;
+    }
+
+    /**
+     * Set whether or not the participant is enabled
+     * @param isEnabled true if enabled, false otherwise
+     * @return Builder
+     */
+    public Builder enabled(boolean isEnabled) {
+      _isEnabled = isEnabled;
+      return this;
+    }
+
+    /**
+     * Add a partition to disable for this participant
+     * @param partitionId the partition to disable
+     * @return Builder
+     */
+    public Builder addDisabledPartition(PartitionId partitionId) {
+      _disabledPartitions.add(partitionId);
+      return this;
+    }
+
+    /**
+     * Add an arbitrary tag for this participant
+     * @param tag the tag to add
+     * @return Builder
+     */
+    public Builder addTag(String tag) {
+      _tags.add(tag);
+      return this;
+    }
+
+    /**
+     * Add live properties to participants that are running
+     * @param runningInstance live participant properties
+     * @return Builder
+     */
+    public Builder runningInstance(RunningInstance runningInstance) {
+      _runningInstance = runningInstance;
+      return this;
+    }
+
+    /**
+     * Add a resource current state for this participant
+     * @param resourceId the resource the current state corresponds to
+     * @param currentState the current state
+     * @return Builder
+     */
+    public Builder addCurrentState(ResourceId resourceId, CurrentState currentState) {
+      _currentStateMap.put(resourceId, currentState);
+      return this;
+    }
+
+    /**
+     * Add a message for the participant
+     * @param message message to add
+     * @return Builder
+     */
+    public Builder addMessage(Message message) {
+      _messageMap.put(new MessageId(message.getId()), message);
+      return this;
+    }
+
+    /**
+     * Assemble the participant
+     * @return instantiated Participant
+     */
+    public Participant build() {
+      return new Participant(_id, _hostName, _port, _isEnabled, _disabledPartitions, _tags,
+          _runningInstance, _currentStateMap, _messageMap);
+    }
   }
 }

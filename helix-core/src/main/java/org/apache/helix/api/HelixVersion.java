@@ -48,4 +48,18 @@ public class HelixVersion {
   public String getMinor() {
     return null;
   }
+
+  @Override
+  public String toString() {
+    return _version;
+  }
+
+  /**
+   * Create a version from a version string
+   * @param version string in the form of a.b.c.d
+   * @return HelixVersion
+   */
+  public static HelixVersion from(String version) {
+    return new HelixVersion(version);
+  }
 }

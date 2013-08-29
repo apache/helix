@@ -50,7 +50,7 @@ public class CurState {
     _participantId = participantId;
 
     Map<PartitionId, State> stateMap = new HashMap<PartitionId, State>();
-    Map<String, String> currentStateMap = currentState.getPartitionStateMap();
+    Map<String, String> currentStateMap = currentState.getPartitionStateStringMap();
     for (String partitionId : currentStateMap.keySet()) {
       String state = currentStateMap.get(partitionId);
       stateMap.put(new PartitionId(resourceId, PartitionId.stripResourceId(partitionId)),

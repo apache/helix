@@ -70,4 +70,14 @@ public class Transition {
     return _toState;
   }
 
+  /**
+   * Create a new transition
+   * @param transition string representing a transition, e.g. "STATE1-STATE2"
+   * @return Transition
+   */
+  public static Transition from(String transition) {
+    String fromState = transition.substring(0, transition.indexOf('-'));
+    String toState = transition.substring(transition.indexOf('-') + 1);
+    return new Transition(fromState, toState);
+  }
 }

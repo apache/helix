@@ -28,12 +28,12 @@ public class RebalancerConfig {
 
   private final RscAssignment _resourceAssignment;
 
-  public RebalancerConfig() {
-    _rebalancerMode = RebalanceMode.NONE;
-    _rebalancerRef = null;
-    _stateModelDefId = null;
-
-    _resourceAssignment = null;
+  public RebalancerConfig(RebalanceMode mode, RebalancerRef rebalancerRef,
+      StateModelDefId stateModelDefId, RscAssignment resourceAssignment) {
+    _rebalancerMode = mode;
+    _rebalancerRef = rebalancerRef;
+    _stateModelDefId = stateModelDefId;
+    _resourceAssignment = resourceAssignment;
   }
 
   /**
@@ -58,5 +58,70 @@ public class RebalancerConfig {
    */
   public StateModelDefId getStateModelDefId() {
     return _stateModelDefId;
+  }
+
+  /**
+   * Get the ideal node and state assignment of the resource
+   * @return resource assignment
+   */
+  public RscAssignment getResourceAssignment() {
+    return _resourceAssignment;
+  }
+
+  /**
+   * Assembles a RebalancerConfig
+   */
+  public static class Builder {
+    private RebalanceMode _mode = RebalanceMode.NONE;
+    private RebalancerRef _rebalancerRef;
+    private StateModelDefId _stateModelDefId;
+    private RscAssignment _resourceAssignment;
+
+    /**
+     * Set the rebalancer mode
+     * @param mode {@link RebalanceMode}
+     */
+    public Builder rebalancerMode(RebalanceMode mode) {
+      _mode = mode;
+      return this;
+    }
+
+    /**
+     * Set a user-defined rebalancer
+     * @param rebalancerRef a reference to the rebalancer
+     * @return Builder
+     */
+    public Builder rebalancer(RebalancerRef rebalancerRef) {
+      _rebalancerRef = rebalancerRef;
+      return this;
+    }
+
+    /**
+     * Set the state model definition
+     * @param stateModelDefId state model identifier
+     * @return Builder
+     */
+    public Builder stateModelDef(StateModelDefId stateModelDefId) {
+      _stateModelDefId = stateModelDefId;
+      return this;
+    }
+
+    /**
+     * Set the full assignment of partitions to nodes and corresponding states
+     * @param resourceAssignment resource assignment
+     * @return Builder
+     */
+    public Builder resourceAssignment(RscAssignment resourceAssignment) {
+      _resourceAssignment = resourceAssignment;
+      return this;
+    }
+
+    /**
+     * Assemble a RebalancerConfig
+     * @return a fully defined rebalancer configuration
+     */
+    public RebalancerConfig build() {
+      return new RebalancerConfig(_mode, _rebalancerRef, _stateModelDefId, _resourceAssignment);
+    }
   }
 }

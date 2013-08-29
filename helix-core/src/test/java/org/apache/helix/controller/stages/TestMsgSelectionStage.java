@@ -67,7 +67,7 @@ public class TestMsgSelectionStage {
             messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 1);
-    Assert.assertEquals(selectedMsg.get(0).getMsgId(), "msgId_1");
+    Assert.assertEquals(selectedMsg.get(0).getMsgIdString(), "msgId_1");
     System.out.println("END testMasterXfer at " + new Date(System.currentTimeMillis()));
   }
 

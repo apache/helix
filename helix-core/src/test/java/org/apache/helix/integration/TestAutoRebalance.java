@@ -264,7 +264,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       cache.refresh(accessor);
       String masterValue =
           cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityList().get(0);
+              .getStatesPriorityStringList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
       String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
       int instances = 0;

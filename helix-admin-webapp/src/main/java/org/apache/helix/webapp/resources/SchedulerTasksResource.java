@@ -117,7 +117,7 @@ public class SchedulerTasksResource extends Resource {
         ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     LiveInstance liveInstance =
         accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
-    String sessionId = liveInstance.getSessionId();
+    String sessionId = liveInstance.getSessionIdString();
 
     StringRepresentation representation = new StringRepresentation("");// (ClusterRepresentationUtil.ObjectToJson(instanceConfigs),
                                                                        // MediaType.APPLICATION_JSON);
@@ -158,7 +158,7 @@ public class SchedulerTasksResource extends Resource {
 
       schedulerMessage.getRecord().getMapFields().put(MESSAGETEMPLATE, messageTemplate);
 
-      schedulerMessage.setTgtSessionId(leader.getSessionId());
+      schedulerMessage.setTgtSessionId(leader.getSessionIdString());
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       String taskQueueName =
@@ -167,22 +167,22 @@ public class SchedulerTasksResource extends Resource {
         schedulerMessage.getRecord().setSimpleField(
             DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       }
-      accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()),
+      accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgIdString()),
           schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(
           PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),
-          schedulerMessage.getMsgId()));
+          schedulerMessage.getMsgIdString()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
-      resultMap.put("MsgId", schedulerMessage.getMsgId());
+      resultMap.put("MsgId", schedulerMessage.getMsgIdString());
 
       // Assemble the rest URL for task status update
       String ipAddress = InetAddress.getLocalHost().getCanonicalHostName();
       String url =
           "http://" + ipAddress + ":" + getContext().getAttributes().get(RestAdminApplication.PORT)
               + "/clusters/" + clusterName + "/Controller/statusUpdates/SCHEDULER_MSG/"
-              + schedulerMessage.getMsgId();
+              + schedulerMessage.getMsgIdString();
       resultMap.put("statusUpdateUrl", url);
 
       getResponse().setEntity(ClusterRepresentationUtil.ObjectToJson(resultMap),

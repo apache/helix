@@ -102,7 +102,7 @@ public class CustomRebalancer implements Rebalancer {
             HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
+          instanceStateMap.put(instance, stateModelDef.getInitialStateString());
         }
       }
     }

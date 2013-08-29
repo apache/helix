@@ -43,9 +43,9 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -177,7 +177,7 @@ public class ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
-    for (String partitionName : idealState.getPartitionSet()) {
+    for (String partitionName : idealState.getPartitionStringSet()) {
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
       } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {

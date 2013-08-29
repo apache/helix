@@ -38,8 +38,8 @@ public class Controller {
 
     if (liveInstance != null) {
       _runningInstance =
-          new RunningInstance(new SessionId(liveInstance.getSessionId()), new HelixVersion(
-              liveInstance.getHelixVersion()), new ProcId(liveInstance.getLiveInstance()));
+          new RunningInstance(new SessionId(liveInstance.getSessionIdString()), new HelixVersion(
+              liveInstance.getHelixVersionString()), new ProcId(liveInstance.getLiveInstance()));
     } else {
       _runningInstance = null;
     }

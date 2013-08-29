@@ -80,7 +80,7 @@ public abstract class Task implements ExternalViewChangeListener {
   }
 
   private boolean isParentTaskDone(ExternalView ev) {
-    Set<String> partitionSet = ev.getPartitionSet();
+    Set<String> partitionSet = ev.getPartitionStringSet();
     if (partitionSet.isEmpty()) {
       return false;
     }

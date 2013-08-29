@@ -63,5 +63,4 @@ public class RunningInstance {
   public ProcId getPid() {
     return _pid;
   }
-
 }

@@ -111,8 +111,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: OFFLINE-SLAVE for node0");
     Message message = messages.get(0);
-    Assert.assertEquals(message.getFromState(), "OFFLINE");
-    Assert.assertEquals(message.getToState(), "SLAVE");
+    Assert.assertEquals(message.getFromStateString(), "OFFLINE");
+    Assert.assertEquals(message.getToStateString(), "SLAVE");
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     // round2: updates node0 currentState to SLAVE but keep the
@@ -258,8 +258,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: OFFLINE-SLAVE for node0");
     Message message = messages.get(0);
-    Assert.assertEquals(message.getFromState(), "OFFLINE");
-    Assert.assertEquals(message.getToState(), "SLAVE");
+    Assert.assertEquals(message.getFromStateString(), "OFFLINE");
+    Assert.assertEquals(message.getToStateString(), "SLAVE");
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     // round2: drop resource, but keep the
@@ -275,8 +275,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "Should output only 1 message: OFFLINE->DROPPED for localhost_1");
 
     message = messages.get(0);
-    Assert.assertEquals(message.getFromState(), "SLAVE");
-    Assert.assertEquals(message.getToState(), "OFFLINE");
+    Assert.assertEquals(message.getFromStateString(), "SLAVE");
+    Assert.assertEquals(message.getToStateString(), "OFFLINE");
     Assert.assertEquals(message.getTgtName(), "localhost_1");
 
     // round3: remove O->S for localhost_0, controller should now send O->DROPPED to
@@ -291,8 +291,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Assert.assertEquals(messages.size(), 1,
         "Should output 1 message: OFFLINE->DROPPED for localhost_0");
     message = messages.get(0);
-    Assert.assertEquals(message.getFromState(), "OFFLINE");
-    Assert.assertEquals(message.getToState(), "DROPPED");
+    Assert.assertEquals(message.getFromStateString(), "OFFLINE");
+    Assert.assertEquals(message.getToStateString(), "DROPPED");
     Assert.assertEquals(message.getTgtName(), "localhost_0");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -351,8 +351,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: SLAVE-MASTER for node1");
     Message message = messages.get(0);
-    Assert.assertEquals(message.getFromState(), "SLAVE");
-    Assert.assertEquals(message.getToState(), "MASTER");
+    Assert.assertEquals(message.getFromStateString(), "SLAVE");
+    Assert.assertEquals(message.getToStateString(), "MASTER");
     Assert.assertEquals(message.getTgtName(), "localhost_1");
 
     // round2: updates node0 currentState to SLAVE but keep the

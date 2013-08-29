@@ -19,18 +19,12 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -58,7 +52,7 @@ public class Resource {
     _rebalancerConfig = null;
 
     Set<Partition> partitionSet = new HashSet<Partition>();
-    for (String partitionId : idealState.getPartitionSet()) {
+    for (String partitionId : idealState.getPartitionStringSet()) {
       partitionSet
           .add(new Partition(new PartitionId(id, PartitionId.stripResourceId(partitionId))));
     }
@@ -68,6 +62,21 @@ public class Resource {
     // _resourceAssignment = null;
 
     _externalView = null;
+  }
+
+  /**
+   * Construct a Resource
+   * @param id resource identifier
+   * @param partitionSet disjoint partitions of the resource
+   * @param externalView external view of the resource
+   * @param rebalancerConfig configuration properties for rebalancing this resource
+   */
+  public Resource(ResourceId id, Set<Partition> partitionSet, ExtView externalView,
+      RebalancerConfig rebalancerConfig) {
+    _id = id;
+    _partitionSet = ImmutableSet.copyOf(partitionSet);
+    _externalView = externalView;
+    _rebalancerConfig = rebalancerConfig;
   }
 
   /**
@@ -86,4 +95,68 @@ public class Resource {
     return _externalView;
   }
 
+  public RebalancerConfig getRebalancerConfig() {
+    return _rebalancerConfig;
+  }
+
+  public ResourceId getId() {
+    return _id;
+  }
+
+  /**
+   * Assembles a Resource
+   */
+  public static class Builder {
+    private final ResourceId _id;
+    private final Set<Partition> _partitionSet;
+    private ExtView _externalView;
+    private RebalancerConfig _rebalancerConfig;
+
+    /**
+     * Build a Resource with an id
+     * @param id resource id
+     */
+    public Builder(ResourceId id) {
+      _id = id;
+      _partitionSet = new HashSet<Partition>();
+    }
+
+    /**
+     * Add a partition that the resource serves
+     * @param partition fully-qualified partition
+     * @return Builder
+     */
+    public Builder addPartition(Partition partition) {
+      _partitionSet.add(partition);
+      return this;
+    }
+
+    /**
+     * Set the external view of this resource
+     * @param extView currently served replica placement and state
+     * @return Builder
+     */
+    public Builder externalView(ExtView extView) {
+      _externalView = extView;
+      return this;
+    }
+
+    /**
+     * Set the rebalancer configuration
+     * @param rebalancerConfig properties of interest for rebalancing
+     * @return Builder
+     */
+    public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
+      _rebalancerConfig = rebalancerConfig;
+      return this;
+    }
+
+    /**
+     * Create a Resource object
+     * @return instantiated Resource
+     */
+    public Resource build() {
+      return new Resource(_id, _partitionSet, _externalView, _rebalancerConfig);
+    }
+  }
 }

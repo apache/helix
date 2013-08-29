@@ -45,7 +45,7 @@ public class PartitionId extends Id {
    * @param partitionName
    * @return
    */
-  public static ResourceId extracResourceId(String partitionName) {
+  public static ResourceId extractResourceId(String partitionName) {
     return new ResourceId(partitionName.substring(0, partitionName.lastIndexOf("_")));
   }
 }

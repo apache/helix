@@ -51,4 +51,88 @@ public abstract class Id implements Comparable<Id> {
     return -1;
   }
 
+  /**
+   * Get a concrete resource id for a string name
+   * @param resourceId string resource identifier
+   * @return ResourceId
+   */
+  public static ResourceId resource(String resourceId) {
+    if (resourceId == null) {
+      return null;
+    }
+    return new ResourceId(resourceId);
+  }
+
+  /**
+   * Get a concrete partition id
+   * @param partitionId string partition identifier
+   * @return PartitionId
+   */
+  public static PartitionId partition(String partitionId) {
+    if (partitionId == null) {
+      return null;
+    }
+    return new PartitionId(PartitionId.extractResourceId(partitionId),
+        PartitionId.stripResourceId(partitionId));
+  }
+
+  /**
+   * Get a concrete participant id
+   * @param participantId string participant identifier
+   * @return ParticipantId
+   */
+  public static ParticipantId participant(String participantId) {
+    if (participantId == null) {
+      return null;
+    }
+    return new ParticipantId(participantId);
+  }
+
+  /**
+   * Get a concrete session id
+   * @param sessionId string session identifier
+   * @return SessionId
+   */
+  public static SessionId session(String sessionId) {
+    if (sessionId == null) {
+      return null;
+    }
+    return new SessionId(sessionId);
+  }
+
+  /**
+   * Get a concrete process id
+   * @param procId string process identifier (e.g. pid@host)
+   * @return ProcId
+   */
+  public static ProcId process(String processId) {
+    if (processId == null) {
+      return null;
+    }
+    return new ProcId(processId);
+  }
+
+  /**
+   * Get a concrete state model definition id
+   * @param stateModelDefId string state model identifier
+   * @return StateModelDefId
+   */
+  public static StateModelDefId stateModelDef(String stateModelDefId) {
+    if (stateModelDefId == null) {
+      return null;
+    }
+    return new StateModelDefId(stateModelDefId);
+  }
+
+  /**
+   * Get a concrete message id
+   * @param messageId string message identifier
+   * @return MsgId
+   */
+  public static MessageId message(String messageId) {
+    if (messageId == null) {
+      return null;
+    }
+    return new MessageId(messageId);
+  }
 }

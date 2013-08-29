@@ -22,6 +22,8 @@ package org.apache.helix.model.builder;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.IdealState;
 
 public abstract class IdealStateBuilder {
@@ -74,6 +76,14 @@ public abstract class IdealStateBuilder {
   }
 
   /**
+   * Instantiate with a resource id
+   * @param resourceId the resource for which to build an ideal state
+   */
+  public IdealStateBuilder(ResourceId resourceId) {
+    this(resourceId.stringify());
+  }
+
+  /**
    * @param numReplica
    */
   public IdealStateBuilder setNumReplica(int numReplica) {
@@ -94,6 +104,15 @@ public abstract class IdealStateBuilder {
    */
   public IdealStateBuilder setStateModel(String stateModel) {
     this.stateModel = stateModel;
+    return this;
+  }
+
+  /**
+   * Set the state model definition to use with this ideal state
+   * @param stateModelDefId state model identifier
+   */
+  public IdealStateBuilder setStateModelDefId(StateModelDefId stateModelDefId) {
+    this.stateModel = stateModelDefId.stringify();
     return this;
   }
 

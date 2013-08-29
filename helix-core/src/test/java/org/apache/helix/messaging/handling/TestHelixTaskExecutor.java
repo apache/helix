@@ -60,7 +60,7 @@ public class TestHelixTaskExecutor {
       @Override
       public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
-        _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        _processedMsgIds.put(_message.getMsgIdString(), _message.getMsgIdString());
         Thread.sleep(100);
         result.setSuccess(true);
         return result;
@@ -127,14 +127,14 @@ public class TestHelixTaskExecutor {
         if (_message.getRecord().getSimpleFields().containsKey("Cancelcount")) {
           sleepTimes = 10;
         }
-        _processingMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        _processingMsgIds.put(_message.getMsgIdString(), _message.getMsgIdString());
         try {
           for (int i = 0; i < sleepTimes; i++) {
             Thread.sleep(100);
           }
         } catch (InterruptedException e) {
           _interrupted = true;
-          _timedOutMsgIds.put(_message.getMsgId(), "");
+          _timedOutMsgIds.put(_message.getMsgIdString(), "");
           result.setInterrupted(true);
           if (!_message.getRecord().getSimpleFields().containsKey("Cancelcount")) {
             _message.getRecord().setSimpleField("Cancelcount", "1");
@@ -144,7 +144,7 @@ public class TestHelixTaskExecutor {
           }
           throw e;
         }
-        _processedMsgIds.put(_message.getMsgId(), _message.getMsgId());
+        _processedMsgIds.put(_message.getMsgIdString(), _message.getMsgIdString());
         result.setSuccess(true);
         return result;
       }

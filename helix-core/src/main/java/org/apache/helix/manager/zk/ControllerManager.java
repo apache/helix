@@ -150,7 +150,7 @@ public class ControllerManager extends AbstractManager {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
       if (leader != null) {
         String leaderName = leader.getInstanceName();
-        String sessionId = leader.getSessionId();
+        String sessionId = leader.getSessionIdString();
         if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
             && sessionId.equals(_sessionId)) {
           return true;

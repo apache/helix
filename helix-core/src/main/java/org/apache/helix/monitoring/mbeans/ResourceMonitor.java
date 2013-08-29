@@ -111,7 +111,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     }
     _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
-    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
+    _numOfPartitionsInExternalView = externalView.getPartitionStringSet().size();
   }
 
   @Override

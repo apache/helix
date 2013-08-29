@@ -652,7 +652,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     IdealState dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
     Set<String> hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionSet()) {
+    for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
         InstanceConfig config =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
@@ -674,7 +674,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
     hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionSet()) {
+    for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
         InstanceConfig config =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
@@ -702,7 +702,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
     hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionSet()) {
+    for (String p : dbIs.getPartitionStringSet()) {
       for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
         InstanceConfig config =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));

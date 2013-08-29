@@ -64,7 +64,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     Map<String, String> sessionIdMap = new HashMap<String, String>();
 
     for (LiveInstance liveInstance : liveInstances.values()) {
-      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
+      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionIdString());
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
 
@@ -89,7 +89,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           String currentState =
               currentStateOutput.getCurrentState(resourceName, partition, instanceName);
           if (currentState == null) {
-            currentState = stateModelDef.getInitialState();
+            currentState = stateModelDef.getInitialStateString();
           }
 
           if (desiredState.equalsIgnoreCase(currentState)) {
@@ -170,7 +170,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
         }
 
         // add generated messages to output according to state priority
-        List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+        List<String> statesPriorityList = stateModelDef.getStatesPriorityStringList();
         for (String state : statesPriorityList) {
           if (messageMap.containsKey(state)) {
             for (Message message : messageMap.get(state)) {

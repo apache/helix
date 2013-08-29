@@ -71,7 +71,7 @@ public abstract class AsyncCallback {
   }
 
   public synchronized final void onReply(Message message) {
-    _logger.info("OnReply msg " + message.getMsgId());
+    _logger.info("OnReply msg " + message.getMsgIdString());
     if (!isDone()) {
       _messageReplied.add(message);
       try {

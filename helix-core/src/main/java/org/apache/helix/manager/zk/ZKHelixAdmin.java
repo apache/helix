@@ -326,7 +326,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check partition is in ERROR state
-    String sessionId = liveInstance.getSessionId();
+    String sessionId = liveInstance.getSessionIdString();
     CurrentState curState =
         accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
     for (String partitionName : resetPartitionNames) {
@@ -348,7 +348,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
     for (Message message : messages) {
       if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
-          || !sessionId.equals(message.getTgtSessionId())
+          || !sessionId.equals(message.getTgtSessionIdString())
           || !resourceName.equals(message.getResourceName())
           || !resetPartitionNames.contains(message.getPartitionName())) {
         continue;
@@ -381,7 +381,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
       message.setFromState(HelixDefinedState.ERROR.toString());
-      message.setToState(stateModel.getInitialState());
+      message.setToState(stateModel.getInitialStateString());
       message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
       resetMessages.add(message);
@@ -986,7 +986,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     // StateModelDefinition def = new StateModelDefinition(stateModDef);
 
-    List<String> statePriorityList = stateModDef.getStatesPriorityList();
+    List<String> statePriorityList = stateModDef.getStatesPriorityStringList();
 
     String masterStateValue = null;
     String slaveStateValue = null;
@@ -1144,7 +1144,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void rebalance(String clusterName, IdealState currentIdealState, List<String> instanceNames) {
     Set<String> activeInstances = new HashSet<String>();
-    for (String partition : currentIdealState.getPartitionSet()) {
+    for (String partition : currentIdealState.getPartitionStringSet()) {
       activeInstances.addAll(currentIdealState.getRecord().getListField(partition));
     }
     instanceNames.removeAll(activeInstances);

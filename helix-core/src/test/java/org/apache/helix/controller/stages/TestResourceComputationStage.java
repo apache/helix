@@ -173,7 +173,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertEquals(resourceMap.get(oldResource).getStateModelDefRef(),
         currentState.getStateModelDefRef());
     AssertJUnit.assertEquals(resourceMap.get(oldResource).getPartitions().size(), currentState
-        .getPartitionStateMap().size());
+        .getPartitionStateStringMap().size());
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_0"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
     AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));

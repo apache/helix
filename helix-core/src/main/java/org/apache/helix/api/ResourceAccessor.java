@@ -20,26 +20,47 @@ package org.apache.helix.api;
  */
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 
 public class ResourceAccessor {
-
+  private final ClusterId _clusterId;
   private final HelixDataAccessor _accessor;
+  private final PropertyKey.Builder _keyBuilder;
 
-  public ResourceAccessor(HelixDataAccessor accessor) {
+  public ResourceAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
+    _clusterId = clusterId;
     _accessor = accessor;
+    _keyBuilder = accessor.keyBuilder();
   }
 
   /**
-   * 
+   * save resource assignment
    */
   public void setRresourceAssignment(ResourceId resourceId, RscAssignment resourceAssignment) {
-
+    // TODO impl this
   }
 
   /**
-   * 
+   * set ideal-state
    */
-  public void setRebalancerConfig(RebalancerConfig config) {
+  public void setResourceIdealState(ResourceId resourceId, IdealState idealState) {
+    _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
+  }
 
+  /**
+   * set external view of a resource
+   * @param extView
+   */
+  public void setResourceExternalView(ResourceId resourceId, ExternalView extView) {
+    _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), extView);
+  }
+
+  /**
+   * drop external view of a resource
+   */
+  public void dropResourceExternalView(ResourceId resourceId) {
+    _accessor.removeProperty(_keyBuilder.idealStates(resourceId.stringify()));
   }
 }

@@ -114,13 +114,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         String destName = _message.getTgtName();
-        result.getTaskResultMap().put("Message", _message.getMsgId());
+        result.getTaskResultMap().put("Message", _message.getMsgIdString());
         synchronized (_results) {
           if (!_results.containsKey(_message.getPartitionName())) {
             _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
           }
         }
-        _results.get(_message.getPartitionName()).add(_message.getMsgId());
+        _results.get(_message.getPartitionName()).add(_message.getMsgIdString());
         // System.err.println("Message " + _message.getMsgId() + " executed");
         return result;
       }
@@ -169,7 +169,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         _latch.await();
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
-        result.getTaskResultMap().put("Message", _message.getMsgId());
+        result.getTaskResultMap().put("Message", _message.getMsgIdString());
         String destName = _message.getTgtName();
         synchronized (_results) {
           if (!_results.containsKey(_message.getPartitionName())) {
@@ -236,7 +236,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
+    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgIdString()),
         schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
@@ -249,7 +249,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
         keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgId());
+            schedulerMessage.getMsgIdString());
 
     int messageResultCount = 0;
     for (int i = 0; i < 10; i++) {
@@ -324,7 +324,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
+    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgIdString()),
         schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
@@ -337,7 +337,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
         keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgId());
+            schedulerMessage.getMsgIdString());
 
     int messageResultCount = 0;
     for (int i = 0; i < 10; i++) {
@@ -552,7 +552,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgId());
+    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgIdString());
     helixDataAccessor.setProperty(controllerMessageKey, schedulerMessage);
 
     Thread.sleep(3000);
@@ -560,7 +560,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     Assert.assertEquals(0, factory._results.size());
     PropertyKey controllerTaskStatus =
         keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgId());
+            schedulerMessage.getMsgIdString());
     for (int i = 0; i < 10; i++) {
       StatusUpdate update = helixDataAccessor.getProperty(controllerTaskStatus);
       if (update == null || update.getRecord().getMapField("SentMessageCount") == null) {

@@ -839,7 +839,7 @@ public class ZKHelixManager implements HelixManager {
             keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
                 .getPath();
         _helixAccessor.getBaseDataAccessor().update(curStatePath,
-            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState),
+            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialStateString(), lastCurState),
             AccessOption.PERSISTENT);
       }
     }

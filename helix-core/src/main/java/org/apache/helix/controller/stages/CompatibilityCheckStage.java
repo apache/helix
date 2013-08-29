@@ -46,7 +46,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
     HelixManagerProperties properties = manager.getProperties();
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values()) {
-      String participantVersion = liveInstance.getHelixVersion();
+      String participantVersion = liveInstance.getHelixVersionString();
       if (!properties.isParticipantCompatible(participantVersion)) {
         String errorMsg =
             "incompatible participant. pipeline will not continue. " + "controller: "

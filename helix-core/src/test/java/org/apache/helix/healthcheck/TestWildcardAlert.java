@@ -151,8 +151,8 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context) {
       HelixManager manager = context.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      String fromState = message.getFromState();
-      String toState = message.getToState();
+      String fromState = message.getFromStateString();
+      String toState = message.getToStateString();
       String instance = message.getTgtName();
       String partition = message.getPartitionName();
 

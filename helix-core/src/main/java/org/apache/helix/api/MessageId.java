@@ -19,27 +19,16 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import org.apache.helix.HelixDataAccessor;
+public class MessageId extends Id {
 
-public class CurStateAccessor {
-  private final HelixDataAccessor _accessor;
+  private final String _id;
 
-  public CurStateAccessor(HelixDataAccessor accessor) {
-    _accessor = accessor;
+  public MessageId(String id) {
+    _id = id;
   }
 
-  /**
-   * @param curStateUpdate current state change delta
-   */
-  public void updateCurState(ParticipantId participantId, ResourceId resourceId,
-      CurState curStateUpdate) {
-    // accessor.updateProperty()
-  }
-
-  /**
-   * 
-   */
-  public void drop(ParticipantId participantId, ResourceId resourceId) {
-
+  @Override
+  public String stringify() {
+    return _id;
   }
 }

@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -86,7 +86,7 @@ public class ConstraintBasedAssignment {
             HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
+          instanceStateMap.put(instance, stateModelDef.getInitialStateString());
         }
       }
     }
@@ -96,7 +96,7 @@ public class ConstraintBasedAssignment {
       return instanceStateMap;
     }
 
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityStringList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
@@ -151,7 +151,7 @@ public class ConstraintBasedAssignment {
   public static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
       int liveNodesNb, int totalReplicas) {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityStringList();
 
     int replicas = totalReplicas;
     for (String state : statesPriorityList) {

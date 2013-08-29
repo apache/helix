@@ -104,7 +104,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
             selectMessages(cache.getLiveInstances(),
                 currentStateOutput.getCurrentStateMap(resourceName, partition),
                 currentStateOutput.getPendingStateMap(resourceName, partition), messages,
-                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
+                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialStateString());
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
@@ -169,8 +169,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
         new TreeMap<Integer, List<Message>>();
     for (Message message : messages) {
-      String fromState = message.getFromState();
-      String toState = message.getToState();
+      String fromState = message.getFromStateString();
+      String toState = message.getToStateString();
       String transition = fromState + "-" + toState;
       int priority = Integer.MAX_VALUE;
 
@@ -187,8 +187,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
-        String fromState = message.getFromState();
-        String toState = message.getToState();
+        String fromState = message.getFromStateString();
+        String toState = message.getToStateString();
 
         if (!bounds.containsKey(fromState)) {
           LOG.error("Message's fromState is not in currentState. message: " + message);
@@ -239,7 +239,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
       IdealState idealState, ClusterDataCache cache) {
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
 
-    List<String> statePriorityList = stateModelDefinition.getStatesPriorityList();
+    List<String> statePriorityList = stateModelDefinition.getStatesPriorityStringList();
     for (String state : statePriorityList) {
       String numInstancesPerState = stateModelDefinition.getNumInstancesPerState(state);
       int max = -1;
@@ -272,7 +272,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
   // so that behavior is consistent
   private Map<String, Integer> getStateTransitionPriorityMap(StateModelDefinition stateModelDef) {
     Map<String, Integer> stateTransitionPriorities = new HashMap<String, Integer>();
-    List<String> stateTransitionPriorityList = stateModelDef.getStateTransitionPriorityList();
+    List<String> stateTransitionPriorityList = stateModelDef.getStateTransitionPriorityStringList();
     for (int i = 0; i < stateTransitionPriorityList.size(); i++) {
       stateTransitionPriorities.put(stateTransitionPriorityList.get(i), i);
     }

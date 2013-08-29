@@ -60,7 +60,7 @@ public class RebalanceIdealStateStage extends AbstractBaseStage {
               (Rebalancer) (HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
           balancer.init(manager);
           Resource resource = new Resource(resourceName);
-          for (String partitionName : currentIdealState.getPartitionSet()) {
+          for (String partitionName : currentIdealState.getPartitionStringSet()) {
             resource.addPartition(partitionName);
           }
           ResourceAssignment resourceAssignment =

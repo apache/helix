@@ -33,4 +33,24 @@ public class State {
   public String toString() {
     return _state;
   }
+
+  @Override
+  public boolean equals(Object that) {
+    if (that instanceof State) {
+      return this.toString().equals(((State) that).toString());
+    }
+    return false;
+  }
+
+  /**
+   * Get a State from a state name
+   * @param state state name
+   * @return State
+   */
+  public static State from(String state) {
+    if (state == null) {
+      return null;
+    }
+    return new State(state);
+  }
 }

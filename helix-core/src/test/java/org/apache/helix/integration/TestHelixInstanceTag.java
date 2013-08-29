@@ -56,7 +56,7 @@ public class TestHelixInstanceTag extends ZkStandAloneCMTestBase {
 
     ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(DB2));
     Set<String> hosts = new HashSet<String>();
-    for (String p : ev.getPartitionSet()) {
+    for (String p : ev.getPartitionStringSet()) {
       for (String hostName : ev.getStateMap(p).keySet()) {
         InstanceConfig config =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
@@ -85,7 +85,7 @@ public class TestHelixInstanceTag extends ZkStandAloneCMTestBase {
 
     ev = accessor.getProperty(accessor.keyBuilder().externalView(DB3));
     hosts = new HashSet<String>();
-    for (String p : ev.getPartitionSet()) {
+    for (String p : ev.getPartitionStringSet()) {
       for (String hostName : ev.getStateMap(p).keySet()) {
         InstanceConfig config =
             accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));

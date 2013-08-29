@@ -254,7 +254,7 @@ public class StatusUpdateUtil {
    */
   ZNRecord createMessageLogRecord(Message message) {
     ZNRecord result = new ZNRecord(getStatusUpdateRecordName(message));
-    String mapFieldKey = "MESSAGE " + message.getMsgId();
+    String mapFieldKey = "MESSAGE " + message.getMsgIdString();
     result.setMapField(mapFieldKey, new TreeMap<String, String>());
 
     // Store all the simple fields of the message in the new ZNRecord's map
@@ -290,7 +290,7 @@ public class StatusUpdateUtil {
     contentMap.put("Message state", message.getMsgState().toString());
     contentMap.put("AdditionalInfo", additionalInfo);
     contentMap.put("Class", classInfo.toString());
-    contentMap.put("MSG_ID", message.getMsgId());
+    contentMap.put("MSG_ID", message.getMsgIdString());
 
     DateFormat formatter = new SimpleDateFormat("yyyyMMdd-HHmmss.SSSSSS");
     String time = formatter.format(new Date());
@@ -304,8 +304,8 @@ public class StatusUpdateUtil {
 
   String getRecordIdForMessage(Message message) {
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION)) {
-      return message.getPartitionName() + " Trans:" + message.getFromState().charAt(0) + "->"
-          + message.getToState().charAt(0) + "  " + UUID.randomUUID().toString();
+      return message.getPartitionName() + " Trans:" + message.getFromStateString().charAt(0) + "->"
+          + message.getToStateString().charAt(0) + "  " + UUID.randomUUID().toString();
     } else {
       return message.getMsgType() + " " + UUID.randomUUID().toString();
     }
@@ -375,16 +375,16 @@ public class StatusUpdateUtil {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
-    String sessionId = message.getExecutionSessionId();
+    String sessionId = message.getExecutionSessionIdString();
     if (sessionId == null) {
-      sessionId = message.getTgtSessionId();
+      sessionId = message.getTgtSessionIdString();
     }
     if (sessionId == null) {
       sessionId = "*";
     }
 
     Builder keyBuilder = accessor.keyBuilder();
-    if (!_recordedMessages.containsKey(message.getMsgId())) {
+    if (!_recordedMessages.containsKey(message.getMsgIdString())) {
       // TODO instanceName of a controller might be any string
       if (instanceName.equalsIgnoreCase("Controller")) {
         accessor.updateProperty(
@@ -408,7 +408,7 @@ public class StatusUpdateUtil {
         accessor.updateProperty(propertyKey, new StatusUpdate(statusUpdateRecord));
 
       }
-      _recordedMessages.put(message.getMsgId(), message.getMsgId());
+      _recordedMessages.put(message.getMsgIdString(), message.getMsgIdString());
     }
 
     if (instanceName.equalsIgnoreCase("Controller")) {
@@ -438,7 +438,7 @@ public class StatusUpdateUtil {
     if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
       return message.getPartitionName();
     }
-    return message.getMsgId();
+    return message.getMsgIdString();
   }
 
   /**
@@ -454,9 +454,9 @@ public class StatusUpdateUtil {
 
   String getStatusUpdateRecordName(Message message) {
     if (message.getMsgType().equalsIgnoreCase(MessageType.STATE_TRANSITION.toString())) {
-      return message.getTgtSessionId() + "__" + message.getResourceName();
+      return message.getTgtSessionIdString() + "__" + message.getResourceName();
     }
-    return message.getMsgId();
+    return message.getMsgIdString();
   }
 
   /**
@@ -472,9 +472,9 @@ public class StatusUpdateUtil {
     String instanceName = message.getTgtName();
     String statusUpdateSubPath = getStatusUpdateSubPath(message);
     String statusUpdateKey = getStatusUpdateKey(message);
-    String sessionId = message.getExecutionSessionId();
+    String sessionId = message.getExecutionSessionIdString();
     if (sessionId == null) {
-      sessionId = message.getTgtSessionId();
+      sessionId = message.getTgtSessionIdString();
     }
     if (sessionId == null) {
       sessionId = "*";

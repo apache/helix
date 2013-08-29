@@ -61,53 +61,25 @@ public class Cluster {
 
   private final ClusterConfig _config = null;
 
-  // TODO move construct logic to ClusterAccessor
   /**
-   * Construct a cluster
-   * @param id a unique id for the cluster
-   * @param idealStateMap map of resource-id to ideal-state
-   * @param currentStateMap map of resource-id to map of participant-id to current-state
-   * @param instanceConfigMap map of participant-id to instance-config
-   * @param liveInstanceMap map of participant-id to live-instance
-   * @param msgMap map of participant-id to map of message-id to message
-   * @param leader
+   * construct a cluster
+   * @param id
+   * @param resourceMap
+   * @param participantMap
+   * @param controllerMap
+   * @param leaderId
    */
-  public Cluster(ClusterId id, Map<String, IdealState> idealStateMap,
-      Map<String, Map<String, CurrentState>> currentStateMap,
-      Map<String, InstanceConfig> instanceConfigMap, Map<String, LiveInstance> liveInstanceMap,
-      Map<String, Map<String, Message>> msgMap, LiveInstance leader) {
+  public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
+      Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
+      ControllerId leaderId) {
+
     _id = id;
 
-    Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
-    for (String resourceId : idealStateMap.keySet()) {
-      IdealState idealState = idealStateMap.get(resourceId);
-      Map<String, CurrentState> curStateMap = currentStateMap.get(resourceId);
-
-      // TODO pass resource assignment
-      resourceMap.put(new ResourceId(resourceId), new Resource(new ResourceId(resourceId),
-          idealState, null));
-    }
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
-    Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
-    for (String participantId : instanceConfigMap.keySet()) {
-      InstanceConfig instanceConfig = instanceConfigMap.get(participantId);
-      LiveInstance liveInstance = liveInstanceMap.get(participantId);
-      Map<String, Message> instanceMsgMap = msgMap.get(participantId);
-
-      // TODO pass current-state map
-      participantMap.put(new ParticipantId(participantId), new Participant(new ParticipantId(
-          participantId), instanceConfig, liveInstance, null, instanceMsgMap));
-    }
     _participantMap = ImmutableMap.copyOf(participantMap);
 
-    Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
-    if (leader != null) {
-      _leaderId = new ControllerId(leader.getId());
-      controllerMap.put(_leaderId, new Controller(_leaderId, leader, true));
-    } else {
-      _leaderId = null;
-    }
+    _leaderId = leaderId;
 
     // TODO impl this when we persist controllers and spectators on zookeeper
     _controllerMap = ImmutableMap.copyOf(controllerMap);

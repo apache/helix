@@ -160,13 +160,13 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
     if (!type.equals(MessageType.STATE_TRANSITION.toString())) {
       throw new HelixException("Expect state-transition message type, but was "
-          + message.getMsgType() + ", msgId: " + message.getMsgId());
+          + message.getMsgType() + ", msgId: " + message.getMsgIdString());
     }
 
     String partitionKey = message.getPartitionName();
     String stateModelName = message.getStateModelDef();
     String resourceName = message.getResourceName();
-    String sessionId = message.getTgtSessionId();
+    String sessionId = message.getTgtSessionIdString();
     int bucketSize = message.getBucketSize();
 
     if (stateModelName == null) {
@@ -205,7 +205,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
     if (message.getBatchMessageMode() == false) {
       // create currentStateDelta for this partition
-      String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
+      String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialStateString();
       StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
       if (stateModel == null) {
         stateModel = stateModelFactory.createAndAddStateModel(partitionKey);

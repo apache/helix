@@ -305,6 +305,14 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with all instances
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey instance(String instanceName) {
+      return new PropertyKey(PropertyType.INSTANCES, null, _clusterName, instanceName);
+    }
+
+    /**
      * Get a property key associated with {@link Message} for an instance
      * @param instanceName
      * @return {@link PropertyKey}
@@ -329,6 +337,16 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey sessions(String instanceName) {
+      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName);
+    }
+
+    /**
+     * Get a property key associated with {@link CurrentState} of an instance and session
+     * @param instanceName
+     * @param sessionId
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey currentStates(String instanceName) {
       return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName);
     }
 

@@ -56,6 +56,14 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
+   * Get the resource for which this assignment was created
+   * @return resource name
+   */
+  public String getResourceName() {
+    return getId();
+  }
+
+  /**
    * Get the currently mapped partitions
    * @return list of Partition objects
    */

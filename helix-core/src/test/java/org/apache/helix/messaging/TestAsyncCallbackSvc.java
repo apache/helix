@@ -59,7 +59,7 @@ public class TestAsyncCallbackSvc {
     @Override
     public void onReplyMessage(Message message) {
       // TODO Auto-generated method stub
-      _repliedMessageId.add(message.getMsgId());
+      _repliedMessageId.add(message.getMsgIdString());
     }
 
   }
@@ -77,14 +77,14 @@ public class TestAsyncCallbackSvc {
     try {
       MessageHandler aHandler = svc.createHandler(msg, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgIdString()) != -1);
     }
     Message msg2 = new Message("RandomType", UUID.randomUUID().toString());
     msg2.setTgtSessionId(manager.getSessionId());
     try {
       MessageHandler aHandler = svc.createHandler(msg2, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgIdString()) != -1);
     }
     Message msg3 = new Message(svc.getMessageType(), UUID.randomUUID().toString());
     msg3.setTgtSessionId(manager.getSessionId());
@@ -92,7 +92,7 @@ public class TestAsyncCallbackSvc {
     try {
       MessageHandler aHandler = svc.createHandler(msg3, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMsgIdString()) != -1);
     }
 
     TestAsyncCallback callback = new TestAsyncCallback();
@@ -113,6 +113,6 @@ public class TestAsyncCallbackSvc {
     aHandler.handleMessage();
 
     AssertJUnit.assertTrue(callback.isDone());
-    AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMsgId()));
+    AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMsgIdString()));
   }
 }

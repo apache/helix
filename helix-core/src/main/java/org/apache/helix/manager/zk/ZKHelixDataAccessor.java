@@ -76,7 +76,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
-    return _baseDataAccessor.create(path, value.getRecord(), options);
+    return _baseDataAccessor.create(path, value == null ? null : value.getRecord(), options);
   }
 
   @Override

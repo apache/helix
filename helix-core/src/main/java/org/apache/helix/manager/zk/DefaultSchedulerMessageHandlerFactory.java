@@ -76,7 +76,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
     @Override
     public void onTimeOut() {
-      _logger.info("Scheduler msg timeout " + _originalMessage.getMsgId() + " timout with "
+      _logger.info("Scheduler msg timeout " + _originalMessage.getMsgIdString() + " timout with "
           + _timeout + " Ms");
 
       _statusUpdateUtil.logError(_originalMessage, SchedulerAsyncCallback.class, "Task timeout",
@@ -86,13 +86,13 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
     @Override
     public void onReplyMessage(Message message) {
-      _logger.info("Update for scheduler msg " + _originalMessage.getMsgId() + " Message "
+      _logger.info("Update for scheduler msg " + _originalMessage.getMsgIdString() + " Message "
           + message.getMsgSrc() + " id " + message.getCorrelationId() + " completed");
       String key = "MessageResult " + message.getMsgSrc() + " " + UUID.randomUUID();
       _resultSummaryMap.put(key, message.getResultMap());
 
       if (this.isDone()) {
-        _logger.info("Scheduler msg " + _originalMessage.getMsgId() + " completed");
+        _logger.info("Scheduler msg " + _originalMessage.getMsgIdString() + " completed");
         _statusUpdateUtil.logInfo(_originalMessage, SchedulerAsyncCallback.class,
             "Scheduler task completed", _manager.getHelixDataAccessor());
         addSummary(_resultSummaryMap, _originalMessage, _manager, false);
@@ -111,12 +111,12 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       ZNRecord statusUpdate =
           accessor.getProperty(
               keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-                  originalMessage.getMsgId())).getRecord();
+                  originalMessage.getMsgIdString())).getRecord();
 
       statusUpdate.getMapFields().putAll(_resultSummaryMap);
       accessor.setProperty(
           keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-              originalMessage.getMsgId()), new StatusUpdate(statusUpdate));
+              originalMessage.getMsgIdString()), new StatusUpdate(statusUpdate));
 
     }
   }
@@ -133,7 +133,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
     String type = message.getMsgType();
 
     if (!type.equals(getMessageType())) {
-      throw new HelixException("Unexpected msg type for message " + message.getMsgId() + " type:"
+      throw new HelixException("Unexpected msg type for message " + message.getMsgIdString() + " type:"
           + message.getMsgType());
     }
 
@@ -206,7 +206,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
             newAddedScheduledTasks.getRecord().setMapField(partitionId,
                 task.getRecord().getSimpleFields());
             _logger.info("Scheduling for controllerMsg " + controllerMsgId + " , sending task "
-                + partitionId + " " + task.getMsgId() + " to " + instanceName);
+                + partitionId + " " + task.getMsgIdString() + " to " + instanceName);
 
             if (_logger.isDebugEnabled()) {
               _logger.debug(task.getRecord().getSimpleFields());
@@ -223,16 +223,16 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       ZNRecord statusUpdate =
           accessor.getProperty(
               keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-                  _message.getMsgId())).getRecord();
+                  _message.getMsgIdString())).getRecord();
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
       accessor.updateProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-          _message.getMsgId()), new StatusUpdate(statusUpdate));
+          _message.getMsgIdString()), new StatusUpdate(statusUpdate));
     }
 
     private int findTopPartitionId(IdealState currentTaskQueue) {
       int topId = 0;
-      for (String partitionName : currentTaskQueue.getPartitionSet()) {
+      for (String partitionName : currentTaskQueue.getPartitionStringSet()) {
         try {
           String partitionNumStr = partitionName.substring(partitionName.lastIndexOf('_') + 1);
           int num = Integer.parseInt(partitionNumStr);
@@ -251,7 +251,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       String type = _message.getMsgType();
       HelixTaskResult result = new HelixTaskResult();
       if (!type.equals(MessageType.SCHEDULER_MSG.toString())) {
-        throw new HelixException("Unexpected msg type for message " + _message.getMsgId()
+        throw new HelixException("Unexpected msg type for message " + _message.getMsgIdString()
             + " type:" + _message.getMsgType());
       }
       // Parse timeout value
@@ -298,11 +298,11 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       if (InstanceType.PARTICIPANT == recipientCriteria.getRecipientInstanceType()
           && hasSchedulerTaskQueue) {
         handleMessageUsingScheduledTaskQueue(recipientCriteria, messageTemplate,
-            _message.getMsgId());
+            _message.getMsgIdString());
         result.setSuccess(true);
-        result.getTaskResultMap().put(SCHEDULER_MSG_ID, _message.getMsgId());
+        result.getTaskResultMap().put(SCHEDULER_MSG_ID, _message.getMsgIdString());
         result.getTaskResultMap().put("ControllerResult",
-            "msg " + _message.getMsgId() + " from " + _message.getMsgSrc() + " processed");
+            "msg " + _message.getMsgIdString() + " from " + _message.getMsgSrc() + " processed");
         return result;
       }
 
@@ -328,23 +328,23 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
       ZNRecord statusUpdate =
           accessor.getProperty(
               keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-                  _message.getMsgId())).getRecord();
+                  _message.getMsgIdString())).getRecord();
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
 
       accessor.setProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-          _message.getMsgId()), new StatusUpdate(statusUpdate));
+          _message.getMsgIdString()), new StatusUpdate(statusUpdate));
 
       result.getTaskResultMap().put("ControllerResult",
-          "msg " + _message.getMsgId() + " from " + _message.getMsgSrc() + " processed");
-      result.getTaskResultMap().put(SCHEDULER_MSG_ID, _message.getMsgId());
+          "msg " + _message.getMsgIdString() + " from " + _message.getMsgSrc() + " processed");
+      result.getTaskResultMap().put(SCHEDULER_MSG_ID, _message.getMsgIdString());
       result.setSuccess(true);
       return result;
     }
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgIdString(), e);
     }
   }
 }

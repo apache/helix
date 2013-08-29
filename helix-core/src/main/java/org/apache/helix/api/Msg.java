@@ -25,7 +25,7 @@ import org.apache.helix.model.Message;
  * Helix message
  */
 public class Msg {
-  private final MsgId _id;
+  private final MessageId _id;
   private final SessionId _srcSessionId;
   private final SessionId _tgtSessionid;
 
@@ -36,16 +36,16 @@ public class Msg {
    * @param message
    */
   public Msg(Message message) {
-    _id = new MsgId(message.getId());
-    _srcSessionId = new SessionId(message.getSrcSessionId());
-    _tgtSessionid = new SessionId(message.getTgtSessionId());
+    _id = new MessageId(message.getId());
+    _srcSessionId = new SessionId(message.getSrcSessionIdString());
+    _tgtSessionid = new SessionId(message.getTgtSessionIdString());
   }
 
   /**
    * Get message id
    * @return message id
    */
-  public MsgId getId() {
+  public MessageId getId() {
     return _id;
   }
 

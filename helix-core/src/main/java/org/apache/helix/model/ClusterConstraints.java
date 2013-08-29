@@ -164,8 +164,8 @@ public class ClusterConstraints extends HelixProperty {
     String msgType = msg.getMsgType();
     attributes.put(ConstraintAttribute.MESSAGE_TYPE, msgType);
     if (MessageType.STATE_TRANSITION.toString().equals(msgType)) {
-      if (msg.getFromState() != null && msg.getToState() != null) {
-        attributes.put(ConstraintAttribute.TRANSITION, msg.getFromState() + "-" + msg.getToState());
+      if (msg.getFromStateString() != null && msg.getToStateString() != null) {
+        attributes.put(ConstraintAttribute.TRANSITION, msg.getFromStateString() + "-" + msg.getToStateString());
       }
       if (msg.getResourceName() != null) {
         attributes.put(ConstraintAttribute.RESOURCE, msg.getResourceName());

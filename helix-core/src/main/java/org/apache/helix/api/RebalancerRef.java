@@ -48,4 +48,25 @@ public class RebalancerRef {
     return null;
   }
 
+  @Override
+  public String toString() {
+    return _rebalancerClassName;
+  }
+
+  @Override
+  public boolean equals(Object that) {
+    if (that instanceof RebalancerRef) {
+      return this.toString().equals(((RebalancerRef) that).toString());
+    }
+    return false;
+  }
+
+  /**
+   * Get a rebalancer class reference
+   * @param rebalancerClassName name of the class
+   * @return RebalancerRef
+   */
+  public static RebalancerRef from(String rebalancerClassName) {
+    return new RebalancerRef(rebalancerClassName);
+  }
 }

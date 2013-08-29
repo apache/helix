@@ -98,11 +98,11 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
         Assert.assertTrue(result);
         ExternalView ev =
             manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-        System.out.println(ev.getPartitionSet().size());
+        System.out.println(ev.getPartitionStringSet().size());
         if (i < 3) {
-          Assert.assertEquals(ev.getPartitionSet().size(), 25 * (i + 1));
+          Assert.assertEquals(ev.getPartitionStringSet().size(), 25 * (i + 1));
         } else {
-          Assert.assertEquals(ev.getPartitionSet().size(), 100);
+          Assert.assertEquals(ev.getPartitionStringSet().size(), 100);
         }
       }
     }
@@ -132,7 +132,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ExternalView ev =
         manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-    Assert.assertEquals(ev.getPartitionSet().size(), 100);
+    Assert.assertEquals(ev.getPartitionStringSet().size(), 100);
 
     instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 1);
     _startCMResultMap.get(instanceName)._manager.disconnect();
@@ -145,7 +145,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
             CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     ev = manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-    Assert.assertEquals(ev.getPartitionSet().size(), 75);
+    Assert.assertEquals(ev.getPartitionStringSet().size(), 75);
 
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
@@ -231,7 +231,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
       cache.refresh(accessor);
       String masterValue =
           cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityList().get(0);
+              .getStatesPriorityStringList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
       return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName))
           .getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),

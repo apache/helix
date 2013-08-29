@@ -71,7 +71,7 @@ public class AutoRebalancer implements Rebalancer {
   public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     // Compute a preference list based on the current ideal state
-    List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
+    List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionStringSet());
     String stateModelName = currentIdealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
     Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();

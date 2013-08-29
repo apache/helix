@@ -30,8 +30,11 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * Describe the state model
@@ -141,16 +144,40 @@ public class StateModelDefinition extends HelixProperty {
    * Get an ordered priority list of transitions
    * @return transitions in the form SRC-DEST, the first of which is highest priority
    */
-  public List<String> getStateTransitionPriorityList() {
+  public List<String> getStateTransitionPriorityStringList() {
     return _stateTransitionPriorityList;
+  }
+
+  /**
+   * Get an ordered priority list of transitions
+   * @return Transition objects, the first of which is highest priority
+   */
+  public List<Transition> getStateTransitionPriorityList() {
+    ImmutableList.Builder<Transition> builder = new ImmutableList.Builder<Transition>();
+    for (String transition : getStateTransitionPriorityStringList()) {
+      builder.add(Transition.from(transition));
+    }
+    return builder.build();
   }
 
   /**
    * Get an ordered priority list of states
    * @return state names, the first of which is highest priority
    */
-  public List<String> getStatesPriorityList() {
+  public List<String> getStatesPriorityStringList() {
     return _statesPriorityList;
+  }
+
+  /**
+   * Get an ordered priority list of states
+   * @return immutable list of states, the first of which is highest priority
+   */
+  public List<State> getStatesPriorityList() {
+    ImmutableList.Builder<State> builder = new ImmutableList.Builder<State>();
+    for (String state : getStatesPriorityStringList()) {
+      builder.add(State.from(state));
+    }
+    return builder.build();
   }
 
   /**
@@ -168,13 +195,37 @@ public class StateModelDefinition extends HelixProperty {
   }
 
   /**
+   * Get the intermediate state required to transition from one state to the other
+   * @param fromState the source
+   * @param toState the destination
+   * @return the intermediate state, or null if not present
+   */
+  public State getNextStateForTransition(State fromState, State toState) {
+    String next = getNextStateForTransition(fromState.toString(), toState.toString());
+    if (next != null) {
+      return State.from(getNextStateForTransition(fromState.toString(), toState.toString()));
+    }
+    return null;
+  }
+
+  /**
    * Get the starting state in the model
    * @return name of the initial state
    */
-  public String getInitialState() {
+  public String getInitialStateString() {
     // return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
     // .toString());
     return _initialState;
+  }
+
+  /**
+   * Get the starting state in the model
+   * @return name of the initial state
+   */
+  public State getInitialState() {
+    // return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
+    // .toString());
+    return State.from(_initialState);
   }
 
   /**
@@ -188,7 +239,7 @@ public class StateModelDefinition extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getInitialState() == null) {
+    if (getInitialStateString() == null) {
       _logger.error("State model does not contain init state, statemodel:" + _record.getId());
       return false;
     }

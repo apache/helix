@@ -133,7 +133,7 @@ public class RoutingTableProvider implements ExternalViewChangeListener, ConfigC
     if (externalViewList != null) {
       for (ExternalView extView : externalViewList) {
         String resourceName = extView.getId();
-        for (String partitionName : extView.getPartitionSet()) {
+        for (String partitionName : extView.getPartitionStringSet()) {
           Map<String, String> stateMap = extView.getStateMap(partitionName);
           for (String instanceName : stateMap.keySet()) {
             String currentState = stateMap.get(instanceName);

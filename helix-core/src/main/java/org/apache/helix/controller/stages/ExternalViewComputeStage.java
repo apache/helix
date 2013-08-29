@@ -168,7 +168,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
     Builder keyBuilder = accessor.keyBuilder();
 
-    for (String taskPartitionName : ev.getPartitionSet()) {
+    for (String taskPartitionName : ev.getPartitionStringSet()) {
       for (String taskState : ev.getStateMap(taskPartitionName).values()) {
         if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString())
             || taskState.equalsIgnoreCase("COMPLETED")) {
@@ -193,7 +193,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       }
     }
     // fill the controllerMsgIdCountMap
-    for (String taskId : taskQueueIdealState.getPartitionSet()) {
+    for (String taskId : taskQueueIdealState.getPartitionStringSet()) {
       String controllerMsgId =
           taskQueueIdealState.getRecord().getMapField(taskId)
               .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);

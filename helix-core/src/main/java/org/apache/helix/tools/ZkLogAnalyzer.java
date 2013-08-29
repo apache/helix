@@ -342,11 +342,11 @@ public class ZkLogAnalyzer {
               // sendMessageLines.add(inputLine);
               stats.msgSentCount++;
 
-              if (msg.getFromState().equals("OFFLINE") && msg.getToState().equals("SLAVE")) {
+              if (msg.getFromStateString().equals("OFFLINE") && msg.getToStateString().equals("SLAVE")) {
                 stats.msgSentCount_O2S++;
-              } else if (msg.getFromState().equals("SLAVE") && msg.getToState().equals("MASTER")) {
+              } else if (msg.getFromStateString().equals("SLAVE") && msg.getToStateString().equals("MASTER")) {
                 stats.msgSentCount_S2M++;
-              } else if (msg.getFromState().equals("MASTER") && msg.getToState().equals("SLAVE")) {
+              } else if (msg.getFromStateString().equals("MASTER") && msg.getToStateString().equals("SLAVE")) {
                 stats.msgSentCount_M2S++;
               }
               // System.out.println("Message create:"+new

@@ -27,6 +27,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
 import org.apache.log4j.Logger;
 
 /**
@@ -236,6 +238,14 @@ public class InstanceConfig extends HelixProperty {
    */
   public String getInstanceName() {
     return _record.getId();
+  }
+
+  /**
+   * Get the identifier of this participant
+   * @return the participant id
+   */
+  public ParticipantId getParticipantId() {
+    return Id.participant(getInstanceName());
   }
 
   @Override

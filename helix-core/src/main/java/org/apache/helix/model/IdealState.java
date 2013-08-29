@@ -30,8 +30,19 @@ import java.util.TreeSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.RebalancerRef;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * The ideal states of all partitions in a resource
@@ -107,6 +118,14 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the associated resource
+   * @return the id of the resource
+   */
+  public ResourceId getResourceId() {
+    return Id.resource(getResourceName());
+  }
+
+  /**
    * Get the rebalance mode of the ideal state
    * @param mode {@link IdealStateModeProperty}
    */
@@ -151,6 +170,18 @@ public class IdealState extends HelixProperty {
    */
   public String getRebalancerClassName() {
     return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
+  }
+
+  /**
+   * Get a reference to the user-defined rebalancer associated with this resource(if any)
+   * @return
+   */
+  public RebalancerRef getRebalancerRef() {
+    String className = getRebalancerClassName();
+    if (className != null) {
+      return RebalancerRef.from(getRebalancerClassName());
+    }
+    return null;
   }
 
   /**
@@ -204,7 +235,7 @@ public class IdealState extends HelixProperty {
    * Get all of the partitions
    * @return a set of partition names
    */
-  public Set<String> getPartitionSet() {
+  public Set<String> getPartitionStringSet() {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
         || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
       return _record.getListFields().keySet();
@@ -215,6 +246,18 @@ public class IdealState extends HelixProperty {
       logger.error("Invalid ideal state mode:" + getResourceName());
       return Collections.emptySet();
     }
+  }
+
+  /**
+   * Get all of the partitions
+   * @return an immutable set of partitions
+   */
+  public Set<PartitionId> getPartitionSet() {
+    ImmutableSet.Builder<PartitionId> partitionSetBuilder = new ImmutableSet.Builder<PartitionId>();
+    for (String partitionName : getPartitionStringSet()) {
+      partitionSetBuilder.add(Id.partition(partitionName));
+    }
+    return partitionSetBuilder.build();
   }
 
   /**
@@ -233,6 +276,21 @@ public class IdealState extends HelixProperty {
    */
   public Map<String, String> getInstanceStateMap(String partitionName) {
     return _record.getMapField(partitionName);
+  }
+
+  /**
+   * Get the current mapping of a partition
+   * @param partitionId the name of the partition
+   * @return the instances where the replicas live and the state of each (immutable)
+   */
+  public Map<ParticipantId, State> getParticipantStateMap(PartitionId partitionId) {
+    Map<String, String> instanceStateMap = getInstanceStateMap(partitionId.stringify());
+    ImmutableMap.Builder<ParticipantId, State> builder =
+        new ImmutableMap.Builder<ParticipantId, State>();
+    for (String participantId : instanceStateMap.keySet()) {
+      builder.put(Id.participant(participantId), State.from(instanceStateMap.get(participantId)));
+    }
+    return builder.build();
   }
 
   /**
@@ -263,7 +321,19 @@ public class IdealState extends HelixProperty {
       logger.error("Invalid ideal state mode: " + getResourceName());
       return Collections.emptySet();
     }
+  }
 
+  /**
+   * Get the participants who host replicas of a partition
+   * @param partitionId the partition to look up
+   * @return immutable set of participant ids
+   */
+  public Set<ParticipantId> getParticipantSet(PartitionId partitionId) {
+    ImmutableSet.Builder<ParticipantId> builder = new ImmutableSet.Builder<ParticipantId>();
+    for (String participantName : getInstanceSet(partitionId.stringify())) {
+      builder.add(Id.participant(participantName));
+    }
+    return builder.build();
   }
 
   /**
@@ -291,11 +361,33 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the preference list of a partition
+   * @param partitionId the partition id
+   * @return an ordered list of participants that can serve replicas of the partition
+   */
+  public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
+    ImmutableList.Builder<ParticipantId> builder = new ImmutableList.Builder<ParticipantId>();
+    List<String> preferenceStringList = getPreferenceList(partitionId.stringify());
+    for (String participantName : preferenceStringList) {
+      builder.add(Id.participant(participantName));
+    }
+    return builder.build();
+  }
+
+  /**
    * Get the state model associated with this resource
    * @return an identifier of the state model
    */
   public String getStateModelDefRef() {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString());
+  }
+
+  /**
+   * Get the state model associated with this resource
+   * @return an identifier of the state model
+   */
+  public StateModelDefId getStateModelDefId() {
+    return Id.stateModelDef(getStateModelDefRef());
   }
 
   /**
@@ -426,7 +518,7 @@ public class IdealState extends HelixProperty {
 
       if (!replicaStr.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
         int replica = Integer.parseInt(replicaStr);
-        Set<String> partitionSet = getPartitionSet();
+        Set<String> partitionSet = getPartitionStringSet();
         for (String partition : partitionSet) {
           List<String> preferenceList = getPreferenceList(partition);
           if (preferenceList == null || preferenceList.size() != replica) {

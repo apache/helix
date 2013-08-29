@@ -49,7 +49,7 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase {
 
     for (ExternalView extView : extViews) {
       String resourceName = extView.getResourceName();
-      Set<String> partitionSet = extView.getPartitionSet();
+      Set<String> partitionSet = extView.getPartitionStringSet();
       for (String partition : partitionSet) {
         Map<String, String> stateMap = extView.getStateMap(partition);
         for (String instance : stateMap.keySet()) {

@@ -25,6 +25,12 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
+import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.log4j.Logger;
 
 /**
@@ -70,10 +76,18 @@ public class CurrentState extends HelixProperty {
   }
 
   /**
+   * Get the resource id
+   * @return ResourceId
+   */
+  public ResourceId getResourceId() {
+    return Id.resource(getResourceName());
+  }
+
+  /**
    * Get the partitions on this instance and the state that each partition is currently in.
    * @return (partition, state) pairs
    */
-  public Map<String, String> getPartitionStateMap() {
+  public Map<String, String> getPartitionStateStringMap() {
     Map<String, String> map = new HashMap<String, String>();
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
     for (String partitionName : mapFields.keySet()) {
@@ -86,11 +100,35 @@ public class CurrentState extends HelixProperty {
   }
 
   /**
+   * Get the partitions on this instance and the state that each partition is currently in
+   * @return (partition id, state) pairs
+   */
+  public Map<PartitionId, State> getPartitionStateMap() {
+    Map<PartitionId, State> map = new HashMap<PartitionId, State>();
+    for (String partitionName : _record.getMapFields().keySet()) {
+      Map<String, String> stateMap = _record.getMapField(partitionName);
+      if (stateMap != null) {
+        map.put(Id.partition(partitionName),
+            State.from(stateMap.get(CurrentStateProperty.CURRENT_STATE.toString())));
+      }
+    }
+    return map;
+  }
+
+  /**
    * Get the session that this current state corresponds to
    * @return String session identifier
    */
-  public String getSessionId() {
+  public String getSessionIdString() {
     return _record.getSimpleField(CurrentStateProperty.SESSION_ID.toString());
+  }
+
+  /**
+   * Get the session that this current state corresponds to
+   * @return session identifier
+   */
+  public SessionId getSessionId() {
+    return Id.session(getSessionIdString());
   }
 
   /**
@@ -116,6 +154,15 @@ public class CurrentState extends HelixProperty {
   }
 
   /**
+   * Get the state of a partition on this instance
+   * @param partitionId partition id
+   * @return State
+   */
+  public State getState(PartitionId partitionId) {
+    return State.from(getState(partitionId.stringify()));
+  }
+
+  /**
    * Set the state model that the resource follows
    * @param stateModelName an identifier of the state model
    */
@@ -129,6 +176,14 @@ public class CurrentState extends HelixProperty {
    */
   public String getStateModelDefRef() {
     return _record.getSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString());
+  }
+
+  /**
+   * Get the state model that the resource follows
+   * @return an identifier of the state model
+   */
+  public StateModelDefId getStateModelDefId() {
+    return Id.stateModelDef(getStateModelDefRef());
   }
 
   /**
@@ -195,7 +250,7 @@ public class CurrentState extends HelixProperty {
       LOG.error("Current state does not contain state model ref. id:" + getResourceName());
       return false;
     }
-    if (getSessionId() == null) {
+    if (getSessionIdString() == null) {
       LOG.error("CurrentState does not contain session id, id : " + getResourceName());
       return false;
     }

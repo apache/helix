@@ -37,6 +37,8 @@ import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.State;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -155,7 +157,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     testListener.Reset();
 
     CurrentState curState = new CurrentState("db-12345");
-    curState.setSessionId("sessionId");
+    curState.setSessionId(Id.session("sessionId"));
     curState.setStateModelDefRef("StateModelDef");
     accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
         curState.getId()), curState);
@@ -184,13 +186,14 @@ public class TestZKCallback extends ZkUnitTestBase {
     // recList.add(dummyRecord);
 
     testListener.Reset();
-    Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
-    message.setTgtSessionId("*");
-    message.setResourceName("testResource");
-    message.setPartitionName("testPartitionKey");
-    message.setStateModelDef("MasterSlave");
-    message.setToState("toState");
-    message.setFromState("fromState");
+    Message message =
+        new Message(MessageType.STATE_TRANSITION, Id.message(UUID.randomUUID().toString()));
+    message.setTgtSessionId(Id.session("*"));
+    message.setResourceId(Id.resource("testResource"));
+    message.setPartitionId(Id.partition("testPartitionKey"));
+    message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+    message.setToState(State.from("toState"));
+    message.setFromState(State.from("fromState"));
     message.setTgtName("testTarget");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 

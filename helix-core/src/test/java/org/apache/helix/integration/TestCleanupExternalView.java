@@ -19,7 +19,13 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import org.apache.helix.*;
+import java.util.Date;
+
+import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.ZkTestHelper;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -30,8 +36,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import java.util.Date;
 
 /**
  * Test clean external-view - if current-state is remove externally, controller should remove the
@@ -94,11 +98,11 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
 
     // System.out.println("remove current-state");
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
-    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getSessionIdString(),
-        "TestDB0"));
+    accessor.removeProperty(keyBuilder.currentState("localhost_12918", liveInstance.getSessionId()
+        .stringify(), "TestDB0"));
     liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12919"));
-    accessor.removeProperty(keyBuilder.currentState("localhost_12919", liveInstance.getSessionIdString(),
-        "TestDB0"));
+    accessor.removeProperty(keyBuilder.currentState("localhost_12919", liveInstance.getSessionId()
+        .stringify(), "TestDB0"));
 
     // re-enable controller shall remove orphan external-view
     // System.out.println("re-enabling controller");

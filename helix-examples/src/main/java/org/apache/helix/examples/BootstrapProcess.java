@@ -155,7 +155,7 @@ public class BootstrapProcess {
           result.getTaskResultMap().put(
               "BOOTSTRAP_URL",
               "http://" + hostName + ":" + port + "/getFile?path=/data/bootstrap/"
-                  + _message.getResourceName() + "/" + _message.getPartitionName() + ".tar");
+                  + _message.getResourceId().stringify() + "/" + _message.getPartitionId().stringify() + ".tar");
 
           result.getTaskResultMap().put("BOOTSTRAP_TIME", "" + new Date().getTime());
         }

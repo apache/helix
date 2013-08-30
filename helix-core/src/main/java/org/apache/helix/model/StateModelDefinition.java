@@ -237,6 +237,15 @@ public class StateModelDefinition extends HelixProperty {
     return _statesCountMap.get(state);
   }
 
+  /**
+   * Number of participants that can be in each state
+   * @param state the state
+   * @return maximum instance count per state, can be "N" or "R"
+   */
+  public String getNumParticipantsPerState(State state) {
+    return _statesCountMap.get(state.toString());
+  }
+
   @Override
   public boolean isValid() {
     if (getInitialStateString() == null) {
@@ -318,7 +327,7 @@ public class StateModelDefinition extends HelixProperty {
      * @return Builder
      */
     public Builder addTransition(String fromState, String toState, int priority) {
-      transitionMap.put(new Transition(fromState, toState), priority);
+      transitionMap.put(new Transition(State.from(fromState), State.from(toState)), priority);
       return this;
     }
 

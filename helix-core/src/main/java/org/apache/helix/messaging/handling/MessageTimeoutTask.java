@@ -40,7 +40,7 @@ public class MessageTimeoutTask extends TimerTask {
     Message message = _task.getMessage();
     // NotificationContext context = _task.getNotificationContext();
     // System.out.println("msg: " + message.getMsgId() + " timeouot.");
-    LOG.warn("Message time out, canceling. id:" + message.getMsgIdString() + " timeout : "
+    LOG.warn("Message time out, canceling. id:" + message.getMsgId() + " timeout : "
         + message.getExecutionTimeout());
     _task.onTimeout();
     _executor.cancelTask(_task);

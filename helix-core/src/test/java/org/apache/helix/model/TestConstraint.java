@@ -25,14 +25,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Id;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.ClusterConstraints;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.Message.MessageType;
@@ -122,8 +121,8 @@ public class TestConstraint extends ZkUnitTestBase {
 
     // message1
     Message msg1 =
-        createMessage(MessageType.STATE_TRANSITION, "msgId-001", "OFFLINE", "SLAVE", "TestDB",
-            "localhost_12918");
+        createMessage(MessageType.STATE_TRANSITION, Id.message("msgId-001"), "OFFLINE", "SLAVE",
+            "TestDB", "localhost_12918");
 
     Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
     Set<ConstraintItem> matches = constraint.match(msgAttr);
@@ -137,8 +136,8 @@ public class TestConstraint extends ZkUnitTestBase {
 
     // message2
     Message msg2 =
-        createMessage(MessageType.STATE_TRANSITION, "msgId-002", "OFFLINE", "SLAVE", "TestDB",
-            "localhost_12919");
+        createMessage(MessageType.STATE_TRANSITION, Id.message("msgId-002"), "OFFLINE", "SLAVE",
+            "TestDB", "localhost_12919");
 
     msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
     matches = constraint.match(msgAttr);

@@ -142,7 +142,7 @@ public class DistClusterControllerElection implements ControllerChangeListener {
 
     leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader != null) {
-      String leaderSessionId = leader.getSessionIdString();
+      String leaderSessionId = leader.getSessionId().stringify();
       LOG.info("Leader exists for cluster: " + manager.getClusterName() + ", currentLeader: "
           + leader.getInstanceName() + ", leaderSessionId: " + leaderSessionId);
 

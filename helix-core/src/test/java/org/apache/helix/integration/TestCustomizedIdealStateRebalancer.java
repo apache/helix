@@ -28,6 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -71,7 +72,8 @@ public class TestCustomizedIdealStateRebalancer extends
       List<String> liveInstances = new ArrayList<String>(clusterData.getLiveInstances().keySet());
       String stateModelName = currentIdealState.getStateModelDefRef();
       StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
-      ResourceAssignment resourceMapping = new ResourceAssignment(resource.getResourceName());
+      ResourceAssignment resourceMapping =
+          new ResourceAssignment(Id.resource(resource.getResourceName()));
       int i = 0;
       for (Partition partition : resource.getPartitions()) {
         String partitionName = partition.getPartitionName();
@@ -79,8 +81,8 @@ public class TestCustomizedIdealStateRebalancer extends
         currentIdealState.getInstanceStateMap(partitionName).clear();
         currentIdealState.getInstanceStateMap(partitionName).put(liveInstances.get(nodeIndex),
             stateModelDef.getStatesPriorityStringList().get(0));
-        resourceMapping.addReplicaMap(partition,
-            currentIdealState.getInstanceStateMap(partitionName));
+        resourceMapping.addReplicaMap(Id.partition(partitionName), ResourceAssignment
+            .replicaMapFromStringMap(currentIdealState.getInstanceStateMap(partitionName)));
         i++;
       }
       testRebalancerInvoked = true;

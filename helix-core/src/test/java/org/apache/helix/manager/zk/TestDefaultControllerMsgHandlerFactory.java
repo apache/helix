@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory;
+import org.apache.helix.api.Id;
 import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory.DefaultControllerMessageHandler;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
@@ -41,7 +41,7 @@ public class TestDefaultControllerMsgHandlerFactory {
 
     DefaultControllerMessageHandlerFactory facotry = new DefaultControllerMessageHandlerFactory();
 
-    Message message = new Message(MessageType.NO_OP, "0");
+    Message message = new Message(MessageType.NO_OP, Id.message("0"));
     NotificationContext context = new NotificationContext(null);
 
     boolean exceptionCaught = false;
@@ -52,7 +52,7 @@ public class TestDefaultControllerMsgHandlerFactory {
     }
     AssertJUnit.assertTrue(exceptionCaught);
 
-    message = new Message(MessageType.CONTROLLER_MSG, "1");
+    message = new Message(MessageType.CONTROLLER_MSG, Id.message("1"));
     exceptionCaught = false;
     try {
       MessageHandler handler = facotry.createHandler(message, context);
@@ -62,7 +62,7 @@ public class TestDefaultControllerMsgHandlerFactory {
     AssertJUnit.assertFalse(exceptionCaught);
 
     Map<String, String> resultMap = new HashMap<String, String>();
-    message = new Message(MessageType.NO_OP, "3");
+    message = new Message(MessageType.NO_OP, Id.message("3"));
     DefaultControllerMessageHandler defaultHandler =
         new DefaultControllerMessageHandler(message, context);
     try {
@@ -75,7 +75,7 @@ public class TestDefaultControllerMsgHandlerFactory {
     }
     AssertJUnit.assertTrue(exceptionCaught);
 
-    message = new Message(MessageType.CONTROLLER_MSG, "4");
+    message = new Message(MessageType.CONTROLLER_MSG, Id.message("4"));
     defaultHandler = new DefaultControllerMessageHandler(message, context);
     exceptionCaught = false;
     try {

@@ -21,20 +21,18 @@ package org.apache.helix.taskexecution;
 
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.log4j.Logger;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "ERROR"
@@ -66,17 +64,18 @@ public class TaskStateModel extends StateModel {
     HelixConfigScope clusterScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
             manager.getClusterName()).build();
-    String json = clusterConfig.get(clusterScope, message.getResourceName());
+    String json = clusterConfig.get(clusterScope, message.getResourceId().stringify());
     Dag.Node node = Dag.Node.fromJson(json);
     Set<String> parentIds = node.getParentIds();
-    String resourceName = message.getResourceName();
+    ResourceId resourceId = message.getResourceId();
     int numPartitions = node.getNumPartitions();
-    Task task = _taskFactory.createTask(resourceName, parentIds, manager, _taskResultStore);
+    Task task =
+        _taskFactory.createTask(resourceId.stringify(), parentIds, manager, _taskResultStore);
     manager.addExternalViewChangeListener(task);
 
     LOG.debug("Starting task for " + _partition + "...");
     int partitionNum = Integer.parseInt(_partition.split("_")[1]);
-    task.execute(resourceName, numPartitions, partitionNum);
+    task.execute(resourceId.stringify(), numPartitions, partitionNum);
     LOG.debug("Task for " + _partition + " done");
   }
 

@@ -22,9 +22,9 @@ package org.apache.helix.participant;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.Id;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.participant.DistClusterControllerStateModel;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
@@ -48,8 +48,8 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
 
   @Test()
   public void testOnBecomeLeaderFromStandby() {
-    Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setPartitionName(clusterName);
+    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("0"));
+    message.setPartitionId(Id.partition(clusterName));
     message.setTgtName("controller_0");
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
@@ -62,16 +62,16 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
 
   @Test()
   public void testOnBecomeStandbyFromLeader() {
-    Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setPartitionName(clusterName);
+    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("0"));
+    message.setPartitionId(Id.partition(clusterName));
     message.setTgtName("controller_0");
     stateModel.onBecomeStandbyFromLeader(message, new NotificationContext(null));
   }
 
   @Test()
   public void testOnBecomeOfflineFromStandby() {
-    Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setPartitionName(clusterName);
+    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("0"));
+    message.setPartitionId(Id.partition(clusterName));
     message.setTgtName("controller_0");
 
     stateModel.onBecomeOfflineFromStandby(message, null);
@@ -89,8 +89,8 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
 
   @Test()
   public void testRollbackOnError() {
-    Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setPartitionName(clusterName);
+    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("0"));
+    message.setPartitionId(Id.partition(clusterName));
     message.setTgtName("controller_0");
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
@@ -103,8 +103,8 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
 
   @Test()
   public void testReset() {
-    Message message = new Message(MessageType.STATE_TRANSITION, "0");
-    message.setPartitionName(clusterName);
+    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("0"));
+    message.setPartitionId(Id.partition(clusterName));
     message.setTgtName("controller_0");
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));

@@ -21,6 +21,9 @@ package org.apache.helix.manager.zk;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.State;
 import org.apache.helix.model.CurrentState;
 
 /**
@@ -52,15 +55,15 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
       curState = new CurrentState(_lastCurState.getId());
       // copy all simple fields settings and overwrite session-id to current session
       curState.getRecord().setSimpleFields(_lastCurState.getRecord().getSimpleFields());
-      curState.setSessionId(_curSessionId);
+      curState.setSessionId(Id.session(_curSessionId));
     } else {
       curState = new CurrentState(currentData);
     }
 
-    for (String partitionName : _lastCurState.getPartitionStateStringMap().keySet()) {
+    for (PartitionId partitionId : _lastCurState.getPartitionStateMap().keySet()) {
       // carry-over only when current-state not exist
-      if (curState.getState(partitionName) == null) {
-        curState.setState(partitionName, _initState);
+      if (curState.getState(partitionId) == null) {
+        curState.setState(partitionId, State.from(_initState));
       }
     }
     return curState.getRecord();

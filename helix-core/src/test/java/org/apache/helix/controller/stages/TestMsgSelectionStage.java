@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.stages.MessageSelectionStage;
+import org.apache.helix.api.Id;
 import org.apache.helix.controller.stages.MessageSelectionStage.Bounds;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -49,10 +49,10 @@ public class TestMsgSelectionStage {
     Map<String, String> pendingStates = new HashMap<String, String>();
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
-        "TestDB_0"));
-    messages.add(TestHelper.createMessage("msgId_1", "MASTER", "SLAVE", "localhost_1", "TestDB",
-        "TestDB_0"));
+    messages.add(TestHelper.createMessage(Id.message("msgId_0"), "SLAVE", "MASTER", "localhost_0",
+        "TestDB", "TestDB_0"));
+    messages.add(TestHelper.createMessage(Id.message("msgId_1"), "MASTER", "SLAVE", "localhost_1",
+        "TestDB", "TestDB_0"));
 
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
     stateConstraints.put("MASTER", new Bounds(0, 1));
@@ -67,7 +67,7 @@ public class TestMsgSelectionStage {
             messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 1);
-    Assert.assertEquals(selectedMsg.get(0).getMsgIdString(), "msgId_1");
+    Assert.assertEquals(selectedMsg.get(0).getMsgId(), Id.message("msgId_1"));
     System.out.println("END testMasterXfer at " + new Date(System.currentTimeMillis()));
   }
 
@@ -88,8 +88,8 @@ public class TestMsgSelectionStage {
     pendingStates.put("localhost_1", "MASTER");
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
-        "TestDB_0"));
+    messages.add(TestHelper.createMessage(Id.message("msgId_0"), "SLAVE", "MASTER", "localhost_0",
+        "TestDB", "TestDB_0"));
 
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
     stateConstraints.put("MASTER", new Bounds(0, 1));

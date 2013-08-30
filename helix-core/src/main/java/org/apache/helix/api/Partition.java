@@ -41,4 +41,9 @@ public class Partition {
   public PartitionId getId() {
     return _id;
   }
+
+  @Override
+  public String toString() {
+    return _id.toString();
+  }
 }

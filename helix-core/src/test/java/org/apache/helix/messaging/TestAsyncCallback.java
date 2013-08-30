@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.helix.api.Id;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.model.Message;
 import org.testng.AssertJUnit;
@@ -58,14 +59,14 @@ public class TestAsyncCallback {
 
     List<Message> messageSent = new ArrayList<Message>();
     for (int i = 0; i < nMsgs; i++) {
-      messageSent.add(new Message("Test", UUID.randomUUID().toString()));
+      messageSent.add(new Message("Test", Id.message(UUID.randomUUID().toString())));
     }
 
     callback.setMessagesSent(messageSent);
 
     for (int i = 0; i < nMsgs; i++) {
       AssertJUnit.assertFalse(callback.isDone());
-      callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
+      callback.onReply(new Message("TestReply", Id.message(UUID.randomUUID().toString())));
     }
     AssertJUnit.assertTrue(callback.isDone());
 
@@ -82,7 +83,7 @@ public class TestAsyncCallback {
       sleep(50);
       AssertJUnit.assertFalse(callback.isDone());
       AssertJUnit.assertTrue(callback._onReplyMessageCalled == i);
-      callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
+      callback.onReply(new Message("TestReply", Id.message(UUID.randomUUID().toString())));
     }
     sleep(1000);
     AssertJUnit.assertTrue(callback.isTimedOut());
@@ -99,7 +100,7 @@ public class TestAsyncCallback {
       AssertJUnit.assertFalse(callback.isDone());
       sleep(50);
       AssertJUnit.assertTrue(callback._onReplyMessageCalled == i);
-      callback.onReply(new Message("TestReply", UUID.randomUUID().toString()));
+      callback.onReply(new Message("TestReply", Id.message(UUID.randomUUID().toString())));
     }
     AssertJUnit.assertTrue(callback.isDone());
     sleep(1300);

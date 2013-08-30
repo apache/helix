@@ -22,14 +22,16 @@ package org.apache.helix.controller.stages;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
-import org.apache.helix.model.Message.MessageType;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -57,32 +59,32 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())) {
           continue;
         }
-        if (!instance.getSessionIdString().equals(message.getTgtSessionIdString())) {
+        if (!instance.getSessionId().equals(message.getTgtSessionId())) {
           continue;
         }
-        String resourceName = message.getResourceName();
-        Resource resource = resourceMap.get(resourceName);
+        ResourceId resourceId = message.getResourceId();
+        Resource resource = resourceMap.get(resourceId.stringify());
         if (resource == null) {
           continue;
         }
 
         if (!message.getBatchMessageMode()) {
-          String partitionName = message.getPartitionName();
-          Partition partition = resource.getPartition(partitionName);
+          PartitionId partitionId = message.getPartitionId();
+          Partition partition = resource.getPartition(partitionId.stringify());
           if (partition != null) {
-            currentStateOutput.setPendingState(resourceName, partition, instanceName,
-                message.getToStateString());
+            currentStateOutput.setPendingState(resourceId.stringify(), partition, instanceName,
+                message.getToState().toString());
           } else {
             // log
           }
         } else {
-          List<String> partitionNames = message.getPartitionNames();
+          List<PartitionId> partitionNames = message.getPartitionIds();
           if (!partitionNames.isEmpty()) {
-            for (String partitionName : partitionNames) {
-              Partition partition = resource.getPartition(partitionName);
+            for (PartitionId partitionId : partitionNames) {
+              Partition partition = resource.getPartition(partitionId.stringify());
               if (partition != null) {
-                currentStateOutput.setPendingState(resourceName, partition, instanceName,
-                    message.getToStateString());
+                currentStateOutput.setPendingState(resourceId.stringify(), partition, instanceName,
+                    message.getToState().toString());
               } else {
                 // log
               }
@@ -94,12 +96,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     for (LiveInstance instance : liveInstances.values()) {
       String instanceName = instance.getInstanceName();
 
-      String clientSessionId = instance.getSessionIdString();
+      String clientSessionId = instance.getSessionId().stringify();
       Map<String, CurrentState> currentStateMap =
           cache.getCurrentState(instanceName, clientSessionId);
       for (CurrentState currentState : currentStateMap.values()) {
 
-        if (!instance.getSessionIdString().equals(currentState.getSessionIdString())) {
+        if (!instance.getSessionId().equals(currentState.getSessionId())) {
           continue;
         }
         String resourceName = currentState.getResourceName();

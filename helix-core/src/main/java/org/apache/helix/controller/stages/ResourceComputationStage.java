@@ -74,7 +74,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
     if (availableInstances != null && availableInstances.size() > 0) {
       for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
-        String clientSessionId = instance.getSessionIdString();
+        String clientSessionId = instance.getSessionId().stringify();
 
         Map<String, CurrentState> currentStateMap =
             cache.getCurrentState(instanceName, clientSessionId);
@@ -98,8 +98,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
           if (currentState.getStateModelDefRef() == null) {
             LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
-                + ", partitions: " + currentState.getPartitionStateStringMap().keySet() + ", states: "
-                + currentState.getPartitionStateStringMap().values());
+                + ", partitions: " + currentState.getPartitionStateStringMap().keySet()
+                + ", states: " + currentState.getPartitionStateStringMap().values());
             throw new StageException("State model def is null for resource:"
                 + currentState.getResourceName());
           }

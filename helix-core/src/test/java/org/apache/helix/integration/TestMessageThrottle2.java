@@ -41,6 +41,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -281,44 +282,44 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
 
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes SLAVE from OFFLINE for " + partitionName);
+      LOGGER.info(instanceName + " becomes SLAVE from OFFLINE for " + partitionId);
     }
 
     @Transition(to = "SLAVE", from = "MASTER")
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes SLAVE from MASTER for " + partitionName);
+      LOGGER.info(instanceName + " becomes SLAVE from MASTER for " + partitionId);
     }
 
     @Transition(to = "MASTER", from = "SLAVE")
     public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes MASTER from SLAVE for " + partitionName);
+      LOGGER.info(instanceName + " becomes MASTER from SLAVE for " + partitionId);
     }
 
     @Transition(to = "OFFLINE", from = "SLAVE")
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes OFFLINE from SLAVE for " + partitionName);
+      LOGGER.info(instanceName + " becomes OFFLINE from SLAVE for " + partitionId);
     }
 
     @Transition(to = "DROPPED", from = "OFFLINE")
     public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes DROPPED from OFFLINE for " + partitionName);
+      LOGGER.info(instanceName + " becomes DROPPED from OFFLINE for " + partitionId);
     }
 
     @Transition(to = "OFFLINE", from = "ERROR")
     public void onBecomeOfflineFromError(Message message, NotificationContext context) {
-      String partitionName = message.getPartitionName();
+      PartitionId partitionId = message.getPartitionId();
       String instanceName = message.getTgtName();
-      LOGGER.info(instanceName + " becomes OFFLINE from ERROR for " + partitionName);
+      LOGGER.info(instanceName + " becomes OFFLINE from ERROR for " + partitionId);
     }
   }
 

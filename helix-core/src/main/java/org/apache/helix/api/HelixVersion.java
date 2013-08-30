@@ -60,6 +60,9 @@ public class HelixVersion {
    * @return HelixVersion
    */
   public static HelixVersion from(String version) {
+    if (version == null) {
+      return null;
+    }
     return new HelixVersion(version);
   }
 }

@@ -29,6 +29,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -134,7 +135,8 @@ public class AutoRebalancer implements Rebalancer {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
+    ResourceAssignment partitionMapping =
+        new ResourceAssignment(Id.resource(resource.getResourceName()));
     for (String partitionName : partitions) {
       Partition partition = new Partition(partitionName);
       Map<String, String> currentStateMap =
@@ -147,7 +149,8 @@ public class AutoRebalancer implements Rebalancer {
       Map<String, String> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(clusterData, stateModelDef,
               preferenceList, currentStateMap, disabledInstancesForPartition);
-      partitionMapping.addReplicaMap(partition, bestStateForPartition);
+      partitionMapping.addReplicaMap(Id.partition(partitionName),
+          ResourceAssignment.replicaMapFromStringMap(bestStateForPartition));
     }
     return partitionMapping;
   }

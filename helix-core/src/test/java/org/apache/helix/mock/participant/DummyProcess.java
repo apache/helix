@@ -32,6 +32,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -162,7 +163,7 @@ public class DummyProcess {
     }
 
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
-      String db = message.getPartitionName();
+      PartitionId db = message.getPartitionId();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
@@ -207,7 +208,7 @@ public class DummyProcess {
     }
 
     public void onBecomeOnlineFromOffline(Message message, NotificationContext context) {
-      String db = message.getPartitionName();
+      PartitionId db = message.getPartitionId();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
 
@@ -238,7 +239,7 @@ public class DummyProcess {
     }
 
     public void onBecomeLeaderFromStandby(Message message, NotificationContext context) {
-      String db = message.getPartitionName();
+      PartitionId db = message.getPartitionId();
       String instanceName = context.getManager().getInstanceName();
       DummyProcess.sleep(_transDelay);
       logger.info("DummyLeaderStandbyStateModel.onBecomeLeaderFromStandby(), instance:"

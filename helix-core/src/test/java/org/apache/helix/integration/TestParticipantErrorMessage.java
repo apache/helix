@@ -24,6 +24,7 @@ import java.util.UUID;
 import org.apache.helix.Criteria;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Id;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory.ActionOnError;
 import org.apache.helix.model.ExternalView;
@@ -41,8 +42,8 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     String participant2 = "localhost_" + (START_PORT + 1);
 
     Message errorMessage1 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, UUID.randomUUID().toString());
-    errorMessage1.setTgtSessionId("*");
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, Id.message(UUID.randomUUID().toString()));
+    errorMessage1.setTgtSessionId(Id.session("*"));
     errorMessage1.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_INSTANCE.toString());
@@ -53,10 +54,10 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
         errorMessage1);
 
     Message errorMessage2 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, UUID.randomUUID().toString());
-    errorMessage2.setTgtSessionId("*");
-    errorMessage2.setResourceName("TestDB");
-    errorMessage2.setPartitionName("TestDB_14");
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, Id.message(UUID.randomUUID().toString()));
+    errorMessage2.setTgtSessionId(Id.session("*"));
+    errorMessage2.setResourceId(Id.resource("TestDB"));
+    errorMessage2.setPartitionId(Id.partition("TestDB_14"));
     errorMessage2.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_PARTITION.toString());

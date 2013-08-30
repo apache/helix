@@ -26,8 +26,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.model.LeaderHistory;
@@ -138,7 +138,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
 
     leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader != null) {
-      String leaderSessionId = leader.getSessionIdString();
+      String leaderSessionId = leader.getSessionId().stringify();
       LOG.info("Leader exists for cluster: " + manager.getClusterName() + ", currentLeader: "
           + leader.getInstanceName() + ", leaderSessionId: " + leaderSessionId);
 

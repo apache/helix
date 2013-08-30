@@ -25,17 +25,17 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.log4j.Logger;
 
 /**
@@ -72,7 +72,7 @@ public class ClusterDataCache {
     _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
 
     for (LiveInstance instance : _liveInstanceMap.values()) {
-      LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionIdString());
+      LOG.trace("live instance: " + instance.getParticipantId() + " " + instance.getSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
@@ -90,7 +90,7 @@ public class ClusterDataCache {
         new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet()) {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
-      String sessionId = liveInstance.getSessionIdString();
+      String sessionId = liveInstance.getSessionId().stringify();
       if (!allCurStateMap.containsKey(instanceName)) {
         allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }

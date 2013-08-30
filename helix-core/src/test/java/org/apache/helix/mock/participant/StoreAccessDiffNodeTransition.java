@@ -34,8 +34,8 @@ public class StoreAccessDiffNodeTransition extends MockTransition {
   public void doTransition(Message message, NotificationContext context) {
     HelixManager manager = context.getManager();
     ZkHelixPropertyStore<ZNRecord> store = manager.getHelixPropertyStore();
-    final String setPath = "/TEST_PERF/set/" + message.getPartitionName();
-    final String updatePath = "/TEST_PERF/update/" + message.getPartitionName();
+    final String setPath = "/TEST_PERF/set/" + message.getPartitionId();
+    final String updatePath = "/TEST_PERF/update/" + message.getPartitionId();
     // final String key = message.getPartitionName();
     try {
       // get/set once

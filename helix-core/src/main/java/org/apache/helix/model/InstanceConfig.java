@@ -29,6 +29,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
 import org.apache.log4j.Logger;
 
 /**
@@ -54,6 +55,14 @@ public class InstanceConfig extends HelixProperty {
    */
   public InstanceConfig(String instanceId) {
     super(instanceId);
+  }
+
+  /**
+   * Instantiate for a specific instance
+   * @param participantId the instance identifier
+   */
+  public InstanceConfig(ParticipantId participantId) {
+    super(participantId.stringify());
   }
 
   /**
@@ -213,6 +222,15 @@ public class InstanceConfig extends HelixProperty {
     list = new ArrayList<String>(disabledPartitions);
     Collections.sort(list);
     _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
+  }
+
+  /**
+   * Set the enabled state for a partition on this instance
+   * @param partitionId the partition to set
+   * @param enabled true to enable, false to disable
+   */
+  public void setInstanceEnabledForPartition(PartitionId partitionId, boolean enabled) {
+    setInstanceEnabledForPartition(partitionId.stringify(), enabled);
   }
 
   @Override

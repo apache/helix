@@ -27,6 +27,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockTransition;
@@ -48,9 +49,10 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
       ZkHelixTestManager manager = (ZkHelixTestManager) context.getManager();
 
       String instance = message.getTgtName();
-      String partition = message.getPartitionName();
-      if (instance.equals("localhost_12918") && partition.equals("TestDB0_1") // TestDB0_1 is SLAVE
-                                                                              // on localhost_12918
+      PartitionId partition = message.getPartitionId();
+      if (instance.equals("localhost_12918") && partition.toString().equals("TestDB0_1") // TestDB0_1
+                                                                                         // is SLAVE
+          // on localhost_12918
           && _done.getAndSet(true) == false) {
         try {
           ZkTestHelper.expireSession(manager.getZkClient());

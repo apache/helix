@@ -31,6 +31,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.alerts.AlertValueAndStatus;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
@@ -75,12 +76,12 @@ public class TestStalenessAlert extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context) {
       HelixManager manager = context.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      String fromState = message.getFromStateString();
-      String toState = message.getToStateString();
+      State fromState = message.getFromState();
+      State toState = message.getToState();
       String instance = message.getTgtName();
-      String partition = message.getPartitionName();
 
-      if (fromState.equalsIgnoreCase("SLAVE") && toState.equalsIgnoreCase("MASTER")) {
+      if (fromState.toString().equalsIgnoreCase("SLAVE")
+          && toState.toString().equalsIgnoreCase("MASTER")) {
 
         // add a stat and report to ZK
         // perhaps should keep reporter per instance...

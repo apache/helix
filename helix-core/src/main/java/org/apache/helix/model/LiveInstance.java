@@ -53,6 +53,14 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
+   * Instantiate with an participant identifier
+   * @param id participant identifier
+   */
+  public LiveInstance(ParticipantId id) {
+    super(id.stringify());
+  }
+
+  /**
    * Instantiate with a pre-populated record
    * @param record ZNRecord corresponding to a live instance
    */
@@ -69,19 +77,11 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Get the session that this instance corresponds to
-   * @return session identifier
-   */
-  public String getSessionIdString() {
-    return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
-  }
-
-  /**
    * Get the session that this participant corresponds to
    * @return session identifier
    */
   public SessionId getSessionId() {
-    return Id.session(getSessionIdString());
+    return Id.session(_record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString()));
   }
 
   /**
@@ -101,19 +101,11 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Get the version of Helix that this instance is running
-   * @return the version
-   */
-  public String getHelixVersionString() {
-    return _record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString());
-  }
-
-  /**
    * Get the version of Helix that this participant is running
    * @return the version
    */
   public HelixVersion getHelixVersion() {
-    return HelixVersion.from(getHelixVersionString());
+    return HelixVersion.from(_record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString()));
   }
 
   /**
@@ -174,11 +166,11 @@ public class LiveInstance extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getSessionIdString() == null) {
+    if (getSessionId() == null) {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }
-    if (getHelixVersionString() == null) {
+    if (getHelixVersion() == null) {
       _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
       return false;
     }

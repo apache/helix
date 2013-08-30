@@ -53,6 +53,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
+import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
@@ -326,9 +331,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check partition is in ERROR state
-    String sessionId = liveInstance.getSessionIdString();
+    SessionId sessionId = liveInstance.getSessionId();
     CurrentState curState =
-        accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
+        accessor.getProperty(keyBuilder.currentState(instanceName, sessionId.stringify(),
+            resourceName));
     for (String partitionName : resetPartitionNames) {
       if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString())) {
         throw new HelixException("Can't reset state for " + resourceName + "/" + partitionNames
@@ -337,8 +343,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check stateModelDef exists and get initial state
-    String stateModelDef = idealState.getStateModelDefRef();
-    StateModelDefinition stateModel = accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
+    StateModelDefId stateModelDef = idealState.getStateModelDefId();
+    StateModelDefinition stateModel =
+        accessor.getProperty(keyBuilder.stateModelDef(stateModelDef.stringify()));
     if (stateModel == null) {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partitionNames
           + " on " + instanceName + ", because " + stateModelDef + " is NOT found");
@@ -348,9 +355,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
     for (Message message : messages) {
       if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
-          || !sessionId.equals(message.getTgtSessionIdString())
-          || !resourceName.equals(message.getResourceName())
-          || !resetPartitionNames.contains(message.getPartitionName())) {
+          || !sessionId.equals(message.getTgtSessionId())
+          || !resourceName.equals(message.getResourceId().stringify())
+          || !resetPartitionNames.contains(message.getPartitionId().stringify())) {
         continue;
       }
 
@@ -371,17 +378,17 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<PropertyKey> messageKeys = new ArrayList<PropertyKey>();
     for (String partitionName : resetPartitionNames) {
       // send ERROR to initialState message
-      String msgId = UUID.randomUUID().toString();
+      MessageId msgId = Id.message(UUID.randomUUID().toString());
       Message message = new Message(MessageType.STATE_TRANSITION, msgId);
       message.setSrcName(adminName);
       message.setTgtName(instanceName);
       message.setMsgState(MessageState.NEW);
-      message.setPartitionName(partitionName);
-      message.setResourceName(resourceName);
+      message.setPartitionId(Id.partition(partitionName));
+      message.setResourceId(Id.resource(resourceName));
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
-      message.setFromState(HelixDefinedState.ERROR.toString());
-      message.setToState(stateModel.getInitialStateString());
+      message.setFromState(State.from(HelixDefinedState.ERROR.toString()));
+      message.setToState(stateModel.getInitialState());
       message.setStateModelFactoryName(idealState.getStateModelFactoryName());
 
       resetMessages.add(message);

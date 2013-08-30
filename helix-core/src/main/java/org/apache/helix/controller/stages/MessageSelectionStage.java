@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.IdealState;
@@ -169,8 +170,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
         new TreeMap<Integer, List<Message>>();
     for (Message message : messages) {
-      String fromState = message.getFromStateString();
-      String toState = message.getToStateString();
+      State fromState = message.getFromState();
+      State toState = message.getToState();
       String transition = fromState + "-" + toState;
       int priority = Integer.MAX_VALUE;
 
@@ -187,8 +188,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
-        String fromState = message.getFromStateString();
-        String toState = message.getToStateString();
+        State fromState = message.getFromState();
+        State toState = message.getToState();
 
         if (!bounds.containsKey(fromState)) {
           LOG.error("Message's fromState is not in currentState. message: " + message);
@@ -196,7 +197,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
         }
 
         if (!bounds.containsKey(toState)) {
-          bounds.put(toState, new Bounds(0, 0));
+          bounds.put(toState.toString(), new Bounds(0, 0));
         }
 
         // check lower bound of fromState

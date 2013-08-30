@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -52,7 +53,7 @@ public class GroupMessageHandler {
 
     public GroupMessageInfo(Message message) {
       _message = message;
-      List<String> partitionNames = message.getPartitionNames();
+      List<PartitionId> partitionNames = message.getPartitionIds();
       _countDown = new AtomicInteger(partitionNames.size());
       _curStateUpdateList = new ConcurrentLinkedQueue<CurrentStateUpdate>();
     }

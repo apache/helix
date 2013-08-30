@@ -31,6 +31,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.ControllerManager;
 import org.apache.helix.manager.zk.ParticipantManager;
@@ -42,7 +43,6 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -174,7 +174,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context)
         throws InterruptedException {
       String instance = message.getTgtName();
-      String partition = message.getPartitionName();
+      PartitionId partition = message.getPartitionId();
       if (instance.equals("localhost_12918") && partition.equals("TestDB0_0")
           && _done.getAndSet(true) == false) {
         _startCountdown.countDown();

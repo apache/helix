@@ -35,8 +35,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -44,13 +42,18 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.util.StatusUpdateUtil;
@@ -161,9 +164,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
-      String resourceName = message.getResourceName();
-      if (resourceName != null) {
-        String key = message.getMsgType() + "." + resourceName;
+      ResourceId resourceId = message.getResourceId();
+      if (resourceId != null) {
+        String key = message.getMsgType() + "." + resourceId;
         if (_executorMap.containsKey(key)) {
           LOG.info("Find per-resource thread pool with key: " + key);
           executorService = _executorMap.get(key);
@@ -223,7 +226,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     try {
       if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
-        checkResourceConfig(message.getResourceName(), notificationContext.getManager());
+        checkResourceConfig(message.getResourceId().toString(), notificationContext.getManager());
       }
 
       LOG.info("Scheduling message: " + taskId);
@@ -430,14 +433,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      String tgtSessionId = message.getTgtSessionIdString();
+      SessionId tgtSessionId = message.getTgtSessionId();
 
       // sessionId mismatch normally means message comes from expired session, just remove it
-      if (!sessionId.equals(tgtSessionId) && !tgtSessionId.equals("*")) {
+      if (!sessionId.equals(tgtSessionId.toString()) && !tgtSessionId.toString().equals("*")) {
         String warningMessage =
             "SessionId does NOT match. expected sessionId: " + sessionId
                 + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
-                + message.getMsgIdString();
+                + message.getMsgId();
         LOG.warn(warningMessage);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage,
@@ -452,7 +455,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         // We will read the message again if there is a new message but we
         // check for the status and ignore if its already read
         if (LOG.isTraceEnabled()) {
-          LOG.trace("Message already read. msgId: " + message.getMsgIdString());
+          LOG.trace("Message already read. msgId: " + message.getMsgId());
         }
         continue;
       }
@@ -465,9 +468,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         }
         handlers.add(createHandler);
       } catch (Exception e) {
-        LOG.error("Failed to create message handler for " + message.getMsgIdString(), e);
+        LOG.error("Failed to create message handler for " + message.getMsgId(), e);
         String error =
-            "Failed to create message handler for " + message.getMsgIdString() + ", exception: " + e;
+            "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
 
         _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, accessor);
 
@@ -481,7 +484,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // update msgState to read
       message.setMsgState(MessageState.READ);
       message.setReadTimeStamp(new Date().getTime());
-      message.setExecuteSessionId(changeContext.getManager().getSessionId());
+      message.setExecuteSessionId(Id.session(changeContext.getManager().getSessionId()));
 
       _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
 
@@ -491,15 +494,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // do it for non-controller and state transition messages only
       if (!message.isControlerMsg()
           && message.getMsgType().equals(Message.MessageType.STATE_TRANSITION.toString())) {
-        String resourceName = message.getResourceName();
-        if (!curResourceNames.contains(resourceName) && !createCurStateNames.contains(resourceName)) {
-          createCurStateNames.add(resourceName);
-          createCurStateKeys.add(keyBuilder.currentState(instanceName, sessionId, resourceName));
+        ResourceId resourceId = message.getResourceId();
+        if (!curResourceNames.contains(resourceId.stringify())
+            && !createCurStateNames.contains(resourceId.stringify())) {
+          createCurStateNames.add(resourceId.stringify());
+          createCurStateKeys.add(keyBuilder.currentState(instanceName, sessionId,
+              resourceId.stringify()));
 
-          CurrentState metaCurState = new CurrentState(resourceName);
+          CurrentState metaCurState = new CurrentState(resourceId.stringify());
           metaCurState.setBucketSize(message.getBucketSize());
           metaCurState.setStateModelDefRef(message.getStateModelDef());
-          metaCurState.setSessionId(sessionId);
+          metaCurState.setSessionId(Id.session(sessionId));
           metaCurState.setBatchMessageMode(message.getBatchMessageMode());
           String ftyName = message.getStateModelFactoryName();
           if (ftyName != null) {
@@ -543,7 +548,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // the corresponding MessageHandlerFactory is registered
     if (handlerFactory == null) {
       LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
-          + message.getMsgIdString());
+          + message.getMsgId());
       return null;
     }
 

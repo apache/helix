@@ -95,12 +95,12 @@ public class ParticipantAccessor {
    * @param participantId
    * @param msgMap map of message-id to message
    */
-  public void sendMessagesToParticipant(ParticipantId participantId, Map<MessageId, Message> msgMap) {
-    String participantName = participantId.stringify();
+  public void insertMessagesToParticipant(ParticipantId participantId,
+      Map<MessageId, Message> msgMap) {
     List<PropertyKey> msgKeys = new ArrayList<PropertyKey>();
     List<Message> msgs = new ArrayList<Message>();
     for (MessageId msgId : msgMap.keySet()) {
-      msgKeys.add(_keyBuilder.message(participantName, msgId.stringify()));
+      msgKeys.add(_keyBuilder.message(participantId.stringify(), msgId.stringify()));
       msgs.add(msgMap.get(msgId));
     }
 
@@ -302,8 +302,8 @@ public class ParticipantAccessor {
     RunningInstance runningInstance = null;
     if (liveInstance != null) {
       runningInstance =
-          new RunningInstance(new SessionId(liveInstance.getSessionIdString()), new HelixVersion(
-              liveInstance.getHelixVersionString()), new ProcId(liveInstance.getLiveInstance()));
+          new RunningInstance(liveInstance.getSessionId(), liveInstance.getHelixVersion(),
+              liveInstance.getProcessId());
     }
 
     Map<MessageId, Message> msgMap = new HashMap<MessageId, Message>();

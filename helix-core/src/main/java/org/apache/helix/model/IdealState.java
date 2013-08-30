@@ -21,6 +21,7 @@ package org.apache.helix.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,9 +41,11 @@ import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 
 /**
  * The ideal states of all partitions in a resource
@@ -99,6 +102,14 @@ public class IdealState extends HelixProperty {
    */
   public IdealState(String resourceName) {
     super(resourceName);
+  }
+
+  /**
+   * Instantiate an ideal state for a resource
+   * @param resourceId the id of the resource
+   */
+  public IdealState(ResourceId resourceId) {
+    super(resourceId.stringify());
   }
 
   /**
@@ -173,8 +184,16 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set a reference to the user-defined rebalancer associated with this resource(if any)
+   * @param rebalancerRef a reference to a user-defined rebalancer
+   */
+  public void setRebalancerRef(RebalancerRef rebalancerRef) {
+    setRebalancerClassName(rebalancerRef.toString());
+  }
+
+  /**
    * Get a reference to the user-defined rebalancer associated with this resource(if any)
-   * @return
+   * @return RebalancerRef
    */
   public RebalancerRef getRebalancerRef() {
     String className = getRebalancerClassName();
@@ -232,6 +251,20 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the preferred participant placement and state for a partition replica
+   * @param partitionId the replica to set
+   * @param participantId the assigned participant
+   * @param state the replica state in this instance
+   */
+  public void setPartitionState(PartitionId partitionId, ParticipantId participantId, State state) {
+    Map<String, String> mapField = _record.getMapField(partitionId.stringify());
+    if (mapField == null) {
+      _record.setMapField(partitionId.stringify(), new TreeMap<String, String>());
+    }
+    _record.getMapField(partitionId.stringify()).put(participantId.stringify(), state.toString());
+  }
+
+  /**
    * Get all of the partitions
    * @return a set of partition names
    */
@@ -276,6 +309,20 @@ public class IdealState extends HelixProperty {
    */
   public Map<String, String> getInstanceStateMap(String partitionName) {
     return _record.getMapField(partitionName);
+  }
+
+  /**
+   * Set the current mapping of a partition
+   * @param partitionId the partition to set
+   * @param participantStateMap (participant id, state) pairs
+   */
+  public void setParticipantStateMap(PartitionId partitionId,
+      Map<ParticipantId, State> participantStateMap) {
+    Map<String, String> rawMap = new HashMap<String, String>();
+    for (ParticipantId participantId : participantStateMap.keySet()) {
+      rawMap.put(participantId.stringify(), participantStateMap.get(participantId).toString());
+    }
+    _record.setMapField(partitionId.stringify(), rawMap);
   }
 
   /**
@@ -343,6 +390,19 @@ public class IdealState extends HelixProperty {
    */
   public void setPreferenceList(String partitionName, List<String> preferenceList) {
     _record.setListField(partitionName, preferenceList);
+  }
+
+  /**
+   * Set the preference list of a partition
+   * @param partitionId the id of the partition to set
+   * @param preferenceList a list of participants that can serve replicas of the partition
+   */
+  public void setPreferenceList(PartitionId partitionId, List<ParticipantId> preferenceList) {
+    List<String> rawPreferenceList = new ArrayList<String>();
+    for (ParticipantId participantId : preferenceList) {
+      rawPreferenceList.add(participantId.stringify());
+    }
+    _record.setListField(partitionId.stringify(), rawPreferenceList);
   }
 
   /**
@@ -556,10 +616,10 @@ public class IdealState extends HelixProperty {
   public void updateFromAssignment(ResourceAssignment assignment) {
     _record.getMapFields().clear();
     _record.getListFields().clear();
-    for (Partition partition : assignment.getMappedPartitions()) {
-      Map<String, String> replicaMap = assignment.getReplicaMap(partition);
-      setInstanceStateMap(partition.getPartitionName(), replicaMap);
-      setPreferenceList(partition.getPartitionName(), new ArrayList<String>(replicaMap.keySet()));
+    for (PartitionId partition : assignment.getMappedPartitions()) {
+      Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partition);
+      setParticipantStateMap(partition, replicaMap);
+      setPreferenceList(partition, new ArrayList<ParticipantId>(replicaMap.keySet()));
     }
   }
 
@@ -603,5 +663,116 @@ public class IdealState extends HelixProperty {
       break;
     }
     return property;
+  }
+
+  /**
+   * Convert a preference list of strings into a preference list of participants
+   * @param rawPreferenceList the list of strings representing participant names
+   * @return converted list
+   */
+  public static List<ParticipantId> preferenceListFromStringList(List<String> rawPreferenceList) {
+    if (rawPreferenceList == null) {
+      return Collections.emptyList();
+    }
+    return Lists.transform(rawPreferenceList, new Function<String, ParticipantId>() {
+      @Override
+      public ParticipantId apply(String participantName) {
+        return Id.participant(participantName);
+      }
+    });
+  }
+
+  /**
+   * Convert preference lists of strings into preference lists of participants
+   * @param rawPreferenceLists a map of partition name to a list of participant names
+   * @return converted lists as a map
+   */
+  public static Map<PartitionId, List<ParticipantId>> preferenceListsFromStringLists(
+      Map<String, List<String>> rawPreferenceLists) {
+    if (rawPreferenceLists == null) {
+      return Collections.emptyMap();
+    }
+    Map<PartitionId, List<ParticipantId>> preferenceLists =
+        new HashMap<PartitionId, List<ParticipantId>>();
+    for (String partitionId : rawPreferenceLists.keySet()) {
+      preferenceLists.put(Id.partition(partitionId),
+          preferenceListFromStringList(rawPreferenceLists.get(partitionId)));
+    }
+    return preferenceLists;
+  }
+
+  /**
+   * Convert a preference list of participants into a preference list of strings
+   * @param preferenceList the list of strings representing participant ids
+   * @return converted list
+   */
+  public static List<String> stringListFromPreferenceList(List<ParticipantId> preferenceList) {
+    if (preferenceList == null) {
+      return Collections.emptyList();
+    }
+    return Lists.transform(preferenceList, new Function<ParticipantId, String>() {
+      @Override
+      public String apply(ParticipantId participantId) {
+        return participantId.stringify();
+      }
+    });
+  }
+
+  /**
+   * Convert preference lists of participants into preference lists of strings
+   * @param preferenceLists a map of partition id to a list of participant ids
+   * @return converted lists as a map
+   */
+  public static Map<String, List<String>> stringListsFromPreferenceLists(
+      Map<PartitionId, List<ParticipantId>> preferenceLists) {
+    if (preferenceLists == null) {
+      return Collections.emptyMap();
+    }
+    Map<String, List<String>> rawPreferenceLists = new HashMap<String, List<String>>();
+    for (PartitionId partitionId : preferenceLists.keySet()) {
+      rawPreferenceLists.put(partitionId.stringify(),
+          stringListFromPreferenceList(preferenceLists.get(partitionId)));
+    }
+    return rawPreferenceLists;
+  }
+
+  /**
+   * Convert a partition mapping as strings into a participant state map
+   * @param rawMap the map of participant name to state
+   * @return converted map
+   */
+  public static Map<ParticipantId, State> participantStateMapFromStringMap(
+      Map<String, String> rawMap) {
+    return ResourceAssignment.replicaMapFromStringMap(rawMap);
+  }
+
+  /**
+   * Convert a full state mapping as strings into participant state maps
+   * @param rawMaps the map of partition name to participant name and state
+   * @return converted maps
+   */
+  public static Map<PartitionId, Map<ParticipantId, State>> participantStateMapsFromStringMaps(
+      Map<String, Map<String, String>> rawMaps) {
+    return ResourceAssignment.replicaMapsFromStringMaps(rawMaps);
+  }
+
+  /**
+   * Convert a partition mapping into a mapping of string names
+   * @param participantStateMap the map of participant id to state
+   * @return converted map
+   */
+  public static Map<String, String> stringMapFromParticipantStateMap(
+      Map<ParticipantId, State> participantStateMap) {
+    return ResourceAssignment.stringMapFromReplicaMap(participantStateMap);
+  }
+
+  /**
+   * Convert a full state mapping into a mapping of string names
+   * @param participantStateMaps the map of partition id to participant id and state
+   * @return converted maps
+   */
+  public static Map<String, Map<String, String>> stringMapsFromParticipantStateMaps(
+      Map<PartitionId, Map<ParticipantId, State>> participantStateMaps) {
+    return ResourceAssignment.stringMapsFromReplicaMaps(participantStateMaps);
   }
 }

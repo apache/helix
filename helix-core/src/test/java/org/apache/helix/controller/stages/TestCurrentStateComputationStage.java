@@ -21,12 +21,10 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.State;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
@@ -66,13 +64,13 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         0);
 
     // Add a state transition messages
-    Message message = new Message(Message.MessageType.STATE_TRANSITION, "msg1");
-    message.setFromState("OFFLINE");
-    message.setToState("SLAVE");
-    message.setResourceName("testResourceName");
-    message.setPartitionName("testResourceName_1");
+    Message message = new Message(Message.MessageType.STATE_TRANSITION, Id.message("msg1"));
+    message.setFromState(State.from("OFFLINE"));
+    message.setToState(State.from("SLAVE"));
+    message.setResourceId(Id.resource("testResourceName"));
+    message.setPartitionId(Id.partition("testResourceName_1"));
     message.setTgtName("localhost_3");
-    message.setTgtSessionId("session_3");
+    message.setTgtSessionId(Id.session("session_3"));
 
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
@@ -88,14 +86,14 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     ZNRecord record1 = new ZNRecord("testResourceName");
     // Add a current state that matches sessionId and one that does not match
     CurrentState stateWithLiveSession = new CurrentState(record1);
-    stateWithLiveSession.setSessionId("session_3");
+    stateWithLiveSession.setSessionId(Id.session("session_3"));
     stateWithLiveSession.setStateModelDefRef("MasterSlave");
-    stateWithLiveSession.setState("testResourceName_1", "OFFLINE");
+    stateWithLiveSession.setState(Id.partition("testResourceName_1"), State.from("OFFLINE"));
     ZNRecord record2 = new ZNRecord("testResourceName");
     CurrentState stateWithDeadSession = new CurrentState(record2);
-    stateWithDeadSession.setSessionId("session_dead");
+    stateWithDeadSession.setSessionId(Id.session("session_dead"));
     stateWithDeadSession.setStateModelDefRef("MasterSlave");
-    stateWithDeadSession.setState("testResourceName_1", "MASTER");
+    stateWithDeadSession.setState(Id.partition("testResourceName_1"), State.from("MASTER"));
 
     accessor.setProperty(keyBuilder.currentState("localhost_3", "session_3", "testResourceName"),
         stateWithLiveSession);

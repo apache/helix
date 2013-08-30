@@ -25,8 +25,8 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
@@ -98,7 +98,7 @@ public class IdealStateResource extends Resource {
 
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            keyBuilder.idealStates(resourceName), MediaType.APPLICATION_JSON);
+            keyBuilder.idealState(resourceName), MediaType.APPLICATION_JSON);
 
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);
@@ -123,7 +123,7 @@ public class IdealStateResource extends Resource {
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setProperty(accessor.keyBuilder().idealStates(resourceName), new IdealState(
+        accessor.setProperty(accessor.keyBuilder().idealState(resourceName), new IdealState(
             newIdealState));
 
       } else if (command.equalsIgnoreCase(ClusterSetup.rebalance)) {

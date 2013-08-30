@@ -22,11 +22,11 @@ package org.apache.helix.manager.zk;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PreConnectCallback;
-import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
 import org.apache.helix.healthcheck.HealthStatsAggregator;
@@ -175,7 +175,7 @@ public class DistributedControllerManager extends AbstractManager {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
       if (leader != null) {
         String leaderName = leader.getInstanceName();
-        String sessionId = leader.getSessionIdString();
+        String sessionId = leader.getSessionId().stringify();
         if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
             && sessionId.equals(_sessionId)) {
           return true;

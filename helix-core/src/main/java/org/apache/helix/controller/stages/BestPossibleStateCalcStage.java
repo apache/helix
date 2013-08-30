@@ -22,6 +22,9 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -119,8 +122,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       ResourceAssignment partitionStateAssignment =
           rebalancer.computeResourceMapping(resource, idealState, currentStateOutput, cache);
       for (Partition partition : resource.getPartitions()) {
-        Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
-        output.setState(resourceName, partition, newStateMap);
+        Map<ParticipantId, State> newStateMap =
+            partitionStateAssignment.getReplicaMap(Id.partition(partition.getPartitionName()));
+        output.setParticipantStateMap(resourceName, partition, newStateMap);
       }
     }
     return output;

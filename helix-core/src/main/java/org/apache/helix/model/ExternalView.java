@@ -48,6 +48,14 @@ public class ExternalView extends HelixProperty {
   }
 
   /**
+   * Instantiate an external view with the resource it corresponds to
+   * @param resource the id of the resource
+   */
+  public ExternalView(ResourceId resource) {
+    super(new ZNRecord(resource.stringify()));
+  }
+
+  /**
    * Instantiate an external view with a pre-populated record
    * @param record ZNRecord corresponding to an external view
    */
@@ -70,12 +78,37 @@ public class ExternalView extends HelixProperty {
   }
 
   /**
+   * For a given replica, specify which partition it corresponds to, where it is served, and its
+   * current state
+   * @param partitionId the partition of the replica being served
+   * @param participantId the instance serving the replica
+   * @param state the state the replica is in
+   */
+  public void setState(PartitionId partitionId, ParticipantId participantId, State state) {
+    if (_record.getMapField(partitionId.stringify()) == null) {
+      _record.setMapField(partitionId.stringify(), new TreeMap<String, String>());
+    }
+    _record.getMapField(partitionId.stringify()).put(participantId.stringify(), state.toString());
+  }
+
+  /**
    * For a given partition, indicate where and in what state each of its replicas is in
    * @param partitionName the partition to set
    * @param currentStateMap (instance, state) pairs
    */
   public void setStateMap(String partitionName, Map<String, String> currentStateMap) {
     _record.setMapField(partitionName, currentStateMap);
+  }
+
+  /**
+   * For a given partition, indicate where and in what state each of its replicas is in
+   * @param partitionId the partition to set
+   * @param currentStateMap (participant, state) pairs
+   */
+  public void setStateMap(PartitionId partitionId, Map<ParticipantId, State> currentStateMap) {
+    for (ParticipantId participantId : currentStateMap.keySet()) {
+      setState(partitionId, participantId, currentStateMap.get(participantId));
+    }
   }
 
   /**
@@ -141,5 +174,14 @@ public class ExternalView extends HelixProperty {
   @Override
   public boolean isValid() {
     return true;
+  }
+
+  /**
+   * Convert a partition mapping as strings into a participant state map
+   * @param rawMap the map of participant name to state
+   * @return converted map
+   */
+  public static Map<ParticipantId, State> stateMapFromStringMap(Map<String, String> rawMap) {
+    return ResourceAssignment.replicaMapFromStringMap(rawMap);
   }
 }

@@ -57,6 +57,8 @@ public class RebalancerRef {
   public boolean equals(Object that) {
     if (that instanceof RebalancerRef) {
       return this.toString().equals(((RebalancerRef) that).toString());
+    } else if (that instanceof String) {
+      return this.toString().equals((String) that);
     }
     return false;
   }

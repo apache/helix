@@ -20,9 +20,6 @@ package org.apache.helix.filestore;
  */
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
-
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
@@ -33,6 +30,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "OFFLINE", "MASTER", "SLAVE"
@@ -49,7 +48,7 @@ public class FileStoreStateModel extends StateModel {
 
     @Override
     public ZNRecord update(ZNRecord currentData) {
-      ZNRecord newRec = new ZNRecord(message.getResourceName());
+      ZNRecord newRec = new ZNRecord(message.getResourceId().stringify());
 
       if (currentData != null) {
         int currentGen = convertToInt(newRec.getSimpleField("currentGen"), 0);
@@ -124,12 +123,12 @@ public class FileStoreStateModel extends StateModel {
   @Transition(from = "OFFLINE", to = "SLAVE")
   public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
       throws Exception {
-    System.out.println(_serverId + " transitioning from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    System.out.println(_serverId + " transitioning from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
 
     replicator.start();
-    System.out.println(_serverId + " transitioned from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    System.out.println(_serverId + " transitioned from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
   }
 
   /**
@@ -143,21 +142,22 @@ public class FileStoreStateModel extends StateModel {
   public void onBecomeMasterFromSlave(final Message message, NotificationContext context)
       throws Exception {
     replicator.stop();
-    System.out.println(_serverId + " transitioning from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    System.out.println(_serverId + " transitioning from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
     ZkHelixPropertyStore<ZNRecord> helixPropertyStore =
         context.getManager().getHelixPropertyStore();
     String checkpointDirPath = instanceConfig.getRecord().getSimpleField("check_point_dir");
     CheckpointFile checkpointFile = new CheckpointFile(checkpointDirPath);
     final ChangeRecord lastRecordProcessed = checkpointFile.findLastRecordProcessed();
     DataUpdater<ZNRecord> updater = new HighWaterMarkUpdater(message, lastRecordProcessed);
-    helixPropertyStore.update("TRANSACTION_ID_METADATA" + "/" + message.getResourceName(), updater,
+    helixPropertyStore.update(
+        "TRANSACTION_ID_METADATA" + "/" + message.getResourceId().stringify(), updater,
         AccessOption.PERSISTENT);
     Stat stat = new Stat();
     ;
     ZNRecord znRecord =
-        helixPropertyStore.get("TRANSACTION_ID_METADATA" + "/" + message.getResourceName(), stat,
-            AccessOption.PERSISTENT);
+        helixPropertyStore.get("TRANSACTION_ID_METADATA" + "/"
+            + message.getResourceId().stringify(), stat, AccessOption.PERSISTENT);
     int startGen = Integer.parseInt(znRecord.getSimpleField("currentGen"));
     int startSeq = Integer.parseInt(znRecord.getSimpleField("currentGenStartSeq"));
     String fileStoreDir = instanceConfig.getRecord().getSimpleField("file_store_dir");
@@ -168,8 +168,8 @@ public class FileStoreStateModel extends StateModel {
     long now = System.currentTimeMillis();
     service = new FileSystemWatchService(fileStoreDir, now, generator);
     service.start();
-    System.out.println(_serverId + " transitioned from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    System.out.println(_serverId + " transitioned from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
   }
 
   /**
@@ -183,16 +183,16 @@ public class FileStoreStateModel extends StateModel {
   public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
       throws Exception {
     service.stop();
-    LOG.info(_serverId + " transitioning from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    LOG.info(_serverId + " transitioning from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
     replicator.start();
   }
 
   @Transition(from = "SLAVE", to = "OFFLINE")
   public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
     replicator.stop();
-    LOG.info(_serverId + " transitioning from " + message.getFromStateString() + " to "
-        + message.getToStateString() + " for " + _partition);
+    LOG.info(_serverId + " transitioning from " + message.getFromState() + " to "
+        + message.getToState() + " for " + _partition);
   }
 
   public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {

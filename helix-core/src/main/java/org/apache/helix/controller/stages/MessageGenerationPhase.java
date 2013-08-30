@@ -26,17 +26,20 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.Message.MessageState;
-import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
 /**
@@ -64,7 +67,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     Map<String, String> sessionIdMap = new HashMap<String, String>();
 
     for (LiveInstance liveInstance : liveInstances.values()) {
-      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionIdString());
+      sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId().stringify());
     }
     MessageGenerationOutput output = new MessageGenerationOutput();
 
@@ -187,18 +190,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   private Message createMessage(HelixManager manager, String resourceName, String partitionName,
       String instanceName, String currentState, String nextState, String sessionId,
       String stateModelDefName, String stateModelFactoryName, int bucketSize) {
-    String uuid = UUID.randomUUID().toString();
+    MessageId uuid = Id.message(UUID.randomUUID().toString());
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
     message.setMsgState(MessageState.NEW);
-    message.setPartitionName(partitionName);
-    message.setResourceName(resourceName);
-    message.setFromState(currentState);
-    message.setToState(nextState);
-    message.setTgtSessionId(sessionId);
-    message.setSrcSessionId(manager.getSessionId());
-    message.setStateModelDef(stateModelDefName);
+    message.setPartitionId(Id.partition(partitionName));
+    message.setResourceId(Id.resource(resourceName));
+    message.setFromState(State.from(currentState));
+    message.setToState(State.from(nextState));
+    message.setTgtSessionId(Id.session(sessionId));
+    message.setSrcSessionId(Id.session(manager.getSessionId()));
+    message.setStateModelDef(Id.stateModelDef(stateModelDefName));
     message.setStateModelFactoryName(stateModelFactoryName);
     message.setBucketSize(bucketSize);
 

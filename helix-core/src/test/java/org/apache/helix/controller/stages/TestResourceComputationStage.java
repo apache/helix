@@ -27,6 +27,8 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.CurrentState;
@@ -142,9 +144,9 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     String oldResource = "testResourceOld";
     CurrentState currentState = new CurrentState(oldResource);
-    currentState.setState("testResourceOld_0", "OFFLINE");
-    currentState.setState("testResourceOld_1", "SLAVE");
-    currentState.setState("testResourceOld_2", "MASTER");
+    currentState.setState(Id.partition("testResourceOld_0"), State.from("OFFLINE"));
+    currentState.setState(Id.partition("testResourceOld_1"), State.from("SLAVE"));
+    currentState.setState(Id.partition("testResourceOld_2"), State.from("MASTER"));
     currentState.setStateModelDefRef("MasterSlave");
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);

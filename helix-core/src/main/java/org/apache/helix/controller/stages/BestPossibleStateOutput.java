@@ -23,6 +23,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.State;
 import org.apache.helix.model.Partition;
 
 public class BestPossibleStateOutput {
@@ -40,6 +42,16 @@ public class BestPossibleStateOutput {
     }
     Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
     map.put(resource, bestInstanceStateMappingForResource);
+  }
+
+  public void setParticipantStateMap(String resourceName, Partition partition,
+      Map<ParticipantId, State> bestInstanceStateMappingForResource) {
+    Map<String, String> rawStateMap = new HashMap<String, String>();
+    for (ParticipantId participantId : bestInstanceStateMappingForResource.keySet()) {
+      rawStateMap.put(participantId.stringify(),
+          bestInstanceStateMappingForResource.get(participantId).toString());
+    }
+    setState(resourceName, partition, rawStateMap);
   }
 
   public Map<String, String> getInstanceStateMap(String resourceName, Partition resource) {

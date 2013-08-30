@@ -95,7 +95,7 @@ public class ResourceGroupResource extends Resource {
 
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            keyBuilder.idealStates(resourceName), MediaType.APPLICATION_JSON);
+            keyBuilder.idealState(resourceName), MediaType.APPLICATION_JSON);
 
     StringRepresentation representation =
         new StringRepresentation(message, MediaType.APPLICATION_JSON);

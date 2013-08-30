@@ -27,7 +27,6 @@ import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
@@ -36,13 +35,12 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.ScheduledTaskStateModelFactory;
 import org.apache.log4j.Logger;
@@ -151,14 +149,14 @@ public class ParticipantManagerHelper {
              * update sessionId field in live-instance if necessary
              */
             LiveInstance curLiveInstance = new LiveInstance(record);
-            if (!curLiveInstance.getSessionIdString().equals(_sessionId)) {
+            if (!curLiveInstance.getSessionId().stringify().equals(_sessionId)) {
               /**
                * in last handle-new-session,
                * live-instance is created by new zkconnection with stale session-id inside
                * just update session-id field
                */
               LOG.info("overwriting session-id by ephemeralOwner: " + ephemeralOwner
-                  + ", old-sessionId: " + curLiveInstance.getSessionIdString() + ", new-sessionId: "
+                  + ", old-sessionId: " + curLiveInstance.getSessionId() + ", new-sessionId: "
                   + _sessionId);
 
               curLiveInstance.setSessionId(_sessionId);
@@ -230,9 +228,10 @@ public class ParticipantManagerHelper {
         String curStatePath =
             _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
                 .getPath();
-        _dataAccessor.getBaseDataAccessor().update(curStatePath,
-            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialStateString(), lastCurState),
-            AccessOption.PERSISTENT);
+        _dataAccessor.getBaseDataAccessor().update(
+            curStatePath,
+            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialStateString(),
+                lastCurState), AccessOption.PERSISTENT);
       }
     }
 

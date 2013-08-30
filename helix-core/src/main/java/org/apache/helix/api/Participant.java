@@ -19,16 +19,12 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 
 import com.google.common.collect.ImmutableMap;
@@ -133,6 +129,15 @@ public class Participant {
    */
   public Set<String> getTags() {
     return _tags;
+  }
+
+  /**
+   * Check if participant has a tag
+   * @param tag tag to check
+   * @return true if tagged, false otherwise
+   */
+  public boolean hasTag(String tag) {
+    return _tags.contains(tag);
   }
 
   /**

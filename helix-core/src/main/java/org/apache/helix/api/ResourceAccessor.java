@@ -23,6 +23,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceAssignment;
 
 public class ResourceAccessor {
   private final ClusterId _clusterId;
@@ -40,8 +41,7 @@ public class ResourceAccessor {
    * @param resourceId
    * @param resourceAssignment
    */
-  public void setResourceAssignment(ResourceId resourceId, RscAssignment resourceAssignment) {
-    // TODO impl this
+  public void setRresourceAssignment(ResourceId resourceId, ResourceAssignment resourceAssignment) {
   }
 
   /**

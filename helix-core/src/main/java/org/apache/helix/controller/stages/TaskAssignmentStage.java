@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.LiveInstance;
@@ -89,14 +90,14 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     Iterator<Message> iter = messages.iterator();
     while (iter.hasNext()) {
       Message message = iter.next();
-      String resourceName = message.getResourceName();
-      Resource resource = resourceMap.get(resourceName);
+      ResourceId resourceId = message.getResourceId();
+      Resource resource = resourceMap.get(resourceId.stringify());
 
       String instanceName = message.getTgtName();
       LiveInstance liveInstance = liveInstanceMap.get(instanceName);
       String participantVersion = null;
       if (liveInstance != null) {
-        participantVersion = liveInstance.getHelixVersionString();
+        participantVersion = liveInstance.getHelixVersion().toString();
       }
 
       if (resource == null || !resource.getBatchMessageMode() || participantVersion == null
@@ -106,9 +107,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       }
 
       String key =
-          keyBuilder.currentState(message.getTgtName(), message.getTgtSessionIdString(),
-              message.getResourceName()).getPath()
-              + "/" + message.getFromStateString() + "/" + message.getToStateString();
+          keyBuilder.currentState(message.getTgtName(), message.getTgtSessionId().stringify(),
+              message.getResourceId().stringify()).getPath()
+              + "/" + message.getFromState() + "/" + message.getToState();
 
       if (!batchMessages.containsKey(key)) {
         Message batchMessage = new Message(message.getRecord());
@@ -116,7 +117,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         outputMessages.add(batchMessage);
         batchMessages.put(key, batchMessage);
       }
-      batchMessages.get(key).addPartitionName(message.getPartitionName());
+      batchMessages.get(key).addPartitionName(message.getPartitionId().stringify());
     }
 
     return outputMessages;
@@ -131,9 +132,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
 
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
     for (Message message : messages) {
-      logger.info("Sending Message " + message.getMsgIdString() + " to " + message.getTgtName()
-          + " transit " + message.getPartitionName() + "|" + message.getPartitionNames() + " from:"
-          + message.getFromStateString() + " to:" + message.getToStateString());
+      logger.info("Sending Message " + message.getMsgId() + " to " + message.getTgtName()
+          + " transit " + message.getPartitionId() + "|" + message.getPartitionIds() + " from:"
+          + message.getFromState() + " to:" + message.getToState());
 
       // System.out.println("[dbg] Sending Message " + message.getMsgId() + " to " +
       // message.getTgtName()

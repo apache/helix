@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.State;
 import org.apache.helix.model.Transition;
 
 public class StateTransitionTableBuilder {
@@ -125,10 +126,10 @@ public class StateTransitionTableBuilder {
     }
 
     for (Transition transition : transitions) {
-      String fromState = transition.getFromState();
-      String toState = transition.getToState();
-      setPathVal(path, fromState, toState, 1);
-      setNext(next, fromState, toState, toState);
+      State fromState = transition.getFromState();
+      State toState = transition.getToState();
+      setPathVal(path, fromState.toString(), toState.toString(), 1);
+      setNext(next, fromState.toString(), toState.toString(), toState.toString());
     }
 
     // iterate
@@ -162,11 +163,11 @@ public class StateTransitionTableBuilder {
     states.add("OFFLINE");
 
     List<Transition> transitions = new ArrayList<Transition>();
-    transitions.add(new Transition("SLAVE", "OFFLINE"));
-    transitions.add(new Transition("OFFLINE", "SLAVE"));
-    transitions.add(new Transition("SLAVE", "MASTER"));
-    transitions.add(new Transition("OFFLINE", "DROPPED"));
-    transitions.add(new Transition("MASTER", "SLAVE"));
+    transitions.add(Transition.from("SLAVE-OFFLINE"));
+    transitions.add(Transition.from("OFFLINE-SLAVE"));
+    transitions.add(Transition.from("SLAVE-MASTER"));
+    transitions.add(Transition.from("OFFLINE-DROPPED"));
+    transitions.add(Transition.from("MASTER-SLAVE"));
 
     StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
     Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);

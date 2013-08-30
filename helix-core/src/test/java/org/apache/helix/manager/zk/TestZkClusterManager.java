@@ -27,11 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -44,8 +39,10 @@ import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.MockListener;
-import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
@@ -191,7 +188,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionIdString().equals("value"));
+    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
 
     // //////////////////////////////////
@@ -207,9 +204,9 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionIdString().equals("value"));
+    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-    String sessionId = liveInstance.getSessionIdString();
+    String sessionId = liveInstance.getSessionId().stringify();
 
     ZkTestHelper.expireSession(manager2.getZkClient());
     Thread.sleep(1000);
@@ -218,9 +215,9 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionIdString().equals("value"));
+    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-    Assert.assertFalse(sessionId.equals(liveInstance.getSessionIdString()));
+    Assert.assertFalse(sessionId.equals(liveInstance.getSessionId().stringify()));
 
     System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
         + new Date(System.currentTimeMillis()));

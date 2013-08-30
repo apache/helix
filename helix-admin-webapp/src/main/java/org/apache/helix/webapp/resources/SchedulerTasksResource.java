@@ -31,6 +31,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
+import org.apache.helix.api.Id;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
@@ -117,7 +118,6 @@ public class SchedulerTasksResource extends Resource {
         ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     LiveInstance liveInstance =
         accessor.getProperty(accessor.keyBuilder().liveInstance(instanceName));
-    String sessionId = liveInstance.getSessionIdString();
 
     StringRepresentation representation = new StringRepresentation("");// (ClusterRepresentationUtil.ObjectToJson(instanceConfigs),
                                                                        // MediaType.APPLICATION_JSON);
@@ -153,12 +153,12 @@ public class SchedulerTasksResource extends Resource {
       }
 
       Message schedulerMessage =
-          new Message(MessageType.SCHEDULER_MSG, UUID.randomUUID().toString());
+          new Message(MessageType.SCHEDULER_MSG, Id.message(UUID.randomUUID().toString()));
       schedulerMessage.getRecord().getSimpleFields().put(CRITERIA, criteriaString);
 
       schedulerMessage.getRecord().getMapFields().put(MESSAGETEMPLATE, messageTemplate);
 
-      schedulerMessage.setTgtSessionId(leader.getSessionIdString());
+      schedulerMessage.setTgtSessionId(Id.session(leader.getSessionId().stringify()));
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       String taskQueueName =
@@ -167,22 +167,23 @@ public class SchedulerTasksResource extends Resource {
         schedulerMessage.getRecord().setSimpleField(
             DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       }
-      accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgIdString()),
+      accessor.setProperty(
+          accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId().stringify()),
           schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(
           PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),
-          schedulerMessage.getMsgIdString()));
+          schedulerMessage.getMsgId().stringify()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
-      resultMap.put("MsgId", schedulerMessage.getMsgIdString());
+      resultMap.put("MsgId", schedulerMessage.getMsgId().stringify());
 
       // Assemble the rest URL for task status update
       String ipAddress = InetAddress.getLocalHost().getCanonicalHostName();
       String url =
           "http://" + ipAddress + ":" + getContext().getAttributes().get(RestAdminApplication.PORT)
               + "/clusters/" + clusterName + "/Controller/statusUpdates/SCHEDULER_MSG/"
-              + schedulerMessage.getMsgIdString();
+              + schedulerMessage.getMsgId();
       resultMap.put("statusUpdateUrl", url);
 
       getResponse().setEntity(ClusterRepresentationUtil.ObjectToJson(resultMap),

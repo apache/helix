@@ -25,6 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.State;
 import org.apache.helix.model.Message;
 
 // simulate error transition
@@ -46,12 +48,12 @@ public class ErrTransition extends MockTransition {
 
   @Override
   public void doTransition(Message message, NotificationContext context) {
-    String fromState = message.getFromStateString();
-    String toState = message.getToStateString();
-    String partition = message.getPartitionName();
+    State fromState = message.getFromState();
+    State toState = message.getToState();
+    PartitionId partition = message.getPartitionId();
 
     String key = (fromState + "-" + toState).toUpperCase();
-    if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition)) {
+    if (_errPartitions.containsKey(key) && _errPartitions.get(key).contains(partition.stringify())) {
       String errMsg =
           "IGNORABLE: test throw exception in msgId: " + message.getId() + " for " + partition
               + " transit from " + fromState + " to " + toState;

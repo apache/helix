@@ -20,14 +20,7 @@ package org.apache.helix.api;
  */
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.Message;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -46,6 +39,11 @@ public class Cluster {
    * map of participant-id to participant
    */
   private final Map<ParticipantId, Participant> _participantMap;
+
+  /**
+   * map of participant-id to live participant
+   */
+  private final Map<ParticipantId, Participant> _liveParticipantMap;
 
   /**
    * map of controller-id to controller
@@ -78,6 +76,16 @@ public class Cluster {
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
     _participantMap = ImmutableMap.copyOf(participantMap);
+
+    // Build the subset of participants that is live
+    ImmutableMap.Builder<ParticipantId, Participant> liveParticipantBuilder =
+        new ImmutableMap.Builder<ParticipantId, Participant>();
+    for (Participant participant : participantMap.values()) {
+      if (participant.isAlive()) {
+        liveParticipantBuilder.put(participant.getId(), participant);
+      }
+    }
+    _liveParticipantMap = liveParticipantBuilder.build();
 
     _leaderId = leaderId;
 
@@ -117,6 +125,14 @@ public class Cluster {
    */
   public Map<ParticipantId, Participant> getParticipantMap() {
     return _participantMap;
+  }
+
+  /**
+   * Get live participants of the cluster
+   * @return a map of participant id to participant, or empty map if none is live
+   */
+  public Map<ParticipantId, Participant> getLiveParticipantMap() {
+    return _liveParticipantMap;
   }
 
   /**

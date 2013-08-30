@@ -30,6 +30,10 @@ public class PartitionId extends Id {
 
   @Override
   public String stringify() {
+    // check in case the partition name is instantiated incorrectly
+    if (_resourceId.stringify().equals(_partitionName)) {
+      return _partitionName;
+    }
     return String.format("%s_%s", _resourceId, _partitionName);
   }
 
@@ -38,6 +42,9 @@ public class PartitionId extends Id {
    * @return
    */
   public static String stripResourceId(String partitionName) {
+    if (partitionName == null || !partitionName.contains("_")) {
+      return partitionName;
+    }
     return partitionName.substring(partitionName.lastIndexOf("_") + 1);
   }
 
@@ -46,6 +53,9 @@ public class PartitionId extends Id {
    * @return
    */
   public static ResourceId extractResourceId(String partitionName) {
+    if (partitionName == null || !partitionName.contains("_")) {
+      return new ResourceId(partitionName);
+    }
     return new ResourceId(partitionName.substring(0, partitionName.lastIndexOf("_")));
   }
 }

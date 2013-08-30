@@ -37,9 +37,10 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Id;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -114,13 +115,14 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         String destName = _message.getTgtName();
-        result.getTaskResultMap().put("Message", _message.getMsgIdString());
+        result.getTaskResultMap().put("Message", _message.getMsgId().stringify());
         synchronized (_results) {
-          if (!_results.containsKey(_message.getPartitionName())) {
-            _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
+          if (!_results.containsKey(_message.getPartitionId().stringify())) {
+            _results
+                .put(_message.getPartitionId().stringify(), new ConcurrentSkipListSet<String>());
           }
         }
-        _results.get(_message.getPartitionName()).add(_message.getMsgIdString());
+        _results.get(_message.getPartitionId().stringify()).add(_message.getMsgId().stringify());
         // System.err.println("Message " + _message.getMsgId() + " executed");
         return result;
       }
@@ -169,14 +171,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         _latch.await();
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
-        result.getTaskResultMap().put("Message", _message.getMsgIdString());
+        result.getTaskResultMap().put("Message", _message.getMsgId().stringify());
         String destName = _message.getTgtName();
         synchronized (_results) {
-          if (!_results.containsKey(_message.getPartitionName())) {
-            _results.put(_message.getPartitionName(), new ConcurrentSkipListSet<String>());
+          if (!_results.containsKey(_message.getPartitionId().stringify())) {
+            _results
+                .put(_message.getPartitionId().stringify(), new ConcurrentSkipListSet<String>());
           }
         }
-        _results.get(_message.getPartitionName()).add(destName);
+        _results.get(_message.getPartitionId().stringify()).add(destName);
         // System.err.println("Message " + _message.getMsgId() + " executed");
         return result;
       }
@@ -201,16 +204,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
     schedulerMessage.getRecord().setSimpleField(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsg");
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(_factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -236,8 +239,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgIdString()),
-        schedulerMessage);
+    helixDataAccessor.createProperty(
+        keyBuilder.controllerMessage(schedulerMessage.getMsgId().stringify()), schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);
@@ -248,8 +251,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgIdString());
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), schedulerMessage
+            .getMsgId().stringify());
 
     int messageResultCount = 0;
     for (int i = 0; i < 10; i++) {
@@ -289,16 +292,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
     // schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE,
     // "TestSchedulerMsg");
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(_factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -324,8 +327,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgIdString()),
-        schedulerMessage);
+    helixDataAccessor.createProperty(
+        keyBuilder.controllerMessage(schedulerMessage.getMsgId().stringify()), schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);
@@ -336,8 +339,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgIdString());
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), schedulerMessage
+            .getMsgId().stringify());
 
     int messageResultCount = 0;
     for (int i = 0; i < 10; i++) {
@@ -427,15 +430,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(_factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -518,15 +521,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -552,15 +555,16 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgIdString());
+    PropertyKey controllerMessageKey =
+        keyBuilder.controllerMessage(schedulerMessage.getMsgId().stringify());
     helixDataAccessor.setProperty(controllerMessageKey, schedulerMessage);
 
     Thread.sleep(3000);
 
     Assert.assertEquals(0, factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
-            schedulerMessage.getMsgIdString());
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), schedulerMessage
+            .getMsgId().stringify());
     for (int i = 0; i < 10; i++) {
       StatusUpdate update = helixDataAccessor.getProperty(controllerTaskStatus);
       if (update == null || update.getRecord().getMapField("SentMessageCount") == null) {
@@ -591,15 +595,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(_factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -652,7 +656,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
       sw = new StringWriter();
       mapper.writeValue(sw, cr);
-      schedulerMessage.setMsgId(UUID.randomUUID().toString());
+      schedulerMessage.setMsgId(Id.message(UUID.randomUUID().toString()));
       crString = sw.toString();
       schedulerMessage.getRecord().setSimpleField("Criteria", crString);
       manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
@@ -712,15 +716,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(_factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages
@@ -788,7 +792,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
 
       sw = new StringWriter();
       mapper.writeValue(sw, cr);
-      schedulerMessage.setMsgId(UUID.randomUUID().toString());
+      schedulerMessage.setMsgId(Id.message(UUID.randomUUID().toString()));
       crString = sw.toString();
       schedulerMessage.getRecord().setSimpleField("Criteria", crString);
       manager.getMessagingService().sendAndWait(cr2, schedulerMessage, callback, -1);
@@ -862,15 +866,15 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", UUID.randomUUID().toString());
-    schedulerMessage.setTgtSessionId("*");
+        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(Id.session("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(factory.getMessageType(), "Template");
-    msg.setTgtSessionId("*");
+    Message msg = new Message(factory.getMessageType(), Id.message("Template"));
+    msg.setTgtSessionId(Id.session("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages

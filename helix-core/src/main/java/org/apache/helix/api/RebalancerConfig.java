@@ -19,21 +19,33 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.ResourceAssignment;
 
 public class RebalancerConfig {
   private final RebalanceMode _rebalancerMode;
   private final RebalancerRef _rebalancerRef;
   private final StateModelDefId _stateModelDefId;
-
-  private final RscAssignment _resourceAssignment;
+  private final Map<PartitionId, List<ParticipantId>> _preferenceLists;
+  private final ResourceAssignment _resourceAssignment;
+  private final int _replicaCount;
+  private final String _participantGroupTag;
+  private final int _maxPartitionsPerParticipant;
 
   public RebalancerConfig(RebalanceMode mode, RebalancerRef rebalancerRef,
-      StateModelDefId stateModelDefId, RscAssignment resourceAssignment) {
+      StateModelDefId stateModelDefId, ResourceAssignment resourceAssignment) {
     _rebalancerMode = mode;
     _rebalancerRef = rebalancerRef;
     _stateModelDefId = stateModelDefId;
     _resourceAssignment = resourceAssignment;
+    _preferenceLists = Collections.emptyMap(); // TODO: stub
+    _replicaCount = 0; // TODO: stub
+    _participantGroupTag = null; // TODO: stub
+    _maxPartitionsPerParticipant = Integer.MAX_VALUE; // TODO: stub
   }
 
   /**
@@ -64,8 +76,41 @@ public class RebalancerConfig {
    * Get the ideal node and state assignment of the resource
    * @return resource assignment
    */
-  public RscAssignment getResourceAssignment() {
+  public ResourceAssignment getResourceAssignment() {
     return _resourceAssignment;
+  }
+
+  /**
+   * Get the preference list of participants for a given partition
+   * @param partitionId the partition to look up
+   * @return the ordered preference list (early entries are more preferred)
+   */
+  public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
+    return _preferenceLists.get(partitionId);
+  }
+
+  /**
+   * Get the number of replicas each partition should have
+   * @return replica count
+   */
+  public int getReplicaCount() {
+    return _replicaCount;
+  }
+
+  /**
+   * Get the number of partitions of this resource that a given participant can accept
+   * @return maximum number of partitions
+   */
+  public int getMaxPartitionsPerParticipant() {
+    return _maxPartitionsPerParticipant;
+  }
+
+  /**
+   * Get the tag, if any, which must be present on assignable instances
+   * @return group tag
+   */
+  public String getParticipantGroupTag() {
+    return _participantGroupTag;
   }
 
   /**
@@ -75,7 +120,7 @@ public class RebalancerConfig {
     private RebalanceMode _mode = RebalanceMode.NONE;
     private RebalancerRef _rebalancerRef;
     private StateModelDefId _stateModelDefId;
-    private RscAssignment _resourceAssignment;
+    private ResourceAssignment _resourceAssignment;
 
     /**
      * Set the rebalancer mode
@@ -111,7 +156,7 @@ public class RebalancerConfig {
      * @param resourceAssignment resource assignment
      * @return Builder
      */
-    public Builder resourceAssignment(RscAssignment resourceAssignment) {
+    public Builder resourceAssignment(ResourceAssignment resourceAssignment) {
       _resourceAssignment = resourceAssignment;
       return this;
     }

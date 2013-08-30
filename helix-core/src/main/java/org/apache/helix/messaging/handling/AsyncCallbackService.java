@@ -56,14 +56,14 @@ public class AsyncCallbackService implements MessageHandlerFactory {
   void verifyMessage(Message message) {
     if (!message.getMsgType().toString().equalsIgnoreCase(MessageType.TASK_REPLY.toString())) {
       String errorMsg =
-          "Unexpected msg type for message " + message.getMsgIdString() + " type:" + message.getMsgType()
+          "Unexpected msg type for message " + message.getMsgId() + " type:" + message.getMsgType()
               + " Expected : " + MessageType.TASK_REPLY;
       _logger.error(errorMsg);
       throw new HelixException(errorMsg);
     }
     String correlationId = message.getCorrelationId();
     if (correlationId == null) {
-      String errorMsg = "Message " + message.getMsgIdString() + " does not have correlation id";
+      String errorMsg = "Message " + message.getMsgId() + " does not have correlation id";
       _logger.error(errorMsg);
       throw new HelixException(errorMsg);
     }
@@ -71,13 +71,13 @@ public class AsyncCallbackService implements MessageHandlerFactory {
     if (!_callbackMap.containsKey(correlationId)) {
       String errorMsg =
           "Message "
-              + message.getMsgIdString()
+              + message.getMsgId()
               + " does not have correponding callback. Probably timed out already. Correlation id: "
               + correlationId;
       _logger.error(errorMsg);
       throw new HelixException(errorMsg);
     }
-    _logger.info("Verified reply message " + message.getMsgIdString() + " correlation:" + correlationId);
+    _logger.info("Verified reply message " + message.getMsgId() + " correlation:" + correlationId);
   }
 
   @Override
@@ -110,7 +110,7 @@ public class AsyncCallbackService implements MessageHandlerFactory {
       verifyMessage(_message);
       HelixTaskResult result = new HelixTaskResult();
       assert (_correlationId.equalsIgnoreCase(_message.getCorrelationId()));
-      _logger.info("invoking reply message " + _message.getMsgIdString() + ", correlationid:"
+      _logger.info("invoking reply message " + _message.getMsgId() + ", correlationid:"
           + _correlationId);
 
       AsyncCallback callback = _callbackMap.get(_correlationId);
@@ -127,7 +127,7 @@ public class AsyncCallbackService implements MessageHandlerFactory {
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgIdString(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
     }
   }
 }

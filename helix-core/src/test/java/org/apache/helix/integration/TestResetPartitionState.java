@@ -25,14 +25,15 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.State;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.ErrTransition;
+import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
@@ -52,9 +53,9 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context) {
       // System.err.println("doReset() invoked");
       super.doTransition(message, context);
-      String fromState = message.getFromStateString();
-      String toState = message.getToStateString();
-      if (fromState.equals("ERROR") && toState.equals("OFFLINE")) {
+      State fromState = message.getFromState();
+      State toState = message.getToState();
+      if (fromState.toString().equals("ERROR") && toState.toString().equals("OFFLINE")) {
         _errToOfflineInvoked++;
       }
     }
@@ -189,8 +190,8 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionIdString(),
-        resource, partition));
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId()
+        .stringify(), resource, partition));
 
   }
   // TODO: throw exception in reset()

@@ -33,6 +33,7 @@ under the License.
     <module>rabbitmq-consumer-group</module>
     <module>rsync-replicated-file-system</module>
     <module>distributed-lock-manager</module>
+    <module>user-defined-rebalancer</module>
     <module>task-execution</module>
     <module>service-discovery</module>
   </modules>

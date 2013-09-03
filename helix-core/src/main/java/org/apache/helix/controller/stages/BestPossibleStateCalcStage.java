@@ -118,9 +118,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       rebalancer.init(manager);
       ResourceAssignment partitionStateAssignment =
           rebalancer.computeResourceMapping(resource, idealState, currentStateOutput, cache);
-      for (Partition partition : resource.getPartitions()) {
-        Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
-        output.setState(resourceName, partition, newStateMap);
+      if (partitionStateAssignment != null) {
+        for (Partition partition : resource.getPartitions()) {
+          Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
+          output.setState(resourceName, partition, newStateMap);
+        }
       }
     }
     return output;

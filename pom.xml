@@ -164,6 +164,11 @@ under the License.
         <enabled>false</enabled>
       </snapshots>
     </repository>
+    <repository>
+      <id>Sonatype-public</id>
+      <name>SnakeYAML repository</name>
+      <url>http://oss.sonatype.org/content/groups/public/</url>
+    </repository>
   </repositories>
 
  
@@ -284,6 +289,11 @@ under the License.
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
         <version>6.0.1</version>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>1.12</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

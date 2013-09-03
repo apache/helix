@@ -461,13 +461,19 @@ public class IdealState extends HelixProperty {
     return _record.getSimpleField(IdealStateProperty.INSTANCE_GROUP_TAG.toString());
   }
 
+  /**
+   * Update the ideal state mapping from a ResourceAssignment
+   * @param assignment ResourceAssignment result from the rebalancer
+   */
   public void updateFromAssignment(ResourceAssignment assignment) {
     _record.getMapFields().clear();
     _record.getListFields().clear();
-    for (Partition partition : assignment.getMappedPartitions()) {
-      Map<String, String> replicaMap = assignment.getReplicaMap(partition);
-      setInstanceStateMap(partition.getPartitionName(), replicaMap);
-      setPreferenceList(partition.getPartitionName(), new ArrayList<String>(replicaMap.keySet()));
+    if (assignment != null) {
+      for (Partition partition : assignment.getMappedPartitions()) {
+        Map<String, String> replicaMap = assignment.getReplicaMap(partition);
+        setInstanceStateMap(partition.getPartitionName(), replicaMap);
+        setPreferenceList(partition.getPartitionName(), new ArrayList<String>(replicaMap.keySet()));
+      }
     }
   }
 

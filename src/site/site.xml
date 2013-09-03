@@ -72,6 +72,7 @@
       <item name="Rsync replicated file store" href="./recipes/rsync_replicated_file_store.html"/>
       <item name="Service Discovery" href="./recipes/service_discovery.html"/>
       <item name="Distributed task DAG Execution" href="./recipes/task_dag_execution.html"/>
+      <item name="User-Defined Rebalancer Example" href="./recipes/user_def_rebalancer.html"/>
     </menu>
 
     <menu name="Get Involved">

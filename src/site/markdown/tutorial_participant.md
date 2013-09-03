@@ -19,7 +19,7 @@ under the License.
 
 # Helix Tutorial: Participant
 
-In this chapter, we\'ll learn how to implement a PARTICIPANT, which is a primary functional component of a distributed system.
+In this chapter, we\'ll learn how to implement a Participant, which is a primary functional component of a distributed system.
 
 
 ### Start the Helix agent
@@ -43,6 +43,7 @@ The methods of the State Model will be called when controller sends transitions 
 * MasterSlaveStateModelFactory
 * LeaderStandbyStateModelFactory
 * BootstrapHandler
+* _An application defined state model factory_
 
 
 ```
@@ -58,7 +59,7 @@ The methods of the State Model will be called when controller sends transitions 
      manager.connect();
 ```
 
-Helix doesn\'t know what it means to change from OFFLIN\-\-\>ONLINE or ONLINE\-\-\>OFFLINE.  The following code snippet shows where you insert your system logic for these two state transitions.
+Helix doesn\'t know what it means to change from OFFLINE\-\-\>ONLINE or ONLINE\-\-\>OFFLINE.  The following code snippet shows where you insert your system logic for these two state transitions.
 
 ```
 public class OnlineOfflineStateModelFactory extends

@@ -148,7 +148,7 @@ Cluster setup
 -------------
 This step creates znode on zookeeper for the cluster and adds the state model. We use online offline state model since there is no need for other states. The consumer is either processing a queue or it is not.
 
-It creates a resource called "rabbitmq-consumer-group" with 6 partitions. The execution mode is set to AUTO_REBALANCE. This means that the Helix controls the assignment of partition to consumers and automatically distributes the partitions evenly among the active consumers. When a consumer is added or removed, it ensures that a minimum number of partitions are shuffled.
+It creates a resource called "rabbitmq-consumer-group" with 6 partitions. The execution mode is set to FULL_AUTO. This means that the Helix controls the assignment of partition to consumers and automatically distributes the partitions evenly among the active consumers. When a consumer is added or removed, it ensures that a minimum number of partitions are shuffled.
 
 ```
       zkclient = new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
@@ -165,7 +165,7 @@ It creates a resource called "rabbitmq-consumer-group" with 6 partitions. The ex
 
       // add resource "topic" which has 6 partitions
       String resourceName = "rabbitmq-consumer-group";
-      admin.addResource(clusterName, resourceName, 6, "OnlineOffline", "AUTO_REBALANCE");
+      admin.addResource(clusterName, resourceName, 6, "OnlineOffline", "FULL_AUTO");
 ```
 
 Starting the consumers

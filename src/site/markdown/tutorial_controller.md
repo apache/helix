@@ -83,7 +83,7 @@ If setting up a separate controller process is not viable, then it is possible t
 
 #### CONTROLLER AS A SERVICE
 
-One of the cool feature we added in Helix was to use a set of controllers to manage a large number of clusters. 
+One of the cool features we added in Helix is to use a set of controllers to manage a large number of clusters. 
 
 For example if you have X clusters to be managed, instead of deploying X*3 (3 controllers for fault tolerance) controllers for each cluster, one can deploy just 3 controllers.  Each controller can manage X/3 clusters.  If any controller fails, the remaining two will manage X/2 clusters.
 

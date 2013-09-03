@@ -29,16 +29,16 @@ Helix aims to provide the following abilities to a distributed system:
 * Monitor cluster health and provide alerts on SLA violation.
 * Service discovery mechanism to route requests.
 
-To build such a system, we need a mechanism to co-ordinate between different nodes/components in the system. This mechanism can be achieved with a software that reacts to any change in the cluster and comes up with a set of tasks needed to bring the cluster to a stable state. The set of tasks will be assigned to one or more nodes in the cluster. Helix serves this purpose of managing the various components in the cluster.
+To build such a system, we need a mechanism to co-ordinate between different nodes and other components in the system. This mechanism can be achieved with software that reacts to any change in the cluster and comes up with a set of tasks needed to bring the cluster to a stable state. The set of tasks will be assigned to one or more nodes in the cluster. Helix serves this purpose of managing the various components in the cluster.
 
 ![Helix Design](images/system.png)
 
 Distributed System Components
 
-In general any distributed system cluster will have the following
+In general any distributed system cluster will have the following components and properties:
 
-* Set of nodes also referred to as an instance.
-* Set of resources which can be a database, lucene index or a task.
+* A set of nodes also referred to as instances.
+* A set of resources which can be databases, lucene indexes or tasks.
 * Each resource is also partitioned into one or more Partitions. 
 * Each partition may have one or more copies called replicas.
 * Each replica can have a state associated with it. For example Master, Slave, Leader, Standby, Online, Offline etc
@@ -48,47 +48,46 @@ Roles
 
 ![Helix Design](images/HELIX-components.png)
 
-Not all nodes in a distributed system will perform similar functionality. For e.g, a few nodes might be serving requests, few nodes might be sending the request and some nodes might be controlling the nodes in the cluster. Based on functionality we have grouped them into
+Not all nodes in a distributed system will perform similar functionalities. For example, a few nodes might be serving requests and a few nodes might be sending requests, and some nodes might be controlling the nodes in the cluster. Thus, Helix categorizes nodes by their specific roles in the system.
 
-We have divided Helix in 3 logical components based on their responsibility 
+We have divided Helix nodes into 3 logical components based on their responsibilities:
 
-1. PARTICIPANT: The nodes that actually host the distributed resources.
-2. SPECTATOR: The nodes that simply observe the PARTICIPANT State and route the request accordingly. Routers, for example, need to know the Instance on which a partition is hosted and its state in order to route the request to the appropriate end point.
-3. CONTROLLER: The controller observes and controls the PARTICIPANT nodes. It is responsible for coordinating all transitions in the cluster and ensuring that state constraints are satisfied and cluster stability is maintained. 
-
+1. Participant: The nodes that actually host the distributed resources.
+2. Spectator: The nodes that simply observe the Participant state and route the request accordingly. Routers, for example, need to know the instance on which a partition is hosted and its state in order to route the request to the appropriate end point.
+3. Controller: The controller observes and controls the Participant nodes. It is responsible for coordinating all transitions in the cluster and ensuring that state constraints are satisfied and cluster stability is maintained. 
 
 These are simply logical components and can be deployed as per the system requirements. For example:
 
-1. Controller can be deployed as a separate service
-2. Controller can be deployed along with a Participant but only one Controller will be active at any given time.
+1. The controller can be deployed as a separate service
+2. The controller can be deployed along with a Participant but only one Controller will be active at any given time.
 
 Both have pros and cons, which will be discussed later and one can chose the mode of deployment as per system needs.
 
 
-## Cluster state/metadata store
+## Cluster state metadata store
 
 We need a distributed store to maintain the state of the cluster and a notification system to notify if there is any change in the cluster state. Helix uses Zookeeper to achieve this functionality.
 
 Zookeeper provides:
 
 * A way to represent PERSISTENT state which basically remains until its deleted.
-* A way to represent TRANSIENT/EPHEMERAL state which vanishes when the process that created the STATE dies.
-* Notification mechanism when there is a change in PERSISTENT/EPHEMERAL STATE
+* A way to represent TRANSIENT/EPHEMERAL state which vanishes when the process that created the state dies.
+* Notification mechanism when there is a change in PERSISTENT and EPHEMERAL state
 
-The namespace provided by ZooKeeper is much like that of a standard file system. A name is a sequence of path elements separated by a slash (/). Every node[ZNODE] in ZooKeeper\'s namespace is identified by a path.
+The namespace provided by ZooKeeper is much like that of a standard file system. A name is a sequence of path elements separated by a slash (/). Every node[ZNode] in ZooKeeper\'s namespace is identified by a path.
 
-More info on Zookeeper can be found here http://zookeeper.apache.org
+More info on Zookeeper can be found at http://zookeeper.apache.org
 
-## Statemachine and constraints
+## State machine and constraints
 
-Even though the concept of Resource, Partition, Replicas is common to most distributed systems, one thing that differentiates one distributed system from another is the way each partition is assigned a state and the constraints on each state.
+Even though the concepts of Resources, Partitions, and Replicas are common to most distributed systems, one thing that differentiates one distributed system from another is the way each partition is assigned a state and the constraints on each state.
 
 For example:
 
-1. If a system is serving READ ONLY data then all partition\'s replicas are equal and they can either be ONLINE or OFFLINE.
-2. If a system takes BOTH READ and WRITES but ensure that WRITES go through only one partition then the states will be MASTER, SLAVE and OFFLINE. Writes go through the MASTER and is replicated to the SLAVES. Optionally, READS can go through SLAVES.
+1. If a system is serving read-only data then all partition\'s replicas are equal and they can either be ONLINE or OFFLINE.
+2. If a system takes _both_ reads and writes but ensure that writes go through only one partition, the states will be MASTER, SLAVE, and OFFLINE. Writes go through the MASTER and replicate to the SLAVEs. Optionally, reads can go through SLAVES.
 
-Apart from defining STATE for each partition, the transition path to each STATE can be application specific. For example, in order to become MASTER it might be a requirement to first become a SLAVE. This ensures that if the SLAVE does not have the data as part of OFFLINE-SLAVE transition it can bootstrap data from other nodes in the system.
+Apart from defining state for each partition, the transition path to each state can be application specific. For example, in order to become MASTER it might be a requirement to first become a SLAVE. This ensures that if the SLAVE does not have the data as part of OFFLINE-SLAVE transition it can bootstrap data from other nodes in the system.
 
 Helix provides a way to configure an application specific state machine along with constraints on each state. Along with constraints on STATE, Helix also provides a way to specify constraints on transitions.  (More on this later.)
 
@@ -113,17 +112,17 @@ MASTER  | SLAVE    | SLAVE  |   N/A   |
 
 The following terminologies are used in Helix to model a state machine.
 
-* IDEALSTATE: The state in which we need the cluster to be in if all nodes are up and running. In other words, all state constraints are satisfied.
-* CURRENTSTATE: Represents the current state of each node in the cluster 
-* EXTERNALVIEW: Represents the combined view of CURRENTSTATE of all nodes.  
+* IdealState: The state in which we need the cluster to be in if all nodes are up and running. In other words, all state constraints are satisfied.
+* CurrentState: Represents the actual current state of each node in the cluster 
+* ExternalView: Represents the combined view of CurrentState of all nodes.  
 
-The goal of Helix is always to make the CURRENTSTATE of the system same as the IDEALSTATE. Some scenarios where this may not be true are:
+The goal of Helix is always to make the CurrentState of the system same as the IdealState. Some scenarios where this may not be true are:
 
 * When all nodes are down
 * When one or more nodes fail
 * New nodes are added and the partitions need to be reassigned
 
-### IDEALSTATE
+### IdealState
 
 Helix lets the application define the IdealState on a resource basis which basically consists of:
 
@@ -140,11 +139,11 @@ Example:
 * .....
 * Partition-p, replica-3, Slave, Node-n
 
-Helix comes with various algorithms to automatically assign the partitions to nodes. The default algorithm minimizes the number of shuffles that happen when new nodes are added to the system
+Helix comes with various algorithms to automatically assign the partitions to nodes. The default algorithm minimizes the number of shuffles that happen when new nodes are added to the system.
 
-### CURRENTSTATE
+### CurrentState
 
-Every instance in the cluster hosts one or more partitions of a resource. Each of the partitions has a State associated with it.
+Every instance in the cluster hosts one or more partitions of a resource. Each of the partitions has a state associated with it.
 
 Example Node-1
 
@@ -154,9 +153,9 @@ Example Node-1
 * ....
 * Partition-p, Slave
 
-### EXTERNALVIEW
+### ExternalView
 
-External clients needs to know the state of each partition in the cluster and the Node hosting that partition. Helix provides one view of the system to SPECTATORS as EXTERNAL VIEW. EXTERNAL VIEW is simply an aggregate of all CURRENTSTATE
+External clients needs to know the state of each partition in the cluster and the Node hosting that partition. Helix provides one view of the system to Spectators as _ExternalView_. ExternalView is simply an aggregate of all node CurrentStates.
 
 * Partition-1, replica-1, Master, Node-1
 * Partition-1, replica-2, Slave, Node-2
@@ -171,28 +170,28 @@ Mode of operation in a cluster
 
 A node process can be one of the following:
 
-* PARTICIPANT: The process registers itself in the cluster and acts on the messages received in its queue and updates the current state.  Example: Storage Node
-* SPECTATOR: The process is simply interested in the changes in the Externalview. The Router is a spectator of the Storage cluster.
-* CONTROLLER: This process actively controls the cluster by reacting to changes in Cluster State and sending messages to PARTICIPANTS.
+* Participant: The process registers itself in the cluster and acts on the messages received in its queue and updates the current state.  Example: a storage node in a distributed database
+* Spectator: The process is simply interested in the changes in the Externalview.
+* Controller: This process actively controls the cluster by reacting to changes in cluster state and sending messages to Participants.
 
 
 ### Participant Node Process
 
-* When Node starts up, it registers itself under LIVEINSTANCES
-* After registering, it waits for new Messages in the message queue
+* When Node starts up, it registers itself under _LiveInstances_
+* After registering, it waits for new _Messages_ in the message queue
 * When it receives a message, it will perform the required task as indicated in the message
-* After the task is completed, depending on the task outcome it updates the CURRENTSTATE
+* After the task is completed, depending on the task outcome it updates the CurrentState
 
 ### Controller Process
 
-* Watches IDEALSTATE
-* Node goes down/comes up or Node is added/removed. Watches LIVEINSTANCES and CURRENTSTATE of each Node in the cluster
-* Triggers appropriate state transition by sending message to PARTICIPANT
+* Watches IdealState
+* Notified when a node goes down/comes up or node is added/removed. Watches LiveInstances and CurrentState of each node in the cluster
+* Triggers appropriate state transitions by sending message to Participants
 
 ### Spectator Process
 
-* When the process starts, it asks cluster manager agent to be notified of changes in ExternalView
-* Whenever it receives a notification, it reads the Externalview and performs required duties. For the Router, it updates its routing table.
+* When the process starts, it asks the Helix agent to be notified of changes in ExternalView
+* Whenever it receives a notification, it reads the Externalview and performs required duties.
 
 #### Interaction between controller, participant and spectator
 
@@ -212,11 +211,11 @@ The following picture shows how controllers, participants and spectators interac
 * If a task is dependent on another task being completed, do not add that task
 * After any task is completed by a Participant, Controllers gets notified of the change and the State Transition algorithm is re-run until the CurrentState is same as IdealState.
 
-## Helix znode layout
+## Helix ZNode layout
 
 Helix organizes znodes under clusterName in multiple levels. 
 
-The top level (under clusterName) znodes are all Helix defined and in upper case:
+The top level (under the cluster name) ZNodes are all Helix-defined and in upper case:
 
 * PROPERTYSTORE: application property store
 * STATEMODELDEFES: state model definitions
@@ -227,7 +226,7 @@ The top level (under clusterName) znodes are all Helix defined and in upper case
 * LIVEINSTANCES: live instances
 * CONTROLLER: cluster controller runtime information
 
-Under INSTANCES, there are runtime znodes for each instance. An instance organizes znodes as follows:
+Under INSTANCES, there are runtime ZNodes for each instance. An instance organizes ZNodes as follows:
 
 * CURRENTSTATES
     * sessionId

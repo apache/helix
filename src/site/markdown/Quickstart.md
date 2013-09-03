@@ -138,7 +138,7 @@ Now you can run the same steps by hand.  In the detailed version, we\'ll do the 
 * Expand the cluster: add a few nodes and rebalance the partitions
 * Failover: stop a node and verify the mastership transfer
 
-### Install/Start zookeeper
+### Install and Start Zookeeper
 
 Zookeeper can be started in standalone mode or replicated mode.
 
@@ -322,7 +322,7 @@ IdealState for myDB:
     "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
   },
   "simpleFields" : {
-    "IDEAL_STATE_MODE" : "AUTO",
+    "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
     "STATE_MODEL_DEF_REF" : "MasterSlave",
@@ -450,7 +450,7 @@ IdealState for myDB:
     "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
   },
   "simpleFields" : {
-    "IDEAL_STATE_MODE" : "AUTO",
+    "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
     "STATE_MODEL_DEF_REF" : "MasterSlave",
@@ -559,7 +559,7 @@ IdealState for myDB:
     "myDB_5" : [ "localhost_12914", "localhost_12915", "localhost_12913" ]
   },
   "simpleFields" : {
-    "IDEAL_STATE_MODE" : "AUTO",
+    "REBALANCE_MODE" : "SEMI_AUTO",
     "NUM_PARTITIONS" : "6",
     "REPLICAS" : "3",
     "STATE_MODEL_DEF_REF" : "MasterSlave",
@@ -608,7 +608,7 @@ ExternalView for myDB:
 
 As we\'ve seen in this Quickstart, Helix takes care of partitioning, load balancing, elasticity, failure detection and recovery.
 
-##### ZOOINSPECTOR
+##### ZooInspector
 
 You can view all of the underlying data by going direct to zookeeper.  Use ZooInspector that comes with zookeeper to browse the data. This is a java applet (make sure you have X windows)
 

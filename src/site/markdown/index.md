@@ -46,6 +46,8 @@ Navigating the Documentation
 
 [Distributed Task DAG Execution](./recipes/task_dag_execution.html)
 
+[User-Defined Rebalancer Example](./recipes/user_def_rebalancer.html)
+
 
 What Is Helix
 --------------
@@ -54,45 +56,46 @@ Helix is a generic _cluster management_ framework used for the automatic managem
 
 What Is Cluster Management
 --------------------------
-To understand Helix, first you need to understand what is _cluster management_.  A distributed system typically runs on multiple nodes for the following reasons:
+To understand Helix, first you need to understand _cluster management_.  A distributed system typically runs on multiple nodes for the following reasons:
 
 * scalability
 * fault tolerance
 * load balancing
 
-Each node performs one or more of the primary function of the cluster, such as storing/serving data, producing/consuming data streams, etc.  Once configured for your system, Helix acts as the global brain for the system.  It is designed to make decisions that cannot be made in isolation.  Examples of decisions that require global knowledge and coordination:
+Each node performs one or more of the primary function of the cluster, such as storing and serving data, producing and consuming data streams, and so on.  Once configured for your system, Helix acts as the global brain for the system.  It is designed to make decisions that cannot be made in isolation.  Examples of such decisions that require global knowledge and coordination:
 
 * scheduling of maintainence tasks, such as backups, garbage collection, file consolidation, index rebuilds
 * repartitioning of data or resources across the cluster
 * informing dependent systems of changes so they can react appropriately to cluster changes
 * throttling system tasks and changes
 
-While it is possible to integrate these functions into the distributed system, it complicates the code.  Helix has abstracted common cluster management tasks, enabling the system builder to model the desired behavior in a declarative state model, and let Helix manage the coordination.  The result is less new code to write, and a robust, highly operable system.
+While it is possible to integrate these functions into the distributed system, it complicates the code.  Helix has abstracted common cluster management tasks, enabling the system builder to model the desired behavior with a declarative state model, and let Helix manage the coordination.  The result is less new code to write, and a robust, highly operable system.
 
 
 Key Features of Helix
 ---------------------
-1. Automatic assignment of resource/partition to nodes
+1. Automatic assignment of resources and partitions to nodes
 2. Node failure detection and recovery
-3. Dynamic addition of Resources 
+3. Dynamic addition of resources 
 4. Dynamic addition of nodes to the cluster
 5. Pluggable distributed state machine to manage the state of a resource via state transitions
-6. Automatic load balancing and throttling of transitions 
+6. Automatic load balancing and throttling of transitions
+7. Optional pluggable rebalancing for user-defined assignment of resources and partitions
 
 
 Why Helix
 ---------
-Modeling a distributed system as a state machine with constraints on state and transitions has the following benefits:
+Modeling a distributed system as a state machine with constraints on states and transitions has the following benefits:
 
-* Separates cluster management from the core functionality.
-* Quick transformation from a single node system to an operable, distributed system.
-* Simplicity: System components do not have to manage global cluster.  This division of labor makes it easier to build, debug, and maintain your system.
+* Separates cluster management from the core functionality of the system.
+* Allows a quick transformation from a single node system to an operable, distributed system.
+* Increases simplicity: system components do not have to manage a global cluster.  This division of labor makes it easier to build, debug, and maintain your system.
 
 
 Build Instructions
 ------------------
 
-Requirements: Jdk 1.6+, Maven 2.0.8+
+Requirements: JDK 1.6+, Maven 2.0.8+
 
 ```
     git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git

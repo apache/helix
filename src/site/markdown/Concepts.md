@@ -48,7 +48,7 @@ Consider a simple case where you want to launch a task \'myTask\' on node \'N1\'
 ```
 ### Partition
 
-If this task get too big to fit on one box, you might want to divide it into subTasks. Each subTask is referred to as a _partition_ in Helix. Let\'s say you want to divide the task into 3 subTasks/partitions, the IdealState can be changed as shown below. 
+If this task get too big to fit on one box, you might want to divide it into subtasks. Each subtask is referred to as a _partition_ in Helix. Let\'s say you want to divide the task into 3 subtasks/partitions, the IdealState can be changed as shown below. 
 
 \'myTask_0\', \'myTask_1\', \'myTask_2\' are logical names representing the partitions of myTask. Each tasks runs on N1, N2 and N3 respectively.
 
@@ -74,7 +74,7 @@ If this task get too big to fit on one box, you might want to divide it into sub
 
 ### Replica
 
-Partitioning allows one to split the data/task into multiple subparts. But let\'s say the request rate each partition increases. The common solution is to have multiple copies for each partition. Helix refers to the copy of a partition as a _replica_.  Adding a replica also increases the availability of the system during failures. One can see this methodology employed often in Search systems. The index is divided into shards, and each shard has multiple copies.
+Partitioning allows one to split the data/task into multiple subparts. But let\'s say the request rate for each partition increases. The common solution is to have multiple copies for each partition. Helix refers to the copy of a partition as a _replica_.  Adding a replica also increases the availability of the system during failures. One can see this methodology employed often in search systems. The index is divided into shards, and each shard has multiple copies.
 
 Let\'s say you want to add one additional replica for each task. The IdealState can simply be changed as shown below. 
 
@@ -106,7 +106,7 @@ For increasing the availability of the system, it\'s better to place the replica
 
 ### State 
 
-Now let\'s take a slightly complicated scenario where a task represents a database.  Unlike an index which is in general read-only, a database supports both reads and writes. Keeping the data consistent among the replicas is crucial in distributed data stores. One commonly applied technique is to assign one replica as MASTER and remaining replicas as SLAVE. All writes go to the MASTER and are then replicated to the SLAVE replicas.
+Now let\'s take a slightly more complicated scenario where a task represents a database.  Unlike an index which is in general read-only, a database supports both reads and writes. Keeping the data consistent among the replicas is crucial in distributed data stores. One commonly applied technique is to assign one replica as the MASTER and remaining replicas as SLAVEs. All writes go to the MASTER and are then replicated to the SLAVE replicas.
 
 Helix allows one to assign different states to each replica. Let\'s say you have two MySQL instances N1 and N2, where one will serve as MASTER and another as SLAVE. The IdealState can be changed to:
 
@@ -130,14 +130,14 @@ Helix allows one to assign different states to each replica. Let\'s say you have
 
 ### State Machine and Transitions
 
-IdealState allows one to exactly specify the desired state of the cluster. Given an IdealState, Helix takes up the responsibility of ensuring that the cluster reaches the IdealState.  The Helix _controller_ reads the IdealState and then commands the Participant to take appropriate actions to move from one state to another until it matches the IdealState.  These actions are referred to as _transitions_ in Helix.
+IdealState allows one to exactly specify the desired state of the cluster. Given an IdealState, Helix takes up the responsibility of ensuring that the cluster reaches the IdealState.  The Helix _controller_ reads the IdealState and then commands each Participant to take appropriate actions to move from one state to another until it matches the IdealState.  These actions are referred to as _transitions_ in Helix.
 
 The next logical question is:  how does the _controller_ compute the transitions required to get to IdealState?  This is where the finite state machine concept comes in. Helix allows applications to plug in a finite state machine.  A state machine consists of the following:
 
 * State: Describes the role of a replica
-* Transition: An action that allows a replica to move from one State to another, thus changing its role.
+* Transition: An action that allows a replica to move from one state to another, thus changing its role.
 
-Here is an example of MASTERSLAVE state machine,
+Here is an example of MasterSlave state machine:
 
 ```
           OFFLINE  | SLAVE  |  MASTER  
@@ -176,7 +176,7 @@ Helix allows each resource to be associated with one state machine. This means y
 
 ### Current State
 
-CurrentState of a resource simply represents its actual state at a PARTICIPANT. In the below example:
+CurrentState of a resource simply represents its actual state at a Participant. In the below example:
 
 * INSTANCE_NAME: Unique name representing the process
 * SESSION_ID: ID that is automatically assigned every time a process joins the cluster
@@ -206,7 +206,7 @@ Each node in the cluster has its own CurrentState.
 
 ### External View
 
-In order to communicate with the PARTICIPANTs, external clients need to know the current state of each of the PARTICIPANTs. The external clients are referred to as SPECTATORS. In order to make the life of SPECTATOR simple, Helix provides an EXTERNALVIEW that is an aggregated view of the current state across all nodes. The EXTERNALVIEW has a similar format as IDEALSTATE.
+In order to communicate with the Participants, external clients need to know the current state of each of the Participants. The external clients are referred to as Spectators. In order to make the life of Spectator simple, Helix provides an ExternalView that is an aggregated view of the current state across all nodes. The ExternalView has a similar format as IdealState.
 
 ```
 {
@@ -233,27 +233,27 @@ In order to communicate with the PARTICIPANTs, external clients need to know the
 
 ### Rebalancer
 
-The core component of Helix is the CONTROLLER which runs the REBALANCER algorithm on every cluster event. Cluster events can be one of the following:
+The core component of Helix is the Controller which runs the Rebalancer algorithm on every cluster event. Cluster events can be one of the following:
 
 * Nodes start/stop and soft/hard failures
 * New nodes are added/removed
 * Ideal state changes
 
-There are few more such as config changes, etc.  The key takeaway: there are many ways to trigger the rebalancer.
+There are few more examples such as configuration changes, etc.  The key takeaway: there are many ways to trigger the rebalancer.
 
 When a rebalancer is run it simply does the following:
 
 * Compares the IdealState and current state
 * Computes the transitions required to reach the IdealState
-* Issues the transitions to each PARTICIPANT
+* Issues the transitions to each Participant
 
-The above steps happen for every change in the system. Once the current state matches the IdealState, the system is considered stable which implies \'IDEALSTATE = CURRENTSTATE = EXTERNALVIEW\'
+The above steps happen for every change in the system. Once the current state matches the IdealState, the system is considered stable which implies \'IdealState = CurrentState = ExternalView\'
 
 ### Dynamic IdealState
 
 One of the things that makes Helix powerful is that IdealState can be changed dynamically. This means one can listen to cluster events like node failures and dynamically change the ideal state. Helix will then take care of triggering the respective transitions in the system.
 
-Helix comes with a few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./tutorial_rebalance.html) to find out more about various execution modes of Helix like AUTO_REBALANCE, AUTO and CUSTOM. 
+Helix comes with a few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./tutorial_rebalance.html) to find out more about various execution modes of Helix like FULL_AUTO, SEMI_AUTO and CUSTOMIZED. 
 
 
 

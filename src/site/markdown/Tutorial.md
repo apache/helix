@@ -36,12 +36,14 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 2. [Spectator](./tutorial_spectator.html)
 3. [Controller](./tutorial_controller.html)
 4. [Rebalancing Algorithms](./tutorial_rebalance.html)
-5. [State Machines](./tutorial_state.html)
-6. [Messaging](./tutorial_messaging.html)
-7. [Customized health check](./tutorial_health.html)
-8. [Throttling](./tutorial_throttling.html)
-9. [Application Property Store](./tutorial_propstore.html)
-10. [Admin Interface](./tutorial_admin.html)
+5. [User-Defined Rebalancing](./tutorial_user_def_rebalancer.html)
+6. [State Machines](./tutorial_state.html)
+7. [Messaging](./tutorial_messaging.html)
+8. [Customized health check](./tutorial_health.html)
+9. [Throttling](./tutorial_throttling.html)
+10. [Application Property Store](./tutorial_propstore.html)
+11. [Admin Interface](./tutorial_admin.html)
+12. [YAML Cluster Setup](./tutorial_yaml.html)
 
 ### Preliminaries
 
@@ -180,9 +182,9 @@ Helix does this by assigning a STATE to a partition (such as MASTER, SLAVE), and
 
 There are 3 assignment modes Helix can operate on
 
-* AUTO_REBALANCE: Helix decides the placement and state of a partition.
-* AUTO: Application decides the placement but Helix decides the state of a partition.
-* CUSTOM: Application controls the placement and state of a partition.
+* FULL_AUTO: Helix decides the placement and state of a partition.
+* SEMI_AUTO: Application decides the placement but Helix decides the state of a partition.
+* CUSTOMIZED: Application controls the placement and state of a partition.
 
 For more info on the assignment modes, see [Rebalancing Algorithms](./tutorial_rebalance.html) of the tutorial.
 
@@ -190,7 +192,7 @@ For more info on the assignment modes, see [Rebalancing Algorithms](./tutorial_r
     String RESOURCE_NAME = "MyDB";
     int NUM_PARTITIONS = 6;
     STATE_MODEL_NAME = "MasterSlave";
-    String MODE = "AUTO";
+    String MODE = "SEMI_AUTO";
     int NUM_REPLICAS = 2;
 
     admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, MODE);

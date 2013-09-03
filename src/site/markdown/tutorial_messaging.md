@@ -25,10 +25,10 @@ In this chapter, we\'ll learn about messaging, a convenient feature in Helix for
 
 Consider a search system  where the index replica starts up and it does not have an index. A typical solution is to get the index from a common location, or to copy the index from another replica.
 
-Helix provides a messaging api for intra-cluster communication between nodes in the system.  Helix provides a mechanism to specify the message recipient in terms of resource, partition, and state rather than specifying hostnames.  Helix ensures that the message is delivered to all of the required recipients. In this particular use case, the instance can specify the recipient criteria as all replicas of the desired partition to bootstrap.
+Helix provides a messaging API for intra-cluster communication between nodes in the system.  Helix provides a mechanism to specify the message recipient in terms of resource, partition, and state rather than specifying hostnames.  Helix ensures that the message is delivered to all of the required recipients. In this particular use case, the instance can specify the recipient criteria as all replicas of the desired partition to bootstrap.
 Since Helix is aware of the global state of the system, it can send the message to appropriate nodes. Once the nodes respond, Helix provides the bootstrapping replica with all the responses.
 
-This is a very generic api and can also be used to schedule various periodic tasks in the cluster, such as data backups, log cleanup, etc.
+This is a very generic API and can also be used to schedule various periodic tasks in the cluster, such as data backups, log cleanup, etc.
 System Admins can also perform ad-hoc tasks, such as on-demand backups or a system command (such as rm -rf ;) across all nodes of the cluster
 
 ```

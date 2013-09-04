@@ -27,6 +27,8 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -139,12 +141,18 @@ public class ClusterAccessor {
 
     LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
 
+    /**
+     * map of constraint-type to constraints
+     */
+    Map<String, ClusterConstraints> constraintMap =
+        _accessor.getChildValuesMap(_keyBuilder.constraints());
+
     Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
 
       // TODO pass resource assignment
-      ResourceId resourceId = new ResourceId(resourceName);
+      ResourceId resourceId = Id.resource(resourceName);
       resourceMap.put(resourceId, new Resource(resourceId, idealState, null));
     }
 
@@ -167,7 +175,15 @@ public class ClusterAccessor {
       controllerMap.put(leaderId, new Controller(leaderId, leader, true));
     }
 
-    return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId);
+    Map<ConstraintType, ClusterConstraints> clusterConstraintMap =
+        new HashMap<ConstraintType, ClusterConstraints>();
+    for (String constraintType : constraintMap.keySet()) {
+      clusterConstraintMap.put(ConstraintType.valueOf(constraintType),
+          constraintMap.get(constraintType));
+    }
+
+    return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
+        clusterConstraintMap);
   }
 
   /**

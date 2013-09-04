@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Resource;
+import org.apache.helix.controller.stages.NewCurrentStateOutput;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 
@@ -37,7 +38,8 @@ public interface NewRebalancer {
    * @param resource the resource for which a mapping will be computed
    * @param cluster a snapshot of the entire cluster state
    * @param stateModelDef the state model for which to rebalance the resource
+   * @param currentStateOutput a combination of the current states and pending current states
    */
   ResourceAssignment computeResourceMapping(final Resource resource, final Cluster cluster,
-      final StateModelDefinition stateModelDef);
+      final StateModelDefinition stateModelDef, final NewCurrentStateOutput currentStateOutput);
 }

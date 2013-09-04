@@ -712,6 +712,14 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     for (int i = 0; i < paths.size(); i++) {
       success[i] = (results.get(i)._retCode == RetCode.OK);
     }
+
+    for (int i = 0; i < paths.size(); i++) {
+      String path = paths.get(i);
+      T record = records.get(i);
+      if (path.indexOf("EXTERNALVIEW") != -1) {
+        System.out.println("path: " + path + ", record: " + record + ", success: " + success[i]);
+      }
+    }
     return success;
   }
 
@@ -770,13 +778,17 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           String path = paths.get(i);
           T record = (records == null ? null : records.get(i));
           setCbList[i] = new SetDataCallbackHandler();
-          _zkClient.asyncSetData(path, record, -1, setCbList[i]);
 
+          _zkClient.asyncSetData(path, record, -1, setCbList[i]);
         }
 
         boolean failOnNoNode = false;
 
         for (int i = 0; i < size; i++) {
+          if (!needSet[i]) {
+            continue;
+          }
+
           SetDataCallbackHandler cb = setCbList[i];
           cb.waitForSuccess();
           Code rc = Code.get(cb.getRc());

@@ -19,33 +19,65 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+
+/**
+ * Captures the configuration properties necessary for rebalancing
+ */
 public class RebalancerConfig {
   private final RebalanceMode _rebalancerMode;
   private final RebalancerRef _rebalancerRef;
   private final StateModelDefId _stateModelDefId;
   private final Map<PartitionId, List<ParticipantId>> _preferenceLists;
+  private final Map<PartitionId, Map<ParticipantId, State>> _preferenceMaps;
   private final ResourceAssignment _resourceAssignment;
   private final int _replicaCount;
   private final String _participantGroupTag;
   private final int _maxPartitionsPerParticipant;
+  private final int _bucketSize;
+  private final boolean _batchMessageMode;
+  private final StateModelFactoryId _stateModelFactoryId;
 
-  public RebalancerConfig(RebalanceMode mode, RebalancerRef rebalancerRef,
-      StateModelDefId stateModelDefId, ResourceAssignment resourceAssignment) {
-    _rebalancerMode = mode;
-    _rebalancerRef = rebalancerRef;
-    _stateModelDefId = stateModelDefId;
+  /**
+   * Instantiate the configuration of a rebalance task
+   * @param idealState the physical ideal state
+   * @param resourceAssignment last mapping of a resource
+   */
+  public RebalancerConfig(IdealState idealState, ResourceAssignment resourceAssignment) {
+    _rebalancerMode = idealState.getRebalanceMode();
+    _rebalancerRef = idealState.getRebalancerRef();
+    _stateModelDefId = idealState.getStateModelDefId();
+    _replicaCount = Integer.parseInt(idealState.getReplicas());
+    _participantGroupTag = idealState.getInstanceGroupTag();
+    _maxPartitionsPerParticipant = idealState.getMaxPartitionsPerInstance();
+    _bucketSize = idealState.getBucketSize();
+    _batchMessageMode = idealState.getBatchMessageMode();
+    _stateModelFactoryId = idealState.getStateModelFactoryId();
+
+    // Build preference lists and maps
+    ImmutableMap.Builder<PartitionId, List<ParticipantId>> preferenceLists =
+        new ImmutableMap.Builder<PartitionId, List<ParticipantId>>();
+    ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>> preferenceMaps =
+        new ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>>();
+    for (PartitionId partitionId : idealState.getPartitionSet()) {
+      preferenceLists.put(partitionId,
+          ImmutableList.copyOf(idealState.getPreferenceList(partitionId)));
+      preferenceMaps.put(partitionId,
+          ImmutableMap.copyOf(idealState.getParticipantStateMap(partitionId)));
+    }
+    _preferenceLists = preferenceLists.build();
+    _preferenceMaps = preferenceMaps.build();
+
+    // Leave the resource assignment as is
     _resourceAssignment = resourceAssignment;
-    _preferenceLists = Collections.emptyMap(); // TODO: stub
-    _replicaCount = 0; // TODO: stub
-    _participantGroupTag = null; // TODO: stub
-    _maxPartitionsPerParticipant = Integer.MAX_VALUE; // TODO: stub
   }
 
   /**
@@ -90,6 +122,15 @@ public class RebalancerConfig {
   }
 
   /**
+   * Get the preference map of participants and states for a given partition
+   * @param partitionId the partition to look up
+   * @return a mapping of participant to state for each replica
+   */
+  public Map<ParticipantId, State> getPreferenceMap(PartitionId partitionId) {
+    return _preferenceMaps.get(partitionId);
+  }
+
+  /**
    * Get the number of replicas each partition should have
    * @return replica count
    */
@@ -114,20 +155,50 @@ public class RebalancerConfig {
   }
 
   /**
+   * Get bucket size
+   * @return bucket size
+   */
+  public int getBucketSize() {
+    return _bucketSize;
+  }
+
+  /**
+   * Get batch message mode
+   * @return true if in batch message mode, false otherwise
+   */
+  public boolean getBatchMessageMode() {
+    return _batchMessageMode;
+  }
+
+  /**
+   * Get state model factory id
+   * @return state model factory id
+   */
+  public StateModelFactoryId getStateModelFactoryId() {
+    return _stateModelFactoryId;
+  }
+
+  /**
    * Assembles a RebalancerConfig
    */
   public static class Builder {
-    private RebalanceMode _mode = RebalanceMode.NONE;
-    private RebalancerRef _rebalancerRef;
-    private StateModelDefId _stateModelDefId;
+    private final IdealState _idealState;
     private ResourceAssignment _resourceAssignment;
+
+    /**
+     * Configure the rebalancer for a resource
+     * @param resourceId the resource to rebalance
+     */
+    public Builder(ResourceId resourceId) {
+      _idealState = new IdealState(resourceId);
+    }
 
     /**
      * Set the rebalancer mode
      * @param mode {@link RebalanceMode}
      */
     public Builder rebalancerMode(RebalanceMode mode) {
-      _mode = mode;
+      _idealState.setRebalanceMode(mode);
       return this;
     }
 
@@ -137,7 +208,7 @@ public class RebalancerConfig {
      * @return Builder
      */
     public Builder rebalancer(RebalancerRef rebalancerRef) {
-      _rebalancerRef = rebalancerRef;
+      _idealState.setRebalancerRef(rebalancerRef);
       return this;
     }
 
@@ -147,7 +218,7 @@ public class RebalancerConfig {
      * @return Builder
      */
     public Builder stateModelDef(StateModelDefId stateModelDefId) {
-      _stateModelDefId = stateModelDefId;
+      _idealState.setStateModelDefId(stateModelDefId);
       return this;
     }
 
@@ -162,11 +233,61 @@ public class RebalancerConfig {
     }
 
     /**
+     * Set bucket size
+     * @param bucketSize
+     * @return Builder
+     */
+    public Builder bucketSize(int bucketSize) {
+      _idealState.setBucketSize(bucketSize);
+      return this;
+    }
+
+    /**
+     * Set batch message mode
+     * @param batchMessageMode
+     * @return Builder
+     */
+    public Builder batchMessageMode(boolean batchMessageMode) {
+      _idealState.setBatchMessageMode(batchMessageMode);
+      return this;
+    }
+
+    /**
+     * Set the number of replicas
+     * @param replicaCount number of replicas
+     * @return Builder
+     */
+    public Builder replicaCount(int replicaCount) {
+      _idealState.setReplicas(Integer.toString(replicaCount));
+      return this;
+    }
+
+    /**
+     * Set the maximum number of partitions to assign to any participant
+     * @param maxPartitions
+     * @return Builder
+     */
+    public Builder maxPartitionsPerParticipant(int maxPartitions) {
+      _idealState.setMaxPartitionsPerInstance(maxPartitions);
+      return this;
+    }
+
+    /**
+     * Set state model factory
+     * @param stateModelFactoryId
+     * @return Builder
+     */
+    public Builder stateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
+      _idealState.setStateModelFactoryId(stateModelFactoryId);
+      return this;
+    }
+
+    /**
      * Assemble a RebalancerConfig
      * @return a fully defined rebalancer configuration
      */
     public RebalancerConfig build() {
-      return new RebalancerConfig(_mode, _rebalancerRef, _stateModelDefId, _resourceAssignment);
+      return new RebalancerConfig(_idealState, _resourceAssignment);
     }
   }
 }

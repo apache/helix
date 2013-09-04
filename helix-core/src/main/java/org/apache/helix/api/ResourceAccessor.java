@@ -23,6 +23,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 
 public class ResourceAccessor {
@@ -69,4 +70,5 @@ public class ResourceAccessor {
   public void dropExternalView(ResourceId resourceId) {
     _accessor.removeProperty(_keyBuilder.externalView(resourceId.stringify()));
   }
+
 }

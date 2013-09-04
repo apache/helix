@@ -30,6 +30,7 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.stages.NewCurrentStateOutput;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -49,7 +50,7 @@ public class NewSemiAutoRebalancer implements NewRebalancer {
 
   @Override
   public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
-      StateModelDefinition stateModelDef) {
+      StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getId());
     }
@@ -57,7 +58,7 @@ public class NewSemiAutoRebalancer implements NewRebalancer {
     RebalancerConfig config = resource.getRebalancerConfig();
     for (Partition partition : resource.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
-          resource.getExternalView().getStateMap(partition.getId());
+          currentStateOutput.getCurrentStateMap(resource.getId(), partition.getId());
       Set<ParticipantId> disabledInstancesForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partition.getId());

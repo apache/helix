@@ -20,7 +20,7 @@ package org.apache.helix.api;
  */
 
 /**
- * 
+ *
  */
 public abstract class Id implements Comparable<Id> {
   public abstract String stringify();
@@ -35,7 +35,7 @@ public abstract class Id implements Comparable<Id> {
     if (that instanceof Id) {
       return this.stringify().equals(((Id) that).stringify());
     } else if (that instanceof String) {
-      return this.stringify().equals((String) that);
+      return this.stringify().equals(that);
     }
     return false;
   }
@@ -146,6 +146,17 @@ public abstract class Id implements Comparable<Id> {
       return null;
     }
     return new StateModelDefId(stateModelDefId);
+  }
+
+  /**
+   * @param stateModelFactoryId
+   * @return
+   */
+  public static StateModelFactoryId stateModelFactory(String stateModelFactoryId) {
+    if (stateModelFactoryId == null) {
+      return null;
+    }
+    return new StateModelFactoryId(stateModelFactoryId);
   }
 
   /**

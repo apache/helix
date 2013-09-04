@@ -38,6 +38,7 @@ import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.stages.NewCurrentStateOutput;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -66,7 +67,7 @@ public class NewAutoRebalancer implements NewRebalancer {
 
   @Override
   public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
-      StateModelDefinition stateModelDef) {
+      StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
     // Compute a preference list based on the current ideal state
     List<Partition> partitions = new ArrayList<Partition>(resource.getPartitionSet());
     List<String> partitionNames = Lists.transform(partitions, Functions.toStringFunction());
@@ -75,15 +76,15 @@ public class NewAutoRebalancer implements NewRebalancer {
     Map<ParticipantId, Participant> allParticipants = cluster.getParticipantMap();
     int replicas = config.getReplicaCount();
 
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    stateCountMap =
+    LinkedHashMap<String, Integer> stateCountMap =
         ConstraintBasedAssignment.stateCount(stateModelDef, liveParticipants.size(), replicas);
     List<ParticipantId> liveParticipantList =
         new ArrayList<ParticipantId>(liveParticipants.keySet());
     List<ParticipantId> allParticipantList =
         new ArrayList<ParticipantId>(cluster.getParticipantMap().keySet());
     List<String> liveNodes = Lists.transform(liveParticipantList, Functions.toStringFunction());
-    Map<PartitionId, Map<ParticipantId, State>> currentMapping = currentMapping(resource);
+    Map<PartitionId, Map<ParticipantId, State>> currentMapping =
+        currentMapping(resource, currentStateOutput, stateCountMap);
 
     // If there are nodes tagged with resource, use only those nodes
     Set<String> taggedNodes = new HashSet<String>();
@@ -136,21 +137,37 @@ public class NewAutoRebalancer implements NewRebalancer {
       Map<ParticipantId, State> bestStateForPartition =
           NewConstraintBasedAssignment.computeAutoBestStateForPartition(liveParticipants,
               stateModelDef, preferenceList,
-              resource.getExternalView().getStateMap(partition.getId()),
+              currentStateOutput.getCurrentStateMap(resource.getId(), partition.getId()),
               disabledParticipantsForPartition);
       partitionMapping.addReplicaMap(partition.getId(), bestStateForPartition);
     }
     return partitionMapping;
   }
 
-  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(Resource resource) {
+  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(Resource resource,
+      NewCurrentStateOutput currentStateOutput, Map<String, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
 
     for (Partition partition : resource.getPartitionSet()) {
-      Map<ParticipantId, State> stateMap = new HashMap<ParticipantId, State>();
-      stateMap.putAll(resource.getExternalView().getStateMap(partition.getId()));
-      stateMap.putAll(resource.getPendingExternalView().getStateMap(partition.getId()));
+      Map<ParticipantId, State> curStateMap =
+          currentStateOutput.getCurrentStateMap(resource.getId(), partition.getId());
+      map.put(partition.getId(), new HashMap<ParticipantId, State>());
+      for (ParticipantId node : curStateMap.keySet()) {
+        State state = curStateMap.get(node);
+        if (stateCountMap.containsKey(state)) {
+          map.get(partition.getId()).put(node, state);
+        }
+      }
+
+      Map<ParticipantId, State> pendingStateMap =
+          currentStateOutput.getPendingStateMap(resource.getId(), partition.getId());
+      for (ParticipantId node : pendingStateMap.keySet()) {
+        State state = pendingStateMap.get(node);
+        if (stateCountMap.containsKey(state)) {
+          map.get(partition.getId()).put(node, state);
+        }
+      }
     }
     return map;
   }

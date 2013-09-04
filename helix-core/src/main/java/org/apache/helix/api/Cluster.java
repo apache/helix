@@ -22,6 +22,9 @@ package org.apache.helix.api;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
+
 import com.google.common.collect.ImmutableMap;
 
 /**
@@ -59,6 +62,8 @@ public class Cluster {
 
   private final ClusterConfig _config = null;
 
+  private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+
   /**
    * construct a cluster
    * @param id
@@ -69,7 +74,7 @@ public class Cluster {
    */
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
-      ControllerId leaderId) {
+      ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap) {
 
     _id = id;
 
@@ -88,6 +93,8 @@ public class Cluster {
     _liveParticipantMap = liveParticipantBuilder.build();
 
     _leaderId = leaderId;
+
+    _constraintMap = ImmutableMap.copyOf(constraintMap);
 
     // TODO impl this when we persist controllers and spectators on zookeeper
     _controllerMap = ImmutableMap.copyOf(controllerMap);
@@ -159,4 +166,18 @@ public class Cluster {
     return _spectatorMap;
   }
 
+  /**
+   * @return
+   */
+  public Map<ConstraintType, ClusterConstraints> getConstraintMap() {
+    return _constraintMap;
+  }
+
+  /**
+   * @param type
+   * @return
+   */
+  public ClusterConstraints getConstraint(ConstraintType type) {
+    return _constraintMap.get(type);
+  }
 }

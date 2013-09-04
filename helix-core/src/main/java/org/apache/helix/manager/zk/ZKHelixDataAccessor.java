@@ -440,6 +440,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     // set non-bucketized nodes or parent nodes of bucketized nodes
     boolean success[] = _baseDataAccessor.setChildren(paths, records, options);
 
+
     // set bucketized nodes
     List<String> allBucketizedPaths = new ArrayList<String>();
     List<ZNRecord> allBucketizedRecords = new ArrayList<ZNRecord>();
@@ -453,7 +454,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     // TODO: set success accordingly
     _baseDataAccessor.setChildren(allBucketizedPaths, allBucketizedRecords, options);
-
     return success;
   }
 

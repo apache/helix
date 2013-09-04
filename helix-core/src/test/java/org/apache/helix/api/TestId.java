@@ -41,6 +41,7 @@ public class TestId {
     final String sessionName = "Session";
     final String processName = "Process";
     final String stateModelName = "StateModel";
+    final String stateModelFactoryName = "StateModelFactory";
     final String messageName = "Message";
     Assert.assertEquals(Id.resource(resourceName).stringify(), resourceName);
     Assert.assertEquals(Id.cluster(clusterName).stringify(), clusterName);
@@ -48,6 +49,8 @@ public class TestId {
     Assert.assertEquals(Id.session(sessionName).stringify(), sessionName);
     Assert.assertEquals(Id.process(processName).stringify(), processName);
     Assert.assertEquals(Id.stateModelDef(stateModelName).stringify(), stateModelName);
+    Assert.assertEquals(Id.stateModelFactory(stateModelFactoryName).stringify(),
+        stateModelFactoryName);
     Assert.assertEquals(Id.message(messageName).stringify(), messageName);
   }
 
@@ -72,6 +75,7 @@ public class TestId {
     Assert.assertNull(Id.session(null));
     Assert.assertNull(Id.process(null));
     Assert.assertNull(Id.stateModelDef(null));
+    Assert.assertNull(Id.stateModelFactory(null));
     Assert.assertNull(Id.message(null));
   }
 }

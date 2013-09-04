@@ -32,6 +32,7 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.stages.NewCurrentStateOutput;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -51,7 +52,7 @@ public class NewCustomRebalancer implements NewRebalancer {
 
   @Override
   public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
-      StateModelDefinition stateModelDef) {
+      StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getId());
     }
@@ -59,13 +60,13 @@ public class NewCustomRebalancer implements NewRebalancer {
     RebalancerConfig config = resource.getRebalancerConfig();
     for (Partition partition : resource.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
-          resource.getExternalView().getStateMap(partition.getId());
+          currentStateOutput.getCurrentStateMap(resource.getId(), partition.getId());
       Set<ParticipantId> disabledInstancesForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partition.getId());
       Map<ParticipantId, State> bestStateForPartition =
           computeCustomizedBestStateForPartition(cluster.getLiveParticipantMap(), stateModelDef,
-              config.getResourceAssignment().getReplicaMap(partition.getId()), currentStateMap,
+              config.getPreferenceMap(partition.getId()), currentStateMap,
               disabledInstancesForPartition);
       partitionMapping.addReplicaMap(partition.getId(), bestStateForPartition);
     }
@@ -74,11 +75,11 @@ public class NewCustomRebalancer implements NewRebalancer {
 
   /**
    * compute best state for resource in CUSTOMIZED rebalancer mode
-   * @param cache
+   * @param liveParticipantMap
    * @param stateModelDef
    * @param idealStateMap
    * @param currentStateMap
-   * @param disabledInstancesForPartition
+   * @param disabledParticipantsForPartition
    * @return
    */
   private Map<ParticipantId, State> computeCustomizedBestStateForPartition(
@@ -87,7 +88,7 @@ public class NewCustomRebalancer implements NewRebalancer {
       Set<ParticipantId> disabledParticipantsForPartition) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
-    // if the ideal state is deleted, idealStateMap will be null/empty and
+    // if the resource is deleted, idealStateMap will be null/empty and
     // we should drop all resources.
     if (currentStateMap != null) {
       for (ParticipantId participantId : currentStateMap.keySet()) {

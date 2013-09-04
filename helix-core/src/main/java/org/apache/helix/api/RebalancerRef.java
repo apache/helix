@@ -19,10 +19,13 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.controller.rebalancer.NewRebalancer;
 import org.apache.helix.util.HelixUtil;
+import org.apache.log4j.Logger;
 
 public class RebalancerRef {
+  private static final Logger LOG = Logger.getLogger(RebalancerRef.class);
+
   private final String _rebalancerClassName;
 
   public RebalancerRef(String rebalancerClassName) {
@@ -32,18 +35,11 @@ public class RebalancerRef {
   /**
    * @return
    */
-  public Rebalancer getRebalancer() {
+  public NewRebalancer getRebalancer() {
     try {
-      return (Rebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
-    } catch (InstantiationException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (IllegalAccessException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (ClassNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      return (NewRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
+    } catch (Exception e) {
+      LOG.warn("Exception while invoking custom rebalancer class:" + _rebalancerClassName, e);
     }
     return null;
   }

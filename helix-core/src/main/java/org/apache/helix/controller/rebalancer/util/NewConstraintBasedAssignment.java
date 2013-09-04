@@ -43,8 +43,8 @@ import com.google.common.base.Predicate;
 import com.google.common.collect.Sets;
 
 /**
- * Collection of functions that will compute the best possible states given the live instances and
- * an ideal state.
+ * Collection of functions that will compute the best possible state based on the participants and
+ * the rebalancer configuration of a resource.
  */
 public class NewConstraintBasedAssignment {
   private static Logger logger = Logger.getLogger(NewConstraintBasedAssignment.class);
@@ -57,8 +57,9 @@ public class NewConstraintBasedAssignment {
    */
   public static Set<ParticipantId> getDisabledParticipants(
       final Map<ParticipantId, Participant> participantMap, final PartitionId partitionId) {
+    Set<ParticipantId> participantSet = new HashSet<ParticipantId>(participantMap.keySet());
     Set<ParticipantId> disabledParticipantsForPartition =
-        Sets.filter(participantMap.keySet(), new Predicate<ParticipantId>() {
+        Sets.filter(participantSet, new Predicate<ParticipantId>() {
           @Override
           public boolean apply(ParticipantId participantId) {
             return participantMap.get(participantId).getDisablePartitionIds().contains(partitionId);
@@ -87,7 +88,7 @@ public class NewConstraintBasedAssignment {
   }
 
   /**
-   * compute best state for resource in AUTO ideal state mode
+   * compute best state for resource in SEMI_AUTO and FULL_AUTO modes
    * @param liveParticipantMap map of id to live participants
    * @param stateModelDef
    * @param participantPreferenceList
@@ -102,7 +103,7 @@ public class NewConstraintBasedAssignment {
       Set<ParticipantId> disabledParticipantsForPartition) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
-    // if the ideal state is deleted, instancePreferenceList will be empty and
+    // if the resource is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
     if (currentStateMap != null) {
       for (ParticipantId participantId : currentStateMap.keySet()) {
@@ -119,7 +120,7 @@ public class NewConstraintBasedAssignment {
       }
     }
 
-    // ideal state is deleted
+    // resource is deleted
     if (participantPreferenceList == null) {
       return participantStateMap;
     }

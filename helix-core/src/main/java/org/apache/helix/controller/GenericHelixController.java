@@ -52,6 +52,16 @@ import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.MessageGenerationPhase;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.NewBestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.NewCompatibilityCheckStage;
+import org.apache.helix.controller.stages.NewCurrentStateComputationStage;
+import org.apache.helix.controller.stages.NewExternalViewComputeStage;
+import org.apache.helix.controller.stages.NewMessageGenerationStage;
+import org.apache.helix.controller.stages.NewMessageSelectionStage;
+import org.apache.helix.controller.stages.NewMessageThrottleStage;
+import org.apache.helix.controller.stages.NewReadClusterDataStage;
+import org.apache.helix.controller.stages.NewResourceComputationStage;
+import org.apache.helix.controller.stages.NewTaskAssignmentStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.RebalanceIdealStateStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
@@ -175,23 +185,22 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
       // cluster data cache refresh
       Pipeline dataRefresh = new Pipeline();
-      dataRefresh.addStage(new ReadClusterDataStage());
+      dataRefresh.addStage(new NewReadClusterDataStage());
 
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline();
-      rebalancePipeline.addStage(new CompatibilityCheckStage());
-      rebalancePipeline.addStage(new ResourceComputationStage());
-      rebalancePipeline.addStage(new CurrentStateComputationStage());
-      rebalancePipeline.addStage(new RebalanceIdealStateStage());
-      rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-      rebalancePipeline.addStage(new MessageGenerationPhase());
-      rebalancePipeline.addStage(new MessageSelectionStage());
-      rebalancePipeline.addStage(new MessageThrottleStage());
-      rebalancePipeline.addStage(new TaskAssignmentStage());
+      rebalancePipeline.addStage(new NewCompatibilityCheckStage());
+      rebalancePipeline.addStage(new NewResourceComputationStage());
+      rebalancePipeline.addStage(new NewCurrentStateComputationStage());
+      rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
+      rebalancePipeline.addStage(new NewMessageGenerationStage());
+      rebalancePipeline.addStage(new NewMessageSelectionStage());
+      rebalancePipeline.addStage(new NewMessageThrottleStage());
+      rebalancePipeline.addStage(new NewTaskAssignmentStage());
 
       // external view generation
       Pipeline externalViewPipeline = new Pipeline();
-      externalViewPipeline.addStage(new ExternalViewComputeStage());
+      externalViewPipeline.addStage(new NewExternalViewComputeStage());
 
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange", dataRefresh, rebalancePipeline, externalViewPipeline);

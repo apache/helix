@@ -29,6 +29,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
@@ -38,14 +39,18 @@ import org.apache.helix.api.RebalancerRef;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimaps;
 
 /**
  * The ideal states of all partitions in a resource
@@ -459,6 +464,14 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the state model associated with this resource
+   * @param stateModel state model identifier
+   */
+  public void setStateModelDefId(StateModelDefId stateModelDefId) {
+    setStateModelDefRef(stateModelDefId.stringify());
+  }
+
+  /**
    * Set the number of partitions of this resource
    * @param numPartitions the number of partitions
    */
@@ -540,12 +553,28 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the state model factory associated with this resource
+   * @param name state model factory id
+   */
+  public void setStateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
+    setStateModelFactoryName(stateModelFactoryId.stringify());
+  }
+
+  /**
    * Get the state model factory associated with this resource
    * @return state model factory name
    */
   public String getStateModelFactoryName() {
     return _record.getStringField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
         HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+  }
+
+  /**
+   * Get the state model factory associated with this resource
+   * @return state model factory id
+   */
+  public StateModelFactoryId getStateModelFactoryId() {
+    return Id.stateModelFactory(getStateModelFactoryName());
   }
 
   /**
@@ -613,13 +642,39 @@ public class IdealState extends HelixProperty {
     return _record.getSimpleField(IdealStateProperty.INSTANCE_GROUP_TAG.toString());
   }
 
-  public void updateFromAssignment(ResourceAssignment assignment) {
+  /**
+   * Update the ideal state from a ResourceAssignment computed during a rebalance
+   * @param assignment the new resource assignment
+   * @param stateModelDef state model of the resource
+   */
+  public void updateFromAssignment(ResourceAssignment assignment, StateModelDefinition stateModelDef) {
+    // clear all preference lists and maps
     _record.getMapFields().clear();
     _record.getListFields().clear();
+
+    // assign a partition at a time
     for (PartitionId partition : assignment.getMappedPartitions()) {
+      List<ParticipantId> preferenceList = new ArrayList<ParticipantId>();
+      Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
+
+      // invert the map to get in state order
       Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partition);
-      setParticipantStateMap(partition, replicaMap);
-      setPreferenceList(partition, new ArrayList<ParticipantId>(replicaMap.keySet()));
+      ListMultimap<State, ParticipantId> inverseMap = ArrayListMultimap.create();
+      Multimaps.invertFrom(Multimaps.forMap(replicaMap), inverseMap);
+
+      // update the ideal state in order of state priorities
+      for (State state : stateModelDef.getStatesPriorityList()) {
+        if (!state.equals(State.from(HelixDefinedState.DROPPED))
+            && !state.equals(State.from(HelixDefinedState.ERROR))) {
+          List<ParticipantId> stateParticipants = inverseMap.get(state);
+          for (ParticipantId participant : stateParticipants) {
+            preferenceList.add(participant);
+            participantStateMap.put(participant, state);
+          }
+        }
+      }
+      setPreferenceList(partition, preferenceList);
+      setParticipantStateMap(partition, participantStateMap);
     }
   }
 
@@ -674,12 +729,13 @@ public class IdealState extends HelixProperty {
     if (rawPreferenceList == null) {
       return Collections.emptyList();
     }
-    return Lists.transform(rawPreferenceList, new Function<String, ParticipantId>() {
-      @Override
-      public ParticipantId apply(String participantName) {
-        return Id.participant(participantName);
-      }
-    });
+    return Lists.transform(new ArrayList<String>(rawPreferenceList),
+        new Function<String, ParticipantId>() {
+          @Override
+          public ParticipantId apply(String participantName) {
+            return Id.participant(participantName);
+          }
+        });
   }
 
   /**
@@ -710,12 +766,13 @@ public class IdealState extends HelixProperty {
     if (preferenceList == null) {
       return Collections.emptyList();
     }
-    return Lists.transform(preferenceList, new Function<ParticipantId, String>() {
-      @Override
-      public String apply(ParticipantId participantId) {
-        return participantId.stringify();
-      }
-    });
+    return Lists.transform(new ArrayList<ParticipantId>(preferenceList),
+        new Function<ParticipantId, String>() {
+          @Override
+          public String apply(ParticipantId participantId) {
+            return participantId.stringify();
+          }
+        });
   }
 
   /**

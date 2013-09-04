@@ -22,13 +22,13 @@ import org.apache.helix.HelixDefinedState;
  */
 
 /**
- * 
+ *
  */
 public class State {
   private final String _state;
 
   public State(String state) {
-    _state = state;
+    _state = state.toUpperCase();
   }
 
   @Override
@@ -41,7 +41,7 @@ public class State {
     if (that instanceof State) {
       return this.toString().equals(((State) that).toString());
     } else if (that instanceof String) {
-      return _state.equals((String) that);
+      return _state.equals(that);
     }
     return false;
   }

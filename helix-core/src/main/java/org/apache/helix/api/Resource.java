@@ -19,13 +19,17 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 
 /**
@@ -34,36 +38,50 @@ import com.google.common.collect.ImmutableSet;
 public class Resource {
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
+  private final SchedulerTaskConfig _schedulerTaskConfig;
 
-  private final Set<Partition> _partitionSet;
+  private final Map<PartitionId, Partition> _partitionMap;
 
   private final ExternalView _externalView;
-  private final ExternalView _pendingExternalView;
 
-  // TODO move construct logic to ResourceAccessor
   /**
    * Construct a resource
    * @param idealState
    * @param currentStateMap map of participant-id to current state
    */
-  public Resource(ResourceId id, IdealState idealState, ResourceAssignment rscAssignment) {
+  public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment) {
     _id = id;
-    // _rebalancerMode = idealState.getRebalanceMode();
-    // _rebalancerRef = new RebalancerRef(idealState.getRebalancerClassName());
-    // _stateModelDefId = new StateModelDefId(idealState.getStateModelDefRef());
-    _rebalancerConfig = null;
+    _rebalancerConfig = new RebalancerConfig(idealState, resourceAssignment);
 
-    Set<Partition> partitionSet = new HashSet<Partition>();
+    Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
+    Map<PartitionId, Map<String, String>> schedulerTaskConfig =
+        new HashMap<PartitionId, Map<String, String>>();
+    Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
     for (PartitionId partitionId : idealState.getPartitionSet()) {
-      partitionSet.add(new Partition(partitionId));
-    }
-    _partitionSet = ImmutableSet.copyOf(partitionSet);
+      partitionMap.put(partitionId, new Partition(partitionId));
 
-    // TODO
-    // _resourceAssignment = null;
+      // TODO refactor it
+      Map<String, String> taskConfigMap = idealState.getRecord().getMapField(partitionId.stringify());
+      if (taskConfigMap != null) {
+        schedulerTaskConfig.put(partitionId, taskConfigMap);
+      }
+
+      // TODO refactor it
+      for (String simpleKey : idealState.getRecord().getSimpleFields().keySet()) {
+        if (simpleKey.indexOf("_" + Message.Attributes.TIMEOUT) != -1) {
+          try {
+            int timeout = Integer.parseInt(idealState.getRecord().getSimpleField(simpleKey));
+            transitionTimeoutMap.put(simpleKey, timeout);
+          } catch (Exception e) {
+            // ignore
+          }
+        }
+      }
+    }
+    _partitionMap = ImmutableMap.copyOf(partitionMap);
+    _schedulerTaskConfig = new SchedulerTaskConfig(transitionTimeoutMap, schedulerTaskConfig);
 
     _externalView = null;
-    _pendingExternalView = null; // TODO: stub
   }
 
   /**
@@ -74,21 +92,39 @@ public class Resource {
    * @param pendingExternalView pending external view based on unprocessed messages
    * @param rebalancerConfig configuration properties for rebalancing this resource
    */
-  public Resource(ResourceId id, Set<Partition> partitionSet, ExternalView externalView,
-      ExternalView pendingExternalView, RebalancerConfig rebalancerConfig) {
+  public Resource(ResourceId id, Map<PartitionId, Partition> partitionMap,
+      ExternalView externalView,
+      RebalancerConfig rebalancerConfig, SchedulerTaskConfig schedulerTaskConfig) {
     _id = id;
-    _partitionSet = ImmutableSet.copyOf(partitionSet);
+    _partitionMap = ImmutableMap.copyOf(partitionMap);
     _externalView = externalView;
-    _pendingExternalView = pendingExternalView;
     _rebalancerConfig = rebalancerConfig;
+    _schedulerTaskConfig = schedulerTaskConfig;
   }
 
   /**
    * Get the set of partitions of the resource
    * @return set of partitions or empty set if none
    */
+  public Map<PartitionId, Partition> getPartitionMap() {
+    return _partitionMap;
+  }
+
+  /**
+   * @param partitionId
+   * @return
+   */
+  public Partition getPartition(PartitionId partitionId) {
+    return _partitionMap.get(partitionId);
+  }
+
+  /**
+   * @return
+   */
   public Set<Partition> getPartitionSet() {
-    return _partitionSet;
+    Set<Partition> partitionSet = new HashSet<Partition>();
+    partitionSet.addAll(_partitionMap.values());
+    return ImmutableSet.copyOf(partitionSet);
   }
 
   /**
@@ -99,14 +135,6 @@ public class Resource {
     return _externalView;
   }
 
-  /**
-   * Get the pending external view of the resource based on unprocessed messages
-   * @return the external view of the resource
-   */
-  public ExternalView getPendingExternalView() {
-    return _pendingExternalView;
-  }
-
   public RebalancerConfig getRebalancerConfig() {
     return _rebalancerConfig;
   }
@@ -115,15 +143,19 @@ public class Resource {
     return _id;
   }
 
+  public SchedulerTaskConfig getSchedulerTaskConfig() {
+    return _schedulerTaskConfig;
+  }
+
   /**
    * Assembles a Resource
    */
   public static class Builder {
     private final ResourceId _id;
-    private final Set<Partition> _partitionSet;
+    private final Map<PartitionId, Partition> _partitionMap;
     private ExternalView _externalView;
-    private ExternalView _pendingExternalView;
     private RebalancerConfig _rebalancerConfig;
+    private SchedulerTaskConfig _schedulerTaskConfig;
 
     /**
      * Build a Resource with an id
@@ -131,7 +163,7 @@ public class Resource {
      */
     public Builder(ResourceId id) {
       _id = id;
-      _partitionSet = new HashSet<Partition>();
+      _partitionMap = new HashMap<PartitionId, Partition>();
     }
 
     /**
@@ -140,7 +172,19 @@ public class Resource {
      * @return Builder
      */
     public Builder addPartition(Partition partition) {
-      _partitionSet.add(partition);
+      _partitionMap.put(partition.getId(), partition);
+      return this;
+    }
+
+    /**
+     * Add a set of partitions
+     * @param partitions
+     * @return Builder
+     */
+    public Builder addPartitions(Set<Partition> partitions) {
+      for (Partition partition : partitions) {
+        addPartition(partition);
+      }
       return this;
     }
 
@@ -155,16 +199,6 @@ public class Resource {
     }
 
     /**
-     * Set the pending external view of this resource
-     * @param extView replica placements as a result of pending messages
-     * @return Builder
-     */
-    public Builder pendingExternalView(ExternalView pendingExtView) {
-      _pendingExternalView = pendingExtView;
-      return this;
-    }
-
-    /**
      * Set the rebalancer configuration
      * @param rebalancerConfig properties of interest for rebalancing
      * @return Builder
@@ -175,12 +209,21 @@ public class Resource {
     }
 
     /**
+     * @param schedulerTaskConfig
+     * @return
+     */
+    public Builder schedulerTaskConfig(SchedulerTaskConfig schedulerTaskConfig) {
+      _schedulerTaskConfig = schedulerTaskConfig;
+      return this;
+    }
+
+    /**
      * Create a Resource object
      * @return instantiated Resource
      */
     public Resource build() {
-      return new Resource(_id, _partitionSet, _externalView, _pendingExternalView,
-          _rebalancerConfig);
+      return new Resource(_id, _partitionMap, _externalView, _rebalancerConfig,
+          _schedulerTaskConfig);
     }
   }
 }

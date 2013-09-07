@@ -28,6 +28,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
+import org.apache.helix.api.ResourceConfig;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
@@ -35,7 +37,6 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Resource;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -63,19 +64,21 @@ public class TestResourceComputationStage extends BaseStageTest {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
-    ResourceComputationStage stage = new ResourceComputationStage();
-    runStage(event, new ReadClusterDataStage());
+    NewResourceComputationStage stage = new NewResourceComputationStage();
+    runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resource = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resource =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     AssertJUnit.assertEquals(1, resource.size());
 
-    AssertJUnit.assertEquals(resource.keySet().iterator().next(), resourceName);
-    AssertJUnit.assertEquals(resource.values().iterator().next().getResourceName(), resourceName);
-    AssertJUnit.assertEquals(resource.values().iterator().next().getStateModelDefRef(),
-        idealState.getStateModelDefRef());
+    AssertJUnit.assertEquals(resource.keySet().iterator().next(), Id.resource(resourceName));
     AssertJUnit
-        .assertEquals(resource.values().iterator().next().getPartitions().size(), partitions);
+        .assertEquals(resource.values().iterator().next().getId(), Id.resource(resourceName));
+    AssertJUnit.assertEquals(resource.values().iterator().next().getRebalancerConfig()
+        .getStateModelDefId(), idealState.getStateModelDefId());
+    AssertJUnit.assertEquals(resource.values().iterator().next().getPartitionSet().size(),
+        partitions);
   }
 
   @Test
@@ -85,21 +88,23 @@ public class TestResourceComputationStage extends BaseStageTest {
         "testResource1", "testResource2"
     };
     List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
-    ResourceComputationStage stage = new ResourceComputationStage();
-    runStage(event, new ReadClusterDataStage());
+    NewResourceComputationStage stage = new NewResourceComputationStage();
+    runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     AssertJUnit.assertEquals(resources.length, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
+      ResourceId resourceId = Id.resource(resourceName);
       IdealState idealState = idealStates.get(i);
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceName));
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getResourceName(), resourceName);
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getStateModelDefRef(),
-          idealState.getStateModelDefRef());
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getPartitions().size(),
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
+          .getStateModelDefId(), idealState.getStateModelDefRef());
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getPartitionSet().size(),
           idealState.getNumPartitions());
     }
   }
@@ -151,41 +156,47 @@ public class TestResourceComputationStage extends BaseStageTest {
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);
 
-    ResourceComputationStage stage = new ResourceComputationStage();
-    runStage(event, new ReadClusterDataStage());
+    NewResourceComputationStage stage = new NewResourceComputationStage();
+    runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     // +1 because it will have one for current state
     AssertJUnit.assertEquals(resources.length + 1, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
+      ResourceId resourceId = Id.resource(resourceName);
       IdealState idealState = idealStates.get(i);
-      AssertJUnit.assertTrue(resourceMap.containsKey(resourceName));
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getResourceName(), resourceName);
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getStateModelDefRef(),
-          idealState.getStateModelDefRef());
-      AssertJUnit.assertEquals(resourceMap.get(resourceName).getPartitions().size(),
+      AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
+          .getStateModelDefId(), idealState.getStateModelDefId());
+      AssertJUnit.assertEquals(resourceMap.get(resourceId).getPartitionSet().size(),
           idealState.getNumPartitions());
     }
     // Test the data derived from CurrentState
-    AssertJUnit.assertTrue(resourceMap.containsKey(oldResource));
-    AssertJUnit.assertEquals(resourceMap.get(oldResource).getResourceName(), oldResource);
-    AssertJUnit.assertEquals(resourceMap.get(oldResource).getStateModelDefRef(),
-        currentState.getStateModelDefRef());
-    AssertJUnit.assertEquals(resourceMap.get(oldResource).getPartitions().size(), currentState
-        .getPartitionStateStringMap().size());
-    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_0"));
-    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_1"));
-    AssertJUnit.assertNotNull(resourceMap.get(oldResource).getPartition("testResourceOld_2"));
+    ResourceId oldResourceId = Id.resource(oldResource);
+    AssertJUnit.assertTrue(resourceMap.containsKey(oldResourceId));
+    AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getId(), oldResourceId);
+    AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getRebalancerConfig()
+        .getStateModelDefId(), currentState.getStateModelDefId());
+    AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getPartitionSet().size(), currentState
+        .getPartitionStateMap().size());
+    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
+        Id.partition("testResourceOld_0")));
+    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
+        Id.partition("testResourceOld_1")));
+    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
+        Id.partition("testResourceOld_2")));
 
   }
 
   @Test
   public void testNull() {
     ClusterEvent event = new ClusterEvent("sampleEvent");
-    ResourceComputationStage stage = new ResourceComputationStage();
+    NewResourceComputationStage stage = new NewResourceComputationStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

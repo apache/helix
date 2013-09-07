@@ -25,7 +25,7 @@ import java.util.Set;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.Partition;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
@@ -56,19 +56,20 @@ public class NewSemiAutoRebalancer implements NewRebalancer {
     }
     ResourceAssignment partitionMapping = new ResourceAssignment(resource.getId());
     RebalancerConfig config = resource.getRebalancerConfig();
-    for (Partition partition : resource.getPartitionSet()) {
+    for (PartitionId partition : resource.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getId(), partition.getId());
+          currentStateOutput.getCurrentStateMap(resource.getId(), partition);
       Set<ParticipantId> disabledInstancesForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
-              partition.getId());
+              partition);
       List<ParticipantId> preferenceList =
-          NewConstraintBasedAssignment.getPreferenceList(cluster, partition.getId(), config);
+          NewConstraintBasedAssignment.getPreferenceList(cluster, partition,
+              config.getPreferenceList(partition));
       Map<ParticipantId, State> bestStateForPartition =
           NewConstraintBasedAssignment.computeAutoBestStateForPartition(
               cluster.getLiveParticipantMap(), stateModelDef, preferenceList, currentStateMap,
               disabledInstancesForPartition);
-      partitionMapping.addReplicaMap(partition.getId(), bestStateForPartition);
+      partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
   }

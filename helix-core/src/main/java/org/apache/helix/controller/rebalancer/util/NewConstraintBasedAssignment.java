@@ -34,7 +34,6 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.State;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -76,9 +75,7 @@ public class NewConstraintBasedAssignment {
    * @return list with most preferred participants first
    */
   public static List<ParticipantId> getPreferenceList(Cluster cluster, PartitionId partitionId,
-      RebalancerConfig config) {
-    List<ParticipantId> prefList = config.getPreferenceList(partitionId);
-
+      List<ParticipantId> prefList) {
     if (prefList != null && prefList.size() == 1
         && StateModelToken.ANY_LIVEINSTANCE.toString().equals(prefList.get(0).stringify())) {
       prefList = new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());

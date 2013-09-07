@@ -62,9 +62,12 @@ public class RebalancerRef {
   /**
    * Get a rebalancer class reference
    * @param rebalancerClassName name of the class
-   * @return RebalancerRef
+   * @return RebalancerRef or null if name is null
    */
   public static RebalancerRef from(String rebalancerClassName) {
+    if (rebalancerClassName == null) {
+      return null;
+    }
     return new RebalancerRef(rebalancerClassName);
   }
 }

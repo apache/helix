@@ -19,8 +19,10 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
@@ -28,6 +30,7 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -51,16 +54,17 @@ public class NewResourceComputationStage extends AbstractBaseStage {
       throw new StageException("Missing attributes in event:" + event + ". Requires Cluster");
     }
 
-    Map<ResourceId, Resource.Builder> resourceBuilderMap =
-        new LinkedHashMap<ResourceId, Resource.Builder>();
+    Map<ResourceId, ResourceConfig.Builder> resourceBuilderMap =
+        new LinkedHashMap<ResourceId, ResourceConfig.Builder>();
     // include all resources in ideal-state
     for (ResourceId resourceId : cluster.getResourceMap().keySet()) {
       Resource resource = cluster.getResource(resourceId);
       RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
 
-      Resource.Builder resourceBuilder = new Resource.Builder(resourceId);
+      ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
       resourceBuilder.rebalancerConfig(rebalancerConfig);
-      resourceBuilder.addPartitions(resource.getPartitionSet());
+      Set<Partition> partitionSet = new HashSet<Partition>(resource.getPartitionMap().values());
+      resourceBuilder.addPartitions(partitionSet);
       resourceBuilderMap.put(resourceId, resourceBuilder);
     }
 
@@ -87,7 +91,7 @@ public class NewResourceComputationStage extends AbstractBaseStage {
           rebalancerConfigBuilder.bucketSize(currentState.getBucketSize());
           rebalancerConfigBuilder.batchMessageMode(currentState.getBatchMessageMode());
 
-          Resource.Builder resourceBuilder = new Resource.Builder(resourceId);
+          ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
           resourceBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
           resourceBuilderMap.put(resourceId, resourceBuilder);
         }
@@ -99,7 +103,7 @@ public class NewResourceComputationStage extends AbstractBaseStage {
     }
 
     // convert builder-map to resource-map
-    Map<ResourceId, Resource> resourceMap = new LinkedHashMap<ResourceId, Resource>();
+    Map<ResourceId, ResourceConfig> resourceMap = new LinkedHashMap<ResourceId, ResourceConfig>();
     for (ResourceId resourceId : resourceBuilderMap.keySet()) {
       resourceMap.put(resourceId, resourceBuilderMap.get(resourceId).build());
     }

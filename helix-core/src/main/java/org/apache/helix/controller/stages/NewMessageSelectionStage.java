@@ -28,10 +28,12 @@ import java.util.TreeMap;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
+import org.apache.helix.api.ParticipantConfig;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
@@ -91,11 +93,11 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
     Cluster cluster = event.getAttribute("ClusterDataCache");
     Map<StateModelDefId, StateModelDefinition> stateModelDefMap =
         event.getAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString());
-    Map<ResourceId, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     NewCurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    NewMessageOutput messageGenOutput =
-        event.getAttribute(AttributeName.MESSAGES_ALL.toString());
+    NewMessageOutput messageGenOutput = event.getAttribute(AttributeName.MESSAGES_ALL.toString());
     if (cluster == null || resourceMap == null || currentStateOutput == null
         || messageGenOutput == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -105,7 +107,7 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
     NewMessageOutput output = new NewMessageOutput();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
-      Resource resource = resourceMap.get(resourceId);
+      ResourceConfig resource = resourceMap.get(resourceId);
       StateModelDefinition stateModelDef =
           stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
 
@@ -119,8 +121,8 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
         List<Message> messages = messageGenOutput.getMessages(resourceId, partitionId);
         List<Message> selectedMessages =
             selectMessages(cluster.getLiveParticipantMap(),
-            currentStateOutput.getCurrentStateMap(resourceId, partitionId),
-            currentStateOutput.getPendingStateMap(resourceId, partitionId), messages,
+                currentStateOutput.getCurrentStateMap(resourceId, partitionId),
+                currentStateOutput.getPendingStateMap(resourceId, partitionId), messages,
                 stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
         output.setMessages(resourceId, partitionId, selectedMessages);
       }

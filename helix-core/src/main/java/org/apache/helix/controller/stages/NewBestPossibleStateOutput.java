@@ -2,6 +2,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.model.ResourceAssignment;
@@ -30,5 +31,13 @@ public class NewBestPossibleStateOutput {
    */
   public ResourceAssignment getResourceAssignment(ResourceId resourceId) {
     return _resourceAssignmentMap.get(resourceId);
+  }
+
+  /**
+   * Get all of the resources currently assigned
+   * @return set of assigned resource ids
+   */
+  public Set<ResourceId> getAssignedResources() {
+    return _resourceAssignmentMap.keySet();
   }
 }

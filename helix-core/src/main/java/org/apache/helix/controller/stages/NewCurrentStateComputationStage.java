@@ -28,7 +28,7 @@ import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
@@ -48,7 +48,8 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     Cluster cluster = event.getAttribute("ClusterDataCache");
-    Map<ResourceId, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
 
     if (cluster == null || resourceMap == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -72,7 +73,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
         }
 
         ResourceId resourceId = message.getResourceId();
-        Resource resource = resourceMap.get(resourceId);
+        ResourceConfig resource = resourceMap.get(resourceId);
         if (resource == null) {
           continue;
         }
@@ -92,8 +93,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
             for (PartitionId partitionId : partitionNames) {
               Partition partition = resource.getPartition(partitionId);
               if (partition != null) {
-                currentStateOutput.setPendingState(resourceId, partitionId,
-                    participantId,
+                currentStateOutput.setPendingState(resourceId, partitionId, participantId,
                     message.getToState());
               } else {
                 // log
@@ -113,7 +113,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
 
         ResourceId resourceId = curState.getResourceId();
         StateModelDefId stateModelDefId = curState.getStateModelDefId();
-        Resource resource = resourceMap.get(resourceId);
+        ResourceConfig resource = resourceMap.get(resourceId);
         if (resource == null) {
           continue;
         }

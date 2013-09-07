@@ -25,13 +25,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
-import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.Resource;
+import org.apache.helix.api.State;
+import org.apache.helix.controller.rebalancer.NewRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.controller.stages.NewCurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -39,8 +42,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -51,38 +52,27 @@ import org.testng.annotations.Test;
 public class TestCustomizedIdealStateRebalancer extends
     ZkStandAloneCMTestBaseWithPropertyServerCheck {
   String db2 = TEST_DB + "2";
-  static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements Rebalancer {
-
-    @Override
-    public void init(HelixManager manager) {
-      testRebalancerCreated = true;
-    }
+  public static class TestRebalancer implements NewRebalancer {
 
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(Resource resource,
-        IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-        ClusterDataCache clusterData) {
-      List<String> liveInstances = new ArrayList<String>(clusterData.getLiveInstances().keySet());
-      String stateModelName = currentIdealState.getStateModelDefRef();
-      StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
-      ResourceAssignment resourceMapping =
-          new ResourceAssignment(Id.resource(resource.getResourceName()));
+    public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
+        StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
+      List<ParticipantId> liveParticipants =
+          new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
+      ResourceAssignment resourceMapping = new ResourceAssignment(resource.getId());
       int i = 0;
-      for (Partition partition : resource.getPartitions()) {
-        String partitionName = partition.getPartitionName();
-        int nodeIndex = i % liveInstances.size();
-        currentIdealState.getInstanceStateMap(partitionName).clear();
-        currentIdealState.getInstanceStateMap(partitionName).put(liveInstances.get(nodeIndex),
-            stateModelDef.getStatesPriorityStringList().get(0));
-        resourceMapping.addReplicaMap(Id.partition(partitionName), ResourceAssignment
-            .replicaMapFromStringMap(currentIdealState.getInstanceStateMap(partitionName)));
+      for (PartitionId partitionId : resource.getPartitionSet()) {
+        int nodeIndex = i % liveParticipants.size();
+        Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
+        replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getStatesPriorityList()
+            .get(0));
+        resourceMapping.addReplicaMap(partitionId, replicaMap);
         i++;
       }
       testRebalancerInvoked = true;
@@ -107,7 +97,7 @@ public class TestCustomizedIdealStateRebalancer extends
     Assert.assertTrue(result);
     Thread.sleep(1000);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionStringSet().size(), 60);
@@ -119,7 +109,6 @@ public class TestCustomizedIdealStateRebalancer extends
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
       Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
     }
-    Assert.assertTrue(testRebalancerCreated);
     Assert.assertTrue(testRebalancerInvoked);
   }
 
@@ -138,7 +127,7 @@ public class TestCustomizedIdealStateRebalancer extends
     public boolean verify() {
       try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
+            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
         Builder keyBuilder = accessor.keyBuilder();
         int numberOfPartitions =
             accessor.getProperty(keyBuilder.idealState(_resourceName)).getRecord().getListFields()
@@ -159,9 +148,9 @@ public class TestCustomizedIdealStateRebalancer extends
         if (instances == 0) {
           instances = cache.getLiveInstances().size();
         }
-        return verifyBalanceExternalView(
-            accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
-            numberOfPartitions, masterValue, replicas, instances);
+        ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
+        return verifyBalanceExternalView(externalView.getRecord(), numberOfPartitions, masterValue,
+            replicas, instances);
       } catch (Exception e) {
         return false;
       }

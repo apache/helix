@@ -29,7 +29,6 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
@@ -40,7 +39,7 @@ import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
-import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -50,7 +49,6 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
@@ -64,7 +62,8 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
     log.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<ResourceId, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     Cluster cluster = event.getAttribute("ClusterDataCache");
 
     if (manager == null || resourceMap == null || cluster == null) {
@@ -89,7 +88,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       // view.setBucketSize(currentStateOutput.getBucketSize(resourceName));
       // if resource ideal state has bucket size, set it
       // otherwise resource has been dropped, use bucket size from current state instead
-      Resource resource = resourceMap.get(resourceId);
+      ResourceConfig resource = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
       if (rebalancerConfig.getBucketSize() > 0) {
         view.setBucketSize(rebalancerConfig.getBucketSize());
@@ -139,8 +138,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
         // message, and then remove the partitions from the ideal state
         if (rebalancerConfig != null
             && rebalancerConfig.getStateModelDefId().stringify()
-                .equalsIgnoreCase(
-                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
           // TODO fix it
           // updateScheduledTaskStatus(view, manager, idealState);
         }

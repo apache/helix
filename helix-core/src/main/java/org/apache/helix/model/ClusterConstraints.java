@@ -76,6 +76,14 @@ public class ClusterConstraints extends HelixProperty {
   }
 
   /**
+   * Get the type of constraint this object represents
+   * @return constraint type
+   */
+  public ConstraintType getType() {
+    return ConstraintType.valueOf(getId());
+  }
+
+  /**
    * Instantiate constraints from a pre-populated ZNRecord
    * @param record ZNRecord containing all constraints
    */

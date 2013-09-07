@@ -23,11 +23,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -58,7 +58,8 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
 
     NewCurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    Map<ResourceId, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     Cluster cluster = event.getAttribute("ClusterDataCache");
 
     if (currentStateOutput == null || resourceMap == null || cluster == null) {
@@ -106,7 +107,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
 
   // TODO check this
   private NewBestPossibleStateOutput compute(Cluster cluster, ClusterEvent event,
-      Map<ResourceId, Resource> resourceMap, NewCurrentStateOutput currentStateOutput) {
+      Map<ResourceId, ResourceConfig> resourceMap, NewCurrentStateOutput currentStateOutput) {
     NewBestPossibleStateOutput output = new NewBestPossibleStateOutput();
     Map<StateModelDefId, StateModelDefinition> stateModelDefs =
         event.getAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString());

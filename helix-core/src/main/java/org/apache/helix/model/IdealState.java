@@ -339,10 +339,13 @@ public class IdealState extends HelixProperty {
     Map<String, String> instanceStateMap = getInstanceStateMap(partitionId.stringify());
     ImmutableMap.Builder<ParticipantId, State> builder =
         new ImmutableMap.Builder<ParticipantId, State>();
-    for (String participantId : instanceStateMap.keySet()) {
-      builder.put(Id.participant(participantId), State.from(instanceStateMap.get(participantId)));
+    if (instanceStateMap != null) {
+      for (String participantId : instanceStateMap.keySet()) {
+        builder.put(Id.participant(participantId), State.from(instanceStateMap.get(participantId)));
+      }
+      return builder.build();
     }
-    return builder.build();
+    return null;
   }
 
   /**
@@ -433,10 +436,13 @@ public class IdealState extends HelixProperty {
   public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
     ImmutableList.Builder<ParticipantId> builder = new ImmutableList.Builder<ParticipantId>();
     List<String> preferenceStringList = getPreferenceList(partitionId.stringify());
-    for (String participantName : preferenceStringList) {
-      builder.add(Id.participant(participantName));
+    if (preferenceStringList != null) {
+      for (String participantName : preferenceStringList) {
+        builder.add(Id.participant(participantName));
+      }
+      return builder.build();
     }
-    return builder.build();
+    return null;
   }
 
   /**

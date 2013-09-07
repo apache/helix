@@ -52,6 +52,9 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Maps;
+
 public class TestNewStages extends ZkUnitTestBase {
   final int n = 2;
   final int p = 8;
@@ -115,7 +118,14 @@ public class TestNewStages extends ZkUnitTestBase {
     Cluster cluster = clusterAccessor.readCluster();
     ClusterEvent event = new ClusterEvent(testName);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), new NewCurrentStateOutput());
-    event.addAttribute(AttributeName.RESOURCES.toString(), cluster.getResourceMap());
+    Map<ResourceId, ResourceConfig> resourceConfigMap =
+        Maps.transformValues(cluster.getResourceMap(), new Function<Resource, ResourceConfig>() {
+          @Override
+          public ResourceConfig apply(Resource resource) {
+            return resource.getConfig();
+          }
+        });
+    event.addAttribute(AttributeName.RESOURCES.toString(), resourceConfigMap);
     event.addAttribute("ClusterDataCache", cluster);
     Map<StateModelDefId, StateModelDefinition> stateModelMap =
         new HashMap<StateModelDefId, StateModelDefinition>();

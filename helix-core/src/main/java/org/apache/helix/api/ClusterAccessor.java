@@ -24,12 +24,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -76,7 +78,7 @@ public class ClusterAccessor {
    */
   public void dropCluster() {
     LOG.info("Dropping cluster: " + _clusterId);
-    List<String> liveInstanceNames =_accessor.getChildNames(_keyBuilder.liveInstances());
+    List<String> liveInstanceNames = _accessor.getChildNames(_keyBuilder.liveInstances());
     if (liveInstanceNames.size() > 0) {
       throw new HelixException("Can't drop cluster: " + _clusterId
           + " because there are running participant: " + liveInstanceNames
@@ -97,6 +99,7 @@ public class ClusterAccessor {
    * @return cluster
    */
   public Cluster readCluster() {
+    // TODO many of these should live in resource, participant, etc accessors
     /**
      * map of instance-id to instance-config
      */
@@ -147,13 +150,20 @@ public class ClusterAccessor {
     Map<String, ClusterConstraints> constraintMap =
         _accessor.getChildValuesMap(_keyBuilder.constraints());
 
+    /**
+     * Map of resource id to external view
+     */
+    Map<String, ExternalView> externalViewMap =
+        _accessor.getChildValuesMap(_keyBuilder.externalViews());
+
     Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
-
       // TODO pass resource assignment
       ResourceId resourceId = Id.resource(resourceName);
-      resourceMap.put(resourceId, new Resource(resourceId, idealState, null));
+      resourceMap.put(resourceId,
+          new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
+              liveInstanceMap.size()));
     }
 
     Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
@@ -182,8 +192,11 @@ public class ClusterAccessor {
           constraintMap.get(constraintType));
     }
 
+    PauseSignal pauseSignal = _accessor.getProperty(_keyBuilder.pause());
+    boolean isPaused = pauseSignal != null;
+
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap);
+        clusterConstraintMap, isPaused);
   }
 
   /**
@@ -204,7 +217,7 @@ public class ClusterAccessor {
    * add a resource to cluster
    * @param resource
    */
-  public void addResourceToCluster(Resource resource) {
+  public void addResourceToCluster(ResourceConfig resource) {
     StateModelDefId stateModelDefId = resource.getRebalancerConfig().getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
       throw new HelixException("State model: " + stateModelDefId + " not found in cluster: "
@@ -217,8 +230,42 @@ public class ClusterAccessor {
           + ", because resource ideal state already exists in cluster: " + _clusterId);
     }
 
-    // TODO convert rebalancerConfig to idealState
-    _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), null);
+    // Create an IdealState from a RebalancerConfig
+    RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
+    IdealState idealState = new IdealState(resourceId);
+    idealState.setRebalanceMode(rebalancerConfig.getRebalancerMode());
+    idealState.setMaxPartitionsPerInstance(rebalancerConfig.getMaxPartitionsPerParticipant());
+    if (rebalancerConfig.canAssignAnyLiveParticipant()) {
+      idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
+    } else {
+      idealState.setReplicas(Integer.toString(rebalancerConfig.getReplicaCount()));
+    }
+    idealState.setStateModelDefId(rebalancerConfig.getStateModelDefId());
+    for (PartitionId partitionId : resource.getPartitionSet()) {
+      List<ParticipantId> preferenceList = rebalancerConfig.getPreferenceList(partitionId);
+      Map<ParticipantId, State> preferenceMap = rebalancerConfig.getPreferenceMap(partitionId);
+      if (preferenceList != null) {
+        idealState.setPreferenceList(partitionId, preferenceList);
+      }
+      if (preferenceMap != null) {
+        idealState.setParticipantStateMap(partitionId, preferenceMap);
+      }
+    }
+    idealState.setBucketSize(rebalancerConfig.getBucketSize());
+    idealState.setBatchMessageMode(rebalancerConfig.getBatchMessageMode());
+    String groupTag = rebalancerConfig.getParticipantGroupTag();
+    if (groupTag != null) {
+      idealState.setInstanceGroupTag(groupTag);
+    }
+    RebalancerRef rebalancerRef = rebalancerConfig.getRebalancerRef();
+    if (rebalancerRef != null) {
+      idealState.setRebalancerRef(rebalancerRef);
+    }
+    StateModelFactoryId stateModelFactoryId = rebalancerConfig.getStateModelFactoryId();
+    if (stateModelFactoryId != null) {
+      idealState.setStateModelFactoryId(stateModelFactoryId);
+    }
+    _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
   }
 
   /**
@@ -244,7 +291,7 @@ public class ClusterAccessor {
    * add a participant to cluster
    * @param participant
    */
-  public void addParticipantToCluster(Participant participant) {
+  public void addParticipantToCluster(ParticipantConfig participant) {
     if (!isClusterStructureValid()) {
       throw new HelixException("Cluster: " + _clusterId + " structure is not valid");
     }

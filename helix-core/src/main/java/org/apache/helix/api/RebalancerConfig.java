@@ -19,9 +19,11 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixConstants;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
@@ -40,6 +42,7 @@ public class RebalancerConfig {
   private final Map<PartitionId, Map<ParticipantId, State>> _preferenceMaps;
   private final ResourceAssignment _resourceAssignment;
   private final int _replicaCount;
+  private final boolean _anyLiveParticipant;
   private final String _participantGroupTag;
   private final int _maxPartitionsPerParticipant;
   private final int _bucketSize;
@@ -51,11 +54,19 @@ public class RebalancerConfig {
    * @param idealState the physical ideal state
    * @param resourceAssignment last mapping of a resource
    */
-  public RebalancerConfig(IdealState idealState, ResourceAssignment resourceAssignment) {
+  public RebalancerConfig(IdealState idealState, ResourceAssignment resourceAssignment,
+      int liveParticipantCount) {
     _rebalancerMode = idealState.getRebalanceMode();
     _rebalancerRef = idealState.getRebalancerRef();
     _stateModelDefId = idealState.getStateModelDefId();
-    _replicaCount = Integer.parseInt(idealState.getReplicas());
+    String replicaCount = idealState.getReplicas();
+    if (replicaCount.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
+      _replicaCount = liveParticipantCount;
+      _anyLiveParticipant = true;
+    } else {
+      _replicaCount = Integer.parseInt(idealState.getReplicas());
+      _anyLiveParticipant = false;
+    }
     _participantGroupTag = idealState.getInstanceGroupTag();
     _maxPartitionsPerParticipant = idealState.getMaxPartitionsPerInstance();
     _bucketSize = idealState.getBucketSize();
@@ -68,10 +79,14 @@ public class RebalancerConfig {
     ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>> preferenceMaps =
         new ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>>();
     for (PartitionId partitionId : idealState.getPartitionSet()) {
-      preferenceLists.put(partitionId,
-          ImmutableList.copyOf(idealState.getPreferenceList(partitionId)));
-      preferenceMaps.put(partitionId,
-          ImmutableMap.copyOf(idealState.getParticipantStateMap(partitionId)));
+      List<ParticipantId> preferenceList = idealState.getPreferenceList(partitionId);
+      if (preferenceList != null) {
+        preferenceLists.put(partitionId, ImmutableList.copyOf(preferenceList));
+      }
+      Map<ParticipantId, State> preferenceMap = idealState.getParticipantStateMap(partitionId);
+      if (preferenceMap != null) {
+        preferenceMaps.put(partitionId, ImmutableMap.copyOf(preferenceMap));
+      }
     }
     _preferenceLists = preferenceLists.build();
     _preferenceMaps = preferenceMaps.build();
@@ -118,7 +133,10 @@ public class RebalancerConfig {
    * @return the ordered preference list (early entries are more preferred)
    */
   public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
-    return _preferenceLists.get(partitionId);
+    if (_preferenceLists.containsKey(partitionId)) {
+      return _preferenceLists.get(partitionId);
+    }
+    return Collections.emptyList();
   }
 
   /**
@@ -127,7 +145,10 @@ public class RebalancerConfig {
    * @return a mapping of participant to state for each replica
    */
   public Map<ParticipantId, State> getPreferenceMap(PartitionId partitionId) {
-    return _preferenceMaps.get(partitionId);
+    if (_preferenceMaps.containsKey(partitionId)) {
+      return _preferenceMaps.get(partitionId);
+    }
+    return Collections.emptyMap();
   }
 
   /**
@@ -179,10 +200,19 @@ public class RebalancerConfig {
   }
 
   /**
+   * Check if replicas can be assigned to any live participant
+   * @return true if they can, false if they cannot
+   */
+  public boolean canAssignAnyLiveParticipant() {
+    return _anyLiveParticipant;
+  }
+
+  /**
    * Assembles a RebalancerConfig
    */
   public static class Builder {
     private final IdealState _idealState;
+    private boolean _anyLiveParticipant;
     private ResourceAssignment _resourceAssignment;
 
     /**
@@ -191,6 +221,7 @@ public class RebalancerConfig {
      */
     public Builder(ResourceId resourceId) {
       _idealState = new IdealState(resourceId);
+      _anyLiveParticipant = false;
     }
 
     /**
@@ -283,11 +314,26 @@ public class RebalancerConfig {
     }
 
     /**
+     * Set whether any live participant should be used in rebalancing
+     * @param useAnyParticipant true if any live participant can be used, false otherwise
+     * @return
+     */
+    public Builder anyLiveParticipant(boolean useAnyParticipant) {
+      _anyLiveParticipant = true;
+      return this;
+    }
+
+    /**
      * Assemble a RebalancerConfig
      * @return a fully defined rebalancer configuration
      */
     public RebalancerConfig build() {
-      return new RebalancerConfig(_idealState, _resourceAssignment);
+      if (_anyLiveParticipant) {
+        return new RebalancerConfig(_idealState, _resourceAssignment, Integer.parseInt(_idealState
+            .getReplicas()));
+      } else {
+        return new RebalancerConfig(_idealState, _resourceAssignment, -1);
+      }
     }
   }
 }

@@ -30,10 +30,10 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
@@ -42,12 +42,10 @@ import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -63,7 +61,8 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
     Cluster cluster = event.getAttribute("ClusterDataCache");
     Map<StateModelDefId, StateModelDefinition> stateModelDefMap =
         event.getAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString());
-    Map<ResourceId, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
     NewCurrentStateOutput currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     NewBestPossibleStateOutput bestPossibleStateOutput =
@@ -77,7 +76,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
     NewMessageOutput output = new NewMessageOutput();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
-      Resource resource = resourceMap.get(resourceId);
+      ResourceConfig resource = resourceMap.get(resourceId);
       int bucketSize = resource.getRebalancerConfig().getBucketSize();
 
       StateModelDefinition stateModelDef =
@@ -145,10 +144,13 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
             if (rebalancerConfig != null
                 && rebalancerConfig.getStateModelDefId().stringify()
                     .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-              if (resource.getPartitionSet().size() > 0) {
-                // TODO refactor it
-                message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
-                    resource.getSchedulerTaskConfig().getTaskConfig(partitionId));
+              if (resource.getPartitionMap().size() > 0) {
+                // TODO refactor it -- we need a way to read in scheduler tasks a priori
+                Resource activeResource = cluster.getResource(resourceId);
+                if (activeResource != null) {
+                  message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
+                      activeResource.getSchedulerTaskConfig().getTaskConfig(partitionId));
+                }
               }
             }
 

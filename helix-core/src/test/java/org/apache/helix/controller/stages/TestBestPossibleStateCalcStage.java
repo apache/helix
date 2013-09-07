@@ -22,14 +22,14 @@ package org.apache.helix.controller.stages;
 import java.util.Date;
 import java.util.Map;
 
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.ResourceConfig;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.StateModelDefinition;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -45,24 +45,27 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     };
     setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     setupLiveInstances(5);
-    setupStateModel();
+    Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
 
-    Map<String, Resource> resourceMap = getResourceMap();
-    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
+    event.addAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString(), stateModelDefs);
 
-    ReadClusterDataStage stage1 = new ReadClusterDataStage();
+    NewReadClusterDataStage stage1 = new NewReadClusterDataStage();
     runStage(event, stage1);
-    BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
+    NewBestPossibleStateCalcStage stage2 = new NewBestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    BestPossibleStateOutput output =
+    NewBestPossibleStateOutput output =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
-      Partition resource = new Partition("testResourceName_" + p);
-      AssertJUnit.assertEquals("MASTER", output.getInstanceStateMap("testResourceName", resource)
-          .get("localhost_" + (p + 1) % 5));
+      Map<ParticipantId, State> replicaMap =
+          output.getResourceAssignment(Id.resource("testResourceName")).getReplicaMap(
+              Id.partition("testResourceName_" + p));
+      AssertJUnit.assertEquals(State.from("MASTER"),
+          replicaMap.get(Id.participant("localhost_" + (p + 1) % 5)));
     }
     System.out.println("END TestBestPossibleStateCalcStage at "
         + new Date(System.currentTimeMillis()));

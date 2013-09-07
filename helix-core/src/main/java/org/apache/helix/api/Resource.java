@@ -20,7 +20,6 @@ package org.apache.helix.api;
  */
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -29,41 +28,33 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
-
 /**
  * Represent a resource entity in helix cluster
  */
 public class Resource {
-  private final ResourceId _id;
-  private final RebalancerConfig _rebalancerConfig;
-  private final SchedulerTaskConfig _schedulerTaskConfig;
-
-  private final Map<PartitionId, Partition> _partitionMap;
-
+  private final ResourceConfig _config;
   private final ExternalView _externalView;
 
   /**
    * Construct a resource
-   * @param idealState
+   * @param id resource id
+   * @param idealState ideal state of the resource
    * @param currentStateMap map of participant-id to current state
+   * @param liveParticipantCount number of live participants in the system
    */
-  public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment) {
-    _id = id;
-    _rebalancerConfig = new RebalancerConfig(idealState, resourceAssignment);
-
+  public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment,
+      ExternalView externalView, int liveParticipantCount) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-    Map<PartitionId, Map<String, String>> schedulerTaskConfig =
+    Map<PartitionId, Map<String, String>> schedulerTaskConfigMap =
         new HashMap<PartitionId, Map<String, String>>();
     Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
     for (PartitionId partitionId : idealState.getPartitionSet()) {
       partitionMap.put(partitionId, new Partition(partitionId));
 
       // TODO refactor it
-      Map<String, String> taskConfigMap = idealState.getRecord().getMapField(partitionId.stringify());
+      Map<String, String> taskConfigMap = idealState.getInstanceStateMap(partitionId.stringify());
       if (taskConfigMap != null) {
-        schedulerTaskConfig.put(partitionId, taskConfigMap);
+        schedulerTaskConfigMap.put(partitionId, taskConfigMap);
       }
 
       // TODO refactor it
@@ -78,53 +69,38 @@ public class Resource {
         }
       }
     }
-    _partitionMap = ImmutableMap.copyOf(partitionMap);
-    _schedulerTaskConfig = new SchedulerTaskConfig(transitionTimeoutMap, schedulerTaskConfig);
+    SchedulerTaskConfig schedulerTaskConfig =
+        new SchedulerTaskConfig(transitionTimeoutMap, schedulerTaskConfigMap);
+    RebalancerConfig rebalancerConfig =
+        new RebalancerConfig(idealState, resourceAssignment, liveParticipantCount);
 
-    _externalView = null;
-  }
-
-  /**
-   * Construct a Resource
-   * @param id resource identifier
-   * @param partitionSet disjoint partitions of the resource
-   * @param externalView external view of the resource
-   * @param pendingExternalView pending external view based on unprocessed messages
-   * @param rebalancerConfig configuration properties for rebalancing this resource
-   */
-  public Resource(ResourceId id, Map<PartitionId, Partition> partitionMap,
-      ExternalView externalView,
-      RebalancerConfig rebalancerConfig, SchedulerTaskConfig schedulerTaskConfig) {
-    _id = id;
-    _partitionMap = ImmutableMap.copyOf(partitionMap);
+    _config = new ResourceConfig(id, partitionMap, schedulerTaskConfig, rebalancerConfig);
     _externalView = externalView;
-    _rebalancerConfig = rebalancerConfig;
-    _schedulerTaskConfig = schedulerTaskConfig;
   }
 
   /**
-   * Get the set of partitions of the resource
-   * @return set of partitions or empty set if none
+   * Get the partitions of the resource
+   * @return map of partition id to partition or empty map if none
    */
   public Map<PartitionId, Partition> getPartitionMap() {
-    return _partitionMap;
+    return _config.getPartitionMap();
   }
 
   /**
-   * @param partitionId
-   * @return
+   * Get a partition that the resource contains
+   * @param partitionId the partition id to look up
+   * @return Partition or null if none is present with the given id
    */
   public Partition getPartition(PartitionId partitionId) {
-    return _partitionMap.get(partitionId);
+    return _config.getPartition(partitionId);
   }
 
   /**
-   * @return
+   * Get the set of partition ids that the resource contains
+   * @return partition id set, or empty if none
    */
-  public Set<Partition> getPartitionSet() {
-    Set<Partition> partitionSet = new HashSet<Partition>();
-    partitionSet.addAll(_partitionMap.values());
-    return ImmutableSet.copyOf(partitionSet);
+  public Set<PartitionId> getPartitionSet() {
+    return _config.getPartitionSet();
   }
 
   /**
@@ -135,95 +111,35 @@ public class Resource {
     return _externalView;
   }
 
+  /**
+   * Get the resource properties configuring rebalancing
+   * @return RebalancerConfig properties
+   */
   public RebalancerConfig getRebalancerConfig() {
-    return _rebalancerConfig;
-  }
-
-  public ResourceId getId() {
-    return _id;
-  }
-
-  public SchedulerTaskConfig getSchedulerTaskConfig() {
-    return _schedulerTaskConfig;
+    return _config.getRebalancerConfig();
   }
 
   /**
-   * Assembles a Resource
+   * Get the resource id
+   * @return ResourceId
    */
-  public static class Builder {
-    private final ResourceId _id;
-    private final Map<PartitionId, Partition> _partitionMap;
-    private ExternalView _externalView;
-    private RebalancerConfig _rebalancerConfig;
-    private SchedulerTaskConfig _schedulerTaskConfig;
+  public ResourceId getId() {
+    return _config.getId();
+  }
 
-    /**
-     * Build a Resource with an id
-     * @param id resource id
-     */
-    public Builder(ResourceId id) {
-      _id = id;
-      _partitionMap = new HashMap<PartitionId, Partition>();
-    }
+  /**
+   * Get the properties configuring scheduler tasks
+   * @return SchedulerTaskConfig properties
+   */
+  public SchedulerTaskConfig getSchedulerTaskConfig() {
+    return _config.getSchedulerTaskConfig();
+  }
 
-    /**
-     * Add a partition that the resource serves
-     * @param partition fully-qualified partition
-     * @return Builder
-     */
-    public Builder addPartition(Partition partition) {
-      _partitionMap.put(partition.getId(), partition);
-      return this;
-    }
-
-    /**
-     * Add a set of partitions
-     * @param partitions
-     * @return Builder
-     */
-    public Builder addPartitions(Set<Partition> partitions) {
-      for (Partition partition : partitions) {
-        addPartition(partition);
-      }
-      return this;
-    }
-
-    /**
-     * Set the external view of this resource
-     * @param extView currently served replica placement and state
-     * @return Builder
-     */
-    public Builder externalView(ExternalView extView) {
-      _externalView = extView;
-      return this;
-    }
-
-    /**
-     * Set the rebalancer configuration
-     * @param rebalancerConfig properties of interest for rebalancing
-     * @return Builder
-     */
-    public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
-      _rebalancerConfig = rebalancerConfig;
-      return this;
-    }
-
-    /**
-     * @param schedulerTaskConfig
-     * @return
-     */
-    public Builder schedulerTaskConfig(SchedulerTaskConfig schedulerTaskConfig) {
-      _schedulerTaskConfig = schedulerTaskConfig;
-      return this;
-    }
-
-    /**
-     * Create a Resource object
-     * @return instantiated Resource
-     */
-    public Resource build() {
-      return new Resource(_id, _partitionMap, _externalView, _rebalancerConfig,
-          _schedulerTaskConfig);
-    }
+  /**
+   * Get the configuration of this resource
+   * @return ResourceConfig that backs this Resource
+   */
+  public ResourceConfig getConfig() {
+    return _config;
   }
 }

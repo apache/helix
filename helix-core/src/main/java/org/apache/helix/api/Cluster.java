@@ -25,13 +25,14 @@ import java.util.Map;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 
+import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * Represent a logical helix cluster
  */
 public class Cluster {
-  private final ClusterId _id;
 
   /**
    * map of resource-id to resource
@@ -60,9 +61,7 @@ public class Cluster {
 
   private final ControllerId _leaderId;
 
-  private final ClusterConfig _config = null;
-
-  private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+  private final ClusterConfig _config;
 
   /**
    * construct a cluster
@@ -74,9 +73,26 @@ public class Cluster {
    */
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
-      ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap) {
+      ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap, boolean isPaused) {
 
-    _id = id;
+    // build the config
+    // Guava's transform and "copy" functions really return views so the maps all reflect each other
+    Map<ResourceId, ResourceConfig> resourceConfigMap =
+        Maps.transformValues(resourceMap, new Function<Resource, ResourceConfig>() {
+          @Override
+          public ResourceConfig apply(Resource resource) {
+            return resource.getConfig();
+          }
+        });
+    Map<ParticipantId, ParticipantConfig> participantConfigMap =
+        Maps.transformValues(participantMap, new Function<Participant, ParticipantConfig>() {
+          @Override
+          public ParticipantConfig apply(Participant participant) {
+            return participant.getConfig();
+          }
+        });
+    _config =
+        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap, isPaused);
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -94,8 +110,6 @@ public class Cluster {
 
     _leaderId = leaderId;
 
-    _constraintMap = ImmutableMap.copyOf(constraintMap);
-
     // TODO impl this when we persist controllers and spectators on zookeeper
     _controllerMap = ImmutableMap.copyOf(controllerMap);
     _spectatorMap = Collections.emptyMap();
@@ -106,7 +120,7 @@ public class Cluster {
    * @return cluster id
    */
   public ClusterId getId() {
-    return _id;
+    return _config.getId();
   }
 
   /**
@@ -167,17 +181,27 @@ public class Cluster {
   }
 
   /**
-   * @return
+   * Get all the constraints on the cluster
+   * @return map of constraint type to constraints
    */
   public Map<ConstraintType, ClusterConstraints> getConstraintMap() {
-    return _constraintMap;
+    return _config.getConstraintMap();
   }
 
   /**
-   * @param type
-   * @return
+   * Get a cluster constraint
+   * @param type the type of constrant to query
+   * @return cluster constraints, or null if none
    */
   public ClusterConstraints getConstraint(ConstraintType type) {
-    return _constraintMap.get(type);
+    return _config.getConstraintMap().get(type);
+  }
+
+  /**
+   * Check the pasued status of the cluster
+   * @return true if paused, false otherwise
+   */
+  public boolean isPaused() {
+    return _config.isPaused();
   }
 }

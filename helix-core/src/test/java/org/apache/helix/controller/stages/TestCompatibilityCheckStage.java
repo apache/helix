@@ -28,6 +28,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.testng.Assert;
@@ -64,6 +65,8 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
     accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
+    InstanceConfig config = new InstanceConfig(liveInstance.getInstanceName());
+    accessor.setProperty(keyBuilder.instanceConfig(config.getInstanceName()), config);
 
     if (controllerVersion != null) {
       ((Mocks.MockManager) manager).setVersion(controllerVersion);
@@ -74,13 +77,13 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
           .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
     event.addAttribute("helixmanager", manager);
-    runStage(event, new ReadClusterDataStage());
+    runStage(event, new NewReadClusterDataStage());
   }
 
   @Test
   public void testCompatible() {
     prepare("0.4.0", "0.4.0");
-    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -95,7 +98,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testNullParticipantVersion() {
     prepare("0.4.0", null);
-    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -111,7 +114,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testNullControllerVersion() {
     prepare(null, "0.4.0");
-    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -127,7 +130,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testIncompatible() {
     prepare("0.6.1-incubating-SNAPSHOT", "0.3.4", "0.4");
-    CompatibilityCheckStage stage = new CompatibilityCheckStage();
+    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

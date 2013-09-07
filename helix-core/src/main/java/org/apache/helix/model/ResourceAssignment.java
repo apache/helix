@@ -84,6 +84,14 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
+   * Get the entire map of a resource
+   * @return map of partition to participant to state
+   */
+  public Map<PartitionId, Map<ParticipantId, State>> getResourceMap() {
+    return replicaMapsFromStringMaps(_record.getMapFields());
+  }
+
+  /**
    * Get the participant, state pairs for a partition
    * @param partition the Partition to look up
    * @return map of (participant id, state)

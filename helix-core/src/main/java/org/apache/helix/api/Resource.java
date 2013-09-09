@@ -20,6 +20,7 @@ package org.apache.helix.api;
  */
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -48,7 +49,14 @@ public class Resource {
     Map<PartitionId, Map<String, String>> schedulerTaskConfigMap =
         new HashMap<PartitionId, Map<String, String>>();
     Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
+    Set<PartitionId> partitionSet = idealState.getPartitionSet();
+    if (partitionSet.isEmpty() && idealState.getNumPartitions() > 0) {
+      partitionSet = new HashSet<PartitionId>();
+      for (int i = 0; i < idealState.getNumPartitions(); i++) {
+        partitionSet.add(Id.partition(id, Integer.toString(i)));
+      }
+    }
+    for (PartitionId partitionId : partitionSet) {
       partitionMap.put(partitionId, new Partition(partitionId));
 
       // TODO refactor it

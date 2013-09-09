@@ -113,8 +113,12 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
 
       // TODO have a logical model for transition
       Map<String, Integer> stateTransitionPriorities = getStateTransitionPriorityMap(stateModelDef);
+      Resource configResource = cluster.getResource(resourceId);
+
+      // if configResource == null, the resource has been dropped
       Map<State, Bounds> stateConstraints =
-          computeStateConstraints(stateModelDef, resource.getRebalancerConfig(), cluster);
+          computeStateConstraints(stateModelDef,
+              configResource == null ? null : configResource.getRebalancerConfig(), cluster);
 
       // TODO fix it
       for (PartitionId partitionId : resource.getPartitionMap().keySet()) {
@@ -249,11 +253,14 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
     return selectedMessages;
   }
 
-  // TODO change to return Map<State, Bounds>
   /**
    * TODO: This code is duplicate in multiple places. Can we do it in to one place in the
    * beginning and compute the stateConstraint instance once and re use at other places.
    * Each IdealState must have a constraint object associated with it
+   * @param stateModelDefinition
+   * @param rebalancerConfig if rebalancerConfig == null, we can't evaluate R thus no constraints
+   * @param cluster
+   * @return
    */
   private Map<State, Bounds> computeStateConstraints(StateModelDefinition stateModelDefinition,
       RebalancerConfig rebalancerConfig, Cluster cluster) {

@@ -36,6 +36,7 @@ import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -100,7 +101,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       String resourceName = resources[i];
       ResourceId resourceId = Id.resource(resourceName);
       IdealState idealState = idealStates.get(i);
-      AssertJUnit.assertTrue(resourceMap.containsKey(resourceName));
+      AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
           .getStateModelDefId(), idealState.getStateModelDefRef());
@@ -143,9 +144,14 @@ public class TestResourceComputationStage extends BaseStageTest {
     String sessionId = UUID.randomUUID().toString();
     liveInstance.setSessionId(sessionId);
 
+    InstanceConfig instanceConfig = new InstanceConfig(instanceName);
+    instanceConfig.setHostName("localhost");
+    instanceConfig.setPort("3");
+
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), instanceConfig);
 
     String oldResource = "testResourceOld";
     CurrentState currentState = new CurrentState(oldResource);

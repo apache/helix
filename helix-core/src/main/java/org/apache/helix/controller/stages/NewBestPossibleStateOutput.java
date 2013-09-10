@@ -40,4 +40,9 @@ public class NewBestPossibleStateOutput {
   public Set<ResourceId> getAssignedResources() {
     return _resourceAssignmentMap.keySet();
   }
+
+  @Override
+  public String toString() {
+    return _resourceAssignmentMap.toString();
+  }
 }

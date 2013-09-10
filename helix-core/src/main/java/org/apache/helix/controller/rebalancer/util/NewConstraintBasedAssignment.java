@@ -61,7 +61,9 @@ public class NewConstraintBasedAssignment {
         Sets.filter(participantSet, new Predicate<ParticipantId>() {
           @Override
           public boolean apply(ParticipantId participantId) {
-            return participantMap.get(participantId).getDisablePartitionIds().contains(partitionId);
+            Participant participant = participantMap.get(participantId);
+            return !participant.isEnabled()
+                || participant.getDisablePartitionIds().contains(partitionId);
           }
         });
     return disabledParticipantsForPartition;

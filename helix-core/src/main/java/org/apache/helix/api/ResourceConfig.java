@@ -126,6 +126,11 @@ public class ResourceConfig {
     return _batchMessageMode;
   }
 
+  @Override
+  public String toString() {
+    return _partitionMap.toString();
+  }
+
   /**
    * Assembles a ResourceConfig
    */

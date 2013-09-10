@@ -141,7 +141,7 @@ public class NewTaskAssignmentStage extends AbstractBaseStage {
 
       // System.out.println("[dbg] Sending Message " + message.getMsgId() + " to "
       // + message.getTgtName() + " transit " + message.getPartitionId() + "|"
-      // + message.getPartitionId() + " from: " + message.getFromState() + " to: "
+      // + message.getPartitionIds() + " from: " + message.getFromState() + " to: "
       // + message.getToState());
 
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));

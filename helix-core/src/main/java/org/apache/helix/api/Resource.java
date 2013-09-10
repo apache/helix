@@ -69,7 +69,8 @@ public class Resource {
       for (String simpleKey : idealState.getRecord().getSimpleFields().keySet()) {
         if (simpleKey.indexOf("_" + Message.Attributes.TIMEOUT) != -1) {
           try {
-            int timeout = Integer.parseInt(idealState.getRecord().getSimpleField(simpleKey));
+            String timeoutStr = idealState.getRecord().getSimpleField(simpleKey);
+            int timeout = Integer.parseInt(timeoutStr);
             transitionTimeoutMap.put(simpleKey, timeout);
           } catch (Exception e) {
             // ignore

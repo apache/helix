@@ -57,7 +57,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     // rename partition name TestDB0_0 tp TestDB0_100
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB0"));

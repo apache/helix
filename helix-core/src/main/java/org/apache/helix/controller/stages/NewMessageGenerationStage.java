@@ -76,15 +76,15 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
     NewMessageOutput output = new NewMessageOutput();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
-      ResourceConfig resource = resourceMap.get(resourceId);
-      int bucketSize = resource.getBucketSize();
+      ResourceConfig resourceConfig = resourceMap.get(resourceId);
+      int bucketSize = resourceConfig.getBucketSize();
 
       StateModelDefinition stateModelDef =
-          stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
+          stateModelDefMap.get(resourceConfig.getRebalancerConfig().getStateModelDefId());
 
       ResourceAssignment resourceAssignment =
           bestPossibleStateOutput.getResourceAssignment(resourceId);
-      for (PartitionId partitionId : resource.getPartitionMap().keySet()) {
+      for (PartitionId partitionId : resourceConfig.getPartitionMap().keySet()) {
         Map<ParticipantId, State> instanceStateMap = resourceAssignment.getReplicaMap(partitionId);
 
         // we should generate message based on the desired-state priority
@@ -136,15 +136,15 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     .getSessionId();
             Message message =
                 createMessage(manager, resourceId, partitionId, participantId, currentState,
-                    nextState, sessionId, new StateModelDefId(stateModelDef.getId()), resource
+                    nextState, sessionId, new StateModelDefId(stateModelDef.getId()), resourceConfig
                         .getRebalancerConfig().getStateModelFactoryId(), bucketSize);
 
             // TODO refactor set timeout logic, it's really messy
-            RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
+            RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
             if (rebalancerConfig != null
                 && rebalancerConfig.getStateModelDefId().stringify()
                     .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-              if (resource.getPartitionMap().size() > 0) {
+              if (resourceConfig.getPartitionMap().size() > 0) {
                 // TODO refactor it -- we need a way to read in scheduler tasks a priori
                 Resource activeResource = cluster.getResource(resourceId);
                 if (activeResource != null) {
@@ -154,12 +154,13 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
               }
             }
 
-            // Set timeout of needed
+            // Set timeout if needed
             String stateTransition =
                 currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
-            if (resource.getSchedulerTaskConfig() != null) {
+
+            if (resourceConfig.getSchedulerTaskConfig() != null) {
               Integer timeout =
-                  resource.getSchedulerTaskConfig().getTimeout(stateTransition, partitionId);
+                  resourceConfig.getSchedulerTaskConfig().getTimeout(stateTransition, partitionId);
               if (timeout != null && timeout > 0) {
                 message.setExecutionTimeout(timeout);
               }

@@ -170,15 +170,17 @@ public class TestNewStages extends ZkUnitTestBase {
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
     NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
     ResourceAssignment fullAutoResult =
-        new NewAutoRebalancer().computeResourceMapping(resource, cluster, masterSlave,
+        new NewAutoRebalancer().computeResourceMapping(resource.getConfig(), cluster, masterSlave,
             currentStateOutput);
     verifyFullAutoRebalance(resource, fullAutoResult);
     ResourceAssignment semiAutoResult =
-        new NewSemiAutoRebalancer().computeResourceMapping(resource, cluster, masterSlave,
+        new NewSemiAutoRebalancer().computeResourceMapping(resource.getConfig(), cluster,
+            masterSlave,
             currentStateOutput);
     verifySemiAutoRebalance(resource, semiAutoResult);
     ResourceAssignment customResult =
-        new NewCustomRebalancer().computeResourceMapping(resource, cluster, masterSlave,
+        new NewCustomRebalancer().computeResourceMapping(resource.getConfig(), cluster,
+            masterSlave,
             currentStateOutput);
     verifyCustomRebalance(resource, customResult);
 

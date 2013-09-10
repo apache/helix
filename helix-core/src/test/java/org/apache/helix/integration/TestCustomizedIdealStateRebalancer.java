@@ -31,6 +31,7 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.NewRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -61,13 +62,13 @@ public class TestCustomizedIdealStateRebalancer extends
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
+    public ResourceAssignment computeResourceMapping(ResourceConfig resourceConfig, Cluster cluster,
         StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
       List<ParticipantId> liveParticipants =
           new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
-      ResourceAssignment resourceMapping = new ResourceAssignment(resource.getId());
+      ResourceAssignment resourceMapping = new ResourceAssignment(resourceConfig.getId());
       int i = 0;
-      for (PartitionId partitionId : resource.getPartitionSet()) {
+      for (PartitionId partitionId : resourceConfig.getPartitionSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
         replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getStatesPriorityList()

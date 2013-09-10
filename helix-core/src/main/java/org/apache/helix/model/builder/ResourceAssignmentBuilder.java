@@ -52,11 +52,10 @@ public class ResourceAssignmentBuilder {
    */
   public ResourceAssignmentBuilder addAssignments(PartitionId partitionId,
       Map<ParticipantId, State> replicaMap) {
-    if (_mapping.containsKey(partitionId)) {
-      _mapping.get(partitionId).putAll(replicaMap);
-    } else {
-      _mapping.put(partitionId, replicaMap);
+    if (!_mapping.containsKey(partitionId)) {
+      _mapping.put(partitionId, new HashMap<ParticipantId, State>());
     }
+    _mapping.get(partitionId).putAll(replicaMap);
     return this;
   }
 

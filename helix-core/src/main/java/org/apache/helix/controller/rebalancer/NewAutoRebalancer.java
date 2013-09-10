@@ -35,6 +35,7 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
@@ -67,12 +68,12 @@ public class NewAutoRebalancer implements NewRebalancer {
   private static final Logger LOG = Logger.getLogger(NewAutoRebalancer.class);
 
   @Override
-  public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
+  public ResourceAssignment computeResourceMapping(ResourceConfig resourceConfig, Cluster cluster,
       StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
     // Compute a preference list based on the current ideal state
-    List<PartitionId> partitions = new ArrayList<PartitionId>(resource.getPartitionSet());
+    List<PartitionId> partitions = new ArrayList<PartitionId>(resourceConfig.getPartitionSet());
     List<String> partitionNames = Lists.transform(partitions, Functions.toStringFunction());
-    RebalancerConfig config = resource.getRebalancerConfig();
+    RebalancerConfig config = resourceConfig.getRebalancerConfig();
     Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
     Map<ParticipantId, Participant> allParticipants = cluster.getParticipantMap();
     int replicas = -1;
@@ -90,7 +91,7 @@ public class NewAutoRebalancer implements NewRebalancer {
         new ArrayList<ParticipantId>(cluster.getParticipantMap().keySet());
     List<String> liveNodes = Lists.transform(liveParticipantList, Functions.toStringFunction());
     Map<PartitionId, Map<ParticipantId, State>> currentMapping =
-        currentMapping(resource, currentStateOutput, stateCountMap);
+        currentMapping(resourceConfig, currentStateOutput, stateCountMap);
 
     // If there are nodes tagged with resource, use only those nodes
     Set<String> taggedNodes = new HashSet<String>();
@@ -103,7 +104,7 @@ public class NewAutoRebalancer implements NewRebalancer {
     }
     if (taggedNodes.size() > 0) {
       if (LOG.isInfoEnabled()) {
-        LOG.info("found the following instances with tag " + resource.getId() + " " + taggedNodes);
+        LOG.info("found the following instances with tag " + resourceConfig.getId() + " " + taggedNodes);
       }
       liveNodes = new ArrayList<String>(taggedNodes);
     }
@@ -120,7 +121,7 @@ public class NewAutoRebalancer implements NewRebalancer {
     }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     _algorithm =
-        new AutoRebalanceStrategy(resource.getId().toString(), partitionNames, stateCountMap,
+        new AutoRebalanceStrategy(resourceConfig.getId().toString(), partitionNames, stateCountMap,
             maxPartition, placementScheme);
     ZNRecord newMapping =
         _algorithm.computePartitionAssignment(liveNodes,
@@ -132,9 +133,9 @@ public class NewAutoRebalancer implements NewRebalancer {
 
     // compute a full partition mapping for the resource
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resource.getId());
+      LOG.debug("Processing resource:" + resourceConfig.getId());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getId());
+    ResourceAssignment partitionMapping = new ResourceAssignment(resourceConfig.getId());
     for (PartitionId partition : partitions) {
       Set<ParticipantId> disabledParticipantsForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(allParticipants, partition);
@@ -151,21 +152,21 @@ public class NewAutoRebalancer implements NewRebalancer {
       Map<ParticipantId, State> bestStateForPartition =
           NewConstraintBasedAssignment.computeAutoBestStateForPartition(liveParticipants,
               stateModelDef, preferenceList,
-              currentStateOutput.getCurrentStateMap(resource.getId(), partition),
+              currentStateOutput.getCurrentStateMap(resourceConfig.getId(), partition),
               disabledParticipantsForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
   }
 
-  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(Resource resource,
+  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(ResourceConfig resourceConfig,
       NewCurrentStateOutput currentStateOutput, Map<String, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
 
-    for (PartitionId partition : resource.getPartitionSet()) {
+    for (PartitionId partition : resourceConfig.getPartitionSet()) {
       Map<ParticipantId, State> curStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getId(), partition);
+          currentStateOutput.getCurrentStateMap(resourceConfig.getId(), partition);
       map.put(partition, new HashMap<ParticipantId, State>());
       for (ParticipantId node : curStateMap.keySet()) {
         State state = curStateMap.get(node);
@@ -175,7 +176,7 @@ public class NewAutoRebalancer implements NewRebalancer {
       }
 
       Map<ParticipantId, State> pendingStateMap =
-          currentStateOutput.getPendingStateMap(resource.getId(), partition);
+          currentStateOutput.getPendingStateMap(resourceConfig.getId(), partition);
       for (ParticipantId node : pendingStateMap.keySet()) {
         State state = pendingStateMap.get(node);
         if (stateCountMap.containsKey(state)) {

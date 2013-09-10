@@ -292,7 +292,7 @@ public class ParticipantAccessor {
     if (disabledPartitions != null) {
       disabledPartitionIdSet = new HashSet<PartitionId>();
       for (String partitionId : disabledPartitions) {
-        disabledPartitionIdSet.add(new PartitionId(PartitionId.extractResourceId(partitionId),
+        disabledPartitionIdSet.add(Id.partition(PartitionId.extractResourceId(partitionId),
             PartitionId.stripResourceId(partitionId)));
       }
     }

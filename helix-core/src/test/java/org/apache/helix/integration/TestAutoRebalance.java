@@ -37,6 +37,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -51,6 +52,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
   String db2 = TEST_DB + "2";
   String _tag = "SSDSSD";
 
+  @Override
   @BeforeClass
   public void beforeClass() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -158,7 +160,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     // kill 1 node
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _startCMResultMap.get(instanceName)._manager.disconnect();
-    Thread.currentThread().sleep(1000);
+    Thread.sleep(1000);
     _startCMResultMap.get(instanceName)._thread.interrupt();
 
     // verifyBalanceExternalView();
@@ -255,10 +257,14 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     @Override
     public boolean verify() {
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
+          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
       Builder keyBuilder = accessor.keyBuilder();
-      int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealState(_resourceName)).getRecord().getListFields()
+      IdealState idealState = accessor.getProperty(keyBuilder.idealState(_resourceName));
+      if (idealState == null) {
+        return false;
+      }
+
+      int numberOfPartitions = idealState.getRecord().getListFields()
               .size();
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);

@@ -30,6 +30,7 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.stages.NewCurrentStateOutput;
@@ -51,16 +52,16 @@ public class NewCustomRebalancer implements NewRebalancer {
   private static final Logger LOG = Logger.getLogger(NewCustomRebalancer.class);
 
   @Override
-  public ResourceAssignment computeResourceMapping(Resource resource, Cluster cluster,
+  public ResourceAssignment computeResourceMapping(ResourceConfig resourceConfig, Cluster cluster,
       StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resource.getId());
+      LOG.debug("Processing resource:" + resourceConfig.getId());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getId());
-    RebalancerConfig config = resource.getRebalancerConfig();
-    for (PartitionId partition : resource.getPartitionSet()) {
+    ResourceAssignment partitionMapping = new ResourceAssignment(resourceConfig.getId());
+    RebalancerConfig config = resourceConfig.getRebalancerConfig();
+    for (PartitionId partition : resourceConfig.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getId(), partition);
+          currentStateOutput.getCurrentStateMap(resourceConfig.getId(), partition);
       Set<ParticipantId> disabledInstancesForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partition);

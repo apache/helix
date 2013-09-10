@@ -37,6 +37,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.log4j.Logger;
@@ -68,6 +69,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
+    setupInstances(clusterName, new int[] {
+        0, 1
+    });
     setupLiveInstances(clusterName, new int[] {
         0, 1
     });
@@ -212,6 +216,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
+    setupInstances(clusterName, new int[] {
+        0, 1
+    });
     setupLiveInstances(clusterName, new int[] {
         0, 1
     });
@@ -308,6 +315,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setupIdealState(clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
+    setupInstances(clusterName, new int[] {
+      1
+    });
     setupLiveInstances(clusterName, new int[] {
       1
     });
@@ -344,6 +354,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // round2: updates node0 currentState to SLAVE but keep the
     // message, make sure controller should not send S->M until removal is done
+    setupInstances(clusterName, new int[] {
+      0
+    });
     setupLiveInstances(clusterName, new int[] {
       0
     });
@@ -372,5 +385,20 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     curState.setSessionId(Id.session(sessionId));
     curState.setStateModelDefRef("MasterSlave");
     accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName), curState);
+  }
+
+  @Override
+  protected void setupInstances(String clusterName, int[] instances) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+    for (int i = 0; i < instances.length; i++) {
+      String instance = "localhost_" + instances[i];
+      InstanceConfig instanceConfig = new InstanceConfig(instance);
+      instanceConfig.setHostName("localhost");
+      instanceConfig.setPort("" + instances[i]);
+      instanceConfig.setInstanceEnabled(true);
+      accessor.setProperty(keyBuilder.instanceConfig(instance), instanceConfig);
+    }
   }
 }

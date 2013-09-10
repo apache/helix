@@ -48,8 +48,10 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -72,6 +74,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.ResourceAssignmentBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.store.PropertyJsonComparator;
@@ -275,36 +278,29 @@ public class ClusterStateVerifier {
       // calculate best possible state
       NewBestPossibleStateOutput bestPossOutput =
           ClusterStateVerifier.calcBestPossState(cluster, convertedDefs);
-      Map<String, Map<String, Map<String, String>>> bestPossStateMap =
-          new HashMap<String, Map<String, Map<String, String>>>();
-      for (ResourceId resourceId : bestPossOutput.getAssignedResources()) {
-        ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
-        Map<String, Map<String, String>> resourceMap = new HashMap<String, Map<String, String>>();
-        for (PartitionId partitionId : resourceAssignment.getMappedPartitions()) {
-          Map<String, String> replicaMap =
-              ResourceAssignment.stringMapFromReplicaMap(resourceAssignment
-                  .getReplicaMap(partitionId));
-          resourceMap.put(partitionId.stringify(), replicaMap);
-        }
-        bestPossStateMap.put(resourceId.stringify(), resourceMap);
-      }
 
       // set error states
       if (errStates != null) {
         for (String resourceName : errStates.keySet()) {
+          ResourceId resourceId = Id.resource(resourceName);
           Map<String, String> partErrStates = errStates.get(resourceName);
+          ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
+
+          ResourceAssignmentBuilder raBuilder = new ResourceAssignmentBuilder(resourceId);
+          List<PartitionId> mappedPartitions = resourceAssignment.getMappedPartitions();
+          for (PartitionId partitionId : mappedPartitions) {
+            raBuilder.addAssignments(partitionId, resourceAssignment.getReplicaMap(partitionId));
+          }
+
           for (String partitionName : partErrStates.keySet()) {
             String instanceName = partErrStates.get(partitionName);
-
-            if (!bestPossStateMap.containsKey(resourceName)) {
-              bestPossStateMap.put(resourceName, new HashMap<String, Map<String, String>>());
-            }
-            if (!bestPossStateMap.get(resourceName).containsKey(partitionName)) {
-              bestPossStateMap.get(resourceName).put(partitionName, new HashMap<String, String>());
-            }
-            bestPossStateMap.get(resourceName).get(partitionName)
-                .put(instanceName, HelixDefinedState.ERROR.toString());
+            PartitionId partitionId = Id.partition(partitionName);
+            ParticipantId participantId = Id.participant(instanceName);
+            raBuilder.addAssignment(partitionId, participantId,
+                new State(HelixDefinedState.ERROR.toString()));
           }
+          bestPossOutput.setResourceAssignment(resourceId, raBuilder.build());
+
         }
       }
 
@@ -464,7 +460,6 @@ public class ClusterStateVerifier {
     NewBestPossibleStateOutput output =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
 
-    // System.out.println("output:" + output);
     return output;
   }
 

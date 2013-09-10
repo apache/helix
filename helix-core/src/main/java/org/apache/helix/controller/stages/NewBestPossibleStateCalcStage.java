@@ -116,8 +116,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
       LOG.debug("Processing resource:" + resourceId);
       // Resource may be gone. In that case we need to get the state model name
       // from the current state
-      Resource existResource = cluster.getResource(resourceId);
-      if (existResource == null) {
+      if (cluster.getResource(resourceId) == null) {
         // if resource is deleted, then we do not know which rebalancer to use
         // instead, just mark all partitions of the resource as dropped
         if (LOG.isInfoEnabled()) {
@@ -131,7 +130,8 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
         continue;
       }
 
-      RebalancerConfig rebalancerConfig = existResource.getRebalancerConfig();
+      ResourceConfig resourceConfig = resourceMap.get(resourceId);
+      RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
       NewRebalancer rebalancer = null;
       if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED
           && rebalancerConfig.getRebalancerRef() != null) {
@@ -150,7 +150,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
       StateModelDefinition stateModelDef =
           stateModelDefs.get(rebalancerConfig.getStateModelDefId());
       ResourceAssignment resourceAssignment =
-          rebalancer.computeResourceMapping(existResource, cluster, stateModelDef,
+          rebalancer.computeResourceMapping(resourceConfig, cluster, stateModelDef,
               currentStateOutput);
       if (resourceAssignment == null) {
         resourceAssignment =

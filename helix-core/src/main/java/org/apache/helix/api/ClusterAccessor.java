@@ -185,7 +185,7 @@ public class ClusterAccessor {
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       Map<String, Message> instanceMsgMap = messageMap.get(participantName);
 
-      ParticipantId participantId = new ParticipantId(participantName);
+      ParticipantId participantId = Id.participant(participantName);
 
       participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
           instanceConfig, liveInstance, instanceMsgMap, currentStateMap.get(participantName)));

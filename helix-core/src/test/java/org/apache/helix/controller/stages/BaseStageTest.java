@@ -33,6 +33,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.Partition;
+import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.StateModelDefId;
@@ -162,12 +163,16 @@ public class BaseStageTest {
 
   protected Map<ResourceId, ResourceConfig> getResourceMap() {
     Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
-    ResourceConfig.Builder builder = new ResourceConfig.Builder(Id.resource("testResourceName"));
+    ResourceId resourceId = Id.resource("testResourceName");
+    ResourceConfig.Builder builder = new ResourceConfig.Builder(resourceId);
     builder.addPartition(new Partition(Id.partition("testResourceName_0")));
     builder.addPartition(new Partition(Id.partition("testResourceName_1")));
     builder.addPartition(new Partition(Id.partition("testResourceName_2")));
     builder.addPartition(new Partition(Id.partition("testResourceName_3")));
     builder.addPartition(new Partition(Id.partition("testResourceName_4")));
+    RebalancerConfig.Builder rebalancerConfigBuilder = new RebalancerConfig.Builder(resourceId);
+    rebalancerConfigBuilder.stateModelDef(Id.stateModelDef("MasterSlave"));
+    builder.rebalancerConfig(rebalancerConfigBuilder.build());
     resourceMap.put(Id.resource("testResourceName"), builder.build());
 
     return resourceMap;

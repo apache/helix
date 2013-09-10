@@ -36,6 +36,7 @@ public enum PropertyType {
 
   // @formatter:off
   // CLUSTER PROPERTIES
+  CLUSTER(Type.CLUSTER, true, false, false, true, true),
   CONFIGS(Type.CLUSTER, true, false, false, false, true),
   LIVEINSTANCES(Type.CLUSTER, false, false, false, true, true),
   INSTANCES(Type.CLUSTER, true, false),

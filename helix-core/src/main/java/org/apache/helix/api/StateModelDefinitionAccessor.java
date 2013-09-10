@@ -34,20 +34,18 @@ public class StateModelDefinitionAccessor {
 
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
-  private final ClusterId _clusterId;
 
   /**
-   * @param clusterId
    * @param accessor
    */
-  public StateModelDefinitionAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
+  public StateModelDefinitionAccessor(HelixDataAccessor accessor) {
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
-    _clusterId = clusterId;
   }
 
   /**
-   * @return
+   * Get all of the state model definitions available to the cluster
+   * @return map of state model ids to state model definition objects
    */
   public Map<StateModelDefId, StateModelDefinition> readStateModelDefinitions() {
     Map<String, StateModelDefinition> stateModelDefs =
@@ -61,5 +59,14 @@ public class StateModelDefinitionAccessor {
     }
 
     return ImmutableMap.copyOf(stateModelDefMap);
+  }
+
+  /**
+   * Add a state model definition. Updates the existing state model definition if it already exists.
+   * @param stateModelDef fully initialized state model definition
+   * @return true if the model is persisted, false otherwise
+   */
+  public boolean addStateModelDefinition(StateModelDefinition stateModelDef) {
+    return _accessor.setProperty(_keyBuilder.stateModelDef(stateModelDef.getId()), stateModelDef);
   }
 }

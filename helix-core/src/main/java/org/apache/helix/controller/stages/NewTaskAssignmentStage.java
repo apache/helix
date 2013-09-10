@@ -103,8 +103,7 @@ public class NewTaskAssignmentStage extends AbstractBaseStage {
         participantVersion = liveParticipant.getRunningInstance().getVersion().toString();
       }
 
-      if (resource == null || !resource.getRebalancerConfig().getBatchMessageMode()
-          || participantVersion == null
+      if (resource == null || !resource.getBatchMessageMode() || participantVersion == null
           || !properties.isFeatureSupported("batch_message", participantVersion)) {
         outputMessages.add(message);
         continue;

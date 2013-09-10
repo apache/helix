@@ -80,6 +80,7 @@ public class PropertyPathConfig {
     typeToClassMapping.put(PAUSE, PauseSignal.class);
 
     // @formatter:off
+    addEntry(PropertyType.CLUSTER, 0, "/{clusterName}");
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
     addEntry(PropertyType.CONFIGS, 2, "/{clusterName}/CONFIGS/{scope}");
     addEntry(PropertyType.CONFIGS, 3, "/{clusterName}/CONFIGS/{scope}/{scopeKey}");

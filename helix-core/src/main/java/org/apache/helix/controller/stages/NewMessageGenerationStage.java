@@ -77,7 +77,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
 
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resource = resourceMap.get(resourceId);
-      int bucketSize = resource.getRebalancerConfig().getBucketSize();
+      int bucketSize = resource.getBucketSize();
 
       StateModelDefinition stateModelDef =
           stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());

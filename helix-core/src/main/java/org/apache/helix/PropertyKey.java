@@ -22,6 +22,7 @@ package org.apache.helix;
 import static org.apache.helix.PropertyType.ALERTS;
 import static org.apache.helix.PropertyType.ALERT_HISTORY;
 import static org.apache.helix.PropertyType.ALERT_STATUS;
+import static org.apache.helix.PropertyType.CLUSTER;
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
@@ -141,6 +142,14 @@ public class PropertyKey {
      */
     public Builder(String clusterName) {
       _clusterName = clusterName;
+    }
+
+    /**
+     * Get the key for the root node
+     * @return cluster node
+     */
+    public PropertyKey cluster() {
+      return new PropertyKey(CLUSTER, null, _clusterName);
     }
 
     /**
@@ -396,6 +405,15 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key representing the root of all status updates
+     * @param instanceName the participant the status updates belong to
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey statusUpdates(String instanceName) {
+      return new PropertyKey(STATUSUPDATES, null, _clusterName, instanceName);
+    }
+
+    /**
      * Get a property key associated with {@link StatusUpdate} of an instance, session, resource,
      * and partition
      * @param instanceName
@@ -447,6 +465,15 @@ public class PropertyKey {
         String msgId) {
       return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName, instanceName,
           sessionId, msgType, msgId);
+    }
+
+    /**
+     * Get a property key representing the root of all persisted participant errors
+     * @param instanceName the participant of interest
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey participantErrors(String instanceName) {
+      return new PropertyKey(ERRORS, null, _clusterName, instanceName);
     }
 
     /**

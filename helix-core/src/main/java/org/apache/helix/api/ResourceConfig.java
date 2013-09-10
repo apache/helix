@@ -36,6 +36,8 @@ public class ResourceConfig {
   private final Map<PartitionId, Partition> _partitionMap;
   private final RebalancerConfig _rebalancerConfig;
   private final SchedulerTaskConfig _schedulerTaskConfig;
+  private final int _bucketSize;
+  private final boolean _batchMessageMode;
 
   /**
    * Instantiate a configuration. Consider using ResourceConfig.Builder
@@ -43,13 +45,18 @@ public class ResourceConfig {
    * @param partitionMap map of partition identifiers to partition objects
    * @param schedulerTaskConfig configuration for scheduler tasks associated with the resource
    * @param rebalancerConfig configuration for rebalancing the resource
+   * @param bucketSize bucket size for this resource
+   * @param whether or not batch messaging is allowed
    */
   public ResourceConfig(ResourceId id, Map<PartitionId, Partition> partitionMap,
-      SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig) {
+      SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig, int bucketSize,
+      boolean batchMessageMode) {
     _id = id;
     _partitionMap = ImmutableMap.copyOf(partitionMap);
     _schedulerTaskConfig = schedulerTaskConfig;
     _rebalancerConfig = rebalancerConfig;
+    _bucketSize = bucketSize;
+    _batchMessageMode = batchMessageMode;
   }
 
   /**
@@ -104,6 +111,22 @@ public class ResourceConfig {
   }
 
   /**
+   * Get the bucket size for this resource
+   * @return bucket size
+   */
+  public int getBucketSize() {
+    return _bucketSize;
+  }
+
+  /**
+   * Get the batch message mode
+   * @return true if enabled, false if disabled
+   */
+  public boolean getBatchMessageMode() {
+    return _batchMessageMode;
+  }
+
+  /**
    * Assembles a ResourceConfig
    */
   public static class Builder {
@@ -111,6 +134,8 @@ public class ResourceConfig {
     private final Map<PartitionId, Partition> _partitionMap;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
+    private int _bucketSize;
+    private boolean _batchMessageMode;
 
     /**
      * Build a Resource with an id
@@ -119,6 +144,8 @@ public class ResourceConfig {
     public Builder(ResourceId id) {
       _id = id;
       _partitionMap = new HashMap<PartitionId, Partition>();
+      _bucketSize = 0;
+      _batchMessageMode = false;
     }
 
     /**
@@ -144,6 +171,19 @@ public class ResourceConfig {
     }
 
     /**
+     * Add a specified number of partitions with a default naming scheme, namely
+     * resourceId_partitionNumber where partitionNumber starts at 0
+     * @param partitionCount number of partitions to add
+     * @return Builder
+     */
+    public Builder addPartitions(int partitionCount) {
+      for (int i = 0; i < partitionCount; i++) {
+        addPartition(new Partition(Id.partition(_id, Integer.toString(i))));
+      }
+      return this;
+    }
+
+    /**
      * Set the rebalancer configuration
      * @param rebalancerConfig properties of interest for rebalancing
      * @return Builder
@@ -163,11 +203,32 @@ public class ResourceConfig {
     }
 
     /**
+     * Set the bucket size
+     * @param bucketSize the size to use
+     * @return Builder
+     */
+    public Builder bucketSize(int bucketSize) {
+      _bucketSize = bucketSize;
+      return this;
+    }
+
+    /**
+     * Set the batch message mode
+     * @param batchMessageMode true to enable, false to disable
+     * @return Builder
+     */
+    public Builder batchMessageMode(boolean batchMessageMode) {
+      _batchMessageMode = batchMessageMode;
+      return this;
+    }
+
+    /**
      * Create a Resource object
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _partitionMap, _schedulerTaskConfig, _rebalancerConfig);
+      return new ResourceConfig(_id, _partitionMap, _schedulerTaskConfig, _rebalancerConfig,
+          _bucketSize, _batchMessageMode);
     }
   }
 }

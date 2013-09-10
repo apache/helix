@@ -82,7 +82,9 @@ public class Resource {
     RebalancerConfig rebalancerConfig =
         new RebalancerConfig(idealState, resourceAssignment, liveParticipantCount);
 
-    _config = new ResourceConfig(id, partitionMap, schedulerTaskConfig, rebalancerConfig);
+    _config =
+        new ResourceConfig(id, partitionMap, schedulerTaskConfig, rebalancerConfig,
+            idealState.getBucketSize(), idealState.getBatchMessageMode());
     _externalView = externalView;
   }
 
@@ -141,6 +143,22 @@ public class Resource {
    */
   public SchedulerTaskConfig getSchedulerTaskConfig() {
     return _config.getSchedulerTaskConfig();
+  }
+
+  /**
+   * Get bucket size
+   * @return bucket size
+   */
+  public int getBucketSize() {
+    return _config.getBucketSize();
+  }
+
+  /**
+   * Get batch message mode
+   * @return true if in batch message mode, false otherwise
+   */
+  public boolean getBatchMessageMode() {
+    return _config.getBatchMessageMode();
   }
 
   /**

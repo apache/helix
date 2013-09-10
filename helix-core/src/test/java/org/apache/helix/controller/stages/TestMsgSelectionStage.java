@@ -60,7 +60,7 @@ public class TestMsgSelectionStage {
     liveInstances.put(Id.participant("localhost_0"), new Participant(Id.participant("localhost_0"),
         "localhost", 0, true, disabledPartitions, tags, runningInstance0, currentStateMap,
         messageMap));
-    liveInstances.put(Id.participant("localhost_0"), new Participant(Id.participant("localhost_1"),
+    liveInstances.put(Id.participant("localhost_1"), new Participant(Id.participant("localhost_1"),
         "localhost", 1, true, disabledPartitions, tags, runningInstance1, currentStateMap,
         messageMap));
 

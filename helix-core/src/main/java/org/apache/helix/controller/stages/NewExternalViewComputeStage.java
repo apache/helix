@@ -90,8 +90,8 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       // otherwise resource has been dropped, use bucket size from current state instead
       ResourceConfig resource = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
-      if (rebalancerConfig.getBucketSize() > 0) {
-        view.setBucketSize(rebalancerConfig.getBucketSize());
+      if (resource.getBucketSize() > 0) {
+        view.setBucketSize(resource.getBucketSize());
       } else {
         view.setBucketSize(currentStateOutput.getBucketSize(resourceId));
       }

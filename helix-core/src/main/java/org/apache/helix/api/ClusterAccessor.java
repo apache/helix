@@ -23,11 +23,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
@@ -53,24 +55,35 @@ public class ClusterAccessor {
   }
 
   /**
-   * create a new cluster
+   * create a new cluster, fail if it already exists
+   * @return true if created, false if creation failed
    */
-  public void createCluster() {
-    List<PropertyKey> createKeys = new ArrayList<PropertyKey>();
-
-    createKeys.add(_keyBuilder.idealStates());
-    createKeys.add(_keyBuilder.clusterConfigs());
-    createKeys.add(_keyBuilder.instanceConfigs());
-    createKeys.add(_keyBuilder.resourceConfigs());
-    createKeys.add(_keyBuilder.instances());
-    createKeys.add(_keyBuilder.liveInstances());
-    createKeys.add(_keyBuilder.externalViews());
-    createKeys.add(_keyBuilder.controller());
-
-    // TODO add controller sub-dir's and state model definitions
-    for (PropertyKey key : createKeys) {
-      _accessor.createProperty(key, null);
+  public boolean createCluster(ClusterConfig cluster) {
+    boolean created = _accessor.createProperty(_keyBuilder.cluster(), null);
+    if (!created) {
+      LOG.warn("Cluster already created. Aborting.");
+      return false;
     }
+    Map<ResourceId, ResourceConfig> resources = cluster.getResourceMap();
+    for (ResourceConfig resource : resources.values()) {
+      addResourceToCluster(resource);
+    }
+    Map<ParticipantId, ParticipantConfig> participants = cluster.getParticipantMap();
+    for (ParticipantConfig participant : participants.values()) {
+      addParticipantToCluster(participant);
+    }
+    _accessor.createProperty(_keyBuilder.constraints(), null);
+    for (ClusterConstraints constraints : cluster.getConstraintMap().values()) {
+      _accessor.createProperty(_keyBuilder.constraint(constraints.getType().toString()),
+          constraints);
+    }
+    _accessor
+        .createProperty(_keyBuilder.clusterConfig(), new ClusterConfiguration(cluster.getId()));
+    if (cluster.isPaused()) {
+      pauseCluster();
+    }
+
+    return true;
   }
 
   /**
@@ -91,7 +104,7 @@ public class ClusterAccessor {
           + leader.getId() + " are running, shutdown leader first.");
     }
 
-    // TODO remove cluster structure from zookeeper
+    _accessor.removeProperty(_keyBuilder.cluster());
   }
 
   /**
@@ -209,7 +222,7 @@ public class ClusterAccessor {
   /**
    * resume controller of cluster
    */
-  public void resume() {
+  public void resumeCluster() {
     _accessor.removeProperty(_keyBuilder.pause());
   }
 
@@ -251,8 +264,8 @@ public class ClusterAccessor {
         idealState.setParticipantStateMap(partitionId, preferenceMap);
       }
     }
-    idealState.setBucketSize(rebalancerConfig.getBucketSize());
-    idealState.setBatchMessageMode(rebalancerConfig.getBatchMessageMode());
+    idealState.setBucketSize(resource.getBucketSize());
+    idealState.setBatchMessageMode(resource.getBatchMessageMode());
     String groupTag = rebalancerConfig.getParticipantGroupTag();
     if (groupTag != null) {
       idealState.setInstanceGroupTag(groupTag);
@@ -273,7 +286,6 @@ public class ClusterAccessor {
    * @param resourceId
    */
   public void dropResourceFromCluster(ResourceId resourceId) {
-    // TODO check existence
     _accessor.removeProperty(_keyBuilder.idealState(resourceId.stringify()));
     _accessor.removeProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
   }
@@ -284,7 +296,7 @@ public class ClusterAccessor {
    */
   public boolean isClusterStructureValid() {
     // TODO impl this
-    return false;
+    return true;
   }
 
   /**
@@ -302,15 +314,31 @@ public class ClusterAccessor {
           + " already exists in cluster: " + _clusterId);
     }
 
+    // add empty root ZNodes
     List<PropertyKey> createKeys = new ArrayList<PropertyKey>();
-    createKeys.add(_keyBuilder.instanceConfig(participantId.stringify()));
     createKeys.add(_keyBuilder.messages(participantId.stringify()));
     createKeys.add(_keyBuilder.currentStates(participantId.stringify()));
-    // TODO add participant error and status-update paths
-
+    createKeys.add(_keyBuilder.participantErrors(participantId.stringify()));
+    createKeys.add(_keyBuilder.statusUpdates(participantId.stringify()));
     for (PropertyKey key : createKeys) {
       _accessor.createProperty(key, null);
     }
+
+    // add the config
+    InstanceConfig instanceConfig = new InstanceConfig(participant.getId());
+    instanceConfig.setHostName(participant.getHostName());
+    instanceConfig.setPort(Integer.toString(participant.getPort()));
+    instanceConfig.setInstanceEnabled(participant.isEnabled());
+    Set<String> tags = participant.getTags();
+    for (String tag : tags) {
+      instanceConfig.addTag(tag);
+    }
+    Set<PartitionId> disabledPartitions = participant.getDisablePartitionIds();
+    for (PartitionId partitionId : disabledPartitions) {
+      instanceConfig.setInstanceEnabledForPartition(partitionId, false);
+    }
+    _accessor.createProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
+    _accessor.createProperty(_keyBuilder.messages(participantId.stringify()), null);
   }
 
   /**

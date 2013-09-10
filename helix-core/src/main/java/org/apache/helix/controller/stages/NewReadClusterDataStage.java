@@ -31,7 +31,6 @@ import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.StateModelDefinitionAccessor;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
@@ -51,8 +50,7 @@ public class NewReadClusterDataStage extends AbstractBaseStage {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ClusterId clusterId = Id.cluster(manager.getClusterName());
     ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor);
-    StateModelDefinitionAccessor stateModelDefAccessor =
-        new StateModelDefinitionAccessor(clusterId, accessor);
+    StateModelDefinitionAccessor stateModelDefAccessor = new StateModelDefinitionAccessor(accessor);
 
     Cluster cluster = clusterAccessor.readCluster();
     Map<StateModelDefId, StateModelDefinition> stateModelDefMap =

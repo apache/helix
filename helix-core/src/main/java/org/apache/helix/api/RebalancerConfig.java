@@ -45,8 +45,6 @@ public class RebalancerConfig {
   private final boolean _anyLiveParticipant;
   private final String _participantGroupTag;
   private final int _maxPartitionsPerParticipant;
-  private final int _bucketSize;
-  private final boolean _batchMessageMode;
   private final StateModelFactoryId _stateModelFactoryId;
 
   /**
@@ -69,8 +67,6 @@ public class RebalancerConfig {
     }
     _participantGroupTag = idealState.getInstanceGroupTag();
     _maxPartitionsPerParticipant = idealState.getMaxPartitionsPerInstance();
-    _bucketSize = idealState.getBucketSize();
-    _batchMessageMode = idealState.getBatchMessageMode();
     _stateModelFactoryId = idealState.getStateModelFactoryId();
 
     // Build preference lists and maps
@@ -173,22 +169,6 @@ public class RebalancerConfig {
    */
   public String getParticipantGroupTag() {
     return _participantGroupTag;
-  }
-
-  /**
-   * Get bucket size
-   * @return bucket size
-   */
-  public int getBucketSize() {
-    return _bucketSize;
-  }
-
-  /**
-   * Get batch message mode
-   * @return true if in batch message mode, false otherwise
-   */
-  public boolean getBatchMessageMode() {
-    return _batchMessageMode;
   }
 
   /**

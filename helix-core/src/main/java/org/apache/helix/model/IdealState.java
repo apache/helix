@@ -193,7 +193,11 @@ public class IdealState extends HelixProperty {
    * @param rebalancerRef a reference to a user-defined rebalancer
    */
   public void setRebalancerRef(RebalancerRef rebalancerRef) {
-    setRebalancerClassName(rebalancerRef.toString());
+    if (rebalancerRef != null) {
+      setRebalancerClassName(rebalancerRef.toString());
+    } else {
+      setRebalancerClassName(null);
+    }
   }
 
   /**
@@ -542,7 +546,7 @@ public class IdealState extends HelixProperty {
         break;
       default:
         replica = "0";
-        logger.error("could NOT determine replicas. set to 0");
+        logger.warn("could NOT determine replicas. set to 0");
         break;
       }
     }

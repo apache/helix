@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.Date;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.api.Id;
@@ -28,6 +29,7 @@ import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.testng.AssertJUnit;
@@ -43,11 +45,11 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     String[] resources = new String[] {
       "testResourceName"
     };
-    setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
+    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     setupLiveInstances(5);
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
 
-    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
     NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);

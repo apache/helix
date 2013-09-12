@@ -47,6 +47,7 @@ import java.util.Arrays;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.AlertStatus;
 import org.apache.helix.model.Alerts;
+import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -58,8 +59,10 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
@@ -193,7 +196,7 @@ public class PropertyKey {
      */
 
     public PropertyKey clusterConfigs() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfiguration.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString());
     }
 
@@ -202,7 +205,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey clusterConfig() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfiguration.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
     }
 
@@ -230,7 +233,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey resourceConfigs() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, ResourceConfiguration.class,
           _clusterName, ConfigScopeProperty.RESOURCE.toString());
     }
 
@@ -240,19 +243,29 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey resourceConfig(String resourceName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, ResourceConfiguration.class,
           _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
     }
 
     /**
-     * Get a property key associated with a partition
+     * Get a property key associated with all partition configurations
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey partitionConfigs(String resourceName) {
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+    }
+
+    /**
+     * Get a property key associated with a partition configuration
      * @param resourceName
      * @param partitionName
      * @return {@link PropertyKey}
      */
     public PropertyKey partitionConfig(String resourceName, String partitionName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
-          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName, partitionName);
     }
 
     /**
@@ -264,8 +277,8 @@ public class PropertyKey {
      */
     public PropertyKey partitionConfig(String instanceName, String resourceName,
         String partitionName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
-          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName, partitionName);
     }
 
     /**

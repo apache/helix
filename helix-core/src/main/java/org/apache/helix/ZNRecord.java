@@ -121,6 +121,15 @@ public class ZNRecord {
   }
 
   /**
+   * Get the {@link PayloadSerializer} that will serialize/deserialize the payload
+   * @return serializer
+   */
+  @JsonIgnore(true)
+  public PayloadSerializer getPayloadSerializer() {
+    return _serializer;
+  }
+
+  /**
    * Set the list of updates to this ZNRecord
    * @param deltaList
    */

@@ -1,13 +1,7 @@
 package org.apache.helix.api;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -33,9 +27,9 @@ import com.google.common.collect.ImmutableSet;
  */
 public class ResourceConfig {
   private final ResourceId _id;
-  private final Map<PartitionId, Partition> _partitionMap;
   private final RebalancerConfig _rebalancerConfig;
   private final SchedulerTaskConfig _schedulerTaskConfig;
+  private final UserConfig _userConfig;
   private final int _bucketSize;
   private final boolean _batchMessageMode;
 
@@ -45,16 +39,17 @@ public class ResourceConfig {
    * @param partitionMap map of partition identifiers to partition objects
    * @param schedulerTaskConfig configuration for scheduler tasks associated with the resource
    * @param rebalancerConfig configuration for rebalancing the resource
+   * @param userConfig user-defined resource properties
    * @param bucketSize bucket size for this resource
-   * @param whether or not batch messaging is allowed
+   * @param batchMessageMode whether or not batch messaging is allowed
    */
-  public ResourceConfig(ResourceId id, Map<PartitionId, Partition> partitionMap,
-      SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig, int bucketSize,
+  public ResourceConfig(ResourceId id, SchedulerTaskConfig schedulerTaskConfig,
+      RebalancerConfig rebalancerConfig, UserConfig userConfig, int bucketSize,
       boolean batchMessageMode) {
     _id = id;
-    _partitionMap = ImmutableMap.copyOf(partitionMap);
     _schedulerTaskConfig = schedulerTaskConfig;
     _rebalancerConfig = rebalancerConfig;
+    _userConfig = userConfig;
     _bucketSize = bucketSize;
     _batchMessageMode = batchMessageMode;
   }
@@ -64,7 +59,7 @@ public class ResourceConfig {
    * @return map of partition id to partition or empty map if none
    */
   public Map<PartitionId, Partition> getPartitionMap() {
-    return _partitionMap;
+    return _rebalancerConfig.getPartitionMap();
   }
 
   /**
@@ -73,7 +68,7 @@ public class ResourceConfig {
    * @return Partition or null if none is present with the given id
    */
   public Partition getPartition(PartitionId partitionId) {
-    return _partitionMap.get(partitionId);
+    return _rebalancerConfig.getPartition(partitionId);
   }
 
   /**
@@ -81,9 +76,7 @@ public class ResourceConfig {
    * @return partition id set, or empty if none
    */
   public Set<PartitionId> getPartitionSet() {
-    Set<PartitionId> partitionSet = new HashSet<PartitionId>();
-    partitionSet.addAll(_partitionMap.keySet());
-    return ImmutableSet.copyOf(partitionSet);
+    return _rebalancerConfig.getPartitionSet();
   }
 
   /**
@@ -111,6 +104,14 @@ public class ResourceConfig {
   }
 
   /**
+   * Get user-specified configuration properties of this resource
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _userConfig;
+  }
+
+  /**
    * Get the bucket size for this resource
    * @return bucket size
    */
@@ -128,7 +129,7 @@ public class ResourceConfig {
 
   @Override
   public String toString() {
-    return _partitionMap.toString();
+    return _rebalancerConfig.getPartitionMap().toString();
   }
 
   /**
@@ -136,9 +137,9 @@ public class ResourceConfig {
    */
   public static class Builder {
     private final ResourceId _id;
-    private final Map<PartitionId, Partition> _partitionMap;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
+    private UserConfig _userConfig;
     private int _bucketSize;
     private boolean _batchMessageMode;
 
@@ -148,44 +149,9 @@ public class ResourceConfig {
      */
     public Builder(ResourceId id) {
       _id = id;
-      _partitionMap = new HashMap<PartitionId, Partition>();
       _bucketSize = 0;
       _batchMessageMode = false;
-    }
-
-    /**
-     * Add a partition that the resource serves
-     * @param partition fully-qualified partition
-     * @return Builder
-     */
-    public Builder addPartition(Partition partition) {
-      _partitionMap.put(partition.getId(), partition);
-      return this;
-    }
-
-    /**
-     * Add a collection of partitions
-     * @param partitions
-     * @return Builder
-     */
-    public Builder addPartitions(Collection<Partition> partitions) {
-      for (Partition partition : partitions) {
-        addPartition(partition);
-      }
-      return this;
-    }
-
-    /**
-     * Add a specified number of partitions with a default naming scheme, namely
-     * resourceId_partitionNumber where partitionNumber starts at 0
-     * @param partitionCount number of partitions to add
-     * @return Builder
-     */
-    public Builder addPartitions(int partitionCount) {
-      for (int i = 0; i < partitionCount; i++) {
-        addPartition(new Partition(Id.partition(_id, Integer.toString(i))));
-      }
-      return this;
+      _userConfig = new UserConfig(id);
     }
 
     /**
@@ -195,6 +161,16 @@ public class ResourceConfig {
      */
     public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
       _rebalancerConfig = rebalancerConfig;
+      return this;
+    }
+
+    /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Builder
+     */
+    public Builder userConfig(UserConfig userConfig) {
+      _userConfig = userConfig;
       return this;
     }
 
@@ -232,7 +208,7 @@ public class ResourceConfig {
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _partitionMap, _schedulerTaskConfig, _rebalancerConfig,
+      return new ResourceConfig(_id, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
           _bucketSize, _batchMessageMode);
     }
   }

@@ -265,13 +265,14 @@ public class ParticipantAccessor {
    * create a participant based on physical model
    * @param participantId
    * @param instanceConfig
+   * @param userConfig
    * @param liveInstance
    * @param instanceMsgMap map of message-id to message
    * @param instanceCurStateMap map of resource-id to current-state
    * @return participant
    */
   static Participant createParticipant(ParticipantId participantId, InstanceConfig instanceConfig,
-      LiveInstance liveInstance, Map<String, Message> instanceMsgMap,
+      UserConfig userConfig, LiveInstance liveInstance, Map<String, Message> instanceMsgMap,
       Map<String, CurrentState> instanceCurStateMap) {
 
     String hostName = instanceConfig.getHostName();
@@ -323,7 +324,7 @@ public class ParticipantAccessor {
     }
 
     return new Participant(participantId, hostName, port, isEnabled, disabledPartitionIdSet, tags,
-        runningInstance, curStateMap, msgMap);
+        runningInstance, curStateMap, msgMap, userConfig);
   }
 
   /**
@@ -335,6 +336,7 @@ public class ParticipantAccessor {
     // read physical model
     String participantName = participantId.stringify();
     InstanceConfig instanceConfig = _accessor.getProperty(_keyBuilder.instance(participantName));
+    UserConfig userConfig = UserConfig.from(instanceConfig);
     LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
 
     Map<String, Message> instanceMsgMap = Collections.emptyMap();
@@ -348,8 +350,8 @@ public class ParticipantAccessor {
               sessionId.stringify()));
     }
 
-    return createParticipant(participantId, instanceConfig, liveInstance, instanceMsgMap,
-        instanceCurStateMap);
+    return createParticipant(participantId, instanceConfig, userConfig, liveInstance,
+        instanceMsgMap, instanceCurStateMap);
   }
 
   /**

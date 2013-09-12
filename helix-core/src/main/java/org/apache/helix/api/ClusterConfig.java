@@ -36,22 +36,26 @@ public class ClusterConfig {
   private final Map<ResourceId, ResourceConfig> _resourceMap;
   private final Map<ParticipantId, ParticipantConfig> _participantMap;
   private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+  private final UserConfig _userConfig;
   private final boolean _isPaused;
 
   /**
    * Initialize a cluster configuration. Also see ClusterConfig.Builder
-   * @param id
-   * @param resourceMap
-   * @param participantMap
-   * @param constraintMap
+   * @param id cluster id
+   * @param resourceMap map of resource id to resource config
+   * @param participantMap map of participant id to participant config
+   * @param constraintMapmap of constraint type to all constraints of that type
+   * @param userConfig user-defined cluster properties
+   * @param isPaused true if paused, false if active
    */
   public ClusterConfig(ClusterId id, Map<ResourceId, ResourceConfig> resourceMap,
       Map<ParticipantId, ParticipantConfig> participantMap,
-      Map<ConstraintType, ClusterConstraints> constraintMap, boolean isPaused) {
+      Map<ConstraintType, ClusterConstraints> constraintMap, UserConfig userConfig, boolean isPaused) {
     _id = id;
     _resourceMap = ImmutableMap.copyOf(resourceMap);
     _participantMap = ImmutableMap.copyOf(participantMap);
     _constraintMap = ImmutableMap.copyOf(constraintMap);
+    _userConfig = userConfig;
     _isPaused = isPaused;
   }
 
@@ -88,6 +92,14 @@ public class ClusterConfig {
   }
 
   /**
+   * Get user-specified configuration properties of this cluster
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _userConfig;
+  }
+
+  /**
    * Check the pasued status of the cluster
    * @return true if paused, false otherwise
    */
@@ -103,6 +115,7 @@ public class ClusterConfig {
     private final Map<ResourceId, ResourceConfig> _resourceMap;
     private final Map<ParticipantId, ParticipantConfig> _participantMap;
     private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+    private UserConfig _userConfig;
     private boolean _isPaused;
 
     /**
@@ -115,6 +128,7 @@ public class ClusterConfig {
       _participantMap = new HashMap<ParticipantId, ParticipantConfig>();
       _constraintMap = new HashMap<ConstraintType, ClusterConstraints>();
       _isPaused = false;
+      _userConfig = new UserConfig(id);
     }
 
     /**
@@ -194,11 +208,22 @@ public class ClusterConfig {
     }
 
     /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Builder
+     */
+    public Builder userConfig(UserConfig userConfig) {
+      _userConfig = userConfig;
+      return this;
+    }
+
+    /**
      * Create the cluster configuration
      * @return ClusterConfig
      */
     public ClusterConfig build() {
-      return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _isPaused);
+      return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _userConfig,
+          _isPaused);
     }
   }
 }

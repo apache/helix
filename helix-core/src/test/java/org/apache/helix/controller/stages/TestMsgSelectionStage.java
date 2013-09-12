@@ -37,6 +37,7 @@ import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.State;
+import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.stages.NewMessageSelectionStage.Bounds;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
@@ -59,10 +60,10 @@ public class TestMsgSelectionStage {
         new RunningInstance(Id.session("session_1"), HelixVersion.from("1.2.3.4"), Id.process("1"));
     liveInstances.put(Id.participant("localhost_0"), new Participant(Id.participant("localhost_0"),
         "localhost", 0, true, disabledPartitions, tags, runningInstance0, currentStateMap,
-        messageMap));
+        messageMap, new UserConfig(Id.participant("localhost_0"))));
     liveInstances.put(Id.participant("localhost_1"), new Participant(Id.participant("localhost_1"),
         "localhost", 1, true, disabledPartitions, tags, runningInstance1, currentStateMap,
-        messageMap));
+        messageMap, new UserConfig(Id.participant("localhost_1"))));
 
     Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
     currentStates.put(Id.participant("localhost_0"), State.from("SLAVE"));
@@ -109,10 +110,10 @@ public class TestMsgSelectionStage {
         new RunningInstance(Id.session("session_1"), HelixVersion.from("1.2.3.4"), Id.process("1"));
     liveInstances.put(Id.participant("localhost_0"), new Participant(Id.participant("localhost_0"),
         "localhost", 0, true, disabledPartitions, tags, runningInstance0, currentStateMap,
-        messageMap));
-    liveInstances.put(Id.participant("localhost_0"), new Participant(Id.participant("localhost_1"),
+        messageMap, new UserConfig(Id.participant("localhost_0"))));
+    liveInstances.put(Id.participant("localhost_1"), new Participant(Id.participant("localhost_1"),
         "localhost", 1, true, disabledPartitions, tags, runningInstance1, currentStateMap,
-        messageMap));
+        messageMap, new UserConfig(Id.participant("localhost_1"))));
 
     Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
     currentStates.put(Id.participant("localhost_0"), State.from("SLAVE"));

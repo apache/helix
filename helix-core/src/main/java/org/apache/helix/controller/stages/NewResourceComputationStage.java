@@ -19,10 +19,8 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
@@ -63,8 +61,6 @@ public class NewResourceComputationStage extends AbstractBaseStage {
 
       ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
       resourceBuilder.rebalancerConfig(rebalancerConfig);
-      Set<Partition> partitionSet = new HashSet<Partition>(resource.getPartitionMap().values());
-      resourceBuilder.addPartitions(partitionSet);
       resourceBuilder.bucketSize(resource.getBucketSize());
       resourceBuilder.batchMessageMode(resource.getBatchMessageMode());
       resourceBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
@@ -91,16 +87,15 @@ public class NewResourceComputationStage extends AbstractBaseStage {
           rebalancerConfigBuilder.stateModelDef(currentState.getStateModelDefId());
           rebalancerConfigBuilder.stateModelFactoryId(new StateModelFactoryId(currentState
               .getStateModelFactoryName()));
-          rebalancerConfigBuilder.bucketSize(currentState.getBucketSize());
-          rebalancerConfigBuilder.batchMessageMode(currentState.getBatchMessageMode());
+          for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
+            rebalancerConfigBuilder.addPartition(new Partition(partitionId));
+          }
 
           ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
           resourceBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
+          resourceBuilder.bucketSize(currentState.getBucketSize());
+          resourceBuilder.batchMessageMode(currentState.getBatchMessageMode());
           resourceBuilderMap.put(resourceId, resourceBuilder);
-        }
-
-        for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
-          resourceBuilderMap.get(resourceId).addPartition(new Partition(partitionId));
         }
       }
     }

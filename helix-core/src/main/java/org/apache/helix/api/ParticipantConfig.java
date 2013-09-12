@@ -34,6 +34,7 @@ public class ParticipantConfig {
   private final boolean _isEnabled;
   private final Set<PartitionId> _disabledPartitions;
   private final Set<String> _tags;
+  private final UserConfig _userConfig;
 
   /**
    * Initialize a participant configuration. Also see ParticipantConfig.Builder
@@ -45,13 +46,14 @@ public class ParticipantConfig {
    * @param tags tags to set for the participant
    */
   public ParticipantConfig(ParticipantId id, String hostName, int port, boolean isEnabled,
-      Set<PartitionId> disabledPartitions, Set<String> tags) {
+      Set<PartitionId> disabledPartitions, Set<String> tags, UserConfig userConfig) {
     _id = id;
     _hostName = hostName;
     _port = port;
     _isEnabled = isEnabled;
     _disabledPartitions = ImmutableSet.copyOf(disabledPartitions);
     _tags = ImmutableSet.copyOf(tags);
+    _userConfig = userConfig;
   }
 
   /**
@@ -104,6 +106,14 @@ public class ParticipantConfig {
   }
 
   /**
+   * Get user-specified configuration properties of this participant
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _userConfig;
+  }
+
+  /**
    * Get the participant id
    * @return ParticipantId
    */
@@ -121,6 +131,7 @@ public class ParticipantConfig {
     private boolean _isEnabled;
     private final Set<PartitionId> _disabledPartitions;
     private final Set<String> _tags;
+    private UserConfig _userConfig;
 
     /**
      * Build a participant with a given id
@@ -131,6 +142,7 @@ public class ParticipantConfig {
       _disabledPartitions = new HashSet<PartitionId>();
       _tags = new HashSet<String>();
       _isEnabled = true;
+      _userConfig = new UserConfig(id);
     }
 
     /**
@@ -184,11 +196,22 @@ public class ParticipantConfig {
     }
 
     /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Builder
+     */
+    public Builder userConfig(UserConfig userConfig) {
+      _userConfig = userConfig;
+      return this;
+    }
+
+    /**
      * Assemble the participant
      * @return instantiated Participant
      */
     public ParticipantConfig build() {
-      return new ParticipantConfig(_id, _hostName, _port, _isEnabled, _disabledPartitions, _tags);
+      return new ParticipantConfig(_id, _hostName, _port, _isEnabled, _disabledPartitions, _tags,
+          _userConfig);
     }
   }
 }

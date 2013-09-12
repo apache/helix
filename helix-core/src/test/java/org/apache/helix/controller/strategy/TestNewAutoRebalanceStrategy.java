@@ -42,6 +42,7 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.helix.model.CurrentState;
@@ -131,13 +132,14 @@ public class TestNewAutoRebalanceStrategy {
    */
   private StateModelDefinition getIncompleteStateModelDef(String modelName, String initialState,
       LinkedHashMap<String, Integer> states) {
-    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(modelName);
-    builder.initialState(initialState);
-    int i = states.size();
+    StateModelDefinition.Builder builder =
+        new StateModelDefinition.Builder(Id.stateModelDef(modelName));
+    builder.initialState(State.from(initialState));
+    int i = 0;
     for (String state : states.keySet()) {
-      builder.addState(state, i);
-      builder.upperBound(state, states.get(state));
-      i--;
+      builder.addState(State.from(state), i);
+      builder.upperBound(State.from(state), states.get(state));
+      i++;
     }
     return builder.build();
   }
@@ -231,7 +233,7 @@ public class TestNewAutoRebalanceStrategy {
           ParticipantId participantId = Id.participant(nodeName);
           Participant participant =
               new Participant(participantId, "hostname", 0, true, disabledPartitionIdSet, tags,
-                  null, currentStateMap, messageMap);
+                  null, currentStateMap, messageMap, new UserConfig(participantId));
           liveParticipantMap.put(participantId, participant);
         }
         List<ParticipantId> participantPreferenceList =

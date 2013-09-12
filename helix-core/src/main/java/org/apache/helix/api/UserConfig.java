@@ -1,5 +1,7 @@
 package org.apache.helix.api;
 
+import org.apache.helix.HelixProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,50 +22,31 @@ package org.apache.helix.api;
  */
 
 /**
- * A partition of a resource
+ * Generic user-defined configuration of Helix components
  */
-public class Partition {
-
-  private final PartitionId _id;
-  private final UserConfig _userConfig;
-
+public class UserConfig extends NamespacedConfig {
   /**
-   * Construct a partition with user-specified configuration
-   * @param id
-   * @param userConfig user-defined properties of this partition
+   * Instantiate a UserConfig. It is intended for use only by entities that can be identified
+   * @param id id object
    */
-  public Partition(PartitionId id, UserConfig userConfig) {
-    _id = id;
-    _userConfig = userConfig;
+  public UserConfig(Id id) {
+    super(id, UserConfig.class.getSimpleName());
   }
 
   /**
-   * Construct a partition
-   * @param id
+   * Instantiate a UserConfig from an existing HelixProperty
+   * @param property property wrapping a configuration
    */
-  public Partition(PartitionId id) {
-    _id = id;
-    _userConfig = null;
+  public UserConfig(HelixProperty property) {
+    super(property, UserConfig.class.getSimpleName());
   }
 
   /**
-   * Get partition id
-   * @return partition id
+   * Get a UserConfig that filters out the user-specific configurations in a property
+   * @param property the property to check
+   * @return UserConfig
    */
-  public PartitionId getId() {
-    return _id;
-  }
-
-  /**
-   * Get the user config of this partition
-   * @return UserConfig properties, or null if none
-   */
-  public UserConfig getUserConfig() {
-    return _userConfig;
-  }
-
-  @Override
-  public String toString() {
-    return _id.toString();
+  public static UserConfig from(HelixProperty property) {
+    return new UserConfig(property);
   }
 }

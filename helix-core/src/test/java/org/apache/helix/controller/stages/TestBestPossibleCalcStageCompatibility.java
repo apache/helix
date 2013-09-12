@@ -53,11 +53,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     String[] resources = new String[] {
       "testResourceName"
     };
-    setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.AUTO);
+    List<IdealState> idealStates =
+        setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.AUTO);
     setupLiveInstances(5);
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
 
-    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
     NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
@@ -91,11 +92,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     String[] resources = new String[] {
       "testResourceName"
     };
-    setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.CUSTOMIZED);
+    List<IdealState> idealStates =
+        setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.CUSTOMIZED);
     setupLiveInstances(5);
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
 
-    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
     NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);

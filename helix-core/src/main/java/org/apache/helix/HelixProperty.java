@@ -27,6 +27,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.UserConfig;
+
 /**
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.
  */
@@ -223,6 +225,14 @@ public class HelixProperty {
     } catch (Exception e) {
       return false;
     }
+  }
+
+  /**
+   * Add user-defined configuration properties to this property
+   * @param userConfig UserConfig properties
+   */
+  public void addUserConfig(UserConfig userConfig) {
+    UserConfig.addConfigToProperty(this, userConfig);
   }
 
   /**

@@ -33,6 +33,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.Partition;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
@@ -161,19 +162,19 @@ public class BaseStageTest {
     return defs;
   }
 
-  protected Map<ResourceId, ResourceConfig> getResourceMap() {
+  protected Map<ResourceId, ResourceConfig> getResourceMap(List<IdealState> idealStates) {
     Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
-    ResourceId resourceId = Id.resource("testResourceName");
-    ResourceConfig.Builder builder = new ResourceConfig.Builder(resourceId);
-    builder.addPartition(new Partition(Id.partition("testResourceName_0")));
-    builder.addPartition(new Partition(Id.partition("testResourceName_1")));
-    builder.addPartition(new Partition(Id.partition("testResourceName_2")));
-    builder.addPartition(new Partition(Id.partition("testResourceName_3")));
-    builder.addPartition(new Partition(Id.partition("testResourceName_4")));
-    RebalancerConfig.Builder rebalancerConfigBuilder = new RebalancerConfig.Builder(resourceId);
-    rebalancerConfigBuilder.stateModelDef(Id.stateModelDef("MasterSlave"));
-    builder.rebalancerConfig(rebalancerConfigBuilder.build());
-    resourceMap.put(Id.resource("testResourceName"), builder.build());
+    for (IdealState idealState : idealStates) {
+      ResourceId resourceId = idealState.getResourceId();
+      Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
+      for (PartitionId partitionId : idealState.getPartitionSet()) {
+        partitionMap.put(partitionId, new Partition(partitionId));
+      }
+      RebalancerConfig rebalancerConfig = new RebalancerConfig(partitionMap, idealState, null, 0);
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalancerConfig).build();
+      resourceMap.put(resourceId, resourceConfig);
+    }
 
     return resourceMap;
   }

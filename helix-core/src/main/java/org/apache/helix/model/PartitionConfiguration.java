@@ -2,8 +2,8 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.UserConfig;
 
 /*
@@ -26,14 +26,14 @@ import org.apache.helix.api.UserConfig;
  */
 
 /**
- * Persisted configuration properties for a cluster
+ * Persisted configuration properties for a partition
  */
-public class ClusterConfiguration extends HelixProperty {
+public class PartitionConfiguration extends HelixProperty {
   /**
    * Instantiate for an id
-   * @param id cluster id
+   * @param id partition id
    */
-  public ClusterConfiguration(ClusterId id) {
+  public PartitionConfiguration(PartitionId id) {
     super(id.stringify());
   }
 
@@ -41,19 +41,19 @@ public class ClusterConfiguration extends HelixProperty {
    * Instantiate from a record
    * @param record configuration properties
    */
-  public ClusterConfiguration(ZNRecord record) {
+  public PartitionConfiguration(ZNRecord record) {
     super(record);
   }
 
   /**
-   * Create a new ClusterConfiguration from a UserConfig
+   * Create a new PartitionConfiguration from a UserConfig
    * @param userConfig user-defined configuration properties
-   * @return ClusterConfiguration
+   * @return PartitionConfiguration
    */
-  public static ClusterConfiguration from(UserConfig userConfig) {
-    ClusterConfiguration clusterConfiguration =
-        new ClusterConfiguration(Id.cluster(userConfig.getId()));
-    clusterConfiguration.addUserConfig(userConfig);
-    return clusterConfiguration;
+  public static PartitionConfiguration from(UserConfig userConfig) {
+    PartitionConfiguration partitionConfiguration =
+        new PartitionConfiguration(Id.partition(userConfig.getId()));
+    partitionConfiguration.addUserConfig(userConfig);
+    return partitionConfiguration;
   }
 }

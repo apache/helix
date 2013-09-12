@@ -51,8 +51,11 @@ public class Participant {
    */
   public Participant(ParticipantId id, String hostName, int port, boolean isEnabled,
       Set<PartitionId> disabledPartitionIdSet, Set<String> tags, RunningInstance runningInstance,
-      Map<ResourceId, CurrentState> currentStateMap, Map<MessageId, Message> messageMap) {
-    _config = new ParticipantConfig(id, hostName, port, isEnabled, disabledPartitionIdSet, tags);
+      Map<ResourceId, CurrentState> currentStateMap, Map<MessageId, Message> messageMap,
+      UserConfig userConfig) {
+    _config =
+        new ParticipantConfig(id, hostName, port, isEnabled, disabledPartitionIdSet, tags,
+            userConfig);
     _runningInstance = runningInstance;
     _currentStateMap = ImmutableMap.copyOf(currentStateMap);
     _messageMap = ImmutableMap.copyOf(messageMap);
@@ -137,6 +140,14 @@ public class Participant {
    */
   public Map<ResourceId, CurrentState> getCurrentStateMap() {
     return _currentStateMap;
+  }
+
+  /**
+   * Get user-specified configuration properties of this participant
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _config.getUserConfig();
   }
 
   /**

@@ -37,6 +37,8 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.Mocks.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -122,13 +124,14 @@ public class TestAutoRebalanceStrategy {
    */
   private StateModelDefinition getIncompleteStateModelDef(String modelName, String initialState,
       LinkedHashMap<String, Integer> states) {
-    StateModelDefinition.Builder builder = new StateModelDefinition.Builder(modelName);
-    builder.initialState(initialState);
-    int i = states.size();
+    StateModelDefinition.Builder builder =
+        new StateModelDefinition.Builder(Id.stateModelDef(modelName));
+    builder.initialState(State.from(initialState));
+    int i = 0;
     for (String state : states.keySet()) {
-      builder.addState(state, i);
-      builder.upperBound(state, states.get(state));
-      i--;
+      builder.addState(State.from(state), i);
+      builder.upperBound(State.from(state), states.get(state));
+      i++;
     }
     return builder.build();
   }

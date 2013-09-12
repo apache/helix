@@ -19,9 +19,13 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixConstants;
 import org.apache.helix.model.IdealState;
@@ -30,11 +34,12 @@ import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Captures the configuration properties necessary for rebalancing
  */
-public class RebalancerConfig {
+public class RebalancerConfig extends NamespacedConfig {
   private final RebalanceMode _rebalancerMode;
   private final RebalancerRef _rebalancerRef;
   private final StateModelDefId _stateModelDefId;
@@ -46,14 +51,17 @@ public class RebalancerConfig {
   private final String _participantGroupTag;
   private final int _maxPartitionsPerParticipant;
   private final StateModelFactoryId _stateModelFactoryId;
+  private final Map<PartitionId, Partition> _partitionMap;
 
   /**
    * Instantiate the configuration of a rebalance task
    * @param idealState the physical ideal state
    * @param resourceAssignment last mapping of a resource
    */
-  public RebalancerConfig(IdealState idealState, ResourceAssignment resourceAssignment,
-      int liveParticipantCount) {
+  public RebalancerConfig(Map<PartitionId, Partition> partitionMap, IdealState idealState,
+      ResourceAssignment resourceAssignment, int liveParticipantCount) {
+    super(idealState.getResourceId(), RebalancerConfig.class.getSimpleName());
+    _partitionMap = ImmutableMap.copyOf(partitionMap);
     _rebalancerMode = idealState.getRebalanceMode();
     _rebalancerRef = idealState.getRebalancerRef();
     _stateModelDefId = idealState.getStateModelDefId();
@@ -89,6 +97,33 @@ public class RebalancerConfig {
 
     // Leave the resource assignment as is
     _resourceAssignment = resourceAssignment;
+  }
+
+  /**
+   * Get the partitions of the resource
+   * @return map of partition id to partition or empty map if none
+   */
+  public Map<PartitionId, Partition> getPartitionMap() {
+    return _partitionMap;
+  }
+
+  /**
+   * Get a partition that the resource contains
+   * @param partitionId the partition id to look up
+   * @return Partition or null if none is present with the given id
+   */
+  public Partition getPartition(PartitionId partitionId) {
+    return _partitionMap.get(partitionId);
+  }
+
+  /**
+   * Get the set of partition ids that the resource contains
+   * @return partition id set, or empty if none
+   */
+  public Set<PartitionId> getPartitionSet() {
+    Set<PartitionId> partitionSet = new HashSet<PartitionId>();
+    partitionSet.addAll(_partitionMap.keySet());
+    return ImmutableSet.copyOf(partitionSet);
   }
 
   /**
@@ -191,17 +226,21 @@ public class RebalancerConfig {
    * Assembles a RebalancerConfig
    */
   public static class Builder {
+    private final ResourceId _id;
     private final IdealState _idealState;
     private boolean _anyLiveParticipant;
     private ResourceAssignment _resourceAssignment;
+    private final Map<PartitionId, Partition> _partitionMap;
 
     /**
      * Configure the rebalancer for a resource
      * @param resourceId the resource to rebalance
      */
     public Builder(ResourceId resourceId) {
+      _id = resourceId;
       _idealState = new IdealState(resourceId);
       _anyLiveParticipant = false;
+      _partitionMap = new HashMap<PartitionId, Partition>();
     }
 
     /**
@@ -240,26 +279,6 @@ public class RebalancerConfig {
      */
     public Builder resourceAssignment(ResourceAssignment resourceAssignment) {
       _resourceAssignment = resourceAssignment;
-      return this;
-    }
-
-    /**
-     * Set bucket size
-     * @param bucketSize
-     * @return Builder
-     */
-    public Builder bucketSize(int bucketSize) {
-      _idealState.setBucketSize(bucketSize);
-      return this;
-    }
-
-    /**
-     * Set batch message mode
-     * @param batchMessageMode
-     * @return Builder
-     */
-    public Builder batchMessageMode(boolean batchMessageMode) {
-      _idealState.setBatchMessageMode(batchMessageMode);
       return this;
     }
 
@@ -304,15 +323,55 @@ public class RebalancerConfig {
     }
 
     /**
+     * Add a partition that the resource serves
+     * @param partition fully-qualified partition
+     * @return Builder
+     */
+    public Builder addPartition(Partition partition) {
+      _partitionMap.put(partition.getId(), partition);
+      return this;
+    }
+
+    /**
+     * Add a collection of partitions
+     * @param partitions
+     * @return Builder
+     */
+    public Builder addPartitions(Collection<Partition> partitions) {
+      for (Partition partition : partitions) {
+        addPartition(partition);
+      }
+      return this;
+    }
+
+    /**
+     * Add a specified number of partitions with a default naming scheme, namely
+     * resourceId_partitionNumber where partitionNumber starts at 0
+     * These partitions are added without any user configuration properties
+     * @param partitionCount number of partitions to add
+     * @return Builder
+     */
+    public Builder addPartitions(int partitionCount) {
+      for (int i = 0; i < partitionCount; i++) {
+        addPartition(new Partition(Id.partition(_id, Integer.toString(i)), null));
+      }
+      return this;
+    }
+
+    /**
      * Assemble a RebalancerConfig
      * @return a fully defined rebalancer configuration
      */
     public RebalancerConfig build() {
+      // add a single partition if one hasn't been added yet since 1 partition is default
+      if (_partitionMap.isEmpty()) {
+        addPartitions(1);
+      }
       if (_anyLiveParticipant) {
-        return new RebalancerConfig(_idealState, _resourceAssignment, Integer.parseInt(_idealState
-            .getReplicas()));
+        return new RebalancerConfig(_partitionMap, _idealState, _resourceAssignment,
+            Integer.parseInt(_idealState.getReplicas()));
       } else {
-        return new RebalancerConfig(_idealState, _resourceAssignment, -1);
+        return new RebalancerConfig(_partitionMap, _idealState, _resourceAssignment, -1);
       }
     }
   }

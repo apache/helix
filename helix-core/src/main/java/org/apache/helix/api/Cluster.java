@@ -73,7 +73,8 @@ public class Cluster {
    */
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
-      ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap, boolean isPaused) {
+      ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
+      UserConfig userConfig, boolean isPaused) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -92,7 +93,8 @@ public class Cluster {
           }
         });
     _config =
-        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap, isPaused);
+        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap, userConfig,
+            isPaused);
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -186,6 +188,14 @@ public class Cluster {
    */
   public Map<ConstraintType, ClusterConstraints> getConstraintMap() {
     return _config.getConstraintMap();
+  }
+
+  /**
+   * Get user-specified configuration properties of this cluster
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _config.getUserConfig();
   }
 
   /**

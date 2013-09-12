@@ -2,8 +2,8 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.Id;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.UserConfig;
 
 /*
@@ -26,14 +26,14 @@ import org.apache.helix.api.UserConfig;
  */
 
 /**
- * Persisted configuration properties for a cluster
+ * Persisted configuration properties for a resource
  */
-public class ClusterConfiguration extends HelixProperty {
+public class ResourceConfiguration extends HelixProperty {
   /**
    * Instantiate for an id
-   * @param id cluster id
+   * @param id resource id
    */
-  public ClusterConfiguration(ClusterId id) {
+  public ResourceConfiguration(ResourceId id) {
     super(id.stringify());
   }
 
@@ -41,19 +41,20 @@ public class ClusterConfiguration extends HelixProperty {
    * Instantiate from a record
    * @param record configuration properties
    */
-  public ClusterConfiguration(ZNRecord record) {
+  public ResourceConfiguration(ZNRecord record) {
     super(record);
   }
 
   /**
-   * Create a new ClusterConfiguration from a UserConfig
+   * Create a new ResourceConfiguration from a UserConfig
    * @param userConfig user-defined configuration properties
-   * @return ClusterConfiguration
+   * @return ResourceConfiguration
    */
-  public static ClusterConfiguration from(UserConfig userConfig) {
-    ClusterConfiguration clusterConfiguration =
-        new ClusterConfiguration(Id.cluster(userConfig.getId()));
-    clusterConfiguration.addUserConfig(userConfig);
-    return clusterConfiguration;
+  public static ResourceConfiguration from(UserConfig userConfig) {
+    ResourceConfiguration resourceConfiguration =
+        new ResourceConfiguration(Id.resource(userConfig.getId()));
+    resourceConfiguration.addUserConfig(userConfig);
+    return resourceConfiguration;
   }
+
 }

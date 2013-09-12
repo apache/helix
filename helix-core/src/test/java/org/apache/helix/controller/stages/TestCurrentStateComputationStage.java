@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.PropertyKey.Builder;
@@ -28,6 +29,8 @@ import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -36,7 +39,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
   @Test
   public void testEmptyCS() {
-    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    String[] resources = new String[] {
+      "testResourceName"
+    };
+    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     NewCurrentStateComputationStage stage = new NewCurrentStateComputationStage();
     runStage(event, new NewReadClusterDataStage());
@@ -50,7 +57,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
   @Test
   public void testSimpleCS() {
     // setup resource
-    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap();
+    String[] resources = new String[] {
+      "testResourceName"
+    };
+    List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
+    Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
 
     setupLiveInstances(5);
 

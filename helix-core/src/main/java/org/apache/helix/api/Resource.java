@@ -44,7 +44,8 @@ public class Resource {
    * @param liveParticipantCount number of live participants in the system
    */
   public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment,
-      ExternalView externalView, int liveParticipantCount) {
+      ExternalView externalView, UserConfig userConfig,
+      Map<PartitionId, UserConfig> partitionUserConfigs, int liveParticipantCount) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
     Map<PartitionId, Map<String, String>> schedulerTaskConfigMap =
         new HashMap<PartitionId, Map<String, String>>();
@@ -57,7 +58,11 @@ public class Resource {
       }
     }
     for (PartitionId partitionId : partitionSet) {
-      partitionMap.put(partitionId, new Partition(partitionId));
+      UserConfig partitionUserConfig = partitionUserConfigs.get(partitionId);
+      if (partitionUserConfig == null) {
+        partitionUserConfig = new UserConfig(partitionId);
+      }
+      partitionMap.put(partitionId, new Partition(partitionId, partitionUserConfig));
 
       // TODO refactor it
       Map<String, String> taskConfigMap = idealState.getInstanceStateMap(partitionId.stringify());
@@ -81,10 +86,10 @@ public class Resource {
     SchedulerTaskConfig schedulerTaskConfig =
         new SchedulerTaskConfig(transitionTimeoutMap, schedulerTaskConfigMap);
     RebalancerConfig rebalancerConfig =
-        new RebalancerConfig(idealState, resourceAssignment, liveParticipantCount);
+        new RebalancerConfig(partitionMap, idealState, resourceAssignment, liveParticipantCount);
 
     _config =
-        new ResourceConfig(id, partitionMap, schedulerTaskConfig, rebalancerConfig,
+        new ResourceConfig(id, schedulerTaskConfig, rebalancerConfig, userConfig,
             idealState.getBucketSize(), idealState.getBatchMessageMode());
     _externalView = externalView;
   }
@@ -128,6 +133,14 @@ public class Resource {
    */
   public RebalancerConfig getRebalancerConfig() {
     return _config.getRebalancerConfig();
+  }
+
+  /**
+   * Get user-specified configuration properties of this resource
+   * @return UserConfig properties
+   */
+  public UserConfig getUserConfig() {
+    return _config.getUserConfig();
   }
 
   /**

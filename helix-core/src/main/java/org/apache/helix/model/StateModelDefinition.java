@@ -30,7 +30,9 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Id;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 import org.apache.log4j.Logger;
 
@@ -138,6 +140,14 @@ public class StateModelDefinition extends HelixProperty {
     if (!_stateTransitionTable.get(from).containsKey(to)) {
       _stateTransitionTable.get(from).put(to, next);
     }
+  }
+
+  /**
+   * Get a concrete state model definition id
+   * @return StateModelDefId
+   */
+  public StateModelDefId getStateModelDefId() {
+    return Id.stateModelDef(getId());
   }
 
   /**
@@ -275,8 +285,8 @@ public class StateModelDefinition extends HelixProperty {
      * Start building a state model with a name
      * @param name state model name
      */
-    public Builder(String name) {
-      this._statemodelName = name;
+    public Builder(StateModelDefId stateModelDefId) {
+      this._statemodelName = stateModelDefId.stringify();
       statesMap = new HashMap<String, Integer>();
       transitionMap = new HashMap<Transition, Integer>();
       stateConstraintMap = new HashMap<String, String>();
@@ -287,8 +297,8 @@ public class StateModelDefinition extends HelixProperty {
      * state is OFFLINE
      * @param state
      */
-    public Builder initialState(String initialState) {
-      this.initialState = initialState;
+    public Builder initialState(State initialState) {
+      this.initialState = initialState.toString();
       return this;
     }
 
@@ -300,8 +310,8 @@ public class StateModelDefinition extends HelixProperty {
      * Use -1 to indicates states with no constraints, like OFFLINE
      * @param states
      */
-    public Builder addState(String state, int priority) {
-      statesMap.put(state, priority);
+    public Builder addState(State state, int priority) {
+      statesMap.put(state.toString(), priority);
       return this;
     }
 
@@ -309,7 +319,7 @@ public class StateModelDefinition extends HelixProperty {
      * Sets the priority to Integer.MAX_VALUE
      * @param state
      */
-    public Builder addState(String state) {
+    public Builder addState(State state) {
       addState(state, Integer.MAX_VALUE);
       return this;
     }
@@ -326,8 +336,8 @@ public class StateModelDefinition extends HelixProperty {
      * @param priority priority, higher value is higher priority
      * @return Builder
      */
-    public Builder addTransition(String fromState, String toState, int priority) {
-      transitionMap.put(new Transition(State.from(fromState), State.from(toState)), priority);
+    public Builder addTransition(State fromState, State toState, int priority) {
+      transitionMap.put(new Transition(fromState, toState), priority);
       return this;
     }
 
@@ -338,7 +348,7 @@ public class StateModelDefinition extends HelixProperty {
      * @param toState
      * @return Builder
      */
-    public Builder addTransition(String fromState, String toState) {
+    public Builder addTransition(State fromState, State toState) {
       addTransition(fromState, toState, Integer.MAX_VALUE);
       return this;
     }
@@ -349,8 +359,8 @@ public class StateModelDefinition extends HelixProperty {
      * @param upperBound maximum
      * @return Builder
      */
-    public Builder upperBound(String state, int upperBound) {
-      stateConstraintMap.put(state, String.valueOf(upperBound));
+    public Builder upperBound(State state, int upperBound) {
+      stateConstraintMap.put(state.toString(), String.valueOf(upperBound));
       return this;
     }
 
@@ -368,8 +378,8 @@ public class StateModelDefinition extends HelixProperty {
      * @param bound
      * @return Builder
      */
-    public Builder dynamicUpperBound(String state, String bound) {
-      stateConstraintMap.put(state, bound);
+    public Builder dynamicUpperBound(State state, String bound) {
+      stateConstraintMap.put(state.toString(), bound);
       return this;
     }
 

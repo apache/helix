@@ -38,7 +38,9 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.log4j.Logger;
 
 public class ClusterAccessor {
@@ -62,7 +64,7 @@ public class ClusterAccessor {
     boolean created = _accessor.createProperty(_keyBuilder.cluster(), null);
     if (!created) {
       LOG.warn("Cluster already created. Aborting.");
-      return false;
+      // return false;
     }
     Map<ResourceId, ResourceConfig> resources = cluster.getResourceMap();
     for (ResourceConfig resource : resources.values()) {
@@ -77,8 +79,8 @@ public class ClusterAccessor {
       _accessor.createProperty(_keyBuilder.constraint(constraints.getType().toString()),
           constraints);
     }
-    _accessor
-        .createProperty(_keyBuilder.clusterConfig(), new ClusterConfiguration(cluster.getId()));
+    _accessor.createProperty(_keyBuilder.clusterConfig(),
+        ClusterConfiguration.from(cluster.getUserConfig()));
     if (cluster.isPaused()) {
       pauseCluster();
     }
@@ -169,26 +171,50 @@ public class ClusterAccessor {
     Map<String, ExternalView> externalViewMap =
         _accessor.getChildValuesMap(_keyBuilder.externalViews());
 
+    /**
+     * Map of resource id to user configuration
+     */
+    Map<String, ResourceConfiguration> resourceConfigMap =
+        _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
+
     Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
       // TODO pass resource assignment
       ResourceId resourceId = Id.resource(resourceName);
-      resourceMap.put(resourceId,
-          new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
-              liveInstanceMap.size()));
+      UserConfig userConfig;
+      if (resourceConfigMap != null && resourceConfigMap.containsKey(resourceName)) {
+        userConfig = new UserConfig(resourceConfigMap.get(resourceName));
+      } else {
+        userConfig = new UserConfig(resourceId);
+      }
+
+      Map<String, PartitionConfiguration> partitionConfigMap =
+          _accessor.getChildValuesMap(_keyBuilder.partitionConfigs(resourceName));
+      if (partitionConfigMap != null) {
+        Map<PartitionId, UserConfig> partitionUserConfigs = new HashMap<PartitionId, UserConfig>();
+        for (String partitionName : partitionConfigMap.keySet()) {
+          partitionUserConfigs.put(Id.partition(partitionName),
+              UserConfig.from(partitionConfigMap.get(partitionName)));
+        }
+        resourceMap.put(resourceId,
+            new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
+                userConfig, partitionUserConfigs, liveInstanceMap.size()));
+      }
     }
 
     Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
     for (String participantName : instanceConfigMap.keySet()) {
       InstanceConfig instanceConfig = instanceConfigMap.get(participantName);
+      UserConfig userConfig = UserConfig.from(instanceConfig);
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       Map<String, Message> instanceMsgMap = messageMap.get(participantName);
 
       ParticipantId participantId = Id.participant(participantName);
 
       participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
-          instanceConfig, liveInstance, instanceMsgMap, currentStateMap.get(participantName)));
+          instanceConfig, userConfig, liveInstance, instanceMsgMap,
+          currentStateMap.get(participantName)));
     }
 
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
@@ -208,8 +234,15 @@ public class ClusterAccessor {
     PauseSignal pauseSignal = _accessor.getProperty(_keyBuilder.pause());
     boolean isPaused = pauseSignal != null;
 
+    ClusterConfiguration clusterUserConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
+    UserConfig userConfig;
+    if (clusterUserConfig != null) {
+      userConfig = new UserConfig(clusterUserConfig);
+    } else {
+      userConfig = new UserConfig(_clusterId);
+    }
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, isPaused);
+        clusterConstraintMap, userConfig, isPaused);
   }
 
   /**
@@ -243,6 +276,12 @@ public class ClusterAccessor {
           + ", because resource ideal state already exists in cluster: " + _clusterId);
     }
 
+    // Add resource user config
+    if (resource.getUserConfig() != null) {
+      ResourceConfiguration configuration = ResourceConfiguration.from(resource.getUserConfig());
+      _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+    }
+
     // Create an IdealState from a RebalancerConfig
     RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
     IdealState idealState = new IdealState(resourceId);
@@ -262,6 +301,14 @@ public class ClusterAccessor {
       }
       if (preferenceMap != null) {
         idealState.setParticipantStateMap(partitionId, preferenceMap);
+      }
+      Partition partition = resource.getPartition(partitionId);
+      if (partition.getUserConfig() != null) {
+        PartitionConfiguration partitionConfig =
+            PartitionConfiguration.from(partition.getUserConfig());
+        _accessor.setProperty(
+            _keyBuilder.partitionConfig(resourceId.stringify(), partitionId.stringify()),
+            partitionConfig);
       }
     }
     idealState.setBucketSize(resource.getBucketSize());
@@ -329,6 +376,8 @@ public class ClusterAccessor {
     instanceConfig.setHostName(participant.getHostName());
     instanceConfig.setPort(Integer.toString(participant.getPort()));
     instanceConfig.setInstanceEnabled(participant.isEnabled());
+    UserConfig userConfig = participant.getUserConfig();
+    instanceConfig.addUserConfig(userConfig);
     Set<String> tags = participant.getTags();
     for (String tag : tags) {
       instanceConfig.addTag(tag);

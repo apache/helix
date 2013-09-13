@@ -1,5 +1,7 @@
 package org.apache.helix.api;
 
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,6 +22,8 @@ package org.apache.helix.api;
  */
 
 public class StateModelDefId extends Id {
+  public static final StateModelDefId SchedulerTaskQueue = Id
+      .stateModelDef(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
   private final String _id;
 
   public StateModelDefId(String id) {
@@ -31,4 +35,7 @@ public class StateModelDefId extends Id {
     return _id;
   }
 
+  public boolean equalsIgnoreCase(StateModelDefId that) {
+    return _id.equalsIgnoreCase(that._id);
+  }
 }

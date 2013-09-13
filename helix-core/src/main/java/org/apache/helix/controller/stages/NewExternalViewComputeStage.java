@@ -41,7 +41,9 @@ import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SchedulerTaskConfig;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -54,12 +56,12 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class NewExternalViewComputeStage extends AbstractBaseStage {
-  private static Logger log = Logger.getLogger(ExternalViewComputeStage.class);
+  private static Logger LOG = Logger.getLogger(ExternalViewComputeStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
-    log.info("START ExternalViewComputeStage.process()");
+    LOG.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
     Map<ResourceId, ResourceConfig> resourceMap =
@@ -80,6 +82,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
     List<PropertyKey> keys = new ArrayList<PropertyKey>();
 
+    // TODO use external-view accessor
     Map<String, ExternalView> curExtViews =
         dataAccessor.getChildValuesMap(keyBuilder.externalViews());
 
@@ -90,6 +93,8 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       // otherwise resource has been dropped, use bucket size from current state instead
       ResourceConfig resource = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
+      SchedulerTaskConfig schedulerTaskConfig = resource.getSchedulerTaskConfig();
+
       if (resource.getBucketSize() > 0) {
         view.setBucketSize(resource.getBucketSize());
       } else {
@@ -137,10 +142,9 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
         // scheduler
         // message, and then remove the partitions from the ideal state
         if (rebalancerConfig != null
-            && rebalancerConfig.getStateModelDefId().stringify()
-                .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          // TODO fix it
-          // updateScheduledTaskStatus(view, manager, idealState);
+            && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
+                StateModelDefId.SchedulerTaskQueue)) {
+          updateScheduledTaskStatus(resourceId, view, manager, schedulerTaskConfig);
         }
       }
     }
@@ -160,13 +164,16 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
+    LOG.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
   }
 
   // TODO fix it
-  private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,
-      IdealState taskQueueIdealState) {
+  private void updateScheduledTaskStatus(ResourceId resourceId, ExternalView ev,
+      HelixManager manager,
+      SchedulerTaskConfig schedulerTaskConfig) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+
     ZNRecord finishedTasks = new ZNRecord(ev.getResourceName());
 
     // Place holder for finished partitions
@@ -177,23 +184,21 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
     Map<String, Map<String, String>> controllerMsgUpdates =
         new HashMap<String, Map<String, String>>();
 
-    Builder keyBuilder = accessor.keyBuilder();
-
     for (String taskPartitionName : ev.getPartitionStringSet()) {
       for (String taskState : ev.getStateMap(taskPartitionName).values()) {
         if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString())
             || taskState.equalsIgnoreCase("COMPLETED")) {
-          log.info(taskPartitionName + " finished as " + taskState);
-          finishedTasks.getListFields().put(taskPartitionName, emptyList);
-          finishedTasks.getMapFields().put(taskPartitionName, emptyMap);
+          LOG.info(taskPartitionName + " finished as " + taskState);
+          finishedTasks.setListField(taskPartitionName, emptyList);
+          finishedTasks.setMapField(taskPartitionName, emptyMap);
 
           // Update original scheduler message status update
-          if (taskQueueIdealState.getRecord().getMapField(taskPartitionName) != null) {
-            String controllerMsgId =
-                taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                    .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+          Message innerMessage =
+              schedulerTaskConfig.getInnerMessage(Id.partition(taskPartitionName));
+          if (innerMessage != null) {
+            String controllerMsgId = innerMessage.getControllerMessagId();
             if (controllerMsgId != null) {
-              log.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
+              LOG.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
               if (!controllerMsgUpdates.containsKey(controllerMsgId)) {
                 controllerMsgUpdates.put(controllerMsgId, new HashMap<String, String>());
               }
@@ -204,16 +209,16 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       }
     }
     // fill the controllerMsgIdCountMap
-    for (String taskId : taskQueueIdealState.getPartitionStringSet()) {
-      String controllerMsgId =
-          taskQueueIdealState.getRecord().getMapField(taskId)
-              .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+    for (PartitionId taskId : schedulerTaskConfig.getPartitionSet()) {
+      Message innerMessage = schedulerTaskConfig.getInnerMessage(taskId);
+      String controllerMsgId = innerMessage.getControllerMessagId();
+
       if (controllerMsgId != null) {
-        if (!controllerMsgIdCountMap.containsKey(controllerMsgId)) {
-          controllerMsgIdCountMap.put(controllerMsgId, 0);
+        Integer curCnt = controllerMsgIdCountMap.get(controllerMsgId);
+        if (curCnt == null) {
+          curCnt = 0;
         }
-        controllerMsgIdCountMap.put(controllerMsgId,
-            (controllerMsgIdCountMap.get(controllerMsgId) + 1));
+        controllerMsgIdCountMap.put(controllerMsgId, curCnt + 1);
       }
     }
 
@@ -223,18 +228,16 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
             keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), controllerMsgId);
         StatusUpdate controllerStatusUpdate = accessor.getProperty(controllerStatusUpdateKey);
         for (String taskPartitionName : controllerMsgUpdates.get(controllerMsgId).keySet()) {
+          Message innerMessage =
+              schedulerTaskConfig.getInnerMessage(Id.partition(taskPartitionName));
+
           Map<String, String> result = new HashMap<String, String>();
           result.put("Result", controllerMsgUpdates.get(controllerMsgId).get(taskPartitionName));
           controllerStatusUpdate.getRecord().setMapField(
-              "MessageResult "
-                  + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                      .get(Message.Attributes.TGT_NAME.toString())
-                  + " "
-                  + taskPartitionName
-                  + " "
-                  + taskQueueIdealState.getRecord().getMapField(taskPartitionName)
-                      .get(Message.Attributes.MSG_ID.toString()), result);
+              "MessageResult " + innerMessage.getTgtName() + " " + taskPartitionName + " "
+                  + innerMessage.getMsgId(), result);
         }
+
         // All done for the scheduled tasks that came from controllerMsgId, add summary for it
         if (controllerMsgUpdates.get(controllerMsgId).size() == controllerMsgIdCountMap.get(
             controllerMsgId).intValue()) {
@@ -266,12 +269,12 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       ZNRecordDelta znDelta = new ZNRecordDelta(finishedTasks, MergeOperation.SUBTRACT);
       List<ZNRecordDelta> deltaList = new LinkedList<ZNRecordDelta>();
       deltaList.add(znDelta);
-      IdealState delta = new IdealState(taskQueueIdealState.getResourceName());
+      IdealState delta = new IdealState(resourceId);
       delta.setDeltaList(deltaList);
 
       // Remove the finished (COMPLETED or ERROR) tasks from the SCHEDULER_TASK_RESOURCE idealstate
       keyBuilder = accessor.keyBuilder();
-      accessor.updateProperty(keyBuilder.idealState(taskQueueIdealState.getResourceName()), delta);
+      accessor.updateProperty(keyBuilder.idealState(resourceId.stringify()), delta);
     }
   }
 

@@ -35,6 +35,7 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SchedulerTaskConfig;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
@@ -139,29 +140,29 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     nextState, sessionId, new StateModelDefId(stateModelDef.getId()), resourceConfig
                         .getRebalancerConfig().getStateModelFactoryId(), bucketSize);
 
-            // TODO refactor set timeout logic, it's really messy
+            // TODO refactor get/set timeout/inner-message
             RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
             if (rebalancerConfig != null
-                && rebalancerConfig.getStateModelDefId().stringify()
-                    .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+                && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
+                    StateModelDefId.SchedulerTaskQueue)) {
               if (resourceConfig.getPartitionMap().size() > 0) {
                 // TODO refactor it -- we need a way to read in scheduler tasks a priori
                 Resource activeResource = cluster.getResource(resourceId);
                 if (activeResource != null) {
-                  message.getRecord().setMapField(Message.Attributes.INNER_MESSAGE.toString(),
-                      activeResource.getSchedulerTaskConfig().getTaskConfig(partitionId));
+                  message.setInnerMessage(activeResource.getSchedulerTaskConfig().getInnerMessage(
+                      partitionId));
                 }
               }
             }
 
             // Set timeout if needed
             String stateTransition =
-                currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
-
-            if (resourceConfig.getSchedulerTaskConfig() != null) {
-              Integer timeout =
-                  resourceConfig.getSchedulerTaskConfig().getTimeout(stateTransition, partitionId);
-              if (timeout != null && timeout > 0) {
+                String.format("%s-%s_%s", currentState, nextState,
+                    Message.Attributes.TIMEOUT.name());
+            SchedulerTaskConfig schedulerTaskConfig = resourceConfig.getSchedulerTaskConfig();
+            if (schedulerTaskConfig != null) {
+              int timeout = schedulerTaskConfig.getTimeout(stateTransition, partitionId);
+              if (timeout > 0) {
                 message.setExecutionTimeout(timeout);
               }
             }

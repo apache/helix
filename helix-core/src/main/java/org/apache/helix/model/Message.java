@@ -40,6 +40,7 @@ import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 
 import com.google.common.collect.ImmutableList;
 
@@ -159,6 +160,22 @@ public class Message extends HelixProperty {
     if (getCreateTimeStamp() == 0) {
       _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
     }
+  }
+
+  /**
+   * Convert a string map to a message
+   * @param msgStrMap
+   * @return message
+   */
+  public static Message toMessage(Map<String, String> msgStrMap) {
+    String msgId = msgStrMap.get(Attributes.MSG_ID.name());
+    if (msgId == null) {
+      throw new IllegalArgumentException("Missing msgId in message string map: " + msgStrMap);
+    }
+
+    ZNRecord record = new ZNRecord(msgId);
+    record.getSimpleFields().putAll(msgStrMap);
+    return new Message(record);
   }
 
   /**
@@ -647,16 +664,6 @@ public class Message extends HelixProperty {
     return builder.build();
   }
 
-  // public AtomicInteger getGroupMsgCountDown()
-  // {
-  // return _groupMsgCountDown;
-  // }
-  //
-  // public void setGroupMsgCountDown(AtomicInteger countDown)
-  // {
-  // _groupMsgCountDown = countDown;
-  // }
-
   /**
    * Check if this message is targetted for a controller
    * @return true if this is a controller message, false otherwise
@@ -677,6 +684,39 @@ public class Message extends HelixProperty {
     } else {
       return keyBuilder.message(instanceName, getId());
     }
+  }
+
+  /**
+   * Get timeout
+   * @return timeout or -1 if not available
+   */
+  public int getTimeout() {
+    String timeoutStr = _record.getSimpleField(Attributes.TIMEOUT.name());
+    int timeout = -1;
+    if (timeoutStr != null) {
+      try {
+        timeout = Integer.parseInt(timeoutStr);
+      } catch (Exception e) {
+        // ignore
+      }
+    }
+    return timeout;
+  }
+
+  /**
+   * Get controller message id, used for scheduler-task-queue state model only
+   * @return controller message id
+   */
+  public String getControllerMessagId() {
+    return _record.getSimpleField(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+  }
+
+  /**
+   * Set an inner message
+   * @param inner message
+   */
+  public void setInnerMessage(Message message) {
+    _record.setMapField(Attributes.INNER_MESSAGE.name(), message.getRecord().getSimpleFields());
   }
 
   private boolean isNullOrEmpty(String data) {

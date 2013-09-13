@@ -47,9 +47,7 @@ public class Resource {
       ExternalView externalView, UserConfig userConfig,
       Map<PartitionId, UserConfig> partitionUserConfigs, int liveParticipantCount) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-    Map<PartitionId, Map<String, String>> schedulerTaskConfigMap =
         new HashMap<PartitionId, Map<String, String>>();
-    Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
     Set<PartitionId> partitionSet = idealState.getPartitionSet();
     if (partitionSet.isEmpty() && idealState.getNumPartitions() > 0) {
       partitionSet = new HashSet<PartitionId>();
@@ -57,6 +55,7 @@ public class Resource {
         partitionSet.add(Id.partition(id, Integer.toString(i)));
       }
     }
+
     for (PartitionId partitionId : partitionSet) {
       UserConfig partitionUserConfig = partitionUserConfigs.get(partitionId);
       if (partitionUserConfig == null) {
@@ -64,27 +63,10 @@ public class Resource {
       }
       partitionMap.put(partitionId, new Partition(partitionId, partitionUserConfig));
 
-      // TODO refactor it
-      Map<String, String> taskConfigMap = idealState.getInstanceStateMap(partitionId.stringify());
-      if (taskConfigMap != null) {
-        schedulerTaskConfigMap.put(partitionId, taskConfigMap);
-      }
-
-      // TODO refactor it
-      for (String simpleKey : idealState.getRecord().getSimpleFields().keySet()) {
-        if (simpleKey.indexOf("_" + Message.Attributes.TIMEOUT) != -1) {
-          try {
-            String timeoutStr = idealState.getRecord().getSimpleField(simpleKey);
-            int timeout = Integer.parseInt(timeoutStr);
-            transitionTimeoutMap.put(simpleKey, timeout);
-          } catch (Exception e) {
-            // ignore
-          }
-        }
-      }
     }
-    SchedulerTaskConfig schedulerTaskConfig =
-        new SchedulerTaskConfig(transitionTimeoutMap, schedulerTaskConfigMap);
+
+    SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
+
     RebalancerConfig rebalancerConfig =
         new RebalancerConfig(partitionMap, idealState, resourceAssignment, liveParticipantCount);
 
@@ -92,6 +74,45 @@ public class Resource {
         new ResourceConfig(id, schedulerTaskConfig, rebalancerConfig, userConfig,
             idealState.getBucketSize(), idealState.getBatchMessageMode());
     _externalView = externalView;
+  }
+
+  /**
+   * Extract scheduler-task config from ideal-state if state-model-def is SchedulerTaskQueue
+   * @param idealState
+   * @return scheduler-task config or null if state-model-def is not SchedulerTaskQueue
+   */
+  SchedulerTaskConfig schedulerTaskConfig(IdealState idealState) {
+    if (!idealState.getStateModelDefId().equalsIgnoreCase(StateModelDefId.SchedulerTaskQueue)) {
+      return null;
+    }
+
+    // TODO refactor get timeout
+    Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
+    for (String simpleKey : idealState.getRecord().getSimpleFields().keySet()) {
+      if (simpleKey.indexOf(Message.Attributes.TIMEOUT.name()) != -1) {
+        try {
+          String timeoutStr = idealState.getRecord().getSimpleField(simpleKey);
+          int timeout = Integer.parseInt(timeoutStr);
+          transitionTimeoutMap.put(simpleKey, timeout);
+        } catch (Exception e) {
+          // ignore
+        }
+      }
+    }
+
+    Map<PartitionId, Message> innerMsgMap = new HashMap<PartitionId, Message>();
+    for (PartitionId partitionId : idealState.getPartitionSet()) {
+      // TODO refactor: scheduler-task-queue state model uses map-field to store inner-messages
+      // this is different from all other state-models
+      Map<String, String> innerMsgStrMap =
+          idealState.getRecord().getMapField(partitionId.stringify());
+      if (innerMsgStrMap != null) {
+        Message innerMsg = Message.toMessage(innerMsgStrMap);
+        innerMsgMap.put(partitionId, innerMsg);
+      }
+    }
+
+    return new SchedulerTaskConfig(transitionTimeoutMap, innerMsgMap);
   }
 
   /**

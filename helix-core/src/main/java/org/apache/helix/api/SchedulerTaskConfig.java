@@ -1,6 +1,7 @@
 package org.apache.helix.api;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.model.Message;
 
@@ -10,38 +11,58 @@ public class SchedulerTaskConfig {
   // TODO refactor using Transition logical model
   private final Map<String, Integer> _transitionTimeoutMap;
 
-  // TODO refactor this when understand inner message format
-  private final Map<PartitionId, Map<String, String>> _schedulerTaskConfig;
+  private final Map<PartitionId, Message> _innerMessageMap;
 
   public SchedulerTaskConfig(Map<String, Integer> transitionTimeoutMap,
-      Map<PartitionId, Map<String, String>> schedulerTaskConfig) {
+      Map<PartitionId, Message> innerMsgMap) {
     _transitionTimeoutMap = ImmutableMap.copyOf(transitionTimeoutMap);
-    _schedulerTaskConfig = ImmutableMap.copyOf(schedulerTaskConfig);
+    _innerMessageMap = ImmutableMap.copyOf(innerMsgMap);
   }
 
-  public Map<String, String> getTaskConfig(PartitionId partitionId) {
-    return _schedulerTaskConfig.get(partitionId);
+  /**
+   * Get inner message for a partition
+   * @param partitionId
+   * @return inner message
+   */
+  public Message getInnerMessage(PartitionId partitionId) {
+    return _innerMessageMap.get(partitionId);
   }
 
-  public Integer getTransitionTimeout(String transition) {
-    return _transitionTimeoutMap.get(transition);
+  /**
+   * Get timeout for a transition
+   * @param transition
+   * @return timeout or -1 if not available
+   */
+  public int getTransitionTimeout(String transition) {
+    Integer timeout = _transitionTimeoutMap.get(transition);
+    if (timeout == null) {
+      return -1;
+    }
+
+    return timeout;
   }
 
-  public Integer getTimeout(String transition, PartitionId partitionId) {
+  /**
+   * Get timeout for an inner message
+   * @param transition
+   * @param partitionId
+   * @return timeout or -1 if not available
+   */
+  public int getTimeout(String transition, PartitionId partitionId) {
     Integer timeout = getTransitionTimeout(transition);
     if (timeout == null) {
-      Map<String, String> taskConfig = getTaskConfig(partitionId);
-      if (taskConfig != null) {
-        String timeoutStr = taskConfig.get(Message.Attributes.TIMEOUT.toString());
-        if (timeoutStr != null) {
-          try {
-            timeout = Integer.parseInt(timeoutStr);
-          } catch (Exception e) {
-            // ignore
-          }
-        }
-      }
+      Message innerMessage = getInnerMessage(partitionId);
+      timeout = innerMessage.getTimeout();
     }
+
     return timeout;
+  }
+
+  /**
+   * Get partition-id set
+   * @return partition-id set
+   */
+  public Set<PartitionId> getPartitionSet() {
+    return _innerMessageMap.keySet();
   }
 }

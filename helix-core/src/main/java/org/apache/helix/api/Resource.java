@@ -24,8 +24,10 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 
@@ -45,7 +47,7 @@ public class Resource {
    */
   public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment,
       ExternalView externalView, UserConfig userConfig,
-      Map<PartitionId, UserConfig> partitionUserConfigs, int liveParticipantCount) {
+      Map<PartitionId, UserConfig> partitionUserConfigs) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
         new HashMap<PartitionId, Map<String, String>>();
     Set<PartitionId> partitionSet = idealState.getPartitionSet();
@@ -65,10 +67,57 @@ public class Resource {
 
     }
 
-    SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
+    String replicas = idealState.getReplicas();
+    boolean anyLiveParticipant = false;
+    int replicaCount = 0;
+    if (replicas.equals(StateModelToken.ANY_LIVEINSTANCE.toString())) {
+      anyLiveParticipant = true;
+    } else {
+      replicaCount = Integer.parseInt(replicas);
+    }
 
-    RebalancerConfig rebalancerConfig =
-        new RebalancerConfig(partitionMap, idealState, resourceAssignment, liveParticipantCount);
+    // Build a RebalancerConfig specific to the mode
+    RebalancerConfig rebalancerConfig = null;
+    if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+      rebalancerConfig =
+          new FullAutoRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
+              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
+              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
+              .stateModelDef(idealState.getStateModelDefId())
+              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+    } else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+      SemiAutoRebalancerConfig semiAutoConfig =
+          new SemiAutoRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
+              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
+              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
+              .stateModelDef(idealState.getStateModelDefId())
+              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+      for (PartitionId partitionId : partitionMap.keySet()) {
+        semiAutoConfig.setPreferenceList(partitionId, idealState.getPreferenceList(partitionId));
+      }
+      rebalancerConfig = semiAutoConfig;
+    } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+      CustomRebalancerConfig customConfig =
+          new CustomRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
+              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
+              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
+              .stateModelDef(idealState.getStateModelDefId())
+              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+      for (PartitionId partitionId : partitionMap.keySet()) {
+        customConfig.setPreferenceMap(partitionId, idealState.getParticipantStateMap(partitionId));
+      }
+      rebalancerConfig = customConfig;
+    } else if (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      rebalancerConfig =
+          new UserDefinedRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
+              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
+              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
+              .stateModelDef(idealState.getStateModelDefId())
+              .stateModelFactoryId(idealState.getStateModelFactoryId())
+              .rebalancerRef(idealState.getRebalancerRef()).build();
+    }
+
+    SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
 
     _config =
         new ResourceConfig(id, schedulerTaskConfig, rebalancerConfig, userConfig,

@@ -19,7 +19,7 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import org.apache.helix.controller.rebalancer.NewRebalancer;
+import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -35,9 +35,10 @@ public class RebalancerRef {
   /**
    * @return
    */
-  public NewRebalancer getRebalancer() {
+  public NewUserDefinedRebalancer getRebalancer() {
     try {
-      return (NewRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
+      return (NewUserDefinedRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName)
+          .newInstance());
     } catch (Exception e) {
       LOG.warn("Exception while invoking custom rebalancer class:" + _rebalancerClassName, e);
     }

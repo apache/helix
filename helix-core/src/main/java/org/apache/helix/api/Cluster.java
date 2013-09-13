@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.StateModelDefinition;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -70,11 +71,16 @@ public class Cluster {
    * @param participantMap
    * @param controllerMap
    * @param leaderId
+   * @param constraintMap
+   * @param stateModelMap
+   * @param userConfig
+   * @param isPaused
    */
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
       ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
-      UserConfig userConfig, boolean isPaused) {
+      Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
+      boolean isPaused) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -93,8 +99,8 @@ public class Cluster {
           }
         });
     _config =
-        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap, userConfig,
-            isPaused);
+        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap,
+            stateModelMap, userConfig, isPaused);
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -188,6 +194,14 @@ public class Cluster {
    */
   public Map<ConstraintType, ClusterConstraints> getConstraintMap() {
     return _config.getConstraintMap();
+  }
+
+  /**
+   * Get all the state model definitions on the cluster
+   * @return map of state model definition id to state model definition
+   */
+  public Map<StateModelDefId, StateModelDefinition> getStateModelMap() {
+    return _config.getStateModelMap();
   }
 
   /**

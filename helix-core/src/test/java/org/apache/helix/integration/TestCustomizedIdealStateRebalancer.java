@@ -30,12 +30,11 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.Resource;
-import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.State;
-import org.apache.helix.controller.rebalancer.NewRebalancer;
+import org.apache.helix.api.UserDefinedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.NewCurrentStateOutput;
+import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -55,20 +54,22 @@ public class TestCustomizedIdealStateRebalancer extends
   String db2 = TEST_DB + "2";
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements NewRebalancer {
+  public static class TestRebalancer implements NewUserDefinedRebalancer {
 
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(ResourceConfig resourceConfig, Cluster cluster,
-        StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
+    public ResourceAssignment computeResourceMapping(UserDefinedRebalancerConfig config,
+        Cluster cluster, ResourceCurrentState currentState) {
+      StateModelDefinition stateModelDef =
+          cluster.getStateModelMap().get(config.getStateModelDefId());
       List<ParticipantId> liveParticipants =
           new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
-      ResourceAssignment resourceMapping = new ResourceAssignment(resourceConfig.getId());
+      ResourceAssignment resourceMapping = new ResourceAssignment(config.getResourceId());
       int i = 0;
-      for (PartitionId partitionId : resourceConfig.getPartitionSet()) {
+      for (PartitionId partitionId : config.getPartitionSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
         replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getStatesPriorityList()

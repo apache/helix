@@ -53,7 +53,7 @@ public class ClusterConfiguration extends HelixProperty {
   public static ClusterConfiguration from(UserConfig userConfig) {
     ClusterConfiguration clusterConfiguration =
         new ClusterConfiguration(Id.cluster(userConfig.getId()));
-    clusterConfiguration.addUserConfig(userConfig);
+    clusterConfiguration.addNamespacedConfig(userConfig);
     return clusterConfiguration;
   }
 }

@@ -20,6 +20,7 @@ package org.apache.helix.api;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,12 +36,14 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfiguration;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 public class ClusterAccessor {
@@ -83,6 +86,12 @@ public class ClusterAccessor {
         ClusterConfiguration.from(cluster.getUserConfig()));
     if (cluster.isPaused()) {
       pauseCluster();
+    }
+    StateModelDefinitionAccessor stateModelDefAccessor =
+        new StateModelDefinitionAccessor(_accessor);
+    Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
+    for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
+      stateModelDefAccessor.addStateModelDefinition(stateModelDef);
     }
 
     return true;
@@ -199,7 +208,7 @@ public class ClusterAccessor {
         }
         resourceMap.put(resourceId,
             new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
-                userConfig, partitionUserConfigs, liveInstanceMap.size()));
+                userConfig, partitionUserConfigs));
       }
     }
 
@@ -241,8 +250,13 @@ public class ClusterAccessor {
     } else {
       userConfig = new UserConfig(_clusterId);
     }
+
+    StateModelDefinitionAccessor stateModelDefAccessor =
+        new StateModelDefinitionAccessor(_accessor);
+    Map<StateModelDefId, StateModelDefinition> stateModelMap =
+        stateModelDefAccessor.readStateModelDefinitions();
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, userConfig, isPaused);
+        clusterConstraintMap, stateModelMap, userConfig, isPaused);
   }
 
   /**
@@ -264,6 +278,7 @@ public class ClusterAccessor {
    * @param resource
    */
   public void addResourceToCluster(ResourceConfig resource) {
+    // TODO: this belongs in ResourceAccessor
     StateModelDefId stateModelDefId = resource.getRebalancerConfig().getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
       throw new HelixException("State model: " + stateModelDefId + " not found in cluster: "
@@ -278,7 +293,9 @@ public class ClusterAccessor {
 
     // Add resource user config
     if (resource.getUserConfig() != null) {
-      ResourceConfiguration configuration = ResourceConfiguration.from(resource.getUserConfig());
+      ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
+      configuration.addNamespacedConfig(resource.getUserConfig());
+      configuration.addRebalancerConfig(resource.getRebalancerConfig());
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
 
@@ -294,13 +311,24 @@ public class ClusterAccessor {
     }
     idealState.setStateModelDefId(rebalancerConfig.getStateModelDefId());
     for (PartitionId partitionId : resource.getPartitionSet()) {
-      List<ParticipantId> preferenceList = rebalancerConfig.getPreferenceList(partitionId);
-      Map<ParticipantId, State> preferenceMap = rebalancerConfig.getPreferenceMap(partitionId);
-      if (preferenceList != null) {
-        idealState.setPreferenceList(partitionId, preferenceList);
-      }
-      if (preferenceMap != null) {
-        idealState.setParticipantStateMap(partitionId, preferenceMap);
+      if (rebalancerConfig.getRebalancerMode() == RebalanceMode.SEMI_AUTO) {
+        SemiAutoRebalancerConfig config = SemiAutoRebalancerConfig.from(rebalancerConfig);
+        List<ParticipantId> preferenceList = config.getPreferenceList(partitionId);
+        if (preferenceList != null) {
+          idealState.setPreferenceList(partitionId, preferenceList);
+        }
+      } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.CUSTOMIZED) {
+        CustomRebalancerConfig config = CustomRebalancerConfig.from(rebalancerConfig);
+        Map<ParticipantId, State> preferenceMap = config.getPreferenceMap(partitionId);
+        if (preferenceMap != null) {
+          idealState.setParticipantStateMap(partitionId, preferenceMap);
+        }
+      } else {
+        // TODO: need these for as long as we use IdealState as the backing physical model
+        List<ParticipantId> emptyList = Collections.emptyList();
+        Map<ParticipantId, State> emptyMap = Collections.emptyMap();
+        idealState.setPreferenceList(partitionId, emptyList);
+        idealState.setParticipantStateMap(partitionId, emptyMap);
       }
       Partition partition = resource.getPartition(partitionId);
       if (partition.getUserConfig() != null) {
@@ -317,9 +345,12 @@ public class ClusterAccessor {
     if (groupTag != null) {
       idealState.setInstanceGroupTag(groupTag);
     }
-    RebalancerRef rebalancerRef = rebalancerConfig.getRebalancerRef();
-    if (rebalancerRef != null) {
-      idealState.setRebalancerRef(rebalancerRef);
+    if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED) {
+      UserDefinedRebalancerConfig config = UserDefinedRebalancerConfig.from(rebalancerConfig);
+      RebalancerRef rebalancerRef = config.getRebalancerRef();
+      if (rebalancerRef != null) {
+        idealState.setRebalancerRef(rebalancerRef);
+      }
     }
     StateModelFactoryId stateModelFactoryId = rebalancerConfig.getStateModelFactoryId();
     if (stateModelFactoryId != null) {
@@ -377,7 +408,7 @@ public class ClusterAccessor {
     instanceConfig.setPort(Integer.toString(participant.getPort()));
     instanceConfig.setInstanceEnabled(participant.isEnabled());
     UserConfig userConfig = participant.getUserConfig();
-    instanceConfig.addUserConfig(userConfig);
+    instanceConfig.addNamespacedConfig(userConfig);
     Set<String> tags = participant.getTags();
     for (String tag : tags) {
       instanceConfig.addTag(tag);

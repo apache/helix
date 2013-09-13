@@ -46,22 +46,29 @@ public abstract class NamespacedConfig extends ZNRecord {
   }
 
   /**
-   * Instantiate a UserConfig from an existing HelixProperty
+   * Instantiate a NamespacedConfig from an existing HelixProperty
    * @param property property wrapping a configuration
    */
   public NamespacedConfig(HelixProperty property, String prefix) {
     super(property.getRecord());
     _prefix = prefix + '_';
-    // filter out any configuration that isn't user-defined
-    Predicate<String> keyFilter = new Predicate<String>() {
-      @Override
-      public boolean apply(String key) {
-        return key.contains(_prefix);
-      }
-    };
-    super.setMapFields(Maps.filterKeys(super.getMapFields(), keyFilter));
-    super.setListFields(Maps.filterKeys(super.getListFields(), keyFilter));
-    super.setSimpleFields(Maps.filterKeys(super.getSimpleFields(), keyFilter));
+    filterNonPrefixedFields();
+  }
+
+  /**
+   * Instantiate a NamespacedConfig as a copy of another NamedspacedConfig
+   * @param config populated NamespacedConfig
+   */
+  public NamespacedConfig(NamespacedConfig config) {
+    super(config.getId());
+    _prefix = config.getPrefix() + '_';
+    if (config.getRawPayload() != null && config.getRawPayload().length > 0) {
+      setRawPayload(config.getRawPayload());
+      setPayloadSerializer(config.getPayloadSerializer());
+    }
+    super.setSimpleFields(config.getPrefixedSimpleFields());
+    super.setListFields(config.getPrefixedListFields());
+    super.setMapFields(config.getPrefixedMapFields());
   }
 
   @Override
@@ -77,7 +84,7 @@ public abstract class NamespacedConfig extends ZNRecord {
   @Override
   public void setMapFields(Map<String, Map<String, String>> mapFields) {
     for (String k : mapFields.keySet()) {
-      setMapField(_prefix + k, mapFields.get(k));
+      super.setMapField(_prefix + k, mapFields.get(k));
     }
   }
 
@@ -102,7 +109,7 @@ public abstract class NamespacedConfig extends ZNRecord {
   @Override
   public void setListFields(Map<String, List<String>> listFields) {
     for (String k : listFields.keySet()) {
-      setListField(_prefix + k, listFields.get(k));
+      super.setListField(_prefix + k, listFields.get(k));
     }
   }
 
@@ -137,6 +144,30 @@ public abstract class NamespacedConfig extends ZNRecord {
   @Override
   public Map<String, String> getSimpleFields() {
     return convertToPrefixlessMap(super.getSimpleFields(), _prefix);
+  }
+
+  /**
+   * Get the prefix used to distinguish these config properties
+   * @return string prefix, not including the underscore
+   */
+  public String getPrefix() {
+    return _prefix.substring(0, _prefix.indexOf('_'));
+  }
+
+  /**
+   * Remove all fields from this config that are not prefixed
+   */
+  private void filterNonPrefixedFields() {
+    // filter out any configuration that isn't user-defined
+    Predicate<String> keyFilter = new Predicate<String>() {
+      @Override
+      public boolean apply(String key) {
+        return key.contains(_prefix);
+      }
+    };
+    super.setMapFields(Maps.filterKeys(super.getMapFields(), keyFilter));
+    super.setListFields(Maps.filterKeys(super.getListFields(), keyFilter));
+    super.setSimpleFields(Maps.filterKeys(super.getSimpleFields(), keyFilter));
   }
 
   /**
@@ -187,7 +218,7 @@ public abstract class NamespacedConfig extends ZNRecord {
   private static <T> Map<String, T> convertToPrefixlessMap(Map<String, T> rawMap, String prefix) {
     Map<String, T> convertedMap = new HashMap<String, T>();
     for (String rawKey : rawMap.keySet()) {
-      String k = rawKey.substring(rawKey.indexOf(prefix) + 1);
+      String k = rawKey.substring(prefix.length());
       convertedMap.put(k, rawMap.get(rawKey));
     }
     return ImmutableMap.copyOf(convertedMap);

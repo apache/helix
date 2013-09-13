@@ -1,5 +1,10 @@
 package org.apache.helix.controller.rebalancer;
 
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.UserDefinedRebalancerConfig;
+import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.ResourceAssignment;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -18,25 +23,13 @@ package org.apache.helix.controller.rebalancer;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import org.apache.helix.api.Cluster;
-import org.apache.helix.api.RebalancerConfig;
-import org.apache.helix.controller.stages.ResourceCurrentState;
-import org.apache.helix.model.ResourceAssignment;
-
 /**
- * Arbitrary configurable rebalancer interface.
- * @see {@link NewUserDefinedRebalancer} for an interface with a plugged-in class
+ * Allows one to come up with a user-defined implementation of a rebalancer.<br/>
+ * This will be invoked on all changes that happen in the cluster.<br/>
+ * Simply return the resourceMapping for a resource in this method.<br/>
  */
-interface NewRebalancer<T extends RebalancerConfig> {
-
-  /**
-   * Given a resource, existing mapping, and liveness of resources, compute a new mapping of
-   * resources.
-   * @param rebalancerConfig resource properties used by the rebalancer
-   * @param cluster a snapshot of the entire cluster state
-   * @param currentState a combination of the current states and pending current states
-   */
-  ResourceAssignment computeResourceMapping(final T rebalancerConfig, final Cluster cluster,
-      final ResourceCurrentState currentState);
+public interface NewUserDefinedRebalancer extends NewRebalancer<UserDefinedRebalancerConfig> {
+  @Override
+  ResourceAssignment computeResourceMapping(final UserDefinedRebalancerConfig rebalancerConfig,
+      final Cluster cluster, final ResourceCurrentState currentState);
 }

@@ -31,10 +31,8 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
-import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
-import org.apache.helix.model.StateModelDefinition;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -56,13 +54,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     List<IdealState> idealStates =
         setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.AUTO);
     setupLiveInstances(5);
-    Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
+    setupStateModel();
 
     Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
-    NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
+    ResourceCurrentState currentStateOutput = new ResourceCurrentState();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
-    event.addAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString(), stateModelDefs);
 
     NewReadClusterDataStage stage1 = new NewReadClusterDataStage();
     runStage(event, stage1);
@@ -95,13 +92,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     List<IdealState> idealStates =
         setupIdealStateDeprecated(5, resources, 10, 1, IdealStateModeProperty.CUSTOMIZED);
     setupLiveInstances(5);
-    Map<StateModelDefId, StateModelDefinition> stateModelDefs = setupStateModel();
+    setupStateModel();
 
     Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
-    NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
+    ResourceCurrentState currentStateOutput = new ResourceCurrentState();
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
-    event.addAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString(), stateModelDefs);
 
     NewReadClusterDataStage stage1 = new NewReadClusterDataStage();
     runStage(event, stage1);

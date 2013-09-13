@@ -19,10 +19,12 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Id;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
@@ -30,10 +32,10 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
-import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Logger;
 
 /**
@@ -82,17 +84,17 @@ public class NewResourceComputationStage extends AbstractBaseStage {
 
         // don't overwrite ideal state configs
         if (!resourceBuilderMap.containsKey(resourceId)) {
-          RebalancerConfig.Builder rebalancerConfigBuilder =
-              new RebalancerConfig.Builder(resourceId);
-          rebalancerConfigBuilder.stateModelDef(currentState.getStateModelDefId());
-          rebalancerConfigBuilder.stateModelFactoryId(new StateModelFactoryId(currentState
-              .getStateModelFactoryName()));
+          Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
           for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
-            rebalancerConfigBuilder.addPartition(new Partition(partitionId));
+            partitionMap.put(partitionId, new Partition(partitionId));
           }
-
+          RebalancerConfig rebalancerConfig =
+              new RebalancerConfig(resourceId, RebalanceMode.NONE,
+                  currentState.getStateModelDefId(), partitionMap);
+          rebalancerConfig.setStateModelFactoryId(Id.stateModelFactory(currentState
+              .getStateModelFactoryName()));
           ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
-          resourceBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
+          resourceBuilder.rebalancerConfig(rebalancerConfig);
           resourceBuilder.bucketSize(currentState.getBucketSize());
           resourceBuilder.batchMessageMode(currentState.getBatchMessageMode());
           resourceBuilderMap.put(resourceId, resourceBuilder);

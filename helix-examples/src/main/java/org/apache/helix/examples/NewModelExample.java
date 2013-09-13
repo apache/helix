@@ -8,10 +8,10 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.ClusterConfig;
 import org.apache.helix.api.ClusterId;
+import org.apache.helix.api.FullAutoRebalancerConfig;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantConfig;
 import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
@@ -22,7 +22,6 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -90,9 +89,9 @@ public class NewModelExample {
 
   private static ResourceConfig getResource(StateModelDefinition stateModelDef) {
     ResourceId resourceId = Id.resource("exampleResource");
-    RebalancerConfig.Builder rebalanceConfigBuilder =
-        new RebalancerConfig.Builder(resourceId).rebalancerMode(RebalanceMode.FULL_AUTO)
-            .replicaCount(3).addPartitions(5).stateModelDef(stateModelDef.getStateModelDefId());
+    FullAutoRebalancerConfig.Builder rebalanceConfigBuilder =
+        new FullAutoRebalancerConfig.Builder(resourceId).replicaCount(3).addPartitions(5)
+            .stateModelDef(stateModelDef.getStateModelDefId());
     ResourceConfig.Builder resourceBuilder =
         new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalanceConfigBuilder.build());
     return resourceBuilder.build();

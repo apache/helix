@@ -31,7 +31,7 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.CurrentState;
 
-public class NewCurrentStateOutput {
+public class ResourceCurrentState {
   /**
    * map of resource-id to map of partition-id to map of participant-id to state
    * represent current-state for the participant
@@ -57,7 +57,7 @@ public class NewCurrentStateOutput {
   /**
    * construct
    */
-  public NewCurrentStateOutput() {
+  public ResourceCurrentState() {
     _currentStateMap = new HashMap<ResourceId, Map<PartitionId, Map<ParticipantId, State>>>();
     _pendingStateMap = new HashMap<ResourceId, Map<PartitionId, Map<ParticipantId, State>>>();
     _resourceStateModelMap = new HashMap<ResourceId, StateModelDefId>();

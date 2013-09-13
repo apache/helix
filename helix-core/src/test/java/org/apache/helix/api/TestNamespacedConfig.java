@@ -1,10 +1,13 @@
 package org.apache.helix.api;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
+import org.apache.helix.model.ResourceConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -34,7 +37,7 @@ import com.google.common.collect.ImmutableMap;
  * A user config is a namespaced subset in the physical model and a separate entity in the logical
  * model. These tests ensure that that separation is honored.
  */
-public class TestUserConfig {
+public class TestNamespacedConfig {
   /**
    * Ensure that user configs are separated from helix configs in properties that hold both
    */
@@ -58,7 +61,7 @@ public class TestUserConfig {
     userConfig.setMapField(testKey, testMapValue);
 
     // add the user configuration to the Helix configuration
-    instanceConfig.addUserConfig(userConfig);
+    instanceConfig.addNamespacedConfig(userConfig);
 
     // get the user configuration back from the property
     UserConfig retrievedConfig = UserConfig.from(instanceConfig);
@@ -82,5 +85,45 @@ public class TestUserConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleField(prefixedKey), testSimpleValue);
     Assert.assertEquals(instanceConfig.getRecord().getListField(prefixedKey), testListValue);
     Assert.assertEquals(instanceConfig.getRecord().getMapField(prefixedKey), testMapValue);
+  }
+
+  @Test
+  public void testConfiguredResource() {
+    // Set up the namespaced configs
+    String userKey = "userKey";
+    String userValue = "userValue";
+    ResourceId resourceId = Id.resource("testResource");
+    UserConfig userConfig = new UserConfig(resourceId);
+    userConfig.setSimpleField(userKey, userValue);
+    PartitionId partitionId = Id.partition(resourceId, "0");
+    Partition partition = new Partition(partitionId);
+    Map<ParticipantId, State> preferenceMap = new HashMap<ParticipantId, State>();
+    ParticipantId participantId = Id.participant("participant");
+    preferenceMap.put(participantId, State.from("ONLINE"));
+    CustomRebalancerConfig rebalancerConfig =
+        new CustomRebalancerConfig.Builder(resourceId).replicaCount(1).addPartition(partition)
+            .stateModelDef(Id.stateModelDef("OnlineOffline"))
+            .preferenceMap(partitionId, preferenceMap).build();
+
+    // copy in the configs
+    ResourceConfiguration config = new ResourceConfiguration(resourceId);
+    config.addNamespacedConfig(userConfig);
+    config.addRebalancerConfig(rebalancerConfig);
+
+    // recreate the configs and check the fields
+    UserConfig retrievedUserConfig = UserConfig.from(config);
+    Assert.assertEquals(retrievedUserConfig.getSimpleField(userKey), userValue);
+    Map<PartitionId, UserConfig> partitionConfigs = Collections.emptyMap();
+    RebalancerConfig retrievedRebalancerConfig = RebalancerConfig.from(config, partitionConfigs);
+    Assert.assertEquals(retrievedRebalancerConfig.getReplicaCount(),
+        rebalancerConfig.getReplicaCount());
+    Assert.assertEquals(retrievedRebalancerConfig.getStateModelDefId(),
+        rebalancerConfig.getStateModelDefId());
+    Assert.assertTrue(retrievedRebalancerConfig.getPartitionMap().containsKey(partitionId));
+    Assert.assertEquals(retrievedRebalancerConfig.getPartitionSet().size(), rebalancerConfig
+        .getPartitionSet().size());
+    CustomRebalancerConfig customConfig = CustomRebalancerConfig.from(retrievedRebalancerConfig);
+    Assert.assertEquals(customConfig.getPreferenceMap(partitionId).get(participantId),
+        State.from("ONLINE"));
   }
 }

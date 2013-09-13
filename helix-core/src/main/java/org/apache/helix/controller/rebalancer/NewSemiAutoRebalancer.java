@@ -26,12 +26,10 @@ import java.util.Set;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
-import org.apache.helix.api.Resource;
-import org.apache.helix.api.ResourceConfig;
+import org.apache.helix.api.SemiAutoRebalancerConfig;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
-import org.apache.helix.controller.stages.NewCurrentStateOutput;
+import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -45,21 +43,22 @@ import org.apache.log4j.Logger;
  * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
  * with state s.
  */
-public class NewSemiAutoRebalancer implements NewRebalancer {
+public class NewSemiAutoRebalancer implements NewRebalancer<SemiAutoRebalancerConfig> {
 
   private static final Logger LOG = Logger.getLogger(NewSemiAutoRebalancer.class);
 
   @Override
-  public ResourceAssignment computeResourceMapping(ResourceConfig resourceConfig, Cluster cluster,
-      StateModelDefinition stateModelDef, NewCurrentStateOutput currentStateOutput) {
+  public ResourceAssignment computeResourceMapping(SemiAutoRebalancerConfig config,
+      Cluster cluster, ResourceCurrentState currentState) {
+    StateModelDefinition stateModelDef =
+        cluster.getStateModelMap().get(config.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resourceConfig.getId());
+      LOG.debug("Processing resource:" + config.getResourceId());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(resourceConfig.getId());
-    RebalancerConfig config = resourceConfig.getRebalancerConfig();
-    for (PartitionId partition : resourceConfig.getPartitionSet()) {
+    ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
+    for (PartitionId partition : config.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resourceConfig.getId(), partition);
+          currentState.getCurrentStateMap(config.getResourceId(), partition);
       Set<ParticipantId> disabledInstancesForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partition);

@@ -40,6 +40,7 @@ import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 
 import com.google.common.collect.ImmutableList;
@@ -572,6 +573,16 @@ public class Message extends HelixProperty {
    */
   public void setStateModelFactoryName(String factoryName) {
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
+  }
+
+  /**
+   * Set the state model factory associated with this message
+   * @param factoryName the name of the factory
+   */
+  public void setStateModelFactoryId(StateModelFactoryId factoryId) {
+    if (factoryId != null) {
+      setStateModelFactoryName(factoryId.stringify());
+    }
   }
 
   // TODO: remove this. impl in HelixProperty

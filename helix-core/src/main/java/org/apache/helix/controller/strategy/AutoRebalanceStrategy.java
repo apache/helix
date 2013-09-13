@@ -27,10 +27,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.Map.Entry;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
@@ -96,23 +96,27 @@ public class AutoRebalanceStrategy {
    */
   public ZNRecord computePartitionAssignment(final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, final List<String> allNodes) {
+    List<String> sortedLiveNodes = new ArrayList<String>(liveNodes);
+    Collections.sort(sortedLiveNodes);
+    List<String> sortedAllNodes = new ArrayList<String>(allNodes);
+    Collections.sort(sortedAllNodes);
     int numReplicas = countStateReplicas();
     ZNRecord znRecord = new ZNRecord(_resourceName);
-    if (liveNodes.size() == 0) {
+    if (sortedLiveNodes.size() == 0) {
       return znRecord;
     }
-    int distRemainder = (numReplicas * _partitions.size()) % liveNodes.size();
-    int distFloor = (numReplicas * _partitions.size()) / liveNodes.size();
+    int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
+    int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
     _nodeMap = new HashMap<String, Node>();
     _liveNodesList = new ArrayList<Node>();
 
-    for (String id : allNodes) {
+    for (String id : sortedAllNodes) {
       Node node = new Node(id);
       node.capacity = 0;
       node.hasCeilingCapacity = false;
       _nodeMap.put(id, node);
     }
-    for (int i = 0; i < liveNodes.size(); i++) {
+    for (int i = 0; i < sortedLiveNodes.size(); i++) {
       boolean usingCeiling = false;
       int targetSize = (_maximumPerNode > 0) ? Math.min(distFloor, _maximumPerNode) : distFloor;
       if (distRemainder > 0 && targetSize < _maximumPerNode) {
@@ -120,7 +124,7 @@ public class AutoRebalanceStrategy {
         distRemainder = distRemainder - 1;
         usingCeiling = true;
       }
-      Node node = _nodeMap.get(liveNodes.get(i));
+      Node node = _nodeMap.get(sortedLiveNodes.get(i));
       node.isAlive = true;
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
@@ -131,7 +135,7 @@ public class AutoRebalanceStrategy {
     _stateMap = generateStateMap();
 
     // compute the preferred mapping if all nodes were up
-    _preferredAssignment = computePreferredPlacement(allNodes);
+    _preferredAssignment = computePreferredPlacement(sortedAllNodes);
 
     // logger.info("preferred mapping:"+ preferredAssignment);
     // from current mapping derive the ones in preferred location

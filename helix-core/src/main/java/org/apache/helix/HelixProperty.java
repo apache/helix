@@ -27,7 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.api.UserConfig;
+import org.apache.helix.api.NamespacedConfig;
 
 /**
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.
@@ -228,11 +228,11 @@ public class HelixProperty {
   }
 
   /**
-   * Add user-defined configuration properties to this property
-   * @param userConfig UserConfig properties
+   * Add namespaced configuration properties to this property
+   * @param namespacedConfig namespaced properties
    */
-  public void addUserConfig(UserConfig userConfig) {
-    UserConfig.addConfigToProperty(this, userConfig);
+  public void addNamespacedConfig(NamespacedConfig namespacedConfig) {
+    NamespacedConfig.addConfigToProperty(this, namespacedConfig);
   }
 
   /**

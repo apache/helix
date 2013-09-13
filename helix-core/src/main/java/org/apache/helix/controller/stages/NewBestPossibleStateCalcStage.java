@@ -23,19 +23,22 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.CustomRebalancerConfig;
+import org.apache.helix.api.FullAutoRebalancerConfig;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SemiAutoRebalancerConfig;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.UserDefinedRebalancerConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.NewAutoRebalancer;
 import org.apache.helix.controller.rebalancer.NewCustomRebalancer;
-import org.apache.helix.controller.rebalancer.NewRebalancer;
 import org.apache.helix.controller.rebalancer.NewSemiAutoRebalancer;
+import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
@@ -56,7 +59,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
       LOG.info("START BestPossibleStateCalcStage.process()");
     }
 
-    NewCurrentStateOutput currentStateOutput =
+    ResourceCurrentState currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
@@ -86,7 +89,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
    * @return assignment for the dropped resource
    */
   private ResourceAssignment mapDroppedResource(Cluster cluster, ResourceId resourceId,
-      NewCurrentStateOutput currentStateOutput, StateModelDefinition stateModelDef) {
+      ResourceCurrentState currentStateOutput, StateModelDefinition stateModelDef) {
     ResourceAssignment partitionMapping = new ResourceAssignment(resourceId);
     Set<PartitionId> mappedPartitions =
         currentStateOutput.getCurrentStateMappedPartitions(resourceId);
@@ -105,12 +108,10 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
     return partitionMapping;
   }
 
-  // TODO check this
   private NewBestPossibleStateOutput compute(Cluster cluster, ClusterEvent event,
-      Map<ResourceId, ResourceConfig> resourceMap, NewCurrentStateOutput currentStateOutput) {
+      Map<ResourceId, ResourceConfig> resourceMap, ResourceCurrentState currentStateOutput) {
     NewBestPossibleStateOutput output = new NewBestPossibleStateOutput();
-    Map<StateModelDefId, StateModelDefinition> stateModelDefs =
-        event.getAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString());
+    Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
       LOG.debug("Processing resource:" + resourceId);
@@ -132,27 +133,33 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
 
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
-      NewRebalancer rebalancer = null;
-      if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED
-          && rebalancerConfig.getRebalancerRef() != null) {
-        rebalancer = rebalancerConfig.getRebalancerRef().getRebalancer();
-      }
-      if (rebalancer == null) {
+      ResourceAssignment resourceAssignment = null;
+      if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED) {
+        UserDefinedRebalancerConfig config = UserDefinedRebalancerConfig.from(rebalancerConfig);
+        if (config.getRebalancerRef() != null) {
+          NewUserDefinedRebalancer rebalancer = config.getRebalancerRef().getRebalancer();
+          resourceAssignment =
+              rebalancer.computeResourceMapping(config, cluster, currentStateOutput);
+        }
+      } else {
         if (rebalancerConfig.getRebalancerMode() == RebalanceMode.FULL_AUTO) {
-          rebalancer = new NewAutoRebalancer();
+          FullAutoRebalancerConfig config = FullAutoRebalancerConfig.from(rebalancerConfig);
+          resourceAssignment =
+              new NewAutoRebalancer().computeResourceMapping(config, cluster, currentStateOutput);
         } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.SEMI_AUTO) {
-          rebalancer = new NewSemiAutoRebalancer();
-        } else {
-          rebalancer = new NewCustomRebalancer();
+          SemiAutoRebalancerConfig config = SemiAutoRebalancerConfig.from(rebalancerConfig);
+          resourceAssignment =
+              new NewSemiAutoRebalancer().computeResourceMapping(config, cluster,
+                  currentStateOutput);
+        } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.CUSTOMIZED) {
+          CustomRebalancerConfig config = CustomRebalancerConfig.from(rebalancerConfig);
+          resourceAssignment =
+              new NewCustomRebalancer().computeResourceMapping(config, cluster, currentStateOutput);
         }
       }
-
-      StateModelDefinition stateModelDef =
-          stateModelDefs.get(rebalancerConfig.getStateModelDefId());
-      ResourceAssignment resourceAssignment =
-          rebalancer.computeResourceMapping(resourceConfig, cluster, stateModelDef,
-              currentStateOutput);
       if (resourceAssignment == null) {
+        StateModelDefinition stateModelDef =
+            stateModelDefs.get(rebalancerConfig.getStateModelDefId());
         resourceAssignment =
             mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
       }

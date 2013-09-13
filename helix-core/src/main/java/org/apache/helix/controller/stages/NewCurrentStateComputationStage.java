@@ -56,7 +56,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
           + ". Requires DataCache|RESOURCE");
     }
 
-    NewCurrentStateOutput currentStateOutput = new NewCurrentStateOutput();
+    ResourceCurrentState currentStateOutput = new ResourceCurrentState();
 
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
       ParticipantId participantId = liveParticipant.getId();

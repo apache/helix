@@ -19,84 +19,106 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixConstants;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfiguration;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.base.Functions;
+import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Captures the configuration properties necessary for rebalancing
  */
 public class RebalancerConfig extends NamespacedConfig {
-  private final RebalanceMode _rebalancerMode;
-  private final RebalancerRef _rebalancerRef;
-  private final StateModelDefId _stateModelDefId;
-  private final Map<PartitionId, List<ParticipantId>> _preferenceLists;
-  private final Map<PartitionId, Map<ParticipantId, State>> _preferenceMaps;
-  private final ResourceAssignment _resourceAssignment;
-  private final int _replicaCount;
-  private final boolean _anyLiveParticipant;
-  private final String _participantGroupTag;
-  private final int _maxPartitionsPerParticipant;
-  private final StateModelFactoryId _stateModelFactoryId;
+
+  /**
+   * Fields used by the base RebalancerConfig
+   */
+  public enum Fields {
+    ANY_LIVE_PARTICIPANT,
+    MAX_PARTITIONS_PER_PARTICIPANT,
+    PARTICIPANT_GROUP_TAG,
+    REBALANCE_MODE,
+    REPLICA_COUNT,
+    STATE_MODEL_DEFINITION,
+    STATE_MODEL_FACTORY
+  }
+
+  private final ResourceId _resourceId;
+  private final Set<String> _fieldsSet;
   private final Map<PartitionId, Partition> _partitionMap;
 
   /**
-   * Instantiate the configuration of a rebalance task
-   * @param idealState the physical ideal state
-   * @param resourceAssignment last mapping of a resource
+   * Instantiate a RebalancerConfig.
+   * @param resourceId the resource to rebalance
+   * @param rebalancerMode the mode to rebalance with
+   * @param stateModelDefId the state model that the resource uses
+   * @param partitionMap partitions of the resource
    */
-  public RebalancerConfig(Map<PartitionId, Partition> partitionMap, IdealState idealState,
-      ResourceAssignment resourceAssignment, int liveParticipantCount) {
-    super(idealState.getResourceId(), RebalancerConfig.class.getSimpleName());
+  public RebalancerConfig(ResourceId resourceId, RebalanceMode rebalancerMode,
+      StateModelDefId stateModelDefId, Map<PartitionId, Partition> partitionMap) {
+    super(resourceId, RebalancerConfig.class.getSimpleName());
+    _resourceId = resourceId;
+    _fieldsSet =
+        ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
+            Functions.toStringFunction()));
+    setEnumField(Fields.REBALANCE_MODE.toString(), rebalancerMode);
+    setSimpleField(Fields.STATE_MODEL_DEFINITION.toString(), stateModelDefId.stringify());
     _partitionMap = ImmutableMap.copyOf(partitionMap);
-    _rebalancerMode = idealState.getRebalanceMode();
-    _rebalancerRef = idealState.getRebalancerRef();
-    _stateModelDefId = idealState.getStateModelDefId();
-    String replicaCount = idealState.getReplicas();
-    if (replicaCount.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
-      _replicaCount = liveParticipantCount;
-      _anyLiveParticipant = true;
-    } else {
-      _replicaCount = Integer.parseInt(idealState.getReplicas());
-      _anyLiveParticipant = false;
-    }
-    _participantGroupTag = idealState.getInstanceGroupTag();
-    _maxPartitionsPerParticipant = idealState.getMaxPartitionsPerInstance();
-    _stateModelFactoryId = idealState.getStateModelFactoryId();
+  }
 
-    // Build preference lists and maps
-    ImmutableMap.Builder<PartitionId, List<ParticipantId>> preferenceLists =
-        new ImmutableMap.Builder<PartitionId, List<ParticipantId>>();
-    ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>> preferenceMaps =
-        new ImmutableMap.Builder<PartitionId, Map<ParticipantId, State>>();
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
-      List<ParticipantId> preferenceList = idealState.getPreferenceList(partitionId);
-      if (preferenceList != null) {
-        preferenceLists.put(partitionId, ImmutableList.copyOf(preferenceList));
-      }
-      Map<ParticipantId, State> preferenceMap = idealState.getParticipantStateMap(partitionId);
-      if (preferenceMap != null) {
-        preferenceMaps.put(partitionId, ImmutableMap.copyOf(preferenceMap));
-      }
-    }
-    _preferenceLists = preferenceLists.build();
-    _preferenceMaps = preferenceMaps.build();
+  /**
+   * Extract rebalancer-specific configuration from a physical resource config
+   * @param resourceConfiguration resource config
+   * @param partitionMap map of partition id to partition object
+   */
+  protected RebalancerConfig(ResourceConfiguration resourceConfiguration,
+      Map<PartitionId, Partition> partitionMap) {
+    super(resourceConfiguration, RebalancerConfig.class.getSimpleName());
+    _resourceId = resourceConfiguration.getResourceId();
+    _fieldsSet =
+        ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
+            Functions.toStringFunction()));
+    _partitionMap = ImmutableMap.copyOf(partitionMap);
+  }
 
-    // Leave the resource assignment as is
-    _resourceAssignment = resourceAssignment;
+  /**
+   * Copy a RebalancerConfig from an existing one
+   * @param config populated RebalancerConfig
+   */
+  protected RebalancerConfig(RebalancerConfig config) {
+    super(config.getResourceId(), RebalancerConfig.class.getSimpleName());
+    _resourceId = config.getResourceId();
+    _partitionMap = config.getPartitionMap();
+    _fieldsSet =
+        ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
+            Functions.toStringFunction()));
+    super.setSimpleFields(config.getRawSimpleFields());
+    super.setListFields(config.getRawListFields());
+    super.setMapFields(config.getRawMapFields());
+    if (config.getRawPayload() != null && config.getRawPayload().length > 0) {
+      setRawPayload(config.getRawPayload());
+      setPayloadSerializer(config.getPayloadSerializer());
+    }
+  }
+
+  /**
+   * Get the resource id
+   * @return ResourceId
+   */
+  public ResourceId getResourceId() {
+    return _resourceId;
   }
 
   /**
@@ -131,15 +153,7 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return rebalancer mode
    */
   public RebalanceMode getRebalancerMode() {
-    return _rebalancerMode;
-  }
-
-  /**
-   * Get the rebalancer class name
-   * @return rebalancer class name or null if not exist
-   */
-  public RebalancerRef getRebalancerRef() {
-    return _rebalancerRef;
+    return getEnumField(Fields.REBALANCE_MODE.toString(), RebalanceMode.class, RebalanceMode.NONE);
   }
 
   /**
@@ -147,47 +161,24 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return state model definition
    */
   public StateModelDefId getStateModelDefId() {
-    return _stateModelDefId;
+    return Id.stateModelDef(getStringField(Fields.STATE_MODEL_DEFINITION.toString(), null));
   }
 
   /**
-   * Get the ideal node and state assignment of the resource
-   * @return resource assignment
-   */
-  public ResourceAssignment getResourceAssignment() {
-    return _resourceAssignment;
-  }
-
-  /**
-   * Get the preference list of participants for a given partition
-   * @param partitionId the partition to look up
-   * @return the ordered preference list (early entries are more preferred)
-   */
-  public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
-    if (_preferenceLists.containsKey(partitionId)) {
-      return _preferenceLists.get(partitionId);
-    }
-    return Collections.emptyList();
-  }
-
-  /**
-   * Get the preference map of participants and states for a given partition
-   * @param partitionId the partition to look up
-   * @return a mapping of participant to state for each replica
-   */
-  public Map<ParticipantId, State> getPreferenceMap(PartitionId partitionId) {
-    if (_preferenceMaps.containsKey(partitionId)) {
-      return _preferenceMaps.get(partitionId);
-    }
-    return Collections.emptyMap();
-  }
-
-  /**
-   * Get the number of replicas each partition should have
+   * Get the number of replicas each partition should have. This function will return 0 if some
+   * policy overrides the replica count, for instance if any live participant can accept a replica.
    * @return replica count
    */
   public int getReplicaCount() {
-    return _replicaCount;
+    return getIntField(Fields.REPLICA_COUNT.toString(), 0);
+  }
+
+  /**
+   * Set the number of replicas each partition should have.
+   * @param replicaCount replica count
+   */
+  public void setReplicaCount(int replicaCount) {
+    setIntField(Fields.REPLICA_COUNT.toString(), replicaCount);
   }
 
   /**
@@ -195,15 +186,31 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return maximum number of partitions
    */
   public int getMaxPartitionsPerParticipant() {
-    return _maxPartitionsPerParticipant;
+    return getIntField(Fields.MAX_PARTITIONS_PER_PARTICIPANT.toString(), Integer.MAX_VALUE);
+  }
+
+  /**
+   * Set the number of partitions of this resource that a given participant can accept
+   * @param maxPartitionsPerParticipant maximum number of partitions
+   */
+  public void setMaxPartitionsPerParticipant(int maxPartitionsPerParticipant) {
+    setIntField(Fields.MAX_PARTITIONS_PER_PARTICIPANT.toString(), maxPartitionsPerParticipant);
   }
 
   /**
    * Get the tag, if any, which must be present on assignable instances
-   * @return group tag
+   * @return group tag, or null if it is not present
    */
   public String getParticipantGroupTag() {
-    return _participantGroupTag;
+    return getStringField(Fields.PARTICIPANT_GROUP_TAG.toString(), null);
+  }
+
+  /**
+   * Set the tag, if any, which must be present on assignable instances
+   * @param participantGroupTag group tag
+   */
+  public void setParticipantGroupTag(String participantGroupTag) {
+    setSimpleField(Fields.PARTICIPANT_GROUP_TAG.toString(), participantGroupTag);
   }
 
   /**
@@ -211,7 +218,17 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return state model factory id
    */
   public StateModelFactoryId getStateModelFactoryId() {
-    return _stateModelFactoryId;
+    return Id.stateModelFactory(getStringField(Fields.STATE_MODEL_FACTORY.toString(), null));
+  }
+
+  /**
+   * Set state model factory id
+   * @param factoryId state model factory id
+   */
+  public void setStateModelFactoryId(StateModelFactoryId factoryId) {
+    if (factoryId != null) {
+      setSimpleField(Fields.STATE_MODEL_FACTORY.toString(), factoryId.stringify());
+    }
   }
 
   /**
@@ -219,47 +236,119 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return true if they can, false if they cannot
    */
   public boolean canAssignAnyLiveParticipant() {
-    return _anyLiveParticipant;
+    return getBooleanField(Fields.ANY_LIVE_PARTICIPANT.toString(), false);
+  }
+
+  /**
+   * Specify if replicas can be assigned to any live participant
+   * @param canAssignAny true if they can, false if they cannot
+   */
+  public void setCanAssignAnyLiveParticipant(boolean canAssignAny) {
+    setBooleanField(Fields.ANY_LIVE_PARTICIPANT.toString(), canAssignAny);
+  }
+
+  /*
+   * Override: removes from view fields set by RebalancerConfig
+   */
+  @Override
+  public Map<String, String> getSimpleFields() {
+    return Maps.filterKeys(super.getSimpleFields(), filterBaseConfigFields());
+  }
+
+  /*
+   * Override: makes sure that updated simple fields include those from this class
+   */
+  @Override
+  public void setSimpleFields(Map<String, String> simpleFields) {
+    Map<String, String> copySimpleFields = new HashMap<String, String>();
+    copySimpleFields.putAll(simpleFields);
+    for (String field : _fieldsSet) {
+      String value = getStringField(field, null);
+      if (value != null) {
+        copySimpleFields.put(field, value);
+      }
+    }
+    super.setSimpleFields(copySimpleFields);
+  }
+
+  /**
+   * Get a predicate that can checks if a key is used by this config
+   * @return Guava Predicate
+   */
+  private Predicate<String> filterBaseConfigFields() {
+    return new Predicate<String>() {
+      @Override
+      public boolean apply(String key) {
+        return !_fieldsSet.contains(key);
+      }
+    };
+  }
+
+  /**
+   * Get simple fields without filtering out base fields
+   * @return simple fields
+   */
+  private Map<String, String> getRawSimpleFields() {
+    return super.getSimpleFields();
+  }
+
+  /**
+   * Get list fields without filtering out base fields
+   * @return list fields
+   */
+  private Map<String, List<String>> getRawListFields() {
+    return super.getListFields();
+  }
+
+  /**
+   * Get map fields without filtering out base fields
+   * @return map fields
+   */
+  private Map<String, Map<String, String>> getRawMapFields() {
+    return super.getMapFields();
+  }
+
+  /**
+   * Get a RebalancerConfig from a physical resource configuration
+   * @param config resource configuration
+   * @return RebalancerConfig
+   */
+  public static RebalancerConfig from(ResourceConfiguration config,
+      Map<PartitionId, UserConfig> partitionConfigs) {
+    Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
+    for (PartitionId partitionId : config.getPartitionIds()) {
+      if (partitionConfigs.containsKey(partitionId)) {
+        partitionMap
+            .put(partitionId, new Partition(partitionId, partitionConfigs.get(partitionId)));
+      } else {
+        partitionMap.put(partitionId, new Partition(partitionId));
+      }
+    }
+    return new RebalancerConfig(config, partitionMap);
   }
 
   /**
    * Assembles a RebalancerConfig
    */
-  public static class Builder {
-    private final ResourceId _id;
-    private final IdealState _idealState;
+  public static abstract class Builder<T extends Builder<T>> {
+    protected final ResourceId _resourceId;
+    protected final Map<PartitionId, Partition> _partitionMap;
+    protected StateModelDefId _stateModelDefId;
+    private StateModelFactoryId _stateModelFactoryId;
     private boolean _anyLiveParticipant;
-    private ResourceAssignment _resourceAssignment;
-    private final Map<PartitionId, Partition> _partitionMap;
+    private int _replicaCount;
+    private int _maxPartitionsPerParticipant;
 
     /**
      * Configure the rebalancer for a resource
      * @param resourceId the resource to rebalance
      */
     public Builder(ResourceId resourceId) {
-      _id = resourceId;
-      _idealState = new IdealState(resourceId);
+      _resourceId = resourceId;
       _anyLiveParticipant = false;
+      _replicaCount = 0;
+      _maxPartitionsPerParticipant = Integer.MAX_VALUE;
       _partitionMap = new HashMap<PartitionId, Partition>();
-    }
-
-    /**
-     * Set the rebalancer mode
-     * @param mode {@link RebalanceMode}
-     */
-    public Builder rebalancerMode(RebalanceMode mode) {
-      _idealState.setRebalanceMode(mode);
-      return this;
-    }
-
-    /**
-     * Set a user-defined rebalancer
-     * @param rebalancerRef a reference to the rebalancer
-     * @return Builder
-     */
-    public Builder rebalancer(RebalancerRef rebalancerRef) {
-      _idealState.setRebalancerRef(rebalancerRef);
-      return this;
     }
 
     /**
@@ -267,19 +356,9 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param stateModelDefId state model identifier
      * @return Builder
      */
-    public Builder stateModelDef(StateModelDefId stateModelDefId) {
-      _idealState.setStateModelDefId(stateModelDefId);
-      return this;
-    }
-
-    /**
-     * Set the full assignment of partitions to nodes and corresponding states
-     * @param resourceAssignment resource assignment
-     * @return Builder
-     */
-    public Builder resourceAssignment(ResourceAssignment resourceAssignment) {
-      _resourceAssignment = resourceAssignment;
-      return this;
+    public T stateModelDef(StateModelDefId stateModelDefId) {
+      _stateModelDefId = stateModelDefId;
+      return self();
     }
 
     /**
@@ -287,9 +366,9 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param replicaCount number of replicas
      * @return Builder
      */
-    public Builder replicaCount(int replicaCount) {
-      _idealState.setReplicas(Integer.toString(replicaCount));
-      return this;
+    public T replicaCount(int replicaCount) {
+      _replicaCount = replicaCount;
+      return self();
     }
 
     /**
@@ -297,9 +376,9 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param maxPartitions
      * @return Builder
      */
-    public Builder maxPartitionsPerParticipant(int maxPartitions) {
-      _idealState.setMaxPartitionsPerInstance(maxPartitions);
-      return this;
+    public T maxPartitionsPerParticipant(int maxPartitions) {
+      _maxPartitionsPerParticipant = maxPartitions;
+      return self();
     }
 
     /**
@@ -307,19 +386,19 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param stateModelFactoryId
      * @return Builder
      */
-    public Builder stateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
-      _idealState.setStateModelFactoryId(stateModelFactoryId);
-      return this;
+    public T stateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
+      _stateModelFactoryId = stateModelFactoryId;
+      return self();
     }
 
     /**
      * Set whether any live participant should be used in rebalancing
      * @param useAnyParticipant true if any live participant can be used, false otherwise
-     * @return
+     * @return Builder
      */
-    public Builder anyLiveParticipant(boolean useAnyParticipant) {
-      _anyLiveParticipant = true;
-      return this;
+    public T anyLiveParticipant(boolean useAnyParticipant) {
+      _anyLiveParticipant = useAnyParticipant;
+      return self();
     }
 
     /**
@@ -327,9 +406,9 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param partition fully-qualified partition
      * @return Builder
      */
-    public Builder addPartition(Partition partition) {
+    public T addPartition(Partition partition) {
       _partitionMap.put(partition.getId(), partition);
-      return this;
+      return self();
     }
 
     /**
@@ -337,11 +416,11 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param partitions
      * @return Builder
      */
-    public Builder addPartitions(Collection<Partition> partitions) {
+    public T addPartitions(Collection<Partition> partitions) {
       for (Partition partition : partitions) {
         addPartition(partition);
       }
-      return this;
+      return self();
     }
 
     /**
@@ -351,28 +430,35 @@ public class RebalancerConfig extends NamespacedConfig {
      * @param partitionCount number of partitions to add
      * @return Builder
      */
-    public Builder addPartitions(int partitionCount) {
+    public T addPartitions(int partitionCount) {
       for (int i = 0; i < partitionCount; i++) {
-        addPartition(new Partition(Id.partition(_id, Integer.toString(i)), null));
+        addPartition(new Partition(Id.partition(_resourceId, Integer.toString(i)), null));
       }
-      return this;
+      return self();
     }
 
     /**
-     * Assemble a RebalancerConfig
-     * @return a fully defined rebalancer configuration
+     * Update a RebalancerConfig with built fields
      */
-    public RebalancerConfig build() {
-      // add a single partition if one hasn't been added yet since 1 partition is default
-      if (_partitionMap.isEmpty()) {
-        addPartitions(1);
-      }
-      if (_anyLiveParticipant) {
-        return new RebalancerConfig(_partitionMap, _idealState, _resourceAssignment,
-            Integer.parseInt(_idealState.getReplicas()));
-      } else {
-        return new RebalancerConfig(_partitionMap, _idealState, _resourceAssignment, -1);
+    protected void update(RebalancerConfig rebalancerConfig) {
+      rebalancerConfig.setReplicaCount(_replicaCount);
+      rebalancerConfig.setCanAssignAnyLiveParticipant(_anyLiveParticipant);
+      rebalancerConfig.setMaxPartitionsPerParticipant(_maxPartitionsPerParticipant);
+      if (_stateModelFactoryId != null) {
+        rebalancerConfig.setStateModelFactoryId(_stateModelFactoryId);
       }
     }
+
+    /**
+     * Get a reference to the actual builder class
+     * @return Builder
+     */
+    protected abstract T self();
+
+    /**
+     * Get a fully-initialized RebalancerConfig instance
+     * @return RebalancerConfig based on what was built
+     */
+    public abstract RebalancerConfig build();
   }
 }

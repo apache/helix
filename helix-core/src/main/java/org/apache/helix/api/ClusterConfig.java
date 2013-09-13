@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.StateModelDefinition;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -36,6 +37,7 @@ public class ClusterConfig {
   private final Map<ResourceId, ResourceConfig> _resourceMap;
   private final Map<ParticipantId, ParticipantConfig> _participantMap;
   private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+  private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
   private final UserConfig _userConfig;
   private final boolean _isPaused;
 
@@ -44,17 +46,21 @@ public class ClusterConfig {
    * @param id cluster id
    * @param resourceMap map of resource id to resource config
    * @param participantMap map of participant id to participant config
-   * @param constraintMapmap of constraint type to all constraints of that type
+   * @param constraintMap map of constraint type to all constraints of that type
+   * @param stateModelMap map of state model id to state model definition
    * @param userConfig user-defined cluster properties
    * @param isPaused true if paused, false if active
    */
   public ClusterConfig(ClusterId id, Map<ResourceId, ResourceConfig> resourceMap,
       Map<ParticipantId, ParticipantConfig> participantMap,
-      Map<ConstraintType, ClusterConstraints> constraintMap, UserConfig userConfig, boolean isPaused) {
+      Map<ConstraintType, ClusterConstraints> constraintMap,
+      Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
+      boolean isPaused) {
     _id = id;
     _resourceMap = ImmutableMap.copyOf(resourceMap);
     _participantMap = ImmutableMap.copyOf(participantMap);
     _constraintMap = ImmutableMap.copyOf(constraintMap);
+    _stateModelMap = ImmutableMap.copyOf(stateModelMap);
     _userConfig = userConfig;
     _isPaused = isPaused;
   }
@@ -92,6 +98,14 @@ public class ClusterConfig {
   }
 
   /**
+   * Get all the state model definitions on the cluster
+   * @return map of state model definition id to state model definition
+   */
+  public Map<StateModelDefId, StateModelDefinition> getStateModelMap() {
+    return _stateModelMap;
+  }
+
+  /**
    * Get user-specified configuration properties of this cluster
    * @return UserConfig properties
    */
@@ -115,6 +129,7 @@ public class ClusterConfig {
     private final Map<ResourceId, ResourceConfig> _resourceMap;
     private final Map<ParticipantId, ParticipantConfig> _participantMap;
     private final Map<ConstraintType, ClusterConstraints> _constraintMap;
+    private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
     private UserConfig _userConfig;
     private boolean _isPaused;
 
@@ -127,6 +142,7 @@ public class ClusterConfig {
       _resourceMap = new HashMap<ResourceId, ResourceConfig>();
       _participantMap = new HashMap<ParticipantId, ParticipantConfig>();
       _constraintMap = new HashMap<ConstraintType, ClusterConstraints>();
+      _stateModelMap = new HashMap<StateModelDefId, StateModelDefinition>();
       _isPaused = false;
       _userConfig = new UserConfig(id);
     }
@@ -198,6 +214,16 @@ public class ClusterConfig {
     }
 
     /**
+     * Add a constraint to the cluster
+     * @param constraint cluster constraint of a specific type
+     * @return Builder
+     */
+    public Builder addStateModelDefinition(StateModelDefinition stateModelDef) {
+      _stateModelMap.put(stateModelDef.getStateModelDefId(), stateModelDef);
+      return this;
+    }
+
+    /**
      * Set the paused status of the cluster
      * @param isPaused true if paused, false otherwise
      * @return Builder
@@ -222,8 +248,8 @@ public class ClusterConfig {
      * @return ClusterConfig
      */
     public ClusterConfig build() {
-      return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _userConfig,
-          _isPaused);
+      return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _stateModelMap,
+          _userConfig, _isPaused);
     }
   }
 }

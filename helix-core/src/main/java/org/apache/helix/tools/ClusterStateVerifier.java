@@ -266,18 +266,10 @@ public class ClusterStateVerifier {
         }
       }
 
-      Map<String, StateModelDefinition> stateModelDefs =
-          accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-      Map<StateModelDefId, StateModelDefinition> convertedDefs =
-          new HashMap<StateModelDefId, StateModelDefinition>();
-      for (String defName : stateModelDefs.keySet()) {
-        convertedDefs.put(Id.stateModelDef(defName), stateModelDefs.get(defName));
-      }
       ClusterAccessor clusterAccessor = new ClusterAccessor(Id.cluster(clusterName), accessor);
       Cluster cluster = clusterAccessor.readCluster();
       // calculate best possible state
-      NewBestPossibleStateOutput bestPossOutput =
-          ClusterStateVerifier.calcBestPossState(cluster, convertedDefs);
+      NewBestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cluster);
 
       // set error states
       if (errStates != null) {
@@ -443,11 +435,9 @@ public class ClusterStateVerifier {
    * @throws Exception
    */
 
-  static NewBestPossibleStateOutput calcBestPossState(Cluster cluster,
-      Map<StateModelDefId, StateModelDefinition> convertedDefs) throws Exception {
+  static NewBestPossibleStateOutput calcBestPossState(Cluster cluster) throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
     event.addAttribute("ClusterDataCache", cluster);
-    event.addAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString(), convertedDefs);
 
     NewResourceComputationStage rcState = new NewResourceComputationStage();
     NewCurrentStateComputationStage csStage = new NewCurrentStateComputationStage();

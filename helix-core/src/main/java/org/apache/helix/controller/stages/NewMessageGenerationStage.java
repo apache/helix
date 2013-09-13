@@ -60,11 +60,10 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
   public void process(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute("helixmanager");
     Cluster cluster = event.getAttribute("ClusterDataCache");
-    Map<StateModelDefId, StateModelDefinition> stateModelDefMap =
-        event.getAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString());
+    Map<StateModelDefId, StateModelDefinition> stateModelDefMap = cluster.getStateModelMap();
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
-    NewCurrentStateOutput currentStateOutput =
+    ResourceCurrentState currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     NewBestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
@@ -137,8 +136,8 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     .getSessionId();
             Message message =
                 createMessage(manager, resourceId, partitionId, participantId, currentState,
-                    nextState, sessionId, new StateModelDefId(stateModelDef.getId()), resourceConfig
-                        .getRebalancerConfig().getStateModelFactoryId(), bucketSize);
+                    nextState, sessionId, new StateModelDefId(stateModelDef.getId()),
+                    resourceConfig.getRebalancerConfig().getStateModelFactoryId(), bucketSize);
 
             // TODO refactor get/set timeout/inner-message
             RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
@@ -207,7 +206,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
     message.setTgtSessionId(participantSessionId);
     message.setSrcSessionId(Id.session(manager.getSessionId()));
     message.setStateModelDef(stateModelDefId);
-    message.setStateModelFactoryName(stateModelFactoryId.stringify());
+    message.setStateModelFactoryId(stateModelFactoryId);
     message.setBucketSize(bucketSize);
 
     return message;

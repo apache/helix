@@ -19,19 +19,14 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.Map;
-
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.Id;
-import org.apache.helix.api.StateModelDefId;
-import org.apache.helix.api.StateModelDefinitionAccessor;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
@@ -50,11 +45,8 @@ public class NewReadClusterDataStage extends AbstractBaseStage {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ClusterId clusterId = Id.cluster(manager.getClusterName());
     ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor);
-    StateModelDefinitionAccessor stateModelDefAccessor = new StateModelDefinitionAccessor(accessor);
 
     Cluster cluster = clusterAccessor.readCluster();
-    Map<StateModelDefId, StateModelDefinition> stateModelDefMap =
-        stateModelDefAccessor.readStateModelDefinitions();
 
     ClusterStatusMonitor clusterStatusMonitor =
         (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
@@ -75,7 +67,6 @@ public class NewReadClusterDataStage extends AbstractBaseStage {
     }
 
     event.addAttribute("ClusterDataCache", cluster);
-    event.addAttribute(AttributeName.STATE_MODEL_DEFINITIONS.toString(), stateModelDefMap);
 
     long endTime = System.currentTimeMillis();
     LOG.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");

@@ -48,7 +48,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     NewCurrentStateComputationStage stage = new NewCurrentStateComputationStage();
     runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
-    NewCurrentStateOutput output = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    ResourceCurrentState output = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
         output.getCurrentStateMap(Id.resource("testResourceName"),
             Id.partition("testResourceName_0")).size(), 0);
@@ -69,7 +69,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     NewCurrentStateComputationStage stage = new NewCurrentStateComputationStage();
     runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
-    NewCurrentStateOutput output1 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    ResourceCurrentState output1 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
         output1.getCurrentStateMap(Id.resource("testResourceName"),
             Id.partition("testResourceName_0")).size(), 0);
@@ -88,7 +88,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
     runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
-    NewCurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    ResourceCurrentState output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State pendingState =
         output2.getPendingState(Id.resource("testResourceName"),
             Id.partition("testResourceName_1"), Id.participant("localhost_3"));
@@ -113,7 +113,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         stateWithDeadSession);
     runStage(event, new NewReadClusterDataStage());
     runStage(event, stage);
-    NewCurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    ResourceCurrentState output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State currentState =
         output3.getCurrentState(Id.resource("testResourceName"),
             Id.partition("testResourceName_1"), Id.participant("localhost_3"));

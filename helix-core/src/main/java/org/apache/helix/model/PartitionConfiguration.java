@@ -53,7 +53,7 @@ public class PartitionConfiguration extends HelixProperty {
   public static PartitionConfiguration from(UserConfig userConfig) {
     PartitionConfiguration partitionConfiguration =
         new PartitionConfiguration(Id.partition(userConfig.getId()));
-    partitionConfiguration.addUserConfig(userConfig);
+    partitionConfiguration.addNamespacedConfig(userConfig);
     return partitionConfiguration;
   }
 }

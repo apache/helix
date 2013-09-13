@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -34,10 +35,11 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Id;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.model.IdealState;
@@ -170,10 +172,11 @@ public class BaseStageTest {
       for (PartitionId partitionId : idealState.getPartitionSet()) {
         partitionMap.put(partitionId, new Partition(partitionId));
       }
-      RebalancerConfig rebalancerConfig = new RebalancerConfig(partitionMap, idealState, null, 0);
-      ResourceConfig resourceConfig =
-          new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalancerConfig).build();
-      resourceMap.put(resourceId, resourceConfig);
+      Map<PartitionId, UserConfig> partitionConfigMap = Collections.emptyMap();
+      Resource resource =
+          new Resource(resourceId, idealState, null, null, new UserConfig(resourceId),
+              partitionConfigMap);
+      resourceMap.put(resourceId, resource.getConfig());
     }
 
     return resourceMap;

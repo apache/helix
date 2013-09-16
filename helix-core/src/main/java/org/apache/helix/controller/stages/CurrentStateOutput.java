@@ -26,6 +26,7 @@ import java.util.Map;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Partition;
 
+@Deprecated
 public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<Partition, Map<String, String>>> _pendingStateMap;

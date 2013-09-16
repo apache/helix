@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  */
+@Deprecated
 public class ClusterDataCache {
 
   Map<String, LiveInstance> _liveInstanceMap;

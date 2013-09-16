@@ -27,6 +27,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
+@Deprecated
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
   ClusterDataCache _cache;

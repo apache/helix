@@ -27,6 +27,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -109,7 +110,6 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
 
       partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR, null, new MockJob());
       partics[i].syncStart();
-      // new Thread(partics[i]).start();
     }
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -124,7 +124,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     ZkClient zkClient = new ZkClient(ZK_ADDR);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");

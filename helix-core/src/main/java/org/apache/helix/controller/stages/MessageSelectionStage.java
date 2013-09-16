@@ -37,6 +37,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+@Deprecated
 public class MessageSelectionStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(MessageSelectionStage.class);
 

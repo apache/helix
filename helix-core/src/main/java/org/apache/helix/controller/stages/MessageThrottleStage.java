@@ -38,6 +38,7 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.log4j.Logger;
 
+@Deprecated
 public class MessageThrottleStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(MessageThrottleStage.class.getName());
 

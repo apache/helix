@@ -27,6 +27,7 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.State;
 import org.apache.helix.model.Partition;
 
+@Deprecated
 public class BestPossibleStateOutput {
   // resource->partition->instance->state
   Map<String, Map<Partition, Map<String, String>>> _dataMap;

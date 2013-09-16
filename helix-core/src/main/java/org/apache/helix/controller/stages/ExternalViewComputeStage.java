@@ -48,6 +48,7 @@ import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
+@Deprecated
 public class ExternalViewComputeStage extends AbstractBaseStage {
   private static Logger log = Logger.getLogger(ExternalViewComputeStage.class);
 

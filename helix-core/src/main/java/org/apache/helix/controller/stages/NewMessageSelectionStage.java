@@ -271,7 +271,11 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
         if (rebalancerConfig != null) {
-          max = rebalancerConfig.getReplicaCount();
+          if (rebalancerConfig.canAssignAnyLiveParticipant()) {
+            max = cluster.getLiveParticipantMap().size();
+          } else {
+            max = rebalancerConfig.getReplicaCount();
+          }
         }
       } else {
         try {

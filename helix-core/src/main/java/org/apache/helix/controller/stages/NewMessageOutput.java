@@ -68,6 +68,10 @@ public class NewMessageOutput {
 
   }
 
+  public Map<PartitionId, List<Message>> getMessages(ResourceId resourceId) {
+    return _messagesMap.get(resourceId);
+  }
+
   @Override
   public String toString() {
     return _messagesMap.toString();

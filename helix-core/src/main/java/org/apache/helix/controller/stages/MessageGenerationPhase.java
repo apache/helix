@@ -45,6 +45,7 @@ import org.apache.log4j.Logger;
 /**
  * Compares the currentState, pendingState with IdealState and generate messages
  */
+@Deprecated
 public class MessageGenerationPhase extends AbstractBaseStage {
   private static Logger logger = Logger.getLogger(MessageGenerationPhase.class);
 

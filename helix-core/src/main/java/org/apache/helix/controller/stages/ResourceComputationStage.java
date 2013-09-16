@@ -37,6 +37,7 @@ import org.apache.log4j.Logger;
  * CurrentState for liveInstance-> Helps in finding resources that are inactive
  * and needs to be dropped
  */
+@Deprecated
 public class ResourceComputationStage extends AbstractBaseStage {
   private static Logger LOG = Logger.getLogger(ResourceComputationStage.class);
 

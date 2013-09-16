@@ -146,10 +146,10 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     StateModelDefId.SchedulerTaskQueue)) {
               if (resourceConfig.getPartitionMap().size() > 0) {
                 // TODO refactor it -- we need a way to read in scheduler tasks a priori
-                Resource activeResource = cluster.getResource(resourceId);
-                if (activeResource != null) {
-                  message.setInnerMessage(activeResource.getSchedulerTaskConfig().getInnerMessage(
-                      partitionId));
+                Message innerMsg =
+                    resourceConfig.getSchedulerTaskConfig().getInnerMessage(partitionId);
+                if (innerMsg != null) {
+                  message.setInnerMessage(innerMsg);
                 }
               }
             }

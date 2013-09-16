@@ -70,6 +70,9 @@ public class NewResourceComputationStage extends AbstractBaseStage {
     }
 
     // include all partitions from CurrentState as well since idealState might be removed
+    Map<ResourceId, RebalancerConfig.SimpleBuilder> rebalancerConfigBuilderMap =
+        new HashMap<ResourceId, RebalancerConfig.SimpleBuilder>();
+
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
       for (ResourceId resourceId : liveParticipant.getCurrentStateMap().keySet()) {
         CurrentState currentState = liveParticipant.getCurrentStateMap().get(resourceId);
@@ -84,28 +87,41 @@ public class NewResourceComputationStage extends AbstractBaseStage {
 
         // don't overwrite ideal state configs
         if (!resourceBuilderMap.containsKey(resourceId)) {
-          Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-          for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
-            partitionMap.put(partitionId, new Partition(partitionId));
+          if (!rebalancerConfigBuilderMap.containsKey(resourceId)) {
+            RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
+                new RebalancerConfig.SimpleBuilder(resourceId);
+            rebalancerConfigBuilder.stateModelDefId(currentState.getStateModelDefId());
+            rebalancerConfigBuilder.stateModelFactoryId(Id.stateModelFactory(currentState
+                .getStateModelFactoryName()));
+            rebalancerConfigBuilderMap.put(resourceId, rebalancerConfigBuilder);
           }
-          RebalancerConfig rebalancerConfig =
-              new RebalancerConfig(resourceId, RebalanceMode.NONE,
-                  currentState.getStateModelDefId(), partitionMap);
-          rebalancerConfig.setStateModelFactoryId(Id.stateModelFactory(currentState
-              .getStateModelFactoryName()));
+
           ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
-          resourceBuilder.rebalancerConfig(rebalancerConfig);
           resourceBuilder.bucketSize(currentState.getBucketSize());
           resourceBuilder.batchMessageMode(currentState.getBatchMessageMode());
           resourceBuilderMap.put(resourceId, resourceBuilder);
         }
+
+        // add all partitions in current-state
+        if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
+          RebalancerConfig.SimpleBuilder rebalancerConfigBuilder = rebalancerConfigBuilderMap.get(resourceId);
+          for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
+            rebalancerConfigBuilder.addPartition(new Partition(partitionId));
+          }
+        }
       }
+
     }
 
     // convert builder-map to resource-map
     Map<ResourceId, ResourceConfig> resourceMap = new LinkedHashMap<ResourceId, ResourceConfig>();
     for (ResourceId resourceId : resourceBuilderMap.keySet()) {
-      resourceMap.put(resourceId, resourceBuilderMap.get(resourceId).build());
+      ResourceConfig.Builder resourceConfigBuilder = resourceBuilderMap.get(resourceId);
+      if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
+        RebalancerConfig.SimpleBuilder rebalancerConfigBuilder = rebalancerConfigBuilderMap.get(resourceId);
+        resourceConfigBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
+      }
+      resourceMap.put(resourceId, resourceConfigBuilder.build());
     }
 
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);

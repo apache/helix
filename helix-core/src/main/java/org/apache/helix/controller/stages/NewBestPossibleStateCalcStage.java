@@ -117,19 +117,19 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
       LOG.debug("Processing resource:" + resourceId);
       // Resource may be gone. In that case we need to get the state model name
       // from the current state
-      if (cluster.getResource(resourceId) == null) {
-        // if resource is deleted, then we do not know which rebalancer to use
-        // instead, just mark all partitions of the resource as dropped
-        if (LOG.isInfoEnabled()) {
-          LOG.info("resource:" + resourceId + " does not exist anymore");
-        }
-        StateModelDefinition stateModelDef =
-            stateModelDefs.get(currentStateOutput.getResourceStateModelDef(resourceId));
-        ResourceAssignment droppedAssignment =
-            mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
-        output.setResourceAssignment(resourceId, droppedAssignment);
-        continue;
-      }
+      // if (cluster.getResource(resourceId) == null) {
+      // // if resource is deleted, then we do not know which rebalancer to use
+      // // instead, just mark all partitions of the resource as dropped
+      // if (LOG.isInfoEnabled()) {
+      // LOG.info("resource:" + resourceId + " does not exist anymore");
+      // }
+      // StateModelDefinition stateModelDef =
+      // stateModelDefs.get(currentStateOutput.getResourceStateModelDef(resourceId));
+      // ResourceAssignment droppedAssignment =
+      // mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
+      // output.setResourceAssignment(resourceId, droppedAssignment);
+      // continue;
+      // }
 
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();

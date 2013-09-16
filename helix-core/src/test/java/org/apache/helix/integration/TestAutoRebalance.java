@@ -189,7 +189,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
             CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Set<String> instancesSet = new HashSet<String>();
@@ -227,16 +227,14 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     for (String instanceName : masterPartitionsCountMap.keySet()) {
       int instancePartitionCount = masterPartitionsCountMap.get(instanceName);
       totalCount += instancePartitionCount;
-      if (!(instancePartitionCount == perInstancePartition || instancePartitionCount == perInstancePartition + 1)) {
+      if (Math.abs(instancePartitionCount - perInstancePartition) > 1) {
+        // System.out.println("instanceName: " + instanceName + ", instancePartitionCnt: "
+        // + instancePartitionCount + ", perInstancePartition: " + perInstancePartition);
         return false;
-      }
-      if (instancePartitionCount == perInstancePartition + 1) {
-        if (partitionCount % instances == 0) {
-          return false;
-        }
       }
     }
     if (partitionCount != totalCount) {
+      // System.out.println("partitionCnt: " + partitionCount + ", totalCnt: " + totalCount);
       return false;
     }
     return true;

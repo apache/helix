@@ -84,14 +84,16 @@ public class Resource {
               .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
               .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
               .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+              .stateModelFactoryId(idealState.getStateModelFactoryId())
+              .participantGroupTag(idealState.getInstanceGroupTag()).build();
     } else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
       SemiAutoRebalancerConfig semiAutoConfig =
           new SemiAutoRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
               .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
               .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
               .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+              .stateModelFactoryId(idealState.getStateModelFactoryId())
+              .participantGroupTag(idealState.getInstanceGroupTag()).build();
       for (PartitionId partitionId : partitionMap.keySet()) {
         semiAutoConfig.setPreferenceList(partitionId, idealState.getPreferenceList(partitionId));
       }
@@ -102,7 +104,8 @@ public class Resource {
               .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
               .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
               .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId()).build();
+              .stateModelFactoryId(idealState.getStateModelFactoryId())
+              .participantGroupTag(idealState.getInstanceGroupTag()).build();
       for (PartitionId partitionId : partitionMap.keySet()) {
         customConfig.setPreferenceMap(partitionId, idealState.getParticipantStateMap(partitionId));
       }
@@ -114,7 +117,8 @@ public class Resource {
               .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
               .stateModelDef(idealState.getStateModelDefId())
               .stateModelFactoryId(idealState.getStateModelFactoryId())
-              .rebalancerRef(idealState.getRebalancerRef()).build();
+              .rebalancerRef(idealState.getRebalancerRef())
+              .participantGroupTag(idealState.getInstanceGroupTag()).build();
     }
 
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
@@ -131,9 +135,6 @@ public class Resource {
    * @return scheduler-task config or null if state-model-def is not SchedulerTaskQueue
    */
   SchedulerTaskConfig schedulerTaskConfig(IdealState idealState) {
-    if (!idealState.getStateModelDefId().equalsIgnoreCase(StateModelDefId.SchedulerTaskQueue)) {
-      return null;
-    }
 
     // TODO refactor get timeout
     Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
@@ -150,17 +151,21 @@ public class Resource {
     }
 
     Map<PartitionId, Message> innerMsgMap = new HashMap<PartitionId, Message>();
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
-      // TODO refactor: scheduler-task-queue state model uses map-field to store inner-messages
-      // this is different from all other state-models
-      Map<String, String> innerMsgStrMap =
-          idealState.getRecord().getMapField(partitionId.stringify());
-      if (innerMsgStrMap != null) {
-        Message innerMsg = Message.toMessage(innerMsgStrMap);
-        innerMsgMap.put(partitionId, innerMsg);
+    if (idealState.getStateModelDefId().equalsIgnoreCase(StateModelDefId.SchedulerTaskQueue)) {
+      for (PartitionId partitionId : idealState.getPartitionSet()) {
+        // TODO refactor: scheduler-task-queue state model uses map-field to store inner-messages
+        // this is different from all other state-models
+        Map<String, String> innerMsgStrMap =
+            idealState.getRecord().getMapField(partitionId.stringify());
+        if (innerMsgStrMap != null) {
+          Message innerMsg = Message.toMessage(innerMsgStrMap);
+          innerMsgMap.put(partitionId, innerMsg);
+        }
       }
     }
 
+    // System.out.println("transitionTimeoutMap: " + transitionTimeoutMap);
+    // System.out.println("innerMsgMap: " + innerMsgMap);
     return new SchedulerTaskConfig(transitionTimeoutMap, innerMsgMap);
   }
 

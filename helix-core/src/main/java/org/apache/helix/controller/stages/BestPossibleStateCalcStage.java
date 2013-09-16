@@ -43,6 +43,7 @@ import org.apache.log4j.Logger;
  * For partition compute best possible (instance,state) pair based on
  * IdealState,StateModel,LiveInstance
  */
+@Deprecated
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger logger = Logger.getLogger(BestPossibleStateCalcStage.class.getName());
 

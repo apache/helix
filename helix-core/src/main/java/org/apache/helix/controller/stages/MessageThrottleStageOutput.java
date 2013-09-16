@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
+@Deprecated
 public class MessageThrottleStageOutput {
   private final Map<String, Map<Partition, List<Message>>> _messagesMap;
 

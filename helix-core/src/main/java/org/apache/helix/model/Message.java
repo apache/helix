@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
@@ -582,6 +583,8 @@ public class Message extends HelixProperty {
   public void setStateModelFactoryId(StateModelFactoryId factoryId) {
     if (factoryId != null) {
       setStateModelFactoryName(factoryId.stringify());
+    } else {
+      setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     }
   }
 

@@ -64,6 +64,28 @@ public class RebalancerConfig extends NamespacedConfig {
    * @param resourceId the resource to rebalance
    * @param rebalancerMode the mode to rebalance with
    * @param stateModelDefId the state model that the resource uses
+   * @param stateModelFacotryId the state model factory that the resource uses
+   * @param partitionMap partitions of the resource
+   */
+  public RebalancerConfig(ResourceId resourceId, RebalanceMode rebalancerMode,
+      StateModelDefId stateModelDefId, StateModelFactoryId stateModelFactoryId,
+      Map<PartitionId, Partition> partitionMap) {
+    super(resourceId, RebalancerConfig.class.getSimpleName());
+    _resourceId = resourceId;
+    _fieldsSet =
+        ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
+            Functions.toStringFunction()));
+    setEnumField(Fields.REBALANCE_MODE.toString(), rebalancerMode);
+    setSimpleField(Fields.STATE_MODEL_DEFINITION.toString(), stateModelDefId.stringify());
+    setSimpleField(Fields.STATE_MODEL_FACTORY.name(), stateModelFactoryId.stringify());
+    _partitionMap = ImmutableMap.copyOf(partitionMap);
+  }
+
+  /**
+   * Instantiate a RebalancerConfig.
+   * @param resourceId the resource to rebalance
+   * @param rebalancerMode the mode to rebalance with
+   * @param stateModelDefId the state model that the resource uses
    * @param partitionMap partitions of the resource
    */
   public RebalancerConfig(ResourceId resourceId, RebalanceMode rebalancerMode,
@@ -338,6 +360,7 @@ public class RebalancerConfig extends NamespacedConfig {
     private boolean _anyLiveParticipant;
     private int _replicaCount;
     private int _maxPartitionsPerParticipant;
+    private String _participantGroupTag;
 
     /**
      * Configure the rebalancer for a resource
@@ -402,6 +425,16 @@ public class RebalancerConfig extends NamespacedConfig {
     }
 
     /**
+     * Set participant group tag
+     * @param tag
+     * @return Builder
+     */
+    public T participantGroupTag(String tag) {
+      _participantGroupTag = tag;
+      return self();
+    }
+
+    /**
      * Add a partition that the resource serves
      * @param partition fully-qualified partition
      * @return Builder
@@ -447,6 +480,9 @@ public class RebalancerConfig extends NamespacedConfig {
       if (_stateModelFactoryId != null) {
         rebalancerConfig.setStateModelFactoryId(_stateModelFactoryId);
       }
+      if (_participantGroupTag != null) {
+        rebalancerConfig.setParticipantGroupTag(_participantGroupTag);
+      }
     }
 
     /**
@@ -460,5 +496,62 @@ public class RebalancerConfig extends NamespacedConfig {
      * @return RebalancerConfig based on what was built
      */
     public abstract RebalancerConfig build();
+  }
+
+  /**
+   * Simple non-mode builder for rebalancer config
+   */
+  public static class SimpleBuilder {
+    private final ResourceId _resourceId;
+    private StateModelDefId _stateModelDefId;
+    private StateModelFactoryId _stateModelFactoryId;
+    private final Map<PartitionId, Partition> _partitionMap;
+
+    /**
+     * Construct with a resource-id
+     * @param resourceId
+     */
+    public SimpleBuilder(ResourceId resourceId) {
+      _resourceId = resourceId;
+      _partitionMap = new HashMap<PartitionId, Partition>();
+    }
+
+    /**
+     * Set state model definition id
+     * @param stateModelDefId
+     * @return
+     */
+    public SimpleBuilder stateModelDefId(StateModelDefId stateModelDefId) {
+      _stateModelDefId = stateModelDefId;
+      return this;
+    }
+
+    /**
+     * Add a partition that the resource serves
+     * @param partition fully-qualified partition
+     * @return Builder
+     */
+    public SimpleBuilder addPartition(Partition partition) {
+      _partitionMap.put(partition.getId(), partition);
+      return this;
+    }
+
+    /**
+     * Set state model factory
+     * @param stateModelFactoryId
+     * @return Builder
+     */
+    public SimpleBuilder stateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
+      _stateModelFactoryId = stateModelFactoryId;
+      return this;
+    }
+
+    /**
+     * Build a rebalancer config
+     * @return
+     */
+    public RebalancerConfig build() {
+      return new RebalancerConfig(_resourceId, RebalanceMode.NONE, _stateModelDefId, _partitionMap);
+    }
   }
 }

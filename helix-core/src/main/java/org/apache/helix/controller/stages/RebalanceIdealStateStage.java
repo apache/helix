@@ -38,6 +38,7 @@ import org.apache.log4j.Logger;
  * If the resourceConfig has specified className of the customized rebalancer, <br/>
  * the rebalancer will be invoked to re-write the idealstate of the resource<br/>
  */
+@Deprecated
 public class RebalanceIdealStateStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(RebalanceIdealStateStage.class.getName());
 

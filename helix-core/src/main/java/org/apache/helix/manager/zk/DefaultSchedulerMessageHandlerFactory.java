@@ -55,8 +55,8 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
 /*
- * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED. 
- * 
+ * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED.
+ *
  */
 public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFactory {
   public static final String WAIT_ALL = "WAIT_ALL";

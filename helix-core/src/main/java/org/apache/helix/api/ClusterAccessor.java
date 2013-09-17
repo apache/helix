@@ -69,6 +69,13 @@ public class ClusterAccessor {
       LOG.warn("Cluster already created. Aborting.");
       // return false;
     }
+
+    StateModelDefinitionAccessor stateModelDefAccessor =
+        new StateModelDefinitionAccessor(_accessor);
+    Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
+    for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
+      stateModelDefAccessor.addStateModelDefinition(stateModelDef);
+    }
     Map<ResourceId, ResourceConfig> resources = cluster.getResourceMap();
     for (ResourceConfig resource : resources.values()) {
       addResourceToCluster(resource);
@@ -86,12 +93,6 @@ public class ClusterAccessor {
         ClusterConfiguration.from(cluster.getUserConfig()));
     if (cluster.isPaused()) {
       pauseCluster();
-    }
-    StateModelDefinitionAccessor stateModelDefAccessor =
-        new StateModelDefinitionAccessor(_accessor);
-    Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
-    for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
-      stateModelDefAccessor.addStateModelDefinition(stateModelDef);
     }
 
     return true;
@@ -190,12 +191,12 @@ public class ClusterAccessor {
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
       // TODO pass resource assignment
-      ResourceId resourceId = Id.resource(resourceName);
+      ResourceId resourceId = ResourceId.from(resourceName);
       UserConfig userConfig;
       if (resourceConfigMap != null && resourceConfigMap.containsKey(resourceName)) {
-        userConfig = new UserConfig(resourceConfigMap.get(resourceName));
+        userConfig = UserConfig.from(resourceConfigMap.get(resourceName));
       } else {
-        userConfig = new UserConfig(resourceId);
+        userConfig = new UserConfig(Scope.resource(resourceId));
       }
 
       Map<String, PartitionConfiguration> partitionConfigMap =
@@ -203,7 +204,7 @@ public class ClusterAccessor {
       if (partitionConfigMap != null) {
         Map<PartitionId, UserConfig> partitionUserConfigs = new HashMap<PartitionId, UserConfig>();
         for (String partitionName : partitionConfigMap.keySet()) {
-          partitionUserConfigs.put(Id.partition(partitionName),
+          partitionUserConfigs.put(PartitionId.from(partitionName),
               UserConfig.from(partitionConfigMap.get(partitionName)));
         }
         resourceMap.put(resourceId,
@@ -219,7 +220,7 @@ public class ClusterAccessor {
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       Map<String, Message> instanceMsgMap = messageMap.get(participantName);
 
-      ParticipantId participantId = Id.participant(participantName);
+      ParticipantId participantId = ParticipantId.from(participantName);
 
       participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
           instanceConfig, userConfig, liveInstance, instanceMsgMap,
@@ -229,7 +230,7 @@ public class ClusterAccessor {
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
     ControllerId leaderId = null;
     if (leader != null) {
-      leaderId = new ControllerId(leader.getId());
+      leaderId = ControllerId.from(leader.getId());
       controllerMap.put(leaderId, new Controller(leaderId, leader, true));
     }
 
@@ -246,9 +247,9 @@ public class ClusterAccessor {
     ClusterConfiguration clusterUserConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
     UserConfig userConfig;
     if (clusterUserConfig != null) {
-      userConfig = new UserConfig(clusterUserConfig);
+      userConfig = UserConfig.from(clusterUserConfig);
     } else {
-      userConfig = new UserConfig(_clusterId);
+      userConfig = new UserConfig(Scope.cluster(_clusterId));
     }
 
     StateModelDefinitionAccessor stateModelDefAccessor =

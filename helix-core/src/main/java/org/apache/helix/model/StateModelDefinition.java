@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
@@ -147,7 +146,7 @@ public class StateModelDefinition extends HelixProperty {
    * @return StateModelDefId
    */
   public StateModelDefId getStateModelDefId() {
-    return Id.stateModelDef(getId());
+    return StateModelDefId.from(getId());
   }
 
   /**

@@ -21,8 +21,6 @@ package org.apache.helix;
 
 import java.util.Map;
 
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.healthcheck.PerformanceHealthReportProvider;

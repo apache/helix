@@ -26,9 +26,12 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -53,32 +56,32 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
       String sessionid = liveinstanceMap.get(instanceName).getSessionId().stringify();
       for (String partition : ev.getPartitionStringSet()) {
         if (ev.getStateMap(partition).containsKey(instanceName)) {
-          MessageId uuid = Id.message(UUID.randomUUID().toString());
+          MessageId uuid = MessageId.from(UUID.randomUUID().toString());
           Message message = new Message(MessageType.STATE_TRANSITION, uuid);
           boolean rand = new Random().nextInt(10) > 5;
           if (ev.getStateMap(partition).get(instanceName).equals("MASTER")) {
             message.setSrcName(manager.getInstanceName());
             message.setTgtName(instanceName);
             message.setMsgState(MessageState.NEW);
-            message.setPartitionId(Id.partition(partition));
-            message.setResourceId(Id.resource(TEST_DB));
+            message.setPartitionId(PartitionId.from(partition));
+            message.setResourceId(ResourceId.from(TEST_DB));
             message.setFromState(State.from(rand ? "SLAVE" : "OFFLINE"));
             message.setToState(State.from(rand ? "MASTER" : "SLAVE"));
-            message.setTgtSessionId(Id.session(sessionid));
-            message.setSrcSessionId(Id.session(manager.getSessionId()));
-            message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+            message.setTgtSessionId(SessionId.from(sessionid));
+            message.setSrcSessionId(SessionId.from(manager.getSessionId()));
+            message.setStateModelDef(StateModelDefId.from("MasterSlave"));
             message.setStateModelFactoryName("DEFAULT");
           } else if (ev.getStateMap(partition).get(instanceName).equals("SLAVE")) {
             message.setSrcName(manager.getInstanceName());
             message.setTgtName(instanceName);
             message.setMsgState(MessageState.NEW);
-            message.setPartitionId(Id.partition(partition));
-            message.setResourceId(Id.resource(TEST_DB));
+            message.setPartitionId(PartitionId.from(partition));
+            message.setResourceId(ResourceId.from(TEST_DB));
             message.setFromState(State.from(rand ? "MASTER" : "OFFLINE"));
             message.setToState(State.from(rand ? "SLAVE" : "SLAVE"));
-            message.setTgtSessionId(Id.session(sessionid));
-            message.setSrcSessionId(Id.session(manager.getSessionId()));
-            message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+            message.setTgtSessionId(SessionId.from(sessionid));
+            message.setSrcSessionId(SessionId.from(manager.getSessionId()));
+            message.setStateModelDef(StateModelDefId.from("MasterSlave"));
             message.setStateModelFactoryName("DEFAULT");
           }
           accessor.setProperty(

@@ -35,13 +35,14 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -133,7 +134,7 @@ public class TestNewAutoRebalanceStrategy {
   private StateModelDefinition getIncompleteStateModelDef(String modelName, String initialState,
       LinkedHashMap<String, Integer> states) {
     StateModelDefinition.Builder builder =
-        new StateModelDefinition.Builder(Id.stateModelDef(modelName));
+        new StateModelDefinition.Builder(StateModelDefId.from(modelName));
     builder.initialState(State.from(initialState));
     int i = 0;
     for (String state : states.keySet()) {
@@ -220,7 +221,7 @@ public class TestNewAutoRebalanceStrategy {
       final Map<PartitionId, Map<ParticipantId, State>> mapResult =
           new HashMap<PartitionId, Map<ParticipantId, State>>();
       for (String partition : _partitions) {
-        PartitionId partitionId = Id.partition(partition);
+        PartitionId partitionId = PartitionId.from(partition);
         Set<ParticipantId> disabledParticipantsForPartition = Collections.emptySet();
         Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
         Set<String> tags = Collections.emptySet();
@@ -230,17 +231,18 @@ public class TestNewAutoRebalanceStrategy {
             new HashMap<ParticipantId, Participant>();
         // set up some participants
         for (String nodeName : _liveNodes) {
-          ParticipantId participantId = Id.participant(nodeName);
+          ParticipantId participantId = ParticipantId.from(nodeName);
           Participant participant =
               new Participant(participantId, "hostname", 0, true, disabledPartitionIdSet, tags,
-                  null, currentStateMap, messageMap, new UserConfig(participantId));
+                  null, currentStateMap, messageMap, new UserConfig(
+                      Scope.participant(participantId)));
           liveParticipantMap.put(participantId, participant);
         }
         List<ParticipantId> participantPreferenceList =
             Lists.transform(listResult.get(partition), new Function<String, ParticipantId>() {
               @Override
               public ParticipantId apply(String participantId) {
-                return Id.participant(participantId);
+                return ParticipantId.from(participantId);
               }
             });
         // compute the mapping

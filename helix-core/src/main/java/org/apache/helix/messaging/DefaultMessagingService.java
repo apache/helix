@@ -33,8 +33,10 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
@@ -164,7 +166,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
           }
         }
         for (Map<String, String> map : matchedList) {
-          MessageId id = Id.message(UUID.randomUUID().toString());
+          MessageId id = MessageId.from(UUID.randomUUID().toString());
           Message newMessage = new Message(message.getRecord(), id);
           String srcInstanceName = _manager.getInstanceName();
           String tgtInstanceName = map.get("instanceName");
@@ -175,10 +177,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
           }
           newMessage.setSrcName(srcInstanceName);
           newMessage.setTgtName(tgtInstanceName);
-          newMessage.setResourceId(Id.resource(map.get("resourceName")));
-          newMessage.setPartitionId(Id.partition(map.get("partitionName")));
+          newMessage.setResourceId(ResourceId.from(map.get("resourceName")));
+          newMessage.setPartitionId(PartitionId.from(map.get("partitionName")));
           if (recipientCriteria.isSessionSpecific()) {
-            newMessage.setTgtSessionId(Id.session(sessionIdMap.get(tgtInstanceName)));
+            newMessage.setTgtSessionId(SessionId.from(sessionIdMap.get(tgtInstanceName)));
           }
           messages.add(newMessage);
         }
@@ -190,7 +192,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
   private List<Message> generateMessagesForController(Message message) {
     List<Message> messages = new ArrayList<Message>();
-    MessageId id = Id.message(UUID.randomUUID().toString());
+    MessageId id = MessageId.from(UUID.randomUUID().toString());
     Message newMessage = new Message(message.getRecord(), id);
     newMessage.setMsgId(id);
     newMessage.setSrcName(_manager.getInstanceName());
@@ -265,7 +267,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
   public void sendNopMessage() {
     if (_manager.isConnected()) {
       try {
-        Message nopMsg = new Message(MessageType.NO_OP, Id.message(UUID.randomUUID().toString()));
+        Message nopMsg =
+            new Message(MessageType.NO_OP, MessageId.from(UUID.randomUUID().toString()));
         nopMsg.setSrcName(_manager.getInstanceName());
 
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();

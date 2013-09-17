@@ -293,7 +293,7 @@ public class ParticipantAccessor {
     if (disabledPartitions != null) {
       disabledPartitionIdSet = new HashSet<PartitionId>();
       for (String partitionId : disabledPartitions) {
-        disabledPartitionIdSet.add(Id.partition(PartitionId.extractResourceId(partitionId),
+        disabledPartitionIdSet.add(PartitionId.from(PartitionId.extractResourceId(partitionId),
             PartitionId.stripResourceId(partitionId)));
       }
     }
@@ -311,7 +311,7 @@ public class ParticipantAccessor {
     if (instanceMsgMap != null) {
       for (String msgId : instanceMsgMap.keySet()) {
         Message message = instanceMsgMap.get(msgId);
-        msgMap.put(new MessageId(msgId), message);
+        msgMap.put(MessageId.from(msgId), message);
       }
     }
 
@@ -319,7 +319,7 @@ public class ParticipantAccessor {
     if (instanceCurStateMap != null) {
 
       for (String resourceName : instanceCurStateMap.keySet()) {
-        curStateMap.put(new ResourceId(resourceName), instanceCurStateMap.get(resourceName));
+        curStateMap.put(ResourceId.from(resourceName), instanceCurStateMap.get(resourceName));
       }
     }
 

@@ -22,14 +22,11 @@ package org.apache.helix.alerts;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.healthcheck.StatHealthReportProvider;
 import org.apache.log4j.Logger;
 
 public class AlertProcessor {

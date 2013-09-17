@@ -45,7 +45,6 @@ import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.model.ConfigScope;
@@ -484,7 +483,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       // update msgState to read
       message.setMsgState(MessageState.READ);
       message.setReadTimeStamp(new Date().getTime());
-      message.setExecuteSessionId(Id.session(changeContext.getManager().getSessionId()));
+      message.setExecuteSessionId(SessionId.from(changeContext.getManager().getSessionId()));
 
       _statusUpdateUtil.logInfo(message, HelixStateMachineEngine.class, "New Message", accessor);
 
@@ -504,7 +503,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           CurrentState metaCurState = new CurrentState(resourceId.stringify());
           metaCurState.setBucketSize(message.getBucketSize());
           metaCurState.setStateModelDefRef(message.getStateModelDef());
-          metaCurState.setSessionId(Id.session(sessionId));
+          metaCurState.setSessionId(SessionId.from(sessionId));
           metaCurState.setBatchMessageMode(message.getBatchMessageMode());
           String ftyName = message.getStateModelFactoryName();
           if (ftyName != null) {

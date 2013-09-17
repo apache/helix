@@ -5,7 +5,6 @@ import java.util.List;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.NamespacedConfig;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
@@ -55,7 +54,7 @@ public class ResourceConfiguration extends HelixProperty {
    * @return resource id
    */
   public ResourceId getResourceId() {
-    return Id.resource(getId());
+    return ResourceId.from(getId());
   }
 
   /**
@@ -85,7 +84,7 @@ public class ResourceConfiguration extends HelixProperty {
       return Lists.transform(partitionNames, new Function<String, PartitionId>() {
         @Override
         public PartitionId apply(String partitionName) {
-          return Id.partition(partitionName);
+          return PartitionId.from(partitionName);
         }
       });
     }
@@ -108,7 +107,7 @@ public class ResourceConfiguration extends HelixProperty {
    */
   public static ResourceConfiguration from(NamespacedConfig namespacedConfig) {
     ResourceConfiguration resourceConfiguration =
-        new ResourceConfiguration(Id.resource(namespacedConfig.getId()));
+        new ResourceConfiguration(ResourceId.from(namespacedConfig.getId()));
     resourceConfiguration.addNamespacedConfig(namespacedConfig);
     return resourceConfiguration;
   }

@@ -35,7 +35,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
@@ -46,13 +45,11 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class NewExternalViewComputeStage extends AbstractBaseStage {
@@ -118,8 +115,8 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
 
       // TODO fix this
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor =
-          (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+      // ClusterStatusMonitor clusterStatusMonitor =
+      // (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
       // IdealState idealState = cache._idealStateMap.get(view.getResourceName());
       // if (idealState != null) {
       // if (clusterStatusMonitor != null
@@ -158,7 +155,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
 
     // remove dead external-views
     for (String resourceName : curExtViews.keySet()) {
-      if (!resourceMap.containsKey(Id.resource(resourceName))) {
+      if (!resourceMap.containsKey(ResourceId.from(resourceName))) {
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
       }
     }
@@ -169,8 +166,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
 
   // TODO fix it
   private void updateScheduledTaskStatus(ResourceId resourceId, ExternalView ev,
-      HelixManager manager,
-      SchedulerTaskConfig schedulerTaskConfig) {
+      HelixManager manager, SchedulerTaskConfig schedulerTaskConfig) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 
@@ -194,7 +190,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
 
           // Update original scheduler message status update
           Message innerMessage =
-              schedulerTaskConfig.getInnerMessage(Id.partition(taskPartitionName));
+              schedulerTaskConfig.getInnerMessage(PartitionId.from(taskPartitionName));
           if (innerMessage != null) {
             String controllerMsgId = innerMessage.getControllerMessagId();
             if (controllerMsgId != null) {
@@ -229,7 +225,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
         StatusUpdate controllerStatusUpdate = accessor.getProperty(controllerStatusUpdateKey);
         for (String taskPartitionName : controllerMsgUpdates.get(controllerMsgId).keySet()) {
           Message innerMessage =
-              schedulerTaskConfig.getInnerMessage(Id.partition(taskPartitionName));
+              schedulerTaskConfig.getInnerMessage(PartitionId.from(taskPartitionName));
 
           Map<String, String> result = new HashMap<String, String>();
           result.put("Result", controllerMsgUpdates.get(controllerMsgId).get(taskPartitionName));

@@ -3,7 +3,6 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ClusterId;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.UserConfig;
 
 /*
@@ -52,7 +51,7 @@ public class ClusterConfiguration extends HelixProperty {
    */
   public static ClusterConfiguration from(UserConfig userConfig) {
     ClusterConfiguration clusterConfiguration =
-        new ClusterConfiguration(Id.cluster(userConfig.getId()));
+        new ClusterConfiguration(ClusterId.from(userConfig.getId()));
     clusterConfiguration.addNamespacedConfig(userConfig);
     return clusterConfiguration;
   }

@@ -29,11 +29,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.api.Id;
-import org.apache.helix.messaging.handling.HelixTaskExecutor;
-import org.apache.helix.messaging.handling.HelixTaskResult;
-import org.apache.helix.messaging.handling.MessageHandler;
-import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.testng.Assert;
@@ -197,8 +194,9 @@ public class TestHelixTaskExecutor {
 
     int nMsgs1 = 5;
     for (int i = 0; i < nMsgs1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session(manager.getSessionId()));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
@@ -208,8 +206,8 @@ public class TestHelixTaskExecutor {
     int nMsgs2 = 6;
     for (int i = 0; i < nMsgs2; i++) {
       Message msg =
-          new Message(factory2.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session(manager.getSessionId()));
+          new Message(factory2.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
@@ -249,8 +247,9 @@ public class TestHelixTaskExecutor {
 
     int nMsgs1 = 5;
     for (int i = 0; i < nMsgs1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session(manager.getSessionId()));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg);
@@ -259,8 +258,8 @@ public class TestHelixTaskExecutor {
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
       Message msg =
-          new Message(factory2.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session(manager.getSessionId()));
+          new Message(factory2.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg);
@@ -297,8 +296,9 @@ public class TestHelixTaskExecutor {
 
     int nMsgs1 = 5;
     for (int i = 0; i < nMsgs1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msg.setTgtName("");
       msgList.add(msg);
     }
@@ -306,8 +306,8 @@ public class TestHelixTaskExecutor {
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
       Message msg =
-          new Message(factory2.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("some other session id"));
+          new Message(factory2.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("some other session id"));
       msg.setTgtName("");
       msgList.add(msg);
     }
@@ -341,16 +341,17 @@ public class TestHelixTaskExecutor {
 
     int nMsgs1 = 5;
     for (int i = 0; i < nMsgs1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session(manager.getSessionId()));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setCorrelationId(UUID.randomUUID().toString());
       msgList.add(msg);
     }
     Message exceptionMsg =
-        new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-    exceptionMsg.setTgtSessionId(Id.session(manager.getSessionId()));
+        new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    exceptionMsg.setTgtSessionId(SessionId.from(manager.getSessionId()));
     exceptionMsg.setMsgSubType("EXCEPTION");
     exceptionMsg.setTgtName("Localhost_1123");
     exceptionMsg.setSrcName("127.101.1.23_2234");
@@ -381,8 +382,9 @@ public class TestHelixTaskExecutor {
 
     int nMsgs1 = 0;
     for (int i = 0; i < nMsgs1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg);
@@ -391,8 +393,9 @@ public class TestHelixTaskExecutor {
     List<Message> msgListToCancel = new ArrayList<Message>();
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msgList.add(msg);
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
@@ -437,8 +440,9 @@ public class TestHelixTaskExecutor {
     List<Message> msgList = new ArrayList<Message>();
 
     for (int i = 0; i < nMsg1; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msgList.add(msg);
@@ -446,8 +450,8 @@ public class TestHelixTaskExecutor {
 
     for (int i = 0; i < nMsg2; i++) {
       Message msg =
-          new Message(factory2.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+          new Message(factory2.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msgList.add(msg);
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
@@ -456,8 +460,8 @@ public class TestHelixTaskExecutor {
 
     for (int i = 0; i < nMsg3; i++) {
       Message msg =
-          new Message(factory3.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+          new Message(factory3.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msgList.add(msg);
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
@@ -493,8 +497,9 @@ public class TestHelixTaskExecutor {
     int nMsgs2 = 4;
     // Test the case in which retry = 0
     for (int i = 0; i < nMsgs2; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setExecutionTimeout((i + 1) * 600);
@@ -537,8 +542,9 @@ public class TestHelixTaskExecutor {
     // Test the case that the message are executed for the second time
     int nMsgs2 = 4;
     for (int i = 0; i < nMsgs2; i++) {
-      Message msg = new Message(factory.getMessageType(), Id.message(UUID.randomUUID().toString()));
-      msg.setTgtSessionId(Id.session("*"));
+      Message msg =
+          new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+      msg.setTgtSessionId(SessionId.from("*"));
       msg.setTgtName("Localhost_1123");
       msg.setSrcName("127.101.1.23_2234");
       msg.setExecutionTimeout((i + 1) * 600);

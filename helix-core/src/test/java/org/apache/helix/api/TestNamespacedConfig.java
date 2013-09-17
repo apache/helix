@@ -44,18 +44,18 @@ public class TestNamespacedConfig {
   @Test
   public void testUserConfigUpdates() {
     final String testKey = "testKey";
-    final String prefixedKey = UserConfig.class.getSimpleName() + "_testKey";
+    final String prefixedKey = UserConfig.class.getSimpleName() + "!testKey";
     final String testSimpleValue = "testValue";
     final List<String> testListValue = ImmutableList.of("testValue");
     final Map<String, String> testMapValue = ImmutableMap.of("testInnerKey", "testValue");
 
     // first, add Helix configuration to an InstanceConfig
-    ParticipantId participantId = Id.participant("testParticipant");
+    ParticipantId participantId = ParticipantId.from("testParticipant");
     InstanceConfig instanceConfig = new InstanceConfig(participantId);
     instanceConfig.setHostName("localhost");
 
     // now, add user configuration
-    UserConfig userConfig = new UserConfig(participantId);
+    UserConfig userConfig = new UserConfig(Scope.participant(participantId));
     userConfig.setSimpleField(testKey, testSimpleValue);
     userConfig.setListField(testKey, testListValue);
     userConfig.setMapField(testKey, testMapValue);
@@ -92,17 +92,17 @@ public class TestNamespacedConfig {
     // Set up the namespaced configs
     String userKey = "userKey";
     String userValue = "userValue";
-    ResourceId resourceId = Id.resource("testResource");
-    UserConfig userConfig = new UserConfig(resourceId);
+    ResourceId resourceId = ResourceId.from("testResource");
+    UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
     userConfig.setSimpleField(userKey, userValue);
-    PartitionId partitionId = Id.partition(resourceId, "0");
+    PartitionId partitionId = PartitionId.from(resourceId, "0");
     Partition partition = new Partition(partitionId);
     Map<ParticipantId, State> preferenceMap = new HashMap<ParticipantId, State>();
-    ParticipantId participantId = Id.participant("participant");
+    ParticipantId participantId = ParticipantId.from("participant");
     preferenceMap.put(participantId, State.from("ONLINE"));
     CustomRebalancerConfig rebalancerConfig =
         new CustomRebalancerConfig.Builder(resourceId).replicaCount(1).addPartition(partition)
-            .stateModelDef(Id.stateModelDef("OnlineOffline"))
+            .stateModelDef(StateModelDefId.from("OnlineOffline"))
             .preferenceMap(partitionId, preferenceMap).build();
 
     // copy in the configs

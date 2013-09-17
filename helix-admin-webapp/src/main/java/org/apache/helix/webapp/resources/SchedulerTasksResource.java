@@ -31,7 +31,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
@@ -153,12 +154,12 @@ public class SchedulerTasksResource extends Resource {
       }
 
       Message schedulerMessage =
-          new Message(MessageType.SCHEDULER_MSG, Id.message(UUID.randomUUID().toString()));
+          new Message(MessageType.SCHEDULER_MSG, MessageId.from(UUID.randomUUID().toString()));
       schedulerMessage.getRecord().getSimpleFields().put(CRITERIA, criteriaString);
 
       schedulerMessage.getRecord().getMapFields().put(MESSAGETEMPLATE, messageTemplate);
 
-      schedulerMessage.setTgtSessionId(Id.session(leader.getSessionId().stringify()));
+      schedulerMessage.setTgtSessionId(SessionId.from(leader.getSessionId().stringify()));
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       String taskQueueName =

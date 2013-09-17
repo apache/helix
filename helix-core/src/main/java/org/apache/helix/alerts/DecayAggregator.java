@@ -19,8 +19,6 @@ package org.apache.helix.alerts;
  * under the License.
  */
 
-import java.util.Iterator;
-
 import org.apache.helix.HelixException;
 
 public class DecayAggregator extends Aggregator {

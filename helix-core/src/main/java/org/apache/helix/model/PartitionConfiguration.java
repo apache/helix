@@ -2,7 +2,6 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.UserConfig;
 
@@ -52,7 +51,7 @@ public class PartitionConfiguration extends HelixProperty {
    */
   public static PartitionConfiguration from(UserConfig userConfig) {
     PartitionConfiguration partitionConfiguration =
-        new PartitionConfiguration(Id.partition(userConfig.getId()));
+        new PartitionConfiguration(PartitionId.from(userConfig.getId()));
     partitionConfiguration.addNamespacedConfig(userConfig);
     return partitionConfiguration;
   }

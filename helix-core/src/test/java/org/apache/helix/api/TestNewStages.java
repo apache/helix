@@ -81,7 +81,7 @@ public class TestNewStages extends ZkUnitTestBase {
       Map<ResourceId, CurrentState> curStateMap = participant.getCurrentStateMap();
       Assert.assertEquals(curStateMap.size(), 1);
 
-      ResourceId resourceId = new ResourceId("TestDB0");
+      ResourceId resourceId = ResourceId.from("TestDB0");
       Assert.assertTrue(curStateMap.containsKey(resourceId));
       CurrentState curState = curStateMap.get(resourceId);
       Map<PartitionId, State> partitionStateMap = curState.getPartitionStateMap();
@@ -91,7 +91,7 @@ public class TestNewStages extends ZkUnitTestBase {
     Map<ResourceId, Resource> resourceMap = cluster.getResourceMap();
     Assert.assertEquals(resourceMap.size(), 1);
 
-    ResourceId resourceId = new ResourceId("TestDB0");
+    ResourceId resourceId = ResourceId.from("TestDB0");
     Assert.assertTrue(resourceMap.containsKey(resourceId));
     Resource resource = resourceMap.get(resourceId);
     Assert
@@ -134,7 +134,7 @@ public class TestNewStages extends ZkUnitTestBase {
     NewBestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     Assert.assertNotNull(bestPossibleStateOutput);
-    ResourceId resourceId = new ResourceId("TestDB0");
+    ResourceId resourceId = ResourceId.from("TestDB0");
     ResourceAssignment assignment = bestPossibleStateOutput.getResourceAssignment(resourceId);
     Assert.assertNotNull(assignment);
     Resource resource = cluster.getResource(resourceId);
@@ -154,7 +154,7 @@ public class TestNewStages extends ZkUnitTestBase {
     ClusterAccessor clusterAccessor = new ClusterAccessor(_clusterId, _dataAccessor);
     Cluster cluster = clusterAccessor.readCluster();
 
-    ResourceId resourceId = new ResourceId("TestDB0");
+    ResourceId resourceId = ResourceId.from("TestDB0");
     Resource resource = cluster.getResource(resourceId);
     ResourceCurrentState currentStateOutput = new ResourceCurrentState();
     SemiAutoRebalancerConfig semiAutoConfig =
@@ -200,7 +200,7 @@ public class TestNewStages extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
-    _clusterId = new ClusterId(clusterName);
+    _clusterId = ClusterId.from(clusterName);
 
     System.out.println("START " + _clusterId + " at " + new Date(System.currentTimeMillis()));
 

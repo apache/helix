@@ -14,11 +14,11 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
-import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
@@ -104,16 +104,16 @@ public class TestSchedulerMsgUsingQueue extends ZkStandAloneCMTestBaseWithProper
     }
 
     Message schedulerMessage =
-        new Message(MessageType.SCHEDULER_MSG + "", Id.message(UUID.randomUUID().toString()));
-    schedulerMessage.setTgtSessionId(Id.session("*"));
+        new Message(MessageType.SCHEDULER_MSG + "", MessageId.from(UUID.randomUUID().toString()));
+    schedulerMessage.setTgtSessionId(SessionId.from("*"));
     schedulerMessage.setTgtName("CONTROLLER");
     // TODO: change it to "ADMIN" ?
     schedulerMessage.setSrcName("CONTROLLER");
     schedulerMessage.getRecord().setSimpleField(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, "TestSchedulerMsgUsingQueue");
     // Template for the individual message sent to each participant
-    Message msg = new Message(factory.getMessageType(), Id.message("Template"));
-    msg.setTgtSessionId(Id.session("*"));
+    Message msg = new Message(factory.getMessageType(), MessageId.from("Template"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
 
     // Criteria to send individual messages

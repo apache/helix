@@ -24,7 +24,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.ClusterId;
-import org.apache.helix.api.Id;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
@@ -43,7 +42,7 @@ public class NewReadClusterDataStage extends AbstractBaseStage {
       throw new StageException("HelixManager attribute value is null");
     }
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    ClusterId clusterId = Id.cluster(manager.getClusterName());
+    ClusterId clusterId = ClusterId.from(manager.getClusterName());
     ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor);
 
     Cluster cluster = clusterAccessor.readCluster();

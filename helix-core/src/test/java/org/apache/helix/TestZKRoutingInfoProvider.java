@@ -27,10 +27,9 @@ import java.util.Random;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.ExternalViewGenerator;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.CurrentState.CurrentStateProperty;
+import org.apache.helix.model.Message;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 

@@ -22,11 +22,11 @@ import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
  */
 
 public class StateModelDefId extends Id {
-  public static final StateModelDefId SchedulerTaskQueue = Id
-      .stateModelDef(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
+  public static final StateModelDefId SchedulerTaskQueue = StateModelDefId
+      .from(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
   private final String _id;
 
-  public StateModelDefId(String id) {
+  private StateModelDefId(String id) {
     _id = id;
   }
 
@@ -37,5 +37,17 @@ public class StateModelDefId extends Id {
 
   public boolean equalsIgnoreCase(StateModelDefId that) {
     return _id.equalsIgnoreCase(that._id);
+  }
+
+  /**
+   * Get a concrete state model definition id
+   * @param stateModelDefId string state model identifier
+   * @return StateModelDefId
+   */
+  public static StateModelDefId from(String stateModelDefId) {
+    if (stateModelDefId == null) {
+      return null;
+    }
+    return new StateModelDefId(stateModelDefId);
   }
 }

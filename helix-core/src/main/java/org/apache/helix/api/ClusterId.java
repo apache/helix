@@ -20,7 +20,7 @@ package org.apache.helix.api;
  */
 
 /**
- * 
+ * Identifies a cluster
  */
 public class ClusterId extends Id {
   final private String _id;
@@ -28,7 +28,7 @@ public class ClusterId extends Id {
   /**
    * @param id
    */
-  public ClusterId(String id) {
+  private ClusterId(String id) {
     _id = id;
   }
 
@@ -37,4 +37,15 @@ public class ClusterId extends Id {
     return _id;
   }
 
+  /**
+   * Get a concrete cluster id for a string name
+   * @param clusterId string cluster identifier
+   * @return ClusterId
+   */
+  public static ClusterId from(String clusterId) {
+    if (clusterId == null) {
+      return null;
+    }
+    return new ClusterId(clusterId);
+  }
 }

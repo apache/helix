@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
@@ -68,7 +67,7 @@ public class ResourceAssignment extends HelixProperty {
    * @return resource id
    */
   public ResourceId getResourceId() {
-    return Id.resource(getId());
+    return ResourceId.from(getId());
   }
 
   /**
@@ -78,7 +77,7 @@ public class ResourceAssignment extends HelixProperty {
   public List<PartitionId> getMappedPartitions() {
     ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
     for (String partitionName : _record.getMapFields().keySet()) {
-      builder.add(Id.partition(partitionName));
+      builder.add(PartitionId.from(partitionName));
     }
     return builder.build();
   }
@@ -104,7 +103,8 @@ public class ResourceAssignment extends HelixProperty {
     ImmutableMap.Builder<ParticipantId, State> builder =
         new ImmutableMap.Builder<ParticipantId, State>();
     for (String participantName : rawReplicaMap.keySet()) {
-      builder.put(Id.participant(participantName), State.from(rawReplicaMap.get(participantName)));
+      builder.put(ParticipantId.from(participantName),
+          State.from(rawReplicaMap.get(participantName)));
     }
     return builder.build();
   }
@@ -134,7 +134,7 @@ public class ResourceAssignment extends HelixProperty {
     }
     Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
     for (String participantName : rawMap.keySet()) {
-      replicaMap.put(Id.participant(participantName), State.from(rawMap.get(participantName)));
+      replicaMap.put(ParticipantId.from(participantName), State.from(rawMap.get(participantName)));
     }
     return replicaMap;
   }
@@ -152,7 +152,7 @@ public class ResourceAssignment extends HelixProperty {
     Map<PartitionId, Map<ParticipantId, State>> participantStateMaps =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
     for (String partitionId : rawMaps.keySet()) {
-      participantStateMaps.put(Id.partition(partitionId),
+      participantStateMaps.put(PartitionId.from(partitionId),
           replicaMapFromStringMap(rawMaps.get(partitionId)));
     }
     return participantStateMaps;

@@ -26,7 +26,7 @@ import org.apache.helix.Criteria;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -63,7 +63,7 @@ public class BootstrapHandler extends StateModelFactory<StateModel> {
       HelixManager manager = context.getManager();
       ClusterMessagingService messagingService = manager.getMessagingService();
       Message requestBackupUriRequest =
-          new Message(MessageType.USER_DEFINE_MSG, Id.message(UUID.randomUUID().toString()));
+          new Message(MessageType.USER_DEFINE_MSG, MessageId.from(UUID.randomUUID().toString()));
       requestBackupUriRequest.setMsgSubType(BootstrapProcess.REQUEST_BOOTSTRAP_URL);
       requestBackupUriRequest.setMsgState(MessageState.NEW);
       Criteria recipientCriteria = new Criteria();

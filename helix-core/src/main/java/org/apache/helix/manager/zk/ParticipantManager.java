@@ -19,9 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixException;

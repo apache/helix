@@ -24,21 +24,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
-import org.apache.helix.MessageListener;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -157,7 +149,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     testListener.Reset();
 
     CurrentState curState = new CurrentState("db-12345");
-    curState.setSessionId(Id.session("sessionId"));
+    curState.setSessionId(SessionId.from("sessionId"));
     curState.setStateModelDefRef("StateModelDef");
     accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
         curState.getId()), curState);
@@ -187,11 +179,11 @@ public class TestZKCallback extends ZkUnitTestBase {
 
     testListener.Reset();
     Message message =
-        new Message(MessageType.STATE_TRANSITION, Id.message(UUID.randomUUID().toString()));
-    message.setTgtSessionId(Id.session("*"));
-    message.setResourceId(Id.resource("testResource"));
-    message.setPartitionId(Id.partition("testPartitionKey"));
-    message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+        new Message(MessageType.STATE_TRANSITION, MessageId.from(UUID.randomUUID().toString()));
+    message.setTgtSessionId(SessionId.from("*"));
+    message.setResourceId(ResourceId.from("testResource"));
+    message.setPartitionId(PartitionId.from("testPartitionKey"));
+    message.setStateModelDef(StateModelDefId.from("MasterSlave"));
     message.setToState(State.from("toState"));
     message.setFromState(State.from("fromState"));
     message.setTgtName("testTarget");

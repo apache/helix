@@ -22,11 +22,7 @@ package org.apache.helix.alerts;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.helix.alerts.SumEachOperator;
-import org.apache.helix.alerts.SumOperator;
-import org.apache.helix.alerts.Tuple;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;

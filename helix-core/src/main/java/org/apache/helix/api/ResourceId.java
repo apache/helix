@@ -19,6 +19,9 @@ package org.apache.helix.api;
  * under the License.
  */
 
+/**
+ * Identifies a resource
+ */
 public class ResourceId extends Id {
   private final String _id;
 
@@ -27,7 +30,22 @@ public class ResourceId extends Id {
     return _id;
   }
 
-  public ResourceId(String id) {
+  /**
+   * @param id
+   */
+  private ResourceId(String id) {
     _id = id;
+  }
+
+  /**
+   * Get a concrete resource id for a string name
+   * @param resourceId string resource identifier
+   * @return ResourceId
+   */
+  public static ResourceId from(String resourceId) {
+    if (resourceId == null) {
+      return null;
+    }
+    return new ResourceId(resourceId);
   }
 }

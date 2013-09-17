@@ -19,7 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import org.apache.helix.ZNRecordBucketizer;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

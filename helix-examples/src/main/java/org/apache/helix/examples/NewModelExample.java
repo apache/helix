@@ -1,5 +1,6 @@
 package org.apache.helix.examples;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.BaseDataAccessor;
@@ -9,14 +10,16 @@ import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.ClusterConfig;
 import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.FullAutoRebalancerConfig;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantConfig;
 import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.Partition;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
-import org.apache.helix.api.StateModelDefinitionAccessor;
+import org.apache.helix.api.UserConfig;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -24,6 +27,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -52,27 +57,40 @@ public class NewModelExample {
       LOG.error("USAGE: NewModelExample zkAddress");
       System.exit(1);
     }
+
+    // get a state model definition
     StateModelDefinition lockUnlock = getLockUnlockModel();
+
+    // set up a resource with the state model definition
     ResourceConfig resource = getResource(lockUnlock);
+
+    // set up a participant
     ParticipantConfig participant = getParticipant();
-    ClusterId clusterId = Id.cluster("exampleCluster");
+
+    // cluster id should be unique
+    ClusterId clusterId = ClusterId.from("exampleCluster");
+
+    // a user config is an object that stores arbitrary keys and values for a scope
+    // in this case, the scope is the cluster with id clusterId
+    // this is optional
+    UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
+    userConfig.setIntField("sampleInt", 1);
+
+    // fully specify the cluster with a ClusterConfig
     ClusterConfig cluster =
         new ClusterConfig.Builder(clusterId).addResource(resource).addParticipant(participant)
-            .build();
+            .addStateModelDefinition(lockUnlock).userConfig(userConfig).build();
+
+    // set up accessors to work with Zookeeper-persisted data
     int timeOutInSec = Integer.parseInt(System.getProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "30"));
     ZkClient zkClient = new ZkClient(args[0], timeOutInSec * 1000);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterId.stringify(), baseDataAccessor);
-    persistStateModel(lockUnlock, accessor);
-    createCluster(cluster, accessor);
-  }
 
-  private static void persistStateModel(StateModelDefinition stateModelDef,
-      HelixDataAccessor helixAccessor) {
-    StateModelDefinitionAccessor accessor = new StateModelDefinitionAccessor(helixAccessor);
-    accessor.addStateModelDefinition(stateModelDef);
+    // create the cluster
+    createCluster(cluster, accessor);
   }
 
   private static void createCluster(ClusterConfig cluster, HelixDataAccessor helixAccessor) {
@@ -81,19 +99,49 @@ public class NewModelExample {
   }
 
   private static ParticipantConfig getParticipant() {
-    ParticipantId participantId = Id.participant("localhost_0");
+    // identify the participant
+    ParticipantId participantId = ParticipantId.from("localhost_0");
+
+    // create (optional) participant user config properties
+    UserConfig userConfig = new UserConfig(Scope.participant(participantId));
+    List<String> sampleList = Lists.newArrayList("elem1", "elem2");
+    userConfig.setListField("sampleList", sampleList);
+
+    // create the configuration of a new participant
     ParticipantConfig.Builder participantBuilder =
-        new ParticipantConfig.Builder(participantId).hostName("localhost").port(0);
+        new ParticipantConfig.Builder(participantId).hostName("localhost").port(0)
+            .userConfig(userConfig);
     return participantBuilder.build();
   }
 
   private static ResourceConfig getResource(StateModelDefinition stateModelDef) {
-    ResourceId resourceId = Id.resource("exampleResource");
+    // identify the resource
+    ResourceId resourceId = ResourceId.from("exampleResource");
+
+    // create a partition with no user-defined configuration
+    Partition partition1 = new Partition(PartitionId.from("partition1"));
+
+    // create a partition with (optional) user-defined configuration
+    PartitionId partition2Id = PartitionId.from("partition2");
+    UserConfig partition2Config = new UserConfig(Scope.partition(partition2Id));
+    partition2Config.setSimpleField("sampleString", "partition config");
+    Partition partition2 = new Partition(partition2Id, partition2Config);
+
+    // specify the rebalancer configuration
+    // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerConfig
+    // builder
     FullAutoRebalancerConfig.Builder rebalanceConfigBuilder =
-        new FullAutoRebalancerConfig.Builder(resourceId).replicaCount(3).addPartitions(5)
-            .stateModelDef(stateModelDef.getStateModelDefId());
+        new FullAutoRebalancerConfig.Builder(resourceId).replicaCount(3).addPartition(partition1)
+            .addPartition(partition2).stateModelDef(stateModelDef.getStateModelDefId());
+
+    // create (optional) user-defined configuration properties for the resource
+    UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
+    userConfig.setBooleanField("sampleBoolean", true);
+
+    // create the configuration for a new resource
     ResourceConfig.Builder resourceBuilder =
-        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalanceConfigBuilder.build());
+        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalanceConfigBuilder.build())
+            .userConfig(userConfig);
     return resourceBuilder.build();
   }
 
@@ -101,7 +149,7 @@ public class NewModelExample {
     final State LOCKED = State.from("LOCKED");
     final State RELEASED = State.from("RELEASED");
     final State DROPPED = State.from("DROPPED");
-    StateModelDefId stateModelId = Id.stateModelDef("LockUnlock");
+    StateModelDefId stateModelId = StateModelDefId.from("LockUnlock");
     StateModelDefinition.Builder stateModelBuilder =
         new StateModelDefinition.Builder(stateModelId).addState(LOCKED, 0).addState(RELEASED, 1)
             .addState(DROPPED, 2).addTransition(RELEASED, LOCKED, 0)

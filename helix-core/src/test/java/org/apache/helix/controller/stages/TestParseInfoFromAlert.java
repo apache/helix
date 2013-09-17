@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.stages.StatsAggregationStage;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;

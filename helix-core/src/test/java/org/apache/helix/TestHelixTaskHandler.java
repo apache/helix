@@ -25,8 +25,12 @@ import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.Mocks.MockStateModel;
 import org.apache.helix.Mocks.MockStateModelAnnotated;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTask;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
@@ -44,17 +48,17 @@ public class TestHelixTaskHandler {
   public void testInvocation() throws Exception {
     HelixTaskExecutor executor = new HelixTaskExecutor();
     System.out.println("START TestCMTaskHandler.testInvocation()");
-    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("Some unique id"));
+    Message message = new Message(MessageType.STATE_TRANSITION, MessageId.from("Some unique id"));
 
     message.setSrcName("cm-instance-0");
-    message.setTgtSessionId(Id.session("1234"));
+    message.setTgtSessionId(SessionId.from("1234"));
     message.setFromState(State.from("Offline"));
     message.setToState(State.from("Slave"));
-    message.setPartitionId(Id.partition("TestDB_0"));
-    message.setMsgId(Id.message("Some unique message id"));
-    message.setResourceId(Id.resource("TestDB"));
+    message.setPartitionId(PartitionId.from("TestDB_0"));
+    message.setMsgId(MessageId.from("Some unique message id"));
+    message.setResourceId(ResourceId.from("TestDB"));
     message.setTgtName("localhost");
-    message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+    message.setStateModelDef(StateModelDefId.from("MasterSlave"));
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     MockStateModel stateModel = new MockStateModel();
     NotificationContext context;
@@ -67,7 +71,7 @@ public class TestHelixTaskHandler {
 
     context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
-    currentStateDelta.setState(Id.partition("TestDB_0"), State.from("OFFLINE"));
+    currentStateDelta.setState(PartitionId.from("TestDB_0"), State.from("OFFLINE"));
 
     HelixStateTransitionHandler stHandler =
         new HelixStateTransitionHandler(null, stateModel, message, context, currentStateDelta);
@@ -84,16 +88,16 @@ public class TestHelixTaskHandler {
     System.out.println("START TestCMTaskHandler.testInvocationAnnotated() at "
         + new Date(System.currentTimeMillis()));
     HelixTaskExecutor executor = new HelixTaskExecutor();
-    Message message = new Message(MessageType.STATE_TRANSITION, Id.message("Some unique id"));
+    Message message = new Message(MessageType.STATE_TRANSITION, MessageId.from("Some unique id"));
     message.setSrcName("cm-instance-0");
-    message.setTgtSessionId(Id.session("1234"));
+    message.setTgtSessionId(SessionId.from("1234"));
     message.setFromState(State.from("Offline"));
     message.setToState(State.from("Slave"));
-    message.setPartitionId(Id.partition("TestDB_0"));
-    message.setMsgId(Id.message("Some unique message id"));
-    message.setResourceId(Id.resource("TestDB"));
+    message.setPartitionId(PartitionId.from("TestDB_0"));
+    message.setMsgId(MessageId.from("Some unique message id"));
+    message.setResourceId(ResourceId.from("TestDB"));
     message.setTgtName("localhost");
-    message.setStateModelDef(Id.stateModelDef("MasterSlave"));
+    message.setStateModelDef(StateModelDefId.from("MasterSlave"));
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     MockStateModelAnnotated stateModel = new MockStateModelAnnotated();
     NotificationContext context;
@@ -109,7 +113,7 @@ public class TestHelixTaskHandler {
     context = new NotificationContext(manager);
 
     CurrentState currentStateDelta = new CurrentState("TestDB");
-    currentStateDelta.setState(Id.partition("TestDB_0"), State.from("OFFLINE"));
+    currentStateDelta.setState(PartitionId.from("TestDB_0"), State.from("OFFLINE"));
 
     StateModelFactory<MockStateModelAnnotated> stateModelFactory =
         new StateModelFactory<MockStateModelAnnotated>() {

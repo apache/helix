@@ -24,8 +24,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.PropertyType;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.AlertStatus;
 import org.apache.helix.model.Alerts;

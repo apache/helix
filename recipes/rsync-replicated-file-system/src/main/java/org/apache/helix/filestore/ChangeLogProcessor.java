@@ -19,16 +19,10 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import org.apache.commons.io.FileUtils;
 
 /**
  * Processes the change log and invokes rsync for every change on the remote

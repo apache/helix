@@ -27,23 +27,23 @@ import org.apache.helix.HelixProperty;
 public class UserConfig extends NamespacedConfig {
   /**
    * Instantiate a UserConfig. It is intended for use only by entities that can be identified
-   * @param id id object
+   * @param scope scope of the configuration, e.g. cluster, resource, partition, participant, etc
    */
-  public UserConfig(Id id) {
-    super(id, UserConfig.class.getSimpleName());
+  public UserConfig(Scope<?> scope) {
+    super(scope, UserConfig.class.getSimpleName());
   }
 
   /**
    * Instantiate a UserConfig from an existing HelixProperty
    * @param property property wrapping a configuration
    */
-  public UserConfig(HelixProperty property) {
+  private UserConfig(HelixProperty property) {
     super(property, UserConfig.class.getSimpleName());
   }
 
   /**
    * Get a UserConfig that filters out the user-specific configurations in a property
-   * @param property the property to check
+   * @param property the property to extract from
    * @return UserConfig
    */
   public static UserConfig from(HelixProperty property) {

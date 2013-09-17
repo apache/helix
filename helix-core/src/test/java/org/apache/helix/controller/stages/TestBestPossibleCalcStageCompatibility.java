@@ -26,8 +26,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
@@ -70,10 +70,10 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Map<ParticipantId, State> replicaMap =
-          output.getResourceAssignment(Id.resource("testResourceName")).getReplicaMap(
-              Id.partition("testResourceName_" + p));
+          output.getResourceAssignment(ResourceId.from("testResourceName")).getReplicaMap(
+              PartitionId.from("testResourceName_" + p));
       AssertJUnit.assertEquals(State.from("MASTER"),
-          replicaMap.get(Id.participant("localhost_" + (p + 1) % 5)));
+          replicaMap.get(ParticipantId.from("localhost_" + (p + 1) % 5)));
     }
     System.out
         .println("END TestBestPossibleStateCalcStageCompatibility_testSemiAutoModeCompatibility at "
@@ -108,10 +108,10 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Map<ParticipantId, State> replicaMap =
-          output.getResourceAssignment(Id.resource("testResourceName")).getReplicaMap(
-              Id.partition("testResourceName_" + p));
+          output.getResourceAssignment(ResourceId.from("testResourceName")).getReplicaMap(
+              PartitionId.from("testResourceName_" + p));
       AssertJUnit.assertEquals(State.from("MASTER"),
-          replicaMap.get(Id.participant("localhost_" + (p + 1) % 5)));
+          replicaMap.get(ParticipantId.from("localhost_" + (p + 1) % 5)));
     }
     System.out
         .println("END TestBestPossibleStateCalcStageCompatibility_testCustomModeCompatibility at "
@@ -136,9 +136,9 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
         }
         idealState.setPreferenceList(resourceName + "_" + p, value);
         Map<ParticipantId, State> preferenceMap = new HashMap<ParticipantId, State>();
-        preferenceMap.put(Id.participant("localhost_" + (p + 1) % 5), State.from("MASTER"));
+        preferenceMap.put(ParticipantId.from("localhost_" + (p + 1) % 5), State.from("MASTER"));
         idealState.setParticipantStateMap(
-            Id.partition(Id.resource(resourceName), Integer.toString(p)), preferenceMap);
+            PartitionId.from(ResourceId.from(resourceName), Integer.toString(p)), preferenceMap);
       }
       idealState.setStateModelDefRef("MasterSlave");
       idealState.setIdealStateMode(mode.toString());

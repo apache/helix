@@ -19,9 +19,7 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import java.io.File;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -41,44 +39,33 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ClusterAccessor;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
-import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.NewBestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.NewBestPossibleStateOutput;
 import org.apache.helix.controller.stages.NewCurrentStateComputationStage;
 import org.apache.helix.controller.stages.NewResourceComputationStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ResourceAssignmentBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.store.PropertyJsonComparator;
-import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -266,7 +253,7 @@ public class ClusterStateVerifier {
         }
       }
 
-      ClusterAccessor clusterAccessor = new ClusterAccessor(Id.cluster(clusterName), accessor);
+      ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
       Cluster cluster = clusterAccessor.readCluster();
       // calculate best possible state
       NewBestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cluster);
@@ -274,7 +261,7 @@ public class ClusterStateVerifier {
       // set error states
       if (errStates != null) {
         for (String resourceName : errStates.keySet()) {
-          ResourceId resourceId = Id.resource(resourceName);
+          ResourceId resourceId = ResourceId.from(resourceName);
           Map<String, String> partErrStates = errStates.get(resourceName);
           ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
 
@@ -286,8 +273,8 @@ public class ClusterStateVerifier {
 
           for (String partitionName : partErrStates.keySet()) {
             String instanceName = partErrStates.get(partitionName);
-            PartitionId partitionId = Id.partition(partitionName);
-            ParticipantId participantId = Id.participant(instanceName);
+            PartitionId partitionId = PartitionId.from(partitionName);
+            ParticipantId participantId = ParticipantId.from(instanceName);
             raBuilder.addAssignment(partitionId, participantId,
                 new State(HelixDefinedState.ERROR.toString()));
           }
@@ -308,7 +295,7 @@ public class ClusterStateVerifier {
         // step 0: remove empty map and DROPPED state from best possible state
         Map<String, Map<String, String>> bpStateMap =
             ResourceAssignment.stringMapsFromReplicaMaps(bestPossOutput.getResourceAssignment(
-                Id.resource(resourceName)).getResourceMap());
+                ResourceId.from(resourceName)).getResourceMap());
         Iterator<Entry<String, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
         while (iter.hasNext()) {
           Map.Entry<String, Map<String, String>> entry = iter.next();
@@ -333,8 +320,8 @@ public class ClusterStateVerifier {
         // step 1: externalView and bestPossibleState has equal size
         int extViewSize = extView.getRecord().getMapFields().size();
         int bestPossStateSize =
-            bestPossOutput.getResourceAssignment(Id.resource(resourceName)).getMappedPartitions()
-                .size();
+            bestPossOutput.getResourceAssignment(ResourceId.from(resourceName))
+                .getMappedPartitions().size();
         if (extViewSize != bestPossStateSize) {
           LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
               + bestPossStateSize + ") for resource: " + resourceName);
@@ -353,7 +340,7 @@ public class ClusterStateVerifier {
           Map<String, String> evInstanceStateMap = extView.getRecord().getMapField(partition);
           Map<String, String> bpInstanceStateMap =
               ResourceAssignment.stringMapFromReplicaMap(bestPossOutput.getResourceAssignment(
-                  Id.resource(resourceName)).getReplicaMap(Id.partition(partition)));
+                  ResourceId.from(resourceName)).getReplicaMap(PartitionId.from(partition)));
 
           boolean result =
               ClusterStateVerifier.<String, String> compareMap(evInstanceStateMap,

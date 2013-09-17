@@ -31,7 +31,6 @@ import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
@@ -96,7 +95,7 @@ public class NewTaskAssignmentStage extends AbstractBaseStage {
       ResourceId resourceId = message.getResourceId();
       ResourceConfig resource = resourceMap.get(resourceId);
 
-      ParticipantId participantId = Id.participant(message.getTgtName());
+      ParticipantId participantId = ParticipantId.from(message.getTgtName());
       Participant liveParticipant = liveParticipantMap.get(participantId);
       String participantVersion = null;
       if (liveParticipant != null) {

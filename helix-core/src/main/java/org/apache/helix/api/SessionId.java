@@ -22,7 +22,7 @@ package org.apache.helix.api;
 public class SessionId extends Id {
   private final String _id;
 
-  public SessionId(String id) {
+  private SessionId(String id) {
     _id = id;
   }
 
@@ -31,4 +31,15 @@ public class SessionId extends Id {
     return _id;
   }
 
+  /**
+   * Get a concrete session id
+   * @param sessionId string session identifier
+   * @return SessionId
+   */
+  public static SessionId from(String sessionId) {
+    if (sessionId == null) {
+      return null;
+    }
+    return new SessionId(sessionId);
+  }
 }

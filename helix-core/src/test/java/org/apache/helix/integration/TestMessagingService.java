@@ -26,8 +26,8 @@ import org.apache.helix.Criteria;
 import org.apache.helix.Criteria.DataSource;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -92,11 +92,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
         factory.getMessageType(), factory);
 
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -187,12 +187,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     _startCMResultMap.get(hostSrc)._manager.getMessagingService().registerMessageHandlerFactory(
         factory.getMessageType(), factory);
 
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -251,12 +251,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
         factory.getMessageType(), factory);
 
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -294,12 +294,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
       _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
     }
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -363,12 +363,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
       _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
     }
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -399,12 +399,12 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
       _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
     }
-    MessageId msgId = Id.message(new UUID(123, 456).toString());
+    MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(MessageType.CONTROLLER_MSG, msgId);
     msg.setMsgId(msgId);
     msg.setSrcName(hostSrc);
 
-    msg.setTgtSessionId(Id.session("*"));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
     String para = "Testing messaging para";
     msg.getRecord().setSimpleField("TestMessagingPara", para);
@@ -424,7 +424,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
         .indexOf(hostSrc) != -1);
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == 1);
 
-    msgId = Id.message(UUID.randomUUID().toString());
+    msgId = MessageId.from(UUID.randomUUID().toString());
     msg.setMsgId(msgId);
     cr.setPartition("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback();
@@ -437,7 +437,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     AssertJUnit.assertTrue(callback2.getMessageReplied().size() == 1);
 
-    msgId = Id.message(UUID.randomUUID().toString());
+    msgId = MessageId.from(UUID.randomUUID().toString());
     msg.setMsgId(msgId);
     cr.setPartitionState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback();

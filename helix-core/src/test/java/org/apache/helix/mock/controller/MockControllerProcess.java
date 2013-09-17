@@ -22,7 +22,7 @@ package org.apache.helix.mock.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 
@@ -54,13 +54,13 @@ public class MockControllerProcess {
 
     // Messages to initiate offline->slave->master->slave transitions
 
-    storageController.sendMessage(Id.message("TestMessageId1"), "localhost_8900", "Offline",
+    storageController.sendMessage(MessageId.from("TestMessageId1"), "localhost_8900", "Offline",
         "Slave", "EspressoDB.partition-0", 0);
     Thread.sleep(10000);
-    storageController.sendMessage(Id.message("TestMessageId2"), "localhost_8900", "Slave",
+    storageController.sendMessage(MessageId.from("TestMessageId2"), "localhost_8900", "Slave",
         "Master", "EspressoDB.partition-0", 0);
     Thread.sleep(10000);
-    storageController.sendMessage(Id.message("TestMessageId3"), "localhost_8900", "Master",
+    storageController.sendMessage(MessageId.from("TestMessageId3"), "localhost_8900", "Master",
         "Slave", "EspressoDB.partition-0", 0);
     Thread.sleep(10000);
 
@@ -68,7 +68,7 @@ public class MockControllerProcess {
     // another relay
     relayController.createExternalView(instanceNames, 10, 2, "EspressoDB", 10);
 
-    storageController.sendMessage(Id.message("TestMessageId4"), "localhost_8900", "Slave",
+    storageController.sendMessage(MessageId.from("TestMessageId4"), "localhost_8900", "Slave",
         "Offline", "EspressoDB.partition-0", 0);
     Thread.sleep(10000);
   }

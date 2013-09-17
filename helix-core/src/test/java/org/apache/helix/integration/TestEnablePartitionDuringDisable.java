@@ -24,7 +24,6 @@ import java.util.Date;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
 import org.apache.helix.mock.controller.ClusterController;
@@ -55,7 +54,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
       PartitionId partitionId = message.getPartitionId();
       State fromState = message.getFromState();
       State toState = message.getToState();
-      if (instance.equals("localhost_12919") && partitionId.equals(Id.partition("TestDB0_0"))) {
+      if (instance.equals("localhost_12919") && partitionId.equals(PartitionId.from("TestDB0_0"))) {
         if (fromState.equals("SLAVE") && toState.equals("OFFLINE")) {
           slaveToOfflineCnt++;
 

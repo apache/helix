@@ -24,7 +24,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
-@SuppressWarnings("rawtypes")
 public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> {
   int _delay;
 

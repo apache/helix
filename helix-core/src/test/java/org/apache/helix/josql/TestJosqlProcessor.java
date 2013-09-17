@@ -31,7 +31,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
-import org.apache.helix.josql.ClusterJosqlQueryProcessor;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.testng.Assert;
 import org.testng.annotations.Test;

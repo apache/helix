@@ -34,15 +34,16 @@ import com.google.common.collect.Maps;
  * Generic configuration of Helix components prefixed with a namespace
  */
 public abstract class NamespacedConfig extends ZNRecord {
+  private static final char PREFIX_CHAR = '!';
   private final String _prefix;
 
   /**
    * Instantiate a NamespacedConfig. It is intended for use only by entities that can be identified
-   * @param id id object
+   * @param scope scope object
    */
-  public NamespacedConfig(Id id, String prefix) {
-    super(id.stringify());
-    _prefix = prefix + '_';
+  public NamespacedConfig(Scope<?> scope, String prefix) {
+    super(scope.getScopedId().stringify());
+    _prefix = prefix + PREFIX_CHAR;
   }
 
   /**
@@ -51,7 +52,7 @@ public abstract class NamespacedConfig extends ZNRecord {
    */
   public NamespacedConfig(HelixProperty property, String prefix) {
     super(property.getRecord());
-    _prefix = prefix + '_';
+    _prefix = prefix + PREFIX_CHAR;
     filterNonPrefixedFields();
   }
 
@@ -61,7 +62,7 @@ public abstract class NamespacedConfig extends ZNRecord {
    */
   public NamespacedConfig(NamespacedConfig config) {
     super(config.getId());
-    _prefix = config.getPrefix() + '_';
+    _prefix = config.getPrefix() + PREFIX_CHAR;
     if (config.getRawPayload() != null && config.getRawPayload().length > 0) {
       setRawPayload(config.getRawPayload());
       setPayloadSerializer(config.getPayloadSerializer());
@@ -151,7 +152,7 @@ public abstract class NamespacedConfig extends ZNRecord {
    * @return string prefix, not including the underscore
    */
   public String getPrefix() {
-    return _prefix.substring(0, _prefix.indexOf('_'));
+    return _prefix.substring(0, _prefix.indexOf(PREFIX_CHAR));
   }
 
   /**

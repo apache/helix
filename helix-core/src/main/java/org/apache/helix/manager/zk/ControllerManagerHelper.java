@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;

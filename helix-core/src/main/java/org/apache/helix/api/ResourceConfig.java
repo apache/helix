@@ -151,7 +151,7 @@ public class ResourceConfig {
       _id = id;
       _bucketSize = 0;
       _batchMessageMode = false;
-      _userConfig = new UserConfig(id);
+      _userConfig = new UserConfig(Scope.resource(id));
     }
 
     /**

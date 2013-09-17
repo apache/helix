@@ -26,7 +26,6 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
@@ -89,7 +88,7 @@ public class CurrentState extends HelixProperty {
    * @return ResourceId
    */
   public ResourceId getResourceId() {
-    return Id.resource(getResourceName());
+    return ResourceId.from(getResourceName());
   }
 
   /**
@@ -117,7 +116,7 @@ public class CurrentState extends HelixProperty {
     for (String partitionName : _record.getMapFields().keySet()) {
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
-        map.put(Id.partition(partitionName),
+        map.put(PartitionId.from(partitionName),
             State.from(stateMap.get(CurrentStateProperty.CURRENT_STATE.toString())));
       }
     }
@@ -129,7 +128,7 @@ public class CurrentState extends HelixProperty {
    * @return session identifier
    */
   public SessionId getSessionId() {
-    return Id.session(_record.getSimpleField(CurrentStateProperty.SESSION_ID.toString()));
+    return SessionId.from(_record.getSimpleField(CurrentStateProperty.SESSION_ID.toString()));
   }
 
   /**
@@ -193,7 +192,7 @@ public class CurrentState extends HelixProperty {
    * @return an identifier of the state model
    */
   public StateModelDefId getStateModelDefId() {
-    return Id.stateModelDef(getStateModelDefRef());
+    return StateModelDefId.from(getStateModelDefRef());
   }
 
   /**
@@ -279,7 +278,7 @@ public class CurrentState extends HelixProperty {
     }
     Map<PartitionId, State> partitionStateMap = new HashMap<PartitionId, State>();
     for (String partitionId : rawMap.keySet()) {
-      partitionStateMap.put(Id.partition(partitionId), State.from(rawMap.get(partitionId)));
+      partitionStateMap.put(PartitionId.from(partitionId), State.from(rawMap.get(partitionId)));
     }
     return partitionStateMap;
   }

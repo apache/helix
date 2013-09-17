@@ -31,7 +31,6 @@ import java.util.Set;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.FullAutoRebalancerConfig;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
@@ -148,7 +147,7 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
           Lists.transform(rawPreferenceList, new Function<String, ParticipantId>() {
             @Override
             public ParticipantId apply(String participantName) {
-              return Id.participant(participantName);
+              return ParticipantId.from(participantName);
             }
           });
       preferenceList =

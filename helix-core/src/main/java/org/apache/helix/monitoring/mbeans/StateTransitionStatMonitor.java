@@ -22,7 +22,6 @@ package org.apache.helix.monitoring.mbeans;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.commons.math.stat.descriptive.DescriptiveStatistics;
 import org.apache.helix.monitoring.StatCollector;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;

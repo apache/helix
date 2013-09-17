@@ -36,14 +36,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
 
 /**
@@ -284,7 +283,7 @@ public class StatusUpdateUtil {
    * @param additional
    *          info the additional debug information
    */
-  public ZNRecord createMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
+  public ZNRecord createMessageStatusUpdateRecord(Message message, Level level, Class<?> classInfo,
       String additionalInfo) {
     ZNRecord result = createEmptyStatusUpdateRecord(getStatusUpdateRecordName(message));
     Map<String, String> contentMap = new TreeMap<String, String>();
@@ -327,7 +326,7 @@ public class StatusUpdateUtil {
    * @param accessor
    *          the zookeeper data accessor that writes the status update to zookeeper
    */
-  public void logMessageStatusUpdateRecord(Message message, Level level, Class classInfo,
+  public void logMessageStatusUpdateRecord(Message message, Level level, Class<?> classInfo,
       String additionalInfo, HelixDataAccessor accessor) {
     try {
       ZNRecord record = createMessageStatusUpdateRecord(message, level, classInfo, additionalInfo);
@@ -337,12 +336,12 @@ public class StatusUpdateUtil {
     }
   }
 
-  public void logError(Message message, Class classInfo, String additionalInfo,
+  public void logError(Message message, Class<?> classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_ERROR, classInfo, additionalInfo, accessor);
   }
 
-  public void logError(Message message, Class classInfo, Exception e, String additionalInfo,
+  public void logError(Message message, Class<?> classInfo, Exception e, String additionalInfo,
       HelixDataAccessor accessor) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
@@ -351,12 +350,12 @@ public class StatusUpdateUtil {
         additionalInfo + sw.toString(), accessor);
   }
 
-  public void logInfo(Message message, Class classInfo, String additionalInfo,
+  public void logInfo(Message message, Class<?> classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_INFO, classInfo, additionalInfo, accessor);
   }
 
-  public void logWarning(Message message, Class classInfo, String additionalInfo,
+  public void logWarning(Message message, Class<?> classInfo, String additionalInfo,
       HelixDataAccessor accessor) {
     logMessageStatusUpdateRecord(message, Level.HELIX_WARNING, classInfo, additionalInfo, accessor);
   }
@@ -382,7 +381,7 @@ public class StatusUpdateUtil {
       sessionId = message.getTgtSessionId();
     }
     if (sessionId == null) {
-      sessionId = Id.session("*");
+      sessionId = SessionId.from("*");
     }
 
     Builder keyBuilder = accessor.keyBuilder();
@@ -479,7 +478,7 @@ public class StatusUpdateUtil {
       sessionId = message.getTgtSessionId();
     }
     if (sessionId == null) {
-      sessionId = Id.session("*");
+      sessionId = SessionId.from("*");
     }
 
     Builder keyBuilder = accessor.keyBuilder();

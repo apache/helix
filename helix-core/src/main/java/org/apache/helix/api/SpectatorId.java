@@ -22,7 +22,7 @@ package org.apache.helix.api;
 public class SpectatorId extends Id {
   private final String _id;
 
-  public SpectatorId(String id) {
+  private SpectatorId(String id) {
     _id = id;
   }
 

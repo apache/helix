@@ -22,7 +22,6 @@ package org.apache.helix.util;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.helix.HelixException;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.zookeeper.ZooKeeper.States;

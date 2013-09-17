@@ -24,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
@@ -32,10 +31,10 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Logger;
 
 /**
@@ -90,12 +89,11 @@ public class NewResourceComputationStage extends AbstractBaseStage {
           if (!rebalancerConfigBuilderMap.containsKey(resourceId)) {
             RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
                 new RebalancerConfig.SimpleBuilder(resourceId);
-            rebalancerConfigBuilder.stateModelDefId(currentState.getStateModelDefId());
-            rebalancerConfigBuilder.stateModelFactoryId(Id.stateModelFactory(currentState
+            rebalancerConfigBuilder.stateModelDef(currentState.getStateModelDefId());
+            rebalancerConfigBuilder.stateModelFactoryId(StateModelFactoryId.from(currentState
                 .getStateModelFactoryName()));
             rebalancerConfigBuilderMap.put(resourceId, rebalancerConfigBuilder);
           }
-
           ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
           resourceBuilder.bucketSize(currentState.getBucketSize());
           resourceBuilder.batchMessageMode(currentState.getBatchMessageMode());
@@ -104,7 +102,8 @@ public class NewResourceComputationStage extends AbstractBaseStage {
 
         // add all partitions in current-state
         if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
-          RebalancerConfig.SimpleBuilder rebalancerConfigBuilder = rebalancerConfigBuilderMap.get(resourceId);
+          RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
+              rebalancerConfigBuilderMap.get(resourceId);
           for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
             rebalancerConfigBuilder.addPartition(new Partition(partitionId));
           }
@@ -118,7 +117,8 @@ public class NewResourceComputationStage extends AbstractBaseStage {
     for (ResourceId resourceId : resourceBuilderMap.keySet()) {
       ResourceConfig.Builder resourceConfigBuilder = resourceBuilderMap.get(resourceId);
       if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
-        RebalancerConfig.SimpleBuilder rebalancerConfigBuilder = rebalancerConfigBuilderMap.get(resourceId);
+        RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
+            rebalancerConfigBuilderMap.get(resourceId);
         resourceConfigBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
       }
       resourceMap.put(resourceId, resourceConfigBuilder.build());

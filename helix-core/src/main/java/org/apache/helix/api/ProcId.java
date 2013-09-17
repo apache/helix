@@ -23,7 +23,7 @@ public class ProcId extends Id {
 
   private final String _id;
 
-  public ProcId(String id) {
+  private ProcId(String id) {
     _id = id;
   }
 
@@ -32,4 +32,15 @@ public class ProcId extends Id {
     return _id;
   }
 
+  /**
+   * Get a concrete process id
+   * @param processId string process identifier (e.g. pid@host)
+   * @return ProcId
+   */
+  public static ProcId from(String processId) {
+    if (processId == null) {
+      return null;
+    }
+    return new ProcId(processId);
+  }
 }

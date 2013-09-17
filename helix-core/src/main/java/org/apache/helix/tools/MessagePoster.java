@@ -22,8 +22,9 @@ package org.apache.helix.tools;
 import java.util.UUID;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
@@ -40,7 +41,7 @@ public class MessagePoster {
     String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
     client.delete(path);
     ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
-    message.setTgtSessionId(Id.session(record.getSimpleField(
+    message.setTgtSessionId(SessionId.from(record.getSimpleField(
         LiveInstanceProperty.SESSION_ID.toString()).toString()));
     message.setTgtName(record.getId());
     // System.out.println(message);
@@ -49,12 +50,12 @@ public class MessagePoster {
 
   public void postFaultInjectionMessage(String zkServer, String clusterName, String instanceName,
       String payloadString, String partition) {
-    Message message = new Message("FaultInjection", Id.message(UUID.randomUUID().toString()));
+    Message message = new Message("FaultInjection", MessageId.from(UUID.randomUUID().toString()));
     if (payloadString != null) {
       message.getRecord().setSimpleField("faultType", payloadString);
     }
     if (partition != null) {
-      message.setPartitionId(Id.partition(partition));
+      message.setPartitionId(PartitionId.from(partition));
     }
 
     post(zkServer, message, clusterName, instanceName);
@@ -62,7 +63,7 @@ public class MessagePoster {
 
   public void postTestMessage(String zkServer, String clusterName, String instanceName) {
     String msgSrc = "cm-instance-0";
-    MessageId msgId = Id.message("TestMessageId-2");
+    MessageId msgId = MessageId.from("TestMessageId-2");
 
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
     message.setMsgId(msgId);
@@ -71,7 +72,7 @@ public class MessagePoster {
     message.setMsgState(MessageState.NEW);
     message.setFromState(State.from("Slave"));
     message.setToState(State.from("Master"));
-    message.setPartitionId(Id.partition("EspressoDB.partition-0." + instanceName));
+    message.setPartitionId(PartitionId.from("EspressoDB.partition-0." + instanceName));
 
     post(zkServer, message, clusterName, instanceName);
   }

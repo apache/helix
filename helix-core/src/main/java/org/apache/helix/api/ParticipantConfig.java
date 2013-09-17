@@ -142,7 +142,7 @@ public class ParticipantConfig {
       _disabledPartitions = new HashSet<PartitionId>();
       _tags = new HashSet<String>();
       _isEnabled = true;
-      _userConfig = new UserConfig(id);
+      _userConfig = new UserConfig(Scope.participant(id));
     }
 
     /**

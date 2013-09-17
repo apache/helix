@@ -21,16 +21,16 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
+import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 
 public class TestZkStateChangeListener extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   @Test
   public void testDisconnectHistory() throws Exception {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult controllerResult = _startCMResultMap.get(controllerName);
-    ZKHelixManager controller = (ZKHelixManager) controllerResult._manager;
+    ZKHelixManager controller = controllerResult._manager;
     ZkStateChangeListener listener1 = new ZkStateChangeListener(controller, 5000, 10);
     // 11 disconnects in 5 sec
     for (int i = 0; i < 11; i++) {
@@ -45,7 +45,7 @@ public class TestZkStateChangeListener extends ZkStandAloneCMTestBaseWithPropert
 
     // If maxDisconnectThreshold is 0 it should be set to 1
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    ZKHelixManager manager = (ZKHelixManager) _startCMResultMap.get(instanceName)._manager;
+    ZKHelixManager manager = _startCMResultMap.get(instanceName)._manager;
 
     ZkStateChangeListener listener2 = new ZkStateChangeListener(manager, 5000, 0);
     for (int i = 0; i < 2; i++) {
@@ -60,7 +60,7 @@ public class TestZkStateChangeListener extends ZkStandAloneCMTestBaseWithPropert
 
     // If there are long time after disconnect, older history should be cleanup
     instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 1);
-    manager = (ZKHelixManager) _startCMResultMap.get(instanceName)._manager;
+    manager = _startCMResultMap.get(instanceName)._manager;
 
     ZkStateChangeListener listener3 = new ZkStateChangeListener(manager, 5000, 5);
     for (int i = 0; i < 3; i++) {

@@ -30,8 +30,9 @@ import java.util.TreeMap;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -71,7 +72,7 @@ public class MockController {
     message.setFromState(State.from(fromState));
     message.setToState(State.from(toState));
     // message.setPartitionId(partitionId);
-    message.setPartitionId(Id.partition(partitionKey));
+    message.setPartitionId(PartitionId.from(partitionKey));
 
     String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
     ObjectMapper mapper = new ObjectMapper();
@@ -82,7 +83,7 @@ public class MockController {
 
     Thread.sleep(10000);
     ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
-    message.setTgtSessionId(Id.session(record.getSimpleField(
+    message.setTgtSessionId(SessionId.from(record.getSimpleField(
         LiveInstanceProperty.SESSION_ID.toString()).toString()));
     client.createPersistent(path, message);
   }

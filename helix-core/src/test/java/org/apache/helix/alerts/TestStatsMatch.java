@@ -19,11 +19,7 @@ package org.apache.helix.alerts;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-import org.apache.helix.alerts.ExpressionParser;
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @Test

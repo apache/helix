@@ -45,9 +45,11 @@ import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -312,7 +314,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String instanceName : instanceNames) {
@@ -395,7 +397,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String resGroupPartitionKey : stateMap.keySet()) {
@@ -503,9 +505,9 @@ public class TestHelper {
     msg.setFromState(State.from(fromState));
     msg.setToState(State.from(toState));
     msg.setTgtName(tgtName);
-    msg.setResourceId(Id.resource(resourceName));
-    msg.setPartitionId(Id.partition(partitionName));
-    msg.setStateModelDef(Id.stateModelDef("MasterSlave"));
+    msg.setResourceId(ResourceId.from(resourceName));
+    msg.setPartitionId(PartitionId.from(partitionName));
+    msg.setStateModelDef(StateModelDefId.from("MasterSlave"));
 
     return msg;
   }

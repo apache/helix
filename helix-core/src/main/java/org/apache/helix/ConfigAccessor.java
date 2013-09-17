@@ -27,11 +27,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.manager.zk.ZKUtil;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 

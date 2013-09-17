@@ -84,6 +84,7 @@ public class PropertyPathConfig {
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
     addEntry(PropertyType.CONFIGS, 2, "/{clusterName}/CONFIGS/{scope}");
     addEntry(PropertyType.CONFIGS, 3, "/{clusterName}/CONFIGS/{scope}/{scopeKey}");
+    addEntry(PropertyType.CONFIGS, 4, "/{clusterName}/CONFIGS/{scope}/{scopeKey}/{subScopeKey}");
     // addEntry(PropertyType.CONFIGS,2,"/{clusterName}/CONFIGS/{instanceName}");
     addEntry(PropertyType.LIVEINSTANCES, 1, "/{clusterName}/LIVEINSTANCES");
     addEntry(PropertyType.LIVEINSTANCES, 2, "/{clusterName}/LIVEINSTANCES/{instanceName}");
@@ -173,7 +174,6 @@ public class PropertyPathConfig {
     String template = null;
     if (templateMap.containsKey(type)) {
       // keys.length+1 since we add clusterName
-      Map<Integer, String> fullTemplate = templateMap.get(type);
       template = templateMap.get(type).get(keys.length + 1);
     }
 

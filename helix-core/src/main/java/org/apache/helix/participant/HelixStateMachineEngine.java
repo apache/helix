@@ -31,7 +31,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
@@ -118,7 +118,8 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   private void sendNopMessage() {
     if (_manager.isConnected()) {
       try {
-        Message nopMsg = new Message(MessageType.NO_OP, Id.message(UUID.randomUUID().toString()));
+        Message nopMsg =
+            new Message(MessageType.NO_OP, MessageId.from(UUID.randomUUID().toString()));
         nopMsg.setSrcName(_manager.getInstanceName());
 
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();

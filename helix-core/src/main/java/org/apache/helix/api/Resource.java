@@ -49,19 +49,19 @@ public class Resource {
       ExternalView externalView, UserConfig userConfig,
       Map<PartitionId, UserConfig> partitionUserConfigs) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-        new HashMap<PartitionId, Map<String, String>>();
+    new HashMap<PartitionId, Map<String, String>>();
     Set<PartitionId> partitionSet = idealState.getPartitionSet();
     if (partitionSet.isEmpty() && idealState.getNumPartitions() > 0) {
       partitionSet = new HashSet<PartitionId>();
       for (int i = 0; i < idealState.getNumPartitions(); i++) {
-        partitionSet.add(Id.partition(id, Integer.toString(i)));
+        partitionSet.add(PartitionId.from(id, Integer.toString(i)));
       }
     }
 
     for (PartitionId partitionId : partitionSet) {
       UserConfig partitionUserConfig = partitionUserConfigs.get(partitionId);
       if (partitionUserConfig == null) {
-        partitionUserConfig = new UserConfig(partitionId);
+        partitionUserConfig = new UserConfig(Scope.partition(partitionId));
       }
       partitionMap.put(partitionId, new Partition(partitionId, partitionUserConfig));
 

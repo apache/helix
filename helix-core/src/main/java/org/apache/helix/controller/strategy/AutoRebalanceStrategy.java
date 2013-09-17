@@ -678,7 +678,7 @@ public class AutoRebalanceStrategy {
     @Override
     public int compareTo(Replica that) {
       if (that instanceof Replica) {
-        return this.format.compareTo(((Replica) that).format);
+        return this.format.compareTo(that.format);
       }
       return -1;
     }

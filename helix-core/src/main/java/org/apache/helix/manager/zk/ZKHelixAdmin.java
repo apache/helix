@@ -53,8 +53,9 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
@@ -378,13 +379,13 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<PropertyKey> messageKeys = new ArrayList<PropertyKey>();
     for (String partitionName : resetPartitionNames) {
       // send ERROR to initialState message
-      MessageId msgId = Id.message(UUID.randomUUID().toString());
+      MessageId msgId = MessageId.from(UUID.randomUUID().toString());
       Message message = new Message(MessageType.STATE_TRANSITION, msgId);
       message.setSrcName(adminName);
       message.setTgtName(instanceName);
       message.setMsgState(MessageState.NEW);
-      message.setPartitionId(Id.partition(partitionName));
-      message.setResourceId(Id.resource(resourceName));
+      message.setPartitionId(PartitionId.from(partitionName));
+      message.setResourceId(ResourceId.from(resourceName));
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
       message.setFromState(State.from(HelixDefinedState.ERROR.toString()));

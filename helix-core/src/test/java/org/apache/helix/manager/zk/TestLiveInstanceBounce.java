@@ -22,9 +22,7 @@ package org.apache.helix.manager.zk;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.ZkHelixTestManager;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
-import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -34,7 +32,7 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertySe
   public void testInstanceBounce() throws Exception {
     String controllerName = CONTROLLER_PREFIX + "_0";
     StartCMResult controllerResult = _startCMResultMap.get(controllerName);
-    ZkHelixTestManager controller = (ZkHelixTestManager) controllerResult._manager;
+    ZkHelixTestManager controller = controllerResult._manager;
     int handlerSize = controller.getHandlers().size();
 
     for (int i = 0; i < 2; i++) {

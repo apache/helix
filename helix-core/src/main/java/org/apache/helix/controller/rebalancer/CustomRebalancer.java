@@ -25,7 +25,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -62,7 +63,7 @@ public class CustomRebalancer implements Rebalancer {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
     ResourceAssignment partitionMapping =
-        new ResourceAssignment(Id.resource(resource.getResourceName()));
+        new ResourceAssignment(ResourceId.from(resource.getResourceName()));
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
@@ -73,7 +74,7 @@ public class CustomRebalancer implements Rebalancer {
       Map<String, String> bestStateForPartition =
           computeCustomizedBestStateForPartition(clusterData, stateModelDef, idealStateMap,
               currentStateMap, disabledInstancesForPartition);
-      partitionMapping.addReplicaMap(Id.partition(partition.getPartitionName()),
+      partitionMapping.addReplicaMap(PartitionId.from(partition.getPartitionName()),
           ResourceAssignment.replicaMapFromStringMap(bestStateForPartition));
     }
     return partitionMapping;

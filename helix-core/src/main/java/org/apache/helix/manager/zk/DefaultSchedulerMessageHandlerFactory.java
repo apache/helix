@@ -20,9 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import java.io.StringReader;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,10 +34,11 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -48,8 +46,8 @@ import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -198,8 +196,8 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
             String partitionId = taskQueueName + "_" + existingTopPartitionId;
             existingTopPartitionId++;
             String instanceName = task.getTgtName();
-            newAddedScheduledTasks.setPartitionState(Id.partition(partitionId),
-                Id.participant(instanceName), State.from("COMPLETED"));
+            newAddedScheduledTasks.setPartitionState(PartitionId.from(partitionId),
+                ParticipantId.from(instanceName), State.from("COMPLETED"));
             task.getRecord().setSimpleField(instanceName, "COMPLETED");
             task.getRecord().setSimpleField(CONTROLLER_MSG_ID, controllerMsgId.stringify());
 

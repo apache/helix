@@ -23,7 +23,7 @@ public class PartitionId extends Id {
   private final ResourceId _resourceId;
   private final String _partitionName;
 
-  public PartitionId(ResourceId resourceId, String partitionName) {
+  private PartitionId(ResourceId resourceId, String partitionName) {
     _resourceId = resourceId;
     _partitionName = partitionName;
   }
@@ -54,8 +54,30 @@ public class PartitionId extends Id {
    */
   public static ResourceId extractResourceId(String partitionName) {
     if (partitionName == null || !partitionName.contains("_")) {
-      return new ResourceId(partitionName);
+      return ResourceId.from(partitionName);
     }
-    return new ResourceId(partitionName.substring(0, partitionName.lastIndexOf("_")));
+    return ResourceId.from(partitionName.substring(0, partitionName.lastIndexOf("_")));
+  }
+
+  /**
+   * Get a concrete partition id
+   * @param partitionId string partition identifier
+   * @return PartitionId
+   */
+  public static PartitionId from(String partitionId) {
+    if (partitionId == null) {
+      return null;
+    }
+    return new PartitionId(extractResourceId(partitionId), stripResourceId(partitionId));
+  }
+
+  /**
+   * Get a concrete partition id
+   * @param resourceId resource identifier
+   * @param partitionSuffix partition identifier relative to a resource
+   * @return PartitionId
+   */
+  public static PartitionId from(ResourceId resourceId, String partitionSuffix) {
+    return new PartitionId(resourceId, partitionSuffix);
   }
 }

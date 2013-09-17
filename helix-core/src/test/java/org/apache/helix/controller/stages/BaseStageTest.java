@@ -32,12 +32,13 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.pipeline.Stage;
@@ -116,7 +117,7 @@ public class BaseStageTest {
     // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++) {
       String instanceName = "localhost_" + i;
-      InstanceConfig instanceConfig = new InstanceConfig(Id.participant(instanceName));
+      InstanceConfig instanceConfig = new InstanceConfig(ParticipantId.from(instanceName));
       instanceConfig.setHostName("localhost");
       instanceConfig.setPort(Integer.toString(i));
       LiveInstance liveInstance = new LiveInstance(instanceName);
@@ -148,17 +149,17 @@ public class BaseStageTest {
 
     ZNRecord masterSlave = StateModelConfigGenerator.generateConfigForMasterSlave();
     StateModelDefinition masterSlaveDef = new StateModelDefinition(masterSlave);
-    defs.put(Id.stateModelDef(masterSlaveDef.getId()), masterSlaveDef);
+    defs.put(StateModelDefId.from(masterSlaveDef.getId()), masterSlaveDef);
     accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlaveDef);
 
     ZNRecord leaderStandby = StateModelConfigGenerator.generateConfigForLeaderStandby();
     StateModelDefinition leaderStandbyDef = new StateModelDefinition(leaderStandby);
-    defs.put(Id.stateModelDef(leaderStandbyDef.getId()), leaderStandbyDef);
+    defs.put(StateModelDefId.from(leaderStandbyDef.getId()), leaderStandbyDef);
     accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandbyDef);
 
     ZNRecord onlineOffline = StateModelConfigGenerator.generateConfigForOnlineOffline();
     StateModelDefinition onlineOfflineDef = new StateModelDefinition(onlineOffline);
-    defs.put(Id.stateModelDef(onlineOfflineDef.getId()), onlineOfflineDef);
+    defs.put(StateModelDefId.from(onlineOfflineDef.getId()), onlineOfflineDef);
     accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOfflineDef);
 
     return defs;
@@ -174,8 +175,8 @@ public class BaseStageTest {
       }
       Map<PartitionId, UserConfig> partitionConfigMap = Collections.emptyMap();
       Resource resource =
-          new Resource(resourceId, idealState, null, null, new UserConfig(resourceId),
-              partitionConfigMap);
+          new Resource(resourceId, idealState, null, null, new UserConfig(
+              Scope.resource(resourceId)), partitionConfigMap);
       resourceMap.put(resourceId, resource.getConfig());
     }
 

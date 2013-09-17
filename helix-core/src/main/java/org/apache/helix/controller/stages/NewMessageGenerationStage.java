@@ -27,12 +27,10 @@ import java.util.UUID;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerConfig;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SchedulerTaskConfig;
@@ -42,7 +40,6 @@ import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -136,7 +133,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     .getSessionId();
             Message message =
                 createMessage(manager, resourceId, partitionId, participantId, currentState,
-                    nextState, sessionId, new StateModelDefId(stateModelDef.getId()),
+                    nextState, sessionId, StateModelDefId.from(stateModelDef.getId()),
                     resourceConfig.getRebalancerConfig().getStateModelFactoryId(), bucketSize);
 
             // TODO refactor get/set timeout/inner-message
@@ -194,7 +191,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
       PartitionId partitionId, ParticipantId participantId, State currentState, State nextState,
       SessionId participantSessionId, StateModelDefId stateModelDefId,
       StateModelFactoryId stateModelFactoryId, int bucketSize) {
-    MessageId uuid = Id.message(UUID.randomUUID().toString());
+    MessageId uuid = MessageId.from(UUID.randomUUID().toString());
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(participantId.stringify());
@@ -204,7 +201,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
     message.setFromState(currentState);
     message.setToState(nextState);
     message.setTgtSessionId(participantSessionId);
-    message.setSrcSessionId(Id.session(manager.getSessionId()));
+    message.setSrcSessionId(SessionId.from(manager.getSessionId()));
     message.setStateModelDef(stateModelDefId);
     message.setStateModelFactoryId(stateModelFactoryId);
     message.setBucketSize(bucketSize);

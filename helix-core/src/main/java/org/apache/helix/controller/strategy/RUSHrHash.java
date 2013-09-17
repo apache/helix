@@ -19,7 +19,9 @@ package org.apache.helix.controller.strategy;
  * under the License.
  */
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
 import java.util.zip.CRC32;
 
 public class RUSHrHash {
@@ -299,7 +301,7 @@ public class RUSHrHash {
     for (int i = 0; i < replicas; i++) {
       if (totalDisks != 0) {
         ranInt = ran.nextInt((int) (ranMax + 1));
-        z = ((float) ranInt / ranMax);
+        z = (ranInt / ranMax);
         prob = ((float) disksInCurrentCluster / (float) totalDisks);
         if (z <= prob) {
           found++;

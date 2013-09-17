@@ -22,7 +22,7 @@ package org.apache.helix.api;
 public class StateModelFactoryId extends Id {
   private final String _id;
 
-  public StateModelFactoryId(String id) {
+  private StateModelFactoryId(String id) {
     _id = id;
   }
 
@@ -31,4 +31,15 @@ public class StateModelFactoryId extends Id {
     return _id;
   }
 
+  /**
+   * Get a concrete state model factory id
+   * @param stateModelFactoryId the string version of the id
+   * @return StateModelFactoryId
+   */
+  public static StateModelFactoryId from(String stateModelFactoryId) {
+    if (stateModelFactoryId == null) {
+      return null;
+    }
+    return new StateModelFactoryId(stateModelFactoryId);
+  }
 }

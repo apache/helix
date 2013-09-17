@@ -37,7 +37,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.tools.ClusterStateVerifier;
 
 public class ExampleProcess {
 

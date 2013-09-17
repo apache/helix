@@ -46,7 +46,6 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
-import org.omg.CORBA._PolicyStub;
 
 public class Mocks {
   public static class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {

@@ -30,8 +30,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
@@ -70,22 +70,22 @@ public class TestAsyncCallbackSvc {
     HelixManager manager = new MockHelixManager();
     NotificationContext changeContext = new NotificationContext(manager);
 
-    Message msg = new Message(svc.getMessageType(), Id.message(UUID.randomUUID().toString()));
-    msg.setTgtSessionId(Id.session(manager.getSessionId()));
+    Message msg = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
       MessageHandler aHandler = svc.createHandler(msg, changeContext);
     } catch (HelixException e) {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgId().stringify()) != -1);
     }
-    Message msg2 = new Message("RandomType", Id.message(UUID.randomUUID().toString()));
-    msg2.setTgtSessionId(Id.session(manager.getSessionId()));
+    Message msg2 = new Message("RandomType", MessageId.from(UUID.randomUUID().toString()));
+    msg2.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
       MessageHandler aHandler = svc.createHandler(msg2, changeContext);
     } catch (HelixException e) {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgId().stringify()) != -1);
     }
-    Message msg3 = new Message(svc.getMessageType(), Id.message(UUID.randomUUID().toString()));
-    msg3.setTgtSessionId(Id.session(manager.getSessionId()));
+    Message msg3 = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg3.setTgtSessionId(SessionId.from(manager.getSessionId()));
     msg3.setCorrelationId("wfwegw");
     try {
       MessageHandler aHandler = svc.createHandler(msg3, changeContext);
@@ -99,11 +99,11 @@ public class TestAsyncCallbackSvc {
     svc.registerAsyncCallback(corrId, callback);
 
     List<Message> msgSent = new ArrayList<Message>();
-    msgSent.add(new Message("Test", Id.message(UUID.randomUUID().toString())));
+    msgSent.add(new Message("Test", MessageId.from(UUID.randomUUID().toString())));
     callback.setMessagesSent(msgSent);
 
-    msg = new Message(svc.getMessageType(), Id.message(UUID.randomUUID().toString()));
-    msg.setTgtSessionId(Id.session("*"));
+    msg = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setCorrelationId(corrId);
 
     MessageHandler aHandler = svc.createHandler(msg, changeContext);

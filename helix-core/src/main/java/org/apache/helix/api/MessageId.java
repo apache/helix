@@ -23,12 +23,24 @@ public class MessageId extends Id {
 
   private final String _id;
 
-  public MessageId(String id) {
+  private MessageId(String id) {
     _id = id;
   }
 
   @Override
   public String stringify() {
     return _id;
+  }
+
+  /**
+   * Get a concrete message id
+   * @param messageId string message identifier
+   * @return MsgId
+   */
+  public static MessageId from(String messageId) {
+    if (messageId == null) {
+      return null;
+    }
+    return new MessageId(messageId);
   }
 }

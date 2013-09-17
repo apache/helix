@@ -25,7 +25,6 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
-import org.apache.helix.manager.zk.ZKHelixManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

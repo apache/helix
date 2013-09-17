@@ -32,7 +32,6 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.RebalancerRef;
@@ -138,7 +137,7 @@ public class IdealState extends HelixProperty {
    * @return the id of the resource
    */
   public ResourceId getResourceId() {
-    return Id.resource(getResourceName());
+    return ResourceId.from(getResourceName());
   }
 
   /**
@@ -297,7 +296,7 @@ public class IdealState extends HelixProperty {
   public Set<PartitionId> getPartitionSet() {
     ImmutableSet.Builder<PartitionId> partitionSetBuilder = new ImmutableSet.Builder<PartitionId>();
     for (String partitionName : getPartitionStringSet()) {
-      partitionSetBuilder.add(Id.partition(partitionName));
+      partitionSetBuilder.add(PartitionId.from(partitionName));
     }
     return partitionSetBuilder.build();
   }
@@ -345,7 +344,8 @@ public class IdealState extends HelixProperty {
         new ImmutableMap.Builder<ParticipantId, State>();
     if (instanceStateMap != null) {
       for (String participantId : instanceStateMap.keySet()) {
-        builder.put(Id.participant(participantId), State.from(instanceStateMap.get(participantId)));
+        builder.put(ParticipantId.from(participantId),
+            State.from(instanceStateMap.get(participantId)));
       }
       return builder.build();
     }
@@ -390,7 +390,7 @@ public class IdealState extends HelixProperty {
   public Set<ParticipantId> getParticipantSet(PartitionId partitionId) {
     ImmutableSet.Builder<ParticipantId> builder = new ImmutableSet.Builder<ParticipantId>();
     for (String participantName : getInstanceSet(partitionId.stringify())) {
-      builder.add(Id.participant(participantName));
+      builder.add(ParticipantId.from(participantName));
     }
     return builder.build();
   }
@@ -442,7 +442,7 @@ public class IdealState extends HelixProperty {
     List<String> preferenceStringList = getPreferenceList(partitionId.stringify());
     if (preferenceStringList != null) {
       for (String participantName : preferenceStringList) {
-        builder.add(Id.participant(participantName));
+        builder.add(ParticipantId.from(participantName));
       }
       return builder.build();
     }
@@ -462,7 +462,7 @@ public class IdealState extends HelixProperty {
    * @return an identifier of the state model
    */
   public StateModelDefId getStateModelDefId() {
-    return Id.stateModelDef(getStateModelDefRef());
+    return StateModelDefId.from(getStateModelDefRef());
   }
 
   /**
@@ -584,7 +584,7 @@ public class IdealState extends HelixProperty {
    * @return state model factory id
    */
   public StateModelFactoryId getStateModelFactoryId() {
-    return Id.stateModelFactory(getStateModelFactoryName());
+    return StateModelFactoryId.from(getStateModelFactoryName());
   }
 
   /**
@@ -743,7 +743,7 @@ public class IdealState extends HelixProperty {
         new Function<String, ParticipantId>() {
           @Override
           public ParticipantId apply(String participantName) {
-            return Id.participant(participantName);
+            return ParticipantId.from(participantName);
           }
         });
   }
@@ -761,7 +761,7 @@ public class IdealState extends HelixProperty {
     Map<PartitionId, List<ParticipantId>> preferenceLists =
         new HashMap<PartitionId, List<ParticipantId>>();
     for (String partitionId : rawPreferenceLists.keySet()) {
-      preferenceLists.put(Id.partition(partitionId),
+      preferenceLists.put(PartitionId.from(partitionId),
           preferenceListFromStringList(rawPreferenceLists.get(partitionId)));
     }
     return preferenceLists;

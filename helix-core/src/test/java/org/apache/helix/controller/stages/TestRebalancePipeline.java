@@ -29,7 +29,9 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -101,7 +103,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: OFFLINE-SLAVE for node0");
     Message message = messages.get(0);
     Assert.assertEquals(message.getFromState().toString(), "OFFLINE");
@@ -117,7 +120,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node1");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -248,7 +252,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: OFFLINE-SLAVE for node0");
     Message message = messages.get(0);
     Assert.assertEquals(message.getFromState().toString(), "OFFLINE");
@@ -264,7 +269,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1,
         "Should output only 1 message: OFFLINE->DROPPED for localhost_1");
 
@@ -282,7 +288,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1,
         "Should output 1 message: OFFLINE->DROPPED for localhost_0");
     message = messages.get(0);
@@ -345,7 +352,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 1, "Should output 1 message: SLAVE-MASTER for node1");
     Message message = messages.get(0);
     Assert.assertEquals(message.getFromState().toString(), "SLAVE");
@@ -367,7 +375,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
-        msgSelOutput.getMessages(Id.resource(resourceName), Id.partition(resourceName + "_0"));
+        msgSelOutput.getMessages(ResourceId.from(resourceName),
+            PartitionId.from(resourceName + "_0"));
     Assert.assertEquals(messages.size(), 0, "Should NOT output 1 message: SLAVE-MASTER for node0");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -381,8 +390,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     CurrentState curState = new CurrentState(resourceGroupName);
-    curState.setState(Id.partition(resourceKey), State.from(state));
-    curState.setSessionId(Id.session(sessionId));
+    curState.setState(PartitionId.from(resourceKey), State.from(state));
+    curState.setSessionId(SessionId.from(sessionId));
     curState.setStateModelDefRef("MasterSlave");
     accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName), curState);
   }

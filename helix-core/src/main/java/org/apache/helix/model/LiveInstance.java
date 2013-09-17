@@ -22,7 +22,6 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.HelixVersion;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.ProcId;
 import org.apache.helix.api.SessionId;
@@ -81,7 +80,7 @@ public class LiveInstance extends HelixProperty {
    * @return session identifier
    */
   public SessionId getSessionId() {
-    return Id.session(_record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString()));
+    return SessionId.from(_record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString()));
   }
 
   /**
@@ -97,7 +96,7 @@ public class LiveInstance extends HelixProperty {
    * @return participant id
    */
   public ParticipantId getParticipantId() {
-    return Id.participant(getInstanceName());
+    return ParticipantId.from(getInstanceName());
   }
 
   /**
@@ -129,7 +128,7 @@ public class LiveInstance extends HelixProperty {
    * @return process identifier
    */
   public ProcId getProcessId() {
-    return Id.process(getLiveInstance());
+    return ProcId.from(getLiveInstance());
   }
 
   /**

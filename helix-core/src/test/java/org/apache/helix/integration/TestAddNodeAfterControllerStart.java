@@ -21,7 +21,6 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
@@ -31,7 +30,6 @@ import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;

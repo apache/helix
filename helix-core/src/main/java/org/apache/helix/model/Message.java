@@ -34,7 +34,6 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
@@ -225,7 +224,7 @@ public class Message extends HelixProperty {
    * @return session identifier
    */
   public SessionId getTgtSessionId() {
-    return Id.session(_record.getSimpleField(Attributes.TGT_SESSION_ID.toString()));
+    return SessionId.from(_record.getSimpleField(Attributes.TGT_SESSION_ID.toString()));
   }
 
   /**
@@ -241,7 +240,7 @@ public class Message extends HelixProperty {
    * @return session identifier
    */
   public SessionId getSrcSessionId() {
-    return Id.session(_record.getSimpleField(Attributes.SRC_SESSION_ID.toString()));
+    return SessionId.from(_record.getSimpleField(Attributes.SRC_SESSION_ID.toString()));
   }
 
   /**
@@ -257,7 +256,7 @@ public class Message extends HelixProperty {
    * @return session identifier
    */
   public SessionId getExecutionSessionId() {
-    return Id.session(_record.getSimpleField(Attributes.EXE_SESSION_ID.toString()));
+    return SessionId.from(_record.getSimpleField(Attributes.EXE_SESSION_ID.toString()));
   }
 
   /**
@@ -341,7 +340,7 @@ public class Message extends HelixProperty {
    * @return message identifier
    */
   public MessageId getMsgId() {
-    return Id.message(_record.getSimpleField(Attributes.MSG_ID.toString()));
+    return MessageId.from(_record.getSimpleField(Attributes.MSG_ID.toString()));
   }
 
   /**
@@ -421,7 +420,7 @@ public class Message extends HelixProperty {
    * @return resource name
    */
   public ResourceId getResourceId() {
-    return Id.resource(_record.getSimpleField(Attributes.RESOURCE_NAME.toString()));
+    return ResourceId.from(_record.getSimpleField(Attributes.RESOURCE_NAME.toString()));
   }
 
   /**
@@ -429,7 +428,7 @@ public class Message extends HelixProperty {
    * @return partition id
    */
   public PartitionId getPartitionId() {
-    return Id.partition(_record.getSimpleField(Attributes.PARTITION_NAME.toString()));
+    return PartitionId.from(_record.getSimpleField(Attributes.PARTITION_NAME.toString()));
   }
 
   /**
@@ -445,7 +444,7 @@ public class Message extends HelixProperty {
    * @return a reference to the state model definition
    */
   public StateModelDefId getStateModelDefId() {
-    return Id.stateModelDef(getStateModelDef());
+    return StateModelDefId.from(getStateModelDef());
   }
 
   /**
@@ -633,10 +632,10 @@ public class Message extends HelixProperty {
           + " does not contain correlation id");
     }
     Message replyMessage =
-        new Message(MessageType.TASK_REPLY, Id.message(UUID.randomUUID().toString()));
+        new Message(MessageType.TASK_REPLY, MessageId.from(UUID.randomUUID().toString()));
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setResultMap(taskResultMap);
-    replyMessage.setTgtSessionId(Id.session("*"));
+    replyMessage.setTgtSessionId(SessionId.from("*"));
     replyMessage.setMsgState(MessageState.NEW);
     replyMessage.setSrcName(instanceName);
     if (srcMessage.getSrcInstanceType() == InstanceType.CONTROLLER) {
@@ -673,7 +672,7 @@ public class Message extends HelixProperty {
     }
     ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
     for (String partitionName : partitionNames) {
-      builder.add(Id.partition(partitionName));
+      builder.add(PartitionId.from(partitionName));
     }
     return builder.build();
   }

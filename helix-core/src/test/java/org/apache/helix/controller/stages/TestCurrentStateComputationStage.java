@@ -24,9 +24,12 @@ import java.util.Map;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
@@ -50,8 +53,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, stage);
     ResourceCurrentState output = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
-        output.getCurrentStateMap(Id.resource("testResourceName"),
-            Id.partition("testResourceName_0")).size(), 0);
+        output.getCurrentStateMap(ResourceId.from("testResourceName"),
+            PartitionId.from("testResourceName_0")).size(), 0);
   }
 
   @Test
@@ -71,17 +74,17 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, stage);
     ResourceCurrentState output1 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
-        output1.getCurrentStateMap(Id.resource("testResourceName"),
-            Id.partition("testResourceName_0")).size(), 0);
+        output1.getCurrentStateMap(ResourceId.from("testResourceName"),
+            PartitionId.from("testResourceName_0")).size(), 0);
 
     // Add a state transition messages
-    Message message = new Message(Message.MessageType.STATE_TRANSITION, Id.message("msg1"));
+    Message message = new Message(Message.MessageType.STATE_TRANSITION, MessageId.from("msg1"));
     message.setFromState(State.from("OFFLINE"));
     message.setToState(State.from("SLAVE"));
-    message.setResourceId(Id.resource("testResourceName"));
-    message.setPartitionId(Id.partition("testResourceName_1"));
+    message.setResourceId(ResourceId.from("testResourceName"));
+    message.setPartitionId(PartitionId.from("testResourceName_1"));
     message.setTgtName("localhost_3");
-    message.setTgtSessionId(Id.session("session_3"));
+    message.setTgtSessionId(SessionId.from("session_3"));
 
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
@@ -90,21 +93,21 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, stage);
     ResourceCurrentState output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State pendingState =
-        output2.getPendingState(Id.resource("testResourceName"),
-            Id.partition("testResourceName_1"), Id.participant("localhost_3"));
+        output2.getPendingState(ResourceId.from("testResourceName"),
+            PartitionId.from("testResourceName_1"), ParticipantId.from("localhost_3"));
     AssertJUnit.assertEquals(pendingState, State.from("SLAVE"));
 
     ZNRecord record1 = new ZNRecord("testResourceName");
     // Add a current state that matches sessionId and one that does not match
     CurrentState stateWithLiveSession = new CurrentState(record1);
-    stateWithLiveSession.setSessionId(Id.session("session_3"));
+    stateWithLiveSession.setSessionId(SessionId.from("session_3"));
     stateWithLiveSession.setStateModelDefRef("MasterSlave");
-    stateWithLiveSession.setState(Id.partition("testResourceName_1"), State.from("OFFLINE"));
+    stateWithLiveSession.setState(PartitionId.from("testResourceName_1"), State.from("OFFLINE"));
     ZNRecord record2 = new ZNRecord("testResourceName");
     CurrentState stateWithDeadSession = new CurrentState(record2);
-    stateWithDeadSession.setSessionId(Id.session("session_dead"));
+    stateWithDeadSession.setSessionId(SessionId.from("session_dead"));
     stateWithDeadSession.setStateModelDefRef("MasterSlave");
-    stateWithDeadSession.setState(Id.partition("testResourceName_1"), State.from("MASTER"));
+    stateWithDeadSession.setState(PartitionId.from("testResourceName_1"), State.from("MASTER"));
 
     accessor.setProperty(keyBuilder.currentState("localhost_3", "session_3", "testResourceName"),
         stateWithLiveSession);
@@ -115,8 +118,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     runStage(event, stage);
     ResourceCurrentState output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State currentState =
-        output3.getCurrentState(Id.resource("testResourceName"),
-            Id.partition("testResourceName_1"), Id.participant("localhost_3"));
+        output3.getCurrentState(ResourceId.from("testResourceName"),
+            PartitionId.from("testResourceName_1"), ParticipantId.from("localhost_3"));
     AssertJUnit.assertEquals(currentState, State.from("OFFLINE"));
 
   }

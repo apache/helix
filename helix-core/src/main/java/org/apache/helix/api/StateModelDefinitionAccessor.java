@@ -54,7 +54,7 @@ public class StateModelDefinitionAccessor {
         new HashMap<StateModelDefId, StateModelDefinition>();
 
     for (String stateModelDefName : stateModelDefs.keySet()) {
-      stateModelDefMap.put(new StateModelDefId(stateModelDefName),
+      stateModelDefMap.put(StateModelDefId.from(stateModelDefName),
           stateModelDefs.get(stateModelDefName));
     }
 

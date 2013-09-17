@@ -32,7 +32,6 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
@@ -51,7 +50,7 @@ public class Quickstart {
   private static final int NUM_PARTITIONS = 6;
   private static final int NUM_REPLICAS = 2;
 
-  private static final StateModelDefId STATE_MODEL_NAME = Id.stateModelDef("MyStateModel");
+  private static final StateModelDefId STATE_MODEL_NAME = StateModelDefId.from("MyStateModel");
 
   // states
   private static final State SLAVE = State.from("SLAVE");
@@ -96,7 +95,8 @@ public class Quickstart {
 
     // Add a resource with 6 partitions and 2 replicas
     echo("Adding a resource MyResource: " + "with 6 partitions and 2 replicas");
-    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME.stringify(), "AUTO");
+    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME.stringify(),
+        "AUTO");
     // this will set up the ideal state, it calculates the preference list for
     // each partition similar to consistent hashing
     admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);

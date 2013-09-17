@@ -25,7 +25,6 @@ import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;

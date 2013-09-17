@@ -12,9 +12,9 @@ public class TestId {
     final String partitionName = "Resource_3";
     final String resourceName = "Resource";
     final String partitionSuffix = "3";
-    PartitionId partitionId = Id.partition(partitionName);
+    PartitionId partitionId = PartitionId.from(partitionName);
     Assert.assertEquals(partitionId.stringify(), partitionName);
-    PartitionId partitionId2 = Id.partition(Id.resource(resourceName), partitionSuffix);
+    PartitionId partitionId2 = PartitionId.from(ResourceId.from(resourceName), partitionSuffix);
     Assert.assertEquals(partitionId2.stringify(), partitionName);
     Assert.assertEquals(partitionId, partitionId2);
     Assert.assertEquals(partitionId.toString(), partitionId2.toString());
@@ -26,7 +26,7 @@ public class TestId {
   @Test
   public void testPartitionIdCompatibility() {
     final String partitionName = "Resource--3";
-    PartitionId partitionId = Id.partition(partitionName);
+    PartitionId partitionId = PartitionId.from(partitionName);
     Assert.assertEquals(partitionId.stringify(), partitionName);
   }
 
@@ -43,15 +43,15 @@ public class TestId {
     final String stateModelName = "StateModel";
     final String stateModelFactoryName = "StateModelFactory";
     final String messageName = "Message";
-    Assert.assertEquals(Id.resource(resourceName).stringify(), resourceName);
-    Assert.assertEquals(Id.cluster(clusterName).stringify(), clusterName);
-    Assert.assertEquals(Id.participant(participantName).stringify(), participantName);
-    Assert.assertEquals(Id.session(sessionName).stringify(), sessionName);
-    Assert.assertEquals(Id.process(processName).stringify(), processName);
-    Assert.assertEquals(Id.stateModelDef(stateModelName).stringify(), stateModelName);
-    Assert.assertEquals(Id.stateModelFactory(stateModelFactoryName).stringify(),
+    Assert.assertEquals(ResourceId.from(resourceName).stringify(), resourceName);
+    Assert.assertEquals(ClusterId.from(clusterName).stringify(), clusterName);
+    Assert.assertEquals(ParticipantId.from(participantName).stringify(), participantName);
+    Assert.assertEquals(SessionId.from(sessionName).stringify(), sessionName);
+    Assert.assertEquals(ProcId.from(processName).stringify(), processName);
+    Assert.assertEquals(StateModelDefId.from(stateModelName).stringify(), stateModelName);
+    Assert.assertEquals(StateModelFactoryId.from(stateModelFactoryName).stringify(),
         stateModelFactoryName);
-    Assert.assertEquals(Id.message(messageName).stringify(), messageName);
+    Assert.assertEquals(MessageId.from(messageName).stringify(), messageName);
   }
 
   /**
@@ -60,7 +60,7 @@ public class TestId {
   @Test
   public void testStringEquality() {
     final String resourceName = "Resource";
-    Assert.assertTrue(Id.resource(resourceName).equals(resourceName));
+    Assert.assertTrue(ResourceId.from(resourceName).equals(resourceName));
   }
 
   /**
@@ -68,14 +68,14 @@ public class TestId {
    */
   @Test
   public void testNull() {
-    Assert.assertNull(Id.cluster(null));
-    Assert.assertNull(Id.resource(null));
-    Assert.assertNull(Id.partition(null));
-    Assert.assertNull(Id.participant(null));
-    Assert.assertNull(Id.session(null));
-    Assert.assertNull(Id.process(null));
-    Assert.assertNull(Id.stateModelDef(null));
-    Assert.assertNull(Id.stateModelFactory(null));
-    Assert.assertNull(Id.message(null));
+    Assert.assertNull(ClusterId.from(null));
+    Assert.assertNull(ResourceId.from(null));
+    Assert.assertNull(PartitionId.from(null));
+    Assert.assertNull(ParticipantId.from(null));
+    Assert.assertNull(SessionId.from(null));
+    Assert.assertNull(ProcId.from(null));
+    Assert.assertNull(StateModelDefId.from(null));
+    Assert.assertNull(StateModelFactoryId.from(null));
+    Assert.assertNull(MessageId.from(null));
   }
 }

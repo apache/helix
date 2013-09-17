@@ -25,7 +25,6 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
@@ -126,7 +125,7 @@ public class ExternalView extends HelixProperty {
   public Set<PartitionId> getPartitionSet() {
     ImmutableSet.Builder<PartitionId> builder = new ImmutableSet.Builder<PartitionId>();
     for (String partitionName : getPartitionStringSet()) {
-      builder.add(Id.partition(partitionName));
+      builder.add(PartitionId.from(partitionName));
     }
     return builder.build();
   }
@@ -150,7 +149,8 @@ public class ExternalView extends HelixProperty {
     ImmutableMap.Builder<ParticipantId, State> builder =
         new ImmutableMap.Builder<ParticipantId, State>();
     for (String participantName : rawStateMap.keySet()) {
-      builder.put(Id.participant(participantName), State.from(rawStateMap.get(participantName)));
+      builder
+          .put(ParticipantId.from(participantName), State.from(rawStateMap.get(participantName)));
     }
     return builder.build();
   }
@@ -168,7 +168,7 @@ public class ExternalView extends HelixProperty {
    * @return resource id
    */
   public ResourceId getResourceId() {
-    return Id.resource(getResourceName());
+    return ResourceId.from(getResourceName());
   }
 
   @Override

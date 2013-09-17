@@ -26,9 +26,12 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.Id;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
@@ -191,18 +194,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   private Message createMessage(HelixManager manager, String resourceName, String partitionName,
       String instanceName, String currentState, String nextState, String sessionId,
       String stateModelDefName, String stateModelFactoryName, int bucketSize) {
-    MessageId uuid = Id.message(UUID.randomUUID().toString());
+    MessageId uuid = MessageId.from(UUID.randomUUID().toString());
     Message message = new Message(MessageType.STATE_TRANSITION, uuid);
     message.setSrcName(manager.getInstanceName());
     message.setTgtName(instanceName);
     message.setMsgState(MessageState.NEW);
-    message.setPartitionId(Id.partition(partitionName));
-    message.setResourceId(Id.resource(resourceName));
+    message.setPartitionId(PartitionId.from(partitionName));
+    message.setResourceId(ResourceId.from(resourceName));
     message.setFromState(State.from(currentState));
     message.setToState(State.from(nextState));
-    message.setTgtSessionId(Id.session(sessionId));
-    message.setSrcSessionId(Id.session(manager.getSessionId()));
-    message.setStateModelDef(Id.stateModelDef(stateModelDefName));
+    message.setTgtSessionId(SessionId.from(sessionId));
+    message.setSrcSessionId(SessionId.from(manager.getSessionId()));
+    message.setStateModelDef(StateModelDefId.from(stateModelDefName));
     message.setStateModelFactoryName(stateModelFactoryName);
     message.setBucketSize(bucketSize);
 

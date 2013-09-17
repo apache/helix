@@ -27,7 +27,7 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
@@ -73,9 +73,9 @@ public class TestResourceComputationStage extends BaseStageTest {
         event.getAttribute(AttributeName.RESOURCES.toString());
     AssertJUnit.assertEquals(1, resource.size());
 
-    AssertJUnit.assertEquals(resource.keySet().iterator().next(), Id.resource(resourceName));
-    AssertJUnit
-        .assertEquals(resource.values().iterator().next().getId(), Id.resource(resourceName));
+    AssertJUnit.assertEquals(resource.keySet().iterator().next(), ResourceId.from(resourceName));
+    AssertJUnit.assertEquals(resource.values().iterator().next().getId(),
+        ResourceId.from(resourceName));
     AssertJUnit.assertEquals(resource.values().iterator().next().getRebalancerConfig()
         .getStateModelDefId(), idealState.getStateModelDefId());
     AssertJUnit.assertEquals(resource.values().iterator().next().getPartitionSet().size(),
@@ -99,7 +99,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
-      ResourceId resourceId = Id.resource(resourceName);
+      ResourceId resourceId = ResourceId.from(resourceName);
       IdealState idealState = idealStates.get(i);
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
@@ -155,9 +155,9 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     String oldResource = "testResourceOld";
     CurrentState currentState = new CurrentState(oldResource);
-    currentState.setState(Id.partition("testResourceOld_0"), State.from("OFFLINE"));
-    currentState.setState(Id.partition("testResourceOld_1"), State.from("SLAVE"));
-    currentState.setState(Id.partition("testResourceOld_2"), State.from("MASTER"));
+    currentState.setState(PartitionId.from("testResourceOld_0"), State.from("OFFLINE"));
+    currentState.setState(PartitionId.from("testResourceOld_1"), State.from("SLAVE"));
+    currentState.setState(PartitionId.from("testResourceOld_2"), State.from("MASTER"));
     currentState.setStateModelDefRef("MasterSlave");
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);
@@ -173,7 +173,7 @@ public class TestResourceComputationStage extends BaseStageTest {
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
-      ResourceId resourceId = Id.resource(resourceName);
+      ResourceId resourceId = ResourceId.from(resourceName);
       IdealState idealState = idealStates.get(i);
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
@@ -183,7 +183,7 @@ public class TestResourceComputationStage extends BaseStageTest {
           idealState.getNumPartitions());
     }
     // Test the data derived from CurrentState
-    ResourceId oldResourceId = Id.resource(oldResource);
+    ResourceId oldResourceId = ResourceId.from(oldResource);
     AssertJUnit.assertTrue(resourceMap.containsKey(oldResourceId));
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getId(), oldResourceId);
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getRebalancerConfig()
@@ -191,11 +191,11 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getPartitionSet().size(), currentState
         .getPartitionStateMap().size());
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
-        Id.partition("testResourceOld_0")));
+        PartitionId.from("testResourceOld_0")));
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
-        Id.partition("testResourceOld_1")));
+        PartitionId.from("testResourceOld_1")));
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getPartition(
-        Id.partition("testResourceOld_2")));
+        PartitionId.from("testResourceOld_2")));
 
   }
 

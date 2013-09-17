@@ -144,7 +144,7 @@ public class ClusterConfig {
       _constraintMap = new HashMap<ConstraintType, ClusterConstraints>();
       _stateModelMap = new HashMap<StateModelDefId, StateModelDefinition>();
       _isPaused = false;
-      _userConfig = new UserConfig(id);
+      _userConfig = new UserConfig(Scope.cluster(id));
     }
 
     /**

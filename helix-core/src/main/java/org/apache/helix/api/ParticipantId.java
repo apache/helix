@@ -22,12 +22,24 @@ package org.apache.helix.api;
 public class ParticipantId extends Id {
   private final String _id;
 
-  public ParticipantId(String id) {
+  private ParticipantId(String id) {
     _id = id;
   }
 
   @Override
   public String stringify() {
     return _id;
+  }
+
+  /**
+   * Get a concrete participant id
+   * @param participantId string participant identifier
+   * @return ParticipantId
+   */
+  public static ParticipantId from(String participantId) {
+    if (participantId == null) {
+      return null;
+    }
+    return new ParticipantId(participantId);
   }
 }

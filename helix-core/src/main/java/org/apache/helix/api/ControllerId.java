@@ -19,15 +19,27 @@ package org.apache.helix.api;
  * under the License.
  */
 
+/**
+ * Identifies Helix nodes that take on the CONTROLLER role
+ */
 public class ControllerId extends Id {
   private final String _id;
 
-  public ControllerId(String id) {
+  private ControllerId(String id) {
     _id = id;
   }
 
   @Override
   public String stringify() {
     return _id;
+  }
+
+  /**
+   * Get a ControllerId from a string
+   * @param controllerId string representing the id
+   * @return ControllerId
+   */
+  public static ControllerId from(String controllerId) {
+    return new ControllerId(controllerId);
   }
 }

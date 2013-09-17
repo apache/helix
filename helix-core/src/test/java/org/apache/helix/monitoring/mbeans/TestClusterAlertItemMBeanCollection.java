@@ -22,7 +22,6 @@ package org.apache.helix.monitoring.mbeans;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import javax.management.AttributeNotFoundException;
@@ -32,14 +31,11 @@ import javax.management.MBeanException;
 import javax.management.MalformedObjectNameException;
 import javax.management.ReflectionException;
 
-import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertValueAndStatus;
 import org.apache.helix.alerts.Tuple;
 import org.apache.helix.healthcheck.TestWildcardAlert.TestClusterMBeanObserver;
-import org.apache.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

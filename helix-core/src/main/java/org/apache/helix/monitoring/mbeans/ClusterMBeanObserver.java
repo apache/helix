@@ -22,20 +22,13 @@ package org.apache.helix.monitoring.mbeans;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 
-import javax.management.AttributeNotFoundException;
 import javax.management.InstanceNotFoundException;
-import javax.management.IntrospectionException;
-import javax.management.ListenerNotFoundException;
-import javax.management.MBeanAttributeInfo;
-import javax.management.MBeanException;
-import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
 import javax.management.MBeanServerDelegate;
 import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
 import javax.management.Notification;
 import javax.management.NotificationListener;
-import javax.management.ReflectionException;
 import javax.management.relation.MBeanServerNotificationFilter;
 
 import org.apache.log4j.Logger;

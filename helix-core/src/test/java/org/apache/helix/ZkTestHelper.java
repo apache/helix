@@ -23,7 +23,13 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 
@@ -31,12 +37,8 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
-import org.apache.helix.InstanceType;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
@@ -323,12 +325,12 @@ public class ZkTestHelper {
     return listenerMapBySession;
   }
 
-  static java.lang.reflect.Field getField(Class clazz, String fieldName)
+  static java.lang.reflect.Field getField(Class<?> clazz, String fieldName)
       throws NoSuchFieldException {
     try {
       return clazz.getDeclaredField(fieldName);
     } catch (NoSuchFieldException e) {
-      Class superClass = clazz.getSuperclass();
+      Class<?> superClass = clazz.getSuperclass();
       if (superClass == null) {
         throw e;
       } else {

@@ -26,6 +26,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceConfiguration;
@@ -70,7 +71,7 @@ public class RebalancerConfig extends NamespacedConfig {
   public RebalancerConfig(ResourceId resourceId, RebalanceMode rebalancerMode,
       StateModelDefId stateModelDefId, StateModelFactoryId stateModelFactoryId,
       Map<PartitionId, Partition> partitionMap) {
-    super(resourceId, RebalancerConfig.class.getSimpleName());
+    super(Scope.resource(resourceId), RebalancerConfig.class.getSimpleName());
     _resourceId = resourceId;
     _fieldsSet =
         ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
@@ -90,7 +91,7 @@ public class RebalancerConfig extends NamespacedConfig {
    */
   public RebalancerConfig(ResourceId resourceId, RebalanceMode rebalancerMode,
       StateModelDefId stateModelDefId, Map<PartitionId, Partition> partitionMap) {
-    super(resourceId, RebalancerConfig.class.getSimpleName());
+    super(Scope.resource(resourceId), RebalancerConfig.class.getSimpleName());
     _resourceId = resourceId;
     _fieldsSet =
         ImmutableSet.copyOf(Lists.transform(Arrays.asList(Fields.values()),
@@ -120,7 +121,7 @@ public class RebalancerConfig extends NamespacedConfig {
    * @param config populated RebalancerConfig
    */
   protected RebalancerConfig(RebalancerConfig config) {
-    super(config.getResourceId(), RebalancerConfig.class.getSimpleName());
+    super(Scope.resource(config.getResourceId()), RebalancerConfig.class.getSimpleName());
     _resourceId = config.getResourceId();
     _partitionMap = config.getPartitionMap();
     _fieldsSet =
@@ -183,7 +184,7 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return state model definition
    */
   public StateModelDefId getStateModelDefId() {
-    return Id.stateModelDef(getStringField(Fields.STATE_MODEL_DEFINITION.toString(), null));
+    return StateModelDefId.from(getStringField(Fields.STATE_MODEL_DEFINITION.toString(), null));
   }
 
   /**
@@ -240,7 +241,7 @@ public class RebalancerConfig extends NamespacedConfig {
    * @return state model factory id
    */
   public StateModelFactoryId getStateModelFactoryId() {
-    return Id.stateModelFactory(getStringField(Fields.STATE_MODEL_FACTORY.toString(), null));
+    return StateModelFactoryId.from(getStringField(Fields.STATE_MODEL_FACTORY.toString(), null));
   }
 
   /**
@@ -371,7 +372,7 @@ public class RebalancerConfig extends NamespacedConfig {
       _anyLiveParticipant = false;
       _replicaCount = 0;
       _maxPartitionsPerParticipant = Integer.MAX_VALUE;
-      _partitionMap = new HashMap<PartitionId, Partition>();
+      _partitionMap = new TreeMap<PartitionId, Partition>();
     }
 
     /**
@@ -465,13 +466,14 @@ public class RebalancerConfig extends NamespacedConfig {
      */
     public T addPartitions(int partitionCount) {
       for (int i = 0; i < partitionCount; i++) {
-        addPartition(new Partition(Id.partition(_resourceId, Integer.toString(i)), null));
+        addPartition(new Partition(PartitionId.from(_resourceId, Integer.toString(i)), null));
       }
       return self();
     }
 
     /**
      * Update a RebalancerConfig with built fields
+     * @param rebalancerConfig the config to update
      */
     protected void update(RebalancerConfig rebalancerConfig) {
       rebalancerConfig.setReplicaCount(_replicaCount);
@@ -499,59 +501,32 @@ public class RebalancerConfig extends NamespacedConfig {
   }
 
   /**
-   * Simple non-mode builder for rebalancer config
+   * Simple none-mode builder for rebalancer config
    */
-  public static class SimpleBuilder {
-    private final ResourceId _resourceId;
-    private StateModelDefId _stateModelDefId;
-    private StateModelFactoryId _stateModelFactoryId;
-    private final Map<PartitionId, Partition> _partitionMap;
-
+  public static class SimpleBuilder extends Builder<SimpleBuilder> {
     /**
      * Construct with a resource-id
      * @param resourceId
      */
     public SimpleBuilder(ResourceId resourceId) {
-      _resourceId = resourceId;
-      _partitionMap = new HashMap<PartitionId, Partition>();
-    }
-
-    /**
-     * Set state model definition id
-     * @param stateModelDefId
-     * @return
-     */
-    public SimpleBuilder stateModelDefId(StateModelDefId stateModelDefId) {
-      _stateModelDefId = stateModelDefId;
-      return this;
-    }
-
-    /**
-     * Add a partition that the resource serves
-     * @param partition fully-qualified partition
-     * @return Builder
-     */
-    public SimpleBuilder addPartition(Partition partition) {
-      _partitionMap.put(partition.getId(), partition);
-      return this;
-    }
-
-    /**
-     * Set state model factory
-     * @param stateModelFactoryId
-     * @return Builder
-     */
-    public SimpleBuilder stateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
-      _stateModelFactoryId = stateModelFactoryId;
-      return this;
+      super(resourceId);
     }
 
     /**
      * Build a rebalancer config
      * @return
      */
+    @Override
     public RebalancerConfig build() {
-      return new RebalancerConfig(_resourceId, RebalanceMode.NONE, _stateModelDefId, _partitionMap);
+      RebalancerConfig config =
+          new RebalancerConfig(_resourceId, RebalanceMode.NONE, _stateModelDefId, _partitionMap);
+      update(config);
+      return config;
+    }
+
+    @Override
+    protected SimpleBuilder self() {
+      return this;
     }
   }
 }

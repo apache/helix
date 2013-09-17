@@ -24,7 +24,10 @@ import java.util.UUID;
 import org.apache.helix.Criteria;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.Id;
+import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SessionId;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory.ActionOnError;
 import org.apache.helix.model.ExternalView;
@@ -42,8 +45,9 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     String participant2 = "localhost_" + (START_PORT + 1);
 
     Message errorMessage1 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, Id.message(UUID.randomUUID().toString()));
-    errorMessage1.setTgtSessionId(Id.session("*"));
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, MessageId.from(UUID.randomUUID()
+            .toString()));
+    errorMessage1.setTgtSessionId(SessionId.from("*"));
     errorMessage1.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_INSTANCE.toString());
@@ -54,10 +58,11 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
         errorMessage1);
 
     Message errorMessage2 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, Id.message(UUID.randomUUID().toString()));
-    errorMessage2.setTgtSessionId(Id.session("*"));
-    errorMessage2.setResourceId(Id.resource("TestDB"));
-    errorMessage2.setPartitionId(Id.partition("TestDB_14"));
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, MessageId.from(UUID.randomUUID()
+            .toString()));
+    errorMessage2.setTgtSessionId(SessionId.from("*"));
+    errorMessage2.setResourceId(ResourceId.from("TestDB"));
+    errorMessage2.setPartitionId(PartitionId.from("TestDB_14"));
     errorMessage2.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_PARTITION.toString());

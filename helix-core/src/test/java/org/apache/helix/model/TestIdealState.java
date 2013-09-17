@@ -19,7 +19,14 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;

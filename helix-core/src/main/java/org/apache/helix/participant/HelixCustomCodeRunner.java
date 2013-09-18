@@ -28,6 +28,9 @@ import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -127,15 +130,16 @@ public class HelixCustomCodeRunner {
       zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
       zkClient.setZkSerializer(new ZNRecordSerializer());
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
+              zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       IdealState idealState = new IdealState(_resourceName);
       idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
-      idealState.setStateModelDefRef(LEADER_STANDBY);
-      idealState.setStateModelFactoryName(_resourceName);
+      idealState.setStateModelDefId(StateModelDefId.from(LEADER_STANDBY));
+      idealState.setStateModelFactoryId(StateModelFactoryId.from(_resourceName));
       List<String> prefList =
           new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
       idealState.getRecord().setListField(_resourceName + "_0", prefList);

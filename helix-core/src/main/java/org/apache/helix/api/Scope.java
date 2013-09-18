@@ -24,6 +24,13 @@ package org.apache.helix.api;
  * of cluster, participant, partition, or resource, but not more than one of these at any time.
  */
 public class Scope<T extends Id> {
+  public enum ScopeType {
+    CLUSTER,
+    PARTICIPANT,
+    PARTITION,
+    RESOURCE
+  }
+
   private final T _id;
 
   /**
@@ -40,6 +47,30 @@ public class Scope<T extends Id> {
    */
   public T getScopedId() {
     return _id;
+  }
+
+  @Override
+  public String toString() {
+    return getType() + "{" + getScopedId() + "}";
+  }
+
+  /**
+   * Get the Helix entity type that this scope covers
+   * @return scope type
+   */
+  public ScopeType getType() {
+    Class<?> idClass = _id.getClass();
+    if (idClass == ClusterId.class) {
+      return ScopeType.CLUSTER;
+    } else if (idClass == ParticipantId.class) {
+      return ScopeType.PARTICIPANT;
+    } else if (idClass == PartitionId.class) {
+      return ScopeType.PARTITION;
+    } else if (idClass == ResourceId.class) {
+      return ScopeType.RESOURCE;
+    } else {
+      return null;
+    }
   }
 
   /**

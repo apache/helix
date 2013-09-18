@@ -41,6 +41,7 @@ import org.apache.log4j.Logger;
  * Collection of functions that will compute the best possible states given the live instances and
  * an ideal state.
  */
+@Deprecated
 public class ConstraintBasedAssignment {
   private static Logger logger = Logger.getLogger(ConstraintBasedAssignment.class);
 

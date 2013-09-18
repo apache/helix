@@ -31,6 +31,9 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
@@ -176,9 +179,9 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       SleepStateModelFactory factory = new SleepStateModelFactory(1000);
       factories.put(instanceName, factory);
-      for (String p : idealState.getPartitionStringSet()) {
-        if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {
-          factory.addPartition(p);
+      for (PartitionId p : idealState.getPartitionSet()) {
+        if (idealState.getPreferenceList(p).get(0).equals(ParticipantId.from(instanceName))) {
+          factory.addPartition(p.stringify());
         }
       }
 
@@ -198,11 +201,11 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
 
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
-    for (String p : idealState.getPartitionStringSet()) {
-      String idealMaster = idealState.getPreferenceList(p).get(0);
-      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
+    for (PartitionId p : idealState.getPartitionSet()) {
+      ParticipantId idealMaster = idealState.getPreferenceList(p).get(0);
+      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals(State.from("ERROR")));
 
-      TimeOutStateModel model = factories.get(idealMaster).getStateModel(p);
+      TimeOutStateModel model = factories.get(idealMaster.stringify()).getStateModel(p.stringify());
       Assert.assertEquals(model._errorCallcount, 1);
       Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
     }

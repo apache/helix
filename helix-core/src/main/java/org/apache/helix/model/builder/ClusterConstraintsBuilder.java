@@ -22,6 +22,7 @@ package org.apache.helix.model.builder;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.helix.api.ConstraintId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.log4j.Logger;
@@ -40,8 +41,8 @@ public class ClusterConstraintsBuilder {
    * TRANSITION : OFFLINE->SLAVE
    * CONSTRAINT_VALUE : 1
    */
-  private final Map<String, ConstraintItemBuilder> _constraintBuilderMap =
-      new HashMap<String, ConstraintItemBuilder>();
+  private final Map<ConstraintId, ConstraintItemBuilder> _constraintBuilderMap =
+      new HashMap<ConstraintId, ConstraintItemBuilder>();
 
   public ClusterConstraintsBuilder(ConstraintType type) {
     if (type == null) {
@@ -50,8 +51,8 @@ public class ClusterConstraintsBuilder {
     _constraintType = type;
   }
 
-  public ClusterConstraintsBuilder addConstraintAttribute(String constraintId, String attribute,
-      String value) {
+  public ClusterConstraintsBuilder addConstraintAttribute(ConstraintId constraintId,
+      String attribute, String value) {
     if (!_constraintBuilderMap.containsKey(constraintId)) {
       _constraintBuilderMap.put(constraintId, new ConstraintItemBuilder());
     }
@@ -63,7 +64,7 @@ public class ClusterConstraintsBuilder {
   public ClusterConstraints build() {
     ClusterConstraints constraints = new ClusterConstraints(_constraintType);
 
-    for (String constraintId : _constraintBuilderMap.keySet()) {
+    for (ConstraintId constraintId : _constraintBuilderMap.keySet()) {
       ConstraintItemBuilder builder = _constraintBuilderMap.get(constraintId);
       constraints.addConstraintItem(constraintId, builder.build());
     }

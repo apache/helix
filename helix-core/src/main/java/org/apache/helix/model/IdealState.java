@@ -128,6 +128,7 @@ public class IdealState extends HelixProperty {
    * Get the associated resource
    * @return the name of the resource
    */
+  @Deprecated
   public String getResourceName() {
     return _record.getId();
   }
@@ -174,6 +175,7 @@ public class IdealState extends HelixProperty {
    * Define a custom rebalancer that implements {@link Rebalancer}
    * @param rebalancerClassName the name of the custom rebalancing class
    */
+  @Deprecated
   public void setRebalancerClassName(String rebalancerClassName) {
     _record
         .setSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString(), rebalancerClassName);
@@ -183,6 +185,7 @@ public class IdealState extends HelixProperty {
    * Get the name of the user-defined rebalancer associated with this resource
    * @return the rebalancer class name, or null if none is being used
    */
+  @Deprecated
   public String getRebalancerClassName() {
     return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
   }
@@ -276,6 +279,7 @@ public class IdealState extends HelixProperty {
    * Get all of the partitions
    * @return a set of partition names
    */
+  @Deprecated
   public Set<String> getPartitionStringSet() {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
         || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
@@ -302,19 +306,11 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Set the current mapping of a partition
-   * @param partition the partition to set
-   * @param instanceStateMap (instance name, state) pairs
-   */
-  public void setInstanceStateMap(String partition, Map<String, String> instanceStateMap) {
-    _record.setMapField(partition, instanceStateMap);
-  }
-
-  /**
    * Get the current mapping of a partition
    * @param partitionName the name of the partition
    * @return the instances where the replicas live and the state of each
    */
+  @Deprecated
   public Map<String, String> getInstanceStateMap(String partitionName) {
     return _record.getMapField(partitionName);
   }
@@ -357,6 +353,7 @@ public class IdealState extends HelixProperty {
    * @param partitionName the partition to look up
    * @return set of instance names
    */
+  @Deprecated
   public Set<String> getInstanceSet(String partitionName) {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
         || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
@@ -397,15 +394,6 @@ public class IdealState extends HelixProperty {
 
   /**
    * Set the preference list of a partition
-   * @param partitionName the name of the partition to set
-   * @param preferenceList a list of instances that can serve replicas of the partition
-   */
-  public void setPreferenceList(String partitionName, List<String> preferenceList) {
-    _record.setListField(partitionName, preferenceList);
-  }
-
-  /**
-   * Set the preference list of a partition
    * @param partitionId the id of the partition to set
    * @param preferenceList a list of participants that can serve replicas of the partition
    */
@@ -422,6 +410,7 @@ public class IdealState extends HelixProperty {
    * @param partitionName the name of the partition
    * @return a list of instances that can serve replicas of the partition
    */
+  @Deprecated
   public List<String> getPreferenceList(String partitionName) {
     List<String> instanceStateList = _record.getListField(partitionName);
 
@@ -453,6 +442,7 @@ public class IdealState extends HelixProperty {
    * Get the state model associated with this resource
    * @return an identifier of the state model
    */
+  @Deprecated
   public String getStateModelDefRef() {
     return _record.getSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString());
   }
@@ -469,6 +459,7 @@ public class IdealState extends HelixProperty {
    * Set the state model associated with this resource
    * @param stateModel state model identifier
    */
+  @Deprecated
   public void setStateModelDefRef(String stateModel) {
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
   }
@@ -558,6 +549,7 @@ public class IdealState extends HelixProperty {
    * Set the state model factory associated with this resource
    * @param name state model factory name
    */
+  @Deprecated
   public void setStateModelFactoryName(String name) {
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(), name);
   }
@@ -574,6 +566,7 @@ public class IdealState extends HelixProperty {
    * Get the state model factory associated with this resource
    * @return state model factory name
    */
+  @Deprecated
   public String getStateModelFactoryName() {
     return _record.getStringField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
         HelixConstants.DEFAULT_STATE_MODEL_FACTORY);

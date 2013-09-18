@@ -35,7 +35,6 @@ import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
@@ -82,13 +81,23 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
       replicas = config.getReplicaCount();
     }
 
-    LinkedHashMap<String, Integer> stateCountMap =
-        ConstraintBasedAssignment.stateCount(stateModelDef, liveParticipants.size(), replicas);
+    // count how many replicas should be in each state
+    LinkedHashMap<State, Integer> stateCountMap =
+        NewConstraintBasedAssignment.stateCount(cluster.getConfig(), config.getResourceId(),
+            stateModelDef, liveParticipants.size(), replicas);
+    LinkedHashMap<String, Integer> rawStateCountMap = new LinkedHashMap<String, Integer>();
+    for (State state : stateCountMap.keySet()) {
+      rawStateCountMap.put(state.toString(), stateCountMap.get(state));
+    }
+
+    // get the participant lists
     List<ParticipantId> liveParticipantList =
         new ArrayList<ParticipantId>(liveParticipants.keySet());
     List<ParticipantId> allParticipantList =
         new ArrayList<ParticipantId>(cluster.getParticipantMap().keySet());
     List<String> liveNodes = Lists.transform(liveParticipantList, Functions.toStringFunction());
+
+    // compute the current mapping from the current state
     Map<PartitionId, Map<ParticipantId, State>> currentMapping =
         currentMapping(config, currentState, stateCountMap);
 
@@ -109,9 +118,9 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
       liveNodes = new ArrayList<String>(taggedNodes);
     }
 
+    // determine which nodes the replicas should live on
     List<String> allNodes = Lists.transform(allParticipantList, Functions.toStringFunction());
     int maxPartition = config.getMaxPartitionsPerParticipant();
-
     if (LOG.isInfoEnabled()) {
       LOG.info("currentMapping: " + currentMapping);
       LOG.info("stateCountMap: " + stateCountMap);
@@ -122,7 +131,7 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     _algorithm =
         new AutoRebalanceStrategy(config.getResourceId().stringify(), partitionNames,
-            stateCountMap, maxPartition, placementScheme);
+            rawStateCountMap, maxPartition, placementScheme);
     ZNRecord newMapping =
         _algorithm.computePartitionAssignment(liveNodes,
             ResourceAssignment.stringMapsFromReplicaMaps(currentMapping), allNodes);
@@ -153,8 +162,8 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
       preferenceList =
           NewConstraintBasedAssignment.getPreferenceList(cluster, partition, preferenceList);
       Map<ParticipantId, State> bestStateForPartition =
-          NewConstraintBasedAssignment.computeAutoBestStateForPartition(liveParticipants,
-              stateModelDef, preferenceList,
+          NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster.getConfig(),
+              config.getResourceId(), liveParticipants, stateModelDef, preferenceList,
               currentState.getCurrentStateMap(config.getResourceId(), partition),
               disabledParticipantsForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
@@ -164,7 +173,7 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
 
   private Map<PartitionId, Map<ParticipantId, State>> currentMapping(
       FullAutoRebalancerConfig config, ResourceCurrentState currentStateOutput,
-      Map<String, Integer> stateCountMap) {
+      Map<State, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
 

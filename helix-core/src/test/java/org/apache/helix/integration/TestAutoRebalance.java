@@ -30,6 +30,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -262,13 +263,13 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
         return false;
       }
 
-      int numberOfPartitions = idealState.getRecord().getListFields()
-              .size();
+      int numberOfPartitions = idealState.getRecord().getListFields().size();
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
-      String masterValue =
-          cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityStringList().get(0);
+      State masterValue =
+          cache
+              .getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefId().stringify())
+              .getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
       String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
       int instances = 0;
@@ -284,8 +285,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       if (ev == null) {
         return false;
       }
-      return verifyBalanceExternalView(ev.getRecord(), numberOfPartitions, masterValue, replicas,
-          instances);
+      return verifyBalanceExternalView(ev.getRecord(), numberOfPartitions, masterValue.toString(),
+          replicas, instances);
     }
 
     @Override

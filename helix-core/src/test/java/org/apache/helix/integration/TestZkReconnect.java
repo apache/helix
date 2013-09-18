@@ -35,6 +35,7 @@ import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -100,7 +101,7 @@ public class TestZkReconnect {
 
     IdealState idealState = helixAdmin.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas("1");
-    idealState.setStateModelFactoryName("test");
+    idealState.setStateModelFactoryId(StateModelFactoryId.from("test"));
     idealState.setPartitionState(PartitionId.from(ResourceId.from(resourceName), "0"),
         ParticipantId.from(instanceId), State.from("ONLINE"));
 

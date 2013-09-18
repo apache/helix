@@ -101,7 +101,8 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partitionId);
       partitionMapping.addReplicaMap(partitionId, NewConstraintBasedAssignment
-          .computeAutoBestStateForPartition(cluster.getLiveParticipantMap(), stateModelDef, null,
+          .computeAutoBestStateForPartition(cluster.getConfig(), resourceId,
+              cluster.getLiveParticipantMap(), stateModelDef, null,
               currentStateOutput.getCurrentStateMap(resourceId, partitionId),
               disabledParticipantsForPartition));
     }

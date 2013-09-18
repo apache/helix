@@ -20,10 +20,11 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.CustomRebalancerConfig;
+import org.apache.helix.api.FullAutoRebalancerConfig;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.PartitionId;
@@ -31,7 +32,9 @@ import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.SemiAutoRebalancerConfig;
 import org.apache.helix.api.StateModelFactoryId;
+import org.apache.helix.api.UserDefinedRebalancerConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
@@ -47,29 +50,99 @@ public class NewResourceComputationStage extends AbstractBaseStage {
   private static Logger LOG = Logger.getLogger(NewResourceComputationStage.class);
 
   @Override
-  public void process(ClusterEvent event) throws Exception {
+  public void process(ClusterEvent event) throws StageException {
     Cluster cluster = event.getAttribute("ClusterDataCache");
     if (cluster == null) {
-      throw new StageException("Missing attributes in event:" + event + ". Requires Cluster");
+      throw new StageException("Missing attributes in event: " + event + ". Requires Cluster");
     }
 
-    Map<ResourceId, ResourceConfig.Builder> resourceBuilderMap =
-        new LinkedHashMap<ResourceId, ResourceConfig.Builder>();
-    // include all resources in ideal-state
+    Map<ResourceId, ResourceConfig> resCfgMap = new HashMap<ResourceId, ResourceConfig>();
+    Map<ResourceId, ResourceConfig> csResCfgMap = getCurStateResourceCfgMap(cluster);
+
+    // ideal-state may be removed, add all resource config in current-state but not in ideal-state
+    for (ResourceId resourceId : csResCfgMap.keySet()) {
+      if (!cluster.getResourceMap().keySet().contains(resourceId)) {
+        resCfgMap.put(resourceId, csResCfgMap.get(resourceId));
+      }
+    }
+
     for (ResourceId resourceId : cluster.getResourceMap().keySet()) {
       Resource resource = cluster.getResource(resourceId);
-      RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
+      RebalancerConfig rebalancerCfg = resource.getRebalancerConfig();
 
-      ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
-      resourceBuilder.rebalancerConfig(rebalancerConfig);
-      resourceBuilder.bucketSize(resource.getBucketSize());
-      resourceBuilder.batchMessageMode(resource.getBatchMessageMode());
-      resourceBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
-      resourceBuilderMap.put(resourceId, resourceBuilder);
+      ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
+      resCfgBuilder.bucketSize(resource.getBucketSize());
+      resCfgBuilder.batchMessageMode(resource.getBatchMessageMode());
+      resCfgBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
+
+      switch (rebalancerCfg.getRebalancerMode()) {
+      case USER_DEFINED: {
+        UserDefinedRebalancerConfig.Builder builder =
+            new UserDefinedRebalancerConfig.Builder(UserDefinedRebalancerConfig.from(rebalancerCfg));
+        if (csResCfgMap.containsKey(resourceId)) {
+          builder.addPartitions(csResCfgMap.get(resourceId).getPartitionMap().values());
+        }
+        resCfgBuilder.rebalancerConfig(builder.build());
+        resCfgMap.put(resourceId, resCfgBuilder.build());
+        break;
+      }
+      case FULL_AUTO: {
+        FullAutoRebalancerConfig.Builder builder =
+            new FullAutoRebalancerConfig.Builder(FullAutoRebalancerConfig.from(rebalancerCfg));
+        if (csResCfgMap.containsKey(resourceId)) {
+          builder.addPartitions(csResCfgMap.get(resourceId).getPartitionMap().values());
+        }
+        resCfgBuilder.rebalancerConfig(builder.build());
+        resCfgMap.put(resourceId, resCfgBuilder.build());
+        break;
+      }
+      case SEMI_AUTO: {
+        SemiAutoRebalancerConfig.Builder builder =
+            new SemiAutoRebalancerConfig.Builder(SemiAutoRebalancerConfig.from(rebalancerCfg));
+        if (csResCfgMap.containsKey(resourceId)) {
+          builder.addPartitions(csResCfgMap.get(resourceId).getPartitionMap().values());
+        }
+        resCfgBuilder.rebalancerConfig(builder.build());
+        resCfgMap.put(resourceId, resCfgBuilder.build());
+        break;
+      }
+      case CUSTOMIZED: {
+        CustomRebalancerConfig.Builder builder =
+            new CustomRebalancerConfig.Builder(CustomRebalancerConfig.from(rebalancerCfg));
+        if (csResCfgMap.containsKey(resourceId)) {
+          builder.addPartitions(csResCfgMap.get(resourceId).getPartitionMap().values());
+        }
+        resCfgBuilder.rebalancerConfig(builder.build());
+        resCfgMap.put(resourceId, resCfgBuilder.build());
+        break;
+      }
+      default:
+        RebalancerConfig.SimpleBuilder builder = new RebalancerConfig.SimpleBuilder(rebalancerCfg);
+        if (csResCfgMap.containsKey(resourceId)) {
+          builder.addPartitions(csResCfgMap.get(resourceId).getPartitionMap().values());
+        }
+        resCfgBuilder.rebalancerConfig(builder.build());
+        resCfgMap.put(resourceId, resCfgBuilder.build());
+        break;
+      }
+
     }
 
-    // include all partitions from CurrentState as well since idealState might be removed
-    Map<ResourceId, RebalancerConfig.SimpleBuilder> rebalancerConfigBuilderMap =
+    event.addAttribute(AttributeName.RESOURCES.toString(), resCfgMap);
+  }
+
+  /**
+   * Get resource config's from current-state
+   * @param cluster
+   * @return resource config map or empty map if not available
+   * @throws StageException
+   */
+  Map<ResourceId, ResourceConfig> getCurStateResourceCfgMap(Cluster cluster)
+      throws StageException {
+    Map<ResourceId, ResourceConfig.Builder> resCfgBuilderMap =
+        new HashMap<ResourceId, ResourceConfig.Builder>();
+
+    Map<ResourceId, RebalancerConfig.SimpleBuilder> rebCfgBuilderMap =
         new HashMap<ResourceId, RebalancerConfig.SimpleBuilder>();
 
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
@@ -84,46 +157,35 @@ public class NewResourceComputationStage extends AbstractBaseStage {
               + currentState.getResourceId());
         }
 
-        // don't overwrite ideal state configs
-        if (!resourceBuilderMap.containsKey(resourceId)) {
-          if (!rebalancerConfigBuilderMap.containsKey(resourceId)) {
-            RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
-                new RebalancerConfig.SimpleBuilder(resourceId);
-            rebalancerConfigBuilder.stateModelDef(currentState.getStateModelDefId());
-            rebalancerConfigBuilder.stateModelFactoryId(StateModelFactoryId.from(currentState
-                .getStateModelFactoryName()));
-            rebalancerConfigBuilderMap.put(resourceId, rebalancerConfigBuilder);
-          }
-          ResourceConfig.Builder resourceBuilder = new ResourceConfig.Builder(resourceId);
-          resourceBuilder.bucketSize(currentState.getBucketSize());
-          resourceBuilder.batchMessageMode(currentState.getBatchMessageMode());
-          resourceBuilderMap.put(resourceId, resourceBuilder);
+        if (!resCfgBuilderMap.containsKey(resourceId)) {
+          RebalancerConfig.SimpleBuilder rebCfgBuilder =
+              new RebalancerConfig.SimpleBuilder(resourceId);
+          rebCfgBuilder.stateModelDef(currentState.getStateModelDefId());
+          rebCfgBuilder.stateModelFactoryId(StateModelFactoryId.from(currentState
+              .getStateModelFactoryName()));
+          rebCfgBuilderMap.put(resourceId, rebCfgBuilder);
+
+          ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
+          resCfgBuilder.bucketSize(currentState.getBucketSize());
+          resCfgBuilder.batchMessageMode(currentState.getBatchMessageMode());
+          resCfgBuilderMap.put(resourceId, resCfgBuilder);
         }
 
-        // add all partitions in current-state
-        if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
-          RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
-              rebalancerConfigBuilderMap.get(resourceId);
-          for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
-            rebalancerConfigBuilder.addPartition(new Partition(partitionId));
-          }
+        RebalancerConfig.SimpleBuilder rebCfgBuilder = rebCfgBuilderMap.get(resourceId);
+        for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
+          rebCfgBuilder.addPartition(new Partition(partitionId));
         }
       }
-
     }
 
-    // convert builder-map to resource-map
-    Map<ResourceId, ResourceConfig> resourceMap = new LinkedHashMap<ResourceId, ResourceConfig>();
-    for (ResourceId resourceId : resourceBuilderMap.keySet()) {
-      ResourceConfig.Builder resourceConfigBuilder = resourceBuilderMap.get(resourceId);
-      if (rebalancerConfigBuilderMap.containsKey(resourceId)) {
-        RebalancerConfig.SimpleBuilder rebalancerConfigBuilder =
-            rebalancerConfigBuilderMap.get(resourceId);
-        resourceConfigBuilder.rebalancerConfig(rebalancerConfigBuilder.build());
-      }
-      resourceMap.put(resourceId, resourceConfigBuilder.build());
+    Map<ResourceId, ResourceConfig> resCfgMap = new HashMap<ResourceId, ResourceConfig>();
+    for (ResourceId resourceId : resCfgBuilderMap.keySet()) {
+      ResourceConfig.Builder resCfgBuilder = resCfgBuilderMap.get(resourceId);
+      RebalancerConfig.SimpleBuilder rebCfgBuilder = rebCfgBuilderMap.get(resourceId);
+      resCfgBuilder.rebalancerConfig(rebCfgBuilder.build());
+      resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    return resCfgMap;
   }
 }

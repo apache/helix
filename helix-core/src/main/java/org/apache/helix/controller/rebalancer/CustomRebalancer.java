@@ -46,6 +46,7 @@ import org.apache.log4j.Logger;
  * The output is a verified mapping based on that preference list, i.e. partition p has a replica
  * on node k with state s, where s may be a dropped or error state if necessary.
  */
+@Deprecated
 public class CustomRebalancer implements Rebalancer {
 
   private static final Logger LOG = Logger.getLogger(CustomRebalancer.class);
@@ -70,7 +71,8 @@ public class CustomRebalancer implements Rebalancer {
       Set<String> disabledInstancesForPartition =
           clusterData.getDisabledInstancesForPartition(partition.toString());
       Map<String, String> idealStateMap =
-          currentIdealState.getInstanceStateMap(partition.getPartitionName());
+          IdealState.stringMapFromParticipantStateMap(currentIdealState
+              .getParticipantStateMap(PartitionId.from(partition.getPartitionName())));
       Map<String, String> bestStateForPartition =
           computeCustomizedBestStateForPartition(clusterData, stateModelDef, idealStateMap,
               currentStateMap, disabledInstancesForPartition);

@@ -146,6 +146,9 @@ public class ExternalView extends HelixProperty {
    */
   public Map<ParticipantId, State> getStateMap(PartitionId partitionId) {
     Map<String, String> rawStateMap = getStateMap(partitionId.stringify());
+    if (rawStateMap == null) {
+      return null;
+    }
     ImmutableMap.Builder<ParticipantId, State> builder =
         new ImmutableMap.Builder<ParticipantId, State>();
     for (String participantName : rawStateMap.keySet()) {

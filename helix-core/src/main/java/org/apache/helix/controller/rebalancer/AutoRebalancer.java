@@ -56,6 +56,7 @@ import org.apache.log4j.Logger;
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
+@Deprecated
 public class AutoRebalancer implements Rebalancer {
   // These should be final, but are initialized in init rather than a constructor
   private HelixManager _manager;

@@ -310,8 +310,8 @@ public class ClusterSetup {
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates) {
       swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
-      accessor.setProperty(accessor.keyBuilder().idealState(idealState.getResourceName()),
-          idealState);
+      accessor.setProperty(
+          accessor.keyBuilder().idealState(idealState.getResourceId().stringify()), idealState);
     }
   }
 
@@ -383,15 +383,15 @@ public class ClusterSetup {
     IdealState idealState = _admin.getResourceIdealState(clusterName, resourceName);
     if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO
         || idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-      _logger.info("Skipping idealState " + idealState.getResourceName() + " "
+      _logger.info("Skipping idealState " + idealState.getResourceId() + " "
           + idealState.getRebalanceMode());
       return;
     }
     boolean anyLiveInstance = false;
     for (List<String> list : idealState.getRecord().getListFields().values()) {
       if (list.contains(StateModelToken.ANY_LIVEINSTANCE.toString())) {
-        _logger.info("Skipping idealState " + idealState.getResourceName()
-            + " with ANY_LIVEINSTANCE");
+        _logger
+            .info("Skipping idealState " + idealState.getResourceId() + " with ANY_LIVEINSTANCE");
         anyLiveInstance = true;
         continue;
       }

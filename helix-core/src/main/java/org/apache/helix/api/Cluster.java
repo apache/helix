@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.Transition;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ImmutableMap;
@@ -99,8 +100,10 @@ public class Cluster {
           }
         });
     _config =
-        new ClusterConfig(id, resourceConfigMap, participantConfigMap, constraintMap,
-            stateModelMap, userConfig, isPaused);
+        new ClusterConfig.Builder(id).addResources(resourceConfigMap.values())
+            .addParticipants(participantConfigMap.values()).addConstraints(constraintMap.values())
+            .addStateModelDefinitions(stateModelMap.values()).setPausedStatus(isPaused)
+            .userConfig(userConfig).build();
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -222,10 +225,43 @@ public class Cluster {
   }
 
   /**
+   * Get the maximum number of participants that can be in a state
+   * @param scope the scope for the bound
+   * @param stateModelDefId the state model of the state
+   * @param state the constrained state
+   * @return The upper bound, which can be "-1" if unspecified, a numerical upper bound, "R" for
+   *         number of replicas, or "N" for number of participants
+   */
+  public String getStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+      State state) {
+    return _config.getStateUpperBoundConstraint(scope, stateModelDefId, state);
+  }
+
+  /**
+   * Get the limit of simultaneous execution of a transition
+   * @param scope the scope under which the transition is constrained
+   * @param stateModelDefId the state model of which the transition is a part
+   * @param transition the constrained transition
+   * @return the limit, or Integer.MAX_VALUE if there is no limit
+   */
+  public int getTransitionConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+      Transition transition) {
+    return _config.getTransitionConstraint(scope, stateModelDefId, transition);
+  }
+
+  /**
    * Check the pasued status of the cluster
    * @return true if paused, false otherwise
    */
   public boolean isPaused() {
     return _config.isPaused();
+  }
+
+  /**
+   * Get the ClusterConfig specifying this cluster
+   * @return ClusterConfig
+   */
+  public ClusterConfig getConfig() {
+    return _config;
   }
 }

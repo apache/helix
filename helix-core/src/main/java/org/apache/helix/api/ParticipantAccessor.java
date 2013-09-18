@@ -170,11 +170,10 @@ public class ParticipantAccessor {
     } else {
       // check partitions exist. warn if not
       for (PartitionId partitionId : partitionIdSet) {
-        String partitionName = partitionId.stringify();
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
-            .getPreferenceList(partitionName) == null)
+            .getPreferenceList(partitionId) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
-                .getInstanceStateMap(partitionName) == null)) {
+                .getParticipantStateMap(partitionId) == null)) {
           LOG.warn("Cluster: " + _clusterId + ", resource: " + resourceId + ", partition: "
               + partitionId + ", partition does NOT exist in ideal state");
         }

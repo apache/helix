@@ -67,6 +67,14 @@ public final class FullAutoRebalancerConfig extends RebalancerConfig {
       super(resourceId);
     }
 
+    /**
+     * Construct a builder using an existing full-auto rebalancer config
+     * @param config
+     */
+    public Builder(FullAutoRebalancerConfig config) {
+      super(config);
+    }
+
     @Override
     public FullAutoRebalancerConfig build() {
       if (_partitionMap.isEmpty()) {

@@ -28,6 +28,14 @@ public class PartitionId extends Id {
     _partitionName = partitionName;
   }
 
+  /**
+   * Get the id of the resource containing this partition
+   * @return ResourceId
+   */
+  public ResourceId getResourceId() {
+    return _resourceId;
+  }
+
   @Override
   public String stringify() {
     // check in case the partition name is instantiated incorrectly

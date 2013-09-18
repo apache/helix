@@ -535,14 +535,14 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
           keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
-          .equals("" + (_PARTITIONS * 3 / 5)));
+          .equals("" + avgReplicas));
       int messageResultCount = 0;
       for (String key : statusUpdate.getMapFields().keySet()) {
         if (key.startsWith("MessageResult")) {
           messageResultCount++;
         }
       }
-      Assert.assertEquals(messageResultCount, _PARTITIONS * 3 / 5);
+      Assert.assertEquals(messageResultCount, avgReplicas);
 
       int count = 0;
       // System.out.println(i);
@@ -552,10 +552,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       }
       // System.out.println(count);
 
-      if (count != avgReplicas * (i + 1)) {
-        System.out.println("count: " + count + ", expect: " + avgReplicas * (i + 1));
-      }
-      // Assert.assertEquals(count, _PARTITIONS * 3 / 5 * (i + 1));
+      Assert.assertEquals(count, avgReplicas * (i + 1));
     }
   }
 

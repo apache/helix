@@ -29,7 +29,9 @@ import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.MessageId;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -166,7 +168,7 @@ public class ZkUnitTestBase {
   public void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
       boolean wantEnabled) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
@@ -175,15 +177,15 @@ public class ZkUnitTestBase {
 
   public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealState(resource));
-    for (String partitionName : idealState.getPartitionStringSet()) {
+    for (PartitionId partitionId : idealState.getPartitionSet()) {
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
+        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionId).size());
       } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-        AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+        AssertJUnit.assertEquals(repl, idealState.getParticipantStateMap(partitionId).size());
       }
     }
   }
@@ -249,20 +251,19 @@ public class ZkUnitTestBase {
 
   protected void setupStateModel(String clusterName) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition masterSlave =
-        new StateModelDefinition(generator.generateConfigForMasterSlave());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
     accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlave);
 
     StateModelDefinition leaderStandby =
-        new StateModelDefinition(generator.generateConfigForLeaderStandby());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby());
     accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandby);
 
     StateModelDefinition onlineOffline =
-        new StateModelDefinition(generator.generateConfigForOnlineOffline());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
     accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOffline);
 
   }
@@ -270,7 +271,7 @@ public class ZkUnitTestBase {
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<IdealState>();
@@ -291,7 +292,7 @@ public class ZkUnitTestBase {
       }
 
       idealState.setReplicas(Integer.toString(replicas));
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
       idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);

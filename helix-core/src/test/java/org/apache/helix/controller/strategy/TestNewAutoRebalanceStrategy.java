@@ -35,6 +35,8 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.ClusterConfig;
+import org.apache.helix.api.ClusterId;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
@@ -220,6 +222,15 @@ public class TestNewAutoRebalanceStrategy {
     private Map<String, Map<String, String>> getMapping(final Map<String, List<String>> listResult) {
       final Map<PartitionId, Map<ParticipantId, State>> mapResult =
           new HashMap<PartitionId, Map<ParticipantId, State>>();
+      ClusterId clusterId = ClusterId.from("clusterId");
+      ClusterConfig.Builder clusterConfigBuilder =
+          new ClusterConfig.Builder(clusterId).addStateModelDefinition(_stateModelDef);
+      for (State state : _stateModelDef.getStatesPriorityList()) {
+        clusterConfigBuilder.addStateUpperBoundConstraint(Scope.cluster(clusterId),
+            _stateModelDef.getStateModelDefId(), state,
+            _stateModelDef.getNumParticipantsPerState(state));
+      }
+      ClusterConfig clusterConfig = clusterConfigBuilder.build();
       for (String partition : _partitions) {
         PartitionId partitionId = PartitionId.from(partition);
         Set<ParticipantId> disabledParticipantsForPartition = Collections.emptySet();
@@ -249,9 +260,9 @@ public class TestNewAutoRebalanceStrategy {
         Map<ParticipantId, State> replicaMap =
             ResourceAssignment.replicaMapFromStringMap(_currentMapping.get(partition));
         Map<ParticipantId, State> assignment =
-            NewConstraintBasedAssignment.computeAutoBestStateForPartition(liveParticipantMap,
-                _stateModelDef, participantPreferenceList, replicaMap,
-                disabledParticipantsForPartition);
+            NewConstraintBasedAssignment.computeAutoBestStateForPartition(clusterConfig,
+                ResourceId.from(RESOURCE_NAME), liveParticipantMap, _stateModelDef,
+                participantPreferenceList, replicaMap, disabledParticipantsForPartition);
         mapResult.put(partitionId, assignment);
       }
 

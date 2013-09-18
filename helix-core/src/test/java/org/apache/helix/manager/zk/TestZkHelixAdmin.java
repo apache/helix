@@ -33,6 +33,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.ConstraintId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -270,7 +271,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     constraints =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    ConstraintItem item = constraints.getConstraintItem("constraint1");
+    ConstraintItem item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
     Assert.assertEquals(item.getConstraintValue(), "1");
     Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
@@ -278,7 +279,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // test admin.getMessageConstraints()
     constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    item = constraints.getConstraintItem("constraint1");
+    item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
     Assert.assertEquals(item.getConstraintValue(), "1");
     Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
@@ -288,7 +289,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     constraints =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    item = constraints.getConstraintItem("constraint1");
+    item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

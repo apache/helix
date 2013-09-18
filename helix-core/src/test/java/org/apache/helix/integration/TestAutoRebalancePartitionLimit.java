@@ -29,6 +29,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -229,13 +230,15 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
               .size();
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
-      String masterValue =
-          cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityStringList().get(0);
+      State masterValue =
+          cache
+              .getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefId().stringify())
+              .getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
       return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName))
-          .getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
-          cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
+          .getRecord(), numberOfPartitions, masterValue.toString(), replicas, cache
+          .getLiveInstances().size(), cache.getIdealState(_resourceName)
+          .getMaxPartitionsPerInstance());
     }
 
     @Override

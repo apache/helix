@@ -66,9 +66,9 @@ public class NewSemiAutoRebalancer implements NewRebalancer<SemiAutoRebalancerCo
           NewConstraintBasedAssignment.getPreferenceList(cluster, partition,
               config.getPreferenceList(partition));
       Map<ParticipantId, State> bestStateForPartition =
-          NewConstraintBasedAssignment.computeAutoBestStateForPartition(
-              cluster.getLiveParticipantMap(), stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition);
+          NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster.getConfig(),
+              config.getResourceId(), cluster.getLiveParticipantMap(), stateModelDef,
+              preferenceList, currentStateMap, disabledInstancesForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

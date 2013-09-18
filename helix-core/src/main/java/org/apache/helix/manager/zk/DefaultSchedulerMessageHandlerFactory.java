@@ -40,6 +40,7 @@ import org.apache.helix.api.MessageId;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -180,7 +181,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
         }
         IdealState newAddedScheduledTasks = new IdealState(taskQueueName);
         newAddedScheduledTasks.setBucketSize(TASKQUEUE_BUCKET_NUM);
-        newAddedScheduledTasks.setStateModelDefRef(SCHEDULER_TASK_QUEUE);
+        newAddedScheduledTasks.setStateModelDefId(StateModelDefId.from(SCHEDULER_TASK_QUEUE));
 
         synchronized (_manager) {
           int existingTopPartitionId = 0;
@@ -233,8 +234,9 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
     private int findTopPartitionId(IdealState currentTaskQueue) {
       int topId = 0;
-      for (String partitionName : currentTaskQueue.getPartitionStringSet()) {
+      for (PartitionId partitionId : currentTaskQueue.getPartitionSet()) {
         try {
+          String partitionName = partitionId.stringify();
           String partitionNumStr = partitionName.substring(partitionName.lastIndexOf('_') + 1);
           int num = Integer.parseInt(partitionNumStr);
           if (topId < num) {

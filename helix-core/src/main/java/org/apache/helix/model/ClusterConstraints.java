@@ -27,6 +27,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.ConstraintId;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.log4j.Logger;
@@ -42,9 +43,11 @@ public class ClusterConstraints extends HelixProperty {
    */
   public enum ConstraintAttribute {
     STATE,
+    STATE_MODEL,
     MESSAGE_TYPE,
     TRANSITION,
     RESOURCE,
+    PARTITION,
     INSTANCE,
     CONSTRAINT_VALUE
   }
@@ -53,7 +56,9 @@ public class ClusterConstraints extends HelixProperty {
    * Possible special values that constraint attributes can take
    */
   public enum ConstraintValue {
-    ANY
+    ANY,
+    N,
+    R
   }
 
   /**
@@ -65,7 +70,8 @@ public class ClusterConstraints extends HelixProperty {
   }
 
   // constraint-id -> constraint-item
-  private final Map<String, ConstraintItem> _constraints = new HashMap<String, ConstraintItem>();
+  private final Map<ConstraintId, ConstraintItem> _constraints =
+      new HashMap<ConstraintId, ConstraintItem>();
 
   /**
    * Instantiate constraints as a given type
@@ -96,7 +102,7 @@ public class ClusterConstraints extends HelixProperty {
           builder.addConstraintAttributes(_record.getMapField(constraintId)).build();
       // ignore item with empty attributes or no constraint-value
       if (item.getAttributes().size() > 0 && item.getConstraintValue() != null) {
-        addConstraintItem(constraintId, item);
+        addConstraintItem(ConstraintId.from(constraintId), item);
       } else {
         LOG.error("Skip invalid constraint. key: " + constraintId + ", value: "
             + _record.getMapField(constraintId));
@@ -109,13 +115,13 @@ public class ClusterConstraints extends HelixProperty {
    * @param constraintId unique constraint identifier
    * @param item the constraint as a {@link ConstraintItem}
    */
-  public void addConstraintItem(String constraintId, ConstraintItem item) {
+  public void addConstraintItem(ConstraintId constraintId, ConstraintItem item) {
     Map<String, String> map = new TreeMap<String, String>();
     for (ConstraintAttribute attr : item.getAttributes().keySet()) {
       map.put(attr.toString(), item.getAttributeValue(attr));
     }
     map.put(ConstraintAttribute.CONSTRAINT_VALUE.toString(), item.getConstraintValue());
-    _record.setMapField(constraintId, map);
+    _record.setMapField(constraintId.stringify(), map);
     _constraints.put(constraintId, item);
   }
 
@@ -123,8 +129,8 @@ public class ClusterConstraints extends HelixProperty {
    * Add multiple constraint items.
    * @param items (constraint identifier, {@link ConstrantItem}) pairs
    */
-  public void addConstraintItems(Map<String, ConstraintItem> items) {
-    for (String constraintId : items.keySet()) {
+  public void addConstraintItems(Map<ConstraintId, ConstraintItem> items) {
+    for (ConstraintId constraintId : items.keySet()) {
       addConstraintItem(constraintId, items.get(constraintId));
     }
   }
@@ -133,9 +139,9 @@ public class ClusterConstraints extends HelixProperty {
    * remove a constraint-item
    * @param constraintId unique constraint identifier
    */
-  public void removeConstraintItem(String constraintId) {
+  public void removeConstraintItem(ConstraintId constraintId) {
     _constraints.remove(constraintId);
-    _record.getMapFields().remove(constraintId);
+    _record.getMapFields().remove(constraintId.stringify());
   }
 
   /**
@@ -143,7 +149,7 @@ public class ClusterConstraints extends HelixProperty {
    * @param constraintId unique constraint identifier
    * @return {@link ConstraintItem} or null if not present
    */
-  public ConstraintItem getConstraintItem(String constraintId) {
+  public ConstraintItem getConstraintItem(ConstraintId constraintId) {
     return _constraints.get(constraintId);
   }
 
@@ -160,6 +166,14 @@ public class ClusterConstraints extends HelixProperty {
       }
     }
     return matches;
+  }
+
+  /**
+   * Get all constraint items in this collection of constraints
+   * @return map of constraint id to constraint item
+   */
+  public Map<ConstraintId, ConstraintItem> getConstraintItems() {
+    return _constraints;
   }
 
   /**
@@ -182,13 +196,15 @@ public class ClusterConstraints extends HelixProperty {
       if (msg.getTgtName() != null) {
         attributes.put(ConstraintAttribute.INSTANCE, msg.getTgtName());
       }
+      if (msg.getStateModelDefId() != null) {
+        attributes.put(ConstraintAttribute.STATE_MODEL, msg.getStateModelDefId().stringify());
+      }
     }
     return attributes;
   }
 
   @Override
   public boolean isValid() {
-    // TODO Auto-generated method stub
     return true;
   }
 

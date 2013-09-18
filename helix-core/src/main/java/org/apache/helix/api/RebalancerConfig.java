@@ -376,6 +376,22 @@ public class RebalancerConfig extends NamespacedConfig {
     }
 
     /**
+     * Construct a builder from an existing rebalancer config
+     * @param config
+     */
+    public Builder(RebalancerConfig config) {
+      _resourceId = config.getResourceId();
+      _partitionMap = new TreeMap<PartitionId, Partition>();
+      _partitionMap.putAll(config.getPartitionMap());
+      _stateModelDefId = config.getStateModelDefId();
+      _stateModelFactoryId = config.getStateModelFactoryId();
+      _anyLiveParticipant = config.canAssignAnyLiveParticipant();
+      _replicaCount = config.getReplicaCount();
+      _maxPartitionsPerParticipant = config.getMaxPartitionsPerParticipant();
+      _participantGroupTag = config.getParticipantGroupTag();
+    }
+
+    /**
      * Set the state model definition
      * @param stateModelDefId state model identifier
      * @return Builder
@@ -510,6 +526,14 @@ public class RebalancerConfig extends NamespacedConfig {
      */
     public SimpleBuilder(ResourceId resourceId) {
       super(resourceId);
+    }
+
+    /**
+     * Construct with an existing rebalancer config
+     * @param config
+     */
+    public SimpleBuilder(RebalancerConfig config) {
+      super(config);
     }
 
     /**

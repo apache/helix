@@ -112,6 +112,16 @@ public final class CustomRebalancerConfig extends RebalancerConfig {
       _preferenceMaps = new HashMap<PartitionId, Map<ParticipantId, State>>();
     }
 
+		/**
+		 * Construct builder using an existing custom rebalancer config
+		 * @param config
+		 */
+		public Builder(CustomRebalancerConfig config) {
+			super(config);
+			_preferenceMaps = new HashMap<PartitionId, Map<ParticipantId, State>>();
+			_preferenceMaps.putAll(config.getPreferenceMaps());
+		}
+
     /**
      * Add a preference map of a partition
      * @param partitionId the partition to set

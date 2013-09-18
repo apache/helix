@@ -45,6 +45,7 @@ import org.apache.log4j.Logger;
  * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
  * with state s.
  */
+@Deprecated
 public class SemiAutoRebalancer implements Rebalancer {
 
   private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);

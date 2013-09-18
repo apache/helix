@@ -29,6 +29,8 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -651,13 +653,13 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     IdealState dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
-    Set<String> hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionStringSet()) {
-      for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
+    Set<ParticipantId> hosts = new HashSet<ParticipantId>();
+    for (PartitionId p : dbIs.getPartitionSet()) {
+      for (ParticipantId participantId : dbIs.getParticipantStateMap(p).keySet()) {
         InstanceConfig config =
-            accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
+            accessor.getProperty(accessor.keyBuilder().instanceConfig(participantId.stringify()));
         Assert.assertTrue(config.containsTag("tag1"));
-        hosts.add(hostName);
+        hosts.add(participantId);
       }
     }
     Assert.assertEquals(hosts.size(), 2);
@@ -673,13 +675,13 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
-    hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionStringSet()) {
-      for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
+    hosts = new HashSet<ParticipantId>();
+    for (PartitionId p : dbIs.getPartitionSet()) {
+      for (ParticipantId participantId : dbIs.getParticipantStateMap(p).keySet()) {
         InstanceConfig config =
-            accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
+            accessor.getProperty(accessor.keyBuilder().instanceConfig(participantId.stringify()));
         Assert.assertTrue(config.containsTag("tag2"));
-        hosts.add(hostName);
+        hosts.add(participantId);
       }
     }
     Assert.assertEquals(hosts.size(), 4);
@@ -701,13 +703,13 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     dbIs = accessor.getProperty(accessor.keyBuilder().idealState("db_11"));
-    hosts = new HashSet<String>();
-    for (String p : dbIs.getPartitionStringSet()) {
-      for (String hostName : dbIs.getInstanceStateMap(p).keySet()) {
+    hosts = new HashSet<ParticipantId>();
+    for (PartitionId p : dbIs.getPartitionSet()) {
+      for (ParticipantId participantId : dbIs.getParticipantStateMap(p).keySet()) {
         InstanceConfig config =
-            accessor.getProperty(accessor.keyBuilder().instanceConfig(hostName));
+            accessor.getProperty(accessor.keyBuilder().instanceConfig(participantId.stringify()));
         Assert.assertTrue(config.containsTag("tag2"));
-        hosts.add(hostName);
+        hosts.add(participantId);
       }
     }
     Assert.assertEquals(hosts.size(), 3);

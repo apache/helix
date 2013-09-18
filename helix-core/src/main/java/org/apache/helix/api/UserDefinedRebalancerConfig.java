@@ -88,6 +88,15 @@ public final class UserDefinedRebalancerConfig extends RebalancerConfig {
       super(resourceId);
     }
 
+    /**
+     * Construct a builder using an existing user-defined rebalancer config
+     * @param config
+     */
+		public Builder(UserDefinedRebalancerConfig config) {
+			super(config);
+			_rebalancerRef = config.getRebalancerRef();
+		}
+
     public Builder rebalancerRef(RebalancerRef rebalancerRef) {
       _rebalancerRef = rebalancerRef;
       return this;

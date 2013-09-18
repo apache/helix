@@ -31,6 +31,7 @@ import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.testng.AssertJUnit;
@@ -130,17 +131,17 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
       String resourceName = resources[i];
       IdealState idealState = new IdealState(resourceName);
       for (int p = 0; p < partitions; p++) {
-        List<String> value = new ArrayList<String>();
+        List<ParticipantId> value = new ArrayList<ParticipantId>();
         for (int r = 0; r < replicas; r++) {
-          value.add("localhost_" + (p + r + 1) % nodes);
+          value.add(ParticipantId.from("localhost_" + (p + r + 1) % nodes));
         }
-        idealState.setPreferenceList(resourceName + "_" + p, value);
+        idealState.setPreferenceList(PartitionId.from(resourceName + "_" + p), value);
         Map<ParticipantId, State> preferenceMap = new HashMap<ParticipantId, State>();
         preferenceMap.put(ParticipantId.from("localhost_" + (p + 1) % 5), State.from("MASTER"));
         idealState.setParticipantStateMap(
             PartitionId.from(ResourceId.from(resourceName), Integer.toString(p)), preferenceMap);
       }
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
       idealState.setIdealStateMode(mode.toString());
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);

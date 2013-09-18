@@ -116,6 +116,16 @@ public final class SemiAutoRebalancerConfig extends RebalancerConfig {
     }
 
     /**
+     * Construct a builder from an existing semi-auto rebalancer config
+     * @param config
+     */
+    public Builder(SemiAutoRebalancerConfig config) {
+    	super(config);
+        _preferenceLists = new HashMap<PartitionId, List<ParticipantId>>();
+        _preferenceLists.putAll(config.getPreferenceLists());
+    }
+    
+    /**
      * Add a preference list of a partition
      * @param partitionId the partition to set
      * @param preferenceList list of participant ids, most preferred first

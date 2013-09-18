@@ -66,7 +66,7 @@ public class ClusterAccessor {
   public boolean createCluster(ClusterConfig cluster) {
     boolean created = _accessor.createProperty(_keyBuilder.cluster(), null);
     if (!created) {
-      LOG.warn("Cluster already created. Aborting.");
+      // LOG.warn("Cluster already created. Aborting.");
       // return false;
     }
 

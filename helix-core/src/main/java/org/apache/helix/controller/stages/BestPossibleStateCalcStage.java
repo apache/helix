@@ -97,8 +97,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
       Rebalancer rebalancer = null;
       if (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
-          && idealState.getRebalancerClassName() != null) {
-        String rebalancerClassName = idealState.getRebalancerClassName();
+          && idealState.getRebalancerRef() != null) {
+        String rebalancerClassName = idealState.getRebalancerRef().toString();
         logger
             .info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
         try {

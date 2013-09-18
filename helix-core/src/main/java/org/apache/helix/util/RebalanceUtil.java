@@ -27,8 +27,12 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
+import org.apache.helix.api.PartitionId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
+
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 public class RebalanceUtil {
   public static Map<String, Object> buildInternalIdealState(IdealState state) {
@@ -37,17 +41,19 @@ public class RebalanceUtil {
     Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
     Map<String, String> reversePartitionIndex = new HashMap<String, String>();
     boolean indexInPartitionName = true;
-    for (String partitionId : state.getPartitionStringSet()) {
-      int lastPos = partitionId.lastIndexOf("_");
+    for (PartitionId partitionId : state.getPartitionSet()) {
+      String partitionName = partitionId.stringify();
+      int lastPos = partitionName.lastIndexOf("_");
       if (lastPos < 0) {
         indexInPartitionName = false;
         break;
       }
       try {
-        String idStr = partitionId.substring(lastPos + 1);
+        String idStr = partitionName.substring(lastPos + 1);
         int partition = Integer.parseInt(idStr);
-        partitionIndex.put(partitionId, partition);
-        reversePartitionIndex.put(state.getResourceName() + "_" + partition, partitionId);
+        partitionIndex.put(partitionName, partition);
+        reversePartitionIndex.put(state.getResourceId().stringify() + "_" + partition,
+            partitionName);
       } catch (Exception e) {
         indexInPartitionName = false;
         partitionIndex.clear();
@@ -58,19 +64,20 @@ public class RebalanceUtil {
 
     if (indexInPartitionName == false) {
       List<String> partitions = new ArrayList<String>();
-      partitions.addAll(state.getPartitionStringSet());
+      partitions.addAll(Lists.transform(Lists.newArrayList(state.getPartitionSet()),
+          Functions.toStringFunction()));
       Collections.sort(partitions);
       for (int i = 0; i < partitions.size(); i++) {
         partitionIndex.put(partitions.get(i), i);
-        reversePartitionIndex.put(state.getResourceName() + "_" + i, partitions.get(i));
+        reversePartitionIndex.put(state.getResourceId().stringify() + "_" + i, partitions.get(i));
       }
     }
 
     Map<String, List<Integer>> nodeMasterAssignmentMap = new TreeMap<String, List<Integer>>();
     Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap =
         new TreeMap<String, Map<String, List<Integer>>>();
-    for (String partition : state.getPartitionStringSet()) {
-      List<String> instances = state.getRecord().getListField(partition);
+    for (PartitionId partition : state.getPartitionSet()) {
+      List<String> instances = state.getRecord().getListField(partition.stringify());
       String master = instances.get(0);
       if (!nodeMasterAssignmentMap.containsKey(master)) {
         nodeMasterAssignmentMap.put(master, new ArrayList<Integer>());

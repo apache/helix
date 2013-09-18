@@ -29,6 +29,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.testng.Assert;
@@ -52,24 +55,28 @@ public class TestIdealState {
 
     // test SEMI_AUTO mode
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
-    Set<String> instances = idealState.getInstanceSet("TestDB_0");
+    Set<ParticipantId> instances = idealState.getParticipantSet(PartitionId.from("TestDB_0"));
     // System.out.println("instances: " + instances);
     Assert.assertEquals(instances.size(), 2, "Should contain node_1 and node_2");
-    Assert.assertTrue(instances.contains("node_1"), "Should contain node_1 and node_2");
-    Assert.assertTrue(instances.contains("node_2"), "Should contain node_1 and node_2");
+    Assert.assertTrue(instances.contains(ParticipantId.from("node_1")),
+        "Should contain node_1 and node_2");
+    Assert.assertTrue(instances.contains(ParticipantId.from("node_2")),
+        "Should contain node_1 and node_2");
 
-    instances = idealState.getInstanceSet("TestDB_nonExist_auto");
+    instances = idealState.getParticipantSet(PartitionId.from("TestDB_nonExist_auto"));
     Assert.assertEquals(instances, Collections.emptySet(), "Should get empty set");
 
     // test CUSTOMIZED mode
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
-    instances = idealState.getInstanceSet("TestDB_1");
+    instances = idealState.getParticipantSet(PartitionId.from("TestDB_1"));
     // System.out.println("instances: " + instances);
     Assert.assertEquals(instances.size(), 2, "Should contain node_3 and node_4");
-    Assert.assertTrue(instances.contains("node_3"), "Should contain node_3 and node_4");
-    Assert.assertTrue(instances.contains("node_4"), "Should contain node_3 and node_4");
+    Assert.assertTrue(instances.contains(ParticipantId.from("node_3")),
+        "Should contain node_3 and node_4");
+    Assert.assertTrue(instances.contains(ParticipantId.from("node_4")),
+        "Should contain node_3 and node_4");
 
-    instances = idealState.getInstanceSet("TestDB_nonExist_custom");
+    instances = idealState.getParticipantSet(PartitionId.from("TestDB_nonExist_custom"));
     Assert.assertEquals(instances, Collections.emptySet(), "Should get empty set");
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
@@ -80,7 +87,7 @@ public class TestIdealState {
     IdealState idealState = new IdealState("test-db");
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(4);
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     idealState.setReplicas("" + 2);
 

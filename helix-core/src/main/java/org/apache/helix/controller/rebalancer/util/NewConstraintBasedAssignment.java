@@ -31,9 +31,12 @@ import java.util.Set;
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.ClusterConfig;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -96,10 +99,10 @@ public class NewConstraintBasedAssignment {
    * @param disabledParticipantsForPartition
    * @return
    */
-  public static Map<ParticipantId, State> computeAutoBestStateForPartition(
-      Map<ParticipantId, Participant> liveParticipantMap, StateModelDefinition stateModelDef,
-      List<ParticipantId> participantPreferenceList, Map<ParticipantId, State> currentStateMap,
-      Set<ParticipantId> disabledParticipantsForPartition) {
+  public static Map<ParticipantId, State> computeAutoBestStateForPartition(ClusterConfig cluster,
+      ResourceId resourceId, Map<ParticipantId, Participant> liveParticipantMap,
+      StateModelDefinition stateModelDef, List<ParticipantId> participantPreferenceList,
+      Map<ParticipantId, State> currentStateMap, Set<ParticipantId> disabledParticipantsForPartition) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
     // if the resource is deleted, instancePreferenceList will be empty and
@@ -128,7 +131,9 @@ public class NewConstraintBasedAssignment {
     boolean assigned[] = new boolean[participantPreferenceList.size()];
 
     for (State state : statesPriorityList) {
-      String num = stateModelDef.getNumParticipantsPerState(state);
+      String num =
+          cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
+              stateModelDef.getStateModelDefId(), state);
       int stateCount = -1;
       if ("N".equals(num)) {
         Set<ParticipantId> liveAndEnabled = new HashSet<ParticipantId>(liveParticipantMap.keySet());
@@ -171,19 +176,23 @@ public class NewConstraintBasedAssignment {
 
   /**
    * Get the number of replicas that should be in each state for a partition
+   * @param cluster cluster configuration
+   * @param resourceId the resource for which to get the state count
    * @param stateModelDef StateModelDefinition object
    * @param liveNodesNb number of live nodes
    * @param total number of replicas
    * @return state count map: state->count
    */
-  public static LinkedHashMap<State, Integer> stateCount(StateModelDefinition stateModelDef,
-      int liveNodesNb, int totalReplicas) {
+  public static LinkedHashMap<State, Integer> stateCount(ClusterConfig cluster,
+      ResourceId resourceId, StateModelDefinition stateModelDef, int liveNodesNb, int totalReplicas) {
     LinkedHashMap<State, Integer> stateCountMap = new LinkedHashMap<State, Integer>();
     List<State> statesPriorityList = stateModelDef.getStatesPriorityList();
 
     int replicas = totalReplicas;
     for (State state : statesPriorityList) {
-      String num = stateModelDef.getNumParticipantsPerState(state);
+      String num =
+          cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
+              stateModelDef.getStateModelDefId(), state);
       if ("N".equals(num)) {
         stateCountMap.put(state, liveNodesNb);
       } else if ("R".equals(num)) {
@@ -207,7 +216,9 @@ public class NewConstraintBasedAssignment {
 
     // get state count for R
     for (State state : statesPriorityList) {
-      String num = stateModelDef.getNumParticipantsPerState(state);
+      String num =
+          cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
+              stateModelDef.getStateModelDefId(), state);
       if ("R".equals(num)) {
         stateCountMap.put(state, replicas);
         // should have at most one state using R

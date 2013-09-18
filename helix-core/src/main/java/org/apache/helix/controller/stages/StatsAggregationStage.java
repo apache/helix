@@ -320,7 +320,7 @@ public class StatsAggregationStage extends AbstractBaseStage {
     Builder kb = accessor.keyBuilder();
     List<IdealState> idealStates = accessor.getChildValues(kb.idealStates());
     for (IdealState idealState : idealStates) {
-      String resourceName = idealState.getResourceName();
+      String resourceName = idealState.getResourceId().stringify();
       if (actualStatName.contains("=" + resourceName + ".")
           || actualStatName.contains("=" + resourceName + ";")) {
         return resourceName;

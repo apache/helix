@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
@@ -84,7 +85,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealState("TestDB1"));
-    idealState.setStateModelFactoryName("TestDB1_Factory");
+    idealState.setStateModelFactoryId(StateModelFactoryId.from("TestDB1_Factory"));
     accessor.setProperty(keyBuilder.idealState("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 

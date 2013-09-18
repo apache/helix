@@ -99,7 +99,7 @@ public class BaseStageTest {
         record.setListField(resourceName + "_" + p, value);
       }
       IdealState idealState = new IdealState(record);
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
       idealState.setRebalanceMode(rebalanceMode);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);

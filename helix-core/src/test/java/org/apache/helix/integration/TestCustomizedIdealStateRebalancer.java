@@ -107,9 +107,9 @@ public class TestCustomizedIdealStateRebalancer extends
       Assert.assertEquals(ev.getStateMap(partition).size(), 1);
     }
     IdealState is = accessor.getProperty(keyBuilder.idealState(db2));
-    for (String partition : is.getPartitionStringSet()) {
+    for (PartitionId partition : is.getPartitionSet()) {
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
-      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
+      Assert.assertEquals(is.getParticipantStateMap(partition).size(), 0);
     }
     Assert.assertTrue(testRebalancerInvoked);
   }
@@ -136,9 +136,11 @@ public class TestCustomizedIdealStateRebalancer extends
                 .size();
         ClusterDataCache cache = new ClusterDataCache();
         cache.refresh(accessor);
-        String masterValue =
-            cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-                .getStatesPriorityStringList().get(0);
+        State masterValue =
+            cache
+                .getStateModelDef(
+                    cache.getIdealState(_resourceName).getStateModelDefId().stringify())
+                .getStatesPriorityList().get(0);
         int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
         String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
         int instances = 0;
@@ -151,8 +153,8 @@ public class TestCustomizedIdealStateRebalancer extends
           instances = cache.getLiveInstances().size();
         }
         ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
-        return verifyBalanceExternalView(externalView.getRecord(), numberOfPartitions, masterValue,
-            replicas, instances);
+        return verifyBalanceExternalView(externalView.getRecord(), numberOfPartitions,
+            masterValue.toString(), replicas, instances);
       } catch (Exception e) {
         return false;
       }

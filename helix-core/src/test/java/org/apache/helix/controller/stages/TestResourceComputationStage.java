@@ -31,6 +31,7 @@ import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.CurrentState;
@@ -60,7 +61,7 @@ public class TestResourceComputationStage extends BaseStageTest {
         DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas, resourceName,
             "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
@@ -104,7 +105,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
-          .getStateModelDefId(), idealState.getStateModelDefRef());
+          .getStateModelDefId(), idealState.getStateModelDefId());
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getPartitionSet().size(),
           idealState.getNumPartitions());
     }
@@ -129,7 +130,7 @@ public class TestResourceComputationStage extends BaseStageTest {
           DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas,
               resourceName, "MASTER", "SLAVE");
       IdealState idealState = new IdealState(record);
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();

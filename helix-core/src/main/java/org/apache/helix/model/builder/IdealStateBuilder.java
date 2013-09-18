@@ -24,6 +24,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.model.IdealState;
 
 public abstract class IdealStateBuilder {
@@ -156,8 +157,8 @@ public abstract class IdealStateBuilder {
     IdealState idealstate = new IdealState(_record);
     idealstate.setNumPartitions(numPartitions);
     idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
-    idealstate.setStateModelDefRef(stateModel);
-    idealstate.setStateModelFactoryName(stateModelFactoryName);
+    idealstate.setStateModelDefId(StateModelDefId.from(stateModel));
+    idealstate.setStateModelFactoryId(StateModelFactoryId.from(stateModelFactoryName));
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
 
@@ -166,5 +167,4 @@ public abstract class IdealStateBuilder {
     }
     return idealstate;
   }
-
 }

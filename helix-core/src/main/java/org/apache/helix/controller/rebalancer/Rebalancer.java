@@ -31,6 +31,7 @@ import org.apache.helix.model.ResourceAssignment;
  * This will be invoked on all changes that happen in the cluster.<br/>
  * Simply return the newIdealState for a resource in this method.<br/>
  */
+@Deprecated
 public interface Rebalancer {
   /**
    * Initialize the rebalancer with a HelixManager if necessary

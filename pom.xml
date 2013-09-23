@@ -110,7 +110,16 @@ under the License.
         <role>Committer</role>
       </roles>
       <timezone>-8</timezone>
-    </developer>                                     
+    </developer>
+    <developer>
+      <id>kanak</id>
+      <name>Kanak Biscuitwala</name>
+      <email>kanak@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>helix-core</module>

@@ -24,6 +24,7 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
+@SuppressWarnings("deprecation")
 public class TestPerfCounters {
 
   final String INSTANCE_NAME = "instance_123";

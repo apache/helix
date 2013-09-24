@@ -25,26 +25,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.RebalancerContext;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -127,7 +123,6 @@ public class ClusterAccessor {
    * @return cluster
    */
   public Cluster readCluster() {
-    // TODO many of these should live in resource, participant, etc accessors
     /**
      * map of instance-id to instance-config
      */
@@ -190,40 +185,22 @@ public class ClusterAccessor {
     Map<String, ResourceConfiguration> resourceConfigMap =
         _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
 
+    /**
+     * Map of resource id to resource assignment
+     */
+    Map<String, ResourceAssignment> resourceAssignmentMap =
+        _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
+
+    // read all the resources
     Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
     for (String resourceName : idealStateMap.keySet()) {
-      IdealState idealState = idealStateMap.get(resourceName);
-      // TODO pass resource assignment
       ResourceId resourceId = ResourceId.from(resourceName);
-      UserConfig userConfig;
-      if (resourceConfigMap != null && resourceConfigMap.containsKey(resourceName)) {
-        userConfig = UserConfig.from(resourceConfigMap.get(resourceName));
-      } else {
-        userConfig = new UserConfig(Scope.resource(resourceId));
-      }
-      int bucketSize = 0;
-      boolean batchMessageMode = false;
-      RebalancerContext rebalancerContext;
-      if (idealState != null) {
-        rebalancerContext = PartitionedRebalancerContext.from(idealState);
-        bucketSize = idealState.getBucketSize();
-        batchMessageMode = idealState.getBatchMessageMode();
-      } else {
-        ResourceConfiguration resourceConfiguration = resourceConfigMap.get(resourceName);
-        if (resourceConfiguration != null) {
-          bucketSize = resourceConfiguration.getBucketSize();
-          batchMessageMode = resourceConfiguration.getBatchMessageMode();
-          RebalancerConfig rebalancerConfig = new RebalancerConfig(resourceConfiguration);
-          rebalancerContext = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
-        } else {
-          rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
-        }
-      }
-      resourceMap.put(resourceId,
-          new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
-              rebalancerContext, userConfig, bucketSize, batchMessageMode));
+      resourceMap.put(resourceId, ResourceAccessor.createResource(resourceId,
+          resourceConfigMap.get(resourceName), idealStateMap.get(resourceName),
+          externalViewMap.get(resourceName), resourceAssignmentMap.get(resourceName)));
     }
 
+    // read all the participants
     Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
     for (String participantName : instanceConfigMap.keySet()) {
       InstanceConfig instanceConfig = instanceConfigMap.get(participantName);
@@ -238,6 +215,7 @@ public class ClusterAccessor {
           currentStateMap.get(participantName)));
     }
 
+    // read the controllers
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
     ControllerId leaderId = null;
     if (leader != null) {
@@ -245,6 +223,7 @@ public class ClusterAccessor {
       controllerMap.put(leaderId, new Controller(leaderId, leader, true));
     }
 
+    // read the constraints
     Map<ConstraintType, ClusterConstraints> clusterConstraintMap =
         new HashMap<ConstraintType, ClusterConstraints>();
     for (String constraintType : constraintMap.keySet()) {
@@ -252,6 +231,7 @@ public class ClusterAccessor {
           constraintMap.get(constraintType));
     }
 
+    // read the pause status
     PauseSignal pauseSignal = _accessor.getProperty(_keyBuilder.pause());
     boolean isPaused = pauseSignal != null;
 
@@ -263,10 +243,13 @@ public class ClusterAccessor {
       userConfig = new UserConfig(Scope.cluster(_clusterId));
     }
 
+    // read the state model definitions
     StateModelDefinitionAccessor stateModelDefAccessor =
         new StateModelDefinitionAccessor(_accessor);
     Map<StateModelDefId, StateModelDefinition> stateModelMap =
         stateModelDefAccessor.readStateModelDefinitions();
+
+    // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
         clusterConstraintMap, stateModelMap, userConfig, isPaused);
   }
@@ -290,7 +273,6 @@ public class ClusterAccessor {
    * @param resource
    */
   public void addResourceToCluster(ResourceConfig resource) {
-    // TODO: this belongs in ResourceAccessor
     RebalancerContext context =
         resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
     StateModelDefId stateModelDefId = context.getStateModelDefId();
@@ -317,40 +299,10 @@ public class ClusterAccessor {
 
     // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
     RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
-    PartitionedRebalancerContext partitionedContext =
-        rebalancerConfig.getRebalancerContext(PartitionedRebalancerContext.class);
-    if (context != null) {
-      IdealState idealState = new IdealState(resourceId);
-      idealState.setRebalanceMode(partitionedContext.getRebalanceMode());
-      idealState.setRebalancerRef(partitionedContext.getRebalancerRef());
-      String replicas = null;
-      if (partitionedContext.anyLiveParticipant()) {
-        replicas = StateModelToken.ANY_LIVEINSTANCE.toString();
-      } else {
-        replicas = Integer.toString(partitionedContext.getReplicaCount());
-      }
-      idealState.setReplicas(replicas);
-      idealState.setNumPartitions(partitionedContext.getPartitionSet().size());
-      idealState.setInstanceGroupTag(partitionedContext.getParticipantGroupTag());
-      idealState.setMaxPartitionsPerInstance(partitionedContext.getMaxPartitionsPerParticipant());
-      idealState.setStateModelDefId(partitionedContext.getStateModelDefId());
-      idealState.setStateModelFactoryId(partitionedContext.getStateModelFactoryId());
-      idealState.setBucketSize(resource.getBucketSize());
-      idealState.setBatchMessageMode(resource.getBatchMessageMode());
-      if (partitionedContext.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-        SemiAutoRebalancerContext semiAutoContext =
-            rebalancerConfig.getRebalancerContext(SemiAutoRebalancerContext.class);
-        for (PartitionId partitionId : semiAutoContext.getPartitionSet()) {
-          idealState.setPreferenceList(partitionId, semiAutoContext.getPreferenceList(partitionId));
-        }
-      } else if (partitionedContext.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-        CustomRebalancerContext customContext =
-            rebalancerConfig.getRebalancerContext(CustomRebalancerContext.class);
-        for (PartitionId partitionId : customContext.getPartitionSet()) {
-          idealState.setParticipantStateMap(partitionId,
-              customContext.getPreferenceMap(partitionId));
-        }
-      }
+    IdealState idealState =
+        ResourceAccessor.rebalancerConfigToIdealState(rebalancerConfig, resource.getBucketSize(),
+            resource.getBatchMessageMode());
+    if (idealState != null) {
       _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
   }

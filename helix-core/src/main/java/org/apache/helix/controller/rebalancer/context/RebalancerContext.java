@@ -53,7 +53,7 @@ public interface RebalancerContext {
    * @param subUnitId the id of the subunit
    * @return SubUnit
    */
-  public Partition getSubUnit(PartitionId partitionId);
+  public Partition getSubUnit(PartitionId subUnitId);
 
   /**
    * Get the resource to rebalance

@@ -747,7 +747,7 @@ public class IdealState extends HelixProperty {
    * @param rawPreferenceLists a map of partition name to a list of participant names
    * @return converted lists as a map
    */
-  public static Map<PartitionId, List<ParticipantId>> preferenceListsFromStringLists(
+  public static Map<? extends PartitionId, List<ParticipantId>> preferenceListsFromStringLists(
       Map<String, List<String>> rawPreferenceLists) {
     if (rawPreferenceLists == null) {
       return Collections.emptyMap();
@@ -812,7 +812,7 @@ public class IdealState extends HelixProperty {
    * @param rawMaps the map of partition name to participant name and state
    * @return converted maps
    */
-  public static Map<PartitionId, Map<ParticipantId, State>> participantStateMapsFromStringMaps(
+  public static Map<? extends PartitionId, Map<ParticipantId, State>> participantStateMapsFromStringMaps(
       Map<String, Map<String, String>> rawMaps) {
     return ResourceAssignment.replicaMapsFromStringMaps(rawMaps);
   }

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.ResourceId;
@@ -63,6 +64,14 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
+   * Instantiate from a record. This supports reading the assignment directly from the backing store
+   * @param record backing record
+   */
+  public ResourceAssignment(ZNRecord record) {
+    super(record);
+  }
+
+  /**
    * Get the resource for which this assignment was created
    * @return resource id
    */
@@ -74,7 +83,7 @@ public class ResourceAssignment extends HelixProperty {
    * Get the currently mapped partitions
    * @return list of Partition objects
    */
-  public List<PartitionId> getMappedPartitions() {
+  public List<? extends PartitionId> getMappedPartitions() {
     ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
     for (String partitionName : _record.getMapFields().keySet()) {
       builder.add(PartitionId.from(partitionName));
@@ -86,7 +95,7 @@ public class ResourceAssignment extends HelixProperty {
    * Get the entire map of a resource
    * @return map of partition to participant to state
    */
-  public Map<PartitionId, Map<ParticipantId, State>> getResourceMap() {
+  public Map<? extends PartitionId, Map<ParticipantId, State>> getResourceMap() {
     return replicaMapsFromStringMaps(_record.getMapFields());
   }
 
@@ -144,7 +153,7 @@ public class ResourceAssignment extends HelixProperty {
    * @param rawMaps the map of partition name to participant name and state
    * @return converted maps
    */
-  public static Map<PartitionId, Map<ParticipantId, State>> replicaMapsFromStringMaps(
+  public static Map<? extends PartitionId, Map<ParticipantId, State>> replicaMapsFromStringMaps(
       Map<String, Map<String, String>> rawMaps) {
     if (rawMaps == null) {
       return Collections.emptyMap();
@@ -180,7 +189,7 @@ public class ResourceAssignment extends HelixProperty {
    * @return converted maps
    */
   public static Map<String, Map<String, String>> stringMapsFromReplicaMaps(
-      Map<PartitionId, Map<ParticipantId, State>> replicaMaps) {
+      Map<? extends PartitionId, Map<ParticipantId, State>> replicaMaps) {
     if (replicaMaps == null) {
       return Collections.emptyMap();
     }

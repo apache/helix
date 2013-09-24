@@ -85,7 +85,7 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
   private ResourceAssignment mapDroppedResource(Cluster cluster, ResourceId resourceId,
       ResourceCurrentState currentStateOutput, StateModelDefinition stateModelDef) {
     ResourceAssignment partitionMapping = new ResourceAssignment(resourceId);
-    Set<PartitionId> mappedPartitions =
+    Set<? extends PartitionId> mappedPartitions =
         currentStateOutput.getCurrentStateMappedPartitions(resourceId);
     if (mappedPartitions == null) {
       return partitionMapping;

@@ -1,18 +1,19 @@
 package org.apache.helix.controller.stages;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.model.ResourceAssignment;
 
+import com.google.common.collect.Maps;
+
 public class NewBestPossibleStateOutput {
 
   Map<ResourceId, ResourceAssignment> _resourceAssignmentMap;
 
   public NewBestPossibleStateOutput() {
-    _resourceAssignmentMap = new HashMap<ResourceId, ResourceAssignment>();
+    _resourceAssignmentMap = Maps.newHashMap();
   }
 
   /**

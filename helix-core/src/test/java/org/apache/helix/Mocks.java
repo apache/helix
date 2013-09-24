@@ -674,7 +674,7 @@ public class Mocks {
     }
 
     @Override
-    public BaseDataAccessor getBaseDataAccessor() {
+    public BaseDataAccessor<ZNRecord> getBaseDataAccessor() {
       // TODO Auto-generated method stub
       return null;
     }

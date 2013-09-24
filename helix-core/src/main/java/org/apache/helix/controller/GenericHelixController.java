@@ -55,6 +55,7 @@ import org.apache.helix.controller.stages.NewMessageThrottleStage;
 import org.apache.helix.controller.stages.NewReadClusterDataStage;
 import org.apache.helix.controller.stages.NewResourceComputationStage;
 import org.apache.helix.controller.stages.NewTaskAssignmentStage;
+import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -182,6 +183,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       rebalancePipeline.addStage(new NewResourceComputationStage());
       rebalancePipeline.addStage(new NewCurrentStateComputationStage());
       rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
+      rebalancePipeline.addStage(new PersistAssignmentStage());
       rebalancePipeline.addStage(new NewMessageGenerationStage());
       rebalancePipeline.addStage(new NewMessageSelectionStage());
       rebalancePipeline.addStage(new NewMessageThrottleStage());

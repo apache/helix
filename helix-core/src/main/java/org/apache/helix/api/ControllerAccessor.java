@@ -20,19 +20,28 @@ package org.apache.helix.api;
  */
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.model.LiveInstance;
 
 public class ControllerAccessor {
   private final HelixDataAccessor _accessor;
+  private final PropertyKey.Builder _keyBuilder;
 
   public ControllerAccessor(HelixDataAccessor accessor) {
     _accessor = accessor;
+    _keyBuilder = accessor.keyBuilder();
   }
 
   /**
-   * create leader
-   * @param controllerId
+   * Read the leader controller if it is live
+   * @return Controller snapshot, or null
    */
-  public void connectLeader(ControllerId controllerId) {
-    // TODO impl this
+  public Controller readLeader() {
+    LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
+    if (leader != null) {
+      ControllerId leaderId = ControllerId.from(leader.getId());
+      return new Controller(leaderId, leader, true);
+    }
+    return null;
   }
 }

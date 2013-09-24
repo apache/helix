@@ -266,7 +266,7 @@ public class ClusterStateVerifier {
           ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
 
           ResourceAssignmentBuilder raBuilder = new ResourceAssignmentBuilder(resourceId);
-          List<PartitionId> mappedPartitions = resourceAssignment.getMappedPartitions();
+          List<? extends PartitionId> mappedPartitions = resourceAssignment.getMappedPartitions();
           for (PartitionId partitionId : mappedPartitions) {
             raBuilder.addAssignments(partitionId, resourceAssignment.getReplicaMap(partitionId));
           }

@@ -38,6 +38,7 @@ import org.apache.helix.model.ResourceAssignment;
 public class Resource {
   private final ResourceConfig _config;
   private final ExternalView _externalView;
+  private final ResourceAssignment _resourceAssignment;
 
   /**
    * Construct a resource
@@ -73,6 +74,7 @@ public class Resource {
         new ResourceConfig(id, ResourceType.DATA, schedulerTaskConfig, rebalancerConfig,
             userConfig, bucketSize, batchMessageMode);
     _externalView = externalView;
+    _resourceAssignment = resourceAssignment;
   }
 
   /**
@@ -148,6 +150,14 @@ public class Resource {
    */
   public ExternalView getExternalView() {
     return _externalView;
+  }
+
+  /**
+   * Get the current resource assignment
+   * @return ResourceAssignment, or null if no current assignment
+   */
+  public ResourceAssignment getResourceAssignment() {
+    return _resourceAssignment;
   }
 
   /**

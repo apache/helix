@@ -25,13 +25,10 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 
 public class StateModelDefinitionAccessor {
-  private static Logger LOG = Logger.getLogger(StateModelDefinitionAccessor.class);
-
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
 

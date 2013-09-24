@@ -26,6 +26,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.Transition;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -77,11 +78,21 @@ public class NewModelExample {
     userConfig.setIntField("sampleInt", 1);
 
     // fully specify the cluster with a ClusterConfig
-    ClusterConfig cluster =
+    ClusterConfig.Builder clusterBuilder =
         new ClusterConfig.Builder(clusterId).addResource(resource).addParticipant(participant)
-            .addStateModelDefinition(lockUnlock).userConfig(userConfig).build();
+            .addStateModelDefinition(lockUnlock).userConfig(userConfig);
 
-    // set up accessors to work with Zookeeper-persisted data
+    // add a state constraint that is more restrictive than what is in the state model
+    clusterBuilder.addStateUpperBoundConstraint(Scope.cluster(clusterId),
+        lockUnlock.getStateModelDefId(), State.from("LOCKED"), 1);
+
+    // add a transition constraint (this time with a resource scope)
+    clusterBuilder.addTransitionConstraint(Scope.resource(resource.getId()),
+        lockUnlock.getStateModelDefId(), Transition.from("RELEASED-LOCKED"), 1);
+
+    ClusterConfig cluster = clusterBuilder.build();
+
+    // set up accessors to work with ZooKeeper-persisted data
     int timeOutInSec = Integer.parseInt(System.getProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "30"));
     ZkClient zkClient = new ZkClient(args[0], timeOutInSec * 1000);
     zkClient.setZkSerializer(new ZNRecordSerializer());
@@ -150,7 +161,7 @@ public class NewModelExample {
     StateModelDefinition.Builder stateModelBuilder =
         new StateModelDefinition.Builder(stateModelId).addState(LOCKED, 0).addState(RELEASED, 1)
             .addState(DROPPED, 2).addTransition(RELEASED, LOCKED, 0)
-            .addTransition(LOCKED, RELEASED, 1).upperBound(LOCKED, 1).upperBound(RELEASED, -1)
+            .addTransition(LOCKED, RELEASED, 1).upperBound(LOCKED, 2).upperBound(RELEASED, -1)
             .upperBound(DROPPED, -1).initialState(RELEASED);
     return stateModelBuilder.build();
   }

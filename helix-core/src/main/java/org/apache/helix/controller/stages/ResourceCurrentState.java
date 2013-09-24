@@ -225,7 +225,7 @@ public class ResourceCurrentState {
    * @param resourceId resource to look up
    * @return set of mapped partitions, or empty set if there are none
    */
-  public Set<PartitionId> getCurrentStateMappedPartitions(ResourceId resourceId) {
+  public Set<? extends PartitionId> getCurrentStateMappedPartitions(ResourceId resourceId) {
     Map<PartitionId, Map<ParticipantId, State>> currentStateMap = _currentStateMap.get(resourceId);
     if (currentStateMap != null) {
       return currentStateMap.keySet();

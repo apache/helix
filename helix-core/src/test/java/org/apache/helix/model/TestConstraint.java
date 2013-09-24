@@ -35,12 +35,10 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestConstraint extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestConstraint.class);
 
   @Test
   public void testMsgConstraint() {
@@ -185,7 +183,7 @@ public class TestConstraint extends ZkUnitTestBase {
     ConstraintItem constraint2 = new ConstraintItem(record.getMapField("constraint2"));
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.constraint(ConstraintType.STATE_CONSTRAINT.toString()),

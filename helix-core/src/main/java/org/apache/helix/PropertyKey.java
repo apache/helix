@@ -38,6 +38,7 @@ import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.PERSISTENTSTATS;
+import static org.apache.helix.PropertyType.RESOURCEASSIGNMENTS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
@@ -62,6 +63,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
@@ -170,6 +172,25 @@ public class PropertyKey {
      */
     public PropertyKey idealState(String resourceName) {
       return new PropertyKey(IDEALSTATES, IdealState.class, _clusterName, resourceName);
+    }
+
+    /**
+     * Get a property key associated with all {@link ResourceAssignment}s on the cluster
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey resourceAssignments() {
+      return new PropertyKey(RESOURCEASSIGNMENTS, ResourceAssignment.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with {@link ResourceAssignment} representing the most recent
+     * assignment
+     * @param resourceName name of the resource
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey resourceAssignment(String resourceName) {
+      return new PropertyKey(RESOURCEASSIGNMENTS, ResourceAssignment.class, _clusterName,
+          resourceName);
     }
 
     /**

@@ -56,14 +56,6 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
-   * Initialize a mapping from an existing ResourceMapping
-   * @param existingMapping pre-populated ResourceMapping
-   */
-  public ResourceAssignment(ResourceAssignment existingMapping) {
-    super(existingMapping);
-  }
-
-  /**
    * Instantiate from a record. This supports reading the assignment directly from the backing store
    * @param record backing record
    */

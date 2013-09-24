@@ -9,7 +9,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ClusterAccessor;
 import org.apache.helix.api.ClusterConfig;
 import org.apache.helix.api.ClusterId;
-import org.apache.helix.api.FullAutoRebalancerConfig;
 import org.apache.helix.api.ParticipantConfig;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.Partition;
@@ -20,6 +19,7 @@ import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.UserConfig;
+import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -118,21 +118,18 @@ public class NewModelExample {
     // identify the resource
     ResourceId resourceId = ResourceId.from("exampleResource");
 
-    // create a partition with no user-defined configuration
+    // create a partition
     Partition partition1 = new Partition(PartitionId.from("partition1"));
 
-    // create a partition with (optional) user-defined configuration
-    PartitionId partition2Id = PartitionId.from("partition2");
-    UserConfig partition2Config = new UserConfig(Scope.partition(partition2Id));
-    partition2Config.setSimpleField("sampleString", "partition config");
-    Partition partition2 = new Partition(partition2Id, partition2Config);
+    // create a second partition
+    Partition partition2 = new Partition(PartitionId.from("partition2"));
 
     // specify the rebalancer configuration
     // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerConfig
     // builder
-    FullAutoRebalancerConfig.Builder rebalanceConfigBuilder =
-        new FullAutoRebalancerConfig.Builder(resourceId).replicaCount(3).addPartition(partition1)
-            .addPartition(partition2).stateModelDef(stateModelDef.getStateModelDefId());
+    FullAutoRebalancerContext.Builder rebalanceContextBuilder =
+        new FullAutoRebalancerContext.Builder(resourceId).replicaCount(1).addPartition(partition1)
+            .addPartition(partition2).stateModelDefId(stateModelDef.getStateModelDefId());
 
     // create (optional) user-defined configuration properties for the resource
     UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
@@ -140,7 +137,7 @@ public class NewModelExample {
 
     // create the configuration for a new resource
     ResourceConfig.Builder resourceBuilder =
-        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalanceConfigBuilder.build())
+        new ResourceConfig.Builder(resourceId).rebalancerContext(rebalanceContextBuilder.build())
             .userConfig(userConfig);
     return resourceBuilder.build();
   }

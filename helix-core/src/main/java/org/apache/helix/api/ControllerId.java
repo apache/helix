@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,9 +26,15 @@ package org.apache.helix.api;
  * Identifies Helix nodes that take on the CONTROLLER role
  */
 public class ControllerId extends Id {
+  @JsonProperty("id")
   private final String _id;
 
-  private ControllerId(String id) {
+  /**
+   * Create a controller id
+   * @param id string representation of a controller id
+   */
+  @JsonCreator
+  public ControllerId(@JsonProperty("id") String id) {
     _id = id;
   }
 

@@ -3,6 +3,9 @@ package org.apache.helix.api;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -26,12 +29,23 @@ import java.util.Set;
  * Full configuration of a Helix resource. Typically used to add or modify resources on a cluster
  */
 public class ResourceConfig {
+  /**
+   * Type of a resource. A resource is any entity that can be managed by Helix.
+   */
+  public enum ResourceType {
+    /**
+     * A resource that is persistent, and potentially partitioned and replicated.
+     */
+    DATA
+  }
+
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
   private final SchedulerTaskConfig _schedulerTaskConfig;
   private final UserConfig _userConfig;
   private final int _bucketSize;
   private final boolean _batchMessageMode;
+  private final ResourceType _resourceType;
 
   /**
    * Instantiate a configuration. Consider using ResourceConfig.Builder
@@ -43,10 +57,11 @@ public class ResourceConfig {
    * @param bucketSize bucket size for this resource
    * @param batchMessageMode whether or not batch messaging is allowed
    */
-  public ResourceConfig(ResourceId id, SchedulerTaskConfig schedulerTaskConfig,
-      RebalancerConfig rebalancerConfig, UserConfig userConfig, int bucketSize,
-      boolean batchMessageMode) {
+  public ResourceConfig(ResourceId id, ResourceType resourceType,
+      SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig,
+      UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
     _id = id;
+    _resourceType = resourceType;
     _schedulerTaskConfig = schedulerTaskConfig;
     _rebalancerConfig = rebalancerConfig;
     _userConfig = userConfig;
@@ -55,28 +70,28 @@ public class ResourceConfig {
   }
 
   /**
-   * Get the partitions of the resource
-   * @return map of partition id to partition or empty map if none
+   * Get the subunits of the resource
+   * @return map of subunit id to subunit or empty map if none
    */
-  public Map<PartitionId, Partition> getPartitionMap() {
-    return _rebalancerConfig.getPartitionMap();
+  public Map<? extends PartitionId, ? extends Partition> getSubUnitMap() {
+    return _rebalancerConfig.getRebalancerContext(RebalancerContext.class).getSubUnitMap();
   }
 
   /**
-   * Get a partition that the resource contains
-   * @param partitionId the partition id to look up
+   * Get a subunit that the resource contains
+   * @param subUnitId the subunit id to look up
    * @return Partition or null if none is present with the given id
    */
-  public Partition getPartition(PartitionId partitionId) {
-    return _rebalancerConfig.getPartition(partitionId);
+  public Partition getSubUnit(PartitionId subUnitId) {
+    return getSubUnitMap().get(subUnitId);
   }
 
   /**
-   * Get the set of partition ids that the resource contains
-   * @return partition id set, or empty if none
+   * Get the set of subunit ids that the resource contains
+   * @return subunit id set, or empty if none
    */
-  public Set<PartitionId> getPartitionSet() {
-    return _rebalancerConfig.getPartitionSet();
+  public Set<? extends PartitionId> getSubUnitSet() {
+    return getSubUnitMap().keySet();
   }
 
   /**
@@ -93,6 +108,14 @@ public class ResourceConfig {
    */
   public ResourceId getId() {
     return _id;
+  }
+
+  /**
+   * Get the resource type
+   * @return ResourceType
+   */
+  public ResourceType getType() {
+    return _resourceType;
   }
 
   /**
@@ -129,7 +152,7 @@ public class ResourceConfig {
 
   @Override
   public String toString() {
-    return _rebalancerConfig.getPartitionMap().toString();
+    return getSubUnitMap().toString();
   }
 
   /**
@@ -137,6 +160,7 @@ public class ResourceConfig {
    */
   public static class Builder {
     private final ResourceId _id;
+    private ResourceType _type;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
     private UserConfig _userConfig;
@@ -149,9 +173,20 @@ public class ResourceConfig {
      */
     public Builder(ResourceId id) {
       _id = id;
+      _type = ResourceType.DATA;
       _bucketSize = 0;
       _batchMessageMode = false;
       _userConfig = new UserConfig(Scope.resource(id));
+    }
+
+    /**
+     * Set the type of this resource
+     * @param type ResourceType
+     * @return Builder
+     */
+    public Builder type(ResourceType type) {
+      _type = type;
+      return this;
     }
 
     /**
@@ -159,8 +194,8 @@ public class ResourceConfig {
      * @param rebalancerConfig properties of interest for rebalancing
      * @return Builder
      */
-    public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
-      _rebalancerConfig = rebalancerConfig;
+    public Builder rebalancerContext(RebalancerContext rebalancerContext) {
+      _rebalancerConfig = new RebalancerConfig(rebalancerContext);
       return this;
     }
 
@@ -208,7 +243,7 @@ public class ResourceConfig {
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
+      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
           _bucketSize, _batchMessageMode);
     }
   }

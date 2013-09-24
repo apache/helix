@@ -22,25 +22,19 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.CustomRebalancerConfig;
-import org.apache.helix.api.FullAutoRebalancerConfig;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
-import org.apache.helix.api.SemiAutoRebalancerConfig;
 import org.apache.helix.api.StateModelDefId;
-import org.apache.helix.api.UserDefinedRebalancerConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.NewAutoRebalancer;
-import org.apache.helix.controller.rebalancer.NewCustomRebalancer;
-import org.apache.helix.controller.rebalancer.NewSemiAutoRebalancer;
-import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
+import org.apache.helix.controller.rebalancer.context.Rebalancer;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -115,52 +109,24 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
-      LOG.debug("Processing resource:" + resourceId);
-      // Resource may be gone. In that case we need to get the state model name
-      // from the current state
-      // if (cluster.getResource(resourceId) == null) {
-      // // if resource is deleted, then we do not know which rebalancer to use
-      // // instead, just mark all partitions of the resource as dropped
-      // if (LOG.isInfoEnabled()) {
-      // LOG.info("resource:" + resourceId + " does not exist anymore");
-      // }
-      // StateModelDefinition stateModelDef =
-      // stateModelDefs.get(currentStateOutput.getResourceStateModelDef(resourceId));
-      // ResourceAssignment droppedAssignment =
-      // mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
-      // output.setResourceAssignment(resourceId, droppedAssignment);
-      // continue;
-      // }
-
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Processing resource:" + resourceId);
+      }
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
       ResourceAssignment resourceAssignment = null;
-      if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED) {
-        UserDefinedRebalancerConfig config = UserDefinedRebalancerConfig.from(rebalancerConfig);
-        if (config.getRebalancerRef() != null) {
-          NewUserDefinedRebalancer rebalancer = config.getRebalancerRef().getRebalancer();
+      if (rebalancerConfig != null) {
+        Rebalancer rebalancer = rebalancerConfig.getRebalancer();
+        if (rebalancer != null) {
+          HelixManager manager = event.getAttribute("helixmanager");
+          rebalancer.init(manager);
           resourceAssignment =
-              rebalancer.computeResourceMapping(config, cluster, currentStateOutput);
-        }
-      } else {
-        if (rebalancerConfig.getRebalancerMode() == RebalanceMode.FULL_AUTO) {
-          FullAutoRebalancerConfig config = FullAutoRebalancerConfig.from(rebalancerConfig);
-          resourceAssignment =
-              new NewAutoRebalancer().computeResourceMapping(config, cluster, currentStateOutput);
-        } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.SEMI_AUTO) {
-          SemiAutoRebalancerConfig config = SemiAutoRebalancerConfig.from(rebalancerConfig);
-          resourceAssignment =
-              new NewSemiAutoRebalancer().computeResourceMapping(config, cluster,
-                  currentStateOutput);
-        } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.CUSTOMIZED) {
-          CustomRebalancerConfig config = CustomRebalancerConfig.from(rebalancerConfig);
-          resourceAssignment =
-              new NewCustomRebalancer().computeResourceMapping(config, cluster, currentStateOutput);
+              rebalancer.computeResourceMapping(rebalancerConfig, cluster, currentStateOutput);
         }
       }
       if (resourceAssignment == null) {
-        StateModelDefinition stateModelDef =
-            stateModelDefs.get(rebalancerConfig.getStateModelDefId());
+        RebalancerContext context = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
+        StateModelDefinition stateModelDef = stateModelDefs.get(context.getStateModelDefId());
         resourceAssignment =
             mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
       }

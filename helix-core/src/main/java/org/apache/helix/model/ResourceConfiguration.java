@@ -1,13 +1,10 @@
 package org.apache.helix.model;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.NamespacedConfig;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceId;
 
 import com.google.common.base.Function;
@@ -89,27 +86,6 @@ public class ResourceConfiguration extends HelixProperty {
       });
     }
     return null;
-  }
-
-  /**
-   * Add a rebalancer config to this resource
-   * @param config populated rebalancer config
-   */
-  public void addRebalancerConfig(RebalancerConfig config) {
-    addNamespacedConfig(config);
-    setPartitionIds(new ArrayList<PartitionId>(config.getPartitionSet()));
-  }
-
-  /**
-   * Create a new ResourceConfiguration from a NamespacedConfig
-   * @param namespacedConfig namespaced configuration properties
-   * @return ResourceConfiguration
-   */
-  public static ResourceConfiguration from(NamespacedConfig namespacedConfig) {
-    ResourceConfiguration resourceConfiguration =
-        new ResourceConfiguration(ResourceId.from(namespacedConfig.getId()));
-    resourceConfiguration.addNamespacedConfig(namespacedConfig);
-    return resourceConfiguration;
   }
 
 }

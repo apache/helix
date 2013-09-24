@@ -30,7 +30,6 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.MessageId;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SchedulerTaskConfig;
@@ -40,6 +39,7 @@ import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -76,13 +76,14 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       int bucketSize = resourceConfig.getBucketSize();
 
-      StateModelDefinition stateModelDef =
-          stateModelDefMap.get(resourceConfig.getRebalancerConfig().getStateModelDefId());
+      RebalancerContext rebalancerCtx =
+          resourceConfig.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
+      StateModelDefinition stateModelDef = stateModelDefMap.get(rebalancerCtx.getStateModelDefId());
 
       ResourceAssignment resourceAssignment =
           bestPossibleStateOutput.getResourceAssignment(resourceId);
-      for (PartitionId partitionId : resourceConfig.getPartitionMap().keySet()) {
-        Map<ParticipantId, State> instanceStateMap = resourceAssignment.getReplicaMap(partitionId);
+      for (PartitionId subUnitId : resourceConfig.getSubUnitMap().keySet()) {
+        Map<ParticipantId, State> instanceStateMap = resourceAssignment.getReplicaMap(subUnitId);
 
         // we should generate message based on the desired-state priority
         // so keep generated messages in a temp map keyed by state
@@ -93,7 +94,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
           State desiredState = instanceStateMap.get(participantId);
 
           State currentState =
-              currentStateOutput.getCurrentState(resourceId, partitionId, participantId);
+              currentStateOutput.getCurrentState(resourceId, subUnitId, participantId);
           if (currentState == null) {
             currentState = stateModelDef.getInitialState();
           }
@@ -103,12 +104,12 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
           }
 
           State pendingState =
-              currentStateOutput.getPendingState(resourceId, partitionId, participantId);
+              currentStateOutput.getPendingState(resourceId, subUnitId, participantId);
 
           // TODO fix it
           State nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
           if (nextState == null) {
-            LOG.error("Unable to find a next state for partition: " + partitionId
+            LOG.error("Unable to find a next state for partition: " + subUnitId
                 + " from stateModelDefinition" + stateModelDef.getClass() + " from:" + currentState
                 + " to:" + desiredState);
             continue;
@@ -116,13 +117,13 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
 
           if (pendingState != null) {
             if (nextState.equals(pendingState)) {
-              LOG.debug("Message already exists for " + participantId + " to transit "
-                  + partitionId + " from " + currentState + " to " + nextState);
+              LOG.debug("Message already exists for " + participantId + " to transit " + subUnitId
+                  + " from " + currentState + " to " + nextState);
             } else if (currentState.equals(pendingState)) {
               LOG.info("Message hasn't been removed for " + participantId + " to transit"
-                  + partitionId + " to " + pendingState + ", desiredState: " + desiredState);
+                  + subUnitId + " to " + pendingState + ", desiredState: " + desiredState);
             } else {
-              LOG.info("IdealState changed before state transition completes for " + partitionId
+              LOG.info("IdealState changed before state transition completes for " + subUnitId
                   + " on " + participantId + ", pendingState: " + pendingState + ", currentState: "
                   + currentState + ", nextState: " + nextState);
             }
@@ -131,20 +132,21 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
             SessionId sessionId =
                 cluster.getLiveParticipantMap().get(participantId).getRunningInstance()
                     .getSessionId();
+            RebalancerContext rebalancerContext =
+                resourceConfig.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
             Message message =
-                createMessage(manager, resourceId, partitionId, participantId, currentState,
+                createMessage(manager, resourceId, subUnitId, participantId, currentState,
                     nextState, sessionId, StateModelDefId.from(stateModelDef.getId()),
-                    resourceConfig.getRebalancerConfig().getStateModelFactoryId(), bucketSize);
+                    rebalancerContext.getStateModelFactoryId(), bucketSize);
 
             // TODO refactor get/set timeout/inner-message
-            RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
-            if (rebalancerConfig != null
-                && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
+            if (rebalancerContext != null
+                && rebalancerContext.getStateModelDefId().equalsIgnoreCase(
                     StateModelDefId.SchedulerTaskQueue)) {
-              if (resourceConfig.getPartitionMap().size() > 0) {
+              if (resourceConfig.getSubUnitMap().size() > 0) {
                 // TODO refactor it -- we need a way to read in scheduler tasks a priori
                 Message innerMsg =
-                    resourceConfig.getSchedulerTaskConfig().getInnerMessage(partitionId);
+                    resourceConfig.getSchedulerTaskConfig().getInnerMessage(subUnitId);
                 if (innerMsg != null) {
                   message.setInnerMessage(innerMsg);
                 }
@@ -157,12 +159,12 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
                     Message.Attributes.TIMEOUT.name());
             SchedulerTaskConfig schedulerTaskConfig = resourceConfig.getSchedulerTaskConfig();
             if (schedulerTaskConfig != null) {
-              int timeout = schedulerTaskConfig.getTimeout(stateTransition, partitionId);
+              int timeout = schedulerTaskConfig.getTimeout(stateTransition, subUnitId);
               if (timeout > 0) {
                 message.setExecutionTimeout(timeout);
               }
             }
-            message.getRecord().setSimpleField("ClusterEventName", event.getName());
+            message.setClusterEvent(event);
 
             if (!messageMap.containsKey(desiredState)) {
               messageMap.put(desiredState, new ArrayList<Message>());
@@ -176,7 +178,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
         for (State state : statesPriorityList) {
           if (messageMap.containsKey(state)) {
             for (Message message : messageMap.get(state)) {
-              output.addMessage(resourceId, partitionId, message);
+              output.addMessage(resourceId, subUnitId, message);
             }
           }
         }

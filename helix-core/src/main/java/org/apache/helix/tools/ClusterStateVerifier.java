@@ -276,7 +276,7 @@ public class ClusterStateVerifier {
             PartitionId partitionId = PartitionId.from(partitionName);
             ParticipantId participantId = ParticipantId.from(instanceName);
             raBuilder.addAssignment(partitionId, participantId,
-                new State(HelixDefinedState.ERROR.toString()));
+                State.from(HelixDefinedState.ERROR.toString()));
           }
           bestPossOutput.setResourceAssignment(resourceId, raBuilder.build());
 

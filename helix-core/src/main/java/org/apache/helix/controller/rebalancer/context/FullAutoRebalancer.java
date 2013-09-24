@@ -1,4 +1,33 @@
-package org.apache.helix.controller.rebalancer;
+package org.apache.helix.controller.rebalancer.context;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.HelixManager;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.State;
+import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
+import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.log4j.Logger;
+
+import com.google.common.base.Function;
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,54 +48,22 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Cluster;
-import org.apache.helix.api.FullAutoRebalancerConfig;
-import org.apache.helix.api.Participant;
-import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.State;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
-import org.apache.helix.controller.stages.ResourceCurrentState;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
-import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
-
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
-
-/**
- * This is a Rebalancer specific to full automatic mode. It is tasked with computing the ideal
- * state of a resource, fully adapting to the addition or removal of instances. This includes
- * computation of a new preference list and a partition to instance and state mapping based on the
- * computed instance preferences.
- * The input is the current assignment of partitions to instances, as well as existing instance
- * preferences, if any.
- * The output is a preference list and a mapping based on that preference list, i.e. partition p
- * has a replica on node k with state s.
- */
-public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig> {
+public class FullAutoRebalancer implements Rebalancer {
   // These should be final, but are initialized in init rather than a constructor
   private AutoRebalanceStrategy _algorithm;
 
-  private static final Logger LOG = Logger.getLogger(NewAutoRebalancer.class);
+  private static Logger LOG = Logger.getLogger(FullAutoRebalancer.class);
 
   @Override
-  public ResourceAssignment computeResourceMapping(FullAutoRebalancerConfig config,
-      Cluster cluster, ResourceCurrentState currentState) {
+  public void init(HelixManager helixManager) {
+    // do nothing
+  }
+
+  @Override
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
+      ResourceCurrentState currentState) {
+    FullAutoRebalancerContext config =
+        rebalancerConfig.getRebalancerContext(FullAutoRebalancerContext.class);
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     // Compute a preference list based on the current ideal state
@@ -75,7 +72,7 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
     Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
     Map<ParticipantId, Participant> allParticipants = cluster.getParticipantMap();
     int replicas = -1;
-    if (config.canAssignAnyLiveParticipant()) {
+    if (config.anyLiveParticipant()) {
       replicas = liveParticipants.size();
     } else {
       replicas = config.getReplicaCount();
@@ -172,7 +169,7 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
   }
 
   private Map<PartitionId, Map<ParticipantId, State>> currentMapping(
-      FullAutoRebalancerConfig config, ResourceCurrentState currentStateOutput,
+      FullAutoRebalancerContext config, ResourceCurrentState currentStateOutput,
       Map<State, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
@@ -199,5 +196,4 @@ public class NewAutoRebalancer implements NewRebalancer<FullAutoRebalancerConfig
     }
     return map;
   }
-
 }

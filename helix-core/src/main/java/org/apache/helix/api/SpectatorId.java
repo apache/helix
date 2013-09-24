@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,9 +23,15 @@ package org.apache.helix.api;
  */
 
 public class SpectatorId extends Id {
+  @JsonProperty("id")
   private final String _id;
 
-  private SpectatorId(String id) {
+  /**
+   * Create a spectator id
+   * @param id string representing a spectator id
+   */
+  @JsonCreator
+  public SpectatorId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -31,4 +40,12 @@ public class SpectatorId extends Id {
     return _id;
   }
 
+  /**
+   * Create a spectator id from a string
+   * @param spectatorId string representing a spectator id
+   * @return SpectatorId
+   */
+  public static SpectatorId from(String spectatorId) {
+    return new SpectatorId(spectatorId);
+  }
 }

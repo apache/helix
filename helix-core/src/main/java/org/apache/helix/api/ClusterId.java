@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,12 +26,15 @@ package org.apache.helix.api;
  * Identifies a cluster
  */
 public class ClusterId extends Id {
+  @JsonProperty("id")
   final private String _id;
 
   /**
-   * @param id
+   * Create a cluster id
+   * @param id string representation of the id
    */
-  private ClusterId(String id) {
+  @JsonCreator
+  public ClusterId(@JsonProperty("id") String id) {
     _id = id;
   }
 

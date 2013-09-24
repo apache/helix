@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,10 +23,15 @@ package org.apache.helix.api;
  */
 
 public class MessageId extends Id {
-
+  @JsonProperty("id")
   private final String _id;
 
-  private MessageId(String id) {
+  /**
+   * Create a message id
+   * @param id string representation of a message id
+   */
+  @JsonCreator
+  public MessageId(@JsonProperty("id") String id) {
     _id = id;
   }
 

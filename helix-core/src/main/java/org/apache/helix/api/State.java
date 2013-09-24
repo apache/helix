@@ -1,6 +1,8 @@
 package org.apache.helix.api;
 
 import org.apache.helix.HelixDefinedState;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,12 +24,18 @@ import org.apache.helix.HelixDefinedState;
  */
 
 /**
- *
+ * A state in a state model managed by Helix
  */
 public class State {
+  @JsonProperty("state")
   private final String _state;
 
-  public State(String state) {
+  /**
+   * Create a state
+   * @param state string representing a state
+   */
+  @JsonCreator
+  public State(@JsonProperty("state") String state) {
     _state = state.toUpperCase();
   }
 

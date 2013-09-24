@@ -24,10 +24,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.api.ResourceConfig.ResourceType;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceAssignment;
 
@@ -42,12 +43,16 @@ public class Resource {
    * Construct a resource
    * @param id resource id
    * @param idealState ideal state of the resource
-   * @param currentStateMap map of participant-id to current state
-   * @param liveParticipantCount number of live participants in the system
+   * @param externalView external view of the resource
+   * @param resourceAssignment current resource assignment of the cluster
+   * @param rebalancerContext contextual parameters that the rebalancer should be aware of
+   * @param userConfig any resource user-defined configuration
+   * @param bucketSize the bucket size to use for physically saved state
+   * @param batchMessageMode true if batch messaging allowed, false otherwise
    */
   public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment,
-      ExternalView externalView, UserConfig userConfig,
-      Map<PartitionId, UserConfig> partitionUserConfigs) {
+      ExternalView externalView, RebalancerContext rebalancerContext, UserConfig userConfig,
+      int bucketSize, boolean batchMessageMode) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
     new HashMap<PartitionId, Map<String, String>>();
     Set<PartitionId> partitionSet = idealState.getPartitionSet();
@@ -57,75 +62,16 @@ public class Resource {
         partitionSet.add(PartitionId.from(id, Integer.toString(i)));
       }
     }
-
     for (PartitionId partitionId : partitionSet) {
-      UserConfig partitionUserConfig = partitionUserConfigs.get(partitionId);
-      if (partitionUserConfig == null) {
-        partitionUserConfig = new UserConfig(Scope.partition(partitionId));
-      }
-      partitionMap.put(partitionId, new Partition(partitionId, partitionUserConfig));
-
-    }
-
-    String replicas = idealState.getReplicas();
-    boolean anyLiveParticipant = false;
-    int replicaCount = 0;
-    if (replicas.equals(StateModelToken.ANY_LIVEINSTANCE.toString())) {
-      anyLiveParticipant = true;
-    } else {
-      replicaCount = Integer.parseInt(replicas);
-    }
-
-    // Build a RebalancerConfig specific to the mode
-    RebalancerConfig rebalancerConfig = null;
-    if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
-      rebalancerConfig =
-          new FullAutoRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
-              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
-              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
-              .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId())
-              .participantGroupTag(idealState.getInstanceGroupTag()).build();
-    } else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-      SemiAutoRebalancerConfig semiAutoConfig =
-          new SemiAutoRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
-              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
-              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
-              .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId())
-              .participantGroupTag(idealState.getInstanceGroupTag()).build();
-      for (PartitionId partitionId : partitionMap.keySet()) {
-        semiAutoConfig.setPreferenceList(partitionId, idealState.getPreferenceList(partitionId));
-      }
-      rebalancerConfig = semiAutoConfig;
-    } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-      CustomRebalancerConfig customConfig =
-          new CustomRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
-              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
-              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
-              .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId())
-              .participantGroupTag(idealState.getInstanceGroupTag()).build();
-      for (PartitionId partitionId : partitionMap.keySet()) {
-        customConfig.setPreferenceMap(partitionId, idealState.getParticipantStateMap(partitionId));
-      }
-      rebalancerConfig = customConfig;
-    } else if (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
-      rebalancerConfig =
-          new UserDefinedRebalancerConfig.Builder(id).addPartitions(partitionMap.values())
-              .anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
-              .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
-              .stateModelDef(idealState.getStateModelDefId())
-              .stateModelFactoryId(idealState.getStateModelFactoryId())
-              .rebalancerRef(idealState.getRebalancerRef())
-              .participantGroupTag(idealState.getInstanceGroupTag()).build();
+      partitionMap.put(partitionId, new Partition(partitionId));
     }
 
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
+    RebalancerConfig rebalancerConfig = new RebalancerConfig(rebalancerContext);
 
     _config =
-        new ResourceConfig(id, schedulerTaskConfig, rebalancerConfig, userConfig,
-            idealState.getBucketSize(), idealState.getBatchMessageMode());
+        new ResourceConfig(id, ResourceType.DATA, schedulerTaskConfig, rebalancerConfig,
+            userConfig, bucketSize, batchMessageMode);
     _externalView = externalView;
   }
 
@@ -135,7 +81,9 @@ public class Resource {
    * @return scheduler-task config or null if state-model-def is not SchedulerTaskQueue
    */
   SchedulerTaskConfig schedulerTaskConfig(IdealState idealState) {
-
+    if (idealState == null) {
+      return null;
+    }
     // TODO refactor get timeout
     Map<String, Integer> transitionTimeoutMap = new HashMap<String, Integer>();
     for (String simpleKey : idealState.getRecord().getSimpleFields().keySet()) {
@@ -170,28 +118,28 @@ public class Resource {
   }
 
   /**
-   * Get the partitions of the resource
-   * @return map of partition id to partition or empty map if none
+   * Get the subunits of the resource
+   * @return map of subunit id to partition or empty map if none
    */
-  public Map<PartitionId, Partition> getPartitionMap() {
-    return _config.getPartitionMap();
+  public Map<? extends PartitionId, ? extends Partition> getSubUnitMap() {
+    return _config.getSubUnitMap();
   }
 
   /**
-   * Get a partition that the resource contains
-   * @param partitionId the partition id to look up
+   * Get a subunit that the resource contains
+   * @param subUnitId the subunit id to look up
    * @return Partition or null if none is present with the given id
    */
-  public Partition getPartition(PartitionId partitionId) {
-    return _config.getPartition(partitionId);
+  public Partition getSubUnit(PartitionId subUnitId) {
+    return _config.getSubUnit(subUnitId);
   }
 
   /**
-   * Get the set of partition ids that the resource contains
-   * @return partition id set, or empty if none
+   * Get the set of subunit ids that the resource contains
+   * @return subunit id set, or empty if none
    */
-  public Set<PartitionId> getPartitionSet() {
-    return _config.getPartitionSet();
+  public Set<? extends PartitionId> getSubUnitSet() {
+    return _config.getSubUnitSet();
   }
 
   /**

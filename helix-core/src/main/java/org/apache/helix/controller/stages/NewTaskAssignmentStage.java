@@ -66,7 +66,7 @@ public class NewTaskAssignmentStage extends AbstractBaseStage {
     List<Message> messagesToSend = new ArrayList<Message>();
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resource = resourceMap.get(resourceId);
-      for (PartitionId partitionId : resource.getPartitionMap().keySet()) {
+      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
         List<Message> messages = messageOutput.getMessages(resourceId, partitionId);
         messagesToSend.addAll(messages);
       }

@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,6 +26,7 @@ package org.apache.helix.api;
  * Identifies a resource
  */
 public class ResourceId extends Id {
+  @JsonProperty("id")
   private final String _id;
 
   @Override
@@ -31,9 +35,11 @@ public class ResourceId extends Id {
   }
 
   /**
-   * @param id
+   * Create a resource id
+   * @param id string representation of a resource id
    */
-  private ResourceId(String id) {
+  @JsonCreator
+  public ResourceId(@JsonProperty("id") String id) {
     _id = id;
   }
 

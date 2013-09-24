@@ -34,12 +34,11 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerRef;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.StateModelFactoryId;
-import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.controller.rebalancer.context.RebalancerRef;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
@@ -559,7 +558,9 @@ public class IdealState extends HelixProperty {
    * @param name state model factory id
    */
   public void setStateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
-    setStateModelFactoryName(stateModelFactoryId.stringify());
+    if (stateModelFactoryId != null) {
+      setStateModelFactoryName(stateModelFactoryId.stringify());
+    }
   }
 
   /**

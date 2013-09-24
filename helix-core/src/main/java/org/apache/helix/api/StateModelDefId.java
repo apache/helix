@@ -1,6 +1,8 @@
 package org.apache.helix.api;
 
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,9 +26,15 @@ import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 public class StateModelDefId extends Id {
   public static final StateModelDefId SchedulerTaskQueue = StateModelDefId
       .from(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
+  @JsonProperty("id")
   private final String _id;
 
-  private StateModelDefId(String id) {
+  /**
+   * Create a state model definition id
+   * @param id string representing a state model definition id
+   */
+  @JsonCreator
+  public StateModelDefId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -35,6 +43,11 @@ public class StateModelDefId extends Id {
     return _id;
   }
 
+  /**
+   * Check if the underlying state model definition id is equal if case is ignored
+   * @param that the StateModelDefId to compare
+   * @return true if equal ignoring case, false otherwise
+   */
   public boolean equalsIgnoreCase(StateModelDefId that) {
     return _id.equalsIgnoreCase(that._id);
   }

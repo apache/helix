@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,10 +22,19 @@ package org.apache.helix.api;
  * under the License.
  */
 
+/**
+ * Id representing a state model factory
+ */
 public class StateModelFactoryId extends Id {
+  @JsonProperty("id")
   private final String _id;
 
-  private StateModelFactoryId(String id) {
+  /**
+   * Create a state model factory id
+   * @param id string representing a state model factory
+   */
+  @JsonCreator
+  public StateModelFactoryId(@JsonProperty("id") String id) {
     _id = id;
   }
 

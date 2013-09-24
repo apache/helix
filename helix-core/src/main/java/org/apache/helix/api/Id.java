@@ -20,7 +20,7 @@ package org.apache.helix.api;
  */
 
 /**
- *
+ * Generic identifier for Helix constructs
  */
 public abstract class Id implements Comparable<Id> {
   public abstract String stringify();

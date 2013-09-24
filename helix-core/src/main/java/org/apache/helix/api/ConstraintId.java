@@ -1,6 +1,8 @@
 package org.apache.helix.api;
 
 import org.apache.helix.model.Transition;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,19 +27,21 @@ import org.apache.helix.model.Transition;
  * Identifies a constraint item on the cluster
  */
 public class ConstraintId extends Id {
-  private final String _constraintId;
+  @JsonProperty("id")
+  private final String _id;
 
   /**
    * Create a constraint id
    * @param constraintId string representing the constraint id
    */
-  private ConstraintId(String constraintId) {
-    _constraintId = constraintId;
+  @JsonCreator
+  public ConstraintId(@JsonProperty("id") String id) {
+    _id = id;
   }
 
   @Override
   public String stringify() {
-    return _constraintId;
+    return _id;
   }
 
   /**

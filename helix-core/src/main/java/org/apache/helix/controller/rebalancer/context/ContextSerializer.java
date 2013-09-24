@@ -1,7 +1,4 @@
-package org.apache.helix.api;
-
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonProperty;
+package org.apache.helix.controller.rebalancer.context;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,32 +19,19 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-/**
- * A partition of a resource
- */
-public class Partition {
-  @JsonProperty("id")
-  private final PartitionId _id;
+public interface ContextSerializer {
+  /**
+   * Convert a RebalancerContext object instance to a String
+   * @param data instance of the rebalancer context type
+   * @return String representing the object
+   */
+  public <T> String serialize(final T data);
 
   /**
-   * Construct a partition
-   * @param id
+   * Convert raw bytes to a generic object instance
+   * @param clazz The class represented by the deserialized string
+   * @param string String representing the object
+   * @return instance of the generic type or null if the conversion failed
    */
-  @JsonCreator
-  public Partition(@JsonProperty("id") PartitionId id) {
-    _id = id;
-  }
-
-  /**
-   * Get partition id
-   * @return partition id
-   */
-  public PartitionId getId() {
-    return _id;
-  }
-
-  @Override
-  public String toString() {
-    return _id.toString();
-  }
+  public <T> T deserialize(final Class<T> clazz, final String string);
 }

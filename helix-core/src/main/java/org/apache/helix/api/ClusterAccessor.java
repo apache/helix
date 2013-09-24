@@ -20,16 +20,20 @@ package org.apache.helix.api;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -40,7 +44,6 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
@@ -198,19 +201,27 @@ public class ClusterAccessor {
       } else {
         userConfig = new UserConfig(Scope.resource(resourceId));
       }
-
-      Map<String, PartitionConfiguration> partitionConfigMap =
-          _accessor.getChildValuesMap(_keyBuilder.partitionConfigs(resourceName));
-      if (partitionConfigMap != null) {
-        Map<PartitionId, UserConfig> partitionUserConfigs = new HashMap<PartitionId, UserConfig>();
-        for (String partitionName : partitionConfigMap.keySet()) {
-          partitionUserConfigs.put(PartitionId.from(partitionName),
-              UserConfig.from(partitionConfigMap.get(partitionName)));
+      int bucketSize = 0;
+      boolean batchMessageMode = false;
+      RebalancerContext rebalancerContext;
+      if (idealState != null) {
+        rebalancerContext = PartitionedRebalancerContext.from(idealState);
+        bucketSize = idealState.getBucketSize();
+        batchMessageMode = idealState.getBatchMessageMode();
+      } else {
+        ResourceConfiguration resourceConfiguration = resourceConfigMap.get(resourceName);
+        if (resourceConfiguration != null) {
+          bucketSize = resourceConfiguration.getBucketSize();
+          batchMessageMode = resourceConfiguration.getBatchMessageMode();
+          RebalancerConfig rebalancerConfig = new RebalancerConfig(resourceConfiguration);
+          rebalancerContext = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
+        } else {
+          rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
         }
-        resourceMap.put(resourceId,
-            new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
-                userConfig, partitionUserConfigs));
       }
+      resourceMap.put(resourceId,
+          new Resource(resourceId, idealState, null, externalViewMap.get(resourceName),
+              rebalancerContext, userConfig, bucketSize, batchMessageMode));
     }
 
     Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
@@ -280,7 +291,9 @@ public class ClusterAccessor {
    */
   public void addResourceToCluster(ResourceConfig resource) {
     // TODO: this belongs in ResourceAccessor
-    StateModelDefId stateModelDefId = resource.getRebalancerConfig().getStateModelDefId();
+    RebalancerContext context =
+        resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
+    StateModelDefId stateModelDefId = context.getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
       throw new HelixException("State model: " + stateModelDefId + " not found in cluster: "
           + _clusterId);
@@ -296,68 +309,50 @@ public class ClusterAccessor {
     if (resource.getUserConfig() != null) {
       ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
       configuration.addNamespacedConfig(resource.getUserConfig());
-      configuration.addRebalancerConfig(resource.getRebalancerConfig());
+      configuration.addNamespacedConfig(resource.getRebalancerConfig().toNamespacedConfig());
+      configuration.setBucketSize(resource.getBucketSize());
+      configuration.setBatchMessageMode(resource.getBatchMessageMode());
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
 
-    // Create an IdealState from a RebalancerConfig
+    // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
     RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
-    IdealState idealState = new IdealState(resourceId);
-    idealState.setRebalanceMode(rebalancerConfig.getRebalancerMode());
-    idealState.setMaxPartitionsPerInstance(rebalancerConfig.getMaxPartitionsPerParticipant());
-    if (rebalancerConfig.canAssignAnyLiveParticipant()) {
-      idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
-    } else {
-      idealState.setReplicas(Integer.toString(rebalancerConfig.getReplicaCount()));
-    }
-    idealState.setStateModelDefId(rebalancerConfig.getStateModelDefId());
-    for (PartitionId partitionId : resource.getPartitionSet()) {
-      if (rebalancerConfig.getRebalancerMode() == RebalanceMode.SEMI_AUTO) {
-        SemiAutoRebalancerConfig config = SemiAutoRebalancerConfig.from(rebalancerConfig);
-        List<ParticipantId> preferenceList = config.getPreferenceList(partitionId);
-        if (preferenceList != null) {
-          idealState.setPreferenceList(partitionId, preferenceList);
-        }
-      } else if (rebalancerConfig.getRebalancerMode() == RebalanceMode.CUSTOMIZED) {
-        CustomRebalancerConfig config = CustomRebalancerConfig.from(rebalancerConfig);
-        Map<ParticipantId, State> preferenceMap = config.getPreferenceMap(partitionId);
-        if (preferenceMap != null) {
-          idealState.setParticipantStateMap(partitionId, preferenceMap);
-        }
+    PartitionedRebalancerContext partitionedContext =
+        rebalancerConfig.getRebalancerContext(PartitionedRebalancerContext.class);
+    if (context != null) {
+      IdealState idealState = new IdealState(resourceId);
+      idealState.setRebalanceMode(partitionedContext.getRebalanceMode());
+      idealState.setRebalancerRef(partitionedContext.getRebalancerRef());
+      String replicas = null;
+      if (partitionedContext.anyLiveParticipant()) {
+        replicas = StateModelToken.ANY_LIVEINSTANCE.toString();
       } else {
-        // TODO: need these for as long as we use IdealState as the backing physical model
-        List<ParticipantId> emptyList = Collections.emptyList();
-        Map<ParticipantId, State> emptyMap = Collections.emptyMap();
-        idealState.setPreferenceList(partitionId, emptyList);
-        idealState.setParticipantStateMap(partitionId, emptyMap);
+        replicas = Integer.toString(partitionedContext.getReplicaCount());
       }
-      Partition partition = resource.getPartition(partitionId);
-      if (partition.getUserConfig() != null) {
-        PartitionConfiguration partitionConfig =
-            PartitionConfiguration.from(partition.getUserConfig());
-        _accessor.setProperty(
-            _keyBuilder.partitionConfig(resourceId.stringify(), partitionId.stringify()),
-            partitionConfig);
+      idealState.setReplicas(replicas);
+      idealState.setNumPartitions(partitionedContext.getPartitionSet().size());
+      idealState.setInstanceGroupTag(partitionedContext.getParticipantGroupTag());
+      idealState.setMaxPartitionsPerInstance(partitionedContext.getMaxPartitionsPerParticipant());
+      idealState.setStateModelDefId(partitionedContext.getStateModelDefId());
+      idealState.setStateModelFactoryId(partitionedContext.getStateModelFactoryId());
+      idealState.setBucketSize(resource.getBucketSize());
+      idealState.setBatchMessageMode(resource.getBatchMessageMode());
+      if (partitionedContext.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+        SemiAutoRebalancerContext semiAutoContext =
+            rebalancerConfig.getRebalancerContext(SemiAutoRebalancerContext.class);
+        for (PartitionId partitionId : semiAutoContext.getPartitionSet()) {
+          idealState.setPreferenceList(partitionId, semiAutoContext.getPreferenceList(partitionId));
+        }
+      } else if (partitionedContext.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+        CustomRebalancerContext customContext =
+            rebalancerConfig.getRebalancerContext(CustomRebalancerContext.class);
+        for (PartitionId partitionId : customContext.getPartitionSet()) {
+          idealState.setParticipantStateMap(partitionId,
+              customContext.getPreferenceMap(partitionId));
+        }
       }
+      _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
-    idealState.setBucketSize(resource.getBucketSize());
-    idealState.setBatchMessageMode(resource.getBatchMessageMode());
-    String groupTag = rebalancerConfig.getParticipantGroupTag();
-    if (groupTag != null) {
-      idealState.setInstanceGroupTag(groupTag);
-    }
-    if (rebalancerConfig.getRebalancerMode() == RebalanceMode.USER_DEFINED) {
-      UserDefinedRebalancerConfig config = UserDefinedRebalancerConfig.from(rebalancerConfig);
-      RebalancerRef rebalancerRef = config.getRebalancerRef();
-      if (rebalancerRef != null) {
-        idealState.setRebalancerRef(rebalancerRef);
-      }
-    }
-    StateModelFactoryId stateModelFactoryId = rebalancerConfig.getStateModelFactoryId();
-    if (stateModelFactoryId != null) {
-      idealState.setStateModelFactoryId(stateModelFactoryId);
-    }
-    _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
   }
 
   /**

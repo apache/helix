@@ -33,7 +33,7 @@ import com.google.common.collect.Maps;
 /**
  * Generic configuration of Helix components prefixed with a namespace
  */
-public abstract class NamespacedConfig extends ZNRecord {
+public class NamespacedConfig extends ZNRecord {
   private static final char PREFIX_CHAR = '!';
   private final String _prefix;
 

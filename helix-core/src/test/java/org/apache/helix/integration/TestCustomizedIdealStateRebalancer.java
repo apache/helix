@@ -25,14 +25,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
-import org.apache.helix.api.UserDefinedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.Rebalancer;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -52,24 +54,27 @@ import org.testng.annotations.Test;
 public class TestCustomizedIdealStateRebalancer extends
     ZkStandAloneCMTestBaseWithPropertyServerCheck {
   String db2 = TEST_DB + "2";
+  static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements NewUserDefinedRebalancer {
+  public static class TestRebalancer implements Rebalancer {
 
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(UserDefinedRebalancerConfig config,
-        Cluster cluster, ResourceCurrentState currentState) {
+    public ResourceAssignment computeResourceMapping(RebalancerConfig config, Cluster cluster,
+        ResourceCurrentState currentState) {
+      PartitionedRebalancerContext context =
+          config.getRebalancerContext(PartitionedRebalancerContext.class);
       StateModelDefinition stateModelDef =
-          cluster.getStateModelMap().get(config.getStateModelDefId());
+          cluster.getStateModelMap().get(context.getStateModelDefId());
       List<ParticipantId> liveParticipants =
           new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
-      ResourceAssignment resourceMapping = new ResourceAssignment(config.getResourceId());
+      ResourceAssignment resourceMapping = new ResourceAssignment(context.getResourceId());
       int i = 0;
-      for (PartitionId partitionId : config.getPartitionSet()) {
+      for (PartitionId partitionId : context.getPartitionSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
         replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getStatesPriorityList()
@@ -79,6 +84,11 @@ public class TestCustomizedIdealStateRebalancer extends
       }
       testRebalancerInvoked = true;
       return resourceMapping;
+    }
+
+    @Override
+    public void init(HelixManager helixManager) {
+      testRebalancerCreated = true;
     }
   }
 
@@ -111,6 +121,7 @@ public class TestCustomizedIdealStateRebalancer extends
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
       Assert.assertEquals(is.getParticipantStateMap(partition).size(), 0);
     }
+    Assert.assertTrue(testRebalancerCreated);
     Assert.assertTrue(testRebalancerInvoked);
   }
 

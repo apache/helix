@@ -20,7 +20,6 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -33,8 +32,6 @@ import org.apache.helix.Mocks;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.Partition;
-import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
@@ -43,6 +40,8 @@ import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.UserConfig;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -169,14 +168,11 @@ public class BaseStageTest {
     Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
     for (IdealState idealState : idealStates) {
       ResourceId resourceId = idealState.getResourceId();
-      Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-      for (PartitionId partitionId : idealState.getPartitionSet()) {
-        partitionMap.put(partitionId, new Partition(partitionId));
-      }
-      Map<PartitionId, UserConfig> partitionConfigMap = Collections.emptyMap();
+      RebalancerContext context = PartitionedRebalancerContext.from(idealState);
       Resource resource =
-          new Resource(resourceId, idealState, null, null, new UserConfig(
-              Scope.resource(resourceId)), partitionConfigMap);
+          new Resource(resourceId, idealState, null, null, context, new UserConfig(
+              Scope.resource(resourceId)), idealState.getBucketSize(),
+              idealState.getBatchMessageMode());
       resourceMap.put(resourceId, resource.getConfig());
     }
 

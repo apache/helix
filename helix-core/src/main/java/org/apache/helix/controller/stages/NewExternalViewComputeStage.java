@@ -37,7 +37,6 @@ import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.RebalancerConfig;
 import org.apache.helix.api.ResourceConfig;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.SchedulerTaskConfig;
@@ -45,6 +44,8 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -53,7 +54,7 @@ import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
 
 public class NewExternalViewComputeStage extends AbstractBaseStage {
-  private static Logger LOG = Logger.getLogger(ExternalViewComputeStage.class);
+  private static Logger LOG = Logger.getLogger(NewExternalViewComputeStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -97,7 +98,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
       } else {
         view.setBucketSize(currentStateOutput.getBucketSize(resourceId));
       }
-      for (PartitionId partitionId : resource.getPartitionMap().keySet()) {
+      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
         Map<ParticipantId, State> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceId, partitionId);
         if (currentStateMap != null && currentStateMap.size() > 0) {
@@ -138,8 +139,11 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
         // partitions are finished (COMPLETED or ERROR), update the status update of the original
         // scheduler
         // message, and then remove the partitions from the ideal state
-        if (rebalancerConfig != null
-            && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
+        RebalancerContext rebalancerContext =
+            (rebalancerConfig != null) ? rebalancerConfig
+                .getRebalancerContext(RebalancerContext.class) : null;
+        if (rebalancerContext != null
+            && rebalancerContext.getStateModelDefId().equalsIgnoreCase(
                 StateModelDefId.SchedulerTaskQueue)) {
           updateScheduledTaskStatus(resourceId, view, manager, schedulerTaskConfig);
         }

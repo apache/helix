@@ -41,6 +41,7 @@ import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
 import org.apache.helix.api.StateModelDefId;
 import org.apache.helix.api.StateModelFactoryId;
+import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 
 import com.google.common.collect.ImmutableList;
@@ -730,6 +731,22 @@ public class Message extends HelixProperty {
    */
   public void setInnerMessage(Message message) {
     _record.setMapField(Attributes.INNER_MESSAGE.name(), message.getRecord().getSimpleFields());
+  }
+
+  /**
+   * Set the cluster event generating this message
+   * @param event cluster event
+   */
+  public void setClusterEvent(ClusterEvent event) {
+    _record.setSimpleField("ClusterEventName", event.getName());
+  }
+
+  /**
+   * Get the cluster event name generating this message
+   * @param the cluster event event name
+   */
+  public String getClusterEventName() {
+    return _record.getSimpleField("ClusterEventName");
   }
 
   private boolean isNullOrEmpty(String data) {

@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.controller.rebalancer.context;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,26 +19,34 @@ package org.apache.helix.api;
  * under the License.
  */
 
-import org.apache.helix.controller.rebalancer.NewUserDefinedRebalancer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonIgnore;
+import org.codehaus.jackson.annotate.JsonProperty;
 
+/**
+ * Reference to a class that extends {@link Rebalancer}. It loads the class automatically.
+ */
 public class RebalancerRef {
   private static final Logger LOG = Logger.getLogger(RebalancerRef.class);
 
+  @JsonProperty("rebalancerClassName")
   private final String _rebalancerClassName;
 
-  public RebalancerRef(String rebalancerClassName) {
+  @JsonCreator
+  private RebalancerRef(@JsonProperty("rebalancerClassName") String rebalancerClassName) {
     _rebalancerClassName = rebalancerClassName;
   }
 
   /**
-   * @return
+   * Get an instantiated Rebalancer
+   * @return Rebalancer or null if instantiation failed
    */
-  public NewUserDefinedRebalancer getRebalancer() {
+  @JsonIgnore
+  public Rebalancer getRebalancer() {
     try {
-      return (NewUserDefinedRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName)
-          .newInstance());
+      return (Rebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
     } catch (Exception e) {
       LOG.warn("Exception while invoking custom rebalancer class:" + _rebalancerClassName, e);
     }
@@ -70,5 +78,17 @@ public class RebalancerRef {
       return null;
     }
     return new RebalancerRef(rebalancerClassName);
+  }
+
+  /**
+   * Get a RebalancerRef from a class object
+   * @param rebalancerClass class that implements Rebalancer
+   * @return RebalancerRef
+   */
+  public static RebalancerRef from(Class<? extends Rebalancer> rebalancerClass) {
+    if (rebalancerClass == null) {
+      return null;
+    }
+    return RebalancerRef.from(rebalancerClass.getName());
   }
 }

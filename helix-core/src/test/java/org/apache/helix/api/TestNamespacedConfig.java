@@ -1,13 +1,10 @@
 package org.apache.helix.api;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
-import org.apache.helix.model.ResourceConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -85,45 +82,5 @@ public class TestNamespacedConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleField(prefixedKey), testSimpleValue);
     Assert.assertEquals(instanceConfig.getRecord().getListField(prefixedKey), testListValue);
     Assert.assertEquals(instanceConfig.getRecord().getMapField(prefixedKey), testMapValue);
-  }
-
-  @Test
-  public void testConfiguredResource() {
-    // Set up the namespaced configs
-    String userKey = "userKey";
-    String userValue = "userValue";
-    ResourceId resourceId = ResourceId.from("testResource");
-    UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
-    userConfig.setSimpleField(userKey, userValue);
-    PartitionId partitionId = PartitionId.from(resourceId, "0");
-    Partition partition = new Partition(partitionId);
-    Map<ParticipantId, State> preferenceMap = new HashMap<ParticipantId, State>();
-    ParticipantId participantId = ParticipantId.from("participant");
-    preferenceMap.put(participantId, State.from("ONLINE"));
-    CustomRebalancerConfig rebalancerConfig =
-        new CustomRebalancerConfig.Builder(resourceId).replicaCount(1).addPartition(partition)
-            .stateModelDef(StateModelDefId.from("OnlineOffline"))
-            .preferenceMap(partitionId, preferenceMap).build();
-
-    // copy in the configs
-    ResourceConfiguration config = new ResourceConfiguration(resourceId);
-    config.addNamespacedConfig(userConfig);
-    config.addRebalancerConfig(rebalancerConfig);
-
-    // recreate the configs and check the fields
-    UserConfig retrievedUserConfig = UserConfig.from(config);
-    Assert.assertEquals(retrievedUserConfig.getSimpleField(userKey), userValue);
-    Map<PartitionId, UserConfig> partitionConfigs = Collections.emptyMap();
-    RebalancerConfig retrievedRebalancerConfig = RebalancerConfig.from(config, partitionConfigs);
-    Assert.assertEquals(retrievedRebalancerConfig.getReplicaCount(),
-        rebalancerConfig.getReplicaCount());
-    Assert.assertEquals(retrievedRebalancerConfig.getStateModelDefId(),
-        rebalancerConfig.getStateModelDefId());
-    Assert.assertTrue(retrievedRebalancerConfig.getPartitionMap().containsKey(partitionId));
-    Assert.assertEquals(retrievedRebalancerConfig.getPartitionSet().size(), rebalancerConfig
-        .getPartitionSet().size());
-    CustomRebalancerConfig customConfig = CustomRebalancerConfig.from(retrievedRebalancerConfig);
-    Assert.assertEquals(customConfig.getPreferenceMap(partitionId).get(participantId),
-        State.from("ONLINE"));
   }
 }

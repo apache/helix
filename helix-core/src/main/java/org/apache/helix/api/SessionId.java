@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,9 +23,15 @@ package org.apache.helix.api;
  */
 
 public class SessionId extends Id {
+  @JsonProperty("id")
   private final String _id;
 
-  private SessionId(String id) {
+  /**
+   * Create a session id
+   * @param id string representing a session id
+   */
+  @JsonCreator
+  public SessionId(@JsonProperty("id") String id) {
     _id = id;
   }
 

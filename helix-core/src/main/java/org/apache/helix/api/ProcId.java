@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,10 +23,15 @@ package org.apache.helix.api;
  */
 
 public class ProcId extends Id {
-
+  @JsonProperty("id")
   private final String _id;
 
-  private ProcId(String id) {
+  /**
+   * Create a process id
+   * @param id string representation of a process id
+   */
+  @JsonCreator
+  public ProcId(@JsonProperty("id") String id) {
     _id = id;
   }
 

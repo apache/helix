@@ -1,7 +1,9 @@
-package org.apache.helix.api;
+package org.apache.helix.controller.rebalancer.context;
 
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonProperty;
+import org.apache.helix.HelixManager;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.ResourceAssignment;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -23,31 +25,14 @@ import org.codehaus.jackson.annotate.JsonProperty;
  */
 
 /**
- * A partition of a resource
+ * Allows one to come up with custom implementation of a rebalancer.<br/>
+ * This will be invoked on all changes that happen in the cluster.<br/>
+ * Simply return the resource assignment for a resource in this method.<br/>
  */
-public class Partition {
-  @JsonProperty("id")
-  private final PartitionId _id;
+public interface Rebalancer {
 
-  /**
-   * Construct a partition
-   * @param id
-   */
-  @JsonCreator
-  public Partition(@JsonProperty("id") PartitionId id) {
-    _id = id;
-  }
+  public void init(HelixManager helixManager);
 
-  /**
-   * Get partition id
-   * @return partition id
-   */
-  public PartitionId getId() {
-    return _id;
-  }
-
-  @Override
-  public String toString() {
-    return _id.toString();
-  }
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
+      ResourceCurrentState currentState);
 }

@@ -80,7 +80,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
 
         if (!message.getBatchMessageMode()) {
           PartitionId partitionId = message.getPartitionId();
-          Partition partition = resource.getPartition(partitionId);
+          Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {
             currentStateOutput.setPendingState(resourceId, partitionId, participantId,
                 message.getToState());
@@ -91,7 +91,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
           List<PartitionId> partitionNames = message.getPartitionIds();
           if (!partitionNames.isEmpty()) {
             for (PartitionId partitionId : partitionNames) {
-              Partition partition = resource.getPartition(partitionId);
+              Partition partition = resource.getSubUnit(partitionId);
               if (partition != null) {
                 currentStateOutput.setPendingState(resourceId, partitionId, participantId,
                     message.getToState());
@@ -126,11 +126,10 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
 
         Map<PartitionId, State> partitionStateMap = curState.getPartitionStateMap();
         for (PartitionId partitionId : partitionStateMap.keySet()) {
-          Partition partition = resource.getPartition(partitionId);
+          Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {
             currentStateOutput.setCurrentState(resourceId, partitionId, participantId,
                 curState.getState(partitionId));
-
           } else {
             // log
           }

@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,10 +23,19 @@ package org.apache.helix.api;
  */
 
 public class PartitionId extends Id {
+  @JsonProperty("resourceId")
   private final ResourceId _resourceId;
+  @JsonProperty("partitionName")
   private final String _partitionName;
 
-  private PartitionId(ResourceId resourceId, String partitionName) {
+  /**
+   * Instantiate for a resource and suffix
+   * @param resourceId resource that the partition belongs to
+   * @param partitionName name of the partition relative to the resource
+   */
+  @JsonCreator
+  public PartitionId(@JsonProperty("resourceId") ResourceId resourceId,
+      @JsonProperty("partitionName") String partitionName) {
     _resourceId = resourceId;
     _partitionName = partitionName;
   }
@@ -77,6 +89,15 @@ public class PartitionId extends Id {
       return null;
     }
     return new PartitionId(extractResourceId(partitionId), stripResourceId(partitionId));
+  }
+
+  /**
+   * Same as {@link PartitionId#from(String)}.
+   * @param partitionId string partition identifier
+   * @return PartitionId
+   */
+  public static PartitionId valueOf(String partitionId) {
+    return from(partitionId);
   }
 
   /**

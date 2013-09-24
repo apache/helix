@@ -1,4 +1,19 @@
-package org.apache.helix.controller.rebalancer;
+package org.apache.helix.controller.rebalancer.context;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.HelixManager;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.ParticipantId;
+import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.State;
+import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.log4j.Logger;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,37 +34,23 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.helix.api.Cluster;
-import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.SemiAutoRebalancerConfig;
-import org.apache.helix.api.State;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
-import org.apache.helix.controller.stages.ResourceCurrentState;
-import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
-
 /**
- * This is a Rebalancer specific to semi-automatic mode. It is tasked with computing the ideal
- * state of a resource based on a predefined preference list of instances willing to accept
- * replicas.
- * The input is the optional current assignment of partitions to instances, as well as the required
- * existing instance preferences.
- * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
- * with state s.
+ * Rebalancer for the SEMI_AUTO mode. It expects a RebalancerConfig that understands the preferred
+ * locations of each partition replica
  */
-public class NewSemiAutoRebalancer implements NewRebalancer<SemiAutoRebalancerConfig> {
-
-  private static final Logger LOG = Logger.getLogger(NewSemiAutoRebalancer.class);
+public class SemiAutoRebalancer implements Rebalancer {
+  private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);
 
   @Override
-  public ResourceAssignment computeResourceMapping(SemiAutoRebalancerConfig config,
-      Cluster cluster, ResourceCurrentState currentState) {
+  public void init(HelixManager helixManager) {
+    // do nothing
+  }
+
+  @Override
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
+      ResourceCurrentState currentState) {
+    SemiAutoRebalancerContext config =
+        rebalancerConfig.getRebalancerContext(SemiAutoRebalancerContext.class);
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
@@ -73,4 +74,5 @@ public class NewSemiAutoRebalancer implements NewRebalancer<SemiAutoRebalancerCo
     }
     return partitionMapping;
   }
+
 }

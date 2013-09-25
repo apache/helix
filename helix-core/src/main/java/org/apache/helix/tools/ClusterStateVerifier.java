@@ -227,21 +227,15 @@ public class ClusterStateVerifier {
       Map<String, Map<String, String>> errStates, String clusterName) {
     try {
       Builder keyBuilder = accessor.keyBuilder();
-      // read cluster once and do verification
-      // TODO: stop using ClusterDataCache
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
 
-      Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null) // || idealStates.isEmpty())
-      {
+      Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+      if (idealStates == null) {
         // ideal state is null because ideal state is dropped
         idealStates = Collections.emptyMap();
       }
 
       Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (extViews == null) // || extViews.isEmpty())
-      {
+      if (extViews == null) {
         extViews = Collections.emptyMap();
       }
 

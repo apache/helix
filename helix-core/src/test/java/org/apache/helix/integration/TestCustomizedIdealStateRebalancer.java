@@ -35,7 +35,6 @@ import org.apache.helix.api.State;
 import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.Rebalancer;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -44,6 +43,8 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -142,26 +143,26 @@ public class TestCustomizedIdealStateRebalancer extends
         HelixDataAccessor accessor =
             new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
         Builder keyBuilder = accessor.keyBuilder();
-        int numberOfPartitions =
-            accessor.getProperty(keyBuilder.idealState(_resourceName)).getRecord().getListFields()
-                .size();
-        ClusterDataCache cache = new ClusterDataCache();
-        cache.refresh(accessor);
-        State masterValue =
-            cache
-                .getStateModelDef(
-                    cache.getIdealState(_resourceName).getStateModelDefId().stringify())
-                .getStatesPriorityList().get(0);
-        int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-        String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
+        IdealState idealState = accessor.getProperty(keyBuilder.idealState(_resourceName));
+        int numberOfPartitions = idealState.getRecord().getListFields().size();
+        String stateModelDefName = idealState.getStateModelDefId().stringify();
+        StateModelDefinition stateModelDef =
+            accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
+        State masterValue = stateModelDef.getStatesPriorityList().get(0);
+        int replicas = Integer.parseInt(idealState.getReplicas());
+        String instanceGroupTag = idealState.getInstanceGroupTag();
         int instances = 0;
-        for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-          if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+        Map<String, LiveInstance> liveInstanceMap =
+            accessor.getChildValuesMap(keyBuilder.liveInstances());
+        Map<String, InstanceConfig> instanceCfgMap =
+            accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+        for (String liveInstanceName : liveInstanceMap.keySet()) {
+          if (instanceCfgMap.get(liveInstanceName).containsTag(instanceGroupTag)) {
             instances++;
           }
         }
         if (instances == 0) {
-          instances = cache.getLiveInstances().size();
+          instances = liveInstanceMap.size();
         }
         ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
         return verifyBalanceExternalView(externalView.getRecord(), numberOfPartitions,

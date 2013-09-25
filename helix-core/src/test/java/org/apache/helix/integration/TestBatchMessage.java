@@ -226,14 +226,17 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealState("TestDB0"), idealState);
 
+    final String hostToFail = "localhost_12921";
+    final String partitionToFail = "TestDB0_4";
+
     TestHelper
         .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      if (i == 1) {
+      if (instanceName.equals(hostToFail)) {
         Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
-        errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
+        errPartitions.put("SLAVE-MASTER", TestHelper.setOf(partitionToFail));
         participants[i] =
             new MockParticipant(clusterName, instanceName, ZK_ADDR,
                 new ErrTransition(errPartitions));
@@ -245,14 +248,14 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
     errStates.put("TestDB0", new HashMap<String, String>());
-    errStates.get("TestDB0").put("TestDB0_4", "localhost_12919");
+    errStates.get("TestDB0").put(partitionToFail, hostToFail);
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
-    errorStateMap.put("TestDB0_4", TestHelper.setOf("localhost_12919"));
+    errorStateMap.put(partitionToFail, TestHelper.setOf(hostToFail));
 
     // verify "TestDB0_4", "localhost_12919" is in ERROR state
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");

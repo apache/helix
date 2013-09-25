@@ -40,6 +40,9 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
@@ -264,22 +267,26 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       }
 
       int numberOfPartitions = idealState.getRecord().getListFields().size();
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
-      State masterValue =
-          cache
-              .getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefId().stringify())
-              .getStatesPriorityList().get(0);
-      int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
+      String stateModelDefName = idealState.getStateModelDefId().stringify();
+      StateModelDefinition stateModelDef =
+          accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
+      State masterValue = stateModelDef.getStatesPriorityList().get(0);
+      int replicas = Integer.parseInt(idealState.getReplicas());
+
+      String instanceGroupTag = idealState.getInstanceGroupTag();
+
       int instances = 0;
-      for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-        if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+      Map<String, LiveInstance> liveInstanceMap =
+          accessor.getChildValuesMap(keyBuilder.liveInstances());
+      Map<String, InstanceConfig> instanceConfigMap =
+          accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      for (String liveInstanceName : liveInstanceMap.keySet()) {
+        if (instanceConfigMap.get(liveInstanceName).containsTag(instanceGroupTag)) {
           instances++;
         }
       }
       if (instances == 0) {
-        instances = cache.getLiveInstances().size();
+        instances = liveInstanceMap.size();
       }
       ExternalView ev = accessor.getProperty(keyBuilder.externalView(_resourceName));
       if (ev == null) {

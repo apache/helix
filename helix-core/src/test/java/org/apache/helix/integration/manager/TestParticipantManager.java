@@ -31,7 +31,7 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.ControllerManager;
 import org.apache.helix.manager.zk.ParticipantManager;

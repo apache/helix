@@ -22,7 +22,7 @@ package org.apache.helix.mock.controller;
 import java.io.IOException;
 import java.util.ArrayList;
 
-import org.apache.helix.api.MessageId;
+import org.apache.helix.api.id.MessageId;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 

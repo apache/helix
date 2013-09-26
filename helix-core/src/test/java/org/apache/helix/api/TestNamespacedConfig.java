@@ -3,6 +3,8 @@ package org.apache.helix.api;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.testng.Assert;

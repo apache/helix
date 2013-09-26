@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,6 +34,16 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.RunningInstance;
+import org.apache.helix.api.config.ParticipantConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -268,8 +278,34 @@ public class ParticipantAccessor {
       return null;
     }
     ParticipantConfig config = participantDelta.mergeInto(participant.getConfig());
-    // TODO: persist this
+    setParticipant(config);
     return config;
+  }
+
+  /**
+   * Set the configuration of an existing participant
+   * @param participantConfig participant configuration
+   * @return true if config was set, false if there was an error
+   */
+  public boolean setParticipant(ParticipantConfig participantConfig) {
+    if (participantConfig == null) {
+      LOG.error("Participant config not initialized");
+      return false;
+    }
+    InstanceConfig instanceConfig = new InstanceConfig(participantConfig.getId());
+    instanceConfig.setHostName(participantConfig.getHostName());
+    instanceConfig.setPort(Integer.toString(participantConfig.getPort()));
+    for (String tag : participantConfig.getTags()) {
+      instanceConfig.addTag(tag);
+    }
+    for (PartitionId partitionId : participantConfig.getDisabledPartitions()) {
+      instanceConfig.setInstanceEnabledForPartition(partitionId, false);
+    }
+    instanceConfig.setInstanceEnabled(participantConfig.isEnabled());
+    instanceConfig.addNamespacedConfig(participantConfig.getUserConfig());
+    _accessor.setProperty(_keyBuilder.instanceConfig(participantConfig.getId().stringify()),
+        instanceConfig);
+    return true;
   }
 
   /**
@@ -341,12 +377,18 @@ public class ParticipantAccessor {
   /**
    * read participant related data
    * @param participantId
-   * @return participant
+   * @return participant, or null if participant not available
    */
   public Participant readParticipant(ParticipantId participantId) {
     // read physical model
     String participantName = participantId.stringify();
     InstanceConfig instanceConfig = _accessor.getProperty(_keyBuilder.instance(participantName));
+
+    if (instanceConfig == null) {
+      LOG.error("Participant " + participantId + " is not present on the cluster");
+      return null;
+    }
+
     UserConfig userConfig = UserConfig.from(instanceConfig);
     LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
 

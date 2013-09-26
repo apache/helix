@@ -31,7 +31,7 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
-import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
 import org.apache.log4j.Logger;
 

@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -23,18 +23,18 @@ import org.codehaus.jackson.annotate.JsonProperty;
  */
 
 /**
- * Identifies Helix nodes that take on the CONTROLLER role
+ * Identifies a cluster
  */
-public class ControllerId extends Id {
+public class ClusterId extends Id {
   @JsonProperty("id")
-  private final String _id;
+  final private String _id;
 
   /**
-   * Create a controller id
-   * @param id string representation of a controller id
+   * Create a cluster id
+   * @param id string representation of the id
    */
   @JsonCreator
-  public ControllerId(@JsonProperty("id") String id) {
+  public ClusterId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -44,11 +44,14 @@ public class ControllerId extends Id {
   }
 
   /**
-   * Get a ControllerId from a string
-   * @param controllerId string representing the id
-   * @return ControllerId
+   * Get a concrete cluster id for a string name
+   * @param clusterId string cluster identifier
+   * @return ClusterId
    */
-  public static ControllerId from(String controllerId) {
-    return new ControllerId(controllerId);
+  public static ClusterId from(String clusterId) {
+    if (clusterId == null) {
+      return null;
+    }
+    return new ClusterId(clusterId);
   }
 }

@@ -22,9 +22,9 @@ package org.apache.helix.monitoring.mbeans;
 import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;

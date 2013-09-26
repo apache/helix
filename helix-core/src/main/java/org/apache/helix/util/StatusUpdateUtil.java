@@ -38,7 +38,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.SessionId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;

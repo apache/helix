@@ -27,7 +27,7 @@ import java.util.Map;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;

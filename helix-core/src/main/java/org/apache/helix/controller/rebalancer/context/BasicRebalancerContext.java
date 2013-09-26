@@ -3,10 +3,10 @@ package org.apache.helix.controller.rebalancer.context;
 import java.util.Set;
 
 import org.apache.helix.api.Partition;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.ResourceId;
-import org.apache.helix.api.StateModelDefId;
-import org.apache.helix.api.StateModelFactoryId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.api.id.StateModelFactoryId;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
 /*

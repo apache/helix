@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,6 +21,8 @@ package org.apache.helix.api;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.Controller;
+import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.model.LiveInstance;
 
 public class ControllerAccessor {

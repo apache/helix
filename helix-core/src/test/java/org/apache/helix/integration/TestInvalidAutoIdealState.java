@@ -28,7 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;

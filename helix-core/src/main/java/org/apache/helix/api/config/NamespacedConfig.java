@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.config;
 
 import java.util.HashMap;
 import java.util.List;
@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Scope;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.ImmutableMap;

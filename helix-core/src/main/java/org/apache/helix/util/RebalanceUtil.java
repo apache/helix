@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.StateModelDefinition;
 

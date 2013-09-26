@@ -1,7 +1,7 @@
 package org.apache.helix.controller.rebalancer.context;
 
-import org.apache.helix.api.NamespacedConfig;
 import org.apache.helix.api.Scope;
+import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;

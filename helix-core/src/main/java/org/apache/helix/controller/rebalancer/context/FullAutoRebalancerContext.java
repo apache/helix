@@ -1,6 +1,6 @@
 package org.apache.helix.controller.rebalancer.context;
 
-import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.IdealState.RebalanceMode;
 
 /*

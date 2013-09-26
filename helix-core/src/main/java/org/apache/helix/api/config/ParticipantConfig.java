@@ -1,7 +1,11 @@
-package org.apache.helix.api;
+package org.apache.helix.api.config;
 
 import java.util.HashSet;
 import java.util.Set;
+
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
@@ -172,8 +176,14 @@ public class ParticipantConfig {
     }
 
     /**
-     * Set whether or not the participant is enabled
+     * <<<<<<< HEAD:helix-core/src/main/java/org/apache/helix/api/config/ParticipantConfig.java
+     * Set the enabled status of the participant
+     * @param isEnabled true if enabled, false if disabled
+     *          =======
+     *          Set whether or not the participant is enabled
      * @param isEnabled true if enabled, false otherwise
+     *          >>>>>>> helix-logical-model:helix-core/src/main/java/org/apache/helix/api/
+     *          ParticipantConfig.java
      * @return Delta
      */
     public Delta setEnabled(boolean isEnabled) {
@@ -243,7 +253,7 @@ public class ParticipantConfig {
       ParticipantConfig deltaConfig = _builder.build();
       Builder builder =
           new Builder(orig.getId()).hostName(orig.getHostName()).port(orig.getPort())
-              .userConfig(orig.getUserConfig());
+              .enabled(orig.isEnabled()).userConfig(orig.getUserConfig());
       for (Fields field : _updateFields) {
         switch (field) {
         case HOST_NAME:
@@ -268,6 +278,7 @@ public class ParticipantConfig {
       }
       Set<PartitionId> disabledPartitions = Sets.newHashSet(orig.getDisabledPartitions());
       disabledPartitions.addAll(deltaConfig.getDisabledPartitions());
+      disabledPartitions.removeAll(_removedDisabledPartitions);
       for (PartitionId partitionId : disabledPartitions) {
         builder.addDisabledPartition(partitionId);
       }

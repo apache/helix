@@ -1,7 +1,4 @@
-package org.apache.helix.api;
-
-import org.codehaus.jackson.annotate.JsonCreator;
-import org.codehaus.jackson.annotate.JsonProperty;
+package org.apache.helix.api.id;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -23,35 +20,36 @@ import org.codehaus.jackson.annotate.JsonProperty;
  */
 
 /**
- * Identifies a resource
+ * Generic identifier for Helix constructs
  */
-public class ResourceId extends Id {
-  @JsonProperty("id")
-  private final String _id;
+public abstract class Id implements Comparable<Id> {
+  public abstract String stringify();
 
   @Override
-  public String stringify() {
-    return _id;
+  public String toString() {
+    return stringify();
   }
 
-  /**
-   * Create a resource id
-   * @param id string representation of a resource id
-   */
-  @JsonCreator
-  public ResourceId(@JsonProperty("id") String id) {
-    _id = id;
-  }
-
-  /**
-   * Get a concrete resource id for a string name
-   * @param resourceId string resource identifier
-   * @return ResourceId
-   */
-  public static ResourceId from(String resourceId) {
-    if (resourceId == null) {
-      return null;
+  @Override
+  public boolean equals(Object that) {
+    if (that instanceof Id) {
+      return this.stringify().equals(((Id) that).stringify());
+    } else if (that instanceof String) {
+      return this.stringify().equals(that);
     }
-    return new ResourceId(resourceId);
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return this.stringify().hashCode();
+  }
+
+  @Override
+  public int compareTo(Id that) {
+    if (that instanceof Id) {
+      return this.stringify().compareTo(that.stringify());
+    }
+    return -1;
   }
 }

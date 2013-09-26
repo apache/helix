@@ -22,10 +22,10 @@ package org.apache.helix.tools;
 import java.util.UUID;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.MessageId;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;

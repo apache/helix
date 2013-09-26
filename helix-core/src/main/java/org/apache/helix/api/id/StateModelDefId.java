@@ -1,5 +1,6 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 
@@ -22,16 +23,18 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-public class SpectatorId extends Id {
+public class StateModelDefId extends Id {
+  public static final StateModelDefId SchedulerTaskQueue = StateModelDefId
+      .from(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
   @JsonProperty("id")
   private final String _id;
 
   /**
-   * Create a spectator id
-   * @param id string representing a spectator id
+   * Create a state model definition id
+   * @param id string representing a state model definition id
    */
   @JsonCreator
-  public SpectatorId(@JsonProperty("id") String id) {
+  public StateModelDefId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -41,11 +44,23 @@ public class SpectatorId extends Id {
   }
 
   /**
-   * Create a spectator id from a string
-   * @param spectatorId string representing a spectator id
-   * @return SpectatorId
+   * Check if the underlying state model definition id is equal if case is ignored
+   * @param that the StateModelDefId to compare
+   * @return true if equal ignoring case, false otherwise
    */
-  public static SpectatorId from(String spectatorId) {
-    return new SpectatorId(spectatorId);
+  public boolean equalsIgnoreCase(StateModelDefId that) {
+    return _id.equalsIgnoreCase(that._id);
+  }
+
+  /**
+   * Get a concrete state model definition id
+   * @param stateModelDefId string state model identifier
+   * @return StateModelDefId
+   */
+  public static StateModelDefId from(String stateModelDefId) {
+    if (stateModelDefId == null) {
+      return null;
+    }
+    return new StateModelDefId(stateModelDefId);
   }
 }

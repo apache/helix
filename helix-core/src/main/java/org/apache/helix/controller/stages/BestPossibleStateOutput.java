@@ -23,8 +23,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.model.Partition;
 
 @Deprecated

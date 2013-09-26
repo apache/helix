@@ -19,6 +19,7 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.model.LiveInstance;
 
 /**

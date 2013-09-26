@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -23,18 +23,18 @@ import org.codehaus.jackson.annotate.JsonProperty;
  */
 
 /**
- * Id representing a state model factory
+ * Identifies Helix nodes that take on the CONTROLLER role
  */
-public class StateModelFactoryId extends Id {
+public class ControllerId extends Id {
   @JsonProperty("id")
   private final String _id;
 
   /**
-   * Create a state model factory id
-   * @param id string representing a state model factory
+   * Create a controller id
+   * @param id string representation of a controller id
    */
   @JsonCreator
-  public StateModelFactoryId(@JsonProperty("id") String id) {
+  public ControllerId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -44,14 +44,11 @@ public class StateModelFactoryId extends Id {
   }
 
   /**
-   * Get a concrete state model factory id
-   * @param stateModelFactoryId the string version of the id
-   * @return StateModelFactoryId
+   * Get a ControllerId from a string
+   * @param controllerId string representing the id
+   * @return ControllerId
    */
-  public static StateModelFactoryId from(String stateModelFactoryId) {
-    if (stateModelFactoryId == null) {
-      return null;
-    }
-    return new StateModelFactoryId(stateModelFactoryId);
+  public static ControllerId from(String controllerId) {
+    return new ControllerId(controllerId);
   }
 }

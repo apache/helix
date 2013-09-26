@@ -22,9 +22,9 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.PartitionId;
 import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;

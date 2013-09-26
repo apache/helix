@@ -25,12 +25,12 @@ import java.util.List;
 import java.util.UUID;
 
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.api.MessageId;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.ResourceId;
-import org.apache.helix.api.SessionId;
 import org.apache.helix.api.State;
-import org.apache.helix.api.StateModelDefId;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;

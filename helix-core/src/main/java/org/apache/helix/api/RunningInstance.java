@@ -1,5 +1,8 @@
 package org.apache.helix.api;
 
+import org.apache.helix.api.id.ProcId;
+import org.apache.helix.api.id.SessionId;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file

@@ -2,8 +2,8 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.PartitionId;
-import org.apache.helix.api.UserConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.PartitionId;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

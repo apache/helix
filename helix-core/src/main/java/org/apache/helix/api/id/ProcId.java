@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -22,19 +22,16 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-/**
- * Identifies a cluster
- */
-public class ClusterId extends Id {
+public class ProcId extends Id {
   @JsonProperty("id")
-  final private String _id;
+  private final String _id;
 
   /**
-   * Create a cluster id
-   * @param id string representation of the id
+   * Create a process id
+   * @param id string representation of a process id
    */
   @JsonCreator
-  public ClusterId(@JsonProperty("id") String id) {
+  public ProcId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -44,14 +41,14 @@ public class ClusterId extends Id {
   }
 
   /**
-   * Get a concrete cluster id for a string name
-   * @param clusterId string cluster identifier
-   * @return ClusterId
+   * Get a concrete process id
+   * @param processId string process identifier (e.g. pid@host)
+   * @return ProcId
    */
-  public static ClusterId from(String clusterId) {
-    if (clusterId == null) {
+  public static ProcId from(String processId) {
+    if (processId == null) {
       return null;
     }
-    return new ClusterId(clusterId);
+    return new ProcId(processId);
   }
 }

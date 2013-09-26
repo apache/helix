@@ -1,10 +1,17 @@
-package org.apache.helix.api;
+package org.apache.helix.api.config;
 
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ConstraintId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -237,7 +244,6 @@ public class ClusterConfig {
    */
   public static class Delta {
     private enum Fields {
-      PAUSE_STATUS,
       USER_CONFIG
     }
 
@@ -360,18 +366,7 @@ public class ClusterConfig {
       return this;
     }
 
-    /**
-     * Set the paused status of the cluster
-     * @param isPaused true if paused, false otherwise
-     * @return Delta
-     */
-    public Delta setPausedStatus(boolean isPaused) {
-      _builder.pausedStatus(isPaused);
-      _updateFields.add(Fields.PAUSE_STATUS);
-      return this;
-    }
-
-    /**
+    /*
      * Set the user configuration
      * @param userConfig user-specified properties
      * @return Builder
@@ -397,11 +392,8 @@ public class ClusterConfig {
               .userConfig(orig.getUserConfig()).pausedStatus(orig.isPaused());
       for (Fields field : _updateFields) {
         switch (field) {
-        case PAUSE_STATUS:
-          _builder.pausedStatus(deltaConfig.isPaused());
-          break;
         case USER_CONFIG:
-          _builder.userConfig(deltaConfig.getUserConfig());
+          builder.userConfig(deltaConfig.getUserConfig());
           break;
         }
       }

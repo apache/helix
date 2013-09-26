@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -22,18 +22,12 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-public class SessionId extends Id {
+/**
+ * Identifies a resource
+ */
+public class ResourceId extends Id {
   @JsonProperty("id")
   private final String _id;
-
-  /**
-   * Create a session id
-   * @param id string representing a session id
-   */
-  @JsonCreator
-  public SessionId(@JsonProperty("id") String id) {
-    _id = id;
-  }
 
   @Override
   public String stringify() {
@@ -41,14 +35,23 @@ public class SessionId extends Id {
   }
 
   /**
-   * Get a concrete session id
-   * @param sessionId string session identifier
-   * @return SessionId
+   * Create a resource id
+   * @param id string representation of a resource id
    */
-  public static SessionId from(String sessionId) {
-    if (sessionId == null) {
+  @JsonCreator
+  public ResourceId(@JsonProperty("id") String id) {
+    _id = id;
+  }
+
+  /**
+   * Get a concrete resource id for a string name
+   * @param resourceId string resource identifier
+   * @return ResourceId
+   */
+  public static ResourceId from(String resourceId) {
+    if (resourceId == null) {
       return null;
     }
-    return new SessionId(sessionId);
+    return new ResourceId(resourceId);
   }
 }

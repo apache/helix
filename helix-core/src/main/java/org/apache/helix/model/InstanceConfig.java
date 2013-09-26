@@ -27,8 +27,8 @@ import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.ParticipantId;
-import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.log4j.Logger;
 
 /**

@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,6 +24,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.StateModelDefinition;
 
 import com.google.common.collect.ImmutableMap;

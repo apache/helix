@@ -22,7 +22,7 @@ package org.apache.helix.model.builder;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.api.ConstraintId;
+import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.log4j.Logger;

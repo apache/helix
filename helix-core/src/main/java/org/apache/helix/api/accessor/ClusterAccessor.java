@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -29,6 +29,22 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Controller;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.Resource;
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.config.ClusterConfig;
+import org.apache.helix.api.config.ParticipantConfig;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ControllerId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.ClusterConfiguration;
@@ -96,6 +112,11 @@ public class ClusterAccessor {
     return true;
   }
 
+  /**
+   * Update the cluster configuration
+   * @param clusterDelta change to the cluster configuration
+   * @return updated ClusterConfig, or null if there was an error
+   */
   public ClusterConfig updateCluster(ClusterConfig.Delta clusterDelta) {
     Cluster cluster = readCluster();
     if (cluster == null) {
@@ -103,8 +124,27 @@ public class ClusterAccessor {
       return null;
     }
     ClusterConfig config = clusterDelta.mergeInto(cluster.getConfig());
-    // TODO: persist this
-    return config;
+    boolean status = setBasicClusterConfig(config);
+    return status ? config : null;
+  }
+
+  /**
+   * Set a cluster config minus state model, participants, and resources
+   * @param config ClusterConfig
+   * @return true if correctly set, false otherwise
+   */
+  private boolean setBasicClusterConfig(ClusterConfig config) {
+    if (config == null) {
+      return false;
+    }
+    ClusterConfiguration configuration = ClusterConfiguration.from(config.getUserConfig());
+    _accessor.setProperty(_keyBuilder.clusterConfig(), configuration);
+    Map<ConstraintType, ClusterConstraints> constraints = config.getConstraintMap();
+    for (ConstraintType type : constraints.keySet()) {
+      ClusterConstraints constraint = constraints.get(type);
+      _accessor.setProperty(_keyBuilder.constraint(type.toString()), constraint);
+    }
+    return true;
   }
 
   /**
@@ -132,7 +172,7 @@ public class ClusterAccessor {
 
   /**
    * read entire cluster data
-   * @return cluster
+   * @return cluster snapshot
    */
   public Cluster readCluster() {
     /**
@@ -286,6 +326,11 @@ public class ClusterAccessor {
    * @return true if resource added, false if there was an error
    */
   public boolean addResourceToCluster(ResourceConfig resource) {
+    if (resource == null || resource.getRebalancerConfig() == null) {
+      LOG.error("Resource not fully defined with a rebalancer context");
+      return false;
+    }
+
     if (!isClusterStructureValid()) {
       LOG.error("Cluster: " + _clusterId + " structure is not valid");
       return false;
@@ -355,10 +400,12 @@ public class ClusterAccessor {
   public boolean isClusterStructureValid() {
     List<String> paths = getRequiredPaths();
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    boolean[] existsResults = baseAccessor.exists(paths, 0);
-    for (boolean exists : existsResults) {
-      if (!exists) {
-        return false;
+    if (baseAccessor != null) {
+      boolean[] existsResults = baseAccessor.exists(paths, 0);
+      for (boolean exists : existsResults) {
+        if (!exists) {
+          return false;
+        }
       }
     }
     return true;
@@ -408,6 +455,10 @@ public class ClusterAccessor {
    * @return true if participant added, false otherwise
    */
   public boolean addParticipantToCluster(ParticipantConfig participant) {
+    if (participant == null) {
+      LOG.error("Participant not initialized");
+      return false;
+    }
     if (!isClusterStructureValid()) {
       LOG.error("Cluster: " + _clusterId + " structure is not valid");
       return false;

@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.api.MessageId;
+import org.apache.helix.api.id.MessageId;
 import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory.DefaultControllerMessageHandler;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;

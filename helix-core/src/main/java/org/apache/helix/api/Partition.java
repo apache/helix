@@ -1,5 +1,6 @@
 package org.apache.helix.api;
 
+import org.apache.helix.api.id.PartitionId;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
 

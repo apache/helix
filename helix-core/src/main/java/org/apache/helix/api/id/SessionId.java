@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -22,16 +22,16 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-public class ProcId extends Id {
+public class SessionId extends Id {
   @JsonProperty("id")
   private final String _id;
 
   /**
-   * Create a process id
-   * @param id string representation of a process id
+   * Create a session id
+   * @param id string representing a session id
    */
   @JsonCreator
-  public ProcId(@JsonProperty("id") String id) {
+  public SessionId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -41,14 +41,14 @@ public class ProcId extends Id {
   }
 
   /**
-   * Get a concrete process id
-   * @param processId string process identifier (e.g. pid@host)
-   * @return ProcId
+   * Get a concrete session id
+   * @param sessionId string session identifier
+   * @return SessionId
    */
-  public static ProcId from(String processId) {
-    if (processId == null) {
+  public static SessionId from(String sessionId) {
+    if (sessionId == null) {
       return null;
     }
-    return new ProcId(processId);
+    return new SessionId(sessionId);
   }
 }

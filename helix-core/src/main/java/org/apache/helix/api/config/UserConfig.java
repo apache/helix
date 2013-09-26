@@ -1,6 +1,7 @@
-package org.apache.helix.api;
+package org.apache.helix.api.config;
 
 import org.apache.helix.HelixProperty;
+import org.apache.helix.api.Scope;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

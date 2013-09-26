@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -22,16 +22,19 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * under the License.
  */
 
-public class ParticipantId extends Id {
+/**
+ * Id representing a state model factory
+ */
+public class StateModelFactoryId extends Id {
   @JsonProperty("id")
   private final String _id;
 
   /**
-   * Instantiate for a participant with a string name
-   * @param id string participant id
+   * Create a state model factory id
+   * @param id string representing a state model factory
    */
   @JsonCreator
-  public ParticipantId(@JsonProperty("id") String id) {
+  public StateModelFactoryId(@JsonProperty("id") String id) {
     _id = id;
   }
 
@@ -41,14 +44,14 @@ public class ParticipantId extends Id {
   }
 
   /**
-   * Get a concrete participant id
-   * @param participantId string participant identifier
-   * @return ParticipantId
+   * Get a concrete state model factory id
+   * @param stateModelFactoryId the string version of the id
+   * @return StateModelFactoryId
    */
-  public static ParticipantId from(String participantId) {
-    if (participantId == null) {
+  public static StateModelFactoryId from(String stateModelFactoryId) {
+    if (stateModelFactoryId == null) {
       return null;
     }
-    return new ParticipantId(participantId);
+    return new StateModelFactoryId(stateModelFactoryId);
   }
 }

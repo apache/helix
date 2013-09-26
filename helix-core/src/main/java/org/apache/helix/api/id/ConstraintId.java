@@ -1,5 +1,7 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
 
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
 import org.apache.helix.model.Transition;
 import org.codehaus.jackson.annotate.JsonCreator;
 import org.codehaus.jackson.annotate.JsonProperty;

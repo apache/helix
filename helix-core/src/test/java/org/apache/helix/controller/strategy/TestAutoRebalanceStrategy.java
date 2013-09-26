@@ -34,18 +34,32 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.Mocks.MockAccessor;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.HelixVersion;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.RunningInstance;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
-import org.apache.helix.api.StateModelDefId;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
-import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.api.config.ClusterConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ProcId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.Maps;
 
 public class TestAutoRebalanceStrategy {
   private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
@@ -210,23 +224,36 @@ public class TestAutoRebalanceStrategy {
 
     private Map<String, Map<String, String>> getMapping(final Map<String, List<String>> listResult) {
       final Map<String, Map<String, String>> mapResult = new HashMap<String, Map<String, String>>();
-      ClusterDataCache cache = new ClusterDataCache();
-      MockAccessor accessor = new MockAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-      for (String node : _liveNodes) {
-        LiveInstance liveInstance = new LiveInstance(node);
-        liveInstance.setSessionId("testSession");
-        accessor.setProperty(keyBuilder.liveInstance(node), liveInstance);
-      }
-      cache.refresh(accessor);
       for (String partition : _partitions) {
-        List<String> preferenceList = listResult.get(partition);
-        Map<String, String> currentStateMap = _currentMapping.get(partition);
-        Set<String> disabled = Collections.emptySet();
-        Map<String, String> assignment =
-            ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, _stateModelDef,
-                preferenceList, currentStateMap, disabled);
-        mapResult.put(partition, assignment);
+        Map<String, String> rawCurStateMap = _currentMapping.get(partition);
+        ClusterConfig cluster =
+            new ClusterConfig.Builder(ClusterId.from("cluster")).addStateModelDefinition(
+                _stateModelDef).build();
+        Map<ParticipantId, Participant> liveParticipantMap = Maps.newHashMap();
+        for (String node : _liveNodes) {
+          Set<String> tags = Collections.emptySet();
+          Map<MessageId, Message> messageMap = Collections.emptyMap();
+          Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
+          Map<ResourceId, CurrentState> currentStateMap = Maps.newHashMap();
+          RunningInstance runningInstance =
+              new RunningInstance(SessionId.from("testSession"), HelixVersion.from("1.2.3.4"),
+                  ProcId.from("1234"));
+          Participant participant =
+              new Participant(ParticipantId.from(node), node, 0, true, disabledPartitionIdSet,
+                  tags, runningInstance, currentStateMap, messageMap, new UserConfig(
+                      Scope.participant(ParticipantId.from(node))));
+          liveParticipantMap.put(participant.getId(), participant);
+        }
+        List<ParticipantId> preferenceList =
+            IdealState.preferenceListFromStringList(listResult.get(partition));
+        Set<ParticipantId> disabledParticipantsForPartition = Collections.emptySet();
+        Map<ParticipantId, State> currentStateMap =
+            IdealState.participantStateMapFromStringMap(rawCurStateMap);
+        Map<ParticipantId, State> assignment =
+            NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster,
+                ResourceId.from(RESOURCE_NAME), liveParticipantMap, _stateModelDef, preferenceList,
+                currentStateMap, disabledParticipantsForPartition);
+        mapResult.put(partition, IdealState.stringMapFromParticipantStateMap(assignment));
       }
       return mapResult;
     }

@@ -2,8 +2,8 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.ResourceConfig.ResourceType;
-import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
+import org.apache.helix.api.id.ResourceId;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

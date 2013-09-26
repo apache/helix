@@ -3,7 +3,7 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.collect.Maps;

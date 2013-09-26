@@ -1,4 +1,7 @@
-package org.apache.helix.api;
+package org.apache.helix.api.id;
+
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,37 +22,30 @@ package org.apache.helix.api;
  * under the License.
  */
 
-/**
- * Generic identifier for Helix constructs
- */
-public abstract class Id implements Comparable<Id> {
-  public abstract String stringify();
+public class SpectatorId extends Id {
+  @JsonProperty("id")
+  private final String _id;
 
-  @Override
-  public String toString() {
-    return stringify();
+  /**
+   * Create a spectator id
+   * @param id string representing a spectator id
+   */
+  @JsonCreator
+  public SpectatorId(@JsonProperty("id") String id) {
+    _id = id;
   }
 
   @Override
-  public boolean equals(Object that) {
-    if (that instanceof Id) {
-      return this.stringify().equals(((Id) that).stringify());
-    } else if (that instanceof String) {
-      return this.stringify().equals(that);
-    }
-    return false;
+  public String stringify() {
+    return _id;
   }
 
-  @Override
-  public int hashCode() {
-    return this.stringify().hashCode();
-  }
-
-  @Override
-  public int compareTo(Id that) {
-    if (that instanceof Id) {
-      return this.stringify().compareTo(that.stringify());
-    }
-    return -1;
+  /**
+   * Create a spectator id from a string
+   * @param spectatorId string representing a spectator id
+   * @return SpectatorId
+   */
+  public static SpectatorId from(String spectatorId) {
+    return new SpectatorId(spectatorId);
   }
 }

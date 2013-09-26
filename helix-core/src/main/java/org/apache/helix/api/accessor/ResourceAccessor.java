@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.api.accessor;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,7 +22,13 @@ package org.apache.helix.api;
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.api.ResourceConfig.ResourceType;
+import org.apache.helix.api.Resource;
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
@@ -48,12 +54,18 @@ public class ResourceAccessor {
   /**
    * Read a single snapshot of a resource
    * @param resourceId the resource id to read
-   * @return Resource
+   * @return Resource or null if not present
    */
   public Resource readResource(ResourceId resourceId) {
     ResourceConfiguration config =
         _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
     IdealState idealState = _accessor.getProperty(_keyBuilder.idealState(resourceId.stringify()));
+
+    if (config == null && idealState == null) {
+      LOG.error("Resource " + resourceId + " not present on the cluster");
+      return null;
+    }
+
     ExternalView externalView =
         _accessor.getProperty(_keyBuilder.externalView(resourceId.stringify()));
     ResourceAssignment resourceAssignment =
@@ -74,7 +86,7 @@ public class ResourceAccessor {
       return null;
     }
     ResourceConfig config = resourceDelta.mergeInto(resource.getConfig());
-    // TODO: persist this
+    setResource(config);
     return config;
   }
 
@@ -89,7 +101,7 @@ public class ResourceAccessor {
   }
 
   /**
-   * save resource assignment
+   * get resource assignment
    * @param resourceId
    * @return resource assignment or null
    */
@@ -98,12 +110,12 @@ public class ResourceAccessor {
   }
 
   /**
-   * Set a resource configuration, which may include user-defined configuration, as well as
+   * Set a physical resource configuration, which may include user-defined configuration, as well as
    * rebalancer configuration
    * @param resourceId
    * @param configuration
    */
-  public void setConfiguration(ResourceId resourceId, ResourceConfiguration configuration) {
+  void setConfiguration(ResourceId resourceId, ResourceConfiguration configuration) {
     _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     // also set an ideal state if the resource supports it
     RebalancerConfig rebalancerConfig = new RebalancerConfig(configuration);
@@ -113,6 +125,26 @@ public class ResourceAccessor {
     if (idealState != null) {
       _accessor.setProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
+  }
+
+  /**
+   * Persist an existing resource's logical configuration
+   * @param resourceConfig logical resource configuration
+   * @return true if resource is set, false otherwise
+   */
+  public boolean setResource(ResourceConfig resourceConfig) {
+    if (resourceConfig == null || resourceConfig.getRebalancerConfig() == null) {
+      LOG.error("Resource not fully defined with a rebalancer context");
+      return false;
+    }
+    ResourceId resourceId = resourceConfig.getId();
+    ResourceConfiguration config = new ResourceConfiguration(resourceId);
+    config.addNamespacedConfig(resourceConfig.getUserConfig());
+    config.addNamespacedConfig(resourceConfig.getRebalancerConfig().toNamespacedConfig());
+    config.setBucketSize(resourceConfig.getBucketSize());
+    config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
+    setConfiguration(resourceId, config);
+    return true;
   }
 
   /**

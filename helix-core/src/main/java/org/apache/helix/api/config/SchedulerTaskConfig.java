@@ -1,8 +1,9 @@
-package org.apache.helix.api;
+package org.apache.helix.api.config;
 
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 
 import com.google.common.collect.ImmutableMap;

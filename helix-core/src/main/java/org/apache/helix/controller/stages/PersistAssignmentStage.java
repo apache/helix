@@ -2,8 +2,8 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.ResourceAccessor;
-import org.apache.helix.api.ResourceId;
+import org.apache.helix.api.accessor.ResourceAccessor;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ResourceAssignment;
 

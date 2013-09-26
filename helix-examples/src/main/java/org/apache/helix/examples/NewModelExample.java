@@ -50,6 +50,9 @@ import com.google.common.collect.Lists;
  * under the License.
  */
 
+/**
+ * Example showing all major interactions with the new Helix logical model
+ */
 public class NewModelExample {
   private static final Logger LOG = Logger.getLogger(NewModelExample.class);
 
@@ -130,10 +133,10 @@ public class NewModelExample {
     ResourceId resourceId = ResourceId.from("exampleResource");
 
     // create a partition
-    Partition partition1 = new Partition(PartitionId.from("partition1"));
+    Partition partition1 = new Partition(PartitionId.from(resourceId, "1"));
 
     // create a second partition
-    Partition partition2 = new Partition(PartitionId.from("partition2"));
+    Partition partition2 = new Partition(PartitionId.from(resourceId, "2"));
 
     // specify the rebalancer configuration
     // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerConfig

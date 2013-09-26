@@ -105,7 +105,9 @@ public final class RebalancerConfig {
       String serialized = _config.getSimpleField(Fields.REBALANCER_CONTEXT.toString());
       return _serializer.deserialize(contextClass, serialized);
     } catch (ClassNotFoundException e) {
-      LOG.info(className + " is not a valid class");
+      LOG.error(className + " is not a valid class");
+    } catch (ClassCastException e) {
+      LOG.error(className + " does not implement RebalancerContext");
     }
     return null;
   }

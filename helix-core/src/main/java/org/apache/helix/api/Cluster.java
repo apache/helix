@@ -102,7 +102,7 @@ public class Cluster {
     _config =
         new ClusterConfig.Builder(id).addResources(resourceConfigMap.values())
             .addParticipants(participantConfigMap.values()).addConstraints(constraintMap.values())
-            .addStateModelDefinitions(stateModelMap.values()).setPausedStatus(isPaused)
+            .addStateModelDefinitions(stateModelMap.values()).pausedStatus(isPaused)
             .userConfig(userConfig).build();
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);

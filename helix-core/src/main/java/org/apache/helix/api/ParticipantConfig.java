@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Sets;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -84,7 +85,7 @@ public class ParticipantConfig {
    * Get disabled partition id's
    * @return set of disabled partition id's, or empty set if none
    */
-  public Set<PartitionId> getDisablePartitionIds() {
+  public Set<PartitionId> getDisabledPartitions() {
     return _disabledPartitions;
   }
 
@@ -119,6 +120,159 @@ public class ParticipantConfig {
    */
   public ParticipantId getId() {
     return _id;
+  }
+
+  /**
+   * Update context for a ParticipantConfig
+   */
+  public static class Delta {
+    private enum Fields {
+      HOST_NAME,
+      PORT,
+      ENABLED,
+      USER_CONFIG
+    }
+
+    private Set<Fields> _updateFields;
+    private Set<String> _removedTags;
+    private Set<PartitionId> _removedDisabledPartitions;
+    private Builder _builder;
+
+    /**
+     * Instantiate the delta for a participant config
+     * @param participantId the participant to update
+     */
+    public Delta(ParticipantId participantId) {
+      _updateFields = Sets.newHashSet();
+      _removedTags = Sets.newHashSet();
+      _removedDisabledPartitions = Sets.newHashSet();
+      _builder = new Builder(participantId);
+    }
+
+    /**
+     * Set the participant host name
+     * @param hostName reachable host when live
+     * @return Delta
+     */
+    public Delta setHostName(String hostName) {
+      _builder.hostName(hostName);
+      _updateFields.add(Fields.HOST_NAME);
+      return this;
+    }
+
+    /**
+     * Set the participant port
+     * @param port port number
+     * @return Delta
+     */
+    public Delta setPort(int port) {
+      _builder.port(port);
+      _updateFields.add(Fields.PORT);
+      return this;
+    }
+
+    /**
+     * Set whether or not the participant is enabled
+     * @param isEnabled true if enabled, false otherwise
+     * @return Delta
+     */
+    public Delta setEnabled(boolean isEnabled) {
+      _builder.enabled(isEnabled);
+      _updateFields.add(Fields.ENABLED);
+      return this;
+    }
+
+    /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Delta
+     */
+    public Delta setUserConfig(UserConfig userConfig) {
+      _builder.userConfig(userConfig);
+      _updateFields.add(Fields.USER_CONFIG);
+      return this;
+    }
+
+    /**
+     * Add an new tag for this participant
+     * @param tag the tag to add
+     * @return Delta
+     */
+    public Delta addTag(String tag) {
+      _builder.addTag(tag);
+      return this;
+    }
+
+    /**
+     * Remove a tag for this participant
+     * @param tag the tag to remove
+     * @return Delta
+     */
+    public Delta removeTag(String tag) {
+      _removedTags.add(tag);
+      return this;
+    }
+
+    /**
+     * Add a partition to disable for this participant
+     * @param partitionId the partition to disable
+     * @return Delta
+     */
+    public Delta addDisabledPartition(PartitionId partitionId) {
+      _builder.addDisabledPartition(partitionId);
+      return this;
+    }
+
+    /**
+     * Remove a partition from the disabled set for this participant
+     * @param partitionId the partition to enable
+     * @return Delta
+     */
+    public Delta removeDisabledPartition(PartitionId partitionId) {
+      _removedDisabledPartitions.add(partitionId);
+      return this;
+    }
+
+    /**
+     * Create a ParticipantConfig that is the combination of an existing ParticipantConfig and this
+     * delta
+     * @param orig the original ParticipantConfig
+     * @return updated ParticipantConfig
+     */
+    public ParticipantConfig mergeInto(ParticipantConfig orig) {
+      ParticipantConfig deltaConfig = _builder.build();
+      Builder builder =
+          new Builder(orig.getId()).hostName(orig.getHostName()).port(orig.getPort())
+              .userConfig(orig.getUserConfig());
+      for (Fields field : _updateFields) {
+        switch (field) {
+        case HOST_NAME:
+          builder.hostName(deltaConfig.getHostName());
+          break;
+        case PORT:
+          builder.port(deltaConfig.getPort());
+          break;
+        case ENABLED:
+          builder.enabled(deltaConfig.isEnabled());
+          break;
+        case USER_CONFIG:
+          builder.userConfig(deltaConfig.getUserConfig());
+          break;
+        }
+      }
+      Set<String> tags = Sets.newHashSet(orig.getTags());
+      tags.addAll(deltaConfig.getTags());
+      tags.removeAll(_removedTags);
+      for (String tag : tags) {
+        builder.addTag(tag);
+      }
+      Set<PartitionId> disabledPartitions = Sets.newHashSet(orig.getDisabledPartitions());
+      disabledPartitions.addAll(deltaConfig.getDisabledPartitions());
+      for (PartitionId partitionId : disabledPartitions) {
+        builder.addDisabledPartition(partitionId);
+      }
+      return builder.build();
+    }
   }
 
   /**

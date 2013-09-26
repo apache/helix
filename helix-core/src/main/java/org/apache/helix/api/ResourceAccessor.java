@@ -22,6 +22,7 @@ package org.apache.helix.api;
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.ResourceConfig.ResourceType;
 import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
@@ -32,8 +33,10 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
+import org.apache.log4j.Logger;
 
 public class ResourceAccessor {
+  private static final Logger LOG = Logger.getLogger(ResourceAccessor.class);
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
 
@@ -59,6 +62,23 @@ public class ResourceAccessor {
   }
 
   /**
+   * Update a resource configuration
+   * @param resourceId the resource id to update
+   * @param resourceDelta changes to the resource
+   * @return ResourceConfig, or null if the resource is not persisted
+   */
+  public ResourceConfig updateResource(ResourceId resourceId, ResourceConfig.Delta resourceDelta) {
+    Resource resource = readResource(resourceId);
+    if (resource == null) {
+      LOG.error("Resource " + resourceId + " does not exist, cannot be updated");
+      return null;
+    }
+    ResourceConfig config = resourceDelta.mergeInto(resource.getConfig());
+    // TODO: persist this
+    return config;
+  }
+
+  /**
    * save resource assignment
    * @param resourceId
    * @param resourceAssignment
@@ -73,8 +93,8 @@ public class ResourceAccessor {
    * @param resourceId
    * @return resource assignment or null
    */
-  public void getResourceAssignment(ResourceId resourceId) {
-    _accessor.getProperty(_keyBuilder.resourceAssignment(resourceId.stringify()));
+  public ResourceAssignment getResourceAssignment(ResourceId resourceId) {
+    return _accessor.getProperty(_keyBuilder.resourceAssignment(resourceId.stringify()));
   }
 
   /**
@@ -182,10 +202,11 @@ public class ResourceAccessor {
   static Resource createResource(ResourceId resourceId,
       ResourceConfiguration resourceConfiguration, IdealState idealState,
       ExternalView externalView, ResourceAssignment resourceAssignment) {
-    // TODO pass resource assignment
     UserConfig userConfig;
+    ResourceType type = ResourceType.DATA;
     if (resourceConfiguration != null) {
       userConfig = UserConfig.from(resourceConfiguration);
+      type = resourceConfiguration.getType();
     } else {
       userConfig = new UserConfig(Scope.resource(resourceId));
     }
@@ -206,7 +227,7 @@ public class ResourceAccessor {
         rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
       }
     }
-    return new Resource(resourceId, idealState, resourceAssignment, externalView,
+    return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
         rebalancerContext, userConfig, bucketSize, batchMessageMode);
   }
 }

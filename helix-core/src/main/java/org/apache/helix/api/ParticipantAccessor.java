@@ -64,8 +64,9 @@ public class ParticipantAccessor {
   void enableParticipant(ParticipantId participantId, boolean isEnabled) {
     String participantName = participantId.stringify();
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantName)) == null) {
-      throw new HelixException("Config for participant: " + participantId
-          + " does NOT exist in cluster: " + _clusterId);
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster: "
+          + _clusterId);
+      return;
     }
 
     InstanceConfig config = new InstanceConfig(participantName);
@@ -156,8 +157,9 @@ public class ParticipantAccessor {
     // check instanceConfig exists
     PropertyKey instanceConfigKey = _keyBuilder.instanceConfig(participantName);
     if (_accessor.getProperty(instanceConfigKey) == null) {
-      throw new HelixException("Config for participant: " + participantId
-          + " does NOT exist in cluster: " + _clusterId);
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster: "
+          + _clusterId);
+      return;
     }
 
     // check resource exist. warn if not
@@ -253,11 +255,21 @@ public class ParticipantAccessor {
   }
 
   /**
-   * create live instance for the participant
-   * @param participantId
+   * Update a participant configuration
+   * @param participantId the participant to update
+   * @param participantDelta changes to the participant
+   * @return ParticipantConfig, or null if participant is not persisted
    */
-  public void connectParticipant(ParticipantId participantId) {
-    // TODO impl this
+  public ParticipantConfig updateParticipant(ParticipantId participantId,
+      ParticipantConfig.Delta participantDelta) {
+    Participant participant = readParticipant(participantId);
+    if (participant == null) {
+      LOG.error("Participant " + participantId + " does not exist, cannot be updated");
+      return null;
+    }
+    ParticipantConfig config = participantDelta.mergeInto(participant.getConfig());
+    // TODO: persist this
+    return config;
   }
 
   /**

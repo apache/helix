@@ -6,6 +6,8 @@ import java.util.Set;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 
+import com.google.common.collect.Sets;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -156,6 +158,123 @@ public class ResourceConfig {
   }
 
   /**
+   * Update context for a ResourceConfig
+   */
+  public static class Delta {
+    private enum Fields {
+      TYPE,
+      REBALANCER_CONTEXT,
+      USER_CONFIG,
+      BUCKET_SIZE,
+      BATCH_MESSAGE_MODE
+    }
+
+    private Set<Fields> _updateFields;
+    private Builder _builder;
+
+    /**
+     * Instantiate the delta for a resource config
+     * @param resourceId the resource to update
+     */
+    public Delta(ResourceId resourceId) {
+      _builder = new Builder(resourceId);
+      _updateFields = Sets.newHashSet();
+    }
+
+    /**
+     * Set the type of this resource
+     * @param type ResourceType
+     * @return Delta
+     */
+    public Delta setType(ResourceType type) {
+      _builder.type(type);
+      _updateFields.add(Fields.TYPE);
+      return this;
+    }
+
+    /**
+     * Set the rebalancer configuration
+     * @param context properties of interest for rebalancing
+     * @return Delta
+     */
+    public Delta setRebalancerContext(RebalancerContext context) {
+      _builder.rebalancerContext(context);
+      _updateFields.add(Fields.REBALANCER_CONTEXT);
+      return this;
+    }
+
+    /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Delta
+     */
+    public Delta setUserConfig(UserConfig userConfig) {
+      _builder.userConfig(userConfig);
+      _updateFields.add(Fields.USER_CONFIG);
+      return this;
+    }
+
+    /**
+     * Set the bucket size
+     * @param bucketSize the size to use
+     * @return Delta
+     */
+    public Delta setBucketSize(int bucketSize) {
+      _builder.bucketSize(bucketSize);
+      _updateFields.add(Fields.BUCKET_SIZE);
+      return this;
+    }
+
+    /**
+     * Set the batch message mode
+     * @param batchMessageMode true to enable, false to disable
+     * @return Delta
+     */
+    public Delta setBatchMessageMode(boolean batchMessageMode) {
+      _builder.batchMessageMode(batchMessageMode);
+      _updateFields.add(Fields.BATCH_MESSAGE_MODE);
+      return this;
+    }
+
+    /**
+     * Create a ResourceConfig that is the combination of an existing ResourceConfig and this delta
+     * @param orig the original ResourceConfig
+     * @return updated ResourceConfig
+     */
+    public ResourceConfig mergeInto(ResourceConfig orig) {
+      ResourceConfig deltaConfig = _builder.build();
+      Builder builder =
+          new Builder(orig.getId())
+              .type(orig.getType())
+              .rebalancerContext(
+                  orig.getRebalancerConfig().getRebalancerContext(RebalancerContext.class))
+              .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig())
+              .bucketSize(orig.getBucketSize()).batchMessageMode(orig.getBatchMessageMode());
+      for (Fields field : _updateFields) {
+        switch (field) {
+        case TYPE:
+          builder.type(deltaConfig.getType());
+          break;
+        case REBALANCER_CONTEXT:
+          builder.rebalancerContext(deltaConfig.getRebalancerConfig().getRebalancerContext(
+              RebalancerContext.class));
+          break;
+        case USER_CONFIG:
+          builder.userConfig(deltaConfig.getUserConfig());
+          break;
+        case BUCKET_SIZE:
+          builder.bucketSize(deltaConfig.getBucketSize());
+          break;
+        case BATCH_MESSAGE_MODE:
+          builder.batchMessageMode(deltaConfig.getBatchMessageMode());
+          break;
+        }
+      }
+      return builder.build();
+    }
+  }
+
+  /**
    * Assembles a ResourceConfig
    */
   public static class Builder {
@@ -191,7 +310,7 @@ public class ResourceConfig {
 
     /**
      * Set the rebalancer configuration
-     * @param rebalancerConfig properties of interest for rebalancing
+     * @param rebalancerContext properties of interest for rebalancing
      * @return Builder
      */
     public Builder rebalancerContext(RebalancerContext rebalancerContext) {

@@ -34,6 +34,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.ParticipantId;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.ResourceConfig;
+import org.apache.helix.api.ResourceConfig.ResourceType;
 import org.apache.helix.api.ResourceId;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.StateModelDefId;
@@ -170,8 +171,8 @@ public class BaseStageTest {
       ResourceId resourceId = idealState.getResourceId();
       RebalancerContext context = PartitionedRebalancerContext.from(idealState);
       Resource resource =
-          new Resource(resourceId, idealState, null, null, context, new UserConfig(
-              Scope.resource(resourceId)), idealState.getBucketSize(),
+          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context,
+              new UserConfig(Scope.resource(resourceId)), idealState.getBucketSize(),
               idealState.getBatchMessageMode());
       resourceMap.put(resourceId, resource.getConfig());
     }

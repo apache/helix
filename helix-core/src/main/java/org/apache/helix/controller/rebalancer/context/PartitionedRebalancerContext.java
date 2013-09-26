@@ -13,9 +13,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
-import org.testng.collections.Maps;
 
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -62,7 +61,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
 
   /**
    * Get a map from partition id to partition
-   * @return partition map
+   * @return partition map (mutable)
    */
   public Map<PartitionId, Partition> getPartitionMap() {
     return _partitionMap;
@@ -73,7 +72,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
    * @param partitionMap partition map
    */
   public void setPartitionMap(Map<PartitionId, Partition> partitionMap) {
-    _partitionMap = ImmutableMap.copyOf(partitionMap);
+    _partitionMap = Maps.newHashMap(partitionMap);
   }
 
   /**

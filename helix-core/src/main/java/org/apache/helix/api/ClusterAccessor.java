@@ -25,8 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.RebalancerContext;
@@ -65,15 +66,13 @@ public class ClusterAccessor {
   public boolean createCluster(ClusterConfig cluster) {
     boolean created = _accessor.createProperty(_keyBuilder.cluster(), null);
     if (!created) {
-      // LOG.warn("Cluster already created. Aborting.");
-      // return false;
+      LOG.error("Cluster already created. Aborting.");
+      return false;
     }
-
-    StateModelDefinitionAccessor stateModelDefAccessor =
-        new StateModelDefinitionAccessor(_accessor);
+    initClusterStructure();
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
     for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
-      stateModelDefAccessor.addStateModelDefinition(stateModelDef);
+      addStateModelDefinitionToCluster(stateModelDef);
     }
     Map<ResourceId, ResourceConfig> resources = cluster.getResourceMap();
     for (ResourceConfig resource : resources.values()) {
@@ -97,25 +96,38 @@ public class ClusterAccessor {
     return true;
   }
 
+  public ClusterConfig updateCluster(ClusterConfig.Delta clusterDelta) {
+    Cluster cluster = readCluster();
+    if (cluster == null) {
+      LOG.error("Cluster does not exist, cannot be updated");
+      return null;
+    }
+    ClusterConfig config = clusterDelta.mergeInto(cluster.getConfig());
+    // TODO: persist this
+    return config;
+  }
+
   /**
    * drop a cluster
+   * @return true if the cluster was dropped, false if there was an error
    */
-  public void dropCluster() {
+  public boolean dropCluster() {
     LOG.info("Dropping cluster: " + _clusterId);
     List<String> liveInstanceNames = _accessor.getChildNames(_keyBuilder.liveInstances());
     if (liveInstanceNames.size() > 0) {
-      throw new HelixException("Can't drop cluster: " + _clusterId
-          + " because there are running participant: " + liveInstanceNames
-          + ", shutdown participants first.");
+      LOG.error("Can't drop cluster: " + _clusterId + " because there are running participant: "
+          + liveInstanceNames + ", shutdown participants first.");
+      return false;
     }
 
     LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
     if (leader != null) {
-      throw new HelixException("Can't drop cluster: " + _clusterId + ", because leader: "
-          + leader.getId() + " are running, shutdown leader first.");
+      LOG.error("Can't drop cluster: " + _clusterId + ", because leader: " + leader.getId()
+          + " are running, shutdown leader first.");
+      return false;
     }
 
-    _accessor.removeProperty(_keyBuilder.cluster());
+    return _accessor.removeProperty(_keyBuilder.cluster());
   }
 
   /**
@@ -271,30 +283,42 @@ public class ClusterAccessor {
   /**
    * add a resource to cluster
    * @param resource
+   * @return true if resource added, false if there was an error
    */
-  public void addResourceToCluster(ResourceConfig resource) {
+  public boolean addResourceToCluster(ResourceConfig resource) {
+    if (!isClusterStructureValid()) {
+      LOG.error("Cluster: " + _clusterId + " structure is not valid");
+      return false;
+    }
     RebalancerContext context =
         resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
     StateModelDefId stateModelDefId = context.getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
-      throw new HelixException("State model: " + stateModelDefId + " not found in cluster: "
-          + _clusterId);
+      LOG.error("State model: " + stateModelDefId + " not found in cluster: " + _clusterId);
+      return false;
     }
 
     ResourceId resourceId = resource.getId();
     if (_accessor.getProperty(_keyBuilder.idealState(resourceId.stringify())) != null) {
-      throw new HelixException("Skip adding resource: " + resourceId
+      LOG.error("Skip adding resource: " + resourceId
           + ", because resource ideal state already exists in cluster: " + _clusterId);
+      return false;
+    }
+    if (_accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify())) != null) {
+      LOG.error("Skip adding resource: " + resourceId
+          + ", because resource config already exists in cluster: " + _clusterId);
+      return false;
     }
 
     // Add resource user config
     if (resource.getUserConfig() != null) {
       ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
+      configuration.setType(resource.getType());
       configuration.addNamespacedConfig(resource.getUserConfig());
       configuration.addNamespacedConfig(resource.getRebalancerConfig().toNamespacedConfig());
       configuration.setBucketSize(resource.getBucketSize());
       configuration.setBatchMessageMode(resource.getBatchMessageMode());
-      _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+      _accessor.createProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
 
     // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
@@ -305,15 +329,23 @@ public class ClusterAccessor {
     if (idealState != null) {
       _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
+    return true;
   }
 
   /**
    * drop a resource from cluster
    * @param resourceId
+   * @return true if removal succeeded, false otherwise
    */
-  public void dropResourceFromCluster(ResourceId resourceId) {
+  public boolean dropResourceFromCluster(ResourceId resourceId) {
+    if (_accessor.getProperty(_keyBuilder.idealState(resourceId.stringify())) == null) {
+      LOG.error("Skip removing resource: " + resourceId
+          + ", because resource ideal state already removed from cluster: " + _clusterId);
+      return false;
+    }
     _accessor.removeProperty(_keyBuilder.idealState(resourceId.stringify()));
     _accessor.removeProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
+    return true;
   }
 
   /**
@@ -321,23 +353,71 @@ public class ClusterAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isClusterStructureValid() {
-    // TODO impl this
+    List<String> paths = getRequiredPaths();
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    boolean[] existsResults = baseAccessor.exists(paths, 0);
+    for (boolean exists : existsResults) {
+      if (!exists) {
+        return false;
+      }
+    }
     return true;
+  }
+
+  /**
+   * Create empty persistent properties to ensure that there is a valid cluster structure
+   */
+  private void initClusterStructure() {
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    List<String> paths = getRequiredPaths();
+    for (String path : paths) {
+      boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
+      if (!status && LOG.isDebugEnabled()) {
+        LOG.debug(path + " already exists");
+      }
+    }
+  }
+
+  /**
+   * Get all property paths that must be set for a cluster structure to be valid
+   * @return list of paths as strings
+   */
+  private List<String> getRequiredPaths() {
+    List<String> paths = new ArrayList<String>();
+    paths.add(_keyBuilder.cluster().getPath());
+    paths.add(_keyBuilder.idealStates().getPath());
+    paths.add(_keyBuilder.clusterConfigs().getPath());
+    paths.add(_keyBuilder.instanceConfigs().getPath());
+    paths.add(_keyBuilder.resourceConfigs().getPath());
+    paths.add(_keyBuilder.propertyStore().getPath());
+    paths.add(_keyBuilder.liveInstances().getPath());
+    paths.add(_keyBuilder.instances().getPath());
+    paths.add(_keyBuilder.externalViews().getPath());
+    paths.add(_keyBuilder.controller().getPath());
+    paths.add(_keyBuilder.stateModelDefs().getPath());
+    paths.add(_keyBuilder.controllerMessages().getPath());
+    paths.add(_keyBuilder.controllerTaskErrors().getPath());
+    paths.add(_keyBuilder.controllerTaskStatuses().getPath());
+    paths.add(_keyBuilder.controllerLeaderHistory().getPath());
+    return paths;
   }
 
   /**
    * add a participant to cluster
    * @param participant
+   * @return true if participant added, false otherwise
    */
-  public void addParticipantToCluster(ParticipantConfig participant) {
+  public boolean addParticipantToCluster(ParticipantConfig participant) {
     if (!isClusterStructureValid()) {
-      throw new HelixException("Cluster: " + _clusterId + " structure is not valid");
+      LOG.error("Cluster: " + _clusterId + " structure is not valid");
+      return false;
     }
 
     ParticipantId participantId = participant.getId();
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) != null) {
-      throw new HelixException("Config for participant: " + participantId
-          + " already exists in cluster: " + _clusterId);
+      LOG.error("Config for participant: " + participantId + " already exists in cluster: "
+          + _clusterId);
+      return false;
     }
 
     // add empty root ZNodes
@@ -361,27 +441,31 @@ public class ClusterAccessor {
     for (String tag : tags) {
       instanceConfig.addTag(tag);
     }
-    Set<PartitionId> disabledPartitions = participant.getDisablePartitionIds();
+    Set<PartitionId> disabledPartitions = participant.getDisabledPartitions();
     for (PartitionId partitionId : disabledPartitions) {
       instanceConfig.setInstanceEnabledForPartition(partitionId, false);
     }
     _accessor.createProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
     _accessor.createProperty(_keyBuilder.messages(participantId.stringify()), null);
+    return true;
   }
 
   /**
    * drop a participant from cluster
    * @param participantId
+   * @return true if participant dropped, false if there was an error
    */
-  public void dropParticipantFromCluster(ParticipantId participantId) {
+  public boolean dropParticipantFromCluster(ParticipantId participantId) {
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
-      throw new HelixException("Config for participant: " + participantId
-          + " does NOT exist in cluster: " + _clusterId);
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster: "
+          + _clusterId);
+      return false;
     }
 
     if (_accessor.getProperty(_keyBuilder.instance(participantId.stringify())) == null) {
-      throw new HelixException("Participant: " + participantId
-          + " structure does NOT exist in cluster: " + _clusterId);
+      LOG.error("Participant: " + participantId + " structure does NOT exist in cluster: "
+          + _clusterId);
+      return false;
     }
 
     // delete participant config path
@@ -389,5 +473,30 @@ public class ClusterAccessor {
 
     // delete participant path
     _accessor.removeProperty(_keyBuilder.instance(participantId.stringify()));
+    return true;
+  }
+
+  /**
+   * Add a state model definition. Updates the existing state model definition if it already exists.
+   * @param stateModelDef fully initialized state model definition
+   * @return true if the model is persisted, false otherwise
+   */
+  public boolean addStateModelDefinitionToCluster(StateModelDefinition stateModelDef) {
+    if (!isClusterStructureValid()) {
+      LOG.error("Cluster: " + _clusterId + " structure is not valid");
+      return false;
+    }
+
+    StateModelDefinitionAccessor smdAccessor = new StateModelDefinitionAccessor(_accessor);
+    return smdAccessor.setStateModelDefinition(stateModelDef);
+  }
+
+  /**
+   * Remove a state model definition if it exists
+   * @param stateModelDefId state model definition id
+   * @return true if removed, false if it did not exist
+   */
+  public boolean dropStateModelDefinitionFromCluster(StateModelDefId stateModelDefId) {
+    return _accessor.removeProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify()));
   }
 }

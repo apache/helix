@@ -59,11 +59,11 @@ public class StateModelDefinitionAccessor {
   }
 
   /**
-   * Add a state model definition. Updates the existing state model definition if it already exists.
+   * Set a state model definition. Adds the state model definition if it does not exist
    * @param stateModelDef fully initialized state model definition
    * @return true if the model is persisted, false otherwise
    */
-  public boolean addStateModelDefinition(StateModelDefinition stateModelDef) {
+  public boolean setStateModelDefinition(StateModelDefinition stateModelDef) {
     return _accessor.setProperty(_keyBuilder.stateModelDef(stateModelDef.getId()), stateModelDef);
   }
 }

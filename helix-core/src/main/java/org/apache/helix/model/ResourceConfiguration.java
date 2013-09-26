@@ -1,15 +1,9 @@
 package org.apache.helix.model;
 
-import java.util.List;
-
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.PartitionId;
+import org.apache.helix.api.ResourceConfig.ResourceType;
 import org.apache.helix.api.ResourceId;
-
-import com.google.common.base.Function;
-import com.google.common.base.Functions;
-import com.google.common.collect.Lists;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -35,7 +29,7 @@ import com.google.common.collect.Lists;
  */
 public class ResourceConfiguration extends HelixProperty {
   public enum Fields {
-    PARTITION_LIST
+    TYPE
   }
 
   /**
@@ -63,29 +57,18 @@ public class ResourceConfiguration extends HelixProperty {
   }
 
   /**
-   * Set the partitions for this resource
-   * @param partitionIds list of partition ids
+   * Set the resource type
+   * @param type ResourceType type
    */
-  public void setPartitionIds(List<PartitionId> partitionIds) {
-    _record.setListField(Fields.PARTITION_LIST.toString(),
-        Lists.transform(partitionIds, Functions.toStringFunction()));
+  public void setType(ResourceType type) {
+    _record.setEnumField(Fields.TYPE.toString(), type);
   }
 
   /**
-   * Get the partitions for this resource
-   * @return list of partition ids
+   * Get the resource type
+   * @return ResourceType type
    */
-  public List<PartitionId> getPartitionIds() {
-    List<String> partitionNames = _record.getListField(Fields.PARTITION_LIST.toString());
-    if (partitionNames != null) {
-      return Lists.transform(partitionNames, new Function<String, PartitionId>() {
-        @Override
-        public PartitionId apply(String partitionName) {
-          return PartitionId.from(partitionName);
-        }
-      });
-    }
-    return null;
+  public ResourceType getType() {
+    return _record.getEnumField(Fields.TYPE.toString(), ResourceType.class, ResourceType.DATA);
   }
-
 }

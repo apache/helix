@@ -43,6 +43,7 @@ public class Resource {
   /**
    * Construct a resource
    * @param id resource id
+   * @param type ResourceType type
    * @param idealState ideal state of the resource
    * @param externalView external view of the resource
    * @param resourceAssignment current resource assignment of the cluster
@@ -51,9 +52,10 @@ public class Resource {
    * @param bucketSize the bucket size to use for physically saved state
    * @param batchMessageMode true if batch messaging allowed, false otherwise
    */
-  public Resource(ResourceId id, IdealState idealState, ResourceAssignment resourceAssignment,
-      ExternalView externalView, RebalancerContext rebalancerContext, UserConfig userConfig,
-      int bucketSize, boolean batchMessageMode) {
+  public Resource(ResourceId id, ResourceType type, IdealState idealState,
+      ResourceAssignment resourceAssignment, ExternalView externalView,
+      RebalancerContext rebalancerContext, UserConfig userConfig, int bucketSize,
+      boolean batchMessageMode) {
     Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
     new HashMap<PartitionId, Map<String, String>>();
     Set<PartitionId> partitionSet = idealState.getPartitionSet();
@@ -71,8 +73,8 @@ public class Resource {
     RebalancerConfig rebalancerConfig = new RebalancerConfig(rebalancerContext);
 
     _config =
-        new ResourceConfig(id, ResourceType.DATA, schedulerTaskConfig, rebalancerConfig,
-            userConfig, bucketSize, batchMessageMode);
+        new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, userConfig, bucketSize,
+            batchMessageMode);
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
   }

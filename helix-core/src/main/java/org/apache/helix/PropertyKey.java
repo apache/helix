@@ -38,6 +38,7 @@ import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.PERSISTENTSTATS;
+import static org.apache.helix.PropertyType.PROPERTYSTORE;
 import static org.apache.helix.PropertyType.RESOURCEASSIGNMENTS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
@@ -594,6 +595,14 @@ public class PropertyKey {
     }
 
     /**
+     * Get the root of all controller status updates
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey controllerTaskStatuses() {
+      return new PropertyKey(STATUSUPDATES_CONTROLLER, StatusUpdate.class, _clusterName);
+    }
+
+    /**
      * Get a property key associated with {@link StatusUpdate} of controller status updates
      * @param subPath
      * @return {@link PropertyKey}
@@ -705,6 +714,13 @@ public class PropertyKey {
       return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
     }
 
+    /**
+     * Get a propertykey associated with the root of the Helix property store
+     * @return {@link PropertyStore}
+     */
+    public PropertyKey propertyStore() {
+      return new PropertyKey(PROPERTYSTORE, null, _clusterName);
+    }
   }
 
   /**

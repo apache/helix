@@ -18,6 +18,7 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -224,11 +225,210 @@ public class ClusterConfig {
   }
 
   /**
-   * Check the pasued status of the cluster
+   * Check the paused status of the cluster
    * @return true if paused, false otherwise
    */
   public boolean isPaused() {
     return _isPaused;
+  }
+
+  /**
+   * Update context for a ClusterConfig
+   */
+  public static class Delta {
+    private enum Fields {
+      PAUSE_STATUS,
+      USER_CONFIG
+    }
+
+    private Set<Fields> _updateFields;
+    private Map<ConstraintType, Set<ConstraintId>> _removedConstraints;
+    private Builder _builder;
+
+    /**
+     * Instantiate the delta for a cluster config
+     * @param clusterId the cluster to update
+     */
+    public Delta(ClusterId clusterId) {
+      _updateFields = Sets.newHashSet();
+      _removedConstraints = Maps.newHashMap();
+      for (ConstraintType type : ConstraintType.values()) {
+        Set<ConstraintId> constraints = Sets.newHashSet();
+        _removedConstraints.put(type, constraints);
+      }
+      _builder = new Builder(clusterId);
+    }
+
+    /**
+     * Add a state upper bound constraint
+     * @param scope scope under which the constraint is valid
+     * @param stateModelDefId identifier of the state model that owns the state
+     * @param state the state to constrain
+     * @param upperBound maximum number of replicas per partition in the state
+     * @return Delta
+     */
+    public Delta addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+        State state, int upperBound) {
+      return addStateUpperBoundConstraint(scope, stateModelDefId, state,
+          Integer.toString(upperBound));
+    }
+
+    /**
+     * Add a state upper bound constraint
+     * @param scope scope under which the constraint is valid
+     * @param stateModelDefId identifier of the state model that owns the state
+     * @param state the state to constrain
+     * @param dynamicUpperBound the upper bound of replicas per partition in the state, can be a
+     *          number, or the currently supported special bound values:<br />
+     *          "R" - Refers to the number of replicas specified during resource
+     *          creation. This allows having different replication factor for each
+     *          resource without having to create a different state machine. <br />
+     *          "N" - Refers to all nodes in the cluster. Useful for resources that need
+     *          to exist on all nodes. This way one can add/remove nodes without having
+     *          the change the bounds.
+     * @return Delta
+     */
+    public Delta addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+        State state, String dynamicUpperBound) {
+      _builder.addStateUpperBoundConstraint(scope, stateModelDefId, state, dynamicUpperBound);
+      return this;
+    }
+
+    /**
+     * Remove state upper bound constraint
+     * @param scope scope under which the constraint is valid
+     * @param stateModelDefId identifier of the state model that owns the state
+     * @param state the state to constrain
+     * @return Delta
+     */
+    public Delta removeStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+        State state) {
+      _removedConstraints.get(ConstraintType.STATE_CONSTRAINT).add(
+          ConstraintId.from(scope, stateModelDefId, state));
+      return this;
+    }
+
+    /**
+     * Add a constraint on the maximum number of in-flight transitions of a certain type
+     * @param scope scope of the constraint
+     * @param stateModelDefId identifies the state model containing the transition
+     * @param transition the transition to constrain
+     * @param maxInFlightTransitions number of allowed in-flight transitions in the scope
+     * @return Delta
+     */
+    public Delta addTransitionConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+        Transition transition, int maxInFlightTransitions) {
+      _builder.addTransitionConstraint(scope, stateModelDefId, transition, maxInFlightTransitions);
+      return this;
+    }
+
+    /**
+     * Remove a constraint on the maximum number of in-flight transitions of a certain type
+     * @param scope scope of the constraint
+     * @param stateModelDefId identifies the state model containing the transition
+     * @param transition the transition to constrain
+     * @return Delta
+     */
+    public Delta removeTransitionConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
+        Transition transition) {
+      _removedConstraints.get(ConstraintType.MESSAGE_CONSTRAINT).add(
+          ConstraintId.from(scope, stateModelDefId, transition));
+      return this;
+    }
+
+    /**
+     * Add a single constraint item
+     * @param type type of the constraint item
+     * @param constraintId unique constraint id
+     * @param item instantiated ConstraintItem
+     * @return Delta
+     */
+    public Delta addConstraintItem(ConstraintType type, ConstraintId constraintId,
+        ConstraintItem item) {
+      _builder.addConstraint(type, constraintId, item);
+      return this;
+    }
+
+    /**
+     * Remove a single constraint item
+     * @param type type of the constraint item
+     * @param constraintId unique constraint id
+     * @return Delta
+     */
+    public Delta removeConstraintItem(ConstraintType type, ConstraintId constraintId) {
+      _removedConstraints.get(type).add(constraintId);
+      return this;
+    }
+
+    /**
+     * Set the paused status of the cluster
+     * @param isPaused true if paused, false otherwise
+     * @return Delta
+     */
+    public Delta setPausedStatus(boolean isPaused) {
+      _builder.pausedStatus(isPaused);
+      _updateFields.add(Fields.PAUSE_STATUS);
+      return this;
+    }
+
+    /**
+     * Set the user configuration
+     * @param userConfig user-specified properties
+     * @return Builder
+     */
+    public Delta setUserConfig(UserConfig userConfig) {
+      _builder.userConfig(userConfig);
+      _updateFields.add(Fields.USER_CONFIG);
+      return this;
+    }
+
+    /**
+     * Create a ClusterConfig that is the combination of an existing ClusterConfig and this delta
+     * @param orig the original ClusterConfig
+     * @return updated ClusterConfig
+     */
+    public ClusterConfig mergeInto(ClusterConfig orig) {
+      // copy in original and updated fields
+      ClusterConfig deltaConfig = _builder.build();
+      Builder builder =
+          new Builder(orig.getId()).addResources(orig.getResourceMap().values())
+              .addParticipants(orig.getParticipantMap().values())
+              .addStateModelDefinitions(orig.getStateModelMap().values())
+              .userConfig(orig.getUserConfig()).pausedStatus(orig.isPaused());
+      for (Fields field : _updateFields) {
+        switch (field) {
+        case PAUSE_STATUS:
+          _builder.pausedStatus(deltaConfig.isPaused());
+          break;
+        case USER_CONFIG:
+          _builder.userConfig(deltaConfig.getUserConfig());
+          break;
+        }
+      }
+      // add constraint deltas
+      for (ConstraintType type : ConstraintType.values()) {
+        ClusterConstraints constraints;
+        if (orig.getConstraintMap().containsKey(type)) {
+          constraints = orig.getConstraintMap().get(type);
+        } else {
+          constraints = new ClusterConstraints(type);
+        }
+        // add new constraints
+        if (deltaConfig.getConstraintMap().containsKey(type)) {
+          ClusterConstraints deltaConstraints = deltaConfig.getConstraintMap().get(type);
+          for (ConstraintId constraintId : deltaConstraints.getConstraintItems().keySet()) {
+            ConstraintItem constraintItem = deltaConstraints.getConstraintItem(constraintId);
+            constraints.addConstraintItem(constraintId, constraintItem);
+          }
+        }
+        // remove constraints
+        for (ConstraintId constraintId : _removedConstraints.get(type)) {
+          constraints.removeConstraintItem(constraintId);
+        }
+        builder.addConstraint(constraints);
+      }
+      return builder.build();
+    }
   }
 
   /**
@@ -316,6 +516,19 @@ public class ClusterConfig {
     }
 
     /**
+     * Add a single constraint item
+     * @param type type of the constraint
+     * @param constraintId unique constraint identifier
+     * @param item instantiated ConstraintItem
+     * @return Builder
+     */
+    public Builder addConstraint(ConstraintType type, ConstraintId constraintId, ConstraintItem item) {
+      ClusterConstraints existConstraints = getConstraintsInstance(type);
+      existConstraints.addConstraintItem(constraintId, item);
+      return this;
+    }
+
+    /**
      * Add multiple constraints to the cluster
      * @param constraints cluster constraints of multiple distinct types
      * @return Builder
@@ -330,7 +543,6 @@ public class ClusterConfig {
     /**
      * Add a constraint on the maximum number of in-flight transitions of a certain type
      * @param scope scope of the constraint
-     * @param constraintId unique constraint identifier
      * @param stateModelDefId identifies the state model containing the transition
      * @param transition the transition to constrain
      * @param maxInFlightTransitions number of allowed in-flight transitions in the scope
@@ -371,7 +583,7 @@ public class ClusterConfig {
      * @param stateModelDefId identifier of the state model that owns the state
      * @param state the state to constrain
      * @param upperBound maximum number of replicas per partition in the state
-     * @return
+     * @return Builder
      */
     public Builder addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
         State state, int upperBound) {
@@ -451,7 +663,7 @@ public class ClusterConfig {
      * @param isPaused true if paused, false otherwise
      * @return Builder
      */
-    public Builder setPausedStatus(boolean isPaused) {
+    public Builder pausedStatus(boolean isPaused) {
       _isPaused = isPaused;
       return this;
     }

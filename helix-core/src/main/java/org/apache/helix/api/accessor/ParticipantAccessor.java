@@ -38,7 +38,6 @@ import org.apache.helix.api.Participant;
 import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
-import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -58,10 +57,8 @@ public class ParticipantAccessor {
 
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
-  private final ClusterId _clusterId;
 
-  public ParticipantAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
-    _clusterId = clusterId;
+  public ParticipantAccessor(HelixDataAccessor accessor) {
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
   }
@@ -74,8 +71,7 @@ public class ParticipantAccessor {
   void enableParticipant(ParticipantId participantId, boolean isEnabled) {
     String participantName = participantId.stringify();
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantName)) == null) {
-      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster: "
-          + _clusterId);
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
       return;
     }
 
@@ -167,17 +163,15 @@ public class ParticipantAccessor {
     // check instanceConfig exists
     PropertyKey instanceConfigKey = _keyBuilder.instanceConfig(participantName);
     if (_accessor.getProperty(instanceConfigKey) == null) {
-      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster: "
-          + _clusterId);
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
       return;
     }
 
     // check resource exist. warn if not
     IdealState idealState = _accessor.getProperty(_keyBuilder.idealState(resourceName));
     if (idealState == null) {
-      LOG.warn("Disable partitions: " + partitionIdSet + " but Cluster: " + _clusterId
-          + ", resource: " + resourceId
-          + " does NOT exists. probably disable it during ERROR->DROPPED transtition");
+      LOG.warn("Disable partitions: " + partitionIdSet + ", resource: " + resourceId
+          + " does NOT exist. probably disable it during ERROR->DROPPED transtition");
 
     } else {
       // check partitions exist. warn if not
@@ -186,8 +180,8 @@ public class ParticipantAccessor {
             .getPreferenceList(partitionId) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
                 .getParticipantStateMap(partitionId) == null)) {
-          LOG.warn("Cluster: " + _clusterId + ", resource: " + resourceId + ", partition: "
-              + partitionId + ", partition does NOT exist in ideal state");
+          LOG.warn("Resource: " + resourceId + ", partition: " + partitionId
+              + ", partition does NOT exist in ideal state");
         }
       }
     }
@@ -205,8 +199,7 @@ public class ParticipantAccessor {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
-          throw new HelixException("Cluster: " + _clusterId + ", instance: " + participantId
-              + ", participant config is null");
+          throw new HelixException("Instance: " + participantId + ", participant config is null");
         }
 
         // TODO: merge with InstanceConfig.setInstanceEnabledForPartition
@@ -382,7 +375,8 @@ public class ParticipantAccessor {
   public Participant readParticipant(ParticipantId participantId) {
     // read physical model
     String participantName = participantId.stringify();
-    InstanceConfig instanceConfig = _accessor.getProperty(_keyBuilder.instance(participantName));
+    InstanceConfig instanceConfig =
+        _accessor.getProperty(_keyBuilder.instanceConfig(participantName));
 
     if (instanceConfig == null) {
       LOG.error("Participant " + participantId + " is not present on the cluster");

@@ -1,6 +1,7 @@
 package org.apache.helix.examples;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.BaseDataAccessor;
@@ -10,6 +11,8 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.accessor.ParticipantAccessor;
+import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
@@ -30,6 +33,7 @@ import org.apache.helix.model.Transition;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -105,6 +109,34 @@ public class NewModelExample {
 
     // create the cluster
     createCluster(cluster, accessor);
+
+    // update the resource
+    updateResource(resource, accessor);
+
+    // update the participant
+    updateParticipant(participant, accessor);
+  }
+
+  private static void updateParticipant(ParticipantConfig participant,
+      HelixDataAccessor helixAccessor) {
+    // add a tag to the participant and change the hostname, then update it using a delta
+    ParticipantAccessor accessor = new ParticipantAccessor(helixAccessor);
+    ParticipantConfig.Delta delta =
+        new ParticipantConfig.Delta(participant.getId()).addTag("newTag").setHostName("newHost");
+    accessor.updateParticipant(participant.getId(), delta);
+  }
+
+  private static void updateResource(ResourceConfig resource, HelixDataAccessor helixAccessor) {
+    // add some fields to the resource user config, then update it using the resource config delta
+    ResourceAccessor accessor = new ResourceAccessor(helixAccessor);
+    UserConfig userConfig = resource.getUserConfig();
+    Map<String, String> mapField = Maps.newHashMap();
+    mapField.put("k1", "v1");
+    mapField.put("k2", "v2");
+    userConfig.setMapField("sampleMap", mapField);
+    ResourceConfig.Delta delta =
+        new ResourceConfig.Delta(resource.getId()).setUserConfig(userConfig);
+    accessor.updateResource(resource.getId(), delta);
   }
 
   private static void createCluster(ClusterConfig cluster, HelixDataAccessor helixAccessor) {

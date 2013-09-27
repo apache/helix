@@ -307,6 +307,37 @@ public class ClusterAccessor {
   }
 
   /**
+   * Read the user config of the cluster
+   * @return UserConfig, or null
+   */
+  public UserConfig readUserConfig() {
+    ClusterConfiguration clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
+    return clusterConfig != null ? UserConfig.from(clusterConfig) : null;
+  }
+
+  /**
+   * Set the user config of the cluster, overwriting existing user configs
+   * @param userConfig the new user config
+   * @return true if the user config was set, false otherwise
+   */
+  public boolean setUserConfig(UserConfig userConfig) {
+    ClusterConfig.Delta delta = new ClusterConfig.Delta(_clusterId).setUserConfig(userConfig);
+    return updateCluster(delta) != null;
+  }
+
+  /**
+   * Add user configuration to the existing cluster user configuration. Overwrites properties with
+   * the same key
+   * @param userConfig the user config key-value pairs to add
+   * @return true if the user config was updated, false otherwise
+   */
+  public boolean updateUserConfig(UserConfig userConfig) {
+    ClusterConfiguration clusterConfig = new ClusterConfiguration(_clusterId);
+    clusterConfig.addNamespacedConfig(userConfig);
+    return _accessor.updateProperty(_keyBuilder.clusterConfig(), clusterConfig);
+  }
+
+  /**
    * pause controller of cluster
    */
   public void pauseCluster() {

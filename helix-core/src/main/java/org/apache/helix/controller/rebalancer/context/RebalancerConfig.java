@@ -148,4 +148,13 @@ public final class RebalancerConfig {
   public NamespacedConfig toNamespacedConfig() {
     return _config;
   }
+
+  /**
+   * Get a RebalancerConfig from a physical resource config
+   * @param resourceConfiguration physical resource config
+   * @return RebalancerConfig
+   */
+  public static RebalancerConfig from(ResourceConfiguration resourceConfiguration) {
+    return new RebalancerConfig(resourceConfiguration);
+  }
 }

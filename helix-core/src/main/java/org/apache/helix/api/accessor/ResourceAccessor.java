@@ -128,6 +128,68 @@ public class ResourceAccessor {
   }
 
   /**
+   * Set the context of the rebalancer. This includes all properties required for rebalancing this
+   * resource
+   * @param resourceId the resource to update
+   * @param context the new rebalancer context
+   * @return true if the context was set, false otherwise
+   */
+  public boolean setRebalancerContext(ResourceId resourceId, RebalancerContext context) {
+    RebalancerConfig config = new RebalancerConfig(context);
+    ResourceConfiguration resourceConfig = new ResourceConfiguration(resourceId);
+    resourceConfig.addNamespacedConfig(config.toNamespacedConfig());
+    return _accessor.updateProperty(_keyBuilder.resourceConfig(resourceId.stringify()),
+        resourceConfig);
+  }
+
+  /**
+   * Read the user config of the resource
+   * @param resourceId the resource to to look up
+   * @return UserConfig, or null
+   */
+  public UserConfig readUserConfig(ResourceId resourceId) {
+    ResourceConfiguration resourceConfig =
+        _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
+    return resourceConfig != null ? UserConfig.from(resourceConfig) : null;
+  }
+
+  /**
+   * Read the rebalancer config of the resource
+   * @param resourceId the resource to to look up
+   * @return RebalancerConfig, or null
+   */
+  public RebalancerConfig readRebalancerConfig(ResourceId resourceId) {
+    ResourceConfiguration resourceConfig =
+        _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
+    return resourceConfig != null ? RebalancerConfig.from(resourceConfig) : null;
+  }
+
+  /**
+   * Set the user config of the resource, overwriting existing user configs
+   * @param resourceId the resource to update
+   * @param userConfig the new user config
+   * @return true if the user config was set, false otherwise
+   */
+  public boolean setUserConfig(ResourceId resourceId, UserConfig userConfig) {
+    ResourceConfig.Delta delta = new ResourceConfig.Delta(resourceId).setUserConfig(userConfig);
+    return updateResource(resourceId, delta) != null;
+  }
+
+  /**
+   * Add user configuration to the existing resource user configuration. Overwrites properties with
+   * the same key
+   * @param resourceId the resource to update
+   * @param userConfig the user config key-value pairs to add
+   * @return true if the user config was updated, false otherwise
+   */
+  public boolean updateUserConfig(ResourceId resourceId, UserConfig userConfig) {
+    ResourceConfiguration resourceConfig = new ResourceConfiguration(resourceId);
+    resourceConfig.addNamespacedConfig(userConfig);
+    return _accessor.updateProperty(_keyBuilder.resourceConfig(resourceId.stringify()),
+        resourceConfig);
+  }
+
+  /**
    * Persist an existing resource's logical configuration
    * @param resourceConfig logical resource configuration
    * @return true if resource is set, false otherwise

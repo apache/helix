@@ -258,6 +258,44 @@ public class ParticipantAccessor {
   }
 
   /**
+   * Read the user config of the participant
+   * @param participantId the participant to to look up
+   * @return UserConfig, or null
+   */
+  public UserConfig readUserConfig(ParticipantId participantId) {
+    InstanceConfig instanceConfig =
+        _accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify()));
+    return instanceConfig != null ? UserConfig.from(instanceConfig) : null;
+  }
+
+  /**
+   * Set the user config of the participant, overwriting existing user configs
+   * @param participantId the participant to update
+   * @param userConfig the new user config
+   * @return true if the user config was set, false otherwise
+   */
+  public boolean setUserConfig(ParticipantId participantId, UserConfig userConfig) {
+    ParticipantConfig.Delta delta =
+        new ParticipantConfig.Delta(participantId).setUserConfig(userConfig);
+    return updateParticipant(participantId, delta) != null;
+  }
+
+  /**
+   * Add user configuration to the existing participant user configuration. Overwrites properties
+   * with
+   * the same key
+   * @param participant the participant to update
+   * @param userConfig the user config key-value pairs to add
+   * @return true if the user config was updated, false otherwise
+   */
+  public boolean updateUserConfig(ParticipantId participantId, UserConfig userConfig) {
+    InstanceConfig instanceConfig = new InstanceConfig(participantId);
+    instanceConfig.addNamespacedConfig(userConfig);
+    return _accessor.updateProperty(_keyBuilder.instanceConfig(participantId.stringify()),
+        instanceConfig);
+  }
+
+  /**
    * Update a participant configuration
    * @param participantId the participant to update
    * @param participantDelta changes to the participant

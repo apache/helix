@@ -153,7 +153,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
   /**
    * Convert a physically-stored IdealState into a rebalancer context for a partitioned resource
    * @param idealState populated IdealState
-   * @return PartitionRebalancerContext
+   * @return PartitionedRebalancerContext
    */
   public static PartitionedRebalancerContext from(IdealState idealState) {
     PartitionedRebalancerContext context;

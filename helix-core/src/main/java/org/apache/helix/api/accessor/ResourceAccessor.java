@@ -319,20 +319,19 @@ public class ResourceAccessor {
     }
     int bucketSize = 0;
     boolean batchMessageMode = false;
-    RebalancerContext rebalancerContext;
+    RebalancerContext rebalancerContext = null;
     if (idealState != null) {
       rebalancerContext = PartitionedRebalancerContext.from(idealState);
       bucketSize = idealState.getBucketSize();
       batchMessageMode = idealState.getBatchMessageMode();
-    } else {
-      if (resourceConfiguration != null) {
-        bucketSize = resourceConfiguration.getBucketSize();
-        batchMessageMode = resourceConfiguration.getBatchMessageMode();
-        RebalancerConfig rebalancerConfig = new RebalancerConfig(resourceConfiguration);
-        rebalancerContext = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
-      } else {
-        rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
-      }
+    } else if (resourceConfiguration != null) {
+      bucketSize = resourceConfiguration.getBucketSize();
+      batchMessageMode = resourceConfiguration.getBatchMessageMode();
+      RebalancerConfig rebalancerConfig = new RebalancerConfig(resourceConfiguration);
+      rebalancerContext = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
+    }
+    if (rebalancerContext == null) {
+      rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
     }
     return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
         rebalancerContext, userConfig, bucketSize, batchMessageMode);

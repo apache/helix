@@ -625,15 +625,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
 
-    RebalanceMode mode = RebalanceMode.SEMI_AUTO;
-    try {
-      mode = RebalanceMode.valueOf(rebalancerMode);
-    } catch (Exception e) {
-      logger.error("", e);
-    }
     IdealState idealState = new IdealState(resourceName);
     idealState.setNumPartitions(partitions);
     idealState.setStateModelDefId(StateModelDefId.from(stateModelRef));
+    RebalanceMode mode =
+        idealState.rebalanceModeFromString(rebalancerMode, RebalanceMode.SEMI_AUTO);
     idealState.setRebalanceMode(mode);
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryId(StateModelFactoryId

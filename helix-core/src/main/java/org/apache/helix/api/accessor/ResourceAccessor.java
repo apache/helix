@@ -19,14 +19,20 @@ package org.apache.helix.api.accessor;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
@@ -277,6 +283,13 @@ public class ResourceAccessor {
         for (PartitionId partitionId : customContext.getPartitionSet()) {
           idealState.setParticipantStateMap(partitionId,
               customContext.getPreferenceMap(partitionId));
+        }
+      } else {
+        for (PartitionId partitionId : partitionedContext.getPartitionSet()) {
+          List<ParticipantId> preferenceList = Collections.emptyList();
+          idealState.setPreferenceList(partitionId, preferenceList);
+          Map<ParticipantId, State> participantStateMap = Collections.emptyMap();
+          idealState.setParticipantStateMap(partitionId, participantStateMap);
         }
       }
       return idealState;

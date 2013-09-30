@@ -206,8 +206,13 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     } else {
       replicaCount = Integer.parseInt(replicas);
     }
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
-      builder.addPartition(new Partition(partitionId));
+    if (idealState.getNumPartitions() > 0 && idealState.getPartitionSet().size() == 0) {
+      // backwards compatibility: partition sets were based on pref lists/maps previously
+      builder.addPartitions(idealState.getNumPartitions());
+    } else {
+      for (PartitionId partitionId : idealState.getPartitionSet()) {
+        builder.addPartition(new Partition(partitionId));
+      }
     }
     builder.anyLiveParticipant(anyLiveParticipant).replicaCount(replicaCount)
         .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())

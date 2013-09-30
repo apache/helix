@@ -61,6 +61,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+import org.testng.internal.annotations.Sets;
 
 public class ClusterAccessor {
   private static Logger LOG = Logger.getLogger(ClusterAccessor.class);
@@ -244,8 +245,11 @@ public class ClusterAccessor {
         _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
 
     // read all the resources
+    Set<String> allResources = Sets.newHashSet();
+    allResources.addAll(idealStateMap.keySet());
+    allResources.addAll(resourceConfigMap.keySet());
     Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
-    for (String resourceName : idealStateMap.keySet()) {
+    for (String resourceName : allResources) {
       ResourceId resourceId = ResourceId.from(resourceName);
       resourceMap.put(resourceId, ResourceAccessor.createResource(resourceId,
           resourceConfigMap.get(resourceName), idealStateMap.get(resourceName),

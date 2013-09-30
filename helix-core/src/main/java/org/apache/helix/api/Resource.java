@@ -20,14 +20,13 @@ package org.apache.helix.api;
  */
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.SchedulerTaskConfig;
 import org.apache.helix.api.config.UserConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
@@ -62,19 +61,6 @@ public class Resource {
       ResourceAssignment resourceAssignment, ExternalView externalView,
       RebalancerContext rebalancerContext, UserConfig userConfig, int bucketSize,
       boolean batchMessageMode) {
-    Map<PartitionId, Partition> partitionMap = new HashMap<PartitionId, Partition>();
-    new HashMap<PartitionId, Map<String, String>>();
-    Set<PartitionId> partitionSet = idealState.getPartitionSet();
-    if (partitionSet.isEmpty() && idealState.getNumPartitions() > 0) {
-      partitionSet = new HashSet<PartitionId>();
-      for (int i = 0; i < idealState.getNumPartitions(); i++) {
-        partitionSet.add(PartitionId.from(id, Integer.toString(i)));
-      }
-    }
-    for (PartitionId partitionId : partitionSet) {
-      partitionMap.put(partitionId, new Partition(partitionId));
-    }
-
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
     RebalancerConfig rebalancerConfig = new RebalancerConfig(rebalancerContext);
 

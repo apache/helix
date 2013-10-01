@@ -59,6 +59,7 @@ public class ClusterConfig {
   private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
   private final UserConfig _userConfig;
   private final boolean _isPaused;
+  private final boolean _autoJoin;
 
   /**
    * Initialize a cluster configuration. Also see ClusterConfig.Builder
@@ -69,12 +70,13 @@ public class ClusterConfig {
    * @param stateModelMap map of state model id to state model definition
    * @param userConfig user-defined cluster properties
    * @param isPaused true if paused, false if active
+   * @param allowAutoJoin true if participants can join automatically, false otherwise
    */
   private ClusterConfig(ClusterId id, Map<ResourceId, ResourceConfig> resourceMap,
       Map<ParticipantId, ParticipantConfig> participantMap,
       Map<ConstraintType, ClusterConstraints> constraintMap,
       Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
-      boolean isPaused) {
+      boolean isPaused, boolean allowAutoJoin) {
     _id = id;
     _resourceMap = ImmutableMap.copyOf(resourceMap);
     _participantMap = ImmutableMap.copyOf(participantMap);
@@ -82,6 +84,7 @@ public class ClusterConfig {
     _stateModelMap = ImmutableMap.copyOf(stateModelMap);
     _userConfig = userConfig;
     _isPaused = isPaused;
+    _autoJoin = allowAutoJoin;
   }
 
   /**
@@ -240,11 +243,20 @@ public class ClusterConfig {
   }
 
   /**
+   * Check if this cluster allows participants to join automatically
+   * @return true if allowed, false if disallowed
+   */
+  public boolean autoJoinAllowed() {
+    return _autoJoin;
+  }
+
+  /**
    * Update context for a ClusterConfig
    */
   public static class Delta {
     private enum Fields {
-      USER_CONFIG
+      USER_CONFIG,
+      AUTO_JOIN
     }
 
     private Set<Fields> _updateFields;
@@ -369,11 +381,22 @@ public class ClusterConfig {
     /*
      * Set the user configuration
      * @param userConfig user-specified properties
-     * @return Builder
+     * @return Delta
      */
     public Delta setUserConfig(UserConfig userConfig) {
       _builder.userConfig(userConfig);
       _updateFields.add(Fields.USER_CONFIG);
+      return this;
+    }
+
+    /**
+     * Allow or disallow participants from automatically being able to join the cluster
+     * @param autoJoin true if allowed, false if disallowed
+     * @return Delta
+     */
+    public Delta setAutoJoin(boolean autoJoin) {
+      _builder.autoJoin(autoJoin);
+      _updateFields.add(Fields.AUTO_JOIN);
       return this;
     }
 
@@ -389,11 +412,15 @@ public class ClusterConfig {
           new Builder(orig.getId()).addResources(orig.getResourceMap().values())
               .addParticipants(orig.getParticipantMap().values())
               .addStateModelDefinitions(orig.getStateModelMap().values())
-              .userConfig(orig.getUserConfig()).pausedStatus(orig.isPaused());
+              .userConfig(orig.getUserConfig()).pausedStatus(orig.isPaused())
+              .autoJoin(orig.autoJoinAllowed());
       for (Fields field : _updateFields) {
         switch (field) {
         case USER_CONFIG:
           builder.userConfig(deltaConfig.getUserConfig());
+          break;
+        case AUTO_JOIN:
+          builder.autoJoin(deltaConfig.autoJoinAllowed());
           break;
         }
       }
@@ -434,6 +461,7 @@ public class ClusterConfig {
     private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
     private UserConfig _userConfig;
     private boolean _isPaused;
+    private boolean _autoJoin;
 
     /**
      * Initialize builder for a cluster
@@ -446,6 +474,7 @@ public class ClusterConfig {
       _constraintMap = new HashMap<ConstraintType, ClusterConstraints>();
       _stateModelMap = new HashMap<StateModelDefId, StateModelDefinition>();
       _isPaused = false;
+      _autoJoin = false;
       _userConfig = new UserConfig(Scope.cluster(id));
     }
 
@@ -661,6 +690,16 @@ public class ClusterConfig {
     }
 
     /**
+     * Allow or disallow participants from automatically being able to join the cluster
+     * @param autoJoin true if allowed, false if disallowed
+     * @return Builder
+     */
+    public Builder autoJoin(boolean autoJoin) {
+      _autoJoin = autoJoin;
+      return this;
+    }
+
+    /**
      * Set the user configuration
      * @param userConfig user-specified properties
      * @return Builder
@@ -676,7 +715,7 @@ public class ClusterConfig {
      */
     public ClusterConfig build() {
       return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _stateModelMap,
-          _userConfig, _isPaused);
+          _userConfig, _isPaused, _autoJoin);
     }
 
     /**

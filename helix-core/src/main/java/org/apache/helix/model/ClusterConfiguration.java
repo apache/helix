@@ -1,5 +1,6 @@
 package org.apache.helix.model;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.UserConfig;
@@ -42,6 +43,22 @@ public class ClusterConfiguration extends HelixProperty {
    */
   public ClusterConfiguration(ZNRecord record) {
     super(record);
+  }
+
+  /**
+   * Determine if participants can automatically join the cluster
+   * @return true if allowed, false if disallowed
+   */
+  public boolean autoJoinAllowed() {
+    return _record.getBooleanField(HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, false);
+  }
+
+  /**
+   * Set if participants can automatically join the cluster
+   * @param autoJoinAllowed true if allowed, false if disallowed
+   */
+  public void setAutoJoinAllowed(boolean autoJoinAllowed) {
+    _record.setBooleanField(HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, autoJoinAllowed);
   }
 
   /**

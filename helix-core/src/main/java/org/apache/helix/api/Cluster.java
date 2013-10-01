@@ -86,12 +86,13 @@ public class Cluster {
    * @param stateModelMap
    * @param userConfig
    * @param isPaused
+   * @param autoJoinAllowed
    */
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
       ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
       Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
-      boolean isPaused) {
+      boolean isPaused, boolean autoJoinAllowed) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -113,7 +114,7 @@ public class Cluster {
         new ClusterConfig.Builder(id).addResources(resourceConfigMap.values())
             .addParticipants(participantConfigMap.values()).addConstraints(constraintMap.values())
             .addStateModelDefinitions(stateModelMap.values()).pausedStatus(isPaused)
-            .userConfig(userConfig).build();
+            .userConfig(userConfig).autoJoin(autoJoinAllowed).build();
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -260,11 +261,19 @@ public class Cluster {
   }
 
   /**
-   * Check the pasued status of the cluster
+   * Check the paused status of the cluster
    * @return true if paused, false otherwise
    */
   public boolean isPaused() {
     return _config.isPaused();
+  }
+
+  /**
+   * Check if the cluster supports participants automatically joining
+   * @return true if allowed, false if disallowed
+   */
+  public boolean autoJoinAllowed() {
+    return _config.autoJoinAllowed();
   }
 
   /**

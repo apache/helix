@@ -133,10 +133,10 @@ public class TestUpdateConfig {
         new ClusterConfig.Builder(clusterId)
             .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master, 2)
             .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, slave, 3)
-            .userConfig(userConfig).build();
+            .userConfig(userConfig).autoJoin(true).build();
 
     // update: overwrite user config, change master constraint, remove slave constraint, add offline
-    // constraint
+    // constraint, change auto join
     UserConfig newUserConfig = new UserConfig(Scope.cluster(clusterId));
     newUserConfig.setSimpleField("key2", "value2");
     ClusterConfig updated =
@@ -144,7 +144,7 @@ public class TestUpdateConfig {
             .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master, 1)
             .removeStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, slave)
             .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, offline, "R")
-            .setUserConfig(newUserConfig).mergeInto(config);
+            .setUserConfig(newUserConfig).setAutoJoin(false).mergeInto(config);
     Assert.assertEquals(
         updated.getStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master), "1");
     Assert.assertEquals(
@@ -153,5 +153,6 @@ public class TestUpdateConfig {
         updated.getStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, offline), "R");
     Assert.assertNull(updated.getUserConfig().getSimpleField("key1"));
     Assert.assertEquals(updated.getUserConfig().getSimpleField("key2"), "value2");
+    Assert.assertFalse(updated.autoJoinAllowed());
   }
 }

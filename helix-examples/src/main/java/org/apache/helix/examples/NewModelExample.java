@@ -2,7 +2,6 @@ package org.apache.helix.examples;
 
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -23,13 +22,12 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Transition;
+import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -100,10 +98,7 @@ public class NewModelExample {
     ClusterConfig cluster = clusterBuilder.build();
 
     // set up accessors to work with ZooKeeper-persisted data
-    int timeOutInSec = Integer.parseInt(System.getProperty(ZKHelixAdmin.CONNECTION_TIMEOUT, "30"));
-    ZkClient zkClient = new ZkClient(args[0], timeOutInSec * 1000);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
-    zkClient.waitUntilConnected(timeOutInSec, TimeUnit.SECONDS);
+    ZkClient zkClient = ZKClientPool.getZkClient(args[0]);
     BaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterId.stringify(), baseDataAccessor);
 

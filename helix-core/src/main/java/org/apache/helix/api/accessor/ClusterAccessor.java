@@ -104,8 +104,11 @@ public class ClusterAccessor {
       _accessor.createProperty(_keyBuilder.constraint(constraints.getType().toString()),
           constraints);
     }
-    _accessor.createProperty(_keyBuilder.clusterConfig(),
-        ClusterConfiguration.from(cluster.getUserConfig()));
+    ClusterConfiguration clusterConfig = ClusterConfiguration.from(cluster.getUserConfig());
+    if (cluster.autoJoinAllowed()) {
+      clusterConfig.setAutoJoinAllowed(cluster.autoJoinAllowed());
+    }
+    _accessor.createProperty(_keyBuilder.clusterConfig(), clusterConfig);
     if (cluster.isPaused()) {
       pauseCluster();
     }
@@ -292,9 +295,11 @@ public class ClusterAccessor {
     boolean isPaused = pauseSignal != null;
 
     ClusterConfiguration clusterUserConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
+    boolean autoJoinAllowed = false;
     UserConfig userConfig;
     if (clusterUserConfig != null) {
       userConfig = UserConfig.from(clusterUserConfig);
+      autoJoinAllowed = clusterUserConfig.autoJoinAllowed();
     } else {
       userConfig = new UserConfig(Scope.cluster(_clusterId));
     }
@@ -307,7 +312,7 @@ public class ClusterAccessor {
 
     // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, stateModelMap, userConfig, isPaused);
+        clusterConstraintMap, stateModelMap, userConfig, isPaused, autoJoinAllowed);
   }
 
   /**

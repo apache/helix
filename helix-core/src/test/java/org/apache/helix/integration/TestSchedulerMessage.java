@@ -526,6 +526,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
           callback._message.getResultMap().get(
               DefaultSchedulerMessageHandlerFactory.SCHEDULER_MSG_ID);
 
+      Thread.sleep(1000);
       HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
       Builder keyBuilder = helixDataAccessor.keyBuilder();
 

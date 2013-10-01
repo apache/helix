@@ -171,7 +171,7 @@ public class NewModelExample {
     Partition partition2 = new Partition(PartitionId.from(resourceId, "2"));
 
     // specify the rebalancer configuration
-    // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerConfig
+    // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerContext
     // builder
     FullAutoRebalancerContext.Builder rebalanceContextBuilder =
         new FullAutoRebalancerContext.Builder(resourceId).replicaCount(1).addPartition(partition1)

@@ -66,13 +66,13 @@ public class Scope<T extends Id> {
    */
   public ScopeType getType() {
     Class<?> idClass = _id.getClass();
-    if (idClass == ClusterId.class) {
+    if (ClusterId.class.equals(idClass)) {
       return ScopeType.CLUSTER;
-    } else if (idClass == ParticipantId.class) {
+    } else if (ParticipantId.class.equals(idClass)) {
       return ScopeType.PARTICIPANT;
-    } else if (idClass == PartitionId.class) {
+    } else if (PartitionId.class.equals(idClass)) {
       return ScopeType.PARTITION;
-    } else if (idClass == ResourceId.class) {
+    } else if (ResourceId.class.equals(idClass)) {
       return ScopeType.RESOURCE;
     } else {
       return null;

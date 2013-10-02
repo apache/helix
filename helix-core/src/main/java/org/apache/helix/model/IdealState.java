@@ -43,12 +43,11 @@ import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
 import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 
 /**
  * The ideal states of all partitions in a resource
@@ -294,14 +293,14 @@ public class IdealState extends HelixProperty {
 
   /**
    * Get all of the partitions
-   * @return an immutable set of partitions
+   * @return a set of partitions
    */
   public Set<PartitionId> getPartitionSet() {
-    ImmutableSet.Builder<PartitionId> partitionSetBuilder = new ImmutableSet.Builder<PartitionId>();
+    Set<PartitionId> partitionSet = Sets.newHashSet();
     for (String partitionName : getPartitionStringSet()) {
-      partitionSetBuilder.add(PartitionId.from(partitionName));
+      partitionSet.add(PartitionId.from(partitionName));
     }
-    return partitionSetBuilder.build();
+    return partitionSet;
   }
 
   /**
@@ -331,18 +330,17 @@ public class IdealState extends HelixProperty {
   /**
    * Get the current mapping of a partition
    * @param partitionId the name of the partition
-   * @return the instances where the replicas live and the state of each (immutable)
+   * @return the instances where the replicas live and the state of each
    */
   public Map<ParticipantId, State> getParticipantStateMap(PartitionId partitionId) {
     Map<String, String> instanceStateMap = getInstanceStateMap(partitionId.stringify());
-    ImmutableMap.Builder<ParticipantId, State> builder =
-        new ImmutableMap.Builder<ParticipantId, State>();
+    Map<ParticipantId, State> participantStateMap = Maps.newHashMap();
     if (instanceStateMap != null) {
       for (String participantId : instanceStateMap.keySet()) {
-        builder.put(ParticipantId.from(participantId),
+        participantStateMap.put(ParticipantId.from(participantId),
             State.from(instanceStateMap.get(participantId)));
       }
-      return builder.build();
+      return participantStateMap;
     }
     return null;
   }
@@ -381,14 +379,14 @@ public class IdealState extends HelixProperty {
   /**
    * Get the participants who host replicas of a partition
    * @param partitionId the partition to look up
-   * @return immutable set of participant ids
+   * @return set of participant ids
    */
   public Set<ParticipantId> getParticipantSet(PartitionId partitionId) {
-    ImmutableSet.Builder<ParticipantId> builder = new ImmutableSet.Builder<ParticipantId>();
+    Set<ParticipantId> participantSet = Sets.newHashSet();
     for (String participantName : getInstanceSet(partitionId.stringify())) {
-      builder.add(ParticipantId.from(participantName));
+      participantSet.add(ParticipantId.from(participantName));
     }
-    return builder.build();
+    return participantSet;
   }
 
   /**
@@ -426,13 +424,13 @@ public class IdealState extends HelixProperty {
    * @return an ordered list of participants that can serve replicas of the partition
    */
   public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
-    ImmutableList.Builder<ParticipantId> builder = new ImmutableList.Builder<ParticipantId>();
+    List<ParticipantId> preferenceList = Lists.newArrayList();
     List<String> preferenceStringList = getPreferenceList(partitionId.stringify());
     if (preferenceStringList != null) {
       for (String participantName : preferenceStringList) {
-        builder.add(ParticipantId.from(participantName));
+        preferenceList.add(ParticipantId.from(participantName));
       }
-      return builder.build();
+      return preferenceList;
     }
     return null;
   }

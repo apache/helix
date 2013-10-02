@@ -30,8 +30,8 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * External view is an aggregation (across all instances)
@@ -123,11 +123,11 @@ public class ExternalView extends HelixProperty {
    * @return a set of partition ids
    */
   public Set<PartitionId> getPartitionSet() {
-    ImmutableSet.Builder<PartitionId> builder = new ImmutableSet.Builder<PartitionId>();
+    Set<PartitionId> partitionSet = Sets.newHashSet();
     for (String partitionName : getPartitionStringSet()) {
-      builder.add(PartitionId.from(partitionName));
+      partitionSet.add(PartitionId.from(partitionName));
     }
-    return builder.build();
+    return partitionSet;
   }
 
   /**
@@ -149,13 +149,12 @@ public class ExternalView extends HelixProperty {
     if (rawStateMap == null) {
       return null;
     }
-    ImmutableMap.Builder<ParticipantId, State> builder =
-        new ImmutableMap.Builder<ParticipantId, State>();
+    Map<ParticipantId, State> stateMap = Maps.newHashMap();
     for (String participantName : rawStateMap.keySet()) {
-      builder
-          .put(ParticipantId.from(participantName), State.from(rawStateMap.get(participantName)));
+      stateMap.put(ParticipantId.from(participantName),
+          State.from(rawStateMap.get(participantName)));
     }
-    return builder.build();
+    return stateMap;
   }
 
   /**

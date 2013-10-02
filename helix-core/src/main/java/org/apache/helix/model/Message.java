@@ -44,7 +44,7 @@ import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 
-import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -671,11 +671,11 @@ public class Message extends HelixProperty {
     if (partitionNames == null) {
       return Collections.emptyList();
     }
-    ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
+    List<PartitionId> partitionIds = Lists.newArrayList();
     for (String partitionName : partitionNames) {
-      builder.add(PartitionId.from(partitionName));
+      partitionIds.add(PartitionId.from(partitionName));
     }
-    return builder.build();
+    return partitionIds;
   }
 
   /**

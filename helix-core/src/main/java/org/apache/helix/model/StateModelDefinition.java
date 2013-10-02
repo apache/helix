@@ -159,7 +159,7 @@ public class StateModelDefinition extends HelixProperty {
 
   /**
    * Get an ordered priority list of transitions
-   * @return Transition objects, the first of which is highest priority
+   * @return Transition objects, the first of which is highest priority (immutable)
    */
   public List<Transition> getStateTransitionPriorityList() {
     ImmutableList.Builder<Transition> builder = new ImmutableList.Builder<Transition>();
@@ -179,7 +179,7 @@ public class StateModelDefinition extends HelixProperty {
 
   /**
    * Get an ordered priority list of states
-   * @return immutable list of states, the first of which is highest priority
+   * @return immutable list of states, the first of which is highest priority (immutable)
    */
   public List<State> getStatesPriorityList() {
     ImmutableList.Builder<State> builder = new ImmutableList.Builder<State>();

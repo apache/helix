@@ -73,7 +73,7 @@ public class ResourceAssignment extends HelixProperty {
 
   /**
    * Get the currently mapped partitions
-   * @return list of Partition objects
+   * @return list of Partition objects (immutable)
    */
   public List<? extends PartitionId> getMappedPartitions() {
     ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
@@ -94,7 +94,7 @@ public class ResourceAssignment extends HelixProperty {
   /**
    * Get the participant, state pairs for a partition
    * @param partition the Partition to look up
-   * @return map of (participant id, state)
+   * @return immutable map of (participant id, state)
    */
   public Map<ParticipantId, State> getReplicaMap(PartitionId partitionId) {
     Map<String, String> rawReplicaMap = _record.getMapField(partitionId.stringify());

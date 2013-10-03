@@ -163,11 +163,11 @@ public class StateTransitionTableBuilder {
     states.add("OFFLINE");
 
     List<Transition> transitions = new ArrayList<Transition>();
-    transitions.add(Transition.from("SLAVE-OFFLINE"));
-    transitions.add(Transition.from("OFFLINE-SLAVE"));
-    transitions.add(Transition.from("SLAVE-MASTER"));
-    transitions.add(Transition.from("OFFLINE-DROPPED"));
-    transitions.add(Transition.from("MASTER-SLAVE"));
+    transitions.add(Transition.from(State.from("SLAVE"), State.from("OFFLINE")));
+    transitions.add(Transition.from(State.from("OFFLINE"), State.from("SLAVE")));
+    transitions.add(Transition.from(State.from("SLAVE"), State.from("MASTER")));
+    transitions.add(Transition.from(State.from("OFFLINE"), State.from("DROPPED")));
+    transitions.add(Transition.from(State.from("MASTER"), State.from("SLAVE")));
 
     StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
     Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);

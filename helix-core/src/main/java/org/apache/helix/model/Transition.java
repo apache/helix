@@ -74,17 +74,6 @@ public class Transition {
 
   /**
    * Create a new transition
-   * @param transition string representing a transition, e.g. "STATE1-STATE2"
-   * @return Transition
-   */
-  public static Transition from(String transition) {
-    String fromState = transition.substring(0, transition.indexOf('-'));
-    String toState = transition.substring(transition.indexOf('-') + 1);
-    return new Transition(State.from(fromState), State.from(toState));
-  }
-
-  /**
-   * Create a new transition
    * @param fromState string source state
    * @param toState string destination state
    * @return Transition

@@ -164,7 +164,9 @@ public class StateModelDefinition extends HelixProperty {
   public List<Transition> getStateTransitionPriorityList() {
     ImmutableList.Builder<Transition> builder = new ImmutableList.Builder<Transition>();
     for (String transition : getStateTransitionPriorityStringList()) {
-      builder.add(Transition.from(transition));
+      String fromState = transition.substring(0, transition.indexOf('-'));
+      String toState = transition.substring(transition.indexOf('-') + 1);
+      builder.add(Transition.from(State.from(fromState), State.from(toState)));
     }
     return builder.build();
   }

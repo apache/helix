@@ -93,7 +93,8 @@ public class NewModelExample {
 
     // add a transition constraint (this time with a resource scope)
     clusterBuilder.addTransitionConstraint(Scope.resource(resource.getId()),
-        lockUnlock.getStateModelDefId(), Transition.from("RELEASED-LOCKED"), 1);
+        lockUnlock.getStateModelDefId(),
+        Transition.from(State.from("RELEASED"), State.from("LOCKED")), 1);
 
     ClusterConfig cluster = clusterBuilder.build();
 

@@ -62,8 +62,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     _zkSerializer = zkSerializer;
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      int min = Math.min(calls.length, 5);
-      LOG.trace("creating a zkclient. callstack: " + Arrays.asList(calls).subList(0, min));
+      LOG.trace("creating a zkclient. callstack: " + Arrays.asList(calls));
     }
   }
 
@@ -122,10 +121,45 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   public void close() throws ZkInterruptedException {
     if (LOG.isTraceEnabled()) {
       StackTraceElement[] calls = Thread.currentThread().getStackTrace();
-      int min = Math.min(calls.length, 5);
-      LOG.trace("closing a zkclient. callStack: " + Arrays.asList(calls).subList(0, min));
+      LOG.trace("closing a zkclient. callStack: " + Arrays.asList(calls));
     }
-    super.close();
+
+    getEventLock().lock();
+    try {
+      if (_connection == null) {
+        return;
+      }
+
+      LOG.info("Closing zkclient: " + ((ZkConnection) _connection).getZookeeper());
+      super.close();
+    } catch (ZkInterruptedException e) {
+      /**
+       * HELIX-264: calling ZkClient#close() in its own eventThread context will
+       * throw ZkInterruptedException and skip ZkConnection#close()
+       */
+      if (_connection != null) {
+        try {
+          /**
+           * ZkInterruptedException#construct() honors InterruptedException by calling
+           * Thread.currentThread().interrupt(); clear it first, so we can safely close the
+           * zk-connection
+           */
+          Thread.interrupted();
+          _connection.close();
+          _connection = null;
+
+          /**
+           * restore interrupted status of current thread
+           */
+          Thread.currentThread().interrupt();
+        } catch (InterruptedException e1) {
+          throw new ZkInterruptedException(e1);
+        }
+      }
+    } finally {
+      getEventLock().unlock();
+      LOG.info("Closed zkclient");
+    }
   }
 
   public Stat getStat(final String path) {

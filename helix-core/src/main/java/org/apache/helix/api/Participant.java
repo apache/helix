@@ -111,7 +111,7 @@ public class Participant {
    * Get disabled partition id's
    * @return set of disabled partition id's, or empty set if none
    */
-  public Set<PartitionId> getDisablePartitionIds() {
+  public Set<PartitionId> getDisabledPartitionIds() {
     return _config.getDisabledPartitions();
   }
 

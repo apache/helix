@@ -66,7 +66,7 @@ public class NewConstraintBasedAssignment {
           public boolean apply(ParticipantId participantId) {
             Participant participant = participantMap.get(participantId);
             return !participant.isEnabled()
-                || participant.getDisablePartitionIds().contains(partitionId);
+                || participant.getDisabledPartitionIds().contains(partitionId);
           }
         });
     return disabledParticipantsForPartition;

@@ -63,6 +63,8 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.testng.internal.annotations.Sets;
 
+import com.google.common.collect.Maps;
+
 public class ClusterAccessor {
   private static Logger LOG = Logger.getLogger(ClusterAccessor.class);
 
@@ -179,48 +181,6 @@ public class ClusterAccessor {
    * @return cluster snapshot
    */
   public Cluster readCluster() {
-    /**
-     * map of instance-id to instance-config
-     */
-    Map<String, InstanceConfig> instanceConfigMap =
-        _accessor.getChildValuesMap(_keyBuilder.instanceConfigs());
-
-    /**
-     * map of resource-id to ideal-state
-     */
-    Map<String, IdealState> idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
-
-    /**
-     * map of instance-id to live-instance
-     */
-    Map<String, LiveInstance> liveInstanceMap =
-        _accessor.getChildValuesMap(_keyBuilder.liveInstances());
-
-    /**
-     * map of participant-id to map of message-id to message
-     */
-    Map<String, Map<String, Message>> messageMap = new HashMap<String, Map<String, Message>>();
-    for (String instanceName : liveInstanceMap.keySet()) {
-      Map<String, Message> instanceMsgMap =
-          _accessor.getChildValuesMap(_keyBuilder.messages(instanceName));
-      messageMap.put(instanceName, instanceMsgMap);
-    }
-
-    /**
-     * map of participant-id to map of resource-id to current-state
-     */
-    Map<String, Map<String, CurrentState>> currentStateMap =
-        new HashMap<String, Map<String, CurrentState>>();
-    for (String participantName : liveInstanceMap.keySet()) {
-      LiveInstance liveInstance = liveInstanceMap.get(participantName);
-      SessionId sessionId = liveInstance.getSessionId();
-      Map<String, CurrentState> instanceCurStateMap =
-          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
-              sessionId.stringify()));
-
-      currentStateMap.put(participantName, instanceCurStateMap);
-    }
-
     LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
 
     /**
@@ -229,50 +189,11 @@ public class ClusterAccessor {
     Map<String, ClusterConstraints> constraintMap =
         _accessor.getChildValuesMap(_keyBuilder.constraints());
 
-    /**
-     * Map of resource id to external view
-     */
-    Map<String, ExternalView> externalViewMap =
-        _accessor.getChildValuesMap(_keyBuilder.externalViews());
-
-    /**
-     * Map of resource id to user configuration
-     */
-    Map<String, ResourceConfiguration> resourceConfigMap =
-        _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
-
-    /**
-     * Map of resource id to resource assignment
-     */
-    Map<String, ResourceAssignment> resourceAssignmentMap =
-        _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
-
     // read all the resources
-    Set<String> allResources = Sets.newHashSet();
-    allResources.addAll(idealStateMap.keySet());
-    allResources.addAll(resourceConfigMap.keySet());
-    Map<ResourceId, Resource> resourceMap = new HashMap<ResourceId, Resource>();
-    for (String resourceName : allResources) {
-      ResourceId resourceId = ResourceId.from(resourceName);
-      resourceMap.put(resourceId, ResourceAccessor.createResource(resourceId,
-          resourceConfigMap.get(resourceName), idealStateMap.get(resourceName),
-          externalViewMap.get(resourceName), resourceAssignmentMap.get(resourceName)));
-    }
+    Map<ResourceId, Resource> resourceMap = readResources();
 
     // read all the participants
-    Map<ParticipantId, Participant> participantMap = new HashMap<ParticipantId, Participant>();
-    for (String participantName : instanceConfigMap.keySet()) {
-      InstanceConfig instanceConfig = instanceConfigMap.get(participantName);
-      UserConfig userConfig = UserConfig.from(instanceConfig);
-      LiveInstance liveInstance = liveInstanceMap.get(participantName);
-      Map<String, Message> instanceMsgMap = messageMap.get(participantName);
-
-      ParticipantId participantId = ParticipantId.from(participantName);
-
-      participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
-          instanceConfig, userConfig, liveInstance, instanceMsgMap,
-          currentStateMap.get(participantName)));
-    }
+    Map<ParticipantId, Participant> participantMap = readParticipants();
 
     // read the controllers
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
@@ -305,14 +226,128 @@ public class ClusterAccessor {
     }
 
     // read the state model definitions
-    StateModelDefinitionAccessor stateModelDefAccessor =
-        new StateModelDefinitionAccessor(_accessor);
-    Map<StateModelDefId, StateModelDefinition> stateModelMap =
-        stateModelDefAccessor.readStateModelDefinitions();
+    Map<StateModelDefId, StateModelDefinition> stateModelMap = readStateModelDefinitions();
 
     // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
         clusterConstraintMap, stateModelMap, userConfig, isPaused, autoJoinAllowed);
+  }
+
+  /**
+   * Get all the state model definitions for this cluster
+   * @return map of state model def id to state model definition
+   */
+  public Map<StateModelDefId, StateModelDefinition> readStateModelDefinitions() {
+    Map<StateModelDefId, StateModelDefinition> stateModelDefs = Maps.newHashMap();
+    List<StateModelDefinition> stateModelList =
+        _accessor.getChildValues(_keyBuilder.stateModelDefs());
+    for (StateModelDefinition stateModelDef : stateModelList) {
+      stateModelDefs.put(stateModelDef.getStateModelDefId(), stateModelDef);
+    }
+    return stateModelDefs;
+  }
+
+  /**
+   * Read all resource in the cluster
+   * @return map of resource id to resource
+   */
+  public Map<ResourceId, Resource> readResources() {
+    /**
+     * map of resource-id to ideal-state
+     */
+    Map<String, IdealState> idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
+
+    /**
+     * Map of resource id to external view
+     */
+    Map<String, ExternalView> externalViewMap =
+        _accessor.getChildValuesMap(_keyBuilder.externalViews());
+
+    /**
+     * Map of resource id to user configuration
+     */
+    Map<String, ResourceConfiguration> resourceConfigMap =
+        _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
+
+    /**
+     * Map of resource id to resource assignment
+     */
+    Map<String, ResourceAssignment> resourceAssignmentMap =
+        _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
+
+    // read all the resources
+    Set<String> allResources = Sets.newHashSet();
+    allResources.addAll(idealStateMap.keySet());
+    allResources.addAll(resourceConfigMap.keySet());
+    Map<ResourceId, Resource> resourceMap = Maps.newHashMap();
+    for (String resourceName : allResources) {
+      ResourceId resourceId = ResourceId.from(resourceName);
+      resourceMap.put(resourceId, ResourceAccessor.createResource(resourceId,
+          resourceConfigMap.get(resourceName), idealStateMap.get(resourceName),
+          externalViewMap.get(resourceName), resourceAssignmentMap.get(resourceName)));
+    }
+
+    return resourceMap;
+  }
+
+  /**
+   * Read all participants in the cluster
+   * @return map of participant id to participant
+   */
+  public Map<ParticipantId, Participant> readParticipants() {
+    /**
+     * map of instance-id to instance-config
+     */
+    Map<String, InstanceConfig> instanceConfigMap =
+        _accessor.getChildValuesMap(_keyBuilder.instanceConfigs());
+
+    /**
+     * map of instance-id to live-instance
+     */
+    Map<String, LiveInstance> liveInstanceMap =
+        _accessor.getChildValuesMap(_keyBuilder.liveInstances());
+
+    /**
+     * map of participant-id to map of message-id to message
+     */
+    Map<String, Map<String, Message>> messageMap = new HashMap<String, Map<String, Message>>();
+    for (String instanceName : liveInstanceMap.keySet()) {
+      Map<String, Message> instanceMsgMap =
+          _accessor.getChildValuesMap(_keyBuilder.messages(instanceName));
+      messageMap.put(instanceName, instanceMsgMap);
+    }
+
+    /**
+     * map of participant-id to map of resource-id to current-state
+     */
+    Map<String, Map<String, CurrentState>> currentStateMap =
+        new HashMap<String, Map<String, CurrentState>>();
+    for (String participantName : liveInstanceMap.keySet()) {
+      LiveInstance liveInstance = liveInstanceMap.get(participantName);
+      SessionId sessionId = liveInstance.getSessionId();
+      Map<String, CurrentState> instanceCurStateMap =
+          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
+              sessionId.stringify()));
+
+      currentStateMap.put(participantName, instanceCurStateMap);
+    }
+
+    // read all the participants
+    Map<ParticipantId, Participant> participantMap = Maps.newHashMap();
+    for (String participantName : instanceConfigMap.keySet()) {
+      InstanceConfig instanceConfig = instanceConfigMap.get(participantName);
+      UserConfig userConfig = UserConfig.from(instanceConfig);
+      LiveInstance liveInstance = liveInstanceMap.get(participantName);
+      Map<String, Message> instanceMsgMap = messageMap.get(participantName);
+
+      ParticipantId participantId = ParticipantId.from(participantName);
+
+      participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
+          instanceConfig, userConfig, liveInstance, instanceMsgMap,
+          currentStateMap.get(participantName)));
+    }
+
+    return participantMap;
   }
 
   /**
@@ -332,6 +367,14 @@ public class ClusterAccessor {
   public boolean setUserConfig(UserConfig userConfig) {
     ClusterConfig.Delta delta = new ClusterConfig.Delta(_clusterId).setUserConfig(userConfig);
     return updateCluster(delta) != null;
+  }
+
+  /**
+   * Clear any user-specified configuration from the cluster
+   * @return true if the config was cleared, false otherwise
+   */
+  public boolean dropUserConfig() {
+    return setUserConfig(new UserConfig(Scope.cluster(_clusterId)));
   }
 
   /**
@@ -438,8 +481,18 @@ public class ClusterAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isClusterStructureValid() {
-    List<String> paths = getRequiredPaths();
-    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    return isClusterStructureValid(_clusterId, _accessor.getBaseDataAccessor());
+  }
+
+  /**
+   * check if cluster structure is valid
+   * @param clusterId the cluster to check
+   * @param baseAccessor a base data accessor
+   * @return true if valid or false otherwise
+   */
+  private static boolean isClusterStructureValid(ClusterId clusterId,
+      BaseDataAccessor<?> baseAccessor) {
+    List<String> paths = getRequiredPaths(clusterId);
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
       for (boolean exists : existsResults) {
@@ -456,7 +509,7 @@ public class ClusterAccessor {
    */
   private void initClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = getRequiredPaths();
+    List<String> paths = getRequiredPaths(_clusterId);
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
       if (!status && LOG.isDebugEnabled()) {
@@ -467,25 +520,25 @@ public class ClusterAccessor {
 
   /**
    * Get all property paths that must be set for a cluster structure to be valid
+   * @param the cluster that the paths will be relative to
    * @return list of paths as strings
    */
-  private List<String> getRequiredPaths() {
+  private static List<String> getRequiredPaths(ClusterId clusterId) {
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterId.stringify());
     List<String> paths = new ArrayList<String>();
-    paths.add(_keyBuilder.cluster().getPath());
-    paths.add(_keyBuilder.idealStates().getPath());
-    paths.add(_keyBuilder.clusterConfigs().getPath());
-    paths.add(_keyBuilder.instanceConfigs().getPath());
-    paths.add(_keyBuilder.resourceConfigs().getPath());
-    paths.add(_keyBuilder.propertyStore().getPath());
-    paths.add(_keyBuilder.liveInstances().getPath());
-    paths.add(_keyBuilder.instances().getPath());
-    paths.add(_keyBuilder.externalViews().getPath());
-    paths.add(_keyBuilder.controller().getPath());
-    paths.add(_keyBuilder.stateModelDefs().getPath());
-    paths.add(_keyBuilder.controllerMessages().getPath());
-    paths.add(_keyBuilder.controllerTaskErrors().getPath());
-    paths.add(_keyBuilder.controllerTaskStatuses().getPath());
-    paths.add(_keyBuilder.controllerLeaderHistory().getPath());
+    paths.add(keyBuilder.cluster().getPath());
+    paths.add(keyBuilder.clusterConfigs().getPath());
+    paths.add(keyBuilder.instanceConfigs().getPath());
+    paths.add(keyBuilder.propertyStore().getPath());
+    paths.add(keyBuilder.liveInstances().getPath());
+    paths.add(keyBuilder.instances().getPath());
+    paths.add(keyBuilder.externalViews().getPath());
+    paths.add(keyBuilder.controller().getPath());
+    paths.add(keyBuilder.stateModelDefs().getPath());
+    paths.add(keyBuilder.controllerMessages().getPath());
+    paths.add(keyBuilder.controllerTaskErrors().getPath());
+    paths.add(keyBuilder.controllerTaskStatuses().getPath());
+    paths.add(keyBuilder.controllerLeaderHistory().getPath());
     return paths;
   }
 
@@ -578,8 +631,8 @@ public class ClusterAccessor {
       return false;
     }
 
-    StateModelDefinitionAccessor smdAccessor = new StateModelDefinitionAccessor(_accessor);
-    return smdAccessor.setStateModelDefinition(stateModelDef);
+    return _accessor
+        .createProperty(_keyBuilder.stateModelDef(stateModelDef.getId()), stateModelDef);
   }
 
   /**

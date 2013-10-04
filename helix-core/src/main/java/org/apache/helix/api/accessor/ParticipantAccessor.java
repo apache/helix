@@ -36,6 +36,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.RunningInstance;
+import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.MessageId;
@@ -293,6 +294,15 @@ public class ParticipantAccessor {
     instanceConfig.addNamespacedConfig(userConfig);
     return _accessor.updateProperty(_keyBuilder.instanceConfig(participantId.stringify()),
         instanceConfig);
+  }
+
+  /**
+   * Clear any user-specified configuration from the participant
+   * @param participantId the participant to update
+   * @return true if the config was cleared, false otherwise
+   */
+  public boolean dropUserConfig(ParticipantId participantId) {
+    return setUserConfig(participantId, new UserConfig(Scope.participant(participantId)));
   }
 
   /**

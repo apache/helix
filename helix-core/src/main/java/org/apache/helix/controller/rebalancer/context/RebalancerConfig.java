@@ -142,6 +142,14 @@ public final class RebalancerConfig {
   }
 
   /**
+   * Get the rebalancer context serialized as a string
+   * @return string representing the context
+   */
+  public String getSerializedContext() {
+    return _config.getSimpleField(Fields.REBALANCER_CONTEXT.toString());
+  }
+
+  /**
    * Convert this to a namespaced config
    * @return NamespacedConfig
    */

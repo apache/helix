@@ -196,6 +196,15 @@ public class ResourceAccessor {
   }
 
   /**
+   * Clear any user-specified configuration from the resource
+   * @param resourceId the resource to update
+   * @return true if the config was cleared, false otherwise
+   */
+  public boolean dropUserConfig(ResourceId resourceId) {
+    return setUserConfig(resourceId, new UserConfig(Scope.resource(resourceId)));
+  }
+
+  /**
    * Persist an existing resource's logical configuration
    * @param resourceConfig logical resource configuration
    * @return true if resource is set, false otherwise

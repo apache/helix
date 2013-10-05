@@ -26,7 +26,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
-import com.google.common.base.Functions;
 import com.google.common.collect.Lists;
 
 /*
@@ -60,15 +59,14 @@ public class FullAutoRebalancer implements Rebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
-      ResourceCurrentState currentState) {
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+      Cluster cluster, ResourceCurrentState currentState) {
     FullAutoRebalancerContext config =
         rebalancerConfig.getRebalancerContext(FullAutoRebalancerContext.class);
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     // Compute a preference list based on the current ideal state
     List<PartitionId> partitions = new ArrayList<PartitionId>(config.getPartitionSet());
-    List<String> partitionNames = Lists.transform(partitions, Functions.toStringFunction());
     Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
     Map<ParticipantId, Participant> allParticipants = cluster.getParticipantMap();
     int replicas = -1;
@@ -79,31 +77,29 @@ public class FullAutoRebalancer implements Rebalancer {
     }
 
     // count how many replicas should be in each state
+    Map<State, String> upperBounds =
+        NewConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
+            cluster.getConfig());
     LinkedHashMap<State, Integer> stateCountMap =
-        NewConstraintBasedAssignment.stateCount(cluster.getConfig(), config.getResourceId(),
-            stateModelDef, liveParticipants.size(), replicas);
-    LinkedHashMap<String, Integer> rawStateCountMap = new LinkedHashMap<String, Integer>();
-    for (State state : stateCountMap.keySet()) {
-      rawStateCountMap.put(state.toString(), stateCountMap.get(state));
-    }
+        NewConstraintBasedAssignment.stateCount(upperBounds, stateModelDef,
+            liveParticipants.size(), replicas);
 
     // get the participant lists
     List<ParticipantId> liveParticipantList =
         new ArrayList<ParticipantId>(liveParticipants.keySet());
     List<ParticipantId> allParticipantList =
         new ArrayList<ParticipantId>(cluster.getParticipantMap().keySet());
-    List<String> liveNodes = Lists.transform(liveParticipantList, Functions.toStringFunction());
 
     // compute the current mapping from the current state
     Map<PartitionId, Map<ParticipantId, State>> currentMapping =
         currentMapping(config, currentState, stateCountMap);
 
     // If there are nodes tagged with resource, use only those nodes
-    Set<String> taggedNodes = new HashSet<String>();
+    Set<ParticipantId> taggedNodes = new HashSet<ParticipantId>();
     if (config.getParticipantGroupTag() != null) {
       for (ParticipantId participantId : liveParticipantList) {
         if (liveParticipants.get(participantId).hasTag(config.getParticipantGroupTag())) {
-          taggedNodes.add(participantId.stringify());
+          taggedNodes.add(participantId);
         }
       }
     }
@@ -112,26 +108,25 @@ public class FullAutoRebalancer implements Rebalancer {
         LOG.info("found the following instances with tag " + config.getResourceId() + " "
             + taggedNodes);
       }
-      liveNodes = new ArrayList<String>(taggedNodes);
+      liveParticipantList = new ArrayList<ParticipantId>(taggedNodes);
     }
 
     // determine which nodes the replicas should live on
-    List<String> allNodes = Lists.transform(allParticipantList, Functions.toStringFunction());
     int maxPartition = config.getMaxPartitionsPerParticipant();
     if (LOG.isInfoEnabled()) {
       LOG.info("currentMapping: " + currentMapping);
       LOG.info("stateCountMap: " + stateCountMap);
-      LOG.info("liveNodes: " + liveNodes);
-      LOG.info("allNodes: " + allNodes);
+      LOG.info("liveNodes: " + liveParticipantList);
+      LOG.info("allNodes: " + allParticipantList);
       LOG.info("maxPartition: " + maxPartition);
     }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     _algorithm =
-        new AutoRebalanceStrategy(config.getResourceId().stringify(), partitionNames,
-            rawStateCountMap, maxPartition, placementScheme);
+        new AutoRebalanceStrategy(config.getResourceId(), partitions, stateCountMap, maxPartition,
+            placementScheme);
     ZNRecord newMapping =
-        _algorithm.computePartitionAssignment(liveNodes,
-            ResourceAssignment.stringMapsFromReplicaMaps(currentMapping), allNodes);
+        _algorithm.typedComputePartitionAssignment(liveParticipantList, currentMapping,
+            allParticipantList);
 
     if (LOG.isInfoEnabled()) {
       LOG.info("newMapping: " + newMapping);
@@ -159,8 +154,8 @@ public class FullAutoRebalancer implements Rebalancer {
       preferenceList =
           NewConstraintBasedAssignment.getPreferenceList(cluster, partition, preferenceList);
       Map<ParticipantId, State> bestStateForPartition =
-          NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster.getConfig(),
-              config.getResourceId(), liveParticipants, stateModelDef, preferenceList,
+          NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+              liveParticipants.keySet(), stateModelDef, preferenceList,
               currentState.getCurrentStateMap(config.getResourceId(), partition),
               disabledParticipantsForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);

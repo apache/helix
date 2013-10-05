@@ -7,7 +7,6 @@ import java.util.Set;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Participant;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -46,8 +45,8 @@ public class CustomRebalancer implements Rebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
-      ResourceCurrentState currentState) {
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+      Cluster cluster, ResourceCurrentState currentState) {
     CustomRebalancerContext config =
         rebalancerConfig.getRebalancerContext(CustomRebalancerContext.class);
     StateModelDefinition stateModelDef =
@@ -63,8 +62,9 @@ public class CustomRebalancer implements Rebalancer {
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partition);
       Map<ParticipantId, State> bestStateForPartition =
-          computeCustomizedBestStateForPartition(cluster.getLiveParticipantMap(), stateModelDef,
-              config.getPreferenceMap(partition), currentStateMap, disabledInstancesForPartition);
+          computeCustomizedBestStateForPartition(cluster.getLiveParticipantMap().keySet(),
+              stateModelDef, config.getPreferenceMap(partition), currentStateMap,
+              disabledInstancesForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -74,14 +74,14 @@ public class CustomRebalancer implements Rebalancer {
    * compute best state for resource in CUSTOMIZED rebalancer mode
    * @param liveParticipantMap
    * @param stateModelDef
-   * @param idealStateMap
+   * @param preferenceMap
    * @param currentStateMap
    * @param disabledParticipantsForPartition
    * @return
    */
   private Map<ParticipantId, State> computeCustomizedBestStateForPartition(
-      Map<ParticipantId, Participant> liveParticipantMap, StateModelDefinition stateModelDef,
-      Map<ParticipantId, State> idealStateMap, Map<ParticipantId, State> currentStateMap,
+      Set<ParticipantId> liveParticipantSet, StateModelDefinition stateModelDef,
+      Map<ParticipantId, State> preferenceMap, Map<ParticipantId, State> currentStateMap,
       Set<ParticipantId> disabledParticipantsForPartition) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
@@ -89,7 +89,7 @@ public class CustomRebalancer implements Rebalancer {
     // we should drop all resources.
     if (currentStateMap != null) {
       for (ParticipantId participantId : currentStateMap.keySet()) {
-        if ((idealStateMap == null || !idealStateMap.containsKey(participantId))
+        if ((preferenceMap == null || !preferenceMap.containsKey(participantId))
             && !disabledParticipantsForPartition.contains(participantId)) {
           // if dropped and not disabled, transit to DROPPED
           participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
@@ -103,18 +103,18 @@ public class CustomRebalancer implements Rebalancer {
     }
 
     // ideal state is deleted
-    if (idealStateMap == null) {
+    if (preferenceMap == null) {
       return participantStateMap;
     }
 
-    for (ParticipantId participantId : idealStateMap.keySet()) {
+    for (ParticipantId participantId : preferenceMap.keySet()) {
       boolean notInErrorState =
           currentStateMap == null || currentStateMap.get(participantId) == null
               || !currentStateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR));
 
-      if (liveParticipantMap.containsKey(participantId) && notInErrorState
+      if (liveParticipantSet.contains(participantId) && notInErrorState
           && !disabledParticipantsForPartition.contains(participantId)) {
-        participantStateMap.put(participantId, idealStateMap.get(participantId));
+        participantStateMap.put(participantId, preferenceMap.get(participantId));
       }
     }
 

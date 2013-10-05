@@ -34,7 +34,15 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 public class AutoRebalanceStrategy {
 
@@ -79,12 +87,58 @@ public class AutoRebalanceStrategy {
   }
 
   /**
-   * Initialize the strategy with a default placement scheme and no
+   * Initialize the strategy with a default placement scheme
    * @see #AutoRebalanceStrategy(String, List, LinkedHashMap, int, ReplicaPlacementScheme)
    */
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states) {
     this(resourceName, partitions, states, Integer.MAX_VALUE, new DefaultPlacementScheme());
+  }
+
+  /**
+   * Constructor to support logically-typed Helix components
+   * @param resourceId the resource for which to compute an assignment
+   * @param partitions the partitions of the resource
+   * @param states the states and counts for each state
+   * @param maximumPerNode the maximum number of replicas per node
+   * @param placementScheme the scheme to use for preferred replica locations. If null, this is
+   *          {@link DefaultPlacementScheme}
+   */
+  public AutoRebalanceStrategy(ResourceId resourceId, final List<PartitionId> partitions,
+      final LinkedHashMap<State, Integer> states, int maximumPerNode,
+      ReplicaPlacementScheme placementScheme) {
+    LinkedHashMap<String, Integer> rawStateCountMap = new LinkedHashMap<String, Integer>();
+    for (State state : states.keySet()) {
+      rawStateCountMap.put(state.toString(), states.get(state));
+    }
+    List<String> partitionNames = Lists.transform(partitions, Functions.toStringFunction());
+    _resourceName = resourceId.stringify();
+    _partitions = partitionNames;
+    _states = rawStateCountMap;
+    _maximumPerNode = maximumPerNode;
+    if (placementScheme != null) {
+      _placementScheme = placementScheme;
+    } else {
+      _placementScheme = new DefaultPlacementScheme();
+    }
+  }
+
+  /**
+   * Wrap {@link #computePartitionAssignment(List, Map, List)} with a function that takes concrete
+   * types
+   * @param liveNodes list of live participant ids
+   * @param currentMapping map of partition id to map of participant id to state
+   * @param allNodes list of all participant ids
+   * @return the preference list and replica mapping
+   */
+  public ZNRecord typedComputePartitionAssignment(final List<ParticipantId> liveNodes,
+      final Map<PartitionId, Map<ParticipantId, State>> currentMapping,
+      final List<ParticipantId> allNodes) {
+    final List<String> rawLiveNodes = Lists.transform(liveNodes, Functions.toStringFunction());
+    final List<String> rawAllNodes = Lists.transform(allNodes, Functions.toStringFunction());
+    final Map<String, Map<String, String>> rawCurrentMapping =
+        ResourceAssignment.stringMapsFromReplicaMaps(currentMapping);
+    return computePartitionAssignment(rawLiveNodes, rawCurrentMapping, rawAllNodes);
   }
 
   /**

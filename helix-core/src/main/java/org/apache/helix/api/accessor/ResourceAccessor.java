@@ -20,11 +20,14 @@ package org.apache.helix.api.accessor;
  */
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.Scope;
@@ -43,9 +46,14 @@ import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ResourceAccessor {
   private static final Logger LOG = Logger.getLogger(ResourceAccessor.class);
@@ -144,6 +152,19 @@ public class ResourceAccessor {
     RebalancerConfig config = new RebalancerConfig(context);
     ResourceConfiguration resourceConfig = new ResourceConfiguration(resourceId);
     resourceConfig.addNamespacedConfig(config.toNamespacedConfig());
+
+    // update the ideal state if applicable
+    IdealState oldIdealState =
+        _accessor.getProperty(_keyBuilder.idealState(resourceId.stringify()));
+    if (oldIdealState != null) {
+      IdealState idealState =
+          rebalancerConfigToIdealState(config, oldIdealState.getBucketSize(),
+              oldIdealState.getBatchMessageMode());
+      if (idealState != null) {
+        _accessor.setProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
+      }
+    }
+
     return _accessor.updateProperty(_keyBuilder.resourceConfig(resourceId.stringify()),
         resourceConfig);
   }
@@ -249,6 +270,76 @@ public class ResourceAccessor {
    */
   public void dropExternalView(ResourceId resourceId) {
     _accessor.removeProperty(_keyBuilder.externalView(resourceId.stringify()));
+  }
+
+  /**
+   * reset resources for all participants
+   * @param resetResourceIdSet the resources to reset
+   * @return true if they were reset, false otherwise
+   */
+  public boolean resetResources(Set<ResourceId> resetResourceIdSet) {
+    ParticipantAccessor accessor = new ParticipantAccessor(_accessor);
+    List<ExternalView> extViews = _accessor.getChildValues(_keyBuilder.externalViews());
+    for (ExternalView extView : extViews) {
+      if (!resetResourceIdSet.contains(extView.getResourceId())) {
+        continue;
+      }
+
+      Map<ParticipantId, Set<PartitionId>> resetPartitionIds = Maps.newHashMap();
+      for (PartitionId partitionId : extView.getPartitionSet()) {
+        Map<ParticipantId, State> stateMap = extView.getStateMap(partitionId);
+        for (ParticipantId participantId : stateMap.keySet()) {
+          State state = stateMap.get(participantId);
+          if (state.equals(State.from(HelixDefinedState.ERROR))) {
+            if (!resetPartitionIds.containsKey(participantId)) {
+              resetPartitionIds.put(participantId, new HashSet<PartitionId>());
+            }
+            resetPartitionIds.get(participantId).add(partitionId);
+          }
+        }
+      }
+      for (ParticipantId participantId : resetPartitionIds.keySet()) {
+        accessor.resetPartitionsForParticipant(participantId, extView.getResourceId(),
+            resetPartitionIds.get(participantId));
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Generate a default assignment for partitioned resources
+   * @param resourceId the resource to update
+   * @param replicaCount the new replica count (or -1 to use the existing one)
+   * @param participantGroupTag the new participant group tag (or null to use the existing one)
+   * @return true if assignment successful, false otherwise
+   */
+  public boolean generateDefaultAssignment(ResourceId resourceId, int replicaCount,
+      String participantGroupTag) {
+    Resource resource = readResource(resourceId);
+    RebalancerConfig config = resource.getRebalancerConfig();
+    PartitionedRebalancerContext context =
+        config.getRebalancerContext(PartitionedRebalancerContext.class);
+    if (context == null) {
+      LOG.error("Only partitioned resource types are supported");
+      return false;
+    }
+    if (replicaCount != -1) {
+      context.setReplicaCount(replicaCount);
+    }
+    if (participantGroupTag != null) {
+      context.setParticipantGroupTag(participantGroupTag);
+    }
+    StateModelDefinition stateModelDef =
+        _accessor.getProperty(_keyBuilder.stateModelDef(context.getStateModelDefId().stringify()));
+    List<InstanceConfig> participantConfigs =
+        _accessor.getChildValues(_keyBuilder.instanceConfigs());
+    Set<ParticipantId> participantSet = Sets.newHashSet();
+    for (InstanceConfig participantConfig : participantConfigs) {
+      participantSet.add(participantConfig.getParticipantId());
+    }
+    context.generateDefaultConfiguration(stateModelDef, participantSet);
+    setRebalancerContext(resourceId, context);
+    return true;
   }
 
   /**

@@ -47,8 +47,8 @@ public class SemiAutoRebalancer implements Rebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig, Cluster cluster,
-      ResourceCurrentState currentState) {
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+      Cluster cluster, ResourceCurrentState currentState) {
     SemiAutoRebalancerContext config =
         rebalancerConfig.getRebalancerContext(SemiAutoRebalancerContext.class);
     StateModelDefinition stateModelDef =
@@ -66,10 +66,13 @@ public class SemiAutoRebalancer implements Rebalancer {
       List<ParticipantId> preferenceList =
           NewConstraintBasedAssignment.getPreferenceList(cluster, partition,
               config.getPreferenceList(partition));
+      Map<State, String> upperBounds =
+          NewConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
+              cluster.getConfig());
       Map<ParticipantId, State> bestStateForPartition =
-          NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster.getConfig(),
-              config.getResourceId(), cluster.getLiveParticipantMap(), stateModelDef,
-              preferenceList, currentStateMap, disabledInstancesForPartition);
+          NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, cluster
+              .getLiveParticipantMap().keySet(), stateModelDef, preferenceList, currentStateMap,
+              disabledInstancesForPartition);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

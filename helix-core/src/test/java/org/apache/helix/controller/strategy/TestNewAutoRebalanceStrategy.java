@@ -259,10 +259,13 @@ public class TestNewAutoRebalanceStrategy {
         // compute the mapping
         Map<ParticipantId, State> replicaMap =
             ResourceAssignment.replicaMapFromStringMap(_currentMapping.get(partition));
+        Map<State, String> upperBounds =
+            NewConstraintBasedAssignment.stateConstraints(_stateModelDef,
+                ResourceId.from(RESOURCE_NAME), clusterConfig);
         Map<ParticipantId, State> assignment =
-            NewConstraintBasedAssignment.computeAutoBestStateForPartition(clusterConfig,
-                ResourceId.from(RESOURCE_NAME), liveParticipantMap, _stateModelDef,
-                participantPreferenceList, replicaMap, disabledParticipantsForPartition);
+            NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+                liveParticipantMap.keySet(), _stateModelDef, participantPreferenceList, replicaMap,
+                disabledParticipantsForPartition);
         mapResult.put(partitionId, assignment);
       }
 

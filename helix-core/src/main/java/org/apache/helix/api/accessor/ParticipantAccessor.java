@@ -19,6 +19,8 @@ package org.apache.helix.api.accessor;
  * under the License.
  */
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,17 +28,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Participant;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.MessageId;
@@ -44,14 +50,26 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ParticipantAccessor {
   private static final Logger LOG = Logger.getLogger(ParticipantAccessor.class);
@@ -248,14 +266,131 @@ public class ParticipantAccessor {
   }
 
   /**
+   * Reset partitions assigned to a set of participants
+   * @param resetParticipantIdSet the participants to reset
+   * @return true if reset, false otherwise
+   */
+  public boolean resetParticipants(Set<ParticipantId> resetParticipantIdSet) {
+    List<ExternalView> extViews = _accessor.getChildValues(_keyBuilder.externalViews());
+    for (ParticipantId participantId : resetParticipantIdSet) {
+      for (ExternalView extView : extViews) {
+        Set<PartitionId> resetPartitionIdSet = Sets.newHashSet();
+        for (PartitionId partitionId : extView.getPartitionSet()) {
+          Map<ParticipantId, State> stateMap = extView.getStateMap(partitionId);
+          if (stateMap.containsKey(participantId)
+              && stateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR))) {
+            resetPartitionIdSet.add(partitionId);
+          }
+        }
+        resetPartitionsForParticipant(participantId, extView.getResourceId(), resetPartitionIdSet);
+      }
+    }
+    return true;
+  }
+
+  /**
    * reset partitions on a participant
    * @param participantId
    * @param resourceId
    * @param resetPartitionIdSet
+   * @return true if partitions reset, false otherwise
    */
-  public void resetPartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
+  public boolean resetPartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
       Set<PartitionId> resetPartitionIdSet) {
-    // TODO impl this
+    // make sure the participant is running
+    Participant participant = readParticipant(participantId);
+    if (!participant.isAlive()) {
+      LOG.error("Cannot reset partitions because the participant is not running");
+      return false;
+    }
+    RunningInstance runningInstance = participant.getRunningInstance();
+
+    // check that the resource exists
+    ResourceAccessor resourceAccessor = new ResourceAccessor(_accessor);
+    Resource resource = resourceAccessor.readResource(resourceId);
+    if (resource == null || resource.getRebalancerConfig() == null) {
+      LOG.error("Cannot reset partitions because the resource is not present");
+      return false;
+    }
+
+    // need the rebalancer context for the resource
+    RebalancerContext context =
+        resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
+    if (context == null) {
+      LOG.error("Rebalancer context for resource does not exist");
+      return false;
+    }
+
+    // ensure that all partitions to reset exist
+    Set<PartitionId> partitionSet = ImmutableSet.copyOf(context.getSubUnitIdSet());
+    if (!partitionSet.containsAll(resetPartitionIdSet)) {
+      LOG.error("Not all of the specified partitions to reset exist for the resource");
+      return false;
+    }
+
+    // check for a valid current state that has all specified partitions in ERROR state
+    CurrentState currentState = participant.getCurrentStateMap().get(resourceId);
+    if (currentState == null) {
+      LOG.error("The participant does not have a current state for the resource");
+      return false;
+    }
+    for (PartitionId partitionId : resetPartitionIdSet) {
+      if (!currentState.getState(partitionId).equals(State.from(HelixDefinedState.ERROR))) {
+        LOG.error("Partition " + partitionId + " is not in error state, aborting reset");
+        return false;
+      }
+    }
+
+    // make sure that there are no pending transition messages
+    for (Message message : participant.getMessageMap().values()) {
+      if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
+          || !runningInstance.getSessionId().equals(message.getTgtSessionId())
+          || !resourceId.equals(message.getResourceId())
+          || !resetPartitionIdSet.contains(message.getPartitionId())) {
+        continue;
+      }
+      LOG.error("Cannot reset partitions because of the following pending message: " + message);
+      return false;
+    }
+
+    // set up the source id
+    String adminName = null;
+    try {
+      adminName = InetAddress.getLocalHost().getCanonicalHostName() + "-ADMIN";
+    } catch (UnknownHostException e) {
+      // can ignore it
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Unable to get host name. Will set it to UNKNOWN, mostly ignorable", e);
+      }
+      adminName = "UNKNOWN";
+    }
+
+    // build messages to signal the transition
+    StateModelDefId stateModelDefId = context.getStateModelDefId();
+    StateModelDefinition stateModelDef =
+        _accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify()));
+    Map<MessageId, Message> messageMap = Maps.newHashMap();
+    for (PartitionId partitionId : resetPartitionIdSet) {
+      // send ERROR to initialState message
+      MessageId msgId = MessageId.from(UUID.randomUUID().toString());
+      Message message = new Message(MessageType.STATE_TRANSITION, msgId);
+      message.setSrcName(adminName);
+      message.setTgtName(participantId.stringify());
+      message.setMsgState(MessageState.NEW);
+      message.setPartitionId(partitionId);
+      message.setResourceId(resourceId);
+      message.setTgtSessionId(runningInstance.getSessionId());
+      message.setStateModelDef(stateModelDefId);
+      message.setFromState(State.from(HelixDefinedState.ERROR.toString()));
+      message.setToState(stateModelDef.getInitialState());
+      message.setStateModelFactoryId(context.getStateModelFactoryId());
+
+      messageMap.put(message.getMsgId(), message);
+    }
+
+    // send the messages
+    insertMessagesToParticipant(participantId, messageMap);
+    return true;
   }
 
   /**
@@ -473,5 +608,100 @@ public class ParticipantAccessor {
       SessionId sessionId) {
     _accessor.removeProperty(_keyBuilder.currentState(participantId.stringify(),
         sessionId.stringify(), resourceId.stringify()));
+  }
+
+  /**
+   * drop a participant from cluster
+   * @param participantId
+   * @return true if participant dropped, false if there was an error
+   */
+  boolean dropParticipant(ParticipantId participantId) {
+    if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
+      return false;
+    }
+
+    if (_accessor.getProperty(_keyBuilder.instance(participantId.stringify())) == null) {
+      LOG.error("Participant: " + participantId + " structure does NOT exist in cluster");
+      return false;
+    }
+
+    // delete participant config path
+    _accessor.removeProperty(_keyBuilder.instanceConfig(participantId.stringify()));
+
+    // delete participant path
+    _accessor.removeProperty(_keyBuilder.instance(participantId.stringify()));
+    return true;
+  }
+
+  /**
+   * Let a new participant take the place of an existing participant
+   * @param oldParticipantId the participant to drop
+   * @param newParticipantId the participant that takes its place
+   * @return true if swap successful, false otherwise
+   */
+  public boolean swapParticipants(ParticipantId oldParticipantId, ParticipantId newParticipantId) {
+    Participant oldParticipant = readParticipant(oldParticipantId);
+    if (oldParticipant == null) {
+      LOG.error("Could not swap participants because the old participant does not exist");
+      return false;
+    }
+    if (oldParticipant.isEnabled()) {
+      LOG.error("Could not swap participants because the old participant is still enabled");
+      return false;
+    }
+    if (oldParticipant.isAlive()) {
+      LOG.error("Could not swap participants because the old participant is still live");
+      return false;
+    }
+    Participant newParticipant = readParticipant(newParticipantId);
+    if (newParticipant == null) {
+      LOG.error("Could not swap participants because the new participant does not exist");
+      return false;
+    }
+    dropParticipant(oldParticipantId);
+    ResourceAccessor resourceAccessor = new ResourceAccessor(_accessor);
+    Map<String, IdealState> idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
+    for (String resourceName : idealStateMap.keySet()) {
+      IdealState idealState = idealStateMap.get(resourceName);
+      swapParticipantsInIdealState(idealState, oldParticipantId, newParticipantId);
+      PartitionedRebalancerContext context = PartitionedRebalancerContext.from(idealState);
+      resourceAccessor.setRebalancerContext(ResourceId.from(resourceName), context);
+      _accessor.setProperty(_keyBuilder.idealState(resourceName), idealState);
+    }
+    return true;
+  }
+
+  /**
+   * Replace occurrences of participants in preference lists and maps
+   * @param idealState the current ideal state
+   * @param oldParticipantId the participant to drop
+   * @param newParticipantId the participant that replaces it
+   */
+  private void swapParticipantsInIdealState(IdealState idealState, ParticipantId oldParticipantId,
+      ParticipantId newParticipantId) {
+    for (PartitionId partitionId : idealState.getPartitionSet()) {
+      List<ParticipantId> oldPreferenceList = idealState.getPreferenceList(partitionId);
+      if (oldPreferenceList != null) {
+        List<ParticipantId> newPreferenceList = Lists.newArrayList();
+        for (ParticipantId participantId : oldPreferenceList) {
+          if (participantId.equals(oldParticipantId)) {
+            newPreferenceList.add(newParticipantId);
+          } else if (!participantId.equals(newParticipantId)) {
+            newPreferenceList.add(participantId);
+          }
+        }
+        idealState.setPreferenceList(partitionId, newPreferenceList);
+      }
+      Map<ParticipantId, State> preferenceMap = idealState.getParticipantStateMap(partitionId);
+      if (preferenceMap != null) {
+        if (preferenceMap.containsKey(oldParticipantId)) {
+          State state = preferenceMap.get(oldParticipantId);
+          preferenceMap.remove(oldParticipantId);
+          preferenceMap.put(newParticipantId, state);
+        }
+        idealState.setParticipantStateMap(partitionId, preferenceMap);
+      }
+    }
   }
 }

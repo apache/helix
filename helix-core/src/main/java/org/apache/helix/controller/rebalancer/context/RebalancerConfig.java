@@ -165,4 +165,13 @@ public final class RebalancerConfig {
   public static RebalancerConfig from(ResourceConfiguration resourceConfiguration) {
     return new RebalancerConfig(resourceConfiguration);
   }
+
+  /**
+   * Get a RebalancerConfig from a RebalancerContext
+   * @param context instantiated RebalancerContext
+   * @return RebalancerConfig
+   */
+  public static RebalancerConfig from(RebalancerContext context) {
+    return new RebalancerConfig(context);
+  }
 }

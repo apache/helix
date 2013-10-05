@@ -32,8 +32,10 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SpectatorId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Transition;
 
@@ -84,6 +86,8 @@ public class Cluster {
    * @param leaderId
    * @param constraintMap
    * @param stateModelMap
+   * @param stats
+   * @param alerts
    * @param userConfig
    * @param isPaused
    * @param autoJoinAllowed
@@ -91,8 +95,8 @@ public class Cluster {
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
       ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
-      Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
-      boolean isPaused, boolean autoJoinAllowed) {
+      Map<StateModelDefId, StateModelDefinition> stateModelMap, PersistentStats stats,
+      Alerts alerts, UserConfig userConfig, boolean isPaused, boolean autoJoinAllowed) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -114,7 +118,8 @@ public class Cluster {
         new ClusterConfig.Builder(id).addResources(resourceConfigMap.values())
             .addParticipants(participantConfigMap.values()).addConstraints(constraintMap.values())
             .addStateModelDefinitions(stateModelMap.values()).pausedStatus(isPaused)
-            .userConfig(userConfig).autoJoin(autoJoinAllowed).build();
+            .userConfig(userConfig).autoJoin(autoJoinAllowed).addStats(stats).addAlerts(alerts)
+            .build();
 
     _resourceMap = ImmutableMap.copyOf(resourceMap);
 
@@ -216,6 +221,22 @@ public class Cluster {
    */
   public Map<StateModelDefId, StateModelDefinition> getStateModelMap() {
     return _config.getStateModelMap();
+  }
+
+  /**
+   * Get all the persisted stats for the cluster
+   * @return PersistentStats instance
+   */
+  public PersistentStats getStats() {
+    return _config.getStats();
+  }
+
+  /**
+   * Get all the persisted alerts for the cluster
+   * @return Alerts instance
+   */
+  public Alerts getAlerts() {
+    return _config.getAlerts();
   }
 
   /**

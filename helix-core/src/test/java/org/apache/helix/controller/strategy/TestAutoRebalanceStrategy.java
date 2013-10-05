@@ -35,31 +35,20 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.HelixVersion;
-import org.apache.helix.api.Participant;
-import org.apache.helix.api.RunningInstance;
-import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ClusterConfig;
-import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
-import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.api.id.ProcId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
-import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class TestAutoRebalanceStrategy {
   private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
@@ -229,30 +218,22 @@ public class TestAutoRebalanceStrategy {
         ClusterConfig cluster =
             new ClusterConfig.Builder(ClusterId.from("cluster")).addStateModelDefinition(
                 _stateModelDef).build();
-        Map<ParticipantId, Participant> liveParticipantMap = Maps.newHashMap();
+        Set<ParticipantId> liveParticipantSet = Sets.newHashSet();
         for (String node : _liveNodes) {
-          Set<String> tags = Collections.emptySet();
-          Map<MessageId, Message> messageMap = Collections.emptyMap();
-          Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
-          Map<ResourceId, CurrentState> currentStateMap = Maps.newHashMap();
-          RunningInstance runningInstance =
-              new RunningInstance(SessionId.from("testSession"), HelixVersion.from("1.2.3.4"),
-                  ProcId.from("1234"));
-          Participant participant =
-              new Participant(ParticipantId.from(node), node, 0, true, disabledPartitionIdSet,
-                  tags, runningInstance, currentStateMap, messageMap, new UserConfig(
-                      Scope.participant(ParticipantId.from(node))));
-          liveParticipantMap.put(participant.getId(), participant);
+          liveParticipantSet.add(ParticipantId.from(node));
         }
         List<ParticipantId> preferenceList =
             IdealState.preferenceListFromStringList(listResult.get(partition));
         Set<ParticipantId> disabledParticipantsForPartition = Collections.emptySet();
         Map<ParticipantId, State> currentStateMap =
             IdealState.participantStateMapFromStringMap(rawCurStateMap);
+        Map<State, String> upperBounds =
+            NewConstraintBasedAssignment.stateConstraints(_stateModelDef,
+                ResourceId.from(RESOURCE_NAME), cluster);
         Map<ParticipantId, State> assignment =
-            NewConstraintBasedAssignment.computeAutoBestStateForPartition(cluster,
-                ResourceId.from(RESOURCE_NAME), liveParticipantMap, _stateModelDef, preferenceList,
-                currentStateMap, disabledParticipantsForPartition);
+            NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+                liveParticipantSet, _stateModelDef, preferenceList, currentStateMap,
+                disabledParticipantsForPartition);
         mapResult.put(partition, IdealState.stringMapFromParticipantStateMap(assignment));
       }
       return mapResult;

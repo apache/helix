@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -94,10 +95,12 @@ public class NewBestPossibleStateCalcStage extends AbstractBaseStage {
       Set<ParticipantId> disabledParticipantsForPartition =
           NewConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
               partitionId);
+      Map<State, String> upperBounds =
+          NewConstraintBasedAssignment.stateConstraints(stateModelDef, resourceId,
+              cluster.getConfig());
       partitionMapping.addReplicaMap(partitionId, NewConstraintBasedAssignment
-          .computeAutoBestStateForPartition(cluster.getConfig(), resourceId,
-              cluster.getLiveParticipantMap(), stateModelDef, null,
-              currentStateOutput.getCurrentStateMap(resourceId, partitionId),
+          .computeAutoBestStateForPartition(upperBounds, cluster.getLiveParticipantMap().keySet(),
+              stateModelDef, null, currentStateOutput.getCurrentStateMap(resourceId, partitionId),
               disabledParticipantsForPartition));
     }
     return partitionMapping;

@@ -64,9 +64,10 @@
       <item name="Tutorial" href="./Tutorial.html"/>
       <item name="release ${currentRelease}" href="releasenotes/release-${currentRelease}.html"/>
       <item name="Download" href="./download.html"/>
+      <item name="IRC" href="./IRC.html"/>
     </menu>
-    
-    <menu name="Recipes">  
+
+    <menu name="Recipes">
       <item name="Distributed lock manager" href="./recipes/lock_manager.html"/>
       <item name="Rabbit MQ consumer group" href="./recipes/rabbitmq_consumer_group.html"/>
       <item name="Rsync replicated file store" href="./recipes/rsync_replicated_file_store.html"/>

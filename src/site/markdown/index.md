@@ -34,6 +34,8 @@ Navigating the Documentation
 
 [Javadocs](http://helix.incubator.apache.org/apidocs/index.html)
 
+[IRC](./IRC.html)
+
 ### Recipes
 
 [Distributed lock manager](./recipes/lock_manager.html)
@@ -51,7 +53,7 @@ Navigating the Documentation
 
 What Is Helix
 --------------
-Helix is a generic _cluster management_ framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. 
+Helix is a generic _cluster management_ framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
 
 
 What Is Cluster Management
@@ -76,7 +78,7 @@ Key Features of Helix
 ---------------------
 1. Automatic assignment of resources and partitions to nodes
 2. Node failure detection and recovery
-3. Dynamic addition of resources 
+3. Dynamic addition of resources
 4. Dynamic addition of nodes to the cluster
 5. Pluggable distributed state machine to manage the state of a resource via state transitions
 6. Automatic load balancing and throttling of transitions
@@ -100,7 +102,7 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
     git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
     cd incubator-helix
-    mvn install package -DskipTests 
+    mvn install package -DskipTests
 ```
 
 Maven dependency
@@ -114,11 +116,11 @@ Maven dependency
 ```
 
 [Download](./download.html) Helix artifacts from here.
-   
+
 Publications
 -------------
 
-* Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)  
+* Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)
     - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
     - [presentation](http://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
 * Building distributed systems using Helix Apache Con Feb 2013

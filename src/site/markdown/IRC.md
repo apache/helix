@@ -20,7 +20,7 @@ under the License.
 IRC
 ---
 
-We're often available on the ```#apachehelix``` channel on the ```chat.freenode.net``` server. You can use your favorite IRC client or the web client below to connect.
+We\'re often available on the ```#apachehelix``` channel on the ```chat.freenode.net``` server. You can use your favorite IRC client or the web client below to connect.
 
 ### Web IRC Client
 

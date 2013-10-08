@@ -86,34 +86,36 @@ public class ParticipantAccessor {
    * enable/disable a participant
    * @param participantId
    * @param isEnabled
+   * @return true if enable state succeeded, false otherwise
    */
-  void enableParticipant(ParticipantId participantId, boolean isEnabled) {
+  boolean enableParticipant(ParticipantId participantId, boolean isEnabled) {
     String participantName = participantId.stringify();
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantName)) == null) {
       LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
-      return;
+      return false;
     }
 
     InstanceConfig config = new InstanceConfig(participantName);
     config.setInstanceEnabled(isEnabled);
-    _accessor.updateProperty(_keyBuilder.instanceConfig(participantName), config);
-
+    return _accessor.updateProperty(_keyBuilder.instanceConfig(participantName), config);
   }
 
   /**
    * disable participant
    * @param participantId
+   * @return true if disabled successfully, false otherwise
    */
-  public void disableParticipant(ParticipantId participantId) {
-    enableParticipant(participantId, false);
+  public boolean disableParticipant(ParticipantId participantId) {
+    return enableParticipant(participantId, false);
   }
 
   /**
    * enable participant
    * @param participantId
+   * @return true if enabled successfully, false otherwise
    */
-  public void enableParticipant(ParticipantId participantId) {
-    enableParticipant(participantId, true);
+  public boolean enableParticipant(ParticipantId participantId) {
+    return enableParticipant(participantId, true);
   }
 
   /**
@@ -173,8 +175,9 @@ public class ParticipantAccessor {
    * @param participantId
    * @param resourceId
    * @param partitionIdSet
+   * @return true if enable state changed successfully, false otherwise
    */
-  void enablePartitionsForParticipant(final boolean enabled, final ParticipantId participantId,
+  boolean enablePartitionsForParticipant(final boolean enabled, final ParticipantId participantId,
       final ResourceId resourceId, final Set<PartitionId> partitionIdSet) {
     String participantName = participantId.stringify();
     String resourceName = resourceId.stringify();
@@ -183,7 +186,7 @@ public class ParticipantAccessor {
     PropertyKey instanceConfigKey = _keyBuilder.instanceConfig(participantName);
     if (_accessor.getProperty(instanceConfigKey) == null) {
       LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
-      return;
+      return false;
     }
 
     // check resource exist. warn if not
@@ -205,16 +208,13 @@ public class ParticipantAccessor {
       }
     }
 
-    // TODO merge list logic should go to znrecord updater
-    // update participantConfig
-    // could not use ZNRecordUpdater since it doesn't do listField merge/subtract
     BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
     final List<String> partitionNames = new ArrayList<String>();
     for (PartitionId partitionId : partitionIdSet) {
       partitionNames.add(partitionId.stringify());
     }
 
-    baseAccessor.update(instanceConfigKey.getPath(), new DataUpdater<ZNRecord>() {
+    return baseAccessor.update(instanceConfigKey.getPath(), new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData == null) {
@@ -248,10 +248,11 @@ public class ParticipantAccessor {
    * @param participantId
    * @param resourceId
    * @param disablePartitionIdSet
+   * @return true if disabled successfully, false otherwise
    */
-  public void disablePartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
-      Set<PartitionId> disablePartitionIdSet) {
-    enablePartitionsForParticipant(false, participantId, resourceId, disablePartitionIdSet);
+  public boolean disablePartitionsForParticipant(ParticipantId participantId,
+      ResourceId resourceId, Set<PartitionId> disablePartitionIdSet) {
+    return enablePartitionsForParticipant(false, participantId, resourceId, disablePartitionIdSet);
   }
 
   /**
@@ -259,10 +260,11 @@ public class ParticipantAccessor {
    * @param participantId
    * @param resourceId
    * @param enablePartitionIdSet
+   * @return true if enabled successfully, false otherwise
    */
-  public void enablePartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
+  public boolean enablePartitionsForParticipant(ParticipantId participantId, ResourceId resourceId,
       Set<PartitionId> enablePartitionIdSet) {
-    enablePartitionsForParticipant(true, participantId, resourceId, enablePartitionIdSet);
+    return enablePartitionsForParticipant(true, participantId, resourceId, enablePartitionIdSet);
   }
 
   /**
@@ -306,7 +308,7 @@ public class ParticipantAccessor {
     RunningInstance runningInstance = participant.getRunningInstance();
 
     // check that the resource exists
-    ResourceAccessor resourceAccessor = new ResourceAccessor(_accessor);
+    ResourceAccessor resourceAccessor = resourceAccessor();
     Resource resource = resourceAccessor.readResource(resourceId);
     if (resource == null || resource.getRebalancerConfig() == null) {
       LOG.error("Cannot reset partitions because the resource is not present");
@@ -603,10 +605,11 @@ public class ParticipantAccessor {
    * @param resourceId resource id
    * @param participantId participant id
    * @param sessionId session id
+   * @return true if dropped, false otherwise
    */
-  public void dropCurrentState(ResourceId resourceId, ParticipantId participantId,
+  public boolean dropCurrentState(ResourceId resourceId, ParticipantId participantId,
       SessionId sessionId) {
-    _accessor.removeProperty(_keyBuilder.currentState(participantId.stringify(),
+    return _accessor.removeProperty(_keyBuilder.currentState(participantId.stringify(),
         sessionId.stringify(), resourceId.stringify()));
   }
 
@@ -618,12 +621,10 @@ public class ParticipantAccessor {
   boolean dropParticipant(ParticipantId participantId) {
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
       LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
-      return false;
     }
 
     if (_accessor.getProperty(_keyBuilder.instance(participantId.stringify())) == null) {
       LOG.error("Participant: " + participantId + " structure does NOT exist in cluster");
-      return false;
     }
 
     // delete participant config path
@@ -660,7 +661,7 @@ public class ParticipantAccessor {
       return false;
     }
     dropParticipant(oldParticipantId);
-    ResourceAccessor resourceAccessor = new ResourceAccessor(_accessor);
+    ResourceAccessor resourceAccessor = resourceAccessor();
     Map<String, IdealState> idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
@@ -678,8 +679,8 @@ public class ParticipantAccessor {
    * @param oldParticipantId the participant to drop
    * @param newParticipantId the participant that replaces it
    */
-  private void swapParticipantsInIdealState(IdealState idealState, ParticipantId oldParticipantId,
-      ParticipantId newParticipantId) {
+  protected void swapParticipantsInIdealState(IdealState idealState,
+      ParticipantId oldParticipantId, ParticipantId newParticipantId) {
     for (PartitionId partitionId : idealState.getPartitionSet()) {
       List<ParticipantId> oldPreferenceList = idealState.getPreferenceList(partitionId);
       if (oldPreferenceList != null) {
@@ -703,5 +704,71 @@ public class ParticipantAccessor {
         idealState.setParticipantStateMap(partitionId, preferenceMap);
       }
     }
+  }
+
+  /**
+   * Create empty persistent properties to ensure that there is a valid participant structure
+   */
+  public void initParticipantStructure(ParticipantId participantId) {
+    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    for (String path : paths) {
+      boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
+      if (!status && LOG.isDebugEnabled()) {
+        LOG.debug(path + " already exists");
+      }
+    }
+  }
+
+  /**
+   * Clear properties for the participant
+   */
+  void clearParticipantStructure(ParticipantId participantId) {
+    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    baseAccessor.remove(paths, 0);
+  }
+
+  /**
+   * check if participant structure is valid
+   * @return true if valid or false otherwise
+   */
+  public boolean isParticipantStructureValid(ParticipantId participantId) {
+    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    if (baseAccessor != null) {
+      boolean[] existsResults = baseAccessor.exists(paths, 0);
+      for (boolean exists : existsResults) {
+        if (!exists) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Get the paths that should be created if the participant exists
+   * @param keyBuilder PropertyKey.Builder for the cluster
+   * @param participantId the participant for which to generate paths
+   * @return list of required paths as strings
+   */
+  private static List<String> getRequiredPaths(PropertyKey.Builder keyBuilder,
+      ParticipantId participantId) {
+    List<String> paths = Lists.newArrayList();
+    paths.add(keyBuilder.instanceConfig(participantId.stringify()).getPath());
+    paths.add(keyBuilder.messages(participantId.stringify()).getPath());
+    paths.add(keyBuilder.currentStates(participantId.stringify()).getPath());
+    paths.add(keyBuilder.participantErrors(participantId.stringify()).getPath());
+    paths.add(keyBuilder.statusUpdates(participantId.stringify()).getPath());
+    return paths;
+  }
+
+  /**
+   * Get a ResourceAccessor instance
+   * @return ResourceAccessor
+   */
+  protected ResourceAccessor resourceAccessor() {
+    return new ResourceAccessor(_accessor);
   }
 }

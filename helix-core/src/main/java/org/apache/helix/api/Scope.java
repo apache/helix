@@ -60,6 +60,14 @@ public class Scope<T extends Id> {
     return getType() + "{" + getScopedId() + "}";
   }
 
+  @Override
+  public boolean equals(Object that) {
+    if (that instanceof Scope) {
+      return this.toString().equals(that.toString());
+    }
+    return false;
+  }
+
   /**
    * Get the Helix entity type that this scope covers
    * @return scope type

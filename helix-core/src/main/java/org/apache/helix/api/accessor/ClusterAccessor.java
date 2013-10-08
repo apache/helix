@@ -19,7 +19,7 @@ package org.apache.helix.api.accessor;
  * under the License.
  */
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,6 +71,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.testng.internal.annotations.Sets;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class ClusterAccessor {
@@ -80,6 +81,11 @@ public class ClusterAccessor {
   private final PropertyKey.Builder _keyBuilder;
   private final ClusterId _clusterId;
 
+  /**
+   * Instantiate a cluster accessor
+   * @param clusterId the cluster to access
+   * @param accessor HelixDataAccessor for the physical store
+   */
   public ClusterAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
@@ -91,11 +97,12 @@ public class ClusterAccessor {
    * @return true if created, false if creation failed
    */
   public boolean createCluster(ClusterConfig cluster) {
-    boolean created = _accessor.createProperty(_keyBuilder.cluster(), null);
-    if (!created) {
+    ClusterConfiguration configuration = _accessor.getProperty(_keyBuilder.clusterConfig());
+    if (configuration != null && isClusterStructureValid()) {
       LOG.error("Cluster already created. Aborting.");
       return false;
     }
+    clearClusterStructure();
     initClusterStructure();
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
     for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
@@ -111,20 +118,19 @@ public class ClusterAccessor {
     }
     _accessor.createProperty(_keyBuilder.constraints(), null);
     for (ClusterConstraints constraints : cluster.getConstraintMap().values()) {
-      _accessor.createProperty(_keyBuilder.constraint(constraints.getType().toString()),
-          constraints);
+      _accessor.setProperty(_keyBuilder.constraint(constraints.getType().toString()), constraints);
     }
     ClusterConfiguration clusterConfig = ClusterConfiguration.from(cluster.getUserConfig());
     if (cluster.autoJoinAllowed()) {
       clusterConfig.setAutoJoinAllowed(cluster.autoJoinAllowed());
     }
     if (cluster.getStats() != null && !cluster.getStats().getMapFields().isEmpty()) {
-      _accessor.createProperty(_keyBuilder.persistantStat(), cluster.getStats());
+      _accessor.setProperty(_keyBuilder.persistantStat(), cluster.getStats());
     }
-    _accessor.createProperty(_keyBuilder.clusterConfig(), clusterConfig);
     if (cluster.isPaused()) {
       pauseCluster();
     }
+    _accessor.setProperty(_keyBuilder.clusterConfig(), clusterConfig);
 
     return true;
   }
@@ -155,6 +161,7 @@ public class ClusterAccessor {
       return false;
     }
     ClusterConfiguration configuration = ClusterConfiguration.from(config.getUserConfig());
+    configuration.setAutoJoinAllowed(config.autoJoinAllowed());
     _accessor.setProperty(_keyBuilder.clusterConfig(), configuration);
     Map<ConstraintType, ClusterConstraints> constraints = config.getConstraintMap();
     for (ConstraintType type : constraints.keySet()) {
@@ -199,9 +206,13 @@ public class ClusterAccessor {
 
   /**
    * read entire cluster data
-   * @return cluster snapshot
+   * @return cluster snapshot or null
    */
   public Cluster readCluster() {
+    if (!isClusterStructureValid()) {
+      LOG.error("Cluster is not fully set up");
+      return null;
+    }
     LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
 
     /**
@@ -275,10 +286,15 @@ public class ClusterAccessor {
   }
 
   /**
-   * Read all resource in the cluster
+   * Read all resources in the cluster
    * @return map of resource id to resource
    */
   public Map<ResourceId, Resource> readResources() {
+    if (!isClusterStructureValid()) {
+      LOG.error("Cluster is not fully set up yet!");
+      return Collections.emptyMap();
+    }
+
     /**
      * map of resource-id to ideal-state
      */
@@ -319,9 +335,14 @@ public class ClusterAccessor {
 
   /**
    * Read all participants in the cluster
-   * @return map of participant id to participant
+   * @return map of participant id to participant, or empty map
    */
   public Map<ParticipantId, Participant> readParticipants() {
+    if (!isClusterStructureValid()) {
+      LOG.error("Cluster is not fully set up yet!");
+      return Collections.emptyMap();
+    }
+
     /**
      * map of instance-id to instance-config
      */
@@ -445,7 +466,8 @@ public class ClusterAccessor {
    */
   public boolean addStat(final String statName) {
     if (!isClusterStructureValid()) {
-      throw new HelixException("cluster " + _clusterId + " is not setup yet");
+      LOG.error("cluster " + _clusterId + " is not setup yet");
+      return false;
     }
 
     String persistentStatsPath = _keyBuilder.persistantStat().getPath();
@@ -476,7 +498,8 @@ public class ClusterAccessor {
    */
   public boolean dropStat(final String statName) {
     if (!isClusterStructureValid()) {
-      throw new HelixException("cluster " + _clusterId + " is not setup yet");
+      LOG.error("cluster " + _clusterId + " is not setup yet");
+      return false;
     }
 
     String persistentStatsPath = _keyBuilder.persistantStat().getPath();
@@ -508,7 +531,8 @@ public class ClusterAccessor {
    */
   public boolean addAlert(final String alertName) {
     if (!isClusterStructureValid()) {
-      throw new HelixException("cluster " + _clusterId + " is not setup yet");
+      LOG.error("cluster " + _clusterId + " is not setup yet");
+      return false;
     }
 
     BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
@@ -544,7 +568,8 @@ public class ClusterAccessor {
    */
   public boolean dropAlert(final String alertName) {
     if (!isClusterStructureValid()) {
-      throw new HelixException("cluster " + _clusterId + " is not setup yet");
+      LOG.error("cluster " + _clusterId + " is not setup yet");
+      return false;
     }
 
     String alertsPath = _keyBuilder.alerts().getPath();
@@ -577,16 +602,18 @@ public class ClusterAccessor {
 
   /**
    * pause controller of cluster
+   * @return true if cluster was paused, false if pause failed or already paused
    */
-  public void pauseCluster() {
-    _accessor.createProperty(_keyBuilder.pause(), new PauseSignal("pause"));
+  public boolean pauseCluster() {
+    return _accessor.createProperty(_keyBuilder.pause(), new PauseSignal("pause"));
   }
 
   /**
    * resume controller of cluster
+   * @return true if resume succeeded, false otherwise
    */
-  public void resumeCluster() {
-    _accessor.removeProperty(_keyBuilder.pause());
+  public boolean resumeCluster() {
+    return _accessor.removeProperty(_keyBuilder.pause());
   }
 
   /**
@@ -632,7 +659,7 @@ public class ClusterAccessor {
       configuration.addNamespacedConfig(resource.getRebalancerConfig().toNamespacedConfig());
       configuration.setBucketSize(resource.getBucketSize());
       configuration.setBatchMessageMode(resource.getBatchMessageMode());
-      _accessor.createProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+      _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
 
     // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
@@ -641,7 +668,7 @@ public class ClusterAccessor {
         ResourceAccessor.rebalancerConfigToIdealState(rebalancerConfig, resource.getBucketSize(),
             resource.getBatchMessageMode());
     if (idealState != null) {
-      _accessor.createProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
+      _accessor.setProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
     return true;
   }
@@ -667,18 +694,8 @@ public class ClusterAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isClusterStructureValid() {
-    return isClusterStructureValid(_clusterId, _accessor.getBaseDataAccessor());
-  }
-
-  /**
-   * check if cluster structure is valid
-   * @param clusterId the cluster to check
-   * @param baseAccessor a base data accessor
-   * @return true if valid or false otherwise
-   */
-  private static boolean isClusterStructureValid(ClusterId clusterId,
-      BaseDataAccessor<?> baseAccessor) {
-    List<String> paths = getRequiredPaths(clusterId);
+    List<String> paths = getRequiredPaths(_keyBuilder);
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
       for (boolean exists : existsResults) {
@@ -693,9 +710,9 @@ public class ClusterAccessor {
   /**
    * Create empty persistent properties to ensure that there is a valid cluster structure
    */
-  private void initClusterStructure() {
+  public void initClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = getRequiredPaths(_clusterId);
+    List<String> paths = getRequiredPaths(_keyBuilder);
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
       if (!status && LOG.isDebugEnabled()) {
@@ -705,14 +722,21 @@ public class ClusterAccessor {
   }
 
   /**
+   * Remove all but the top level cluster node; intended for reconstructing the cluster
+   */
+  private void clearClusterStructure() {
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    List<String> paths = getRequiredPaths(_keyBuilder);
+    baseAccessor.remove(paths, 0);
+  }
+
+  /**
    * Get all property paths that must be set for a cluster structure to be valid
-   * @param the cluster that the paths will be relative to
+   * @param keyBuilder a PropertyKey.Builder for the cluster
    * @return list of paths as strings
    */
-  private static List<String> getRequiredPaths(ClusterId clusterId) {
-    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterId.stringify());
-    List<String> paths = new ArrayList<String>();
-    paths.add(keyBuilder.cluster().getPath());
+  private static List<String> getRequiredPaths(PropertyKey.Builder keyBuilder) {
+    List<String> paths = Lists.newArrayList();
     paths.add(keyBuilder.clusterConfigs().getPath());
     paths.add(keyBuilder.instanceConfigs().getPath());
     paths.add(keyBuilder.propertyStore().getPath());
@@ -743,22 +767,19 @@ public class ClusterAccessor {
       return false;
     }
 
+    ParticipantAccessor participantAccessor = new ParticipantAccessor(_accessor);
     ParticipantId participantId = participant.getId();
-    if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) != null) {
+    InstanceConfig existConfig =
+        _accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify()));
+    if (existConfig != null && participantAccessor.isParticipantStructureValid(participantId)) {
       LOG.error("Config for participant: " + participantId + " already exists in cluster: "
           + _clusterId);
       return false;
     }
 
-    // add empty root ZNodes
-    List<PropertyKey> createKeys = new ArrayList<PropertyKey>();
-    createKeys.add(_keyBuilder.messages(participantId.stringify()));
-    createKeys.add(_keyBuilder.currentStates(participantId.stringify()));
-    createKeys.add(_keyBuilder.participantErrors(participantId.stringify()));
-    createKeys.add(_keyBuilder.statusUpdates(participantId.stringify()));
-    for (PropertyKey key : createKeys) {
-      _accessor.createProperty(key, null);
-    }
+    // clear and rebuild the participant structure
+    participantAccessor.clearParticipantStructure(participantId);
+    participantAccessor.initParticipantStructure(participantId);
 
     // add the config
     InstanceConfig instanceConfig = new InstanceConfig(participant.getId());
@@ -775,8 +796,7 @@ public class ClusterAccessor {
     for (PartitionId partitionId : disabledPartitions) {
       instanceConfig.setInstanceEnabledForPartition(partitionId, false);
     }
-    _accessor.createProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
-    _accessor.createProperty(_keyBuilder.messages(participantId.stringify()), null);
+    _accessor.setProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
     return true;
   }
 

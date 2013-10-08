@@ -29,6 +29,10 @@ import org.apache.helix.api.id.ClusterId;
  * Persisted configuration properties for a cluster
  */
 public class ClusterConfiguration extends HelixProperty {
+  private enum Fields {
+    WRITE_ID
+  }
+
   /**
    * Instantiate for an id
    * @param id cluster id
@@ -59,6 +63,22 @@ public class ClusterConfiguration extends HelixProperty {
    */
   public void setAutoJoinAllowed(boolean autoJoinAllowed) {
     _record.setBooleanField(HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, autoJoinAllowed);
+  }
+
+  /**
+   * Set the identifier of this configuration for the last write
+   * @param writeId positive random long identifier
+   */
+  public void setWriteId(long writeId) {
+    _record.setLongField(Fields.WRITE_ID.toString(), writeId);
+  }
+
+  /**
+   * Get the identifier for the last write to this configuration
+   * @return positive write identifier, or -1 of not set
+   */
+  public long getWriteId() {
+    return _record.getLongField(Fields.WRITE_ID.toString(), -1);
   }
 
   /**

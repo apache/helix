@@ -108,9 +108,10 @@ public class ResourceAccessor {
    * save resource assignment
    * @param resourceId
    * @param resourceAssignment
+   * @return true if set, false otherwise
    */
-  public void setResourceAssignment(ResourceId resourceId, ResourceAssignment resourceAssignment) {
-    _accessor.setProperty(_keyBuilder.resourceAssignment(resourceId.stringify()),
+  public boolean setResourceAssignment(ResourceId resourceId, ResourceAssignment resourceAssignment) {
+    return _accessor.setProperty(_keyBuilder.resourceAssignment(resourceId.stringify()),
         resourceAssignment);
   }
 
@@ -128,9 +129,11 @@ public class ResourceAccessor {
    * rebalancer configuration
    * @param resourceId
    * @param configuration
+   * @return true if set, false otherwise
    */
-  void setConfiguration(ResourceId resourceId, ResourceConfiguration configuration) {
-    _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+  private boolean setConfiguration(ResourceId resourceId, ResourceConfiguration configuration) {
+    boolean status =
+        _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     // also set an ideal state if the resource supports it
     RebalancerConfig rebalancerConfig = new RebalancerConfig(configuration);
     IdealState idealState =
@@ -139,6 +142,7 @@ public class ResourceAccessor {
     if (idealState != null) {
       _accessor.setProperty(_keyBuilder.idealState(resourceId.stringify()), idealState);
     }
+    return status;
   }
 
   /**
@@ -249,27 +253,29 @@ public class ResourceAccessor {
    * Get a resource configuration, which may include user-defined configuration, as well as
    * rebalancer configuration
    * @param resourceId
-   * @return configuration
+   * @return configuration or null
    */
-  public void getConfiguration(ResourceId resourceId) {
-    _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
+  public ResourceConfiguration getConfiguration(ResourceId resourceId) {
+    return _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
   }
 
   /**
    * set external view of a resource
    * @param resourceId
    * @param extView
+   * @return true if set, false otherwise
    */
-  public void setExternalView(ResourceId resourceId, ExternalView extView) {
-    _accessor.setProperty(_keyBuilder.externalView(resourceId.stringify()), extView);
+  public boolean setExternalView(ResourceId resourceId, ExternalView extView) {
+    return _accessor.setProperty(_keyBuilder.externalView(resourceId.stringify()), extView);
   }
 
   /**
    * drop external view of a resource
    * @param resourceId
+   * @return true if dropped, false otherwise
    */
-  public void dropExternalView(ResourceId resourceId) {
-    _accessor.removeProperty(_keyBuilder.externalView(resourceId.stringify()));
+  public boolean dropExternalView(ResourceId resourceId) {
+    return _accessor.removeProperty(_keyBuilder.externalView(resourceId.stringify()));
   }
 
   /**
@@ -278,7 +284,7 @@ public class ResourceAccessor {
    * @return true if they were reset, false otherwise
    */
   public boolean resetResources(Set<ResourceId> resetResourceIdSet) {
-    ParticipantAccessor accessor = new ParticipantAccessor(_accessor);
+    ParticipantAccessor accessor = participantAccessor();
     List<ExternalView> extViews = _accessor.getChildValues(_keyBuilder.externalViews());
     for (ExternalView extView : extViews) {
       if (!resetResourceIdSet.contains(extView.getResourceId())) {
@@ -435,5 +441,13 @@ public class ResourceAccessor {
     }
     return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
         rebalancerContext, userConfig, bucketSize, batchMessageMode);
+  }
+
+  /**
+   * Get a ParticipantAccessor instance
+   * @return ParticipantAccessor
+   */
+  protected ParticipantAccessor participantAccessor() {
+    return new ParticipantAccessor(_accessor);
   }
 }

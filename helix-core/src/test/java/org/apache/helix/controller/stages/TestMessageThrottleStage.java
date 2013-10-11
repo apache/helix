@@ -31,6 +31,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -69,6 +71,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
         0, 1
     });
     setupStateModel(clusterName);
+
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
 
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -142,6 +147,9 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
         0, 1
     });
     setupStateModel(clusterName);
+
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
 
     // setup constraints
     ZNRecord record = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());

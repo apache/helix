@@ -34,7 +34,11 @@ import org.apache.log4j.Logger;
  * An atomic version of the ResourceAccessor. If atomic operations are required, use instances of
  * this class. Atomicity is not guaranteed when using instances of ResourceAccessor alongside
  * instances of this class. Furthermore, depending on the semantics of the lock, lock acquisition
- * may fail, in which case users should handle the return value of each function if necessary.
+ * may fail, in which case users should handle the return value of each function if necessary. <br/>
+ * <br/>
+ * Using this class is quite expensive; it should thus be used sparingly and only in systems where
+ * contention on these operations is expected. For most systems running Helix, this is typically not
+ * the case.
  */
 public class AtomicResourceAccessor extends ResourceAccessor {
   private static final Logger LOG = Logger.getLogger(AtomicResourceAccessor.class);

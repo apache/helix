@@ -35,8 +35,10 @@ import org.testng.annotations.Test;
  */
 public class TestZKHelixLock extends ZkUnitTestBase {
   @Test
-  public void basicTest() {
-    _gZkClient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
+  public void basicTest() throws InterruptedException {
+    final long TIMEOUT = 30000;
+    final long RETRY_INTERVAL = 100;
+    _gZkClient.waitUntilConnected(TIMEOUT, TimeUnit.MILLISECONDS);
     final AtomicBoolean t1Locked = new AtomicBoolean(false);
     final AtomicBoolean t1Done = new AtomicBoolean(false);
     final AtomicInteger field1 = new AtomicInteger(0);
@@ -103,6 +105,14 @@ public class TestZKHelixLock extends ZkUnitTestBase {
     Assert.assertEquals(field2.get(), 1);
 
     // unlock t1's lock after checking that t2 is blocked
+    long count = 0;
+    while (!lock2.isBlocked()) {
+      if (count > TIMEOUT) {
+        break;
+      }
+      Thread.sleep(RETRY_INTERVAL);
+      count += RETRY_INTERVAL;
+    }
     Assert.assertTrue(lock2.isBlocked());
     lock1.unlock();
 

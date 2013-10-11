@@ -30,6 +30,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.State;
+import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
@@ -76,6 +78,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         0, 1
     });
     setupStateModel(clusterName);
+
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -153,6 +158,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         0, 1
     });
 
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
+
     TestHelper
         .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
 
@@ -225,6 +233,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         0, 1
     });
     setupStateModel(clusterName);
+
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -327,6 +338,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
       1
     });
     setupStateModel(clusterName);
+
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();

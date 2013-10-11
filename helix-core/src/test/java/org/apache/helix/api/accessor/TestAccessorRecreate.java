@@ -50,7 +50,7 @@ public class TestAccessorRecreate extends ZkUnitTestBase {
   @Test
   public void testRecreateCluster() {
     final String MODIFIER = "modifier";
-    final ClusterId clusterId = ClusterId.from("testCluster");
+    final ClusterId clusterId = ClusterId.from("TestAccessorRecreate!testCluster");
 
     // connect
     boolean connected = _gZkClient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
@@ -159,4 +159,12 @@ public class TestAccessorRecreate extends ZkUnitTestBase {
             .userConfig(userConfig).build();
     return accessor.addParticipantToCluster(participant);
   }
+  // private HelixLockable lockProvider() {
+  // return new HelixLockable() {
+  // @Override
+  // public HelixLock getLock(ClusterId clusterId, Scope<?> scope) {
+  // return new ZKHelixLock(clusterId, scope, _gZkClient);
+  // }
+  // };
+  // }
 }

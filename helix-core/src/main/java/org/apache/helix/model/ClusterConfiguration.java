@@ -66,22 +66,6 @@ public class ClusterConfiguration extends HelixProperty {
   }
 
   /**
-   * Set the identifier of this configuration for the last write
-   * @param writeId positive random long identifier
-   */
-  public void setWriteId(long writeId) {
-    _record.setLongField(Fields.WRITE_ID.toString(), writeId);
-  }
-
-  /**
-   * Get the identifier for the last write to this configuration
-   * @return positive write identifier, or -1 of not set
-   */
-  public long getWriteId() {
-    return _record.getLongField(Fields.WRITE_ID.toString(), -1);
-  }
-
-  /**
    * Create a new ClusterConfiguration from a UserConfig
    * @param userConfig user-defined configuration properties
    * @return ClusterConfiguration

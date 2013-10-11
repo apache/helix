@@ -92,9 +92,9 @@ public class ZKHelixLock implements HelixLock {
   @Override
   public synchronized boolean lock() {
     _canceled = false;
-    if (_locked) {
-      // no need to proceed if the lock is already acquired
-      return true;
+    if (_locked || isBlocked()) {
+      // no need to proceed if the lock is already acquired or already waiting
+      return false;
     }
     try {
       // create the root path if it doesn't exist
@@ -132,6 +132,8 @@ public class ZKHelixLock implements HelixLock {
       if (LOG.isInfoEnabled()) {
         LOG.info("Unlock skipped because lock node was not present");
       }
+    } catch (RuntimeException e) {
+      LOG.error("Error connecting to release the lock");
     }
     _locked = false;
     return true;

@@ -67,8 +67,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealState(resourceName), idealState);
-    NewResourceComputationStage stage = new NewResourceComputationStage();
-    runStage(event, new NewReadClusterDataStage());
+    ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<ResourceId, ResourceConfig> resource =
@@ -92,8 +92,8 @@ public class TestResourceComputationStage extends BaseStageTest {
         "testResource1", "testResource2"
     };
     List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
-    NewResourceComputationStage stage = new NewResourceComputationStage();
-    runStage(event, new NewReadClusterDataStage());
+    ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<ResourceId, ResourceConfig> resourceMap =
@@ -166,8 +166,8 @@ public class TestResourceComputationStage extends BaseStageTest {
     accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
         currentState);
 
-    NewResourceComputationStage stage = new NewResourceComputationStage();
-    runStage(event, new NewReadClusterDataStage());
+    ResourceComputationStage stage = new ResourceComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
     Map<ResourceId, ResourceConfig> resourceMap =
@@ -208,7 +208,7 @@ public class TestResourceComputationStage extends BaseStageTest {
   @Test
   public void testNull() {
     ClusterEvent event = new ClusterEvent("sampleEvent");
-    NewResourceComputationStage stage = new NewResourceComputationStage();
+    ResourceComputationStage stage = new ResourceComputationStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

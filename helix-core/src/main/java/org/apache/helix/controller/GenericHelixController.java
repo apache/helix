@@ -45,16 +45,16 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.NewBestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.NewCompatibilityCheckStage;
-import org.apache.helix.controller.stages.NewCurrentStateComputationStage;
-import org.apache.helix.controller.stages.NewExternalViewComputeStage;
-import org.apache.helix.controller.stages.NewMessageGenerationStage;
-import org.apache.helix.controller.stages.NewMessageSelectionStage;
-import org.apache.helix.controller.stages.NewMessageThrottleStage;
-import org.apache.helix.controller.stages.NewReadClusterDataStage;
-import org.apache.helix.controller.stages.NewResourceComputationStage;
-import org.apache.helix.controller.stages.NewTaskAssignmentStage;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.CompatibilityCheckStage;
+import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.ExternalViewComputeStage;
+import org.apache.helix.controller.stages.MessageGenerationStage;
+import org.apache.helix.controller.stages.MessageSelectionStage;
+import org.apache.helix.controller.stages.MessageThrottleStage;
+import org.apache.helix.controller.stages.ReadClusterDataStage;
+import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -175,23 +175,23 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
       // cluster data cache refresh
       Pipeline dataRefresh = new Pipeline();
-      dataRefresh.addStage(new NewReadClusterDataStage());
+      dataRefresh.addStage(new ReadClusterDataStage());
 
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline();
-      rebalancePipeline.addStage(new NewCompatibilityCheckStage());
-      rebalancePipeline.addStage(new NewResourceComputationStage());
-      rebalancePipeline.addStage(new NewCurrentStateComputationStage());
-      rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
+      rebalancePipeline.addStage(new CompatibilityCheckStage());
+      rebalancePipeline.addStage(new ResourceComputationStage());
+      rebalancePipeline.addStage(new CurrentStateComputationStage());
+      rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new PersistAssignmentStage());
-      rebalancePipeline.addStage(new NewMessageGenerationStage());
-      rebalancePipeline.addStage(new NewMessageSelectionStage());
-      rebalancePipeline.addStage(new NewMessageThrottleStage());
-      rebalancePipeline.addStage(new NewTaskAssignmentStage());
+      rebalancePipeline.addStage(new MessageGenerationStage());
+      rebalancePipeline.addStage(new MessageSelectionStage());
+      rebalancePipeline.addStage(new MessageThrottleStage());
+      rebalancePipeline.addStage(new TaskAssignmentStage());
 
       // external view generation
       Pipeline externalViewPipeline = new Pipeline();
-      externalViewPipeline.addStage(new NewExternalViewComputeStage());
+      externalViewPipeline.addStage(new ExternalViewComputeStage());
 
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange", dataRefresh, rebalancePipeline, externalViewPipeline);

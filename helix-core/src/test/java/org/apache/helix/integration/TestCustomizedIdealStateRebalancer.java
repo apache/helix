@@ -32,8 +32,8 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.Rebalancer;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -58,7 +58,7 @@ public class TestCustomizedIdealStateRebalancer extends
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements Rebalancer {
+  public static class TestRebalancer implements HelixRebalancer {
 
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of

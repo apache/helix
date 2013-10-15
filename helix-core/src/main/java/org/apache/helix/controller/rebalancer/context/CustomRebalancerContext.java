@@ -10,7 +10,9 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -102,7 +104,7 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
 
     // determine the preference maps
     LinkedHashMap<State, Integer> stateCounts =
-        NewConstraintBasedAssignment.stateCount(upperBounds, stateModelDef, participantSet.size(),
+        ConstraintBasedAssignment.stateCount(upperBounds, stateModelDef, participantSet.size(),
             getReplicaCount());
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     List<ParticipantId> participantList = new ArrayList<ParticipantId>(participantSet);

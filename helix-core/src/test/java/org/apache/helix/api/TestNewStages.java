@@ -36,8 +36,8 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.NewBestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.NewBestPossibleStateOutput;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -130,13 +130,13 @@ public class TestNewStages extends ZkUnitTestBase {
 
     // Run the stage
     try {
-      new NewBestPossibleStateCalcStage().process(event);
+      new BestPossibleStateCalcStage().process(event);
     } catch (Exception e) {
       Assert.fail(e.toString());
     }
 
     // Verify the result
-    NewBestPossibleStateOutput bestPossibleStateOutput =
+    BestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     Assert.assertNotNull(bestPossibleStateOutput);
     ResourceId resourceId = ResourceId.from("TestDB0");

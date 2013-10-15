@@ -84,17 +84,17 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
-    dataRefresh.addStage(new NewReadClusterDataStage());
+    dataRefresh.addStage(new ReadClusterDataStage());
 
     // rebalance pipeline
     Pipeline rebalancePipeline = new Pipeline();
-    rebalancePipeline.addStage(new NewResourceComputationStage());
-    rebalancePipeline.addStage(new NewCurrentStateComputationStage());
-    rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new NewMessageGenerationStage());
-    rebalancePipeline.addStage(new NewMessageSelectionStage());
-    rebalancePipeline.addStage(new NewMessageThrottleStage());
-    rebalancePipeline.addStage(new NewTaskAssignmentStage());
+    rebalancePipeline.addStage(new ResourceComputationStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new MessageGenerationStage());
+    rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
+    rebalancePipeline.addStage(new TaskAssignmentStage());
 
     // round1: set node0 currentState to OFFLINE and node1 currentState to OFFLINE
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
@@ -104,7 +104,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     runPipeline(event, dataRefresh);
     runPipeline(event, rebalancePipeline);
-    NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+    MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
             PartitionId.from(resourceName + "_0"));
@@ -239,17 +239,17 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
-    dataRefresh.addStage(new NewReadClusterDataStage());
+    dataRefresh.addStage(new ReadClusterDataStage());
 
     // rebalance pipeline
     Pipeline rebalancePipeline = new Pipeline();
-    rebalancePipeline.addStage(new NewResourceComputationStage());
-    rebalancePipeline.addStage(new NewCurrentStateComputationStage());
-    rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new NewMessageGenerationStage());
-    rebalancePipeline.addStage(new NewMessageSelectionStage());
-    rebalancePipeline.addStage(new NewMessageThrottleStage());
-    rebalancePipeline.addStage(new NewTaskAssignmentStage());
+    rebalancePipeline.addStage(new ResourceComputationStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new MessageGenerationStage());
+    rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
+    rebalancePipeline.addStage(new TaskAssignmentStage());
 
     // round1: set node0 currentState to OFFLINE and node1 currentState to SLAVE
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
@@ -259,7 +259,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     runPipeline(event, dataRefresh);
     runPipeline(event, rebalancePipeline);
-    NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+    MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
             PartitionId.from(resourceName + "_0"));
@@ -344,17 +344,17 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
-    dataRefresh.addStage(new NewReadClusterDataStage());
+    dataRefresh.addStage(new ReadClusterDataStage());
 
     // rebalance pipeline
     Pipeline rebalancePipeline = new Pipeline();
-    rebalancePipeline.addStage(new NewResourceComputationStage());
-    rebalancePipeline.addStage(new NewCurrentStateComputationStage());
-    rebalancePipeline.addStage(new NewBestPossibleStateCalcStage());
-    rebalancePipeline.addStage(new NewMessageGenerationStage());
-    rebalancePipeline.addStage(new NewMessageSelectionStage());
-    rebalancePipeline.addStage(new NewMessageThrottleStage());
-    rebalancePipeline.addStage(new NewTaskAssignmentStage());
+    rebalancePipeline.addStage(new ResourceComputationStage());
+    rebalancePipeline.addStage(new CurrentStateComputationStage());
+    rebalancePipeline.addStage(new BestPossibleStateCalcStage());
+    rebalancePipeline.addStage(new MessageGenerationStage());
+    rebalancePipeline.addStage(new MessageSelectionStage());
+    rebalancePipeline.addStage(new MessageThrottleStage());
+    rebalancePipeline.addStage(new TaskAssignmentStage());
 
     // round1: set node1 currentState to SLAVE
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", "session_1",
@@ -362,7 +362,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     runPipeline(event, dataRefresh);
     runPipeline(event, rebalancePipeline);
-    NewMessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
+    MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
             PartitionId.from(resourceName + "_0"));

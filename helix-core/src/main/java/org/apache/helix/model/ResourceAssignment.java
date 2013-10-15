@@ -33,7 +33,6 @@ import org.apache.helix.api.id.ResourceId;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -48,10 +47,9 @@ import com.google.common.collect.Maps;
  * can be in s1.
  */
 public class ResourceAssignment extends HelixProperty {
-
   /**
    * Initialize an empty mapping
-   * @param resourceName the resource being mapped
+   * @param resourceId the resource being mapped
    */
   public ResourceAssignment(ResourceId resourceId) {
     super(resourceId.stringify());
@@ -86,14 +84,6 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
-   * Get the currently mapped partitions
-   * @return list of Partition objects (immutable)
-   */
-  public List<String> getMappedPartitions() {
-    return Lists.newArrayList(_record.getMapFields().keySet());
-  }
-
-  /**
    * Get the entire map of a resource
    * @return map of partition to participant to state
    */
@@ -121,19 +111,6 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
-   * Get the participant, state pairs for a partition
-   * @param partition the Partition to look up
-   * @return map of (participant id, state)
-   */
-  public Map<String, String> getReplicaMap(String partitionId) {
-    Map<String, String> rawReplicaMap = _record.getMapField(partitionId);
-    if (rawReplicaMap == null) {
-      return Collections.emptyMap();
-    }
-    return rawReplicaMap;
-  }
-
-  /**
    * Add participant, state pairs for a partition
    * @param partitionId the partition to set
    * @param replicaMap map of (participant name, state)
@@ -144,15 +121,6 @@ public class ResourceAssignment extends HelixProperty {
       convertedMap.put(participantId.stringify(), replicaMap.get(participantId).toString());
     }
     _record.setMapField(partitionId.stringify(), convertedMap);
-  }
-
-  /**
-   * Add participant, state pairs for a partition
-   * @param partitionId the partition to set
-   * @param replicaMap map of (participant name, state)
-   */
-  public void addReplicaMap(String partitionId, Map<String, String> replicaMap) {
-    _record.setMapField(partitionId, replicaMap);
   }
 
   /**

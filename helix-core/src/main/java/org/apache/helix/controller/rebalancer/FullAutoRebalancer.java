@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -16,7 +16,9 @@ import org.apache.helix.api.Participant;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
@@ -47,7 +49,7 @@ import com.google.common.collect.Lists;
  * under the License.
  */
 
-public class FullAutoRebalancer implements Rebalancer {
+public class FullAutoRebalancer implements HelixRebalancer {
   // These should be final, but are initialized in init rather than a constructor
   private AutoRebalanceStrategy _algorithm;
 
@@ -78,10 +80,10 @@ public class FullAutoRebalancer implements Rebalancer {
 
     // count how many replicas should be in each state
     Map<State, String> upperBounds =
-        NewConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
+        ConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
             cluster.getConfig());
     LinkedHashMap<State, Integer> stateCountMap =
-        NewConstraintBasedAssignment.stateCount(upperBounds, stateModelDef,
+        ConstraintBasedAssignment.stateCount(upperBounds, stateModelDef,
             liveParticipants.size(), replicas);
 
     // get the participant lists
@@ -139,7 +141,7 @@ public class FullAutoRebalancer implements Rebalancer {
     ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
     for (PartitionId partition : partitions) {
       Set<ParticipantId> disabledParticipantsForPartition =
-          NewConstraintBasedAssignment.getDisabledParticipants(allParticipants, partition);
+          ConstraintBasedAssignment.getDisabledParticipants(allParticipants, partition);
       List<String> rawPreferenceList = newMapping.getListField(partition.stringify());
       if (rawPreferenceList == null) {
         rawPreferenceList = Collections.emptyList();
@@ -152,9 +154,9 @@ public class FullAutoRebalancer implements Rebalancer {
             }
           });
       preferenceList =
-          NewConstraintBasedAssignment.getPreferenceList(cluster, partition, preferenceList);
+          ConstraintBasedAssignment.getPreferenceList(cluster, partition, preferenceList);
       Map<ParticipantId, State> bestStateForPartition =
-          NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+          ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
               liveParticipants.keySet(), stateModelDef, preferenceList,
               currentState.getCurrentStateMap(config.getResourceId(), partition),
               disabledParticipantsForPartition);

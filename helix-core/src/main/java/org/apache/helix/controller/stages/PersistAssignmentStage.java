@@ -35,7 +35,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     HelixManager helixManager = event.getAttribute("helixmanager");
     HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
     ResourceAccessor resourceAccessor = new ResourceAccessor(accessor);
-    NewBestPossibleStateOutput assignments =
+    BestPossibleStateOutput assignments =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (ResourceId resourceId : assignments.getAssignedResources()) {
       ResourceAssignment assignment = assignments.getResourceAssignment(resourceId);

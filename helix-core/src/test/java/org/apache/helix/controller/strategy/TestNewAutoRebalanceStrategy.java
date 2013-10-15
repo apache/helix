@@ -46,7 +46,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
@@ -260,10 +260,10 @@ public class TestNewAutoRebalanceStrategy {
         Map<ParticipantId, State> replicaMap =
             ResourceAssignment.replicaMapFromStringMap(_currentMapping.get(partition));
         Map<State, String> upperBounds =
-            NewConstraintBasedAssignment.stateConstraints(_stateModelDef,
+            ConstraintBasedAssignment.stateConstraints(_stateModelDef,
                 ResourceId.from(RESOURCE_NAME), clusterConfig);
         Map<ParticipantId, State> assignment =
-            NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+            ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
                 liveParticipantMap.keySet(), _stateModelDef, participantPreferenceList, replicaMap,
                 disabledParticipantsForPartition);
         mapResult.put(partitionId, assignment);

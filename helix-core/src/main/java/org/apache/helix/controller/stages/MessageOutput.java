@@ -29,11 +29,11 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
 
-public class NewMessageOutput {
+public class MessageOutput {
 
   private final Map<ResourceId, Map<PartitionId, List<Message>>> _messagesMap;
 
-  public NewMessageOutput() {
+  public MessageOutput() {
     _messagesMap = new HashMap<ResourceId, Map<PartitionId, List<Message>>>();
 
   }

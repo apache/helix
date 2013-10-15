@@ -40,7 +40,7 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ProcId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
-import org.apache.helix.controller.stages.NewMessageSelectionStage.Bounds;
+import org.apache.helix.controller.stages.MessageSelectionStage.Bounds;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.testng.Assert;
@@ -92,7 +92,7 @@ public class TestMsgSelectionStage {
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
     List<Message> selectedMsg =
-        new NewMessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
             messages, stateConstraints, stateTransitionPriorities, State.from("OFFLINE"));
 
     Assert.assertEquals(selectedMsg.size(), 1);
@@ -145,7 +145,7 @@ public class TestMsgSelectionStage {
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
     List<Message> selectedMsg =
-        new NewMessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
             messages, stateConstraints, stateTransitionPriorities, State.from("OFFLINE"));
 
     Assert.assertEquals(selectedMsg.size(), 0);

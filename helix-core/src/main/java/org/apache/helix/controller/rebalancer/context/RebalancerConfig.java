@@ -2,6 +2,7 @@ package org.apache.helix.controller.rebalancer.context;
 
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -38,7 +39,7 @@ public final class RebalancerConfig {
 
   private static final Logger LOG = Logger.getLogger(RebalancerConfig.class);
   private ContextSerializer _serializer;
-  private Rebalancer _rebalancer;
+  private HelixRebalancer _rebalancer;
   private final RebalancerContext _context;
   private final NamespacedConfig _config;
 
@@ -116,7 +117,7 @@ public final class RebalancerConfig {
    * Get a rebalancer class instance
    * @return Rebalancer
    */
-  public Rebalancer getRebalancer() {
+  public HelixRebalancer getRebalancer() {
     // cache the rebalancer to avoid loading and instantiating it excessively
     if (_rebalancer == null) {
       if (_context == null || _context.getRebalancerRef() == null) {
@@ -136,7 +137,7 @@ public final class RebalancerConfig {
     try {
       return contextClass.cast(_context);
     } catch (ClassCastException e) {
-      LOG.info(contextClass + " is incompatible with context class: " + _context.getClass());
+      LOG.warn(contextClass + " is incompatible with context class: " + _context.getClass());
     }
     return null;
   }

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -26,7 +26,7 @@ import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
- * Reference to a class that extends {@link Rebalancer}. It loads the class automatically.
+ * Reference to a class that extends {@link HelixRebalancer}. It loads the class automatically.
  */
 public class RebalancerRef {
   private static final Logger LOG = Logger.getLogger(RebalancerRef.class);
@@ -44,9 +44,9 @@ public class RebalancerRef {
    * @return Rebalancer or null if instantiation failed
    */
   @JsonIgnore
-  public Rebalancer getRebalancer() {
+  public HelixRebalancer getRebalancer() {
     try {
-      return (Rebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
+      return (HelixRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
     } catch (Exception e) {
       LOG.warn("Exception while invoking custom rebalancer class:" + _rebalancerClassName, e);
     }
@@ -85,7 +85,7 @@ public class RebalancerRef {
    * @param rebalancerClass class that implements Rebalancer
    * @return RebalancerRef
    */
-  public static RebalancerRef from(Class<? extends Rebalancer> rebalancerClass) {
+  public static RebalancerRef from(Class<? extends HelixRebalancer> rebalancerClass) {
     if (rebalancerClass == null) {
       return null;
     }

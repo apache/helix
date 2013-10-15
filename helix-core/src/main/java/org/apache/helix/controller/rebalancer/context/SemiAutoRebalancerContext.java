@@ -11,7 +11,9 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.util.NewConstraintBasedAssignment;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
+import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -108,7 +110,7 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
         Set<ParticipantId> disabledParticipants = Collections.emptySet();
         Map<ParticipantId, State> emptyCurrentState = Collections.emptyMap();
         Map<ParticipantId, State> initialMap =
-            NewConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
+            ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
                 participantSet, stateModelDef, preferenceList, emptyCurrentState,
                 disabledParticipants);
         currentMapping.put(partitionId, initialMap);
@@ -117,7 +119,7 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
 
     // determine the preference
     LinkedHashMap<State, Integer> stateCounts =
-        NewConstraintBasedAssignment.stateCount(upperBounds, stateModelDef, participantSet.size(),
+        ConstraintBasedAssignment.stateCount(upperBounds, stateModelDef, participantSet.size(),
             getReplicaCount());
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     List<ParticipantId> participantList = new ArrayList<ParticipantId>(participantSet);

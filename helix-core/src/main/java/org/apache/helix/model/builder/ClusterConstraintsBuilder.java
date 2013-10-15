@@ -25,11 +25,8 @@ import java.util.Map;
 import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.log4j.Logger;
 
 public class ClusterConstraintsBuilder {
-  private static Logger LOG = Logger.getLogger(ClusterConstraintsBuilder.class);
-
   final private ConstraintType _constraintType;
 
   /**
@@ -59,6 +56,11 @@ public class ClusterConstraintsBuilder {
     ConstraintItemBuilder builder = _constraintBuilderMap.get(constraintId);
     builder.addConstraintAttribute(attribute, value);
     return this;
+  }
+
+  public ClusterConstraintsBuilder addConstraintAttribute(String constraintId, String attribute,
+      String value) {
+    return addConstraintAttribute(ConstraintId.from(constraintId), attribute, value);
   }
 
   public ClusterConstraints build() {

@@ -910,7 +910,7 @@ public class Message extends HelixProperty {
    * Get controller message id, used for scheduler-task-queue state model only
    * @return controller message id
    */
-  public String getControllerMessagId() {
+  public String getControllerMessageId() {
     return _record.getSimpleField(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
   }
 

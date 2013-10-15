@@ -23,10 +23,12 @@ import java.util.Map;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.api.Cluster;
 import org.apache.helix.api.HelixVersion;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 
 /**
@@ -38,16 +40,17 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute("helixmanager");
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    if (manager == null || cache == null) {
+    Cluster cluster = event.getAttribute("ClusterDataCache");
+    if (manager == null || cluster == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires HelixManager | DataCache");
     }
 
     HelixManagerProperties properties = manager.getProperties();
-    Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
-    for (LiveInstance liveInstance : liveInstanceMap.values()) {
-      HelixVersion version = liveInstance.getTypedHelixVersion();
+    // Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
+    Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
+    for (Participant liveParticipant : liveParticipants.values()) {
+      HelixVersion version = liveParticipant.getRunningInstance().getVersion();
       String participantVersion = (version != null) ? version.toString() : null;
       if (!properties.isParticipantCompatible(participantVersion)) {
         String errorMsg =
@@ -55,7 +58,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
                 + manager.getInstanceName() + ", controllerVersion: " + properties.getVersion()
                 + ", minimumSupportedParticipantVersion: "
                 + properties.getProperty("minimum_supported_version.participant")
-                + ", participant: " + liveInstance.getInstanceName() + ", participantVersion: "
+                + ", participant: " + liveParticipant.getId() + ", participantVersion: "
                 + participantVersion;
         LOG.error(errorMsg);
         throw new StageException(errorMsg);

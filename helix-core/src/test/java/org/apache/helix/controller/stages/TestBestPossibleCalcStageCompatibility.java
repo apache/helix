@@ -62,12 +62,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
-    NewReadClusterDataStage stage1 = new NewReadClusterDataStage();
+    ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
-    NewBestPossibleStateCalcStage stage2 = new NewBestPossibleStateCalcStage();
+    BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    NewBestPossibleStateOutput output =
+    BestPossibleStateOutput output =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Map<ParticipantId, State> replicaMap =
@@ -100,12 +100,12 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
 
-    NewReadClusterDataStage stage1 = new NewReadClusterDataStage();
+    ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
-    NewBestPossibleStateCalcStage stage2 = new NewBestPossibleStateCalcStage();
+    BestPossibleStateCalcStage stage2 = new BestPossibleStateCalcStage();
     runStage(event, stage2);
 
-    NewBestPossibleStateOutput output =
+    BestPossibleStateOutput output =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (int p = 0; p < 5; p++) {
       Map<ParticipantId, State> replicaMap =

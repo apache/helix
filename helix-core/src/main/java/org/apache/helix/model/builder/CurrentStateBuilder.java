@@ -9,6 +9,7 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.CurrentState.CurrentStateProperty;
 
@@ -39,7 +40,7 @@ public class CurrentStateBuilder {
   private final Map<PartitionId, State> _partitionStateMap;
   private SessionId _sessionId;
   private StateModelDefId _stateModelDefId;
-  private String _stateModelFactoryName;
+  private StateModelFactoryId _stateModelFactoryId;
 
   /**
    * Build a current state for a given resource
@@ -93,11 +94,11 @@ public class CurrentStateBuilder {
 
   /**
    * Set the name of the state model factory
-   * @param stateModelFactoryName state model factory identifier
+   * @param stateModelFactoryIde state model factory identifier
    * @return CurrentStateBuilder
    */
-  public CurrentStateBuilder stateModelFactory(String stateModelFactoryName) {
-    _stateModelFactoryName = stateModelFactoryName;
+  public CurrentStateBuilder stateModelFactory(StateModelFactoryId stateModelFactoryId) {
+    _stateModelFactoryId = stateModelFactoryId;
     return this;
   }
 
@@ -117,7 +118,7 @@ public class CurrentStateBuilder {
     record.setSimpleField(CurrentStateProperty.STATE_MODEL_DEF.toString(),
         _stateModelDefId.toString());
     record.setSimpleField(CurrentStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
-        _stateModelFactoryName);
+        _stateModelFactoryId.toString());
     return new CurrentState(record);
   }
 }

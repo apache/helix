@@ -48,8 +48,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     List<IdealState> idealStates = setupIdealState(5, resources, 10, 1, RebalanceMode.SEMI_AUTO);
     Map<ResourceId, ResourceConfig> resourceMap = getResourceMap(idealStates);
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
-    NewCurrentStateComputationStage stage = new NewCurrentStateComputationStage();
-    runStage(event, new NewReadClusterDataStage());
+    CurrentStateComputationStage stage = new CurrentStateComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     ResourceCurrentState output = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
@@ -69,8 +69,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     setupLiveInstances(5);
 
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
-    NewCurrentStateComputationStage stage = new NewCurrentStateComputationStage();
-    runStage(event, new NewReadClusterDataStage());
+    CurrentStateComputationStage stage = new CurrentStateComputationStage();
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     ResourceCurrentState output1 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     AssertJUnit.assertEquals(
@@ -89,7 +89,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
 
-    runStage(event, new NewReadClusterDataStage());
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     ResourceCurrentState output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State pendingState =
@@ -114,7 +114,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     accessor.setProperty(
         keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
         stateWithDeadSession);
-    runStage(event, new NewReadClusterDataStage());
+    runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     ResourceCurrentState output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     State currentState =

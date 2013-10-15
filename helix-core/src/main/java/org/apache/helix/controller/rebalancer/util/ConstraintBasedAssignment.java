@@ -30,87 +30,136 @@ import java.util.Set;
 
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Partition;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
+import org.apache.helix.api.config.ClusterConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Predicate;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 /**
- * Collection of functions that will compute the best possible states given the live instances and
- * an ideal state.
+ * Collection of functions that will compute the best possible state based on the participants and
+ * the rebalancer configuration of a resource.
  */
-@Deprecated
 public class ConstraintBasedAssignment {
   private static Logger logger = Logger.getLogger(ConstraintBasedAssignment.class);
 
-  public static List<String> getPreferenceList(ClusterDataCache cache, Partition resource,
-      IdealState idealState, StateModelDefinition stateModelDef) {
-    List<String> listField = idealState.getPreferenceList(resource.getPartitionName());
-
-    if (listField != null && listField.size() == 1
-        && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0))) {
-      Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-      List<String> prefList = new ArrayList<String>(liveInstances.keySet());
-      Collections.sort(prefList);
-      return prefList;
-    } else {
-      return listField;
-    }
+  /**
+   * Get a set of disabled participants for a partition
+   * @param participantMap map of all participants
+   * @param partitionId the partition to check
+   * @return a set of all participants that are disabled for the partition
+   */
+  public static Set<ParticipantId> getDisabledParticipants(
+      final Map<ParticipantId, Participant> participantMap, final PartitionId partitionId) {
+    Set<ParticipantId> participantSet = new HashSet<ParticipantId>(participantMap.keySet());
+    Set<ParticipantId> disabledParticipantsForPartition =
+        Sets.filter(participantSet, new Predicate<ParticipantId>() {
+          @Override
+          public boolean apply(ParticipantId participantId) {
+            Participant participant = participantMap.get(participantId);
+            return !participant.isEnabled()
+                || participant.getDisabledPartitionIds().contains(partitionId);
+          }
+        });
+    return disabledParticipantsForPartition;
   }
 
   /**
-   * compute best state for resource in AUTO ideal state mode
-   * @param cache
+   * Get an ordered list of participants that can serve a partition
+   * @param cluster cluster snapshot
+   * @param partitionId the partition to look up
+   * @param config rebalancing constraints
+   * @return list with most preferred participants first
+   */
+  public static List<ParticipantId> getPreferenceList(Cluster cluster, PartitionId partitionId,
+      List<ParticipantId> prefList) {
+    if (prefList != null && prefList.size() == 1
+        && StateModelToken.ANY_LIVEINSTANCE.toString().equals(prefList.get(0).stringify())) {
+      prefList = new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
+      Collections.sort(prefList);
+    }
+    return prefList;
+  }
+
+  /**
+   * Get a map of state to upper bound constraint given a cluster
+   * @param stateModelDef the state model definition to check
+   * @param resourceId the resource that is constraint
+   * @param cluster the cluster the resource belongs to
+   * @return map of state to upper bound
+   */
+  public static Map<State, String> stateConstraints(StateModelDefinition stateModelDef,
+      ResourceId resourceId, ClusterConfig cluster) {
+    Map<State, String> stateMap = Maps.newHashMap();
+    for (State state : stateModelDef.getTypedStatesPriorityList()) {
+      String num =
+          cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
+              stateModelDef.getStateModelDefId(), state);
+      stateMap.put(state, num);
+    }
+    return stateMap;
+  }
+
+  /**
+   * compute best state for resource in SEMI_AUTO and FULL_AUTO modes
+   * @param upperBounds map of state to upper bound
+   * @param liveParticipantSet set of live participant ids
    * @param stateModelDef
-   * @param instancePreferenceList
+   * @param participantPreferenceList
    * @param currentStateMap
-   *          : instance->state for each partition
-   * @param disabledInstancesForPartition
+   *          : participant->state for each partition
+   * @param disabledParticipantsForPartition
    * @return
    */
-  public static Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
-      StateModelDefinition stateModelDef, List<String> instancePreferenceList,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
+  public static Map<ParticipantId, State> computeAutoBestStateForPartition(
+      Map<State, String> upperBounds, Set<ParticipantId> liveParticipantSet,
+      StateModelDefinition stateModelDef, List<ParticipantId> participantPreferenceList,
+      Map<ParticipantId, State> currentStateMap, Set<ParticipantId> disabledParticipantsForPartition) {
+    Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
-    // if the ideal state is deleted, instancePreferenceList will be empty and
+    // if the resource is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
     if (currentStateMap != null) {
-      for (String instance : currentStateMap.keySet()) {
-        if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        if ((participantPreferenceList == null || !participantPreferenceList
+            .contains(participantId)) && !disabledParticipantsForPartition.contains(participantId)) {
           // if dropped and not disabled, transit to DROPPED
-          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.toString()))
-            && disabledInstancesForPartition.contains(instance)) {
+          participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
+        } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
+            participantId).equals(State.from(HelixDefinedState.ERROR)))
+            && disabledParticipantsForPartition.contains(participantId)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
+          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
         }
       }
     }
 
-    // ideal state is deleted
-    if (instancePreferenceList == null) {
-      return instanceStateMap;
+    // resource is deleted
+    if (participantPreferenceList == null) {
+      return participantStateMap;
     }
 
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    boolean assigned[] = new boolean[instancePreferenceList.size()];
+    List<State> statesPriorityList = stateModelDef.getTypedStatesPriorityList();
+    boolean assigned[] = new boolean[participantPreferenceList.size()];
 
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
+    for (State state : statesPriorityList) {
+      String num = upperBounds.get(state);
       int stateCount = -1;
       if ("N".equals(num)) {
-        Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
-        liveAndEnabled.removeAll(disabledInstancesForPartition);
+        Set<ParticipantId> liveAndEnabled = new HashSet<ParticipantId>(liveParticipantSet);
+        liveAndEnabled.removeAll(disabledParticipantsForPartition);
         stateCount = liveAndEnabled.size();
       } else if ("R".equals(num)) {
-        stateCount = instancePreferenceList.size();
+        stateCount = participantPreferenceList.size();
       } else {
         try {
           stateCount = Integer.parseInt(num);
@@ -120,16 +169,18 @@ public class ConstraintBasedAssignment {
       }
       if (stateCount > -1) {
         int count = 0;
-        for (int i = 0; i < instancePreferenceList.size(); i++) {
-          String instanceName = instancePreferenceList.get(i);
+        for (int i = 0; i < participantPreferenceList.size(); i++) {
+          ParticipantId participantId = participantPreferenceList.get(i);
 
           boolean notInErrorState =
-              currentStateMap == null || currentStateMap.get(instanceName) == null
-                  || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
+              currentStateMap == null
+                  || currentStateMap.get(participantId) == null
+                  || !currentStateMap.get(participantId)
+                      .equals(State.from(HelixDefinedState.ERROR));
 
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && !disabledInstancesForPartition.contains(instanceName)) {
-            instanceStateMap.put(instanceName, state);
+          if (liveParticipantSet.contains(participantId) && !assigned[i] && notInErrorState
+              && !disabledParticipantsForPartition.contains(participantId)) {
+            participantStateMap.put(participantId, state);
             count = count + 1;
             assigned[i] = true;
             if (count == stateCount) {
@@ -139,24 +190,25 @@ public class ConstraintBasedAssignment {
         }
       }
     }
-    return instanceStateMap;
+    return participantStateMap;
   }
 
   /**
    * Get the number of replicas that should be in each state for a partition
+   * @param upperBounds map of state to upper bound
    * @param stateModelDef StateModelDefinition object
    * @param liveNodesNb number of live nodes
    * @param total number of replicas
    * @return state count map: state->count
    */
-  public static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
-      int liveNodesNb, int totalReplicas) {
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+  public static LinkedHashMap<State, Integer> stateCount(Map<State, String> upperBounds,
+      StateModelDefinition stateModelDef, int liveNodesNb, int totalReplicas) {
+    LinkedHashMap<State, Integer> stateCountMap = new LinkedHashMap<State, Integer>();
+    List<State> statesPriorityList = stateModelDef.getTypedStatesPriorityList();
 
     int replicas = totalReplicas;
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
+    for (State state : statesPriorityList) {
+      String num = upperBounds.get(state);
       if ("N".equals(num)) {
         stateCountMap.put(state, liveNodesNb);
       } else if ("R".equals(num)) {
@@ -179,8 +231,8 @@ public class ConstraintBasedAssignment {
     }
 
     // get state count for R
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
+    for (State state : statesPriorityList) {
+      String num = upperBounds.get(state);
       if ("R".equals(num)) {
         stateCountMap.put(state, replicas);
         // should have at most one state using R

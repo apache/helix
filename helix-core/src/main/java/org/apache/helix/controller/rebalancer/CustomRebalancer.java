@@ -1,5 +1,23 @@
 package org.apache.helix.controller.rebalancer;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixManager;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
+import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.log4j.Logger;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,117 +37,89 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
-import org.apache.helix.model.StateModelDefinition;
-import org.apache.log4j.Logger;
-
-/**
- * This is a Rebalancer specific to custom mode. It is tasked with checking an existing mapping of
- * partitions against the set of live instances to mark assignment states as dropped or erroneous
- * as necessary.
- * The input is the required current assignment of partitions to instances, as well as the required
- * existing instance preferences.
- * The output is a verified mapping based on that preference list, i.e. partition p has a replica
- * on node k with state s, where s may be a dropped or error state if necessary.
- */
-@Deprecated
-public class CustomRebalancer implements Rebalancer {
+public class CustomRebalancer implements HelixRebalancer {
 
   private static final Logger LOG = Logger.getLogger(CustomRebalancer.class);
 
   @Override
-  public void init(HelixManager manager) {
+  public void init(HelixManager helixManager) {
+    // do nothing
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
-    String stateModelDefName = currentIdealState.getStateModelDefRef();
-    StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelDefName);
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+      Cluster cluster, ResourceCurrentState currentState) {
+    CustomRebalancerContext config =
+        rebalancerConfig.getRebalancerContext(CustomRebalancerContext.class);
+    StateModelDefinition stateModelDef =
+        cluster.getStateModelMap().get(config.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resource.getResourceName());
+      LOG.debug("Processing resource:" + config.getResourceId());
     }
-    ResourceAssignment partitionMapping =
-        new ResourceAssignment(ResourceId.from(resource.getResourceName()));
-    for (Partition partition : resource.getPartitions()) {
-      Map<String, String> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
-      Set<String> disabledInstancesForPartition =
-          clusterData.getDisabledInstancesForPartition(partition.toString());
-      Map<String, String> idealStateMap =
-          IdealState.stringMapFromParticipantStateMap(currentIdealState
-              .getParticipantStateMap(PartitionId.from(partition.getPartitionName())));
-      Map<String, String> bestStateForPartition =
-          computeCustomizedBestStateForPartition(clusterData, stateModelDef, idealStateMap,
-              currentStateMap, disabledInstancesForPartition);
-      partitionMapping.addReplicaMap(PartitionId.from(partition.getPartitionName()),
-          ResourceAssignment.replicaMapFromStringMap(bestStateForPartition));
+    ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
+    for (PartitionId partition : config.getPartitionSet()) {
+      Map<ParticipantId, State> currentStateMap =
+          currentState.getCurrentStateMap(config.getResourceId(), partition);
+      Set<ParticipantId> disabledInstancesForPartition =
+          ConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
+              partition);
+      Map<ParticipantId, State> bestStateForPartition =
+          computeCustomizedBestStateForPartition(cluster.getLiveParticipantMap().keySet(),
+              stateModelDef, config.getPreferenceMap(partition), currentStateMap,
+              disabledInstancesForPartition);
+      partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
   }
 
   /**
-   * compute best state for resource in CUSTOMIZED ideal state mode
-   * @param cache
+   * compute best state for resource in CUSTOMIZED rebalancer mode
+   * @param liveParticipantMap
    * @param stateModelDef
-   * @param idealStateMap
+   * @param preferenceMap
    * @param currentStateMap
-   * @param disabledInstancesForPartition
+   * @param disabledParticipantsForPartition
    * @return
    */
-  private Map<String, String> computeCustomizedBestStateForPartition(ClusterDataCache cache,
-      StateModelDefinition stateModelDef, Map<String, String> idealStateMap,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
+  private Map<ParticipantId, State> computeCustomizedBestStateForPartition(
+      Set<ParticipantId> liveParticipantSet, StateModelDefinition stateModelDef,
+      Map<ParticipantId, State> preferenceMap, Map<ParticipantId, State> currentStateMap,
+      Set<ParticipantId> disabledParticipantsForPartition) {
+    Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
-    // if the ideal state is deleted, idealStateMap will be null/empty and
+    // if the resource is deleted, idealStateMap will be null/empty and
     // we should drop all resources.
     if (currentStateMap != null) {
-      for (String instance : currentStateMap.keySet()) {
-        if ((idealStateMap == null || !idealStateMap.containsKey(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        if ((preferenceMap == null || !preferenceMap.containsKey(participantId))
+            && !disabledParticipantsForPartition.contains(participantId)) {
           // if dropped and not disabled, transit to DROPPED
-          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.toString()))
-            && disabledInstancesForPartition.contains(instance)) {
+          participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
+        } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
+            participantId).equals(State.from(HelixDefinedState.ERROR)))
+            && disabledParticipantsForPartition.contains(participantId)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
+          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
         }
       }
     }
 
     // ideal state is deleted
-    if (idealStateMap == null) {
-      return instanceStateMap;
+    if (preferenceMap == null) {
+      return participantStateMap;
     }
 
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-    for (String instance : idealStateMap.keySet()) {
+    for (ParticipantId participantId : preferenceMap.keySet()) {
       boolean notInErrorState =
-          currentStateMap == null || currentStateMap.get(instance) == null
-              || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
+          currentStateMap == null || currentStateMap.get(participantId) == null
+              || !currentStateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR));
 
-      if (liveInstancesMap.containsKey(instance) && notInErrorState
-          && !disabledInstancesForPartition.contains(instance)) {
-        instanceStateMap.put(instance, idealStateMap.get(instance));
+      if (liveParticipantSet.contains(participantId) && notInErrorState
+          && !disabledParticipantsForPartition.contains(participantId)) {
+        participantStateMap.put(participantId, preferenceMap.get(participantId));
       }
     }
 
-    return instanceStateMap;
+    return participantStateMap;
   }
 }

@@ -26,6 +26,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.ClusterConstraints;
@@ -34,11 +40,8 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.log4j.Logger;
 
-@Deprecated
 public class MessageThrottleStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(MessageThrottleStage.class.getName());
 
@@ -113,39 +116,43 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    MessageSelectionStageOutput msgSelectionOutput =
+    Cluster cluster = event.getAttribute("ClusterDataCache");
+    MessageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
 
-    if (cache == null || resourceMap == null || msgSelectionOutput == null) {
+    if (cluster == null || resourceMap == null || msgSelectionOutput == null) {
       throw new StageException("Missing attributes in event: " + event
           + ". Requires ClusterDataCache|RESOURCES|MESSAGES_SELECTED");
     }
 
-    MessageThrottleStageOutput output = new MessageThrottleStageOutput();
+    MessageOutput output = new MessageOutput();
 
-    ClusterConstraints constraint = cache.getConstraint(ConstraintType.MESSAGE_CONSTRAINT);
+    // TODO fix it
+    ClusterConstraints constraint = cluster.getConstraint(ConstraintType.MESSAGE_CONSTRAINT);
     Map<String, Integer> throttleCounterMap = new HashMap<String, Integer>();
 
     if (constraint != null) {
       // go through all pending messages, they should be counted but not throttled
-      for (String instance : cache.getLiveInstances().keySet()) {
-        throttle(throttleCounterMap, constraint, new ArrayList<Message>(cache.getMessages(instance)
-            .values()), false);
+      for (ParticipantId participantId : cluster.getLiveParticipantMap().keySet()) {
+        Participant liveParticipant = cluster.getLiveParticipantMap().get(participantId);
+        throttle(throttleCounterMap, constraint, new ArrayList<Message>(liveParticipant
+            .getMessageMap().values()), false);
       }
     }
 
     // go through all new messages, throttle if necessary
     // assume messages should be sorted by state transition priority in messageSelection stage
-    for (String resourceName : resourceMap.keySet()) {
-      Resource resource = resourceMap.get(resourceName);
-      for (Partition partition : resource.getPartitions()) {
-        List<Message> messages = msgSelectionOutput.getMessages(resourceName, partition);
+    for (ResourceId resourceId : resourceMap.keySet()) {
+      ResourceConfig resource = resourceMap.get(resourceId);
+      // TODO fix it
+      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
+        List<Message> messages = msgSelectionOutput.getMessages(resourceId, partitionId);
         if (constraint != null && messages != null && messages.size() > 0) {
           messages = throttle(throttleCounterMap, constraint, messages, true);
         }
-        output.addMessages(resourceName, partition, messages);
+        output.setMessages(resourceId, partitionId, messages);
       }
     }
 

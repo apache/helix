@@ -78,13 +78,13 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
           .put("minimum_supported_version.participant", minSupportedParticipantVersion);
     }
     event.addAttribute("helixmanager", manager);
-    runStage(event, new NewReadClusterDataStage());
+    runStage(event, new ReadClusterDataStage());
   }
 
   @Test
   public void testCompatible() {
     prepare("0.4.0", "0.4.0");
-    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -99,7 +99,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testNullParticipantVersion() {
     prepare("0.4.0", null);
-    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -115,7 +115,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testNullControllerVersion() {
     prepare(null, "0.4.0");
-    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();
@@ -131,7 +131,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
   @Test
   public void testIncompatible() {
     prepare("0.6.1-incubating-SNAPSHOT", "0.3.4", "0.4");
-    NewCompatibilityCheckStage stage = new NewCompatibilityCheckStage();
+    CompatibilityCheckStage stage = new CompatibilityCheckStage();
     StageContext context = new StageContext();
     stage.init(context);
     stage.preProcess();

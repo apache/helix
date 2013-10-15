@@ -38,7 +38,8 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
-import org.apache.helix.controller.rebalancer.context.RebalancerRef;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
@@ -169,7 +170,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Define a custom rebalancer that implements {@link Rebalancer}
+   * Define a custom rebalancer that implements {@link HelixRebalancer}
    * @param rebalancerClassName the name of the custom rebalancing class
    */
   public void setRebalancerClassName(String rebalancerClassName) {
@@ -310,6 +311,15 @@ public class IdealState extends HelixProperty {
 
   /**
    * Set the current mapping of a partition
+   * @param partitionName the partition to set
+   * @param instanceStateMap (participant name, state) pairs
+   */
+  public void setInstanceStateMap(String partitionName, Map<String, String> instanceStateMap) {
+    _record.setMapField(partitionName, instanceStateMap);
+  }
+
+  /**
+   * Set the current mapping of a partition
    * @param partitionId the partition to set
    * @param participantStateMap (participant id, state) pairs
    */
@@ -381,6 +391,15 @@ public class IdealState extends HelixProperty {
       participantSet.add(ParticipantId.from(participantName));
     }
     return participantSet;
+  }
+
+  /**
+   * Set the preference list of a partition
+   * @param partitionName the name of the partition to set
+   * @param preferenceList a list of participants that can serve replicas of the partition
+   */
+  public void setPreferenceList(String partitionName, List<String> preferenceList) {
+    _record.setListField(partitionName, preferenceList);
   }
 
   /**

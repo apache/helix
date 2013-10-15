@@ -50,8 +50,8 @@ import org.apache.log4j.Logger;
 /**
  * Compares the currentState, pendingState with IdealState and generate messages
  */
-public class NewMessageGenerationStage extends AbstractBaseStage {
-  private static Logger LOG = Logger.getLogger(NewMessageGenerationStage.class);
+public class MessageGenerationStage extends AbstractBaseStage {
+  private static Logger LOG = Logger.getLogger(MessageGenerationStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -62,7 +62,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.RESOURCES.toString());
     ResourceCurrentState currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    NewBestPossibleStateOutput bestPossibleStateOutput =
+    BestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     if (manager == null || cluster == null || resourceMap == null || currentStateOutput == null
         || bestPossibleStateOutput == null) {
@@ -70,7 +70,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
           + ". Requires HelixManager|DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE");
     }
 
-    NewMessageOutput output = new NewMessageOutput();
+    MessageOutput output = new MessageOutput();
 
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resourceConfig = resourceMap.get(resourceId);

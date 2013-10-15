@@ -153,7 +153,7 @@ public class StateModelDefinition extends HelixProperty {
    * Get an ordered priority list of transitions
    * @return transitions in the form SRC-DEST, the first of which is highest priority
    */
-  public List<String> getStateTransitionPriorityStringList() {
+  public List<String> getStateTransitionPriorityList() {
     return _stateTransitionPriorityList;
   }
 
@@ -161,9 +161,9 @@ public class StateModelDefinition extends HelixProperty {
    * Get an ordered priority list of transitions
    * @return Transition objects, the first of which is highest priority (immutable)
    */
-  public List<Transition> getStateTransitionPriorityList() {
+  public List<Transition> getTypedStateTransitionPriorityList() {
     ImmutableList.Builder<Transition> builder = new ImmutableList.Builder<Transition>();
-    for (String transition : getStateTransitionPriorityStringList()) {
+    for (String transition : getStateTransitionPriorityList()) {
       String fromState = transition.substring(0, transition.indexOf('-'));
       String toState = transition.substring(transition.indexOf('-') + 1);
       builder.add(Transition.from(State.from(fromState), State.from(toState)));
@@ -283,8 +283,8 @@ public class StateModelDefinition extends HelixProperty {
     Map<String, String> stateConstraintMap;
 
     /**
-     * Start building a state model with a name
-     * @param name state model name
+     * Start building a state model with a id
+     * @param stateModelDefId state model id
      */
     public Builder(StateModelDefId stateModelDefId) {
       this._statemodelName = stateModelDefId.stringify();
@@ -294,9 +294,17 @@ public class StateModelDefinition extends HelixProperty {
     }
 
     /**
+     * Start building a state model with a name
+     * @param stateModelDefId state model name
+     */
+    public Builder(String stateModelName) {
+      this(StateModelDefId.from(stateModelName));
+    }
+
+    /**
      * initial state of a replica when it starts, most commonly used initial
      * state is OFFLINE
-     * @param state
+     * @param initialState
      */
     public Builder initialState(State initialState) {
       return initialState(initialState.toString());
@@ -305,7 +313,7 @@ public class StateModelDefinition extends HelixProperty {
     /**
      * initial state of a replica when it starts, most commonly used initial
      * state is OFFLINE
-     * @param state
+     * @param initialState
      */
     public Builder initialState(String initialState) {
       this.initialState = initialState;
@@ -318,7 +326,8 @@ public class StateModelDefinition extends HelixProperty {
      * STATE2 has a constraint of 3 but only one node is up then Helix will uses
      * the priority to see STATE constraint has to be given higher preference <br/>
      * Use -1 to indicates states with no constraints, like OFFLINE
-     * @param states
+     * @param state the state to add
+     * @param priority the state priority, lower number is higher priority
      */
     public Builder addState(State state, int priority) {
       return addState(state.toString(), priority);
@@ -330,7 +339,8 @@ public class StateModelDefinition extends HelixProperty {
      * STATE2 has a constraint of 3 but only one node is up then Helix will uses
      * the priority to see STATE constraint has to be given higher preference <br/>
      * Use -1 to indicates states with no constraints, like OFFLINE
-     * @param states
+     * @param state the state to add
+     * @param priority the state priority, lower number is higher priority
      */
     public Builder addState(String state, int priority) {
       statesMap.put(state, priority);

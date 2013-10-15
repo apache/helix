@@ -93,7 +93,7 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
       Set<ParticipantId> participantSet) {
     // compute default upper bounds
     Map<State, String> upperBounds = Maps.newHashMap();
-    for (State state : stateModelDef.getStatesPriorityList()) {
+    for (State state : stateModelDef.getTypedStatesPriorityList()) {
       upperBounds.put(state, stateModelDef.getNumParticipantsPerState(state));
     }
 

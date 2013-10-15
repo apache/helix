@@ -181,7 +181,7 @@ public class ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealState(resource));
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionId).size());
       } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {

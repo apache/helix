@@ -184,7 +184,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
     Map<String, Map<String, String>> controllerMsgUpdates =
         new HashMap<String, Map<String, String>>();
 
-    for (String taskPartitionName : ev.getPartitionStringSet()) {
+    for (String taskPartitionName : ev.getPartitionSet()) {
       for (String taskState : ev.getStateMap(taskPartitionName).values()) {
         if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString())
             || taskState.equalsIgnoreCase("COMPLETED")) {
@@ -235,7 +235,7 @@ public class NewExternalViewComputeStage extends AbstractBaseStage {
           result.put("Result", controllerMsgUpdates.get(controllerMsgId).get(taskPartitionName));
           controllerStatusUpdate.getRecord().setMapField(
               "MessageResult " + innerMessage.getTgtName() + " " + taskPartitionName + " "
-                  + innerMessage.getMsgId(), result);
+                  + innerMessage.getMessageId(), result);
         }
 
         // All done for the scheduled tasks that came from controllerMsgId, add summary for it

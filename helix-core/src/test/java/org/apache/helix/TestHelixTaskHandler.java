@@ -55,7 +55,7 @@ public class TestHelixTaskHandler {
     message.setFromState(State.from("Offline"));
     message.setToState(State.from("Slave"));
     message.setPartitionId(PartitionId.from("TestDB_0"));
-    message.setMsgId(MessageId.from("Some unique message id"));
+    message.setMessageId(MessageId.from("Some unique message id"));
     message.setResourceId(ResourceId.from("TestDB"));
     message.setTgtName("localhost");
     message.setStateModelDef(StateModelDefId.from("MasterSlave"));
@@ -94,7 +94,7 @@ public class TestHelixTaskHandler {
     message.setFromState(State.from("Offline"));
     message.setToState(State.from("Slave"));
     message.setPartitionId(PartitionId.from("TestDB_0"));
-    message.setMsgId(MessageId.from("Some unique message id"));
+    message.setMessageId(MessageId.from("Some unique message id"));
     message.setResourceId(ResourceId.from("TestDB"));
     message.setTgtName("localhost");
     message.setStateModelDef(StateModelDefId.from("MasterSlave"));

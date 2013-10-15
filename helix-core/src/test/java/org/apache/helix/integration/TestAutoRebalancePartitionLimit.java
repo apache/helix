@@ -102,11 +102,11 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
         Assert.assertTrue(result);
         ExternalView ev =
             manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-        System.out.println(ev.getPartitionStringSet().size());
+        System.out.println(ev.getPartitionSet().size());
         if (i < 3) {
-          Assert.assertEquals(ev.getPartitionStringSet().size(), 25 * (i + 1));
+          Assert.assertEquals(ev.getPartitionSet().size(), 25 * (i + 1));
         } else {
-          Assert.assertEquals(ev.getPartitionStringSet().size(), 100);
+          Assert.assertEquals(ev.getPartitionSet().size(), 100);
         }
       }
     }
@@ -136,7 +136,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     ExternalView ev =
         manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-    Assert.assertEquals(ev.getPartitionStringSet().size(), 100);
+    Assert.assertEquals(ev.getPartitionSet().size(), 100);
 
     instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 1);
     _startCMResultMap.get(instanceName)._manager.disconnect();
@@ -149,7 +149,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
             CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     ev = manager.getHelixDataAccessor().getProperty(accessor.keyBuilder().externalView(TEST_DB));
-    Assert.assertEquals(ev.getPartitionStringSet().size(), 75);
+    Assert.assertEquals(ev.getPartitionSet().size(), 75);
 
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
@@ -233,7 +233,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
       String stateModelDefName = idealState.getStateModelDefId().stringify();
       StateModelDefinition stateModelDef =
           accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
-      State masterValue = stateModelDef.getStatesPriorityList().get(0);
+      State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
       Map<String, LiveInstance> liveInstanceMap =
           accessor.getChildValuesMap(keyBuilder.liveInstances());
       int replicas = Integer.parseInt(idealState.getReplicas());

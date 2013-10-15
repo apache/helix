@@ -73,7 +73,7 @@ public class ClusterDataCache {
     _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
 
     for (LiveInstance instance : _liveInstanceMap.values()) {
-      LOG.trace("live instance: " + instance.getParticipantId() + " " + instance.getSessionId());
+      LOG.trace("live instance: " + instance.getParticipantId() + " " + instance.getTypedSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
@@ -91,7 +91,7 @@ public class ClusterDataCache {
         new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet()) {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
-      String sessionId = liveInstance.getSessionId().stringify();
+      String sessionId = liveInstance.getTypedSessionId().stringify();
       if (!allCurStateMap.containsKey(instanceName)) {
         allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
       }

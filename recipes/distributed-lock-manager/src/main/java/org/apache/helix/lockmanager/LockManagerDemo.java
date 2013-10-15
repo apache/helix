@@ -115,7 +115,7 @@ public class LockManagerDemo {
   private static void printStatus(HelixAdmin admin, String cluster, String resource) {
     ExternalView externalView = admin.getResourceExternalView(cluster, resource);
     // System.out.println(externalView);
-    TreeSet<String> treeSet = new TreeSet<String>(externalView.getPartitionStringSet());
+    TreeSet<String> treeSet = new TreeSet<String>(externalView.getPartitionSet());
     System.out.println("lockName" + "\t" + "acquired By");
     System.out.println("======================================");
     for (String lockName : treeSet) {

@@ -41,7 +41,7 @@ public class RebalanceUtil {
     Map<String, Integer> partitionIndex = new HashMap<String, Integer>();
     Map<String, String> reversePartitionIndex = new HashMap<String, String>();
     boolean indexInPartitionName = true;
-    for (PartitionId partitionId : state.getPartitionSet()) {
+    for (PartitionId partitionId : state.getPartitionIdSet()) {
       String partitionName = partitionId.stringify();
       int lastPos = partitionName.lastIndexOf("_");
       if (lastPos < 0) {
@@ -64,7 +64,7 @@ public class RebalanceUtil {
 
     if (indexInPartitionName == false) {
       List<String> partitions = new ArrayList<String>();
-      partitions.addAll(Lists.transform(Lists.newArrayList(state.getPartitionSet()),
+      partitions.addAll(Lists.transform(Lists.newArrayList(state.getPartitionIdSet()),
           Functions.toStringFunction()));
       Collections.sort(partitions);
       for (int i = 0; i < partitions.size(); i++) {
@@ -76,7 +76,7 @@ public class RebalanceUtil {
     Map<String, List<Integer>> nodeMasterAssignmentMap = new TreeMap<String, List<Integer>>();
     Map<String, Map<String, List<Integer>>> combinedNodeSlaveAssignmentMap =
         new TreeMap<String, Map<String, List<Integer>>>();
-    for (PartitionId partition : state.getPartitionSet()) {
+    for (PartitionId partition : state.getPartitionIdSet()) {
       List<String> instances = state.getRecord().getListField(partition.stringify());
       String master = instances.get(0);
       if (!nodeMasterAssignmentMap.containsKey(master)) {
@@ -111,7 +111,7 @@ public class RebalanceUtil {
 
     // StateModelDefinition def = new StateModelDefinition(stateModDef);
 
-    List<String> statePriorityList = stateModDef.getStatesPriorityStringList();
+    List<String> statePriorityList = stateModDef.getStatesPriorityList();
 
     for (String state : statePriorityList) {
       String count = stateModDef.getNumInstancesPerState(state);

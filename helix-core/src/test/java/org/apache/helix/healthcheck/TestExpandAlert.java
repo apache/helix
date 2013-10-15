@@ -76,8 +76,8 @@ public class TestExpandAlert extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context) {
       HelixManager manager = context.getManager();
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       String instance = message.getTgtName();
 
       if (fromState.toString().equalsIgnoreCase("SLAVE")

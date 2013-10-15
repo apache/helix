@@ -68,8 +68,8 @@ public class TestResetPartitionState extends AdminTestBase {
     @Override
     public void doTransition(Message message, NotificationContext context) {
       super.doTransition(message, context);
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       if (fromState.toString().equals("ERROR") && toState.toString().equals("OFFLINE")) {
         // System.err.println("doReset() invoked");
         _errToOfflineInvoked.incrementAndGet();
@@ -192,7 +192,7 @@ public class TestResetPartitionState extends AdminTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId()
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getTypedSessionId()
         .stringify(), resource, partition));
 
   }

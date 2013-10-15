@@ -72,8 +72,8 @@ public class AgentStateModel extends StateModel {
 
     HelixManager manager = context.getManager();
     String clusterName = manager.getClusterName();
-    State fromState = message.getFromState();
-    State toState = message.getToState();
+    State fromState = message.getTypedFromState();
+    State toState = message.getTypedToState();
 
     // construct keys for command-config
     String cmdKey = buildKey(fromState.toString(), toState.toString(), CommandAttribute.COMMAND);
@@ -116,8 +116,8 @@ public class AgentStateModel extends StateModel {
     }
 
     if (cmd == null) {
-      throw new Exception("Unable to find command for transition from:" + message.getFromState()
-          + " to:" + message.getToState());
+      throw new Exception("Unable to find command for transition from:" + message.getTypedFromState()
+          + " to:" + message.getTypedToState());
     }
     _logger.info("Executing command: " + cmd + ", using workingDir: " + workingDir + ", timeout: "
         + timeout + ", on " + manager.getInstanceName());

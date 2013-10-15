@@ -114,7 +114,7 @@ public class ExternalView extends HelixProperty {
    * Get all the partitions of the resource
    * @return a set of partition names
    */
-  public Set<String> getPartitionStringSet() {
+  public Set<String> getPartitionSet() {
     return _record.getMapFields().keySet();
   }
 
@@ -122,9 +122,9 @@ public class ExternalView extends HelixProperty {
    * Get all the partitions of the resource
    * @return a set of partition ids
    */
-  public Set<PartitionId> getPartitionSet() {
+  public Set<PartitionId> getPartitionIdSet() {
     Set<PartitionId> partitionSet = Sets.newHashSet();
-    for (String partitionName : getPartitionStringSet()) {
+    for (String partitionName : getPartitionSet()) {
       partitionSet.add(PartitionId.from(partitionName));
     }
     return partitionSet;

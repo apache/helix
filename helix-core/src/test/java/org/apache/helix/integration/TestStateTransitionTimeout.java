@@ -179,7 +179,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       SleepStateModelFactory factory = new SleepStateModelFactory(1000);
       factories.put(instanceName, factory);
-      for (PartitionId p : idealState.getPartitionSet()) {
+      for (PartitionId p : idealState.getPartitionIdSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(ParticipantId.from(instanceName))) {
           factory.addPartition(p.stringify());
         }
@@ -201,7 +201,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
 
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
-    for (PartitionId p : idealState.getPartitionSet()) {
+    for (PartitionId p : idealState.getPartitionIdSet()) {
       ParticipantId idealMaster = idealState.getPreferenceList(p).get(0);
       Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals(State.from("ERROR")));
 

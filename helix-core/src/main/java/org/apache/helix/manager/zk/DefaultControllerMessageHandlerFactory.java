@@ -36,7 +36,7 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
     String type = message.getMsgType();
 
     if (!type.equals(getMessageType())) {
-      throw new HelixException("Unexpected msg type for message " + message.getMsgId() + " type:"
+      throw new HelixException("Unexpected msg type for message " + message.getMessageId() + " type:"
           + message.getMsgType());
     }
 
@@ -63,18 +63,18 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
       String type = _message.getMsgType();
       HelixTaskResult result = new HelixTaskResult();
       if (!type.equals(MessageType.CONTROLLER_MSG.toString())) {
-        throw new HelixException("Unexpected msg type for message " + _message.getMsgId()
+        throw new HelixException("Unexpected msg type for message " + _message.getMessageId()
             + " type:" + _message.getMsgType());
       }
       result.getTaskResultMap().put("ControllerResult",
-          "msg " + _message.getMsgId() + " from " + _message.getMsgSrc() + " processed");
+          "msg " + _message.getMessageId() + " from " + _message.getMsgSrc() + " processed");
       result.setSuccess(true);
       return result;
     }
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(), e);
     }
   }
 }

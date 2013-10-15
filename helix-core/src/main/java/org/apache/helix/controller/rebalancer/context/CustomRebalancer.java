@@ -97,7 +97,7 @@ public class CustomRebalancer implements Rebalancer {
             participantId).equals(State.from(HelixDefinedState.ERROR)))
             && disabledParticipantsForPartition.contains(participantId)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          participantStateMap.put(participantId, stateModelDef.getInitialState());
+          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
         }
       }
     }

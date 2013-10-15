@@ -96,7 +96,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
           State currentState =
               currentStateOutput.getCurrentState(resourceId, subUnitId, participantId);
           if (currentState == null) {
-            currentState = stateModelDef.getInitialState();
+            currentState = stateModelDef.getTypedInitialState();
           }
 
           if (desiredState.equals(currentState)) {
@@ -174,7 +174,7 @@ public class NewMessageGenerationStage extends AbstractBaseStage {
         }
 
         // add generated messages to output according to state priority
-        List<State> statesPriorityList = stateModelDef.getStatesPriorityList();
+        List<State> statesPriorityList = stateModelDef.getTypedStatesPriorityList();
         for (State state : statesPriorityList) {
           if (messageMap.containsKey(state)) {
             for (Message message : messageMap.get(state)) {

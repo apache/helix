@@ -79,8 +79,16 @@ public class LiveInstance extends HelixProperty {
    * Get the session that this participant corresponds to
    * @return session identifier
    */
-  public SessionId getSessionId() {
-    return SessionId.from(_record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString()));
+  public SessionId getTypedSessionId() {
+    return SessionId.from(getSessionId());
+  }
+
+  /**
+   * Get the session that this participant corresponds to
+   * @return session identifier
+   */
+  public String getSessionId() {
+    return _record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString());
   }
 
   /**
@@ -103,8 +111,16 @@ public class LiveInstance extends HelixProperty {
    * Get the version of Helix that this participant is running
    * @return the version
    */
-  public HelixVersion getHelixVersion() {
-    return HelixVersion.from(_record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString()));
+  public HelixVersion getTypedHelixVersion() {
+    return HelixVersion.from(getHelixVersion());
+  }
+
+  /**
+   * Get the version of Helix that this participant is running
+   * @return the version
+   */
+  public String getHelixVersion() {
+    return _record.getSimpleField(LiveInstanceProperty.HELIX_VERSION.toString());
   }
 
   /**
@@ -165,11 +181,11 @@ public class LiveInstance extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getSessionId() == null) {
+    if (getTypedSessionId() == null) {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }
-    if (getHelixVersion() == null) {
+    if (getTypedHelixVersion() == null) {
       _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
       return false;
     }

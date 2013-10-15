@@ -89,7 +89,7 @@ public class TestNewStages extends ZkUnitTestBase {
       ResourceId resourceId = ResourceId.from("TestDB0");
       Assert.assertTrue(curStateMap.containsKey(resourceId));
       CurrentState curState = curStateMap.get(resourceId);
-      Map<PartitionId, State> partitionStateMap = curState.getPartitionStateMap();
+      Map<PartitionId, State> partitionStateMap = curState.getTypedPartitionStateMap();
       Assert.assertEquals(partitionStateMap.size(), p);
     }
 
@@ -176,10 +176,10 @@ public class TestNewStages extends ZkUnitTestBase {
    * @param assignment the assignment to verify
    */
   private void verifySemiAutoRebalance(Resource resource, ResourceAssignment assignment) {
-    Assert.assertEquals(assignment.getMappedPartitions().size(), resource.getSubUnitSet().size());
+    Assert.assertEquals(assignment.getMappedPartitionIds().size(), resource.getSubUnitSet().size());
     SemiAutoRebalancerContext context =
         resource.getRebalancerConfig().getRebalancerContext(SemiAutoRebalancerContext.class);
-    for (PartitionId partitionId : assignment.getMappedPartitions()) {
+    for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
       List<ParticipantId> preferenceList = context.getPreferenceList(partitionId);
       Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partitionId);
       Assert.assertEquals(replicaMap.size(), preferenceList.size());

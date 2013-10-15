@@ -180,7 +180,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     case SEMI_AUTO:
       SemiAutoRebalancerContext.Builder semiAutoBuilder =
           new SemiAutoRebalancerContext.Builder(idealState.getResourceId());
-      for (PartitionId partitionId : idealState.getPartitionSet()) {
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         semiAutoBuilder.preferenceList(partitionId, idealState.getPreferenceList(partitionId));
       }
       populateContext(semiAutoBuilder, idealState);
@@ -189,7 +189,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     case CUSTOMIZED:
       CustomRebalancerContext.Builder customBuilder =
           new CustomRebalancerContext.Builder(idealState.getResourceId());
-      for (PartitionId partitionId : idealState.getPartitionSet()) {
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         customBuilder.preferenceMap(partitionId, idealState.getParticipantStateMap(partitionId));
       }
       populateContext(customBuilder, idealState);
@@ -219,11 +219,11 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     } else {
       replicaCount = Integer.parseInt(replicas);
     }
-    if (idealState.getNumPartitions() > 0 && idealState.getPartitionSet().size() == 0) {
+    if (idealState.getNumPartitions() > 0 && idealState.getPartitionIdSet().size() == 0) {
       // backwards compatibility: partition sets were based on pref lists/maps previously
       builder.addPartitions(idealState.getNumPartitions());
     } else {
-      for (PartitionId partitionId : idealState.getPartitionSet()) {
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         builder.addPartition(new Partition(partitionId));
       }
     }

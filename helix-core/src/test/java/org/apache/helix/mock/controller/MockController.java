@@ -65,7 +65,7 @@ public class MockController {
       String partitionKey, int partitionId) throws InterruptedException, JsonGenerationException,
       JsonMappingException, IOException {
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
-    message.setMsgId(msgId);
+    message.setMessageId(msgId);
     message.setSrcName(srcName);
     message.setTgtName(instanceName);
     message.setMsgState(MessageState.NEW);

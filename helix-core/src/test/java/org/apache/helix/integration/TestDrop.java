@@ -347,7 +347,7 @@ public class TestDrop extends ZkIntegrationTestBase {
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView extView = accessor.getProperty(keyBuilder.externalView("schemata"));
-    Assert.assertEquals(extView.getPartitionStringSet().size(), 0,
+    Assert.assertEquals(extView.getPartitionSet().size(), 0,
         "schemata externalView should be empty but was \"" + extView + "\"");
 
     // clean up

@@ -469,7 +469,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     Map<String, LiveInstance> curSessions = new HashMap<String, LiveInstance>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
-      curSessions.put(liveInstance.getSessionId().stringify(), liveInstance);
+      curSessions.put(liveInstance.getTypedSessionId().stringify(), liveInstance);
     }
 
     Map<String, LiveInstance> lastInstances = _lastSeenInstances.get();

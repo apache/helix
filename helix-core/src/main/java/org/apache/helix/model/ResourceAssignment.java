@@ -33,6 +33,8 @@ import org.apache.helix.api.id.ResourceId;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 /**
  * Represents the assignments of replicas for an entire resource, keyed on partitions of the
@@ -75,12 +77,20 @@ public class ResourceAssignment extends HelixProperty {
    * Get the currently mapped partitions
    * @return list of Partition objects (immutable)
    */
-  public List<? extends PartitionId> getMappedPartitions() {
+  public List<? extends PartitionId> getMappedPartitionIds() {
     ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
     for (String partitionName : _record.getMapFields().keySet()) {
       builder.add(PartitionId.from(partitionName));
     }
     return builder.build();
+  }
+
+  /**
+   * Get the currently mapped partitions
+   * @return list of Partition objects (immutable)
+   */
+  public List<String> getMappedPartitions() {
+    return Lists.newArrayList(_record.getMapFields().keySet());
   }
 
   /**
@@ -111,17 +121,38 @@ public class ResourceAssignment extends HelixProperty {
   }
 
   /**
+   * Get the participant, state pairs for a partition
+   * @param partition the Partition to look up
+   * @return map of (participant id, state)
+   */
+  public Map<String, String> getReplicaMap(String partitionId) {
+    Map<String, String> rawReplicaMap = _record.getMapField(partitionId);
+    if (rawReplicaMap == null) {
+      return Collections.emptyMap();
+    }
+    return rawReplicaMap;
+  }
+
+  /**
    * Add participant, state pairs for a partition
-   * TODO: should be package-private, but builder can't see it
    * @param partitionId the partition to set
    * @param replicaMap map of (participant name, state)
    */
   public void addReplicaMap(PartitionId partitionId, Map<ParticipantId, State> replicaMap) {
-    Map<String, String> convertedMap = new HashMap<String, String>();
+    Map<String, String> convertedMap = Maps.newHashMap();
     for (ParticipantId participantId : replicaMap.keySet()) {
       convertedMap.put(participantId.stringify(), replicaMap.get(participantId).toString());
     }
     _record.setMapField(partitionId.stringify(), convertedMap);
+  }
+
+  /**
+   * Add participant, state pairs for a partition
+   * @param partitionId the partition to set
+   * @param replicaMap map of (participant name, state)
+   */
+  public void addReplicaMap(String partitionId, Map<String, String> replicaMap) {
+    _record.setMapField(partitionId, replicaMap);
   }
 
   /**
@@ -133,7 +164,7 @@ public class ResourceAssignment extends HelixProperty {
     if (rawMap == null) {
       return Collections.emptyMap();
     }
-    Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
+    Map<ParticipantId, State> replicaMap = Maps.newHashMap();
     for (String participantName : rawMap.keySet()) {
       replicaMap.put(ParticipantId.from(participantName), State.from(rawMap.get(participantName)));
     }
@@ -150,8 +181,7 @@ public class ResourceAssignment extends HelixProperty {
     if (rawMaps == null) {
       return Collections.emptyMap();
     }
-    Map<PartitionId, Map<ParticipantId, State>> participantStateMaps =
-        new HashMap<PartitionId, Map<ParticipantId, State>>();
+    Map<PartitionId, Map<ParticipantId, State>> participantStateMaps = Maps.newHashMap();
     for (String partitionId : rawMaps.keySet()) {
       participantStateMaps.put(PartitionId.from(partitionId),
           replicaMapFromStringMap(rawMaps.get(partitionId)));
@@ -185,7 +215,7 @@ public class ResourceAssignment extends HelixProperty {
     if (replicaMaps == null) {
       return Collections.emptyMap();
     }
-    Map<String, Map<String, String>> rawMaps = new HashMap<String, Map<String, String>>();
+    Map<String, Map<String, String>> rawMaps = Maps.newHashMap();
     for (PartitionId partitionId : replicaMaps.keySet()) {
       rawMaps.put(partitionId.stringify(), stringMapFromReplicaMap(replicaMaps.get(partitionId)));
     }

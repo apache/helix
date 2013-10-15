@@ -188,7 +188,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
+    Assert.assertFalse(liveInstance.getTypedSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
 
     // //////////////////////////////////
@@ -204,9 +204,9 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
+    Assert.assertFalse(liveInstance.getTypedSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-    String sessionId = liveInstance.getSessionId().stringify();
+    String sessionId = liveInstance.getTypedSessionId().stringify();
 
     ZkTestHelper.expireSession(manager2.getZkClient());
     Thread.sleep(1000);
@@ -215,9 +215,9 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     Assert.assertTrue(liveInstance.getRecord().getListFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getMapFields().size() == 1);
     Assert.assertTrue(liveInstance.getRecord().getSimpleFields().size() == 5);
-    Assert.assertFalse(liveInstance.getSessionId().stringify().equals("value"));
+    Assert.assertFalse(liveInstance.getTypedSessionId().stringify().equals("value"));
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
-    Assert.assertFalse(sessionId.equals(liveInstance.getSessionId().stringify()));
+    Assert.assertFalse(sessionId.equals(liveInstance.getTypedSessionId().stringify()));
 
     System.out.println("END " + className + ".testLiveInstanceInfoProvider() at "
         + new Date(System.currentTimeMillis()));

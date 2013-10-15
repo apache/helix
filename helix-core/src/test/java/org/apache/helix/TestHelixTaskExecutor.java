@@ -49,7 +49,7 @@ public class TestHelixTaskExecutor {
     MessageId msgId = MessageId.from("TestMessageId");
     Message message = new Message(MessageType.TASK_REPLY, msgId);
 
-    message.setMsgId(msgId);
+    message.setMessageId(msgId);
     message.setSrcName("cm-instance-0");
     message.setTgtName("cm-instance-1");
     message.setTgtSessionId(SessionId.from("1234"));

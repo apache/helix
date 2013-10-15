@@ -225,7 +225,7 @@ public class TestNewAutoRebalanceStrategy {
       ClusterId clusterId = ClusterId.from("clusterId");
       ClusterConfig.Builder clusterConfigBuilder =
           new ClusterConfig.Builder(clusterId).addStateModelDefinition(_stateModelDef);
-      for (State state : _stateModelDef.getStatesPriorityList()) {
+      for (State state : _stateModelDef.getTypedStatesPriorityList()) {
         clusterConfigBuilder.addStateUpperBoundConstraint(Scope.cluster(clusterId),
             _stateModelDef.getStateModelDefId(), state,
             _stateModelDef.getNumParticipantsPerState(state));

@@ -52,8 +52,8 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
 
       String instance = message.getTgtName();
       PartitionId partitionId = message.getPartitionId();
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       if (instance.equals("localhost_12919") && partitionId.equals(PartitionId.from("TestDB0_0"))) {
         if (fromState.equals("SLAVE") && toState.equals("OFFLINE")) {
           slaveToOfflineCnt++;

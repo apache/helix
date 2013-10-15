@@ -126,7 +126,7 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
             selectMessages(cluster.getLiveParticipantMap(),
                 currentStateOutput.getCurrentStateMap(resourceId, partitionId),
                 currentStateOutput.getPendingStateMap(resourceId, partitionId), messages,
-                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
+                stateConstraints, stateTransitionPriorities, stateModelDef.getTypedInitialState());
         output.setMessages(resourceId, partitionId, selectedMessages);
       }
     }
@@ -191,8 +191,8 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
         new TreeMap<Integer, List<Message>>();
     for (Message message : messages) {
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       String transition = fromState.toString() + "-" + toState.toString();
       int priority = Integer.MAX_VALUE;
 
@@ -209,8 +209,8 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
-        State fromState = message.getFromState();
-        State toState = message.getToState();
+        State fromState = message.getTypedFromState();
+        State toState = message.getTypedToState();
 
         if (!bounds.containsKey(fromState)) {
           LOG.error("Message's fromState is not in currentState. message: " + message);
@@ -268,7 +268,7 @@ public class NewMessageSelectionStage extends AbstractBaseStage {
             .getRebalancerContext(ReplicatedRebalancerContext.class) : null;
     Map<State, Bounds> stateConstraints = new HashMap<State, Bounds>();
 
-    List<State> statePriorityList = stateModelDefinition.getStatesPriorityList();
+    List<State> statePriorityList = stateModelDefinition.getTypedStatesPriorityList();
     for (State state : statePriorityList) {
       String numInstancesPerState =
           cluster.getStateUpperBoundConstraint(Scope.cluster(cluster.getId()),

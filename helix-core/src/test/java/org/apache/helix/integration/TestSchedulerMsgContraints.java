@@ -89,7 +89,7 @@ public class TestSchedulerMsgContraints extends ZkStandAloneCMTestBaseWithProper
         _latch.await();
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
-        result.getTaskResultMap().put("Message", _message.getMsgId().stringify());
+        result.getTaskResultMap().put("Message", _message.getMessageId().stringify());
         String destName = _message.getTgtName();
         synchronized (_results) {
           if (!_results.containsKey(_message.getPartitionId().stringify())) {

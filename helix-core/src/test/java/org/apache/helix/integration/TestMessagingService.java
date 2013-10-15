@@ -69,7 +69,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
         Thread.sleep(1000);
-        System.out.println("TestMessagingHandler " + _message.getMsgId());
+        System.out.println("TestMessagingHandler " + _message.getMessageId());
         _processedMsgIds.add(_message.getRecord().getSimpleField("TestMessagingPara"));
         result.getTaskResultMap().put("ReplyMessage", "TestReplyMessage");
         return result;
@@ -94,7 +94,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
     msg.setTgtSessionId(SessionId.from("*"));
     msg.setMsgState(MessageState.NEW);
@@ -189,7 +189,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId(SessionId.from("*"));
@@ -253,7 +253,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(factory.getMessageType(), msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId(SessionId.from("*"));
@@ -296,7 +296,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     }
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId(SessionId.from("*"));
@@ -365,7 +365,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     }
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId(SessionId.from("*"));
@@ -401,7 +401,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     }
     MessageId msgId = MessageId.from(new UUID(123, 456).toString());
     Message msg = new Message(MessageType.CONTROLLER_MSG, msgId);
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     msg.setSrcName(hostSrc);
 
     msg.setTgtSessionId(SessionId.from("*"));
@@ -425,7 +425,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == 1);
 
     msgId = MessageId.from(UUID.randomUUID().toString());
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     cr.setPartition("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback();
     messagesSent =
@@ -438,7 +438,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(callback2.getMessageReplied().size() == 1);
 
     msgId = MessageId.from(UUID.randomUUID().toString());
-    msg.setMsgId(msgId);
+    msg.setMessageId(msgId);
     cr.setPartitionState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback();
     messagesSent =

@@ -432,14 +432,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         continue;
       }
 
-      SessionId tgtSessionId = message.getTgtSessionId();
+      SessionId tgtSessionId = message.getTypedTgtSessionId();
 
       // sessionId mismatch normally means message comes from expired session, just remove it
       if (!sessionId.equals(tgtSessionId.toString()) && !tgtSessionId.toString().equals("*")) {
         String warningMessage =
             "SessionId does NOT match. expected sessionId: " + sessionId
                 + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "
-                + message.getMsgId();
+                + message.getMessageId();
         LOG.warn(warningMessage);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage,
@@ -454,7 +454,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         // We will read the message again if there is a new message but we
         // check for the status and ignore if its already read
         if (LOG.isTraceEnabled()) {
-          LOG.trace("Message already read. msgId: " + message.getMsgId());
+          LOG.trace("Message already read. msgId: " + message.getMessageId());
         }
         continue;
       }
@@ -467,9 +467,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         }
         handlers.add(createHandler);
       } catch (Exception e) {
-        LOG.error("Failed to create message handler for " + message.getMsgId(), e);
+        LOG.error("Failed to create message handler for " + message.getMessageId(), e);
         String error =
-            "Failed to create message handler for " + message.getMsgId() + ", exception: " + e;
+            "Failed to create message handler for " + message.getMessageId() + ", exception: " + e;
 
         _statusUpdateUtil.logError(message, HelixStateMachineEngine.class, e, error, accessor);
 
@@ -547,7 +547,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // the corresponding MessageHandlerFactory is registered
     if (handlerFactory == null) {
       LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
-          + message.getMsgId());
+          + message.getMessageId());
       return null;
     }
 

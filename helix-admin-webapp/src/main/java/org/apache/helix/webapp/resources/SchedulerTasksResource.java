@@ -159,7 +159,7 @@ public class SchedulerTasksResource extends Resource {
 
       schedulerMessage.getRecord().getMapFields().put(MESSAGETEMPLATE, messageTemplate);
 
-      schedulerMessage.setTgtSessionId(SessionId.from(leader.getSessionId().stringify()));
+      schedulerMessage.setTgtSessionId(SessionId.from(leader.getTypedSessionId().stringify()));
       schedulerMessage.setTgtName("CONTROLLER");
       schedulerMessage.setSrcInstanceType(InstanceType.CONTROLLER);
       String taskQueueName =
@@ -169,22 +169,22 @@ public class SchedulerTasksResource extends Resource {
             DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       }
       accessor.setProperty(
-          accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId().stringify()),
+          accessor.keyBuilder().controllerMessage(schedulerMessage.getMessageId().stringify()),
           schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(
           PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),
-          schedulerMessage.getMsgId().stringify()));
+          schedulerMessage.getMessageId().stringify()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
-      resultMap.put("MsgId", schedulerMessage.getMsgId().stringify());
+      resultMap.put("MsgId", schedulerMessage.getMessageId().stringify());
 
       // Assemble the rest URL for task status update
       String ipAddress = InetAddress.getLocalHost().getCanonicalHostName();
       String url =
           "http://" + ipAddress + ":" + getContext().getAttributes().get(RestAdminApplication.PORT)
               + "/clusters/" + clusterName + "/Controller/statusUpdates/SCHEDULER_MSG/"
-              + schedulerMessage.getMsgId();
+              + schedulerMessage.getMessageId();
       resultMap.put("statusUpdateUrl", url);
 
       getResponse().setEntity(ClusterRepresentationUtil.ObjectToJson(resultMap),

@@ -60,7 +60,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())) {
           continue;
         }
-        if (!instance.getSessionId().equals(message.getTgtSessionId())) {
+        if (!instance.getTypedSessionId().equals(message.getTypedTgtSessionId())) {
           continue;
         }
         ResourceId resourceId = message.getResourceId();
@@ -74,7 +74,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           Partition partition = resource.getPartition(partitionId.stringify());
           if (partition != null) {
             currentStateOutput.setPendingState(resourceId.stringify(), partition, instanceName,
-                message.getToState().toString());
+                message.getTypedToState().toString());
           } else {
             // log
           }
@@ -85,7 +85,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
               Partition partition = resource.getPartition(partitionId.stringify());
               if (partition != null) {
                 currentStateOutput.setPendingState(resourceId.stringify(), partition, instanceName,
-                    message.getToState().toString());
+                    message.getTypedToState().toString());
               } else {
                 // log
               }
@@ -97,12 +97,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     for (LiveInstance instance : liveInstances.values()) {
       String instanceName = instance.getInstanceName();
 
-      String clientSessionId = instance.getSessionId().stringify();
+      String clientSessionId = instance.getTypedSessionId().stringify();
       Map<String, CurrentState> currentStateMap =
           cache.getCurrentState(instanceName, clientSessionId);
       for (CurrentState currentState : currentStateMap.values()) {
 
-        if (!instance.getSessionId().equals(currentState.getSessionId())) {
+        if (!instance.getTypedSessionId().equals(currentState.getTypedSessionId())) {
           continue;
         }
         String resourceName = currentState.getResourceName();
@@ -117,7 +117,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
         currentStateOutput.setBucketSize(resourceName, currentState.getBucketSize());
 
-        Map<String, String> partitionStateMap = currentState.getPartitionStateStringMap();
+        Map<String, String> partitionStateMap = currentState.getPartitionStateMap();
         for (String partitionName : partitionStateMap.keySet()) {
           Partition partition = resource.getPartition(partitionName);
           if (partition != null) {

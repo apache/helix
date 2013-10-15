@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.model.Alerts.AlertsProperty;
 
 /**
@@ -67,11 +68,29 @@ public class AlertStatus extends HelixProperty {
   }
 
   /**
+   * Set the session that the alerts correspond to
+   * @param sessionId the session for which alerts occurred
+   */
+  public void setSessionId(SessionId sessionId) {
+    if (sessionId != null) {
+      setSessionId(sessionId.stringify());
+    }
+  }
+
+  /**
    * Get the session that these alerts correspond to
    * @return session identifier
    */
   public String getSessionId() {
     return _record.getSimpleField(AlertsProperty.SESSION_ID.toString());
+  }
+
+  /**
+   * Get the session that the alerts correspond to
+   * @return session identifier
+   */
+  public SessionId getTypedSessionId() {
+    return SessionId.from(getSessionId());
   }
 
   /**

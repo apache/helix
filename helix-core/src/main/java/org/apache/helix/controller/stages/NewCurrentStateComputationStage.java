@@ -68,7 +68,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
           continue;
         }
 
-        if (!liveParticipant.getRunningInstance().getSessionId().equals(message.getTgtSessionId())) {
+        if (!liveParticipant.getRunningInstance().getSessionId().equals(message.getTypedTgtSessionId())) {
           continue;
         }
 
@@ -83,7 +83,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
           Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {
             currentStateOutput.setPendingState(resourceId, partitionId, participantId,
-                message.getToState());
+                message.getTypedToState());
           } else {
             // log
           }
@@ -94,7 +94,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
               Partition partition = resource.getSubUnit(partitionId);
               if (partition != null) {
                 currentStateOutput.setPendingState(resourceId, partitionId, participantId,
-                    message.getToState());
+                    message.getTypedToState());
               } else {
                 // log
               }
@@ -107,7 +107,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
       SessionId sessionId = liveParticipant.getRunningInstance().getSessionId();
       Map<ResourceId, CurrentState> curStateMap = liveParticipant.getCurrentStateMap();
       for (CurrentState curState : curStateMap.values()) {
-        if (!sessionId.equals(curState.getSessionId())) {
+        if (!sessionId.equals(curState.getTypedSessionId())) {
           continue;
         }
 
@@ -124,7 +124,7 @@ public class NewCurrentStateComputationStage extends AbstractBaseStage {
 
         currentStateOutput.setBucketSize(resourceId, curState.getBucketSize());
 
-        Map<PartitionId, State> partitionStateMap = curState.getPartitionStateMap();
+        Map<PartitionId, State> partitionStateMap = curState.getTypedPartitionStateMap();
         for (PartitionId partitionId : partitionStateMap.keySet()) {
           Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {

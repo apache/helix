@@ -100,7 +100,7 @@ public class NewConstraintBasedAssignment {
   public static Map<State, String> stateConstraints(StateModelDefinition stateModelDef,
       ResourceId resourceId, ClusterConfig cluster) {
     Map<State, String> stateMap = Maps.newHashMap();
-    for (State state : stateModelDef.getStatesPriorityList()) {
+    for (State state : stateModelDef.getTypedStatesPriorityList()) {
       String num =
           cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
               stateModelDef.getStateModelDefId(), state);
@@ -138,7 +138,7 @@ public class NewConstraintBasedAssignment {
             participantId).equals(State.from(HelixDefinedState.ERROR)))
             && disabledParticipantsForPartition.contains(participantId)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          participantStateMap.put(participantId, stateModelDef.getInitialState());
+          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
         }
       }
     }
@@ -148,7 +148,7 @@ public class NewConstraintBasedAssignment {
       return participantStateMap;
     }
 
-    List<State> statesPriorityList = stateModelDef.getStatesPriorityList();
+    List<State> statesPriorityList = stateModelDef.getTypedStatesPriorityList();
     boolean assigned[] = new boolean[participantPreferenceList.size()];
 
     for (State state : statesPriorityList) {
@@ -204,7 +204,7 @@ public class NewConstraintBasedAssignment {
   public static LinkedHashMap<State, Integer> stateCount(Map<State, String> upperBounds,
       StateModelDefinition stateModelDef, int liveNodesNb, int totalReplicas) {
     LinkedHashMap<State, Integer> stateCountMap = new LinkedHashMap<State, Integer>();
-    List<State> statesPriorityList = stateModelDef.getStatesPriorityList();
+    List<State> statesPriorityList = stateModelDef.getTypedStatesPriorityList();
 
     int replicas = totalReplicas;
     for (State state : statesPriorityList) {

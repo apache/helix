@@ -149,14 +149,14 @@ public class ParticipantManagerHelper {
              * update sessionId field in live-instance if necessary
              */
             LiveInstance curLiveInstance = new LiveInstance(record);
-            if (!curLiveInstance.getSessionId().stringify().equals(_sessionId)) {
+            if (!curLiveInstance.getTypedSessionId().stringify().equals(_sessionId)) {
               /**
                * in last handle-new-session,
                * live-instance is created by new zkconnection with stale session-id inside
                * just update session-id field
                */
               LOG.info("overwriting session-id by ephemeralOwner: " + ephemeralOwner
-                  + ", old-sessionId: " + curLiveInstance.getSessionId() + ", new-sessionId: "
+                  + ", old-sessionId: " + curLiveInstance.getTypedSessionId() + ", new-sessionId: "
                   + _sessionId);
 
               curLiveInstance.setSessionId(_sessionId);
@@ -228,10 +228,9 @@ public class ParticipantManagerHelper {
         String curStatePath =
             _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
                 .getPath();
-        _dataAccessor.getBaseDataAccessor().update(
-            curStatePath,
-            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialStateString(),
-                lastCurState), AccessOption.PERSISTENT);
+        _dataAccessor.getBaseDataAccessor().update(curStatePath,
+            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState),
+            AccessOption.PERSISTENT);
       }
     }
 

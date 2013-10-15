@@ -98,8 +98,8 @@ public class NewResourceComputationStage extends AbstractBaseStage {
 
         if (currentState.getStateModelDefRef() == null) {
           LOG.error("state model def is null." + "resource:" + currentState.getResourceId()
-              + ", partitions: " + currentState.getPartitionStateStringMap().keySet()
-              + ", states: " + currentState.getPartitionStateStringMap().values());
+              + ", partitions: " + currentState.getPartitionStateMap().keySet()
+              + ", states: " + currentState.getPartitionStateMap().values());
           throw new StageException("State model def is null for resource:"
               + currentState.getResourceId());
         }
@@ -119,7 +119,7 @@ public class NewResourceComputationStage extends AbstractBaseStage {
         }
 
         PartitionedRebalancerContext.Builder rebCtxBuilder = rebCtxBuilderMap.get(resourceId);
-        for (PartitionId partitionId : currentState.getPartitionStateMap().keySet()) {
+        for (PartitionId partitionId : currentState.getTypedPartitionStateMap().keySet()) {
           rebCtxBuilder.addPartition(new Partition(partitionId));
         }
       }

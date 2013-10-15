@@ -95,7 +95,7 @@ public class CurrentState extends HelixProperty {
    * Get the partitions on this instance and the state that each partition is currently in.
    * @return (partition, state) pairs
    */
-  public Map<String, String> getPartitionStateStringMap() {
+  public Map<String, String> getPartitionStateMap() {
     Map<String, String> map = new HashMap<String, String>();
     Map<String, Map<String, String>> mapFields = _record.getMapFields();
     for (String partitionName : mapFields.keySet()) {
@@ -111,7 +111,7 @@ public class CurrentState extends HelixProperty {
    * Get the partitions on this instance and the state that each partition is currently in
    * @return (partition id, state) pairs
    */
-  public Map<PartitionId, State> getPartitionStateMap() {
+  public Map<PartitionId, State> getTypedPartitionStateMap() {
     Map<PartitionId, State> map = new HashMap<PartitionId, State>();
     for (String partitionName : _record.getMapFields().keySet()) {
       Map<String, String> stateMap = _record.getMapField(partitionName);
@@ -127,8 +127,16 @@ public class CurrentState extends HelixProperty {
    * Get the session that this current state corresponds to
    * @return session identifier
    */
-  public SessionId getSessionId() {
-    return SessionId.from(_record.getSimpleField(CurrentStateProperty.SESSION_ID.toString()));
+  public SessionId getTypedSessionId() {
+    return SessionId.from(getSessionId());
+  }
+
+  /**
+   * Get the session that this current state corresponds to
+   * @return session identifier
+   */
+  public String getSessionId() {
+    return _record.getSimpleField(CurrentStateProperty.SESSION_ID.toString());
   }
 
   /**
@@ -136,7 +144,15 @@ public class CurrentState extends HelixProperty {
    * @param sessionId session identifier
    */
   public void setSessionId(SessionId sessionId) {
-    _record.setSimpleField(CurrentStateProperty.SESSION_ID.toString(), sessionId.stringify());
+    setSessionId(sessionId.stringify());
+  }
+
+  /**
+   * Set the session that this current state corresponds to
+   * @param sessionId session identifier
+   */
+  public void setSessionId(String sessionId) {
+    _record.setSimpleField(CurrentStateProperty.SESSION_ID.toString(), sessionId);
   }
 
   /**
@@ -197,7 +213,7 @@ public class CurrentState extends HelixProperty {
 
   /**
    * Set the state that a partition is currently in on this instance
-   * @param partitionName the name of the partition
+   * @param partitionId the id of the partition
    * @param state the state of the partition
    */
   public void setState(PartitionId partitionId, State state) {
@@ -207,6 +223,19 @@ public class CurrentState extends HelixProperty {
     }
     mapFields.get(partitionId.stringify()).put(CurrentStateProperty.CURRENT_STATE.toString(),
         state.toString());
+  }
+
+  /**
+   * Set the state that a partition is currently in on this instance
+   * @param partitionName the name of the partition
+   * @param state the state of the partition
+   */
+  public void setState(String partitionName, String state) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    if (mapFields.get(partitionName) == null) {
+      mapFields.put(partitionName, new TreeMap<String, String>());
+    }
+    mapFields.get(partitionName).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
   }
 
   /**

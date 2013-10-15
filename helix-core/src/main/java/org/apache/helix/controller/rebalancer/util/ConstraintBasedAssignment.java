@@ -87,7 +87,7 @@ public class ConstraintBasedAssignment {
             HelixDefinedState.ERROR.toString()))
             && disabledInstancesForPartition.contains(instance)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialStateString());
+          instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
       }
     }
@@ -97,7 +97,7 @@ public class ConstraintBasedAssignment {
       return instanceStateMap;
     }
 
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityStringList();
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
 
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
@@ -152,7 +152,7 @@ public class ConstraintBasedAssignment {
   public static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
       int liveNodesNb, int totalReplicas) {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityStringList();
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
 
     int replicas = totalReplicas;
     for (String state : statesPriorityList) {

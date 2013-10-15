@@ -89,7 +89,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
     // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
     // or list fields (AUDO mode)
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
       Map<ParticipantId, State> idealRecord = idealState.getParticipantStateMap(partitionId);
       Map<ParticipantId, State> externalViewRecord = externalView.getStateMap(partitionId);
 
@@ -113,7 +113,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     }
     _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
-    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
+    _numOfPartitionsInExternalView = externalView.getPartitionIdSet().size();
   }
 
   @Override

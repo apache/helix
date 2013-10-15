@@ -54,7 +54,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     if (idealStates != null && idealStates.size() > 0) {
       for (IdealState idealState : idealStates.values()) {
-        Set<String> partitionSet = idealState.getPartitionStringSet();
+        Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
 
         for (String partition : partitionSet) {
@@ -75,7 +75,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
     if (availableInstances != null && availableInstances.size() > 0) {
       for (LiveInstance instance : availableInstances.values()) {
         String instanceName = instance.getInstanceName();
-        String clientSessionId = instance.getSessionId().stringify();
+        String clientSessionId = instance.getTypedSessionId().stringify();
 
         Map<String, CurrentState> currentStateMap =
             cache.getCurrentState(instanceName, clientSessionId);
@@ -85,7 +85,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
         for (CurrentState currentState : currentStateMap.values()) {
 
           String resourceName = currentState.getResourceName();
-          Map<String, String> resourceStateMap = currentState.getPartitionStateStringMap();
+          Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
 
           // don't overwrite ideal state settings
           if (!resourceMap.containsKey(resourceName)) {
@@ -99,8 +99,8 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
           if (currentState.getStateModelDefRef() == null) {
             LOG.error("state model def is null." + "resource:" + currentState.getResourceName()
-                + ", partitions: " + currentState.getPartitionStateStringMap().keySet()
-                + ", states: " + currentState.getPartitionStateStringMap().values());
+                + ", partitions: " + currentState.getPartitionStateMap().keySet()
+                + ", states: " + currentState.getPartitionStateMap().values());
             throw new StageException("State model def is null for resource:"
                 + currentState.getResourceName());
           }

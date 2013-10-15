@@ -292,7 +292,7 @@ public class ResourceAccessor {
       }
 
       Map<ParticipantId, Set<PartitionId>> resetPartitionIds = Maps.newHashMap();
-      for (PartitionId partitionId : extView.getPartitionSet()) {
+      for (PartitionId partitionId : extView.getPartitionIdSet()) {
         Map<ParticipantId, State> stateMap = extView.getStateMap(partitionId);
         for (ParticipantId participantId : stateMap.keySet()) {
           State state = stateMap.get(participantId);

@@ -53,8 +53,8 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
     public void doTransition(Message message, NotificationContext context) {
       // System.err.println("doReset() invoked");
       super.doTransition(message, context);
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       if (fromState.toString().equals("ERROR") && toState.toString().equals("OFFLINE")) {
         _errToOfflineInvoked++;
       }
@@ -190,7 +190,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId()
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getTypedSessionId()
         .stringify(), resource, partition));
 
   }

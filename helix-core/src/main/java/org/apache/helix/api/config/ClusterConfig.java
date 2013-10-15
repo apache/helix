@@ -767,7 +767,7 @@ public class ClusterConfig {
     public Builder addStateModelDefinition(StateModelDefinition stateModelDef) {
       _stateModelMap.put(stateModelDef.getStateModelDefId(), stateModelDef);
       // add state constraints from the state model definition
-      for (State state : stateModelDef.getStatesPriorityList()) {
+      for (State state : stateModelDef.getTypedStatesPriorityList()) {
         if (!stateModelDef.getNumParticipantsPerState(state).equals("-1")) {
           addStateUpperBoundConstraint(Scope.cluster(_id), stateModelDef.getStateModelDefId(),
               state, stateModelDef.getNumParticipantsPerState(state));

@@ -60,7 +60,7 @@ class CurStateCarryOverUpdater implements DataUpdater<ZNRecord> {
       curState = new CurrentState(currentData);
     }
 
-    for (PartitionId partitionId : _lastCurState.getPartitionStateMap().keySet()) {
+    for (PartitionId partitionId : _lastCurState.getTypedPartitionStateMap().keySet()) {
       // carry-over only when current-state not exist
       if (curState.getState(partitionId) == null) {
         curState.setState(partitionId, State.from(_initState));

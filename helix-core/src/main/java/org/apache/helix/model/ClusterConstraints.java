@@ -126,11 +126,20 @@ public class ClusterConstraints extends HelixProperty {
   }
 
   /**
+   * add the constraint, overwrite existing one if constraint with same constraint-id already exists
+   * @param constraintId unique constraint identifier
+   * @param item the constraint as a {@link ConstraintItem}
+   */
+  public void addConstraintItem(String constraintId, ConstraintItem item) {
+    addConstraintItem(ConstraintId.from(constraintId), item);
+  }
+
+  /**
    * Add multiple constraint items.
    * @param items (constraint identifier, {@link ConstrantItem}) pairs
    */
-  public void addConstraintItems(Map<ConstraintId, ConstraintItem> items) {
-    for (ConstraintId constraintId : items.keySet()) {
+  public void addConstraintItems(Map<String, ConstraintItem> items) {
+    for (String constraintId : items.keySet()) {
       addConstraintItem(constraintId, items.get(constraintId));
     }
   }
@@ -145,12 +154,29 @@ public class ClusterConstraints extends HelixProperty {
   }
 
   /**
+   * remove a constraint-item
+   * @param constraintId unique constraint identifier
+   */
+  public void removeConstraintItem(String constraintId) {
+    removeConstraintItem(ConstraintId.from(constraintId));
+  }
+
+  /**
    * get a constraint-item
    * @param constraintId unique constraint identifier
    * @return {@link ConstraintItem} or null if not present
    */
   public ConstraintItem getConstraintItem(ConstraintId constraintId) {
     return _constraints.get(constraintId);
+  }
+
+  /**
+   * get a constraint-item
+   * @param constraintId unique constraint identifier
+   * @return {@link ConstraintItem} or null if not present
+   */
+  public ConstraintItem getConstraintItem(String constraintId) {
+    return getConstraintItem(ConstraintId.from(constraintId));
   }
 
   /**
@@ -186,9 +212,9 @@ public class ClusterConstraints extends HelixProperty {
     String msgType = msg.getMsgType();
     attributes.put(ConstraintAttribute.MESSAGE_TYPE, msgType);
     if (MessageType.STATE_TRANSITION.toString().equals(msgType)) {
-      if (msg.getFromState() != null && msg.getToState() != null) {
+      if (msg.getTypedFromState() != null && msg.getTypedToState() != null) {
         attributes.put(ConstraintAttribute.TRANSITION,
-            Transition.from(msg.getFromState(), msg.getToState()).toString());
+            Transition.from(msg.getTypedFromState(), msg.getTypedToState()).toString());
       }
       if (msg.getResourceId() != null) {
         attributes.put(ConstraintAttribute.RESOURCE, msg.getResourceId().stringify());

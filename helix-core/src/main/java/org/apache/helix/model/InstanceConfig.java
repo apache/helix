@@ -228,7 +228,7 @@ public class InstanceConfig extends HelixProperty {
    * @param partitionId the partition to set
    * @param enabled true to enable, false to disable
    */
-  public void setInstanceEnabledForPartition(PartitionId partitionId, boolean enabled) {
+  public void setParticipantEnabledForPartition(PartitionId partitionId, boolean enabled) {
     setInstanceEnabledForPartition(partitionId.stringify(), enabled);
   }
 

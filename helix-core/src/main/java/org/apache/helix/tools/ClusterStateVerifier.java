@@ -260,7 +260,7 @@ public class ClusterStateVerifier {
           ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
 
           ResourceAssignmentBuilder raBuilder = new ResourceAssignmentBuilder(resourceId);
-          List<? extends PartitionId> mappedPartitions = resourceAssignment.getMappedPartitions();
+          List<? extends PartitionId> mappedPartitions = resourceAssignment.getMappedPartitionIds();
           for (PartitionId partitionId : mappedPartitions) {
             raBuilder.addAssignments(partitionId, resourceAssignment.getReplicaMap(partitionId));
           }
@@ -315,7 +315,7 @@ public class ClusterStateVerifier {
         int extViewSize = extView.getRecord().getMapFields().size();
         int bestPossStateSize =
             bestPossOutput.getResourceAssignment(ResourceId.from(resourceName))
-                .getMappedPartitions().size();
+                .getMappedPartitionIds().size();
         if (extViewSize != bestPossStateSize) {
           LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
               + bestPossStateSize + ") for resource: " + resourceName);

@@ -39,7 +39,7 @@ public class Controller {
 
     if (liveInstance != null) {
       _runningInstance =
-          new RunningInstance(liveInstance.getSessionId(), liveInstance.getHelixVersion(),
+          new RunningInstance(liveInstance.getTypedSessionId(), liveInstance.getTypedHelixVersion(),
               liveInstance.getProcessId());
     } else {
       _runningInstance = null;

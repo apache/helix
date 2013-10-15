@@ -212,7 +212,7 @@ public class Quickstart {
   private static void printState(String msg) {
     System.out.println("CLUSTER STATE: " + msg);
     ExternalView resourceExternalView = admin.getResourceExternalView(CLUSTER_NAME, RESOURCE_NAME);
-    TreeSet<String> sortedSet = new TreeSet<String>(resourceExternalView.getPartitionStringSet());
+    TreeSet<String> sortedSet = new TreeSet<String>(resourceExternalView.getPartitionSet());
     StringBuilder sb = new StringBuilder("\t\t");
     for (int i = 0; i < NUM_NODES; i++) {
       sb.append(INSTANCE_CONFIG_LIST.get(i).getInstanceName()).append("\t");

@@ -96,7 +96,7 @@ public class Resource {
 
     Map<PartitionId, Message> innerMsgMap = new HashMap<PartitionId, Message>();
     if (idealState.getStateModelDefId().equalsIgnoreCase(StateModelDefId.SchedulerTaskQueue)) {
-      for (PartitionId partitionId : idealState.getPartitionSet()) {
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         // TODO refactor: scheduler-task-queue state model uses map-field to store inner-messages
         // this is different from all other state-models
         Map<String, String> innerMsgStrMap =

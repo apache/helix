@@ -38,6 +38,15 @@ public class Transition {
     _toState = toState;
   }
 
+  /**
+   * Instantiate with a source and destination state
+   * @param fromState source name
+   * @param toState destination name
+   */
+  public Transition(String fromState, String toState) {
+    this(State.from(fromState), State.from(toState));
+  }
+
   @Override
   public String toString() {
     return _fromState + "-" + _toState;
@@ -60,7 +69,7 @@ public class Transition {
    * Get the source state
    * @return source state name
    */
-  public State getFromState() {
+  public State getTypedFromState() {
     return _fromState;
   }
 
@@ -68,8 +77,24 @@ public class Transition {
    * Get the destination state
    * @return destination state name
    */
-  public State getToState() {
+  public State getTypedToState() {
     return _toState;
+  }
+
+  /**
+   * Get the source state
+   * @return source state name
+   */
+  public String getFromState() {
+    return _fromState.toString();
+  }
+
+  /**
+   * Get the destination state
+   * @return destination state name
+   */
+  public String getToState() {
+    return _toState.toString();
   }
 
   /**

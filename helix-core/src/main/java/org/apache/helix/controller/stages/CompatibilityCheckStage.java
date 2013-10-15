@@ -47,7 +47,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
     HelixManagerProperties properties = manager.getProperties();
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     for (LiveInstance liveInstance : liveInstanceMap.values()) {
-      HelixVersion version = liveInstance.getHelixVersion();
+      HelixVersion version = liveInstance.getTypedHelixVersion();
       String participantVersion = (version != null) ? version.toString() : null;
       if (!properties.isParticipantCompatible(participantVersion)) {
         String errorMsg =

@@ -195,7 +195,7 @@ public class TestResourceComputationStage extends BaseStageTest {
         .getRebalancerContext(RebalancerContext.class).getStateModelDefId(),
         currentState.getStateModelDefId());
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getSubUnitSet().size(), currentState
-        .getPartitionStateMap().size());
+        .getTypedPartitionStateMap().size());
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(
         PartitionId.from("testResourceOld_0")));
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(

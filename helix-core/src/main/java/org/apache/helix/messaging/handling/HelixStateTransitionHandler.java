@@ -96,7 +96,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
     PartitionId partitionId = _message.getPartitionId();
-    State fromState = _message.getFromState();
+    State fromState = _message.getTypedFromState();
 
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionId.stringify());
@@ -122,7 +122,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     PartitionId partitionId = _message.getPartitionId();
     ResourceId resource = _message.getResourceId();
-    SessionId sessionId = _message.getTgtSessionId();
+    SessionId sessionId = _message.getTypedTgtSessionId();
     String instanceName = _manager.getInstanceName();
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -135,15 +135,15 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // new session
     // sessionId might change when we update the state model state.
     // for zk current state it is OK as we have the per-session current state node
-    if (!_message.getTgtSessionId().stringify().equals(_manager.getSessionId())) {
+    if (!_message.getTypedTgtSessionId().stringify().equals(_manager.getSessionId())) {
       logger.warn("Session id has changed. Skip postExecutionMessage. Old session "
-          + _message.getExecutionSessionId() + " , new session : " + _manager.getSessionId());
+          + _message.getTypedExecutionSessionId() + " , new session : " + _manager.getSessionId());
       return;
     }
 
     if (taskResult.isSuccess()) {
       // String fromState = message.getFromState();
-      State toState = _message.getToState();
+      State toState = _message.getTypedToState();
       _currentStateDelta.setState(partitionId, toState);
 
       if (toState.toString().equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
@@ -181,7 +181,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
             // state in this case
             logger
                 .error("State transition interrupted but not timeout. Not updating state. Partition : "
-                    + _message.getPartitionId() + " MsgId : " + _message.getMsgId());
+                    + _message.getPartitionId() + " MsgId : " + _message.getMessageId());
             return;
           }
         }
@@ -190,7 +190,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
 
         // if we have errors transit from ERROR state, disable the partition
-        if (_message.getFromState().toString().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+        if (_message.getTypedFromState().toString().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();
         }
       }
@@ -229,7 +229,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
     HelixAdmin admin = _manager.getClusterManagmentTool();
     admin.enablePartition(false, clusterName, instanceName, resourceId.stringify(),
         Arrays.asList(partitionId.stringify()));
-    logger.info("error in transit from ERROR to " + _message.getToState() + " for partition: "
+    logger.info("error in transit from ERROR to " + _message.getTypedToState() + " for partition: "
         + partitionId + ". disable it on " + instanceName);
 
   }
@@ -288,8 +288,8 @@ public class HelixStateTransitionHandler extends MessageHandler {
 
     // by default, we invoke state transition function in state model
     Method methodToInvoke = null;
-    State fromState = message.getFromState();
-    State toState = message.getToState();
+    State fromState = message.getTypedFromState();
+    State toState = message.getTypedToState();
     methodToInvoke =
         _transitionMethodFinder.getMethodForTransition(_stateModel.getClass(),
             fromState.toString(), toState.toString(), new Class[] {
@@ -335,10 +335,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
         _stateModel.updateState(HelixDefinedState.ERROR.toString());
 
         // if transit from ERROR state, disable the partition
-        if (_message.getFromState().toString().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+        if (_message.getTypedFromState().toString().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();
         }
-        accessor.updateProperty(keyBuilder.currentState(instanceName, _message.getTgtSessionId()
+        accessor.updateProperty(keyBuilder.currentState(instanceName, _message.getTypedTgtSessionId()
             .stringify(), resourceId.stringify()), currentStateDelta);
       }
     } finally {

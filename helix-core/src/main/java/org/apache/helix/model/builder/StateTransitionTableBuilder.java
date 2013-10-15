@@ -126,8 +126,8 @@ public class StateTransitionTableBuilder {
     }
 
     for (Transition transition : transitions) {
-      State fromState = transition.getFromState();
-      State toState = transition.getToState();
+      State fromState = transition.getTypedFromState();
+      State toState = transition.getTypedToState();
       setPathVal(path, fromState.toString(), toState.toString(), 1);
       setNext(next, fromState.toString(), toState.toString(), toState.toString());
     }

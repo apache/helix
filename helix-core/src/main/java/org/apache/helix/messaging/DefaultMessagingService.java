@@ -161,7 +161,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
           List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
 
           for (LiveInstance liveInstance : liveInstances) {
-            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId()
+            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getTypedSessionId()
                 .stringify());
           }
         }
@@ -194,7 +194,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
     List<Message> messages = new ArrayList<Message>();
     MessageId id = MessageId.from(UUID.randomUUID().toString());
     Message newMessage = new Message(message.getRecord(), id);
-    newMessage.setMsgId(id);
+    newMessage.setMessageId(id);
     newMessage.setSrcName(_manager.getInstanceName());
     newMessage.setTgtName("Controller");
     messages.add(newMessage);

@@ -53,8 +53,8 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
         accessor.getChildValuesMap(accessor.keyBuilder().liveInstances());
 
     for (String instanceName : liveinstanceMap.keySet()) {
-      String sessionid = liveinstanceMap.get(instanceName).getSessionId().stringify();
-      for (String partition : ev.getPartitionStringSet()) {
+      String sessionid = liveinstanceMap.get(instanceName).getTypedSessionId().stringify();
+      for (String partition : ev.getPartitionSet()) {
         if (ev.getStateMap(partition).containsKey(instanceName)) {
           MessageId uuid = MessageId.from(UUID.randomUUID().toString());
           Message message = new Message(MessageType.STATE_TRANSITION, uuid);
@@ -85,7 +85,7 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
             message.setStateModelFactoryName("DEFAULT");
           }
           accessor.setProperty(
-              accessor.keyBuilder().message(instanceName, message.getMsgId().stringify()), message);
+              accessor.keyBuilder().message(instanceName, message.getMessageId().stringify()), message);
         }
       }
     }

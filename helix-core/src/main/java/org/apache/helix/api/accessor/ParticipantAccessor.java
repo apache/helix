@@ -277,7 +277,7 @@ public class ParticipantAccessor {
     for (ParticipantId participantId : resetParticipantIdSet) {
       for (ExternalView extView : extViews) {
         Set<PartitionId> resetPartitionIdSet = Sets.newHashSet();
-        for (PartitionId partitionId : extView.getPartitionSet()) {
+        for (PartitionId partitionId : extView.getPartitionIdSet()) {
           Map<ParticipantId, State> stateMap = extView.getStateMap(partitionId);
           if (stateMap.containsKey(participantId)
               && stateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR))) {
@@ -346,7 +346,7 @@ public class ParticipantAccessor {
     // make sure that there are no pending transition messages
     for (Message message : participant.getMessageMap().values()) {
       if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
-          || !runningInstance.getSessionId().equals(message.getTgtSessionId())
+          || !runningInstance.getSessionId().equals(message.getTypedTgtSessionId())
           || !resourceId.equals(message.getResourceId())
           || !resetPartitionIdSet.contains(message.getPartitionId())) {
         continue;
@@ -384,10 +384,10 @@ public class ParticipantAccessor {
       message.setTgtSessionId(runningInstance.getSessionId());
       message.setStateModelDef(stateModelDefId);
       message.setFromState(State.from(HelixDefinedState.ERROR.toString()));
-      message.setToState(stateModelDef.getInitialState());
+      message.setToState(stateModelDef.getTypedInitialState());
       message.setStateModelFactoryId(context.getStateModelFactoryId());
 
-      messageMap.put(message.getMsgId(), message);
+      messageMap.put(message.getMessageId(), message);
     }
 
     // send the messages
@@ -477,7 +477,7 @@ public class ParticipantAccessor {
       instanceConfig.addTag(tag);
     }
     for (PartitionId partitionId : participantConfig.getDisabledPartitions()) {
-      instanceConfig.setInstanceEnabledForPartition(partitionId, false);
+      instanceConfig.setParticipantEnabledForPartition(partitionId, false);
     }
     instanceConfig.setInstanceEnabled(participantConfig.isEnabled());
     instanceConfig.addNamespacedConfig(participantConfig.getUserConfig());
@@ -528,7 +528,7 @@ public class ParticipantAccessor {
     RunningInstance runningInstance = null;
     if (liveInstance != null) {
       runningInstance =
-          new RunningInstance(liveInstance.getSessionId(), liveInstance.getHelixVersion(),
+          new RunningInstance(liveInstance.getTypedSessionId(), liveInstance.getTypedHelixVersion(),
               liveInstance.getProcessId());
     }
 
@@ -574,7 +574,7 @@ public class ParticipantAccessor {
     Map<String, Message> instanceMsgMap = Collections.emptyMap();
     Map<String, CurrentState> instanceCurStateMap = Collections.emptyMap();
     if (liveInstance != null) {
-      SessionId sessionId = liveInstance.getSessionId();
+      SessionId sessionId = liveInstance.getTypedSessionId();
 
       instanceMsgMap = _accessor.getChildValuesMap(_keyBuilder.messages(participantName));
       instanceCurStateMap =
@@ -681,7 +681,7 @@ public class ParticipantAccessor {
    */
   protected void swapParticipantsInIdealState(IdealState idealState,
       ParticipantId oldParticipantId, ParticipantId newParticipantId) {
-    for (PartitionId partitionId : idealState.getPartitionSet()) {
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
       List<ParticipantId> oldPreferenceList = idealState.getPreferenceList(partitionId);
       if (oldPreferenceList != null) {
         List<ParticipantId> newPreferenceList = Lists.newArrayList();

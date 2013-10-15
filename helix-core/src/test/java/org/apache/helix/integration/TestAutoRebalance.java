@@ -270,7 +270,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       String stateModelDefName = idealState.getStateModelDefId().stringify();
       StateModelDefinition stateModelDef =
           accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
-      State masterValue = stateModelDef.getStatesPriorityList().get(0);
+      State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
       int replicas = Integer.parseInt(idealState.getReplicas());
 
       String instanceGroupTag = idealState.getInstanceGroupTag();

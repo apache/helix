@@ -66,7 +66,7 @@ public class MessagePoster {
     MessageId msgId = MessageId.from("TestMessageId-2");
 
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
-    message.setMsgId(msgId);
+    message.setMessageId(msgId);
     message.setSrcName(msgSrc);
     message.setTgtName(instanceName);
     message.setMsgState(MessageState.NEW);

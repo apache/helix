@@ -106,7 +106,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
             selectMessages(cache.getLiveInstances(),
                 currentStateOutput.getCurrentStateMap(resourceName, partition),
                 currentStateOutput.getPendingStateMap(resourceName, partition), messages,
-                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialStateString());
+                stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
@@ -171,8 +171,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
         new TreeMap<Integer, List<Message>>();
     for (Message message : messages) {
-      State fromState = message.getFromState();
-      State toState = message.getToState();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
       String transition = fromState + "-" + toState;
       int priority = Integer.MAX_VALUE;
 
@@ -189,8 +189,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
-        State fromState = message.getFromState();
-        State toState = message.getToState();
+        State fromState = message.getTypedFromState();
+        State toState = message.getTypedToState();
 
         if (!bounds.containsKey(fromState)) {
           LOG.error("Message's fromState is not in currentState. message: " + message);
@@ -241,7 +241,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
       IdealState idealState, ClusterDataCache cache) {
     Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
 
-    List<String> statePriorityList = stateModelDefinition.getStatesPriorityStringList();
+    List<String> statePriorityList = stateModelDefinition.getStatesPriorityList();
     for (String state : statePriorityList) {
       String numInstancesPerState = stateModelDefinition.getNumInstancesPerState(state);
       int max = -1;

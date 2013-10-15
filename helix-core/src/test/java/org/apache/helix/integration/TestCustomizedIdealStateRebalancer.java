@@ -78,7 +78,7 @@ public class TestCustomizedIdealStateRebalancer extends
       for (PartitionId partitionId : context.getPartitionSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
-        replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getStatesPriorityList()
+        replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getTypedStatesPriorityList()
             .get(0));
         resourceMapping.addReplicaMap(partitionId, replicaMap);
         i++;
@@ -113,12 +113,12 @@ public class TestCustomizedIdealStateRebalancer extends
         new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
-    Assert.assertEquals(ev.getPartitionStringSet().size(), 60);
-    for (String partition : ev.getPartitionStringSet()) {
+    Assert.assertEquals(ev.getPartitionSet().size(), 60);
+    for (String partition : ev.getPartitionSet()) {
       Assert.assertEquals(ev.getStateMap(partition).size(), 1);
     }
     IdealState is = accessor.getProperty(keyBuilder.idealState(db2));
-    for (PartitionId partition : is.getPartitionSet()) {
+    for (PartitionId partition : is.getPartitionIdSet()) {
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
       Assert.assertEquals(is.getParticipantStateMap(partition).size(), 0);
     }
@@ -148,7 +148,7 @@ public class TestCustomizedIdealStateRebalancer extends
         String stateModelDefName = idealState.getStateModelDefId().stringify();
         StateModelDefinition stateModelDef =
             accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
-        State masterValue = stateModelDef.getStatesPriorityList().get(0);
+        State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
         int replicas = Integer.parseInt(idealState.getReplicas());
         String instanceGroupTag = idealState.getInstanceGroupTag();
         int instances = 0;

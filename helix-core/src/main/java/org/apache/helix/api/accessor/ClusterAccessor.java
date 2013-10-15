@@ -372,7 +372,7 @@ public class ClusterAccessor {
         new HashMap<String, Map<String, CurrentState>>();
     for (String participantName : liveInstanceMap.keySet()) {
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
-      SessionId sessionId = liveInstance.getSessionId();
+      SessionId sessionId = liveInstance.getTypedSessionId();
       Map<String, CurrentState> instanceCurStateMap =
           _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
               sessionId.stringify()));
@@ -794,7 +794,7 @@ public class ClusterAccessor {
     }
     Set<PartitionId> disabledPartitions = participant.getDisabledPartitions();
     for (PartitionId partitionId : disabledPartitions) {
-      instanceConfig.setInstanceEnabledForPartition(partitionId, false);
+      instanceConfig.setParticipantEnabledForPartition(partitionId, false);
     }
     _accessor.setProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
     return true;

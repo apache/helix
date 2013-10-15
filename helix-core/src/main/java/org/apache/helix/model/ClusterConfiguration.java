@@ -29,10 +29,6 @@ import org.apache.helix.api.id.ClusterId;
  * Persisted configuration properties for a cluster
  */
 public class ClusterConfiguration extends HelixProperty {
-  private enum Fields {
-    WRITE_ID
-  }
-
   /**
    * Instantiate for an id
    * @param id cluster id

@@ -800,7 +800,7 @@ public class TestHelper {
     stateTransitionPriorityList.add("OFFLINE-IDLE");
     stateTransitionPriorityList.add("IDLE-OFFLINE");
     stateTransitionPriorityList.add("IDLE-DROPPED");
-    stateTransitionPriorityList.add("ERROR-IDLED");
+    stateTransitionPriorityList.add("ERROR-IDLE");
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
     return new StateModelDefinition(record);

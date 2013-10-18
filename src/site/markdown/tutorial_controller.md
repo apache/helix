@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Controller
+<head>
+  <title>Tutorial - Controller</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Controller
 
 Next, let\'s implement the controller.  This is the brain of the cluster.  Helix makes sure there is exactly one active controller running the cluster.
 

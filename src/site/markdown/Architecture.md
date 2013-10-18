@@ -17,7 +17,12 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Architecture</title>
+</head>
 
+Architecture
+----------------------------
 Helix aims to provide the following abilities to a distributed system:
 
 * Automatic management of a cluster hosting partitioned, replicated resources.

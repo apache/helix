@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Spectator
+<head>
+  <title>Tutorial - Spectator</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Spectator
 
 Next, we\'ll learn how to implement a Spectator.  Typically, a spectator needs to react to changes within the distributed system.  Examples: a client that needs to know where to send a request, a topic consumer in a consumer group.  The spectator is automatically informed of changes in the _external state_ of the cluster, but it does not have to add any code to keep track of other components in the system.
 

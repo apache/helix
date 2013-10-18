@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: YAML Cluster Setup
+<head>
+  <title>Tutorial - YAML Cluster Setup</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): YAML Cluster Setup
 
 As an alternative to using Helix Admin to set up the cluster, its resources, constraints, and the state model, Helix supports bootstrapping a cluster configuration based on a YAML file. Below is an annotated example of such a file for a simple distributed lock manager where a lock can only be LOCKED or RELEASED, and each lock only allows a single participant to hold it in the LOCKED state.
 

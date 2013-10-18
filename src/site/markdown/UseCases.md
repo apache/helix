@@ -17,6 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Use Cases</title>
+</head>
+
 
 # Use cases at LinkedIn
 

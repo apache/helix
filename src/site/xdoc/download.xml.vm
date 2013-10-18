@@ -110,7 +110,7 @@ under the License.
               <td>
                 <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.asc">asc</a>
                 <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.md5">md5</a>
-                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.zip.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.sha1">sha1</a>
               </td>
             </tr>
           </tbody>

@@ -190,6 +190,7 @@ under the License.
     <module>helix-agent</module>
     <module>helix-examples</module>
     <module>recipes</module>
+    <module>site-releases</module>
   </modules>
 
   <mailingLists>

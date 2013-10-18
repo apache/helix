@@ -17,6 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Quickstart</title>
+</head>
+
 Get Helix
 ---------
 
@@ -33,7 +37,7 @@ First, let\'s get Helix, either build it, or download.
 
 ### Download
 
-Download the 0.6.1-incubating release package [here](https://dist.apache.org/repos/dist/dev/incubator/helix/0.6.1-incubating/binaries/helix-core-0.6.1-incubating-pkg.tar) 
+Download the 0.6.1-incubating release package [here](./download.html) 
 
 Overview
 --------

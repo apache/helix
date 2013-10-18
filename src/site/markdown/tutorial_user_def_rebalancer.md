@@ -16,7 +16,12 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 -->
-# Tutorial: User-Defined Rebalancing
+
+<head>
+  <title>Tutorial - User-Defined Rebalancing</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): User-Defined Rebalancing
 
 Even though Helix can compute both the location and the state of replicas internally using a default fully-automatic rebalancer, specific applications may require rebalancing strategies that optimize for different requirements. Thus, Helix allows applications to plug in arbitrary rebalancer algorithms that implement a provided interface. One of the main design goals of Helix is to provide maximum flexibility to any distributed application. Thus, it allows applications to fully implement the rebalancer, which is the core constraint solver in the system, if the application developer so chooses.
 

@@ -17,6 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Home</title>
+</head>
+
 Navigating the Documentation
 ----------------------------
 
@@ -32,7 +36,7 @@ Navigating the Documentation
 
 [Tutorial](./Tutorial.html)
 
-[Javadocs](http://helix.incubator.apache.org/apidocs/index.html)
+[Javadocs](./apidocs/index.html)
 
 [IRC](./IRC.html)
 
@@ -49,6 +53,10 @@ Navigating the Documentation
 [Distributed Task DAG Execution](./recipes/task_dag_execution.html)
 
 [User-Defined Rebalancer Example](./recipes/user_def_rebalancer.html)
+
+### Download
+
+[Current Release](./download.html)
 
 
 What Is Helix
@@ -102,6 +110,7 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
     git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
     cd incubator-helix
+    git checkout tags/helix-0.6.1-incubating
     mvn install package -DskipTests
 ```
 

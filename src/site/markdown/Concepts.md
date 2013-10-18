@@ -17,6 +17,13 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Concepts</title>
+</head>
+
+Concepts
+----------------------------
+
 Helix is based on the idea that a given task has the following attributes associated with it:
 
 * _Location of the task_. For example it runs on Node N1

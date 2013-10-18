@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Application Property Store
+<head>
+  <title>Tutorial - Application Property Store</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Application Property Store
 
 In this chapter, we\'ll learn how to use the application property store.
 
@@ -27,4 +31,4 @@ It is common that an application needs support for distributed, shared data stru
 
 While you could use Zookeeper directly, Helix supports caching the data and a write-through cache. This is far more efficient than reading from Zookeeper for every access.
 
-See [HelixManager.getHelixPropertyStore](http://helix.incubator.apache.org/apidocs/reference/org/apache/helix/store/package-summary.html) for details.
+See [HelixManager.getHelixPropertyStore](./apidocs/reference/org/apache/helix/store/package-summary.html) for details.

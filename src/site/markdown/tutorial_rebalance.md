@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Rebalancing Algorithms
+<head>
+  <title>Tutorial - Rebalancing Algorithms</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Rebalancing Algorithms
 
 The placement of partitions in a distributed system is essential for the reliability and scalability of the system.  For example, when a node fails, it is important that the partitions hosted on that node are reallocated evenly among the remaining nodes. Consistent hashing is one such algorithm that can satisfy this guarantee.  Helix provides a variant of consistent hashing based on the RUSH algorithm, among others.
 

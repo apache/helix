@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Customizing Health Checks
+<head>
+  <title>Tutorial - Customizing Heath Checks</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Customizing Health Checks
 
 In this chapter, we\'ll learn how to customize the health check, based on metrics of your distributed system.  
 

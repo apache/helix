@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Messaging
+<head>
+  <title>Tutorial - Messaging</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Messaging
 
 In this chapter, we\'ll learn about messaging, a convenient feature in Helix for sending messages between nodes of a cluster.  This is an interesting feature which is quite useful in practice. It is common that nodes in a distributed system require a mechanism to interact with each other.  
 
@@ -63,5 +67,5 @@ System Admins can also perform ad-hoc tasks, such as on-demand backups or a syst
           requestBackupUriRequest, responseHandler, timeout);
 ```
 
-See HelixManager.DefaultMessagingService in [Javadocs](http://helix.incubator.apache.org/apidocs/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more info.
+See HelixManager.DefaultMessagingService in [Javadocs](./apidocs/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more info.
 

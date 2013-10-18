@@ -17,6 +17,13 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Features</title>
+</head>
+
+Features
+----------------------------
+
 
 ### CONFIGURING IDEALSTATE
 

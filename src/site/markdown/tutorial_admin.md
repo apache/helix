@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Admin Operations
+<head>
+  <title>Tutorial - Admin Operations</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Admin Operations
 
 Helix provides a set of admin api for cluster management operations. They are supported via:
 
@@ -26,7 +30,7 @@ Helix provides a set of admin api for cluster management operations. They are su
 * _REST interface via helix-admin-webapp_
 
 ### Java API
-See interface [_org.apache.helix.HelixAdmin_](http://helix.incubator.apache.org/apidocs/reference/org/apache/helix/HelixAdmin.html)
+See interface [_org.apache.helix.HelixAdmin_](./apidocs/reference/org/apache/helix/HelixAdmin.html)
 
 ### Command-line interface
 The command-line tool comes with helix-core package:

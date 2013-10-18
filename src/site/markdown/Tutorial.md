@@ -17,6 +17,10 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+<head>
+  <title>Tutorial</title>
+</head>
+
 # Helix Tutorial
 
 In this tutorial, we will cover the roles of a Helix-managed cluster, and show the code you need to write to integrate with it.  In many cases, there is a simple default behavior that is often appropriate, but you can also customize the behavior.
@@ -186,7 +190,7 @@ There are 3 assignment modes Helix can operate on
 * SEMI_AUTO: Application decides the placement but Helix decides the state of a partition.
 * CUSTOMIZED: Application controls the placement and state of a partition.
 
-For more info on the assignment modes, see [Rebalancing Algorithms](./tutorial_rebalance.html) of the tutorial.
+For more info on the assignment modes, see [Rebalancing Algorithms](./tutorial_rebalance.html) section of the tutorial.
 
 ```
     String RESOURCE_NAME = "MyDB";

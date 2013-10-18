@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Participant
+<head>
+  <title>Tutorial - Participant</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Participant
 
 In this chapter, we\'ll learn how to implement a Participant, which is a primary functional component of a distributed system.
 

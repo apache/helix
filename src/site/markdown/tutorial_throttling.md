@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: Throttling
+<head>
+  <title>Tutorial - Throttling</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): Throttling
 
 In this chapter, we\'ll learn how to control the parallel execution of cluster tasks.  Only a centralized cluster manager with global knowledge is capable of coordinating this decision.
 

@@ -17,7 +17,11 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Helix Tutorial: State Machine Configuration
+<head>
+  <title>Tutorial - State Machine Configuration</title>
+</head>
+
+# [Helix Tutorial](./Tutorial.html): State Machine Configuration
 
 In this chapter, we\'ll learn about the state models provided by Helix, and how to create your own custom state model.
 

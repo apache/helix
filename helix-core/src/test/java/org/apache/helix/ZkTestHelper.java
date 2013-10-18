@@ -43,9 +43,11 @@ import org.apache.helix.model.ExternalView;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
+import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.ZooKeeper.States;
+import org.testng.Assert;
 
 public class ZkTestHelper {
   private static Logger LOG = Logger.getLogger(ZkTestHelper.class);
@@ -53,6 +55,31 @@ public class ZkTestHelper {
   static {
     // Logger.getRootLogger().setLevel(Level.DEBUG);
   }
+
+  /**
+   * Simulate a zk state change by calling {@link ZkClient#process(WatchedEvent)} directly
+   */
+  public static void simulateZkStateDisconnected(ZkClient client) {
+    WatchedEvent event = new WatchedEvent(EventType.None, KeeperState.Disconnected, null);
+    client.process(event);
+  }
+
+  /**
+   * Get zk connection session id
+   * @param client
+   * @return
+   */
+  public static String getSessionId(ZkClient client) {
+    ZkConnection connection = ((ZkConnection) client.getConnection());
+    ZooKeeper curZookeeper = connection.getZookeeper();
+    return Long.toHexString(curZookeeper.getSessionId());
+  }
+
+  /**
+   * Expire current zk session and wait for {@link IZkStateListener#handleNewSession()} invoked
+   * @param zkClient
+   * @throws Exception
+   */
 
   public static void disconnectSession(final ZkClient zkClient) throws Exception {
     IZkStateListener listener = new IZkStateListener() {
@@ -103,12 +130,12 @@ public class ZkTestHelper {
   }
 
   public static void expireSession(final ZkClient zkClient) throws Exception {
-    final CountDownLatch waitExpire = new CountDownLatch(1);
+    final CountDownLatch waitNewSession = new CountDownLatch(1);
 
     IZkStateListener listener = new IZkStateListener() {
       @Override
       public void handleStateChanged(KeeperState state) throws Exception {
-        // System.err.println("handleStateChanged. state: " + state);
+        LOG.info("IZkStateListener#handleStateChanged, state: " + state);
       }
 
       @Override
@@ -120,7 +147,7 @@ public class ZkTestHelper {
         ZooKeeper curZookeeper = connection.getZookeeper();
 
         LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
-        waitExpire.countDown();
+        waitNewSession.countDown();
       }
     };
 
@@ -128,12 +155,13 @@ public class ZkTestHelper {
 
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());
     ZooKeeper curZookeeper = connection.getZookeeper();
-    LOG.info("Before expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+    String oldSessionId = Long.toHexString(curZookeeper.getSessionId());
+    LOG.info("Before session expiry. sessionId: " + oldSessionId + ", zk: " + curZookeeper);
 
     Watcher watcher = new Watcher() {
       @Override
       public void process(WatchedEvent event) {
-        LOG.info("Process watchEvent: " + event);
+        LOG.info("Watcher#process, event: " + event);
       }
     };
 
@@ -144,17 +172,21 @@ public class ZkTestHelper {
     while (dupZookeeper.getState() != States.CONNECTED) {
       Thread.sleep(10);
     }
+    Assert.assertEquals(dupZookeeper.getState(), States.CONNECTED,
+        "Fail to connect to zk using current session info");
     dupZookeeper.close();
 
     // make sure session expiry really happens
-    waitExpire.await();
+    waitNewSession.await();
     zkClient.unsubscribeStateChanges(listener);
 
     connection = (ZkConnection) zkClient.getConnection();
     curZookeeper = connection.getZookeeper();
 
-    // System.err.println("zk: " + oldZookeeper);
-    LOG.info("After expiry. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
+    String newSessionId = Long.toHexString(curZookeeper.getSessionId());
+    LOG.info("After session expiry. sessionId: " + newSessionId + ", zk: " + curZookeeper);
+    Assert.assertNotSame(newSessionId, oldSessionId, "Fail to expire current session, zk: "
+        + curZookeeper);
   }
 
   /**

@@ -19,6 +19,8 @@ package org.apache.helix.webapp;
  * under the License.
  */
 
+import java.util.logging.Level;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -52,13 +54,13 @@ import org.apache.helix.webapp.resources.ZkChildResource;
 import org.apache.helix.webapp.resources.ZkPathResource;
 import org.restlet.Application;
 import org.restlet.Context;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.Restlet;
-import org.restlet.Router;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.util.Template;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.routing.Router;
+import org.restlet.routing.Template;
 
 public class RestAdminApplication extends Application {
   public static final String HELP = "help";
@@ -66,6 +68,10 @@ public class RestAdminApplication extends Application {
   public static final String PORT = "port";
   public static final String ZKCLIENT = "zkClient";
   public static final int DEFAULT_PORT = 8100;
+
+  static {
+    org.restlet.engine.Engine.setLogLevel(Level.SEVERE);
+  }
 
   public RestAdminApplication() {
     super();
@@ -76,7 +82,7 @@ public class RestAdminApplication extends Application {
   }
 
   @Override
-  public Restlet createRoot() {
+  public Restlet createInboundRoot() {
     Router router = new Router(getContext());
     router.setDefaultMatchingMode(Template.MODE_EQUALS);
     router.attach("/clusters", ClustersResource.class);

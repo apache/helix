@@ -24,8 +24,8 @@ import java.io.IOException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
@@ -33,47 +33,24 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 
-public class StateModelResource extends Resource {
+public class StateModelResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(StateModelResource.class);
 
-  public StateModelResource(Context context, Request request, Response response) {
-    super(context, request, response);
+  public StateModelResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+    setNegotiated(false);
   }
 
   @Override
-  public boolean allowGet() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPost() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPut() {
-    return false;
-  }
-
-  @Override
-  public boolean allowDelete() {
-    return false;
-  }
-
-  @Override
-  public Representation represent(Variant variant) {
+  public Representation get() {
     StringRepresentation presentation = null;
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
@@ -106,7 +83,7 @@ public class StateModelResource extends Resource {
   }
 
   @Override
-  public void acceptRepresentation(Representation entity) {
+  public Representation post(Representation entity) {
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
@@ -136,5 +113,6 @@ public class StateModelResource extends Resource {
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in posting " + entity, e);
     }
+    return null;
   }
 }

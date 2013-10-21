@@ -27,46 +27,23 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 
-public class StatusUpdatesResource extends Resource {
+public class StatusUpdatesResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(StatusUpdatesResource.class);
 
-  public StatusUpdatesResource(Context context, Request request, Response response) {
-    super(context, request, response);
+  public StatusUpdatesResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+    setNegotiated(false);
   }
 
   @Override
-  public boolean allowGet() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPost() {
-    return false;
-  }
-
-  @Override
-  public boolean allowPut() {
-    return false;
-  }
-
-  @Override
-  public boolean allowDelete() {
-    return false;
-  }
-
-  @Override
-  public Representation represent(Variant variant) {
+  public Representation get() {
     StringRepresentation presentation = null;
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");

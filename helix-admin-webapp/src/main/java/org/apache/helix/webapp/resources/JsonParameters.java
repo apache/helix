@@ -33,7 +33,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.tools.ClusterSetup;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.data.Form;
-import org.restlet.resource.Representation;
+import org.restlet.representation.Representation;
 
 public class JsonParameters {
   // json parameter key

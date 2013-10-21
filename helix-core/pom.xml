@@ -46,7 +46,7 @@ under the License.
       org.apache.zookeeper*;version="[3.3,4)",
       org.codehaus.jackson*;version="[1.8,2)",
       org.josql*;version="[1.5,2)",
-      org.restlet;version="[1.1,2)",
+      org.restlet;version="[2.1.4,3]",
       *
     </osgi.import>
     <osgi.ignore>
@@ -137,13 +137,9 @@ under the License.
       <version>2.1</version>
     </dependency>
     <dependency>
-      <groupId>com.noelios.restlet</groupId>
-      <artifactId>com.noelios.restlet</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.restlet</groupId>
+      <groupId>org.restlet.jse</groupId>
       <artifactId>org.restlet</artifactId>
-      <version>1.1.10</version>
+      <version>2.1.4</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

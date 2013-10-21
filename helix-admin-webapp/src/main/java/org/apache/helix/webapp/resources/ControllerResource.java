@@ -41,43 +41,22 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.Context;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 
-public class ControllerResource extends Resource {
+public class ControllerResource extends ServerResource {
 
-  public ControllerResource(Context context, Request request, Response response)
-
+  public ControllerResource()
   {
-    super(context, request, response);
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-  }
-
-  @Override
-  public boolean allowGet() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPost() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPut() {
-    return false;
-  }
-
-  @Override
-  public boolean allowDelete() {
-    return false;
+    setNegotiated(false);
   }
 
   StringRepresentation getControllerRepresentation(String clusterName)
@@ -112,7 +91,7 @@ public class ControllerResource extends Resource {
   }
 
   @Override
-  public Representation represent(Variant variant) {
+  public Representation get() {
     StringRepresentation presentation = null;
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
@@ -126,7 +105,7 @@ public class ControllerResource extends Resource {
   }
 
   @Override
-  public void acceptRepresentation(Representation entity) {
+  public Representation post(Representation entity) {
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
@@ -156,5 +135,7 @@ public class ControllerResource extends Resource {
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
+    
+    return null;
   }
 }

@@ -35,8 +35,8 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
+import org.restlet.engine.util.Base64;
 
-import com.noelios.restlet.util.Base64;
 
 public class ZNRecordStreamingSerializer implements ZkSerializer {
   private static Logger LOG = Logger.getLogger(ZNRecordStreamingSerializer.class);

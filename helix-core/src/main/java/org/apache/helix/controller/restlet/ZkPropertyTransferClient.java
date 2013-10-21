@@ -30,17 +30,18 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.restlet.Client;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
 import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
 
 public class ZkPropertyTransferClient {
@@ -60,6 +61,10 @@ public class ZkPropertyTransferClient {
       new AtomicReference<ConcurrentHashMap<String, ZNRecordUpdate>>();
   Timer _timer;
   volatile String _webServiceUrl = "";
+
+  static {
+    org.restlet.engine.Engine.setLogLevel(Level.SEVERE);
+  }
 
   public ZkPropertyTransferClient(int maxConcurrentTasks) {
     _maxConcurrentTasks = maxConcurrentTasks;

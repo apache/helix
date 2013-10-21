@@ -22,7 +22,7 @@ package org.apache.helix.controller.restlet;
 import org.restlet.Application;
 import org.restlet.Context;
 import org.restlet.Restlet;
-import org.restlet.Router;
+import org.restlet.routing.Router;
 
 /**
  * Restlet application for ZkPropertyTransfer server
@@ -37,7 +37,7 @@ public class ZkPropertyTransferApplication extends Application {
   }
 
   @Override
-  public Restlet createRoot() {
+  public Restlet createInboundRoot() {
     Router router = new Router(getContext());
     router.attach("/" + ZKPropertyTransferServer.RESTRESOURCENAME, ZNRecordUpdateResource.class);
     return router;

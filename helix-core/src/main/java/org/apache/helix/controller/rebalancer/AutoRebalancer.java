@@ -82,28 +82,33 @@ public class AutoRebalancer implements Rebalancer {
         ConstraintBasedAssignment.stateCount(stateModelDef, liveInstance.size(),
             Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
+    List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resource.getResourceName(), partitions, stateCountMap);
 
     // If there are nodes tagged with resource name, use only those nodes
     Set<String> taggedNodes = new HashSet<String>();
+    Set<String> taggedLiveNodes = new HashSet<String>();
     if (currentIdealState.getInstanceGroupTag() != null) {
-      for (String instanceName : liveNodes) {
+      for (String instanceName : allNodes) {
         if (clusterData.getInstanceConfigMap().get(instanceName)
             .containsTag(currentIdealState.getInstanceGroupTag())) {
           taggedNodes.add(instanceName);
+          if (liveInstance.containsKey(instanceName)) {
+            taggedLiveNodes.add(instanceName);
+          }
         }
       }
     }
     if (taggedNodes.size() > 0) {
       if (LOG.isInfoEnabled()) {
         LOG.info("found the following instances with tag " + currentIdealState.getResourceName()
-            + " " + taggedNodes);
+            + " " + taggedLiveNodes);
       }
-      liveNodes = new ArrayList<String>(taggedNodes);
+      allNodes = new ArrayList<String>(taggedNodes);
+      liveNodes = new ArrayList<String>(taggedLiveNodes);
     }
 
-    List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
     if (LOG.isInfoEnabled()) {

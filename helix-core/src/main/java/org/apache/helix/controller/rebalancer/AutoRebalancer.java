@@ -111,6 +111,10 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
       liveNodes = new ArrayList<String>(taggedLiveNodes);
     }
 
+    // sort node lists to ensure consistent preferred assignments
+    Collections.sort(allNodes);
+    Collections.sort(liveNodes);
+
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
     if (LOG.isInfoEnabled()) {
@@ -142,7 +146,7 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
   /**
    * @return state count map: state->count
    */
-  private LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
+  public static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
       int liveNodesNb, int totalReplicas) {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();

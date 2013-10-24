@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -108,6 +109,10 @@ public class AutoRebalancer implements Rebalancer {
       allNodes = new ArrayList<String>(taggedNodes);
       liveNodes = new ArrayList<String>(taggedLiveNodes);
     }
+
+    // sort node lists to ensure consistent preferred assignments
+    Collections.sort(allNodes);
+    Collections.sort(liveNodes);
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 

@@ -31,12 +31,15 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.HelixTimerTask;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -46,6 +49,8 @@ import org.testng.annotations.Test;
  */
 
 public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+  private final static Logger LOG = Logger.getLogger(TestAlertFireHistory.class);
+
   String _statName = "TestStat@DB=db1";
   String _stat = "TestStat";
   String metricName1 = "TestMetric1";
@@ -57,8 +62,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
 
   void setHealthData(int[] val1, int[] val2) {
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      HelixManager manager = _startCMResultMap.get(instanceName)._manager;
+      HelixManager manager = _participants[i];
       ZNRecord record = new ZNRecord(_stat);
       Map<String, String> valMap = new HashMap<String, String>();
       valMap.put(metricName1, val1[i] + "");
@@ -74,13 +78,12 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted sleep", e);
     }
   }
 
   @Test
-  public void TestAlertDisable() throws InterruptedException {
+  public void testAlertDisable() throws InterruptedException {
 
     int[] metrics1 = {
         10, 15, 22, 24, 16
@@ -90,29 +93,27 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     };
     setHealthData(metrics1, metrics2);
 
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    HelixManager manager = _controller;
     manager.startTimerTasks();
 
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
 
-    // ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(CLUSTER_NAME).build();
     Map<String, String> properties = new HashMap<String, String>();
     properties.put("healthChange.enabled", "false");
     _setupTool.getClusterManagementTool().setConfig(scope, properties);
 
-    HealthStatsAggregator task =
-        new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    HealthStatsAggregator task = new HealthStatsAggregator(_controller);
+
     task.aggregate();
     Thread.sleep(100);
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
 
     AlertHistory history = manager.getHelixDataAccessor().getProperty(keyBuilder.alertHistory());
-    //
+
     Assert.assertEquals(history, null);
 
     properties.put("healthChange.enabled", "true");
@@ -128,7 +129,7 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test
-  public void TestAlertHistory() throws InterruptedException {
+  public void testAlertHistory() throws InterruptedException {
     int[] metrics1 = {
         10, 15, 22, 24, 16
     };
@@ -137,9 +138,10 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
     };
     setHealthData(metrics1, metrics2);
 
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
-    manager.stopTimerTasks();
+    HelixManager manager = _controller;
+    for (HelixTimerTask task : _controller.getControllerTimerTasks()) {
+      task.stop();
+    }
 
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr1);
     _setupTool.getClusterManagementTool().addAlert(CLUSTER_NAME, _alertStr2);
@@ -154,8 +156,8 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
       historySize = property.getRecord().getMapFields().size();
     }
 
-    HealthStatsAggregator task =
-        new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    HealthStatsAggregator task = new HealthStatsAggregator(_controller);
+
     task.aggregate();
     Thread.sleep(100);
 
@@ -421,3 +423,4 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
 }
+

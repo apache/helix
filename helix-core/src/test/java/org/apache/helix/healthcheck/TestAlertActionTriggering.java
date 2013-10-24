@@ -40,10 +40,13 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestAlertActionTriggering extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+  private static Logger LOG = Logger.getLogger(TestAlertActionTriggering.class);
+
   String _statName = "TestStat@DB=db1";
   String _stat = "TestStat";
   String metricName1 = "TestMetric1";
@@ -51,8 +54,7 @@ public class TestAlertActionTriggering extends ZkStandAloneCMTestBaseWithPropert
 
   void setHealthData(int[] val1, int[] val2) {
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      HelixManager manager = _startCMResultMap.get(instanceName)._manager;
+      HelixManager manager = _participants[i];
       ZNRecord record = new ZNRecord(_stat);
       Map<String, String> valMap = new HashMap<String, String>();
       valMap.put(metricName1, val1[i] + "");
@@ -68,15 +70,13 @@ public class TestAlertActionTriggering extends ZkStandAloneCMTestBaseWithPropert
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("sleep interrupted", e);
     }
   }
 
   void setHealthData2(int[] val1) {
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      HelixManager manager = _startCMResultMap.get(instanceName)._manager;
+      HelixManager manager = _participants[i];
       ZNRecord record = new ZNRecord(_stat);
       Map<String, String> valMap = new HashMap<String, String>();
       valMap.put(metricName2, val1[i] + "");
@@ -91,8 +91,7 @@ public class TestAlertActionTriggering extends ZkStandAloneCMTestBaseWithPropert
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("sleep interrupted", e);
     }
   }
 
@@ -127,11 +126,9 @@ public class TestAlertActionTriggering extends ZkStandAloneCMTestBaseWithPropert
     };
     setHealthData(metrics1, metrics2);
 
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    HelixManager manager = _controller;
 
-    HealthStatsAggregator task =
-        new HealthStatsAggregator(_startCMResultMap.get(controllerName)._manager);
+    HealthStatsAggregator task = new HealthStatsAggregator(manager);
     task.aggregate();
     Thread.sleep(4000);
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();

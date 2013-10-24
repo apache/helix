@@ -54,8 +54,6 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  */
 public interface HelixManager {
 
-  public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "ALLOW_PARTICIPANT_AUTO_JOIN";
-
   /**
    * Start participating in the cluster operations. All listeners will be
    * initialized and will be notified for every cluster state change This method
@@ -98,6 +96,7 @@ public interface HelixManager {
    * @param listener
    * @deprecated replaced by addInstanceConfigChangeListener()
    */
+  @Deprecated
   void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
 
   /**
@@ -149,6 +148,12 @@ public interface HelixManager {
    * Used in distributed cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
+
+  /**
+   * Add message listener for controller
+   * @param listener
+   */
+  void addControllerMessageListener(MessageListener listener);
 
   /**
    * Removes the listener. If the same listener was used for multiple changes,

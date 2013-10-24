@@ -254,4 +254,10 @@ public class DummyClusterManager implements HelixManager {
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public void addControllerMessageListener(MessageListener listener) {
+    // TODO Auto-generated method stub
+
+  }
 }

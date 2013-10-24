@@ -13,8 +13,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.LiveInstance;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.testng.Assert;
@@ -134,10 +134,11 @@ public class TestZkFlapping extends ZkUnitTestBase {
         "MasterSlave", false);
 
     final String instanceName = "localhost_12918";
-    MockParticipant participant = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
     participant.syncStart();
 
-    final ZkClient client = participant.getManager().getZkClient();
+    final ZkClient client = participant.getZkClient();
     final ZkStateCountListener listener = new ZkStateCountListener();
     client.subscribeStateChanges(listener);
 
@@ -212,10 +213,11 @@ public class TestZkFlapping extends ZkUnitTestBase {
         1, // replicas
         "MasterSlave", false);
 
-    ClusterController controller = new ClusterController(clusterName, "controller", ZK_ADDR);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
     controller.syncStart();
 
-    final ZkClient client = controller.getManager().getZkClient();
+    final ZkClient client = controller.getZkClient();
     final ZkStateCountListener listener = new ZkStateCountListener();
     client.subscribeStateChanges(listener);
 

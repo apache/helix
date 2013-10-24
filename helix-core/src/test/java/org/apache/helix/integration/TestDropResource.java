@@ -20,7 +20,7 @@ package org.apache.helix.integration;
  */
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -59,9 +59,8 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
 
     String hostToKill = "localhost_12920";
 
-    _startCMResultMap.get(hostToKill)._manager.disconnect();
+    _participants[2].syncStop();
     Thread.sleep(1000);
-    _startCMResultMap.get(hostToKill)._thread.interrupt();
 
     String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
     ClusterSetup.processCommandLineArgs(command.split(" "));
@@ -70,8 +69,8 @@ public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCh
         TestHelper.<String> setOf("localhost_12918", "localhost_12919",
         /* "localhost_12920", */"localhost_12921", "localhost_12922"), ZK_ADDR);
 
-    StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, hostToKill);
-    _startCMResultMap.put(hostToKill, result);
+    _participants[2] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, hostToKill);
+    _participants[2].syncStart();
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",

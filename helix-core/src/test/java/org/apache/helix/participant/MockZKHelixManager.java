@@ -261,4 +261,10 @@ public class MockZKHelixManager implements HelixManager {
     return null;
   }
 
+  @Override
+  public void addControllerMessageListener(MessageListener listener) {
+    // TODO Auto-generated method stub
+
+  }
+
 }

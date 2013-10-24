@@ -27,10 +27,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
+
 /**
  * A wrapper class for ZNRecord. Used as a base class for IdealState, CurrentState, etc.
  */
 public class HelixProperty {
+  private static Logger LOG = Logger.getLogger(HelixProperty.class);
+
   public enum HelixPropertyAttribute {
     BUCKET_SIZE,
     BATCH_MESSAGE_MODE
@@ -128,8 +132,7 @@ public class HelixProperty {
       });
       return constructor.newInstance(record);
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Exception convert znrecord: " + record + " to class: " + clazz, e);
     }
 
     return null;

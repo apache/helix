@@ -20,30 +20,31 @@ package org.apache.helix.agent;
  */
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.mock.controller.ClusterController;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestHelixAgent extends ZkUnitTestBase {
+  private final static Logger LOG = Logger.getLogger(TestHelixAgent.class);
+
   final String workingDir = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_SCRIPT_DIR;
   ExternalCommand serverCmd = null;
 
@@ -96,13 +97,9 @@ public class TestHelixAgent extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     // set cluster config
-    ZkClient client =
-        new ZkClient(zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
-            new ZNRecordSerializer());
-
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
-    ConfigAccessor configAccessor = new ConfigAccessor(client);
+    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
 
     // String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR +
     // "/default/foo_{PARTITION_NAME}_pid.txt";
@@ -150,10 +147,11 @@ public class TestHelixAgent extends ZkUnitTestBase {
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
     // start controller
-    ClusterController controller = new ClusterController(clusterName, "controller_0", zkAddr);
+    ClusterControllerManager controller = new ClusterControllerManager(zkAddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start helix-agent
+    Map<String, Thread> agents = new HashMap<String, Thread>();
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
       Thread agentThread = new Thread() {
@@ -165,11 +163,11 @@ public class TestHelixAgent extends ZkUnitTestBase {
                 "--stateModel", "MasterSlave"
             });
           } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOG.error("Exception start helix-agent", e);
           }
         }
       };
+      agents.put(instanceName, agentThread);
       agentThread.start();
 
       // wait participant thread to start
@@ -199,6 +197,11 @@ public class TestHelixAgent extends ZkUnitTestBase {
             clusterName));
     Assert.assertTrue(result);
 
+    // clean up
+    controller.syncStop();
+    for (Thread agentThread : agents.values()) {
+      agentThread.interrupt();
+    }
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }

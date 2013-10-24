@@ -45,7 +45,6 @@ import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -60,8 +59,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
-import org.apache.helix.participant.DistClusterControllerStateModelFactory;
-import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
@@ -126,7 +123,7 @@ public class TestHelper {
           try {
             zkClient.deleteRecursive(rootNamespace);
           } catch (Exception e) {
-            LOG.error("fail to deleteRecursive path:" + rootNamespace + "\nexception:" + e);
+            LOG.error("fail to deleteRecursive path:" + rootNamespace, e);
           }
         }
       }
@@ -147,90 +144,6 @@ public class TestHelper {
     }
   }
 
-  public static StartCMResult startDummyProcess(final String zkAddr, final String clusterName,
-      final String instanceName) throws Exception {
-    StartCMResult result = new StartCMResult();
-    ZkHelixTestManager manager = null;
-    manager = new ZkHelixTestManager(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
-    result._manager = manager;
-    Thread thread = new Thread(new DummyProcessThread(manager, instanceName));
-    result._thread = thread;
-    thread.start();
-
-    return result;
-  }
-
-  private static ZkHelixTestManager startHelixController(final String zkConnectString,
-      final String clusterName, final String controllerName, final String controllerMode) {
-    ZkHelixTestManager manager = null;
-    try {
-      if (controllerMode.equalsIgnoreCase(HelixControllerMain.STANDALONE)) {
-        manager =
-            new ZkHelixTestManager(clusterName, controllerName, InstanceType.CONTROLLER,
-                zkConnectString);
-        manager.connect();
-      } else if (controllerMode.equalsIgnoreCase(HelixControllerMain.DISTRIBUTED)) {
-        manager =
-            new ZkHelixTestManager(clusterName, controllerName,
-                InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
-
-        DistClusterControllerStateModelFactory stateModelFactory =
-            new DistClusterControllerStateModelFactory(zkConnectString);
-
-        StateMachineEngine stateMach = manager.getStateMachineEngine();
-        stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        manager.connect();
-      } else {
-        LOG.error("cluster controller mode:" + controllerMode + " NOT supported");
-      }
-    } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-
-    return manager;
-  }
-
-  // TODO refactor this
-  public static StartCMResult startController(final String clusterName,
-      final String controllerName, final String zkConnectString, final String controllerMode)
-      throws Exception {
-    final StartCMResult result = new StartCMResult();
-    final ZkHelixTestManager manager =
-        startHelixController(zkConnectString, clusterName, controllerName, controllerMode);
-    result._manager = manager;
-
-    Thread thread = new Thread(new Runnable() {
-      @Override
-      public void run() {
-        // ClusterManager manager = null;
-
-        try {
-
-          Thread.currentThread().join();
-        } catch (InterruptedException e) {
-          String msg =
-              "controller:" + controllerName + ", " + Thread.currentThread().getName()
-                  + " interrupted";
-          LOG.info(msg);
-          // System.err.println(msg);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
-      }
-    });
-
-    thread.start();
-    result._thread = thread;
-    return result;
-  }
-
-  public static class StartCMResult {
-    public Thread _thread;
-    public ZkHelixTestManager _manager;
-
-  }
-
   public static void setupEmptyCluster(ZkClient zkClient, String clusterName) {
     ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
     admin.addCluster(clusterName, true);
@@ -245,11 +158,6 @@ public class TestHelper {
     Set<T> set = new HashSet<T>(Arrays.asList(s));
     return set;
   }
-
-  // public static void verifyWithTimeout(String verifierName, Object... args)
-  // {
-  // verifyWithTimeout(verifierName, 30 * 1000, args);
-  // }
 
   /**
    * generic method for verification with a timeout
@@ -287,8 +195,7 @@ public class TestHelper {
 
       Assert.assertTrue(result);
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Exception in verify: " + verifierName, e);
     }
   }
 
@@ -309,7 +216,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String instanceName : instanceNames) {
@@ -392,7 +299,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String resGroupPartitionKey : stateMap.keySet()) {

@@ -29,10 +29,10 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -94,12 +94,8 @@ public class TestResetPartitionState extends AdminTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    // start admin thread
-    // AdminThread adminThread = new AdminThread(ZK_ADDR, _port);
-    // adminThread.start();
-
     // start controller
-    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
@@ -107,16 +103,16 @@ public class TestResetPartitionState extends AdminTestBase {
     errPartitions.put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
 
     // start mock participants
-    MockParticipant[] participants = new MockParticipant[n];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
         participants[i] =
-            new MockParticipant(clusterName, instanceName, ZK_ADDR,
-                new ErrTransition(errPartitions));
+            new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -170,9 +166,6 @@ public class TestResetPartitionState extends AdminTestBase {
     Assert.assertEquals(_errToOfflineInvoked.get(), 2, "reset() should be invoked 2 times");
 
     // clean up
-    // wait for all zk callbacks done
-    Thread.sleep(1000);
-    // adminThread.stop();
     controller.syncStop();
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
@@ -184,8 +177,7 @@ public class TestResetPartitionState extends AdminTestBase {
   private void clearStatusUpdate(String clusterName, String instance, String resource,
       String partition) {
     // clear status update for error partition so verify() will not fail on
-    // old
-    // errors
+    // old errors
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();

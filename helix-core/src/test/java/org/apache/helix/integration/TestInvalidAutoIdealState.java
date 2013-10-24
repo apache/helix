@@ -28,9 +28,9 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -40,6 +40,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
+import org.testng.annotations.Test;
 
 // Helix-50: integration test for generate message based on state priority
 public class TestInvalidAutoIdealState extends ZkUnitTestBase {
@@ -90,15 +91,16 @@ public class TestInvalidAutoIdealState extends ZkUnitTestBase {
     admin.setResourceIdealState(clusterName, "TestDB", idealState);
 
     // start participants
-    MockParticipant[] participants = new MockParticipant[n];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
     boolean result =
@@ -107,7 +109,7 @@ public class TestInvalidAutoIdealState extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // make sure localhost_12919 is master on TestDB_1
-    HelixDataAccessor accessor = controller.getManager().getHelixDataAccessor();
+    HelixDataAccessor accessor = controller.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView extView = accessor.getProperty(keyBuilder.externalView(db));
     Map<String, String> stateMap = extView.getStateMap(db + "_1");

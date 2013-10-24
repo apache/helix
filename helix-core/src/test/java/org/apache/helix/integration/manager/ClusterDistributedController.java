@@ -22,12 +22,15 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.DistributedControllerManager;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-public class ClusterDistributedController extends DistributedControllerManager implements Runnable,
+public class ClusterDistributedController extends ZKHelixManager implements Runnable,
     ZkTestManager {
   private static Logger LOG = Logger.getLogger(ClusterDistributedController.class);
 
@@ -36,7 +39,7 @@ public class ClusterDistributedController extends DistributedControllerManager i
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
   public ClusterDistributedController(String zkAddr, String clusterName, String controllerName) {
-    super(zkAddr, clusterName, controllerName);
+    super(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT, zkAddr);
   }
 
   public void syncStop() {
@@ -44,8 +47,7 @@ public class ClusterDistributedController extends DistributedControllerManager i
     try {
       _waitStopFinishCountDown.await();
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted waiting for finish", e);
     }
   }
 
@@ -55,14 +57,18 @@ public class ClusterDistributedController extends DistributedControllerManager i
     try {
       _startCountDown.await();
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted waiting for start", e);
     }
   }
 
   @Override
   public void run() {
     try {
+      StateMachineEngine stateMach = getStateMachineEngine();
+      DistClusterControllerStateModelFactory lsModelFactory =
+          new DistClusterControllerStateModelFactory(_zkAddress);
+      stateMach.registerStateModelFactory("LeaderStandby", lsModelFactory);
+
       connect();
       _startCountDown.countDown();
       _stopCountDown.await();

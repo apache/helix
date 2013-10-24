@@ -25,7 +25,7 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.mock.controller.ClusterController;
+import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -54,10 +54,10 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
     // rebalance
 
     // start controller
-    ClusterController[] controllers = new ClusterController[4];
+    ClusterControllerManager[] controllers = new ClusterControllerManager[4];
     for (int i = 0; i < 4; i++) {
-      controllers[i] = new ClusterController(clusterName, "controller_0", ZK_ADDR);
-      controllers[i].start();
+      controllers[i] = new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+      controllers[i].syncStart();
     }
 
     Thread.sleep(500); // wait leader election finishes
@@ -69,7 +69,6 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
     // clean up
     for (int i = 0; i < 4; i++) {
       controllers[i].syncStop();
-      Thread.sleep(1000); // wait for all zk callbacks done
     }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

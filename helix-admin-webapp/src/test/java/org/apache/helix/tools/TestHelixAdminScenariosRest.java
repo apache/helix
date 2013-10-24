@@ -19,24 +19,19 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-/*
- * Simulate all the admin tasks needed by using command line tool
- * 
- * */
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.TestHelper.StartCMResult;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.ClusterDistributedController;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -66,8 +61,10 @@ import org.restlet.resource.Representation;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+/**
+ * Simulate all the admin tasks needed by using command line tool
+ */
 public class TestHelixAdminScenariosRest extends AdminTestBase {
-  Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
   RestAdminApplication _adminApp;
   Component _component;
   String _tag1 = "tag1123";
@@ -90,55 +87,6 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     StringReader sr = new StringReader(jsonString);
     ObjectMapper mapper = new ObjectMapper();
     return mapper.readValue(sr, clazz);
-  }
-
-  @Test
-  public void testAddDeleteClusterAndInstanceAndResource() throws Exception {
-    // Helix bug helix-102
-    // ZKPropertyTransferServer.PERIOD = 500;
-    // ZkPropertyTransferClient.SEND_PERIOD = 500;
-    // ZKPropertyTransferServer.getInstance().init(19999, ZK_ADDR);
-
-    /** ======================= Add clusters ============================== */
-
-    testAddCluster();
-
-    /** ================= Add / drop some resources =========================== */
-
-    testAddResource();
-
-    /** ====================== Add / delete instances =========================== */
-
-    testAddInstance();
-
-    /** ===================== Rebalance resource =========================== */
-
-    testRebalanceResource();
-
-    /** ==================== start the clusters ============================= */
-
-    testStartCluster();
-
-    /** ==================== drop add resource in live clusters =================== */
-    testDropAddResource();
-
-    /** ======================Operations with live node ============================ */
-
-    testInstanceOperations();
-
-    /** ======================Operations with partitions ============================ */
-
-    testEnablePartitions();
-
-    /** ============================ expand cluster =========================== */
-
-    testExpandCluster();
-
-    /** ============================ deactivate cluster =========================== */
-    testDeactivateCluster();
-
-    // wait all zk callbacks done
-    Thread.sleep(1000);
   }
 
   static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters,
@@ -228,40 +176,45 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertTrue(exceptionThrown);
   }
 
+  private Map<String, String> addClusterCmd(String clusterName) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.CLUSTER_NAME, clusterName);
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addCluster);
+
+    return parameters;
+  }
+
+  private void addCluster(String clusterName) throws IOException {
+    String url = "http://localhost:" + ADMIN_PORT + "/clusters";
+    String response = assertSuccessPostOperation(url, addClusterCmd(clusterName), false);
+    Assert.assertTrue(response.contains(clusterName));
+  }
+
+  @Test
   public void testAddCluster() throws Exception {
     String url = "http://localhost:" + ADMIN_PORT + "/clusters";
-    Map<String, String> paraMap = new HashMap<String, String>();
 
     // Normal add
-    paraMap.put(JsonParameters.CLUSTER_NAME, "clusterTest");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addCluster);
-
-    String response = assertSuccessPostOperation(url, paraMap, false);
+    String response = assertSuccessPostOperation(url, addClusterCmd("clusterTest"), false);
     Assert.assertTrue(response.contains("clusterTest"));
 
     // malformed cluster name
-    paraMap.put(JsonParameters.CLUSTER_NAME, "/ClusterTest");
-    response = assertSuccessPostOperation(url, paraMap, true);
+    response = assertSuccessPostOperation(url, addClusterCmd("/ClusterTest"), true);
 
     // Add the grand cluster
-    paraMap.put(JsonParameters.CLUSTER_NAME, "Klazt3rz");
-    response = assertSuccessPostOperation(url, paraMap, false);
+    response = assertSuccessPostOperation(url, addClusterCmd("Klazt3rz"), false);
     Assert.assertTrue(response.contains("Klazt3rz"));
 
-    paraMap.put(JsonParameters.CLUSTER_NAME, "\\ClusterTest");
-    response = assertSuccessPostOperation(url, paraMap, false);
+    response = assertSuccessPostOperation(url, addClusterCmd("\\ClusterTest"), false);
     Assert.assertTrue(response.contains("\\ClusterTest"));
 
     // Add already exist cluster
-    paraMap.put(JsonParameters.CLUSTER_NAME, "clusterTest");
-    response = assertSuccessPostOperation(url, paraMap, true);
+    response = assertSuccessPostOperation(url, addClusterCmd("clusterTest"), true);
 
     // delete cluster without resource and instance
     Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _gZkClient));
     Assert.assertTrue(ZKUtil.isClusterSetup("clusterTest", _gZkClient));
     Assert.assertTrue(ZKUtil.isClusterSetup("\\ClusterTest", _gZkClient));
-
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.dropCluster);
 
     String clusterUrl = getClusterUrl("\\ClusterTest");
     deleteUrl(clusterUrl, false);
@@ -286,94 +239,180 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
     Assert.assertFalse(_gZkClient.exists("/clusterTestOK"));
 
-    paraMap.put(JsonParameters.CLUSTER_NAME, "clusterTest1");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addCluster);
-    response = assertSuccessPostOperation(url, paraMap, false);
+    response = assertSuccessPostOperation(url, addClusterCmd("clusterTest1"), false);
     response = getUrl(clustersUrl);
     Assert.assertTrue(response.contains("clusterTest1"));
   }
 
+  private Map<String, String> addResourceCmd(String resourceName, String stateModelDef,
+      int partition) {
+    Map<String, String> parameters = new HashMap<String, String>();
+
+    parameters.put(JsonParameters.RESOURCE_GROUP_NAME, resourceName);
+    parameters.put(JsonParameters.STATE_MODEL_DEF_REF, stateModelDef);
+    parameters.put(JsonParameters.PARTITIONS, "" + partition);
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
+
+    return parameters;
+  }
+
+  private void addResource(String clusterName, String resourceName, int partitions)
+      throws IOException {
+    final String reourcesUrl =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
+    String response =
+        assertSuccessPostOperation(reourcesUrl,
+            addResourceCmd(resourceName, "MasterSlave", partitions), false);
+    Assert.assertTrue(response.contains(resourceName));
+  }
+
+  @Test
   public void testAddResource() throws Exception {
-    String reourcesUrl = "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
+    final String clusterName = "clusterTestAddResource";
+    addCluster(clusterName);
 
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_22");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
-    paraMap.put(JsonParameters.PARTITIONS, "144");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
-
-    String response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    String reourcesUrl =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
+    String response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_22", "MasterSlave", 144), false);
     Assert.assertTrue(response.contains("db_22"));
 
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_11");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
-    paraMap.put(JsonParameters.PARTITIONS, "44");
-
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_11", "MasterSlave", 44), false);
     Assert.assertTrue(response.contains("db_11"));
 
     // Add duplicate resource
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_22");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "OnlineOffline");
-    paraMap.put(JsonParameters.PARTITIONS, "55");
-
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, true);
+    response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_22", "OnlineOffline", 55), true);
 
     // drop resource now
-    String resourceUrl = getResourceUrl("clusterTest1", "db_11");
+    String resourceUrl = getResourceUrl(clusterName, "db_11");
     deleteUrl(resourceUrl, false);
-    Assert.assertFalse(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
+    Assert.assertFalse(_gZkClient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
 
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_11");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
-    paraMap.put(JsonParameters.PARTITIONS, "44");
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_11", "MasterSlave", 44), false);
     Assert.assertTrue(response.contains("db_11"));
 
-    Assert.assertTrue(_gZkClient.exists("/clusterTest1/IDEALSTATES/db_11"));
+    Assert.assertTrue(_gZkClient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
 
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_33");
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_33", "MasterSlave", 44), false);
     Assert.assertTrue(response.contains("db_33"));
 
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_44");
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_44", "MasterSlave", 44), false);
     Assert.assertTrue(response.contains("db_44"));
   }
 
-  private void testDeactivateCluster() throws Exception, InterruptedException {
-    HelixDataAccessor accessor;
-    String path;
+  private Map<String, String> activateClusterCmd(String grandClusterName, boolean enabled) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.GRAND_CLUSTER, grandClusterName);
+    parameters.put(JsonParameters.ENABLED, "" + enabled);
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.activateCluster);
+
+    return parameters;
+  }
+
+  @Test
+  public void testDeactivateCluster() throws Exception {
+    final String clusterName = "clusterTestDeactivateCluster";
+    final String controllerClusterName = "controllerClusterTestDeactivateCluster";
+
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    Map<String, ClusterDistributedController> distControllers =
+        new HashMap<String, ClusterDistributedController>();
+
+    // setup cluster
+    addCluster(clusterName);
+    addInstancesToCluster(clusterName, "localhost:123", 6, null);
+    addResource(clusterName, "db_11", 16);
+    rebalanceResource(clusterName, "db_11");
+
+    addCluster(controllerClusterName);
+    addInstancesToCluster(controllerClusterName, "controller_900", 2, null);
+
+    // start mock nodes
+    for (int i = 0; i < 6; i++) {
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
+    }
+
+    // start controller nodes
+    for (int i = 0; i < 2; i++) {
+      String controllerName = "controller_900" + i;
+      ClusterDistributedController distController =
+          new ClusterDistributedController(ZK_ADDR, controllerClusterName, controllerName);
+      distController.syncStart();
+      distControllers.put(controllerName, distController);
+    }
+
+    String clusterUrl = getClusterUrl(clusterName);
+
+    // activate cluster
+    assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, true), false);
+    boolean verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            controllerClusterName));
+    Assert.assertTrue(verifyResult);
+
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(verifyResult);
+
     // deactivate cluster
-    String clusterUrl = getClusterUrl("clusterTest1");
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.ENABLED, "false");
-    paraMap.put(JsonParameters.GRAND_CLUSTER, "Klazt3rz");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.activateCluster);
-
-    String response = assertSuccessPostOperation(clusterUrl, paraMap, false);
+    assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, false), false);
     Thread.sleep(6000);
-    Assert.assertFalse(_gZkClient.exists("/Klazt3rz/IDEALSTATES/clusterTest1"));
+    Assert.assertFalse(_gZkClient.exists("/" + controllerClusterName + "/IDEALSTATES/"
+        + clusterName));
 
-    accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
-    path = accessor.keyBuilder().controllerLeader().getPath();
+    HelixDataAccessor accessor = participants.get("localhost_1231").getHelixDataAccessor();
+    String path = accessor.keyBuilder().controllerLeader().getPath();
     Assert.assertFalse(_gZkClient.exists(path));
 
     deleteUrl(clusterUrl, true);
+    Assert.assertTrue(_gZkClient.exists("/" + clusterName));
 
-    Assert.assertTrue(_gZkClient.exists("/clusterTest1"));
     // leader node should be gone
-    for (StartCMResult result : _startCMResultMap.values()) {
-      result._manager.disconnect();
-      result._thread.interrupt();
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
     }
     deleteUrl(clusterUrl, false);
 
-    Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
+    Assert.assertFalse(_gZkClient.exists("/" + clusterName));
+
+    // clean up
+    for (ClusterDistributedController controller : distControllers.values()) {
+      controller.syncStop();
+    }
+
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testDropAddResource() throws Exception {
-    ZNRecord record = _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
+  private Map<String, String> addIdealStateCmd() {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addIdealState);
+
+    return parameters;
+  }
+
+  @Test
+  public void testDropAddResource() throws Exception {
+    final String clusterName = "clusterTestDropAddResource";
+
+    // setup cluster
+    addCluster(clusterName);
+    addResource(clusterName, "db_11", 22);
+    addInstancesToCluster(clusterName, "localhost_123", 6, null);
+    rebalanceResource(clusterName, "db_11");
+    ZNRecord record = _gSetupTool._admin.getResourceIdealState(clusterName, "db_11").getRecord();
     String x = ObjectToJson(record);
 
     FileWriter fos = new FileWriter("/tmp/temp.log");
@@ -381,217 +420,370 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     pw.write(x);
     pw.close();
 
-    String resourceUrl = getResourceUrl("clusterTest1", "db_11");
-    deleteUrl(resourceUrl, false);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+    controller.syncStart();
 
+    // start mock nodes
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    for (int i = 0; i < 6; i++) {
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
+    }
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
     Assert.assertTrue(verifyResult);
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_11");
-    paraMap.put(JsonParameters.PARTITIONS, "22");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
-    String response =
-        assertSuccessPostOperation(getClusterUrl("clusterTest1") + "/resourceGroups", paraMap,
-            false);
 
-    String idealStateUrl = getResourceUrl("clusterTest1", "db_11") + "/idealState";
-    Assert.assertTrue(response.contains("db_11"));
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addIdealState);
-    Map<String, String> extraform = new HashMap<String, String>();
-    extraform.put(JsonParameters.NEW_IDEAL_STATE, x);
-    response = assertSuccessPostOperation(idealStateUrl, paraMap, extraform, false);
+    String resourceUrl = getResourceUrl(clusterName, "db_11");
+    deleteUrl(resourceUrl, false);
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
+    Assert.assertTrue(verifyResult);
+    addResource(clusterName, "db_11", 22);
+
+    String idealStateUrl = getResourceUrl(clusterName, "db_11") + "/idealState";
+    Map<String, String> extraform = new HashMap<String, String>();
+    extraform.put(JsonParameters.NEW_IDEAL_STATE, x);
+    assertSuccessPostOperation(idealStateUrl, addIdealStateCmd(), extraform, false);
+
+    verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
     Assert.assertTrue(verifyResult);
 
-    ZNRecord record2 =
-        _gSetupTool._admin.getResourceIdealState("clusterTest1", "db_11").getRecord();
+    ZNRecord record2 = _gSetupTool._admin.getResourceIdealState(clusterName, "db_11").getRecord();
     Assert.assertTrue(record2.equals(record));
+
+    // clean up
+    controller.syncStop();
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testExpandCluster() throws Exception {
-    boolean verifyResult;
+  private Map<String, String> addInstanceCmd(String instances) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.INSTANCE_NAMES, instances);
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
 
-    String clusterUrl = getClusterUrl("clusterTest1");
+    return parameters;
+  }
+
+  private Map<String, String> expandClusterCmd() {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.expandCluster);
+
+    return parameters;
+  }
+
+  @Test
+  public void testExpandCluster() throws Exception {
+
+    final String clusterName = "clusterTestExpandCluster";
+
+    // setup cluster
+    addCluster(clusterName);
+    addInstancesToCluster(clusterName, "localhost:123", 6, null);
+    addResource(clusterName, "db_11", 22);
+    rebalanceResource(clusterName, "db_11");
+
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+    controller.syncStart();
+
+    // start mock nodes
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    for (int i = 0; i < 6; i++) {
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
+    }
+
+    boolean verifyResult =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(verifyResult);
+
+    String clusterUrl = getClusterUrl(clusterName);
     String instancesUrl = clusterUrl + "/instances";
 
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.INSTANCE_NAMES,
-        "localhost:12331;localhost:12341;localhost:12351;localhost:12361");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
-
-    String response = assertSuccessPostOperation(instancesUrl, paraMap, false);
-    String[] hosts = "localhost:12331;localhost:12341;localhost:12351;localhost:12361".split(";");
+    String instances = "localhost:12331;localhost:12341;localhost:12351;localhost:12361";
+    String response = assertSuccessPostOperation(instancesUrl, addInstanceCmd(instances), false);
+    String[] hosts = instances.split(";");
     for (String host : hosts) {
       Assert.assertTrue(response.contains(host.replace(':', '_')));
     }
-    paraMap.clear();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.expandCluster);
-    response = assertSuccessPostOperation(clusterUrl, paraMap, false);
+
+    response = assertSuccessPostOperation(clusterUrl, expandClusterCmd(), false);
 
     for (int i = 3; i <= 6; i++) {
-      StartCMResult result =
-          TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_123" + i + "1");
-      _startCMResultMap.put("localhost_123" + i + "1", result);
+      String instanceName = "localhost_123" + i + "1";
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
     }
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-            "clusterTest1"));
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
     Assert.assertTrue(verifyResult);
+
+    // clean up
+    controller.syncStop();
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testEnablePartitions() throws IOException, InterruptedException {
-    HelixDataAccessor accessor;
-    accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
+  private Map<String, String> enablePartitionCmd(String resourceName, String partitions,
+      boolean enabled) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enablePartition);
+    parameters.put(JsonParameters.ENABLED, "" + enabled);
+    parameters.put(JsonParameters.PARTITION, partitions);
+    parameters.put(JsonParameters.RESOURCE, resourceName);
+
+    return parameters;
+  }
+
+  @Test
+  public void testEnablePartitions() throws IOException, InterruptedException {
+    final String clusterName = "clusterTestEnablePartitions";
+
+    // setup cluster
+    addCluster(clusterName);
+    addInstancesToCluster(clusterName, "localhost:123", 6, null);
+    addResource(clusterName, "db_11", 22);
+    rebalanceResource(clusterName, "db_11");
+
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+    controller.syncStart();
+
+    // start mock nodes
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    for (int i = 0; i < 6; i++) {
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
+    }
+
+    HelixDataAccessor accessor = participants.get("localhost_1231").getHelixDataAccessor();
     // drop node should fail as not disabled
     String hostName = "localhost_1231";
-    String instanceUrl = getInstanceUrl("clusterTest1", hostName);
+    String instanceUrl = getInstanceUrl(clusterName, hostName);
     ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
 
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enablePartition);
-    paraMap.put(JsonParameters.ENABLED, "false");
-    paraMap.put(JsonParameters.PARTITION, "db_11_0;db_11_15");
-    paraMap.put(JsonParameters.RESOURCE, "db_11");
-
-    String response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    String response =
+        assertSuccessPostOperation(instanceUrl,
+            enablePartitionCmd("db_11", "db_11_0;db_11_11", false), false);
     Assert.assertTrue(response.contains("DISABLED_PARTITION"));
     Assert.assertTrue(response.contains("db_11_0"));
-    Assert.assertTrue(response.contains("db_11_15"));
+    Assert.assertTrue(response.contains("db_11_11"));
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
     Assert.assertTrue(verifyResult);
 
     ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
     Assert.assertEquals(ev.getStateMap("db_11_0").get(hostName), "OFFLINE");
-    Assert.assertEquals(ev.getStateMap("db_11_15").get(hostName), "OFFLINE");
+    Assert.assertEquals(ev.getStateMap("db_11_11").get(hostName), "OFFLINE");
 
-    paraMap.put(JsonParameters.ENABLED, "true");
-    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(instanceUrl,
+            enablePartitionCmd("db_11", "db_11_0;db_11_11", true), false);
     Assert.assertFalse(response.contains("db_11_0"));
-    Assert.assertFalse(response.contains("db_11_15"));
+    Assert.assertFalse(response.contains("db_11_11"));
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
     Assert.assertTrue(verifyResult);
 
     ev = accessor.getProperty(accessor.keyBuilder().externalView("db_11"));
     Assert.assertEquals(ev.getStateMap("db_11_0").get(hostName), "MASTER");
-    Assert.assertEquals(ev.getStateMap("db_11_15").get(hostName), "SLAVE");
+    Assert.assertEquals(ev.getStateMap("db_11_11").get(hostName), "SLAVE");
+
+    // clean up
+    controller.syncStop();
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testInstanceOperations() throws Exception {
+  private Map<String, String> enableInstanceCmd(boolean enabled) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enableInstance);
+    parameters.put(JsonParameters.ENABLED, "" + enabled);
+    return parameters;
+  }
+
+  private Map<String, String> swapInstanceCmd(String oldInstance, String newInstance) {
+    Map<String, String> parameters = new HashMap<String, String>();
+
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.swapInstance);
+    parameters.put(JsonParameters.OLD_INSTANCE, oldInstance);
+    parameters.put(JsonParameters.NEW_INSTANCE, newInstance);
+
+    return parameters;
+  }
+
+  @Test
+  public void testInstanceOperations() throws Exception {
+    final String clusterName = "clusterTestInstanceOperations";
+
+    // setup cluster
+    addCluster(clusterName);
+    addInstancesToCluster(clusterName, "localhost:123", 6, null);
+    addResource(clusterName, "db_11", 8);
+    rebalanceResource(clusterName, "db_11");
+
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+    controller.syncStart();
+
+    // start mock nodes
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    for (int i = 0; i < 6; i++) {
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
+    }
+
     HelixDataAccessor accessor;
     // drop node should fail as not disabled
-    String instanceUrl = getInstanceUrl("clusterTest1", "localhost_1232");
+    String instanceUrl = getInstanceUrl(clusterName, "localhost_1232");
     deleteUrl(instanceUrl, true);
 
     // disabled node
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enableInstance);
-    paraMap.put(JsonParameters.ENABLED, "false");
-    String response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    String response = assertSuccessPostOperation(instanceUrl, enableInstanceCmd(false), false);
     Assert.assertTrue(response.contains("false"));
 
     // Cannot drop / swap
     deleteUrl(instanceUrl, true);
 
-    String instancesUrl = getClusterUrl("clusterTest1") + "/instances";
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.swapInstance);
-    paraMap.put(JsonParameters.OLD_INSTANCE, "localhost_1232");
-    paraMap.put(JsonParameters.NEW_INSTANCE, "localhost_12320");
-    response = assertSuccessPostOperation(instancesUrl, paraMap, true);
+    String instancesUrl = getClusterUrl(clusterName) + "/instances";
+    response =
+        assertSuccessPostOperation(instancesUrl,
+            swapInstanceCmd("localhost_1232", "localhost_12320"), true);
 
     // disconnect the node
-    _startCMResultMap.get("localhost_1232")._manager.disconnect();
-    _startCMResultMap.get("localhost_1232")._thread.interrupt();
+    participants.get("localhost_1232").syncStop();
 
     // add new node then swap instance
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
-    paraMap.put(JsonParameters.INSTANCE_NAME, "localhost_12320");
-    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+    response = assertSuccessPostOperation(instancesUrl, addInstanceCmd("localhost_12320"), false);
     Assert.assertTrue(response.contains("localhost_12320"));
 
     // swap instance. The instance get swapped out should not exist anymore
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.swapInstance);
-    paraMap.put(JsonParameters.OLD_INSTANCE, "localhost_1232");
-    paraMap.put(JsonParameters.NEW_INSTANCE, "localhost_12320");
-    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+    response =
+        assertSuccessPostOperation(instancesUrl,
+            swapInstanceCmd("localhost_1232", "localhost_12320"), false);
     Assert.assertTrue(response.contains("localhost_12320"));
     Assert.assertFalse(response.contains("localhost_1232\""));
 
-    accessor = _startCMResultMap.get("localhost_1231")._manager.getHelixDataAccessor();
+    accessor = participants.get("localhost_1231").getHelixDataAccessor();
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
     Assert.assertFalse(_gZkClient.exists(path));
 
-    _startCMResultMap.put("localhost_12320",
-        TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_12320"));
+    MockParticipantManager newParticipant =
+        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12320");
+    newParticipant.syncStart();
+    participants.put("localhost_12320", newParticipant);
+
+    boolean verifyResult =
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+    Assert.assertTrue(verifyResult);
+
+    // clean up
+    controller.syncStop();
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testStartCluster() throws Exception, InterruptedException {
+  @Test
+  public void testStartCluster() throws Exception {
+    final String clusterName = "clusterTestStartCluster";
+    final String controllerClusterName = "controllerClusterTestStartCluster";
+
+    Map<String, MockParticipantManager> participants =
+        new HashMap<String, MockParticipantManager>();
+    Map<String, ClusterDistributedController> distControllers =
+        new HashMap<String, ClusterDistributedController>();
+
+    // setup cluster
+    addCluster(clusterName);
+    addInstancesToCluster(clusterName, "localhost:123", 6, null);
+    addResource(clusterName, "db_11", 8);
+    rebalanceResource(clusterName, "db_11");
+
+    addCluster(controllerClusterName);
+    addInstancesToCluster(controllerClusterName, "controller_900", 2, null);
+
     // start mock nodes
     for (int i = 0; i < 6; i++) {
-      StartCMResult result =
-          TestHelper.startDummyProcess(ZK_ADDR, "clusterTest1", "localhost_123" + i);
-      _startCMResultMap.put("localhost_123" + i, result);
+      String instanceName = "localhost_123" + i;
+      MockParticipantManager participant =
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participant.syncStart();
+      participants.put(instanceName, participant);
     }
 
     // start controller nodes
     for (int i = 0; i < 2; i++) {
-      StartCMResult result =
-          TestHelper.startController("Klazt3rz", "controller_900" + i, ZK_ADDR,
-              HelixControllerMain.DISTRIBUTED);
-
-      _startCMResultMap.put("controller_900" + i, result);
+      String controllerName = "controller_900" + i;
+      ClusterDistributedController distController =
+          new ClusterDistributedController(ZK_ADDR, controllerClusterName, controllerName);
+      distController.syncStart();
+      distControllers.put(controllerName, distController);
     }
     Thread.sleep(100);
 
     // activate clusters
     // wrong grand clustername
-
-    String clusterUrl = getClusterUrl("clusterTest1");
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.ENABLED, "true");
-    paraMap.put(JsonParameters.GRAND_CLUSTER, "Klazters");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.activateCluster);
-
-    String response = assertSuccessPostOperation(clusterUrl, paraMap, true);
+    String clusterUrl = getClusterUrl(clusterName);
+    assertSuccessPostOperation(clusterUrl, activateClusterCmd("nonExistCluster", true), true);
 
     // wrong cluster name
-    clusterUrl = getClusterUrl("clusterTest2");
-    paraMap.put(JsonParameters.GRAND_CLUSTER, "Klazt3rz");
-    response = assertSuccessPostOperation(clusterUrl, paraMap, true);
+    clusterUrl = getClusterUrl("nonExistCluster");
+    assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, true), true);
 
-    paraMap.put(JsonParameters.ENABLED, "true");
-    paraMap.put(JsonParameters.GRAND_CLUSTER, "Klazt3rz");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.activateCluster);
-    clusterUrl = getClusterUrl("clusterTest1");
-    response = assertSuccessPostOperation(clusterUrl, paraMap, false);
+    clusterUrl = getClusterUrl(clusterName);
+    assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, true), false);
     Thread.sleep(500);
 
     deleteUrl(clusterUrl, true);
 
     // verify leader node
-    HelixDataAccessor accessor =
-        _startCMResultMap.get("controller_9001")._manager.getHelixDataAccessor();
+    HelixDataAccessor accessor = distControllers.get("controller_9001").getHelixDataAccessor();
     LiveInstance controllerLeader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
     Assert.assertTrue(controllerLeader.getInstanceName().startsWith("controller_900"));
 
-    accessor = _startCMResultMap.get("localhost_1232")._manager.getHelixDataAccessor();
+    accessor = participants.get("localhost_1232").getHelixDataAccessor();
     LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
     for (int i = 0; i < 5; i++) {
       if (leader != null) {
@@ -603,81 +795,98 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertTrue(leader.getInstanceName().startsWith("controller_900"));
 
     boolean verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR,
-            "clusterTest1"));
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            "clusterTest1"));
+            clusterName));
     Assert.assertTrue(verifyResult);
+    Thread.sleep(1000);
+
+    // clean up
+    for (ClusterDistributedController controller : distControllers.values()) {
+      controller.syncStop();
+    }
+    for (MockParticipantManager participant : participants.values()) {
+      participant.syncStop();
+    }
   }
 
-  private void testRebalanceResource() throws Exception {
-    String resourceUrl = getResourceUrl("clusterTest1", "db_11");
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.REPLICAS, "3");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
+  private Map<String, String> rebalanceCmd(int replicas, String prefix, String tag) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.REPLICAS, "" + replicas);
+    if (prefix != null) {
+      parameters.put(JsonParameters.RESOURCE_KEY_PREFIX, prefix);
+    }
+    if (tag != null) {
+      parameters.put(ClusterSetup.instanceGroupTag, tag);
+    }
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
 
-    String ISUrl = resourceUrl + "/idealState";
-    String response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    return parameters;
+  }
+
+  private void rebalanceResource(String clusterName, String resourceName) throws IOException {
+    String resourceUrl = getResourceUrl(clusterName, resourceName);
+    String idealStateUrl = resourceUrl + "/idealState";
+
+    assertSuccessPostOperation(idealStateUrl, rebalanceCmd(3, null, null), false);
+  }
+
+  @Test
+  public void testRebalanceResource() throws Exception {
+    // add a normal cluster
+    final String clusterName = "clusterTestRebalanceResource";
+    addCluster(clusterName);
+
+    addInstancesToCluster(clusterName, "localhost:123", 3, _tag1);
+    addResource(clusterName, "db_11", 44);
+
+    String resourceUrl = getResourceUrl(clusterName, "db_11");
+
+    String idealStateUrl = resourceUrl + "/idealState";
+    String response = assertSuccessPostOperation(idealStateUrl, rebalanceCmd(3, null, null), false);
     ZNRecord record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
-    Assert
-        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
-        .size() == 3);
+    Assert.assertEquals(record.getListField("db_11_0").size(), 3);
+    Assert.assertEquals(record.getMapField("db_11_0").size(), 3);
 
     deleteUrl(resourceUrl, false);
 
     // re-add and rebalance
-    String reourcesUrl = "http://localhost:" + ADMIN_PORT + "/clusters/clusterTest1/resourceGroups";
+    final String reourcesUrl =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
+
     response = getUrl(reourcesUrl);
     Assert.assertFalse(response.contains("db_11"));
 
-    paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.RESOURCE_GROUP_NAME, "db_11");
-    paraMap.put(JsonParameters.STATE_MODEL_DEF_REF, "MasterSlave");
-    paraMap.put(JsonParameters.PARTITIONS, "48");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addResource);
-
-    response = assertSuccessPostOperation(reourcesUrl, paraMap, false);
-    Assert.assertTrue(response.contains("db_11"));
-
-    ISUrl = resourceUrl + "/idealState";
-    paraMap.put(JsonParameters.REPLICAS, "3");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    addResource(clusterName, "db_11", 48);
+    idealStateUrl = resourceUrl + "/idealState";
+    response = assertSuccessPostOperation(idealStateUrl, rebalanceCmd(3, null, null), false);
     record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_11"));
-    Assert
-        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 3);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
-        .size() == 3);
+    Assert.assertEquals(record.getListField("db_11_0").size(), 3);
+    Assert.assertEquals(record.getMapField("db_11_0").size(), 3);
 
     // rebalance with key prefix
-    resourceUrl = getResourceUrl("clusterTest1", "db_22");
-    ISUrl = resourceUrl + "/idealState";
-    paraMap.put(JsonParameters.REPLICAS, "2");
-    paraMap.put(JsonParameters.RESOURCE_KEY_PREFIX, "alias");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    addResource(clusterName, "db_22", 55);
+    resourceUrl = getResourceUrl(clusterName, "db_22");
+    idealStateUrl = resourceUrl + "/idealState";
+    response = assertSuccessPostOperation(idealStateUrl, rebalanceCmd(2, "alias", null), false);
     record = JsonToObject(ZNRecord.class, response);
     Assert.assertTrue(record.getId().equalsIgnoreCase("db_22"));
-    Assert
-        .assertTrue((((List<String>) (record.getListFields().values().toArray()[0]))).size() == 2);
-    Assert.assertTrue((((Map<String, String>) (record.getMapFields().values().toArray()[0])))
-        .size() == 2);
+    Assert.assertEquals(record.getListField("alias_0").size(), 2);
+    Assert.assertEquals(record.getMapField("alias_0").size(), 2);
     Assert.assertTrue((((String) (record.getMapFields().keySet().toArray()[0])))
         .startsWith("alias_"));
     Assert.assertFalse(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
-    resourceUrl = getResourceUrl("clusterTest1", "db_33");
-    ISUrl = resourceUrl + "/idealState";
-    paraMap.put(JsonParameters.REPLICAS, "2");
-    paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
-    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+
+    addResource(clusterName, "db_33", 44);
+    resourceUrl = getResourceUrl(clusterName, "db_33");
+    idealStateUrl = resourceUrl + "/idealState";
+    response = assertSuccessPostOperation(idealStateUrl, rebalanceCmd(2, null, _tag1), false);
 
     Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
     Assert.assertTrue(response.contains(_tag1));
@@ -690,14 +899,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
       }
     }
 
-    resourceUrl = getResourceUrl("clusterTest1", "db_44");
-    ISUrl = resourceUrl + "/idealState";
-    paraMap.put(JsonParameters.REPLICAS, "2");
-    paraMap.remove(JsonParameters.RESOURCE_KEY_PREFIX);
-    paraMap.put(JsonParameters.RESOURCE_KEY_PREFIX, "alias");
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.rebalance);
-    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
-    response = assertSuccessPostOperation(ISUrl, paraMap, false);
+    addResource(clusterName, "db_44", 44);
+    resourceUrl = getResourceUrl(clusterName, "db_44");
+    idealStateUrl = resourceUrl + "/idealState";
+    response = assertSuccessPostOperation(idealStateUrl, rebalanceCmd(2, "alias", _tag1), false);
     Assert.assertTrue(response.contains(IdealStateProperty.INSTANCE_GROUP_TAG.toString()));
     Assert.assertTrue(response.contains(_tag1));
 
@@ -715,24 +920,66 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     }
   }
 
-  private void testAddInstance() throws Exception {
-    String clusterUrl = getClusterUrl("clusterTest1");
-    Map<String, String> paraMap = new HashMap<String, String>();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
-    String response = null;
+  private void addInstancesToCluster(String clusterName, String instanceNamePrefix, int n,
+      String tag) throws IOException {
+    Map<String, String> parameters = new HashMap<String, String>();
+    final String clusterUrl = getClusterUrl(clusterName);
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
+
+    // add instances to cluster
+    String instancesUrl = clusterUrl + "/instances";
+    for (int i = 0; i < n; i++) {
+
+      parameters.put(JsonParameters.INSTANCE_NAME, instanceNamePrefix + i);
+      String response = assertSuccessPostOperation(instancesUrl, parameters, false);
+      Assert.assertTrue(response.contains((instanceNamePrefix + i).replace(':', '_')));
+    }
+
+    // add tag to instance
+    if (tag != null && !tag.isEmpty()) {
+      parameters.clear();
+      parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstanceTag);
+      parameters.put(ClusterSetup.instanceGroupTag, tag);
+      for (int i = 0; i < n; i++) {
+        String instanceUrl = instancesUrl + "/" + (instanceNamePrefix + i).replace(':', '_');
+        String response = assertSuccessPostOperation(instanceUrl, parameters, false);
+        Assert.assertTrue(response.contains(_tag1));
+      }
+    }
+
+  }
+
+  private Map<String, String> addInstanceTagCmd(String tag) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstanceTag);
+    parameters.put(ClusterSetup.instanceGroupTag, tag);
+
+    return parameters;
+  }
+
+  private Map<String, String> removeInstanceTagCmd(String tag) {
+    Map<String, String> parameters = new HashMap<String, String>();
+    parameters.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.removeInstanceTag);
+    parameters.put(ClusterSetup.instanceGroupTag, tag);
+
+    return parameters;
+  }
+
+  @Test
+  public void testAddInstance() throws Exception {
+    final String clusterName = "clusterTestAddInstance";
+
+    // add normal cluster
+    addCluster(clusterName);
+
+    String clusterUrl = getClusterUrl(clusterName);
+
     // Add instances to cluster
     String instancesUrl = clusterUrl + "/instances";
-    for (int i = 0; i < 3; i++) {
+    addInstancesToCluster(clusterName, "localhost:123", 3, null);
 
-      paraMap.put(JsonParameters.INSTANCE_NAME, "localhost:123" + i);
-      response = assertSuccessPostOperation(instancesUrl, paraMap, false);
-      Assert.assertTrue(response.contains(("localhost:123" + i).replace(':', '_')));
-    }
-    paraMap.remove(JsonParameters.INSTANCE_NAME);
-    paraMap.put(JsonParameters.INSTANCE_NAMES,
-        "localhost:1233;localhost:1234;localhost:1235;localhost:1236");
-
-    response = assertSuccessPostOperation(instancesUrl, paraMap, false);
+    String instances = "localhost:1233;localhost:1234;localhost:1235;localhost:1236";
+    String response = assertSuccessPostOperation(instancesUrl, addInstanceCmd(instances), false);
     for (int i = 3; i <= 6; i++) {
       Assert.assertTrue(response.contains("localhost_123" + i));
     }
@@ -751,42 +998,34 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     // disable node
     instanceUrl = instancesUrl + "/localhost_1236";
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.enableInstance);
-    paraMap.put(JsonParameters.ENABLED, "false");
-    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+    response = assertSuccessPostOperation(instanceUrl, enableInstanceCmd(false), false);
     Assert.assertTrue(response.contains("false"));
 
     deleteUrl(instanceUrl, false);
 
+    // add controller cluster
+    final String controllerClusterName = "controllerClusterTestAddInstance";
+    addCluster(controllerClusterName);
+
     // add node to controller cluster
-    paraMap.remove(JsonParameters.INSTANCE_NAME);
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstance);
-    paraMap.put(JsonParameters.INSTANCE_NAMES, "controller:9000;controller:9001");
-    String controllerUrl = getClusterUrl("Klazt3rz") + "/instances";
-    response = assertSuccessPostOperation(controllerUrl, paraMap, false);
+    String controllers = "controller:9000;controller:9001";
+    String controllerUrl = getClusterUrl(controllerClusterName) + "/instances";
+    response = assertSuccessPostOperation(controllerUrl, addInstanceCmd(controllers), false);
     Assert.assertTrue(response.contains("controller_9000"));
     Assert.assertTrue(response.contains("controller_9001"));
 
-    // add a dup host
-    paraMap.remove(JsonParameters.INSTANCE_NAMES);
-    paraMap.put(JsonParameters.INSTANCE_NAME, "localhost:1234");
-    response = assertSuccessPostOperation(instancesUrl, paraMap, true);
+    // add a duplicated host
+    response = assertSuccessPostOperation(instancesUrl, addInstanceCmd("localhost:1234"), true);
 
-    // add tags
-
-    paraMap.clear();
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.addInstanceTag);
-    paraMap.put(ClusterSetup.instanceGroupTag, _tag1);
+    // add/remove tags
     for (int i = 0; i < 4; i++) {
       instanceUrl = instancesUrl + "/localhost_123" + i;
-      response = assertSuccessPostOperation(instanceUrl, paraMap, false);
+      response = assertSuccessPostOperation(instanceUrl, addInstanceTagCmd(_tag1), false);
       Assert.assertTrue(response.contains(_tag1));
-
     }
-    paraMap.put(JsonParameters.MANAGEMENT_COMMAND, ClusterSetup.removeInstanceTag);
-    instanceUrl = instancesUrl + "/localhost_1233";
-    response = assertSuccessPostOperation(instanceUrl, paraMap, false);
-    Assert.assertFalse(response.contains(_tag1));
 
+    instanceUrl = instancesUrl + "/localhost_1233";
+    response = assertSuccessPostOperation(instanceUrl, removeInstanceTagCmd(_tag1), false);
+    Assert.assertFalse(response.contains(_tag1));
   }
 }

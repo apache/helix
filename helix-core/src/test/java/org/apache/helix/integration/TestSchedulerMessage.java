@@ -194,10 +194,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -282,10 +282,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -367,11 +367,11 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String controllerStatusPath =
         HelixUtil.getControllerPropertyPath(manager.getClusterName(),
             PropertyType.STATUSUPDATES_CONTROLLER);
-    List<String> subPaths = _zkClient.getChildren(controllerStatusPath);
+    List<String> subPaths = _gZkClient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
-      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
     }
 
@@ -379,38 +379,38 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
         HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
             PropertyType.STATUSUPDATES);
 
-    subPaths = _zkClient.getChildren(instanceStatusPath);
+    subPaths = _gZkClient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
-      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
       for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
-        Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() > 0);
+        Assert.assertTrue(_gZkClient.getChildren(nextnextPath).size() > 0);
       }
     }
     Thread.sleep(3000);
-    ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, _zkClient, 0);
+    ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, _gZkClient, 0);
     dumpTask.run();
 
-    subPaths = _zkClient.getChildren(controllerStatusPath);
+    subPaths = _gZkClient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
-      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() == 0);
     }
 
-    subPaths = _zkClient.getChildren(instanceStatusPath);
+    subPaths = _gZkClient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
-      List<String> subsubPaths = _zkClient.getChildren(nextPath);
+      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
       for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
-        Assert.assertTrue(_zkClient.getChildren(nextnextPath).size() == 0);
+        Assert.assertTrue(_gZkClient.getChildren(nextnextPath).size() == 0);
       }
     }
   }
@@ -420,10 +420,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -511,10 +511,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -581,13 +581,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      //
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -702,13 +702,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      //
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           _factory.getMessageType(), _factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =
@@ -852,13 +852,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     TestMessagingHandlerFactoryLatch factory = new TestMessagingHandlerFactoryLatch();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
-      String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
-      //
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
-      manager = _startCMResultMap.get(hostDest)._manager;
+
+      manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
 
     Message schedulerMessage =

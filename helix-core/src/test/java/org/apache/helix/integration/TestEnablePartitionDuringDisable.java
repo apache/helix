@@ -24,17 +24,20 @@ import java.util.Date;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
+  private static Logger LOG = Logger.getLogger(TestEnablePartitionDuringDisable.class);
+
   static {
     // Logger.getRootLogger().setLevel(Level.INFO);
   }
@@ -63,8 +66,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
 
             ClusterSetup.processCommandLineArgs(command.split("\\s+"));
           } catch (Exception e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
+            LOG.error("Exception in cluster setup", e);
           }
 
         } else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE") && toState.equals("SLAVE")) {
@@ -93,19 +95,21 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     EnablePartitionTransition transition = new EnablePartitionTransition();
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       if (instanceName.equals("localhost_12919")) {
-        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, transition);
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i].setTransition(transition);
       } else {
-        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -138,8 +142,6 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
     Assert.assertEquals(transition.offlineToSlave, 1, "should get 1 offlineToSlave transition");
 
     // clean up
-    // wait for all zk callbacks done
-    Thread.sleep(1000);
     controller.syncStop();
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();

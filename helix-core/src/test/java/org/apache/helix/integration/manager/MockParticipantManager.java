@@ -22,18 +22,20 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
+import org.apache.helix.mock.participant.MockJobIntf;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockSchemataModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-public class MockParticipantManager extends ParticipantManager implements Runnable, ZkTestManager {
+public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = Logger.getLogger(MockParticipantManager.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
@@ -43,7 +45,7 @@ public class MockParticipantManager extends ParticipantManager implements Runnab
   private final MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
 
   public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
-    super(zkAddr, clusterName, instanceName);
+    super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
   }
 
   public void setTransition(MockTransition transition) {

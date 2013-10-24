@@ -44,8 +44,8 @@ under the License.
       <artifactId>helix-core</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.noelios.restlet</groupId>
-      <artifactId>com.noelios.restlet</artifactId>
+      <groupId>org.restlet.jse</groupId>
+      <artifactId>org.restlet</artifactId>
     </dependency>
     <dependency>
       <groupId>org.testng</groupId>

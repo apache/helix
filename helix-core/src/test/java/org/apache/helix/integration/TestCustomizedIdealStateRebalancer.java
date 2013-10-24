@@ -24,9 +24,9 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -46,7 +46,7 @@ public class TestCustomizedIdealStateRebalancer extends
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
 
-  public static class TestRebalancer extends SemiAutoRebalancer {
+  public static class TestRebalancer implements Rebalancer {
 
     @Override
     public void init(HelixManager manager) {

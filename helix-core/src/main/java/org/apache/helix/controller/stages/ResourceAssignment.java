@@ -29,15 +29,15 @@ import org.apache.helix.model.Partition;
  * Represents the assignments of replicas for an entire resource, keyed on partitions of the
  * resource. Each partition has its replicas assigned to a node, and each replica is in a state.
  */
-public class ResourceMapping {
+public class ResourceAssignment {
 
   private final Map<Partition, Map<String, String>> _resourceMap;
 
-  public ResourceMapping() {
+  public ResourceAssignment() {
     this(new HashMap<Partition, Map<String, String>>());
   }
 
-  public ResourceMapping(Map<Partition, Map<String, String>> resourceMap) {
+  public ResourceAssignment(Map<Partition, Map<String, String>> resourceMap) {
     _resourceMap = resourceMap;
   }
 

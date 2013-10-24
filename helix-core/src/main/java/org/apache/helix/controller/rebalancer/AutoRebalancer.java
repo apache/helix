@@ -32,10 +32,11 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceMapping;
+import org.apache.helix.controller.stages.ResourceAssignment;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
@@ -58,7 +59,7 @@ import org.apache.log4j.Logger;
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
-public class AutoRebalancer implements Rebalancer {
+public class AutoRebalancer implements Rebalancer, MappingCalculator {
   // These should be final, but are initialized in init rather than a constructor
   private HelixManager _manager;
   private AutoRebalanceStrategy _algorithm;
@@ -83,10 +84,33 @@ public class AutoRebalancer implements Rebalancer {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
     stateCountMap = stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
+    List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
 
-    List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
+    // If there are nodes tagged with resource name, use only those nodes
+    Set<String> taggedNodes = new HashSet<String>();
+    Set<String> taggedLiveNodes = new HashSet<String>();
+    if (currentIdealState.getInstanceGroupTag() != null) {
+      for (String instanceName : allNodes) {
+        if (clusterData.getInstanceConfigMap().get(instanceName)
+            .containsTag(currentIdealState.getInstanceGroupTag())) {
+          taggedNodes.add(instanceName);
+          if (liveInstance.containsKey(instanceName)) {
+            taggedLiveNodes.add(instanceName);
+          }
+        }
+      }
+    }
+    if (taggedNodes.size() > 0) {
+      if (LOG.isInfoEnabled()) {
+        LOG.info("found the following instances with tag " + currentIdealState.getResourceName()
+            + " " + taggedLiveNodes);
+      }
+      allNodes = new ArrayList<String>(taggedNodes);
+      liveNodes = new ArrayList<String>(taggedLiveNodes);
+    }
+
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
     if (LOG.isInfoEnabled()) {
@@ -188,7 +212,7 @@ public class AutoRebalancer implements Rebalancer {
   }
 
   @Override
-  public ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache,
+  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
@@ -196,7 +220,7 @@ public class AutoRebalancer implements Rebalancer {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     calculateAutoBalancedIdealState(cache, idealState, stateModelDef);
-    ResourceMapping partitionMapping = new ResourceMapping();
+    ResourceAssignment partitionMapping = new ResourceAssignment();
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);

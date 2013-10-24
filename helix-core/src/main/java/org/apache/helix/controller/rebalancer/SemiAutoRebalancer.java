@@ -24,10 +24,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceMapping;
+import org.apache.helix.controller.stages.ResourceAssignment;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -43,7 +44,7 @@ import org.apache.log4j.Logger;
  * The output is a mapping based on that preference list, i.e. partition p has a replica on node k
  * with state s.
  */
-public class SemiAutoRebalancer implements Rebalancer {
+public class SemiAutoRebalancer implements Rebalancer, MappingCalculator {
 
   private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);
 
@@ -58,14 +59,14 @@ public class SemiAutoRebalancer implements Rebalancer {
   }
 
   @Override
-  public ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache,
+  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
-    ResourceMapping partitionMapping = new ResourceMapping();
+    ResourceAssignment partitionMapping = new ResourceAssignment();
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);

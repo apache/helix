@@ -484,4 +484,25 @@ public class IdealState extends HelixProperty {
     }
     return property;
   }
+
+  /**
+   * Parse a RebalanceMode from a string. It can also understand IdealStateModeProperty values.
+   * @param mode string containing a RebalanceMode value
+   * @param defaultMode the mode to use if the string is not valid
+   * @return converted RebalanceMode value
+   */
+  public RebalanceMode rebalanceModeFromString(String mode, RebalanceMode defaultMode) {
+    RebalanceMode rebalanceMode = defaultMode;
+    try {
+      rebalanceMode = RebalanceMode.valueOf(mode);
+    } catch (Exception rebalanceModeException) {
+      try {
+        IdealStateModeProperty oldMode = IdealStateModeProperty.valueOf(mode);
+        rebalanceMode = normalizeRebalanceMode(oldMode);
+      } catch (Exception e) {
+        logger.error(e);
+      }
+    }
+    return rebalanceMode;
+  }
 }

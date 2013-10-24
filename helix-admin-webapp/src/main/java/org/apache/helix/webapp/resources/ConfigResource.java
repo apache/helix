@@ -20,7 +20,6 @@ package org.apache.helix.webapp.resources;
  */
 
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -28,32 +27,29 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.restlet.Context;
+import org.restlet.Request;
+import org.restlet.Response;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 
-public class ConfigResource extends Resource {
+public class ConfigResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ConfigResource.class);
 
-  public ConfigResource(Context context, Request request, Response response) {
-    super(context, request, response);
+  public ConfigResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-    setModifiable(true);
+    setNegotiated(false);
   }
 
   String getValue(String key) {
@@ -122,7 +118,7 @@ public class ConfigResource extends Resource {
   }
 
   @Override
-  public Representation represent(Variant variant) {
+  public Representation get() {
     StringRepresentation representation = null;
 
     String clusterName = getValue("clusterName");
@@ -221,12 +217,13 @@ public class ConfigResource extends Resource {
 
     }
 
-    getResponse().setEntity(represent());
+    getResponse().setEntity(get());
     getResponse().setStatus(Status.SUCCESS_OK);
   }
 
-  @Override
-  public void acceptRepresentation(Representation entity) {
+
+@Override
+  public Representation post(Representation entity) {
     String clusterName = getValue("clusterName");
 
     String scopeStr = getValue("scope").toUpperCase();
@@ -268,5 +265,6 @@ public class ConfigResource extends Resource {
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
+    return null;
   }
 }

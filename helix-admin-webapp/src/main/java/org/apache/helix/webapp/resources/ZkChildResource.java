@@ -26,43 +26,20 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
-import org.restlet.Context;
 import org.restlet.data.MediaType;
-import org.restlet.data.Request;
-import org.restlet.data.Response;
 import org.restlet.data.Status;
-import org.restlet.resource.Representation;
-import org.restlet.resource.Resource;
-import org.restlet.resource.StringRepresentation;
-import org.restlet.resource.Variant;
+import org.restlet.representation.Representation;
+import org.restlet.representation.StringRepresentation;
+import org.restlet.representation.Variant;
+import org.restlet.resource.ServerResource;
 
-public class ZkChildResource extends Resource {
+public class ZkChildResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ZkChildResource.class);
 
-  public ZkChildResource(Context context, Request request, Response response) {
-    super(context, request, response);
+  public ZkChildResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-  }
-
-  @Override
-  public boolean allowGet() {
-    return true;
-  }
-
-  @Override
-  public boolean allowPost() {
-    return false;
-  }
-
-  @Override
-  public boolean allowPut() {
-    return false;
-  }
-
-  @Override
-  public boolean allowDelete() {
-    return true;
+    setNegotiated(false);
   }
 
   private String getZKPath() {
@@ -80,7 +57,7 @@ public class ZkChildResource extends Resource {
   }
 
   @Override
-  public Representation represent(Variant variant) {
+  public Representation get() {
     StringRepresentation presentation = null;
     String zkPath = getZKPath();
 
@@ -126,7 +103,7 @@ public class ZkChildResource extends Resource {
   }
 
   @Override
-  public void removeRepresentations() {
+  public Representation delete() {
     String zkPath = getZKPath();
     try {
       ZkClient zkClient =
@@ -147,5 +124,6 @@ public class ZkChildResource extends Resource {
       getResponse().setStatus(Status.SUCCESS_OK);
       LOG.error("Error in delete zkChild: " + zkPath, e);
     }
+    return null;
   }
 }

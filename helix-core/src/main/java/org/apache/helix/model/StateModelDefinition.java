@@ -31,7 +31,7 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
-import org.apache.log4j.Logger;
+import org.apache.helix.model.util.StateModelDefinitionValidator;
 
 /**
  * Describe the state model
@@ -43,7 +43,6 @@ public class StateModelDefinition extends HelixProperty {
     STATE_PRIORITY_LIST
   }
 
-  private static final Logger _logger = Logger.getLogger(StateModelDefinition.class.getName());
   /**
    * state model's initial state
    */
@@ -188,16 +187,7 @@ public class StateModelDefinition extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getInitialState() == null) {
-      _logger.error("State model does not contain init state, statemodel:" + _record.getId());
-      return false;
-    }
-    if (_record.getListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString()) == null) {
-      _logger.error("CurrentState does not contain StatesPriorityList, state model : "
-          + _record.getId());
-      return false;
-    }
-    return true;
+    return StateModelDefinitionValidator.isStateModelDefinitionValid(this);
   }
 
   // TODO move this to model.builder package, refactor StateModelConfigGenerator to use this
@@ -319,6 +309,8 @@ public class StateModelDefinition extends HelixProperty {
      */
     public StateModelDefinition build() {
       ZNRecord record = new ZNRecord(_statemodelName);
+
+      // get sorted state priorities by specified values
       ArrayList<String> statePriorityList = new ArrayList<String>(statesMap.keySet());
       Comparator<? super String> c1 = new Comparator<String>() {
 
@@ -328,8 +320,9 @@ public class StateModelDefinition extends HelixProperty {
         }
       };
       Collections.sort(statePriorityList, c1);
-      ArrayList<Transition> transitionList = new ArrayList<Transition>(transitionMap.keySet());
 
+      // get sorted transition priorities by specified values
+      ArrayList<Transition> transitionList = new ArrayList<Transition>(transitionMap.keySet());
       Comparator<? super Transition> c2 = new Comparator<Transition>() {
         @Override
         public int compare(Transition o1, Transition o2) {
@@ -347,6 +340,8 @@ public class StateModelDefinition extends HelixProperty {
           statePriorityList);
       record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
           transitionPriorityList);
+
+      // compute full paths for next states
       StateTransitionTableBuilder stateTransitionTableBuilder = new StateTransitionTableBuilder();
       Map<String, Map<String, String>> transitionTable =
           stateTransitionTableBuilder.buildTransitionTable(statePriorityList,
@@ -354,6 +349,8 @@ public class StateModelDefinition extends HelixProperty {
       for (String state : transitionTable.keySet()) {
         record.setMapField(state + ".next", transitionTable.get(state));
       }
+
+      // state counts
       for (String state : statePriorityList) {
         HashMap<String, String> metadata = new HashMap<String, String>();
         if (stateConstraintMap.get(state) != null) {

@@ -22,9 +22,7 @@ package org.apache.helix.controller.rebalancer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceMapping;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Resource;
 
 /**
  * Allows one to come up with custom implementation of a rebalancer.<br/>
@@ -49,16 +47,4 @@ public interface Rebalancer {
   IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       final CurrentStateOutput currentStateOutput, final ClusterDataCache clusterData);
 
-  /**
-   * Given an ideal state for a resource and the liveness of instances, compute the best possible
-   * state assignment for each partition's replicas.
-   * @param cache
-   * @param idealState
-   * @param resource
-   * @param currentStateOutput
-   *          Provides the current state and pending state transitions for all partitions
-   * @return
-   */
-  ResourceMapping computeBestPossiblePartitionState(ClusterDataCache cache, IdealState idealState,
-      Resource resource, CurrentStateOutput currentStateOutput);
 }

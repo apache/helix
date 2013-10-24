@@ -26,6 +26,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
@@ -72,6 +73,10 @@ public class ZKPropertyTransferServer {
   boolean _shutdownFlag = false;
   Component _component = null;
   Timer _timer = null;
+
+  static {
+    org.restlet.engine.Engine.setLogLevel(Level.SEVERE);
+  }
 
   /**
    * Timertask for zookeeper batched writes

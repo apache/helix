@@ -45,6 +45,7 @@ public class TestCustomizedIdealStateRebalancer extends
     ZkStandAloneCMTestBaseWithPropertyServerCheck {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
+  static boolean testRebalancerInvoked = false;
 
   public static class TestRebalancer implements Rebalancer {
 
@@ -56,6 +57,7 @@ public class TestCustomizedIdealStateRebalancer extends
     @Override
     public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
         CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+      testRebalancerInvoked = true;
       for (String partition : currentIdealState.getPartitionSet()) {
         String instance = currentIdealState.getPreferenceList(partition).get(0);
         currentIdealState.getPreferenceList(partition).clear();
@@ -99,6 +101,7 @@ public class TestCustomizedIdealStateRebalancer extends
       Assert.assertEquals(is.getInstanceStateMap(partition).size(), 3);
     }
     Assert.assertTrue(testRebalancerCreated);
+    Assert.assertTrue(testRebalancerInvoked);
   }
 
   public static class ExternalViewBalancedVerifier implements ZkVerifier {

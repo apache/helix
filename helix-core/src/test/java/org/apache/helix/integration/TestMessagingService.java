@@ -87,8 +87,8 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
-        factory.getMessageType(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageType(), msgId);
@@ -104,7 +104,8 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setRecipientInstanceType(InstanceType.PARTICIPANT);
     cr.setSessionSpecific(false);
 
-    int nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
+    // int nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
+    int nMsgs = _participants[0].getMessagingService().send(cr, msg);
     AssertJUnit.assertTrue(nMsgs == 1);
     Thread.sleep(2500);
     // Thread.currentThread().join();
@@ -116,7 +117,8 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSessionSpecific(false);
     cr.setDataSource(DataSource.IDEALSTATES);
 
-    nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
+    // nMsgs = _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg);
+    nMsgs = _participants[0].getMessagingService().send(cr, msg);
     AssertJUnit.assertTrue(nMsgs == 1);
     Thread.sleep(2500);
     // Thread.currentThread().join();
@@ -179,11 +181,11 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
-        factory.getMessageType(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+        factory);
 
-    _startCMResultMap.get(hostSrc)._manager.getMessagingService().registerMessageHandlerFactory(
-        factory.getMessageType(), factory);
+    _participants[0].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageType(), msgId);
@@ -202,7 +204,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     TestAsyncCallback callback = new TestAsyncCallback(60000);
 
-    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback, 60000);
+    _participants[0].getMessagingService().send(cr, msg, callback, 60000);
 
     Thread.sleep(2000);
     // Thread.currentThread().join();
@@ -210,7 +212,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
 
     TestAsyncCallback callback2 = new TestAsyncCallback(500);
-    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback2, 500);
+    _participants[0].getMessagingService().send(cr, msg, callback2, 500);
 
     Thread.sleep(3000);
     // Thread.currentThread().join();
@@ -224,7 +226,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     callback = new TestAsyncCallback(60000);
 
-    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback, 60000);
+    _participants[0].getMessagingService().send(cr, msg, callback, 60000);
 
     Thread.sleep(2000);
     // Thread.currentThread().join();
@@ -232,7 +234,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(callback.getMessageReplied().size() == 1);
 
     callback2 = new TestAsyncCallback(500);
-    _startCMResultMap.get(hostSrc)._manager.getMessagingService().send(cr, msg, callback2, 500);
+    _participants[0].getMessagingService().send(cr, msg, callback2, 500);
 
     Thread.sleep(3000);
     // Thread.currentThread().join();
@@ -246,8 +248,8 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     String hostDest = "localhost_" + (START_PORT + 1);
 
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
-    _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
-        factory.getMessageType(), factory);
+    _participants[1].getMessagingService().registerMessageHandlerFactory(factory.getMessageType(),
+        factory);
 
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(factory.getMessageType(), msgId);
@@ -266,8 +268,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     AsyncCallback asyncCallback = new MockAsyncCallback();
     int messagesSent =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            asyncCallback, 60000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, asyncCallback, 60000);
 
     AssertJUnit.assertTrue(asyncCallback.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage")
@@ -275,9 +276,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(asyncCallback.getMessageReplied().size() == 1);
 
     AsyncCallback asyncCallback2 = new MockAsyncCallback();
-    messagesSent =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            asyncCallback2, 500);
+    messagesSent = _participants[0].getMessagingService().sendAndWait(cr, msg, asyncCallback2, 500);
     AssertJUnit.assertTrue(asyncCallback2.isTimedOut());
 
   }
@@ -289,8 +288,9 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     for (int i = 0; i < NODE_NR; i++) {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[0].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
+
     }
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
@@ -308,8 +308,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSessionSpecific(false);
     AsyncCallback callback1 = new MockAsyncCallback();
     int messageSent1 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback1, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage")
@@ -317,37 +316,32 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR - 1);
 
     AsyncCallback callback2 = new MockAsyncCallback();
-    int messageSent2 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback2, 500);
+    int messageSent2 = _participants[0].getMessagingService().sendAndWait(cr, msg, callback2, 500);
+
     AssertJUnit.assertTrue(callback2.isTimedOut());
 
     cr.setPartition("TestDB_17");
     AsyncCallback callback3 = new MockAsyncCallback();
     int messageSent3 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback3, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback3, 10000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().size() == _replica - 1);
 
     cr.setPartition("TestDB_15");
     AsyncCallback callback4 = new MockAsyncCallback();
     int messageSent4 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback4, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback4, 10000);
     AssertJUnit.assertTrue(callback4.getMessageReplied().size() == _replica);
 
     cr.setPartitionState("SLAVE");
     AsyncCallback callback5 = new MockAsyncCallback();
     int messageSent5 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback5, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback5, 10000);
     AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
 
     cr.setDataSource(DataSource.IDEALSTATES);
     AsyncCallback callback6 = new MockAsyncCallback();
     int messageSent6 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback6, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback6, 10000);
     AssertJUnit.assertTrue(callback6.getMessageReplied().size() == _replica - 1);
   }
 
@@ -358,8 +352,9 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     for (int i = 0; i < NODE_NR; i++) {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
+
     }
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(new TestMessagingHandlerFactory().getMessageType(), msgId);
@@ -378,8 +373,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     cr.setSelfExcluded(false);
     AsyncCallback callback1 = new MockAsyncCallback();
     int messageSent1 =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback1, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().size() == NODE_NR);
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
@@ -394,8 +388,9 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     for (int i = 0; i < NODE_NR; i++) {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
-      _startCMResultMap.get(hostDest)._manager.getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
+
     }
     String msgId = new UUID(123, 456).toString();
     Message msg = new Message(MessageType.CONTROLLER_MSG, msgId);
@@ -414,8 +409,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
 
     AsyncCallback callback1 = new MockAsyncCallback();
     int messagesSent =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback1, 10000);
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback1, 10000);
 
     AssertJUnit.assertTrue(callback1.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
@@ -426,9 +420,8 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     msg.setMsgId(msgId);
     cr.setPartition("TestDB_17");
     AsyncCallback callback2 = new MockAsyncCallback();
-    messagesSent =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback2, 10000);
+    messagesSent = _participants[0].getMessagingService().sendAndWait(cr, msg, callback2, 10000);
+
     AssertJUnit.assertTrue(callback2.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
         .indexOf(hostSrc) != -1);
@@ -439,9 +432,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
     msg.setMsgId(msgId);
     cr.setPartitionState("SLAVE");
     AsyncCallback callback3 = new MockAsyncCallback();
-    messagesSent =
-        _startCMResultMap.get(hostSrc)._manager.getMessagingService().sendAndWait(cr, msg,
-            callback3, 10000);
+    messagesSent = _participants[0].getMessagingService().sendAndWait(cr, msg, callback3, 10000);
     AssertJUnit.assertTrue(callback3.getMessageReplied().get(0).getRecord()
         .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ControllerResult")
         .indexOf(hostSrc) != -1);

@@ -26,7 +26,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
@@ -40,8 +39,8 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_zkClient.exists(namespace)) {
-      _zkClient.deleteRecursive(namespace);
+    if (_gZkClient.exists(namespace)) {
+      _gZkClient.deleteRecursive(namespace);
     }
     _setupTool = new ClusterSetup(ZK_ADDR);
 
@@ -58,13 +57,12 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
   @Override
   @BeforeClass()
   public void beforeClass() throws Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
+
   }
 
   @Override
   @AfterClass()
   public void afterClass() {
-    _zkClient.close();
   }
 
   @Test()
@@ -72,9 +70,8 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     setupCluster();
     String controllerMsgPath =
         HelixUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
-    _zkClient.deleteRecursive(controllerMsgPath);
+    _gZkClient.deleteRecursive(controllerMsgPath);
     HelixManager manager = null;
-    ;
 
     try {
       manager =
@@ -106,7 +103,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
 
     setupCluster();
     String stateModelPath = HelixUtil.getStateModelDefinitionPath(CLUSTER_NAME);
-    _zkClient.deleteRecursive(stateModelPath);
+    _gZkClient.deleteRecursive(stateModelPath);
 
     try {
       manager =
@@ -125,7 +122,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     String instanceStatusUpdatePath =
         HelixUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
             PropertyType.STATUSUPDATES);
-    _zkClient.deleteRecursive(instanceStatusUpdatePath);
+    _gZkClient.deleteRecursive(instanceStatusUpdatePath);
 
     try {
       manager =

@@ -2,8 +2,7 @@ package org.apache.helix.integration;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -35,8 +34,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
   @Test
   public void testInstanceAutoJoin() throws Exception {
-    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    HelixManager manager = _startCMResultMap.get(instanceName)._manager;
+    HelixManager manager = _participants[0];
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     _setupTool.addResourceToCluster(CLUSTER_NAME, db2, 60, "OnlineOffline", RebalanceMode.FULL_AUTO
@@ -44,10 +42,13 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
-    StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+    // StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+    MockParticipantManager newParticipant =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
+    newParticipant.syncStart();
 
     Thread.sleep(500);
-    Assert.assertFalse(result._thread.isAlive());
+    // Assert.assertFalse(result._thread.isAlive());
     Assert.assertTrue(null == manager.getHelixDataAccessor().getProperty(
         accessor.keyBuilder().liveInstance(instance2)));
 
@@ -55,12 +56,11 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
 
-    result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
-
-    StartCMResult result2 = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+    newParticipant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
+    newParticipant.syncStart();
 
     Thread.sleep(500);
-    Assert.assertTrue(result._thread.isAlive() || result2._thread.isAlive());
+    // Assert.assertTrue(result._thread.isAlive() || result2._thread.isAlive());
     for (int i = 0; i < 20; i++) {
       if (null == manager.getHelixDataAccessor().getProperty(
           accessor.keyBuilder().liveInstance(instance2))) {
@@ -71,9 +71,6 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     Assert.assertTrue(null != manager.getHelixDataAccessor().getProperty(
         accessor.keyBuilder().liveInstance(instance2)));
 
-    result._manager.disconnect();
-    result2._manager.disconnect();
-    result._thread.interrupt();
-    result2._thread.interrupt();
+    newParticipant.syncStop();
   }
 }

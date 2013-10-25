@@ -31,10 +31,13 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
+  private static Logger LOG = Logger.getLogger(TestParticipantErrorMessage.class);
+
   @Test()
   public void TestParticipantErrorMessageSend() {
     String participant1 = "localhost_" + START_PORT;
@@ -49,7 +52,7 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     Criteria recipientCriteria = new Criteria();
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria.setSessionSpecific(false);
-    _startCMResultMap.get(participant1)._manager.getMessagingService().send(recipientCriteria,
+    _participants[0].getMessagingService().send(recipientCriteria,
         errorMessage1);
 
     Message errorMessage2 =
@@ -63,23 +66,22 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     Criteria recipientCriteria2 = new Criteria();
     recipientCriteria2.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria2.setSessionSpecific(false);
-    _startCMResultMap.get(participant2)._manager.getMessagingService().send(recipientCriteria2,
+    _participants[1].getMessagingService().send(recipientCriteria2,
         errorMessage2);
 
     try {
       Thread.sleep(1500);
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted sleep", e);
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             CLUSTER_NAME));
     Assert.assertTrue(result);
-    Builder kb = _startCMResultMap.get(participant2)._manager.getHelixDataAccessor().keyBuilder();
+    Builder kb = _participants[1].getHelixDataAccessor().keyBuilder();
     ExternalView externalView =
-        _startCMResultMap.get(participant2)._manager.getHelixDataAccessor().getProperty(
+        _participants[1].getHelixDataAccessor().getProperty(
             kb.externalView("TestDB"));
 
     for (String partitionName : externalView.getRecord().getMapFields().keySet()) {

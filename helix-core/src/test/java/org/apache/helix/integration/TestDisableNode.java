@@ -38,7 +38,7 @@ public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerChe
             ZK_ADDR, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
 
     result =

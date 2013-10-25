@@ -33,8 +33,7 @@ import org.testng.annotations.Test;
 public class TestHelixInstanceTag extends ZkStandAloneCMTestBase {
   @Test
   public void testInstanceTag() throws Exception {
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    HelixManager manager = _controller;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     String DB2 = "TestDB2";

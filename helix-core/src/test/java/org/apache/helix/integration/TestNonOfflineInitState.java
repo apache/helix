@@ -22,9 +22,9 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockBootstrapModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.ClusterSetup;
@@ -51,18 +51,19 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
         1, // replicas
         "Bootstrap", true); // do rebalance
 
-    TestHelper
-        .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
 
     // start participants
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
 
       // add a state model with non-OFFLINE initial state
-      StateMachineEngine stateMach = participants[i].getManager().getStateMachineEngine();
+      StateMachineEngine stateMach = participants[i].getStateMachineEngine();
       MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
       stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
 
@@ -74,16 +75,21 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(result);
 
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < 5; i++) {
+      participants[i].syncStop();
+    }
+
     System.out.println("END testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
   }
 
   private static void setupCluster(String clusterName, String ZkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    ZkClient zkClient = new ZkClient(ZkAddr);
-    if (zkClient.exists("/" + clusterName)) {
+    if (_gZkClient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      zkClient.deleteRecursive("/" + clusterName);
+      _gZkClient.deleteRecursive("/" + clusterName);
     }
 
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
@@ -103,7 +109,6 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
         setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
       }
     }
-    zkClient.close();
   }
 
 }

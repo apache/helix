@@ -216,8 +216,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
           zkClient.createPersistent(pathChild1, true);
           zkClient.writeData(pathChild1, record);
         } catch (InterruptedException e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+          logger.error("Interrupted sleep", e);
         }
       }
     }.start();

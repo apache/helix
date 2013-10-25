@@ -32,7 +32,6 @@ import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.InstanceType;
@@ -245,8 +244,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
 
     public void start() throws Exception {
       helixManager =
-          HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
-              InstanceType.PARTICIPANT, ZK_ADDR);
+          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
       {
         // hack to set sessionTimeout
         Field sessionTimeout = ZKHelixManager.class.getDeclaredField("_sessionTimeout");

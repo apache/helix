@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -35,12 +36,12 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.MockListener;
@@ -68,6 +69,7 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     ZKHelixManager controller =
         new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
+
     try {
       controller.connect();
       Assert.fail("Should throw HelixException if initial cluster structure is not setup");
@@ -196,8 +198,9 @@ public class TestZkClusterManager extends ZkUnitTestBase {
 
     // //////////////////////////////////
 
-    ZkHelixTestManager manager2 =
-        new ZkHelixTestManager(clusterName, "localhost_3", InstanceType.PARTICIPANT, ZK_ADDR);
+    MockParticipantManager manager2 =
+        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_3");
+
     manager2.setLiveInstanceInfoProvider(new provider(true));
 
     manager2.connect();

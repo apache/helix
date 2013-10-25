@@ -31,6 +31,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
+import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.messaging.DefaultMessagingService;
@@ -55,7 +56,7 @@ public class ParticipantManagerHelper {
   private static Logger LOG = Logger.getLogger(ParticipantManagerHelper.class);
 
   final ZkClient _zkclient;
-  final AbstractManager _manager;
+  final HelixManager _manager;
   final PropertyKey.Builder _keyBuilder;
   final String _clusterName;
   final String _instanceName;
@@ -67,8 +68,10 @@ public class ParticipantManagerHelper {
   final ZKHelixDataAccessor _dataAccessor;
   final DefaultMessagingService _messagingService;
   final StateMachineEngine _stateMachineEngine;
+  final LiveInstanceInfoProvider _liveInstanceInfoProvider;
 
-  public ParticipantManagerHelper(AbstractManager manager, ZkClient zkclient, int sessionTimeout) {
+  public ParticipantManagerHelper(HelixManager manager, ZkClient zkclient, int sessionTimeout,
+      LiveInstanceInfoProvider liveInstanceInfoProvider) {
     _zkclient = zkclient;
     _manager = manager;
     _clusterName = manager.getClusterName();
@@ -82,6 +85,7 @@ public class ParticipantManagerHelper {
     _dataAccessor = (ZKHelixDataAccessor) manager.getHelixDataAccessor();
     _messagingService = (DefaultMessagingService) manager.getMessagingService();
     _stateMachineEngine = manager.getStateMachineEngine();
+    _liveInstanceInfoProvider = liveInstanceInfoProvider;
   }
 
   public void joinCluster() {
@@ -92,8 +96,8 @@ public class ParticipantManagerHelper {
           new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
               _manager.getClusterName()).build();
       autoJoin =
-          Boolean
-              .parseBoolean(_configAccessor.get(scope, HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
+          Boolean.parseBoolean(_configAccessor.get(scope,
+              ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
       LOG.info("instance: " + _instanceName + " auto-joining " + _clusterName + " is " + autoJoin);
     } catch (Exception e) {
       // autoJoin is false
@@ -127,6 +131,19 @@ public class ParticipantManagerHelper {
     liveInstance.setSessionId(_sessionId);
     liveInstance.setHelixVersion(_manager.getVersion());
     liveInstance.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
+
+    // LiveInstanceInfoProvider liveInstanceInfoProvider = _manager._liveInstanceInfoProvider;
+    if (_liveInstanceInfoProvider != null) {
+      LOG.info("invoke liveInstanceInfoProvider");
+      ZNRecord additionalLiveInstanceInfo =
+          _liveInstanceInfoProvider.getAdditionalLiveInstanceInfo();
+      if (additionalLiveInstanceInfo != null) {
+        additionalLiveInstanceInfo.merge(liveInstance.getRecord());
+        ZNRecord mergedLiveInstance = new ZNRecord(additionalLiveInstanceInfo, _instanceName);
+        liveInstance = new LiveInstance(mergedLiveInstance);
+        LOG.info("instanceName: " + _instanceName + ", mergedLiveInstance: " + liveInstance);
+      }
+    }
 
     boolean retry;
     do {
@@ -250,7 +267,7 @@ public class ParticipantManagerHelper {
     }
   }
 
-  public void setupMsgHandler() {
+  public void setupMsgHandler() throws Exception {
     _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
         _stateMachineEngine);
     _manager.addMessageListener(_messagingService.getExecutor(), _instanceName);

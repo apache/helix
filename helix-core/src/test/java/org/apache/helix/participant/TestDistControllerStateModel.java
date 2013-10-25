@@ -25,10 +25,13 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.DistClusterControllerStateModel;
+import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModel extends ZkUnitTestBase {
+  private static Logger LOG = Logger.getLogger(TestDistControllerStateModel.class);
+
   final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
   DistClusterControllerStateModel stateModel = null;
 
@@ -54,8 +57,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Exception becoming leader from standby", e);
     }
     stateModel.onBecomeStandbyFromLeader(message, new NotificationContext(null));
   }
@@ -95,8 +97,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Exception becoming leader from standby", e);
     }
     stateModel.rollbackOnError(message, new NotificationContext(null), null);
   }
@@ -109,8 +110,7 @@ public class TestDistControllerStateModel extends ZkUnitTestBase {
     try {
       stateModel.onBecomeLeaderFromStandby(message, new NotificationContext(null));
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Exception becoming leader from standby", e);
     }
     stateModel.reset();
   }

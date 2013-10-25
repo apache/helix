@@ -32,18 +32,6 @@ import org.testng.annotations.Test;
 
 public class TestCustomIdealState extends ZkIntegrationTestBase {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
-  ZkClient _zkClient;
-
-  @BeforeClass
-  public void beforeClass() throws Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
-  }
-
-  @AfterClass
-  public void afterClass() {
-    _zkClient.close();
-  }
 
   @Test
   public void testBasic() throws Exception {

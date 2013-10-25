@@ -19,13 +19,12 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.UUID;
 
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -46,8 +45,8 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     String instanceName = "localhost_" + (12918 + 0);
-    ZkHelixTestManager manager =
-        new ZkHelixTestManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+    MockParticipantManager manager = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+
     manager.connect();
     ZkClient zkClient = manager.getZkClient();
     ZkTestHelper.expireSession(zkClient);
@@ -69,58 +68,59 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
     Assert.assertFalse(manager.isConnected());
   }
 
-  @Test(enabled = false)
-  public void testDisconnectFlappingWindow() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String instanceName = "localhost_" + (12918 + 1);
-    final String clusterName = className + "_" + methodName + UUID.randomUUID();
-
-    testDisconnectFlappingWindow2(instanceName, InstanceType.PARTICIPANT);
-    testDisconnectFlappingWindow2("admin", InstanceType.ADMINISTRATOR);
-  }
-
-  public void testDisconnectFlappingWindow2(String instanceName, InstanceType type)
-      throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    final String clusterName = className + "_" + methodName + UUID.randomUUID();
-
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
-
-    // flapping time window to 5 sec
-    System.setProperty("helixmanager.flappingTimeWindow", "15000");
-    System.setProperty("helixmanager.maxDisconnectThreshold", "7");
-    ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, instanceName, type, ZK_ADDR);
-    manager2.connect();
-    ZkClient zkClient = manager2.getZkClient();
-    for (int i = 0; i < 3; i++) {
-      ZkTestHelper.expireSession(zkClient);
-      Thread.sleep(500);
-      Assert.assertTrue(manager2.isConnected());
-    }
-    Thread.sleep(15000);
-    // Old entries should be cleaned up
-    for (int i = 0; i < 7; i++) {
-      ZkTestHelper.expireSession(zkClient);
-      Thread.sleep(1000);
-      Assert.assertTrue(manager2.isConnected());
-    }
-    ZkTestHelper.disconnectSession(zkClient);
-    for (int i = 0; i < 20; i++) {
-      Thread.sleep(500);
-      if (!manager2.isConnected())
-        break;
-    }
-    Assert.assertFalse(manager2.isConnected());
-  }
+  // TODO test was disabled. check if it is still needed
+  // @Test(enabled = false)
+  // public void testDisconnectFlappingWindow() throws Exception {
+  // String className = TestHelper.getTestClassName();
+  // String methodName = TestHelper.getTestMethodName();
+  // String instanceName = "localhost_" + (12918 + 1);
+  // final String clusterName = className + "_" + methodName + UUID.randomUUID();
+  //
+  // testDisconnectFlappingWindow2(instanceName, InstanceType.PARTICIPANT);
+  // testDisconnectFlappingWindow2("admin", InstanceType.ADMINISTRATOR);
+  // }
+  //
+  // public void testDisconnectFlappingWindow2(String instanceName, InstanceType type)
+  // throws Exception {
+  // String className = TestHelper.getTestClassName();
+  // String methodName = TestHelper.getTestMethodName();
+  // final String clusterName = className + "_" + methodName + UUID.randomUUID();
+  //
+  // TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+  // "localhost", // participant name prefix
+  // "TestDB", // resource name prefix
+  // 1, // resources
+  // 10, // partitions per resource
+  // 5, // number of nodes
+  // 3, // replicas
+  // "MasterSlave", true); // do rebalance
+  //
+  // // flapping time window to 5 sec
+  // System.setProperty("helixmanager.flappingTimeWindow", "15000");
+  // System.setProperty("helixmanager.maxDisconnectThreshold", "7");
+  // ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, instanceName, type, ZK_ADDR);
+  // manager2.connect();
+  // ZkClient zkClient = manager2.getZkClient();
+  // for (int i = 0; i < 3; i++) {
+  // ZkTestHelper.expireSession(zkClient);
+  // Thread.sleep(500);
+  // Assert.assertTrue(manager2.isConnected());
+  // }
+  // Thread.sleep(15000);
+  // // Old entries should be cleaned up
+  // for (int i = 0; i < 7; i++) {
+  // ZkTestHelper.expireSession(zkClient);
+  // Thread.sleep(1000);
+  // Assert.assertTrue(manager2.isConnected());
+  // }
+  // ZkTestHelper.disconnectSession(zkClient);
+  // for (int i = 0; i < 20; i++) {
+  // Thread.sleep(500);
+  // if (!manager2.isConnected())
+  // break;
+  // }
+  // Assert.assertFalse(manager2.isConnected());
+  // }
 
   // @Test
   public void testDisconnectFlappingWindowController() throws Exception {
@@ -140,8 +140,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
     // flapping time window to 5 sec
     System.setProperty("helixmanager.flappingTimeWindow", "5000");
     System.setProperty("helixmanager.maxDisconnectThreshold", "3");
-    ZkHelixTestManager manager2 =
-        new ZkHelixTestManager(clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
+    ClusterControllerManager manager2 = new ClusterControllerManager(ZK_ADDR, clusterName, null);
     manager2.connect();
     Thread.sleep(100);
     ZkClient zkClient = manager2.getZkClient();

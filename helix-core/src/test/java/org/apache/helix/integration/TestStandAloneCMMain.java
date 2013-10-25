@@ -21,9 +21,15 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.TestHelper.Verifier;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -35,16 +41,34 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
   @Test()
   public void testStandAloneCMMain() throws Exception {
     logger.info("RUN testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));
-
+    ClusterControllerManager newController = null;
     for (int i = 1; i <= 2; i++) {
       String controllerName = "controller_" + i;
-      StartCMResult startResult =
-          TestHelper.startController(CLUSTER_NAME, controllerName, ZK_ADDR,
-              HelixControllerMain.STANDALONE);
-      _startCMResultMap.put(controllerName, startResult);
+      newController =
+          new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+      newController.syncStart();
     }
 
-    stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
+    // stopCurrentLeader(_zkClient, CLUSTER_NAME, _startCMResultMap);
+    _controller.syncStop();
+
+    final HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    final String newControllerName = newController.getInstanceName();
+    TestHelper.verify(new Verifier() {
+
+      @Override
+      public boolean verify() throws Exception {
+        LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+        if (leader == null) {
+          return false;
+        }
+        return leader.getInstanceName().equals(newControllerName);
+
+      }
+    }, 30 * 1000);
+
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, CLUSTER_NAME));

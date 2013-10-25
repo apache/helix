@@ -25,10 +25,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -39,13 +38,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
+  private static Logger LOG = Logger.getLogger(TestSessionExpiryInTransition.class);
 
   public class SessionExpiryTransition extends MockTransition {
     private final AtomicBoolean _done = new AtomicBoolean();
 
     @Override
     public void doTransition(Message message, NotificationContext context) {
-      ZkHelixTestManager manager = (ZkHelixTestManager) context.getManager();
+      MockParticipantManager manager = (MockParticipantManager) context.getManager();
 
       String instance = message.getTgtName();
       String partition = message.getPartitionName();
@@ -55,8 +55,7 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
         try {
           ZkTestHelper.expireSession(manager.getZkClient());
         } catch (Exception e) {
-          // TODO Auto-generated catch block
-          e.printStackTrace();
+          LOG.error("Exception expire zk-session", e);
         }
       }
     }
@@ -64,7 +63,7 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
 
   @Test
   public void testSessionExpiryInTransition() throws Exception {
-    Logger.getRootLogger().setLevel(Level.WARN);
+    // Logger.getRootLogger().setLevel(Level.WARN);
 
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -72,7 +71,7 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -84,15 +83,15 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterController controller = new ClusterController(clusterName, "controller_0", ZK_ADDR);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      ZkHelixTestManager manager =
-          new ZkHelixTestManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
-      participants[i] = new MockParticipant(manager, new SessionExpiryTransition());
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i].setTransition(new SessionExpiryTransition());
       participants[i].syncStart();
     }
 
@@ -102,12 +101,10 @@ public class TestSessionExpiryInTransition extends ZkIntegrationTestBase {
     Assert.assertTrue(result);
 
     // clean up
+    controller.syncStop();
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }
-
-    Thread.sleep(2000);
-    controller.syncStop();
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

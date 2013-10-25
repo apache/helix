@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -53,6 +54,9 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * @see GenericHelixController RoutingTableProvider for controller
  */
 public interface HelixManager {
+  @Deprecated
+  public static final String ALLOW_PARTICIPANT_AUTO_JOIN =
+      ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN;
 
   /**
    * Start participating in the cluster operations. All listeners will be

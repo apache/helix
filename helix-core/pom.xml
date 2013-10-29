@@ -146,6 +146,11 @@ under the License.
       <artifactId>guava</artifactId>
       <version>r09</version>
     </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>1.12</version>
+      </dependency>
   </dependencies>
   <build>
     <resources>
@@ -216,6 +221,10 @@ under the License.
             <program>
               <mainClass>org.apache.helix.tools.JmxDumper</mainClass>
               <name>JmxDumper</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.tools.YAMLClusterSetup</mainClass>
+              <name>yaml-cluster-setup</name>
             </program>
           </programs>
         </configuration>

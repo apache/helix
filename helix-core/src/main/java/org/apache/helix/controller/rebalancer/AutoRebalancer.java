@@ -100,11 +100,22 @@ public class AutoRebalancer implements Rebalancer {
           }
         }
       }
-    }
-    if (taggedNodes.size() > 0) {
-      if (LOG.isInfoEnabled()) {
-        LOG.info("found the following instances with tag " + currentIdealState.getResourceName()
-            + " " + taggedLiveNodes);
+      if (!taggedLiveNodes.isEmpty()) {
+        // live nodes exist that have this tag
+        if (LOG.isInfoEnabled()) {
+          LOG.info("found the following participants with tag "
+              + currentIdealState.getInstanceGroupTag() + " for " + resource.getResourceName()
+              + ": " + taggedLiveNodes);
+        }
+      } else if (taggedNodes.isEmpty()) {
+        // no live nodes and no configured nodes have this tag
+        LOG.warn("Resource " + resource.getResourceName() + " has tag "
+            + currentIdealState.getInstanceGroupTag()
+            + " but no configured participants have this tag");
+      } else {
+        // configured nodes have this tag, but no live nodes have this tag
+        LOG.warn("Resource " + resource.getResourceName() + " has tag "
+            + currentIdealState.getInstanceGroupTag() + " but no live participants have this tag");
       }
       allNodes = new ArrayList<String>(taggedNodes);
       liveNodes = new ArrayList<String>(taggedLiveNodes);

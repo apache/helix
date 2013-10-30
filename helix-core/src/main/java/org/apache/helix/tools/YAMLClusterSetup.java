@@ -103,6 +103,26 @@ public class YAMLClusterSetup {
           StateModelDefinition stateModelDef =
               getStateModelDef(resource.stateModel, resource.constraints);
           helixAdmin.addStateModelDef(cfg.clusterName, resource.stateModel.name, stateModelDef);
+        } else {
+          StateModelDefinition stateModelDef = null;
+          if (resource.stateModel.name.equals("MasterSlave")) {
+            stateModelDef =
+                new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+          } else if (resource.stateModel.name.equals("OnlineOffline")) {
+            stateModelDef =
+                new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
+          } else if (resource.stateModel.name.equals("LeaderStandby")) {
+            stateModelDef =
+                new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby());
+          }
+          if (stateModelDef != null) {
+            try {
+              helixAdmin.addStateModelDef(cfg.clusterName, resource.stateModel.name, stateModelDef);
+            } catch (HelixException e) {
+              LOG.warn("State model definition " + resource.stateModel.name
+                  + " could not be added.");
+            }
+          }
         }
         int partitions = 1;
         int replicas = 1;

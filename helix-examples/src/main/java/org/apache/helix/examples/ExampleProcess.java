@@ -33,13 +33,16 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.manager.zk.HelixManagerShutdownHook;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.log4j.Logger;
 
 public class ExampleProcess {
+  private static final Logger LOG = Logger.getLogger(ExampleProcess.class);
 
   public static final String zkServer = "zkSvr";
   public static final String cluster = "cluster";
@@ -56,8 +59,6 @@ public class ExampleProcess {
   private final String instanceName;
   private final String stateModelType;
   private HelixManager manager;
-
-  // private StateMachineEngine genericStateMachineHandler;
 
   private StateModelFactory<StateModel> stateModelFactory;
   private final int delay;
@@ -96,6 +97,10 @@ public class ExampleProcess {
 
   public void stop() {
     manager.disconnect();
+  }
+
+  public HelixManager getManager() {
+    return manager;
   }
 
   @SuppressWarnings("static-access")
@@ -168,6 +173,7 @@ public class ExampleProcess {
 
   public static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
+    helpFormatter.setWidth(1000);
     helpFormatter.printHelp("java " + ExampleProcess.class.getName(), cliOptions);
   }
 
@@ -232,6 +238,9 @@ public class ExampleProcess {
         new ExampleProcess(zkConnectString, clusterName, instanceName, file, stateModelValue, delay);
 
     process.start();
+
+    Runtime.getRuntime().addShutdownHook(new HelixManagerShutdownHook(process.getManager()));
+
     Thread.currentThread().join();
   }
 }

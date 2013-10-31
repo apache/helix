@@ -218,6 +218,10 @@ under the License.
               <mainClass>org.apache.helix.tools.YAMLClusterSetup</mainClass>
               <name>yaml-cluster-setup</name>
             </program>
+            <program>
+              <mainClass>org.apache.helix.tools.IntegrationTestUtil</mainClass>
+              <name>test-util</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

@@ -48,6 +48,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
+import org.apache.helix.manager.zk.HelixManagerShutdownHook;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
@@ -233,6 +234,9 @@ public class HelixControllerMain {
 
     HelixManager manager =
         startHelixController(zkConnectString, clusterName, controllerName, controllerMode);
+
+    Runtime.getRuntime().addShutdownHook(new HelixManagerShutdownHook(manager));
+
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {

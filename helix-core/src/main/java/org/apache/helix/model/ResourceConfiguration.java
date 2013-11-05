@@ -2,8 +2,15 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.ResourceConfig.ResourceType;
+import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+
+import com.google.common.base.Enums;
+import com.google.common.base.Optional;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -70,5 +77,39 @@ public class ResourceConfiguration extends HelixProperty {
    */
   public ResourceType getType() {
     return _record.getEnumField(Fields.TYPE.toString(), ResourceType.class, ResourceType.DATA);
+  }
+
+  /**
+   * Get a backward-compatible resource user config
+   * @return UserConfig
+   */
+  public UserConfig getUserConfig() {
+    UserConfig userConfig = UserConfig.from(this);
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      Optional<Fields> enumField = Enums.getIfPresent(Fields.class, simpleField);
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
+    for (String listField : _record.getListFields().keySet()) {
+      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+        userConfig.setListField(listField, _record.getListField(listField));
+      }
+    }
+    for (String mapField : _record.getMapFields().keySet()) {
+      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      }
+    }
+    return userConfig;
+  }
+
+  /**
+   * Get a RebalancerContext if available
+   * @return RebalancerContext, or null
+   */
+  public RebalancerContext getRebalancerContext(Class<? extends RebalancerContext> clazz) {
+    RebalancerConfig config = new RebalancerConfig(this);
+    return config.getRebalancerContext(clazz);
   }
 }

@@ -247,12 +247,12 @@ public class ClusterAccessor {
     PauseSignal pauseSignal = _accessor.getProperty(_keyBuilder.pause());
     boolean isPaused = pauseSignal != null;
 
-    ClusterConfiguration clusterUserConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
+    ClusterConfiguration clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
     boolean autoJoinAllowed = false;
     UserConfig userConfig;
-    if (clusterUserConfig != null) {
-      userConfig = UserConfig.from(clusterUserConfig);
-      autoJoinAllowed = clusterUserConfig.autoJoinAllowed();
+    if (clusterConfig != null) {
+      userConfig = clusterConfig.getUserConfig();
+      autoJoinAllowed = clusterConfig.autoJoinAllowed();
     } else {
       userConfig = new UserConfig(Scope.cluster(_clusterId));
     }
@@ -384,7 +384,7 @@ public class ClusterAccessor {
     Map<ParticipantId, Participant> participantMap = Maps.newHashMap();
     for (String participantName : instanceConfigMap.keySet()) {
       InstanceConfig instanceConfig = instanceConfigMap.get(participantName);
-      UserConfig userConfig = UserConfig.from(instanceConfig);
+      UserConfig userConfig = instanceConfig.getUserConfig();
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       Map<String, Message> instanceMsgMap = messageMap.get(participantName);
 
@@ -429,7 +429,7 @@ public class ClusterAccessor {
    */
   public UserConfig readUserConfig() {
     ClusterConfiguration clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
-    return clusterConfig != null ? UserConfig.from(clusterConfig) : null;
+    return clusterConfig != null ? clusterConfig.getUserConfig() : null;
   }
 
   /**

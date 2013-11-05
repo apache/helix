@@ -100,15 +100,17 @@ public final class RebalancerConfig {
 
   private RebalancerContext getContext() {
     String className = _config.getSimpleField(Fields.REBALANCER_CONTEXT_CLASS.toString());
-    try {
-      Class<? extends RebalancerContext> contextClass =
-          HelixUtil.loadClass(getClass(), className).asSubclass(RebalancerContext.class);
-      String serialized = _config.getSimpleField(Fields.REBALANCER_CONTEXT.toString());
-      return _serializer.deserialize(contextClass, serialized);
-    } catch (ClassNotFoundException e) {
-      LOG.error(className + " is not a valid class");
-    } catch (ClassCastException e) {
-      LOG.error(className + " does not implement RebalancerContext");
+    if (className != null) {
+      try {
+        Class<? extends RebalancerContext> contextClass =
+            HelixUtil.loadClass(getClass(), className).asSubclass(RebalancerContext.class);
+        String serialized = _config.getSimpleField(Fields.REBALANCER_CONTEXT.toString());
+        return _serializer.deserialize(contextClass, serialized);
+      } catch (ClassNotFoundException e) {
+        LOG.error(className + " is not a valid class");
+      } catch (ClassCastException e) {
+        LOG.error(className + " does not implement RebalancerContext");
+      }
     }
     return null;
   }
@@ -134,10 +136,12 @@ public final class RebalancerConfig {
    * @return RebalancerContext subclass instance, or null if conversion is not possible
    */
   public <T extends RebalancerContext> T getRebalancerContext(Class<T> contextClass) {
-    try {
-      return contextClass.cast(_context);
-    } catch (ClassCastException e) {
-      LOG.warn(contextClass + " is incompatible with context class: " + _context.getClass());
+    if (_context != null) {
+      try {
+        return contextClass.cast(_context);
+      } catch (ClassCastException e) {
+        LOG.warn(contextClass + " is incompatible with context class: " + _context.getClass());
+      }
     }
     return null;
   }

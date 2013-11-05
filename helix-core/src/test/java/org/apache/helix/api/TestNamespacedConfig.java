@@ -3,10 +3,18 @@ package org.apache.helix.api;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.ClusterConfiguration;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
+import org.apache.helix.model.ResourceConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -84,5 +92,86 @@ public class TestNamespacedConfig {
     Assert.assertEquals(instanceConfig.getRecord().getSimpleField(prefixedKey), testSimpleValue);
     Assert.assertEquals(instanceConfig.getRecord().getListField(prefixedKey), testListValue);
     Assert.assertEquals(instanceConfig.getRecord().getMapField(prefixedKey), testMapValue);
+  }
+
+  @Test
+  public void testResourceUserConfigCompatibility() {
+    final String KEY1 = "key1";
+    final String VALUE1 = "value1";
+    final String KEY2 = "key2";
+    final String VALUE2 = "value2";
+    final String KEY3 = "key3";
+    final String VALUE3 = "value3";
+
+    // add key1 through user config, key2 through resource config, key3 through ideal state,
+    // resource type through resource config, rebalance mode through ideal state
+    ResourceId resourceId = ResourceId.from("resourceId");
+    UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
+    userConfig.setSimpleField(KEY1, VALUE1);
+    ResourceConfiguration resourceConfig = new ResourceConfiguration(resourceId);
+    resourceConfig.setType(ResourceType.DATA);
+    resourceConfig.addNamespacedConfig(userConfig);
+    resourceConfig.getRecord().setSimpleField(KEY2, VALUE2);
+    IdealState idealState = new IdealState(resourceId);
+    idealState.setRebalanceMode(RebalanceMode.USER_DEFINED);
+    idealState.getRecord().setSimpleField(KEY3, VALUE3);
+
+    // should have key1, key2, and key3, not type or rebalance mode
+    UserConfig result = resourceConfig.getUserConfig();
+    idealState.updateUserConfig(result);
+    Assert.assertEquals(result.getSimpleField(KEY1), VALUE1);
+    Assert.assertEquals(result.getSimpleField(KEY2), VALUE2);
+    Assert.assertEquals(result.getSimpleField(KEY3), VALUE3);
+    Assert.assertNull(result.getSimpleField(ResourceConfiguration.Fields.TYPE.toString()));
+    Assert
+        .assertNull(result.getSimpleField(IdealState.IdealStateProperty.REBALANCE_MODE.toString()));
+  }
+
+  @Test
+  public void testParticipantUserConfigCompatibility() {
+    final String KEY1 = "key1";
+    final String VALUE1 = "value1";
+    final String KEY2 = "key2";
+    final String VALUE2 = "value2";
+
+    // add key1 through user config, key2 through instance config, hostname through user config
+    ParticipantId participantId = ParticipantId.from("participantId");
+    UserConfig userConfig = new UserConfig(Scope.participant(participantId));
+    userConfig.setSimpleField(KEY1, VALUE1);
+    InstanceConfig instanceConfig = new InstanceConfig(participantId);
+    instanceConfig.setHostName("localhost");
+    instanceConfig.addNamespacedConfig(userConfig);
+    instanceConfig.getRecord().setSimpleField(KEY2, VALUE2);
+
+    // should have key1 and key2, not hostname
+    UserConfig result = instanceConfig.getUserConfig();
+    Assert.assertEquals(result.getSimpleField(KEY1), VALUE1);
+    Assert.assertEquals(result.getSimpleField(KEY2), VALUE2);
+    Assert.assertNull(result.getSimpleField(InstanceConfig.InstanceConfigProperty.HELIX_HOST
+        .toString()));
+  }
+
+  @Test
+  public void testClusterUserConfigCompatibility() {
+    final String KEY1 = "key1";
+    final String VALUE1 = "value1";
+    final String KEY2 = "key2";
+    final String VALUE2 = "value2";
+
+    // add the following: key1 straight to user config, key2 to cluster configuration,
+    // allow auto join to cluster configuration
+    ClusterId clusterId = ClusterId.from("clusterId");
+    UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
+    userConfig.setSimpleField(KEY1, VALUE1);
+    ClusterConfiguration clusterConfiguration = new ClusterConfiguration(clusterId);
+    clusterConfiguration.addNamespacedConfig(userConfig);
+    clusterConfiguration.getRecord().setSimpleField(KEY2, VALUE2);
+    clusterConfiguration.setAutoJoinAllowed(true);
+
+    // there should be key1 and key2, but not auto join
+    UserConfig result = clusterConfiguration.getUserConfig();
+    Assert.assertEquals(result.getSimpleField(KEY1), VALUE1);
+    Assert.assertEquals(result.getSimpleField(KEY2), VALUE2);
+    Assert.assertNull(result.getSimpleField(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN));
   }
 }

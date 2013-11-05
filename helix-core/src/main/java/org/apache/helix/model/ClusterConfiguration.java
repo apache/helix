@@ -1,10 +1,11 @@
 package org.apache.helix.model;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.manager.zk.ZKHelixManager;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -46,11 +47,19 @@ public class ClusterConfiguration extends HelixProperty {
   }
 
   /**
+   * Get a typed cluster id
+   * @return ClusterId
+   */
+  public ClusterId getClusterId() {
+    return ClusterId.from(getId());
+  }
+
+  /**
    * Determine if participants can automatically join the cluster
    * @return true if allowed, false if disallowed
    */
   public boolean autoJoinAllowed() {
-    return _record.getBooleanField(HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, false);
+    return _record.getBooleanField(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, false);
   }
 
   /**
@@ -58,7 +67,32 @@ public class ClusterConfiguration extends HelixProperty {
    * @param autoJoinAllowed true if allowed, false if disallowed
    */
   public void setAutoJoinAllowed(boolean autoJoinAllowed) {
-    _record.setBooleanField(HelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, autoJoinAllowed);
+    _record.setBooleanField(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, autoJoinAllowed);
+  }
+
+  /**
+   * Get a backward-compatible cluster user config
+   * @return UserConfig
+   */
+  public UserConfig getUserConfig() {
+    UserConfig userConfig = UserConfig.from(this);
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "")
+          && !simpleField.equals(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN)) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
+    for (String listField : _record.getListFields().keySet()) {
+      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+        userConfig.setListField(listField, _record.getListField(listField));
+      }
+    }
+    for (String mapField : _record.getMapFields().keySet()) {
+      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      }
+    }
+    return userConfig;
   }
 
   /**

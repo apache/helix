@@ -403,7 +403,7 @@ public class ParticipantAccessor {
   public UserConfig readUserConfig(ParticipantId participantId) {
     InstanceConfig instanceConfig =
         _accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify()));
-    return instanceConfig != null ? UserConfig.from(instanceConfig) : null;
+    return instanceConfig != null ? instanceConfig.getUserConfig() : null;
   }
 
   /**
@@ -528,8 +528,8 @@ public class ParticipantAccessor {
     RunningInstance runningInstance = null;
     if (liveInstance != null) {
       runningInstance =
-          new RunningInstance(liveInstance.getTypedSessionId(), liveInstance.getTypedHelixVersion(),
-              liveInstance.getProcessId());
+          new RunningInstance(liveInstance.getTypedSessionId(),
+              liveInstance.getTypedHelixVersion(), liveInstance.getProcessId());
     }
 
     Map<MessageId, Message> msgMap = new HashMap<MessageId, Message>();
@@ -568,7 +568,7 @@ public class ParticipantAccessor {
       return null;
     }
 
-    UserConfig userConfig = UserConfig.from(instanceConfig);
+    UserConfig userConfig = instanceConfig.getUserConfig();
     LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
 
     Map<String, Message> instanceMsgMap = Collections.emptyMap();

@@ -35,7 +35,7 @@ import com.google.common.collect.Maps;
  * Generic configuration of Helix components prefixed with a namespace
  */
 public class NamespacedConfig extends ZNRecord {
-  private static final char PREFIX_CHAR = '!';
+  public static final char PREFIX_CHAR = '!';
   private final String _prefix;
 
   /**
@@ -176,7 +176,7 @@ public class NamespacedConfig extends ZNRecord {
    * Get all map fields with prefixed keys
    * @return prefixed map fields
    */
-  private Map<String, Map<String, String>> getPrefixedMapFields() {
+  public Map<String, Map<String, String>> getPrefixedMapFields() {
     return super.getMapFields();
   }
 
@@ -184,7 +184,7 @@ public class NamespacedConfig extends ZNRecord {
    * Get all list fields with prefixed keys
    * @return prefixed list fields
    */
-  private Map<String, List<String>> getPrefixedListFields() {
+  public Map<String, List<String>> getPrefixedListFields() {
     return super.getListFields();
   }
 
@@ -192,7 +192,7 @@ public class NamespacedConfig extends ZNRecord {
    * Get all simple fields with prefixed keys
    * @return prefixed simple fields
    */
-  private Map<String, String> getPrefixedSimpleFields() {
+  public Map<String, String> getPrefixedSimpleFields() {
     return super.getSimpleFields();
   }
 

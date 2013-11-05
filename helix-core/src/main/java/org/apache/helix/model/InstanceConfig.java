@@ -27,9 +27,13 @@ import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.log4j.Logger;
+
+import com.google.common.base.Enums;
+import com.google.common.base.Optional;
 
 /**
  * Instance configurations
@@ -45,8 +49,6 @@ public class InstanceConfig extends HelixProperty {
     HELIX_DISABLED_PARTITION,
     TAG_LIST
   }
-
-  private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
   /**
    * Instantiate for a specific instance
@@ -263,6 +265,36 @@ public class InstanceConfig extends HelixProperty {
    */
   public ParticipantId getParticipantId() {
     return ParticipantId.from(getInstanceName());
+  }
+
+  /**
+   * Get a backward-compatible participant user config
+   * @return UserConfig
+   */
+  public UserConfig getUserConfig() {
+    UserConfig userConfig = UserConfig.from(this);
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
+    for (String listField : _record.getListFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, listField);
+      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setListField(listField, _record.getListField(listField));
+      }
+    }
+    for (String mapField : _record.getMapFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, mapField);
+      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      }
+    }
+    return userConfig;
   }
 
   @Override

@@ -416,20 +416,28 @@ public class ResourceAccessor {
       ResourceConfiguration resourceConfiguration, IdealState idealState,
       ExternalView externalView, ResourceAssignment resourceAssignment) {
     UserConfig userConfig;
+    RebalancerContext rebalancerContext = null;
     ResourceType type = ResourceType.DATA;
     if (resourceConfiguration != null) {
-      userConfig = UserConfig.from(resourceConfiguration);
+      userConfig = resourceConfiguration.getUserConfig();
       type = resourceConfiguration.getType();
     } else {
       userConfig = new UserConfig(Scope.resource(resourceId));
     }
     int bucketSize = 0;
     boolean batchMessageMode = false;
-    RebalancerContext rebalancerContext = null;
     if (idealState != null) {
-      rebalancerContext = PartitionedRebalancerContext.from(idealState);
+      if (resourceConfiguration != null) {
+        rebalancerContext =
+            resourceConfiguration.getRebalancerContext(PartitionedRebalancerContext.class);
+      }
+      if (rebalancerContext == null) {
+        // fallback: get rebalancer context from ideal state
+        rebalancerContext = PartitionedRebalancerContext.from(idealState);
+      }
       bucketSize = idealState.getBucketSize();
       batchMessageMode = idealState.getBatchMessageMode();
+      idealState.updateUserConfig(userConfig);
     } else if (resourceConfiguration != null) {
       bucketSize = resourceConfiguration.getBucketSize();
       batchMessageMode = resourceConfiguration.getBatchMessageMode();

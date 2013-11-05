@@ -33,6 +33,8 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
+import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -42,7 +44,9 @@ import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Enums;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Lists;
@@ -749,6 +753,20 @@ public class IdealState extends HelixProperty {
       }
     }
     return rebalanceMode;
+  }
+
+  /**
+   * Get the non-Helix simple fields from this property and add them to a UserConfig
+   * @param userConfig the user config to update
+   */
+  public void updateUserConfig(UserConfig userConfig) {
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      Optional<IdealStateProperty> enumField =
+          Enums.getIfPresent(IdealStateProperty.class, simpleField);
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
   }
 
   /**

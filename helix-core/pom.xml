@@ -144,7 +144,7 @@ under the License.
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>r09</version>
+      <version>15.0</version>
     </dependency>
       <dependency>
         <groupId>org.yaml</groupId>

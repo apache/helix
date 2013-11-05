@@ -44,6 +44,7 @@ public class MockMSStateModel extends StateModel {
   }
 
   // overwrite default error->dropped transition
+  @Override
   @Transition(to = "DROPPED", from = "ERROR")
   public void onBecomeDroppedFromError(Message message, NotificationContext context)
       throws InterruptedException {
@@ -107,6 +108,18 @@ public class MockMSStateModel extends StateModel {
     if (_transition != null) {
       _transition.doTransition(message, context);
     }
+  }
+
+  @Transition(to = "LEADER", from = "MASTER")
+  public void onBecomeLeaderFromMaster(Message message, NotificationContext context)
+      throws InterruptedException {
+    LOG.info("Become LEADER from MASTER");
+  }
+
+  @Transition(to = "MASTER", from = "LEADER")
+  public void onBecomeMasterFromLeader(Message message, NotificationContext context)
+      throws InterruptedException {
+    LOG.info("Become MASTER from LEADER");
   }
 
   @Override

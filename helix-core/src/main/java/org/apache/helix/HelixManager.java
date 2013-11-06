@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -33,6 +34,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
+ * 
  * <pre>
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
@@ -47,6 +49,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
+ * 
  * </blockquote> Default implementations available
  * @see HelixStateMachineEngine HelixStateMachineEngine for participant
  * @see RoutingTableProvider RoutingTableProvider for spectator
@@ -54,7 +57,8 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  */
 public interface HelixManager {
 
-  public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "ALLOW_PARTICIPANT_AUTO_JOIN";
+  public static final String ALLOW_PARTICIPANT_AUTO_JOIN =
+      ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN;
 
   /**
    * Start participating in the cluster operations. All listeners will be

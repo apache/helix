@@ -270,6 +270,15 @@ public class ResourceAccessor {
   }
 
   /**
+   * get the external view of a resource
+   * @param resourceId the resource to look up
+   * @return external view or null
+   */
+  public ExternalView readExternalView(ResourceId resourceId) {
+    return _accessor.getProperty(_keyBuilder.externalView(resourceId.stringify()));
+  }
+
+  /**
    * drop external view of a resource
    * @param resourceId
    * @return true if dropped, false otherwise

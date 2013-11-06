@@ -25,6 +25,10 @@ import java.util.concurrent.ConcurrentMap;
 
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
+/**
+ * Replaced by {@link org.apache.helix.participant.statemachine.HelixStateModelFactory}
+ */
+@Deprecated
 public abstract class StateModelFactory<T extends StateModel> {
   /**
    * mapping from partitionName to StateModel

@@ -710,13 +710,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       success[i] = (results.get(i)._retCode == RetCode.OK);
     }
 
-    for (int i = 0; i < paths.size(); i++) {
-      String path = paths.get(i);
-      T record = records.get(i);
-      if (path.indexOf("EXTERNALVIEW") != -1) {
-        System.out.println("path: " + path + ", record: " + record + ", success: " + success[i]);
-      }
-    }
     return success;
   }
 

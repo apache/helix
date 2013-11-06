@@ -69,10 +69,10 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
-import org.testng.internal.annotations.Sets;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ClusterAccessor {
   private static Logger LOG = Logger.getLogger(ClusterAccessor.class);

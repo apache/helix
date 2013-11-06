@@ -46,15 +46,20 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
+import org.apache.helix.participant.statemachine.HelixStateModelFactoryAdaptor;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.log4j.Logger;
 
 public class HelixStateMachineEngine implements StateMachineEngine {
-  private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
+  private static Logger LOG = Logger.getLogger(HelixStateMachineEngine.class);
 
-  // StateModelName->FactoryName->StateModelFactory
+  /**
+   * Map of StateModelDefId to map of FactoryName to StateModelFactory
+   * TODO change to use StateModelDefId and HelixStateModelFactory
+   */
   private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
   private final StateModelParser _stateModelParser;
   private final HelixManager _manager;
@@ -95,7 +100,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
     }
 
-    logger.info("Register state model factory for state model " + stateModelName
+    LOG.info("Register state model factory for state model " + stateModelName
         + " using factory name " + factoryName + " with " + factory);
 
     if (!_stateModelFactoryMap.containsKey(stateModelName)) {
@@ -104,7 +109,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     }
 
     if (_stateModelFactoryMap.get(stateModelName).containsKey(factoryName)) {
-      logger.warn("stateModelFactory for " + stateModelName + " using factoryName " + factoryName
+      LOG.warn("stateModelFactory for " + stateModelName + " using factoryName " + factoryName
           + " has already been registered.");
       return false;
     }
@@ -136,9 +141,9 @@ public class HelixStateMachineEngine implements StateMachineEngine {
           nopMsg.setTgtName(_manager.getInstanceName());
           accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
         }
-        logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
+        LOG.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
       } catch (Exception e) {
-        logger.error(e);
+        LOG.error(e);
       }
     }
   }
@@ -176,9 +181,8 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     int bucketSize = message.getBucketSize();
 
     if (stateModelId == null) {
-      logger
-          .error("Fail to create msg-handler because message does not contain stateModelDef. msgId: "
-              + message.getId());
+      LOG.error("Fail to create msg-handler because message does not contain stateModelDef. msgId: "
+          + message.getId());
       return null;
     }
 
@@ -190,7 +194,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     StateModelFactory<? extends StateModel> stateModelFactory =
         getStateModelFactory(stateModelId.stringify(), factoryName);
     if (stateModelFactory == null) {
-      logger.warn("Fail to create msg-handler because cannot find stateModelFactory for model: "
+      LOG.warn("Fail to create msg-handler because cannot find stateModelFactory for model: "
           + stateModelId + " using factoryName: " + factoryName + " for resource: " + resourceId);
       return null;
     }
@@ -241,7 +245,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       // get executor-service for the message
       TaskExecutor executor = (TaskExecutor) context.get(MapKey.TASK_EXECUTOR.toString());
       if (executor == null) {
-        logger.error("fail to get executor-service for batch message: " + message.getId()
+        LOG.error("fail to get executor-service for batch message: " + message.getId()
             + ". msgType: " + message.getMsgType() + ", resource: " + message.getResourceId());
         return null;
       }
@@ -264,5 +268,87 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName) {
     throw new UnsupportedOperationException("Remove not yet supported");
+  }
+
+  @Override
+  public boolean registerStateModelFactory(StateModelDefId stateModelDefId,
+      HelixStateModelFactory<? extends StateModel> factory) {
+    return registerStateModelFactory(stateModelDefId, HelixConstants.DEFAULT_STATE_MODEL_FACTORY,
+        factory);
+  }
+
+  @Override
+  public boolean registerStateModelFactory(StateModelDefId stateModelDefId, String factoryName,
+      HelixStateModelFactory<? extends StateModel> factory) {
+    if (stateModelDefId == null || factoryName == null || factory == null) {
+      LOG.info("stateModelDefId|factoryName|stateModelFactory is null");
+      return false;
+    }
+
+    LOG.info("Registering state model factory for state-model-definition: " + stateModelDefId
+        + " using factory-name: " + factoryName + " with: " + factory);
+
+    StateModelFactory<? extends StateModel> factoryAdaptor =
+        new HelixStateModelFactoryAdaptor(factory);
+
+    String stateModelDefName = stateModelDefId.stringify();
+    if (!_stateModelFactoryMap.containsKey(stateModelDefName)) {
+      _stateModelFactoryMap.put(stateModelDefName,
+          new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>());
+    }
+
+    if (_stateModelFactoryMap.get(stateModelDefName).containsKey(factoryName)) {
+      LOG.info("Skip register state model factory for " + stateModelDefId + " using factory-name "
+          + factoryName + ", since it has already been registered.");
+      return false;
+    }
+
+    _stateModelFactoryMap.get(stateModelDefName).put(factoryName, factoryAdaptor);
+
+    sendNopMessage();
+    return true;
+  }
+
+  @Override
+  public boolean removeStateModelFactory(StateModelDefId stateModelDefId) {
+    return removeStateModelFactory(stateModelDefId, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+  }
+
+  @Override
+  public boolean removeStateModelFactory(StateModelDefId stateModelDefId, String factoryName) {
+    if (stateModelDefId == null || factoryName == null) {
+      LOG.info("stateModelDefId|factoryName is null");
+      return false;
+    }
+
+    LOG.info("Removing state model factory for state-model-definition: " + stateModelDefId
+        + " using factory-name: " + factoryName);
+
+    String stateModelDefName = stateModelDefId.stringify();
+    Map<String, StateModelFactory<? extends StateModel>> ftyMap =
+        _stateModelFactoryMap.get(stateModelDefName);
+    if (ftyMap == null) {
+      LOG.info("Skip remove state model factory " + stateModelDefId + ", since it does NOT exist");
+      return false;
+    }
+
+    StateModelFactory<? extends StateModel> fty = ftyMap.remove(factoryName);
+    if (fty == null) {
+      LOG.info("Skip remove state model factory " + stateModelDefId + " using factory-name "
+          + factoryName + ", since it does NOT exist");
+      return false;
+    }
+
+    if (ftyMap.isEmpty()) {
+      _stateModelFactoryMap.remove(stateModelDefName);
+    }
+
+    for (String partition : fty.getPartitionSet()) {
+      StateModel stateModel = fty.getStateModel(partition);
+      stateModel.reset();
+      // TODO probably should remove the state from zookeeper
+    }
+
+    return true;
   }
 }

@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
@@ -63,7 +64,8 @@ public class Worker implements Runnable {
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       TaskStateModelFactory modelFactory =
           new TaskStateModelFactory(_instanceName, _taskFactory, _taskResultStore);
-      stateMach.registerStateModelFactory(TaskCluster.DEFAULT_STATE_MODEL, modelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.from(TaskCluster.DEFAULT_STATE_MODEL),
+          modelFactory);
 
       _manager.connect();
 

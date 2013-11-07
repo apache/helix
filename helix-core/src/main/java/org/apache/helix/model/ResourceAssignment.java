@@ -19,12 +19,21 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 
 /**
  * Represents the assignments of replicas for an entire resource, keyed on partitions of the
@@ -38,53 +47,146 @@ import org.apache.helix.HelixProperty;
  * can be in s1.
  */
 public class ResourceAssignment extends HelixProperty {
-
   /**
    * Initialize an empty mapping
-   * @param resourceName the resource being mapped
+   * @param resourceId the resource being mapped
    */
-  public ResourceAssignment(String resourceName) {
-    super(resourceName);
+  public ResourceAssignment(ResourceId resourceId) {
+    super(resourceId.stringify());
   }
 
   /**
-   * Initialize a mapping from an existing ResourceMapping
-   * @param existingMapping pre-populated ResourceMapping
+   * Instantiate from a record. This supports reading the assignment directly from the backing store
+   * @param record backing record
    */
-  public ResourceAssignment(ResourceAssignment existingMapping) {
-    super(existingMapping);
+  public ResourceAssignment(ZNRecord record) {
+    super(record);
+  }
+
+  /**
+   * Get the resource for which this assignment was created
+   * @return resource id
+   */
+  public ResourceId getResourceId() {
+    return ResourceId.from(getId());
   }
 
   /**
    * Get the currently mapped partitions
-   * @return list of Partition objects
+   * @return list of Partition objects (immutable)
    */
-  public List<Partition> getMappedPartitions() {
-    List<Partition> partitions = new ArrayList<Partition>();
+  public List<? extends PartitionId> getMappedPartitionIds() {
+    ImmutableList.Builder<PartitionId> builder = new ImmutableList.Builder<PartitionId>();
     for (String partitionName : _record.getMapFields().keySet()) {
-      partitions.add(new Partition(partitionName));
+      builder.add(PartitionId.from(partitionName));
     }
-    return partitions;
+    return builder.build();
   }
 
   /**
-   * Get the instance, state pairs for a partition
+   * Get the entire map of a resource
+   * @return map of partition to participant to state
+   */
+  public Map<? extends PartitionId, Map<ParticipantId, State>> getResourceMap() {
+    return replicaMapsFromStringMaps(_record.getMapFields());
+  }
+
+  /**
+   * Get the participant, state pairs for a partition
    * @param partition the Partition to look up
-   * @return map of (instance name, state)
+   * @return immutable map of (participant id, state)
    */
-  public Map<String, String> getReplicaMap(Partition partition) {
-    if (_record.getMapFields().containsKey(partition.getPartitionName())) {
-      return _record.getMapField(partition.getPartitionName());
+  public Map<ParticipantId, State> getReplicaMap(PartitionId partitionId) {
+    Map<String, String> rawReplicaMap = _record.getMapField(partitionId.stringify());
+    if (rawReplicaMap == null) {
+      return Collections.emptyMap();
     }
-    return Collections.emptyMap();
+    ImmutableMap.Builder<ParticipantId, State> builder =
+        new ImmutableMap.Builder<ParticipantId, State>();
+    for (String participantName : rawReplicaMap.keySet()) {
+      builder.put(ParticipantId.from(participantName),
+          State.from(rawReplicaMap.get(participantName)));
+    }
+    return builder.build();
   }
 
   /**
-   * Add instance, state pairs for a partition
-   * @param partition the partition to set
-   * @param replicaMap map of (instance name, state)
+   * Add participant, state pairs for a partition
+   * @param partitionId the partition to set
+   * @param replicaMap map of (participant name, state)
    */
-  public void addReplicaMap(Partition partition, Map<String, String> replicaMap) {
-    _record.setMapField(partition.getPartitionName(), replicaMap);
+  public void addReplicaMap(PartitionId partitionId, Map<ParticipantId, State> replicaMap) {
+    Map<String, String> convertedMap = Maps.newHashMap();
+    for (ParticipantId participantId : replicaMap.keySet()) {
+      convertedMap.put(participantId.stringify(), replicaMap.get(participantId).toString());
+    }
+    _record.setMapField(partitionId.stringify(), convertedMap);
+  }
+
+  /**
+   * Helper for converting a map of strings to a concrete replica map
+   * @param rawMap map of participant name to state name
+   * @return map of participant id to state
+   */
+  public static Map<ParticipantId, State> replicaMapFromStringMap(Map<String, String> rawMap) {
+    if (rawMap == null) {
+      return Collections.emptyMap();
+    }
+    Map<ParticipantId, State> replicaMap = Maps.newHashMap();
+    for (String participantName : rawMap.keySet()) {
+      replicaMap.put(ParticipantId.from(participantName), State.from(rawMap.get(participantName)));
+    }
+    return replicaMap;
+  }
+
+  /**
+   * Convert a full replica mapping as strings into participant state maps
+   * @param rawMaps the map of partition name to participant name and state
+   * @return converted maps
+   */
+  public static Map<? extends PartitionId, Map<ParticipantId, State>> replicaMapsFromStringMaps(
+      Map<String, Map<String, String>> rawMaps) {
+    if (rawMaps == null) {
+      return Collections.emptyMap();
+    }
+    Map<PartitionId, Map<ParticipantId, State>> participantStateMaps = Maps.newHashMap();
+    for (String partitionId : rawMaps.keySet()) {
+      participantStateMaps.put(PartitionId.from(partitionId),
+          replicaMapFromStringMap(rawMaps.get(partitionId)));
+    }
+    return participantStateMaps;
+  }
+
+  /**
+   * Helper for converting a replica map to a map of strings
+   * @param replicaMap map of participant id to state
+   * @return map of participant name to state name
+   */
+  public static Map<String, String> stringMapFromReplicaMap(Map<ParticipantId, State> replicaMap) {
+    if (replicaMap == null) {
+      return Collections.emptyMap();
+    }
+    Map<String, String> rawMap = new HashMap<String, String>();
+    for (ParticipantId participantId : replicaMap.keySet()) {
+      rawMap.put(participantId.stringify(), replicaMap.get(participantId).toString());
+    }
+    return rawMap;
+  }
+
+  /**
+   * Convert a full state mapping into a mapping of string names
+   * @param replicaMaps the map of partition id to participant id and state
+   * @return converted maps
+   */
+  public static Map<String, Map<String, String>> stringMapsFromReplicaMaps(
+      Map<? extends PartitionId, Map<ParticipantId, State>> replicaMaps) {
+    if (replicaMaps == null) {
+      return Collections.emptyMap();
+    }
+    Map<String, Map<String, String>> rawMaps = Maps.newHashMap();
+    for (PartitionId partitionId : replicaMaps.keySet()) {
+      rawMaps.put(partitionId.stringify(), stringMapFromReplicaMap(replicaMaps.get(partitionId)));
+    }
+    return rawMaps;
   }
 }

@@ -21,8 +21,6 @@ package org.apache.helix.alerts;
 
 import java.util.Iterator;
 
-import org.apache.helix.HelixException;
-
 public class WindowAggregator extends Aggregator {
 
   int _windowSize;

@@ -19,9 +19,10 @@ package org.apache.helix.taskexecution;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
-public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
+public class TaskStateModelFactory extends HelixStateModelFactory<TaskStateModel> {
   private final String _workerId;
   private final TaskFactory _taskFactory;
   private TaskResultStore _taskResultStore;
@@ -34,8 +35,9 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   @Override
-  public TaskStateModel createNewStateModel(String partition) {
-    TaskStateModel model = new TaskStateModel(_workerId, partition, _taskFactory, _taskResultStore);
+  public TaskStateModel createNewStateModel(PartitionId partition) {
+    TaskStateModel model =
+        new TaskStateModel(_workerId, partition.toString(), _taskFactory, _taskResultStore);
     return model;
   }
 }

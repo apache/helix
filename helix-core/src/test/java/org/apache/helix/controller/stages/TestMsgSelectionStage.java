@@ -20,15 +20,28 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.stages.MessageSelectionStage;
+import org.apache.helix.api.HelixVersion;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.RunningInstance;
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.State;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ProcId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.controller.stages.MessageSelectionStage.Bounds;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -38,25 +51,41 @@ public class TestMsgSelectionStage {
   public void testMasterXfer() {
     System.out.println("START testMasterXfer at " + new Date(System.currentTimeMillis()));
 
-    Map<String, LiveInstance> liveInstances = new HashMap<String, LiveInstance>();
-    liveInstances.put("localhost_0", new LiveInstance("localhost_0"));
-    liveInstances.put("localhost_1", new LiveInstance("localhost_1"));
+    Map<ParticipantId, Participant> liveInstances = new HashMap<ParticipantId, Participant>();
+    Set<PartitionId> disabledPartitions = Collections.emptySet();
+    Set<String> tags = Collections.emptySet();
+    Map<ResourceId, CurrentState> currentStateMap = Collections.emptyMap();
+    Map<MessageId, Message> messageMap = Collections.emptyMap();
+    RunningInstance runningInstance0 =
+        new RunningInstance(SessionId.from("session_0"), HelixVersion.from("1.2.3.4"),
+            ProcId.from("0"));
+    RunningInstance runningInstance1 =
+        new RunningInstance(SessionId.from("session_1"), HelixVersion.from("1.2.3.4"),
+            ProcId.from("1"));
+    liveInstances.put(ParticipantId.from("localhost_0"),
+        new Participant(ParticipantId.from("localhost_0"), "localhost", 0, true,
+            disabledPartitions, tags, runningInstance0, currentStateMap, messageMap,
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_0")))));
+    liveInstances.put(ParticipantId.from("localhost_1"),
+        new Participant(ParticipantId.from("localhost_1"), "localhost", 1, true,
+            disabledPartitions, tags, runningInstance1, currentStateMap, messageMap,
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_1")))));
 
-    Map<String, String> currentStates = new HashMap<String, String>();
-    currentStates.put("localhost_0", "SLAVE");
-    currentStates.put("localhost_1", "MASTER");
+    Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
+    currentStates.put(ParticipantId.from("localhost_0"), State.from("SLAVE"));
+    currentStates.put(ParticipantId.from("localhost_1"), State.from("MASTER"));
 
-    Map<String, String> pendingStates = new HashMap<String, String>();
+    Map<ParticipantId, State> pendingStates = new HashMap<ParticipantId, State>();
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
-        "TestDB_0"));
-    messages.add(TestHelper.createMessage("msgId_1", "MASTER", "SLAVE", "localhost_1", "TestDB",
-        "TestDB_0"));
+    messages.add(TestHelper.createMessage(MessageId.from("msgId_0"), "SLAVE", "MASTER",
+        "localhost_0", "TestDB", "TestDB_0"));
+    messages.add(TestHelper.createMessage(MessageId.from("msgId_1"), "MASTER", "SLAVE",
+        "localhost_1", "TestDB", "TestDB_0"));
 
-    Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
-    stateConstraints.put("MASTER", new Bounds(0, 1));
-    stateConstraints.put("SLAVE", new Bounds(0, 2));
+    Map<State, Bounds> stateConstraints = new HashMap<State, Bounds>();
+    stateConstraints.put(State.from("MASTER"), new Bounds(0, 1));
+    stateConstraints.put(State.from("SLAVE"), new Bounds(0, 2));
 
     Map<String, Integer> stateTransitionPriorities = new HashMap<String, Integer>();
     stateTransitionPriorities.put("MASTER-SLAVE", 0);
@@ -64,10 +93,10 @@ public class TestMsgSelectionStage {
 
     List<Message> selectedMsg =
         new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
-            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
+            messages, stateConstraints, stateTransitionPriorities, State.from("OFFLINE"));
 
     Assert.assertEquals(selectedMsg.size(), 1);
-    Assert.assertEquals(selectedMsg.get(0).getMsgId(), "msgId_1");
+    Assert.assertEquals(selectedMsg.get(0).getMessageId(), MessageId.from("msgId_1"));
     System.out.println("END testMasterXfer at " + new Date(System.currentTimeMillis()));
   }
 
@@ -76,24 +105,40 @@ public class TestMsgSelectionStage {
     System.out.println("START testMasterXferAfterMasterResume at "
         + new Date(System.currentTimeMillis()));
 
-    Map<String, LiveInstance> liveInstances = new HashMap<String, LiveInstance>();
-    liveInstances.put("localhost_0", new LiveInstance("localhost_0"));
-    liveInstances.put("localhost_1", new LiveInstance("localhost_1"));
+    Map<ParticipantId, Participant> liveInstances = new HashMap<ParticipantId, Participant>();
+    Set<PartitionId> disabledPartitions = Collections.emptySet();
+    Set<String> tags = Collections.emptySet();
+    Map<ResourceId, CurrentState> currentStateMap = Collections.emptyMap();
+    Map<MessageId, Message> messageMap = Collections.emptyMap();
+    RunningInstance runningInstance0 =
+        new RunningInstance(SessionId.from("session_0"), HelixVersion.from("1.2.3.4"),
+            ProcId.from("0"));
+    RunningInstance runningInstance1 =
+        new RunningInstance(SessionId.from("session_1"), HelixVersion.from("1.2.3.4"),
+            ProcId.from("1"));
+    liveInstances.put(ParticipantId.from("localhost_0"),
+        new Participant(ParticipantId.from("localhost_0"), "localhost", 0, true,
+            disabledPartitions, tags, runningInstance0, currentStateMap, messageMap,
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_0")))));
+    liveInstances.put(ParticipantId.from("localhost_1"),
+        new Participant(ParticipantId.from("localhost_1"), "localhost", 1, true,
+            disabledPartitions, tags, runningInstance1, currentStateMap, messageMap,
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_1")))));
 
-    Map<String, String> currentStates = new HashMap<String, String>();
-    currentStates.put("localhost_0", "SLAVE");
-    currentStates.put("localhost_1", "SLAVE");
+    Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
+    currentStates.put(ParticipantId.from("localhost_0"), State.from("SLAVE"));
+    currentStates.put(ParticipantId.from("localhost_1"), State.from("SLAVE"));
 
-    Map<String, String> pendingStates = new HashMap<String, String>();
-    pendingStates.put("localhost_1", "MASTER");
+    Map<ParticipantId, State> pendingStates = new HashMap<ParticipantId, State>();
+    pendingStates.put(ParticipantId.from("localhost_1"), State.from("MASTER"));
 
     List<Message> messages = new ArrayList<Message>();
-    messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
-        "TestDB_0"));
+    messages.add(TestHelper.createMessage(MessageId.from("msgId_0"), "SLAVE", "MASTER",
+        "localhost_0", "TestDB", "TestDB_0"));
 
-    Map<String, Bounds> stateConstraints = new HashMap<String, Bounds>();
-    stateConstraints.put("MASTER", new Bounds(0, 1));
-    stateConstraints.put("SLAVE", new Bounds(0, 2));
+    Map<State, Bounds> stateConstraints = new HashMap<State, Bounds>();
+    stateConstraints.put(State.from("MASTER"), new Bounds(0, 1));
+    stateConstraints.put(State.from("SLAVE"), new Bounds(0, 2));
 
     Map<String, Integer> stateTransitionPriorities = new HashMap<String, Integer>();
     stateTransitionPriorities.put("MASTER-SLAVE", 0);
@@ -101,7 +146,7 @@ public class TestMsgSelectionStage {
 
     List<Message> selectedMsg =
         new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
-            messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
+            messages, stateConstraints, stateTransitionPriorities, State.from("OFFLINE"));
 
     Assert.assertEquals(selectedMsg.size(), 0);
     System.out.println("END testMasterXferAfterMasterResume at "

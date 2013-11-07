@@ -24,15 +24,10 @@ import java.util.Date;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZNRecordStreamingSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -114,11 +109,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // oversized data should not create any new data on zk
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = new IdealState("currentState");
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
 
@@ -134,7 +129,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // legal sized data gets written to zk
     idealState.getRecord().getSimpleFields().clear();
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
 
@@ -148,7 +143,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // oversized data should not update existing data on zk
     idealState.getRecord().getSimpleFields().clear();
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
     for (int i = 900; i < 1024; i++) {
@@ -237,12 +232,12 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // oversized data should not create any new data on zk
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // ZNRecord statusUpdates = new ZNRecord("statusUpdates");
     IdealState idealState = new IdealState("currentState");
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
 
@@ -256,7 +251,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // legal sized data gets written to zk
     idealState.getRecord().getSimpleFields().clear();
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
 
@@ -270,7 +265,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
     // oversized data should not update existing data on zk
     idealState.getRecord().getSimpleFields().clear();
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
 

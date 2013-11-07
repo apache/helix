@@ -53,6 +53,14 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertsHolder;
 import org.apache.helix.alerts.StatsHolder;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ConstraintId;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
@@ -234,9 +242,9 @@ public class ZKHelixAdmin implements HelixAdmin {
       IdealState idealState = new IdealState(idealStateRecord);
       for (String partitionName : partitionNames) {
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
-            .getPreferenceList(partitionName) == null)
+            .getPreferenceList(PartitionId.from(partitionName)) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
-                .getInstanceStateMap(partitionName) == null)) {
+                .getParticipantStateMap(PartitionId.from(partitionName)) == null)) {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName + ", partition: "
               + partitionName + ", partition does not exist in ideal state");
         }
@@ -326,9 +334,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check partition is in ERROR state
-    String sessionId = liveInstance.getSessionId();
+    SessionId sessionId = liveInstance.getTypedSessionId();
     CurrentState curState =
-        accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, resourceName));
+        accessor.getProperty(keyBuilder.currentState(instanceName, sessionId.stringify(),
+            resourceName));
     for (String partitionName : resetPartitionNames) {
       if (!curState.getState(partitionName).equals(HelixDefinedState.ERROR.toString())) {
         throw new HelixException("Can't reset state for " + resourceName + "/" + partitionNames
@@ -337,8 +346,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
 
     // check stateModelDef exists and get initial state
-    String stateModelDef = idealState.getStateModelDefRef();
-    StateModelDefinition stateModel = accessor.getProperty(keyBuilder.stateModelDef(stateModelDef));
+    StateModelDefId stateModelDef = idealState.getStateModelDefId();
+    StateModelDefinition stateModel =
+        accessor.getProperty(keyBuilder.stateModelDef(stateModelDef.stringify()));
     if (stateModel == null) {
       throw new HelixException("Can't reset state for " + resourceName + "/" + partitionNames
           + " on " + instanceName + ", because " + stateModelDef + " is NOT found");
@@ -348,9 +358,9 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
     for (Message message : messages) {
       if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
-          || !sessionId.equals(message.getTgtSessionId())
-          || !resourceName.equals(message.getResourceName())
-          || !resetPartitionNames.contains(message.getPartitionName())) {
+          || !sessionId.equals(message.getTypedTgtSessionId())
+          || !resourceName.equals(message.getResourceId().stringify())
+          || !resetPartitionNames.contains(message.getPartitionId().stringify())) {
         continue;
       }
 
@@ -371,18 +381,18 @@ public class ZKHelixAdmin implements HelixAdmin {
     List<PropertyKey> messageKeys = new ArrayList<PropertyKey>();
     for (String partitionName : resetPartitionNames) {
       // send ERROR to initialState message
-      String msgId = UUID.randomUUID().toString();
+      MessageId msgId = MessageId.from(UUID.randomUUID().toString());
       Message message = new Message(MessageType.STATE_TRANSITION, msgId);
       message.setSrcName(adminName);
       message.setTgtName(instanceName);
       message.setMsgState(MessageState.NEW);
-      message.setPartitionName(partitionName);
-      message.setResourceName(resourceName);
+      message.setPartitionId(PartitionId.from(partitionName));
+      message.setResourceId(ResourceId.from(resourceName));
       message.setTgtSessionId(sessionId);
       message.setStateModelDef(stateModelDef);
-      message.setFromState(HelixDefinedState.ERROR.toString());
-      message.setToState(stateModel.getInitialState());
-      message.setStateModelFactoryName(idealState.getStateModelFactoryName());
+      message.setFromState(State.from(HelixDefinedState.ERROR.toString()));
+      message.setToState(stateModel.getTypedInitialState());
+      message.setStateModelFactoryId(idealState.getStateModelFactoryId());
 
       resetMessages.add(message);
       messageKeys.add(keyBuilder.message(instanceName, message.getId()));
@@ -582,7 +592,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public void addResource(String clusterName, String resourceName, IdealState idealstate) {
-    String stateModelRef = idealstate.getStateModelDefRef();
+    String stateModelRef = idealstate.getStateModelDefId().stringify();
     String stateModelDefPath =
         PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
     if (!_zkClient.exists(stateModelDefPath)) {
@@ -617,12 +627,13 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     IdealState idealState = new IdealState(resourceName);
     idealState.setNumPartitions(partitions);
-    idealState.setStateModelDefRef(stateModelRef);
+    idealState.setStateModelDefId(StateModelDefId.from(stateModelRef));
     RebalanceMode mode =
         idealState.rebalanceModeFromString(rebalancerMode, RebalanceMode.SEMI_AUTO);
     idealState.setRebalanceMode(mode);
     idealState.setReplicas("" + 0);
-    idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    idealState.setStateModelFactoryId(StateModelFactoryId
+        .from(HelixConstants.DEFAULT_STATE_MODEL_FACTORY));
     if (maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE) {
       idealState.setMaxPartitionsPerInstance(maxPartitionsPerInstance);
     }
@@ -888,7 +899,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     IdealState idealState = new IdealState(clusterName);
 
     idealState.setNumPartitions(1);
-    idealState.setStateModelDefRef("LeaderStandby");
+    idealState.setStateModelDefId(StateModelDefId.from("LeaderStandby"));
 
     List<String> controllers = getInstancesInCluster(grandCluster);
     if (controllers.size() == 0) {
@@ -906,7 +917,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
+    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceId().stringify()), idealState);
   }
 
   @Override
@@ -974,7 +985,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     }
     idealState.setReplicas(Integer.toString(replica));
     int partitions = idealState.getNumPartitions();
-    String stateModelName = idealState.getStateModelDefRef();
+    String stateModelName = idealState.getStateModelDefId().stringify();
     StateModelDefinition stateModDef = getStateModelDef(clusterName, stateModelName);
 
     if (stateModDef == null) {
@@ -1091,7 +1102,7 @@ public class ZKHelixAdmin implements HelixAdmin {
             currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(
                 currentData);
 
-        constraints.addConstraintItem(constraintId, constraintItem);
+        constraints.addConstraintItem(ConstraintId.from(constraintId), constraintItem);
         return constraints.getRecord();
       }
     }, AccessOption.PERSISTENT);
@@ -1111,7 +1122,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         if (currentData != null) {
           ClusterConstraints constraints = new ClusterConstraints(currentData);
 
-          constraints.removeConstraintItem(constraintId);
+          constraints.removeConstraintItem(ConstraintId.from(constraintId));
           return constraints.getRecord();
         }
         return null;
@@ -1140,8 +1151,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void rebalance(String clusterName, IdealState currentIdealState, List<String> instanceNames) {
     Set<String> activeInstances = new HashSet<String>();
-    for (String partition : currentIdealState.getPartitionSet()) {
-      activeInstances.addAll(currentIdealState.getRecord().getListField(partition));
+    for (PartitionId partition : currentIdealState.getPartitionIdSet()) {
+      activeInstances.addAll(IdealState.stringListFromPreferenceList(currentIdealState
+          .getPreferenceList(partition)));
     }
     instanceNames.removeAll(activeInstances);
     Map<String, Object> previousIdealState =
@@ -1150,17 +1162,16 @@ public class ZKHelixAdmin implements HelixAdmin {
     Map<String, Object> balancedRecord =
         DefaultTwoStateStrategy.calculateNextIdealState(instanceNames, previousIdealState);
     StateModelDefinition stateModDef =
-        this.getStateModelDef(clusterName, currentIdealState.getStateModelDefRef());
+        this.getStateModelDef(clusterName, currentIdealState.getStateModelDefId().stringify());
 
     if (stateModDef == null) {
-      throw new HelixException("cannot find state model: "
-          + currentIdealState.getStateModelDefRef());
+      throw new HelixException("cannot find state model: " + currentIdealState.getStateModelDefId());
     }
     String[] states = RebalanceUtil.parseStates(clusterName, stateModDef);
 
     ZNRecord newIdealStateRecord =
-        DefaultTwoStateStrategy.convertToZNRecord(balancedRecord,
-            currentIdealState.getResourceName(), states[0], states[1]);
+        DefaultTwoStateStrategy.convertToZNRecord(balancedRecord, currentIdealState.getResourceId()
+            .stringify(), states[0], states[1]);
     Set<String> partitionSet = new HashSet<String>();
     partitionSet.addAll(newIdealStateRecord.getMapFields().keySet());
     partitionSet.addAll(newIdealStateRecord.getListFields().keySet());

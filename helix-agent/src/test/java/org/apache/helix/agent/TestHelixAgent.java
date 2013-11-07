@@ -20,9 +20,7 @@ package org.apache.helix.agent;
  */
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ExternalCommand;

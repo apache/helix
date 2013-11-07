@@ -52,9 +52,8 @@ public class SetupConsumerCluster {
       admin.addCluster(clusterName, true);
 
       // add state model definition
-      StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL,
-          new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+      admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL, new StateModelDefinition(
+          StateModelConfigGenerator.generateConfigForOnlineOffline()));
 
       // add resource "topic" which has 6 partitions
       String resourceName = DEFAULT_RESOURCE_NAME;

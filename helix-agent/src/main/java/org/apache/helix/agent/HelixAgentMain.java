@@ -31,6 +31,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
@@ -128,7 +129,8 @@ public class HelixAgentMain {
         new ZKHelixManager(clusterName, instance, InstanceType.PARTICIPANT, zkAddress);
 
     StateMachineEngine stateMach = manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(stateModelName, new AgentStateModelFactory());
+    stateMach.registerStateModelFactory(StateModelDefId.from(stateModelName),
+        new AgentStateModelFactory());
 
     Runtime.getRuntime().addShutdownHook(new HelixAgentShutdownHook(manager));
 

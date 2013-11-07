@@ -22,6 +22,7 @@ package org.apache.helix;
 import static org.apache.helix.PropertyType.ALERTS;
 import static org.apache.helix.PropertyType.ALERT_HISTORY;
 import static org.apache.helix.PropertyType.ALERT_STATUS;
+import static org.apache.helix.PropertyType.CLUSTER;
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
@@ -37,6 +38,8 @@ import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
 import static org.apache.helix.PropertyType.PAUSE;
 import static org.apache.helix.PropertyType.PERSISTENTSTATS;
+import static org.apache.helix.PropertyType.PROPERTYSTORE;
+import static org.apache.helix.PropertyType.RESOURCEASSIGNMENTS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
@@ -46,6 +49,7 @@ import java.util.Arrays;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.AlertStatus;
 import org.apache.helix.model.Alerts;
+import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -57,8 +61,11 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PartitionConfiguration;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
@@ -144,6 +151,14 @@ public class PropertyKey {
     }
 
     /**
+     * Get the key for the root node
+     * @return cluster node
+     */
+    public PropertyKey cluster() {
+      return new PropertyKey(CLUSTER, null, _clusterName);
+    }
+
+    /**
      * Get a property key associated with {@link IdealState}
      * @return {@link PropertyKey}
      */
@@ -158,6 +173,25 @@ public class PropertyKey {
      */
     public PropertyKey idealStates(String resourceName) {
       return new PropertyKey(IDEALSTATES, IdealState.class, _clusterName, resourceName);
+    }
+
+    /**
+     * Get a property key associated with all {@link ResourceAssignment}s on the cluster
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey resourceAssignments() {
+      return new PropertyKey(RESOURCEASSIGNMENTS, ResourceAssignment.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with {@link ResourceAssignment} representing the most recent
+     * assignment
+     * @param resourceName name of the resource
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey resourceAssignment(String resourceName) {
+      return new PropertyKey(RESOURCEASSIGNMENTS, ResourceAssignment.class, _clusterName,
+          resourceName);
     }
 
     /**
@@ -184,7 +218,7 @@ public class PropertyKey {
      */
 
     public PropertyKey clusterConfigs() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfiguration.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString());
     }
 
@@ -193,7 +227,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey clusterConfig() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfiguration.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
     }
 
@@ -221,7 +255,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey resourceConfigs() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, ResourceConfiguration.class,
           _clusterName, ConfigScopeProperty.RESOURCE.toString());
     }
 
@@ -231,19 +265,29 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey resourceConfig(String resourceName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, ResourceConfiguration.class,
           _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
     }
 
     /**
-     * Get a property key associated with a partition
+     * Get a property key associated with all partition configurations
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey partitionConfigs(String resourceName) {
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+    }
+
+    /**
+     * Get a property key associated with a partition configuration
      * @param resourceName
      * @param partitionName
      * @return {@link PropertyKey}
      */
     public PropertyKey partitionConfig(String resourceName, String partitionName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
-          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName, partitionName);
     }
 
     /**
@@ -255,8 +299,8 @@ public class PropertyKey {
      */
     public PropertyKey partitionConfig(String instanceName, String resourceName,
         String partitionName) {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, HelixProperty.class,
-          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName);
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.RESOURCE, PartitionConfiguration.class,
+          _clusterName, ConfigScopeProperty.RESOURCE.toString(), resourceName, partitionName);
     }
 
     /**
@@ -305,6 +349,14 @@ public class PropertyKey {
     }
 
     /**
+     * Get a property key associated with all instances
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey instance(String instanceName) {
+      return new PropertyKey(PropertyType.INSTANCES, null, _clusterName, instanceName);
+    }
+
+    /**
      * Get a property key associated with {@link Message} for an instance
      * @param instanceName
      * @return {@link PropertyKey}
@@ -329,6 +381,16 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey sessions(String instanceName) {
+      return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName);
+    }
+
+    /**
+     * Get a property key associated with {@link CurrentState} of an instance and session
+     * @param instanceName
+     * @param sessionId
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey currentStates(String instanceName) {
       return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName);
     }
 
@@ -375,6 +437,15 @@ public class PropertyKey {
         return new PropertyKey(CURRENTSTATES, CurrentState.class, _clusterName, instanceName,
             sessionId, resourceName, bucketName);
       }
+    }
+
+    /**
+     * Get a property key representing the root of all status updates
+     * @param instanceName the participant the status updates belong to
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey statusUpdates(String instanceName) {
+      return new PropertyKey(STATUSUPDATES, null, _clusterName, instanceName);
     }
 
     /**
@@ -429,6 +500,15 @@ public class PropertyKey {
         String msgId) {
       return new PropertyKey(STATUSUPDATES, StatusUpdate.class, _clusterName, instanceName,
           sessionId, msgType, msgId);
+    }
+
+    /**
+     * Get a property key representing the root of all persisted participant errors
+     * @param instanceName the participant of interest
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey participantErrors(String instanceName) {
+      return new PropertyKey(ERRORS, null, _clusterName, instanceName);
     }
 
     /**
@@ -512,6 +592,14 @@ public class PropertyKey {
      */
     public PropertyKey controllerTaskError(String errorId) {
       return new PropertyKey(ERRORS_CONTROLLER, Error.class, _clusterName, errorId);
+    }
+
+    /**
+     * Get the root of all controller status updates
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey controllerTaskStatuses() {
+      return new PropertyKey(STATUSUPDATES_CONTROLLER, StatusUpdate.class, _clusterName);
     }
 
     /**
@@ -626,6 +714,13 @@ public class PropertyKey {
       return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
     }
 
+    /**
+     * Get a propertykey associated with the root of the Helix property store
+     * @return {@link PropertyStore}
+     */
+    public PropertyKey propertyStore() {
+      return new PropertyKey(PROPERTYSTORE, null, _clusterName);
+    }
   }
 
   /**

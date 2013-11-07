@@ -19,15 +19,11 @@ package org.apache.helix.filestore;
  * under the License.
  */
 
-import java.util.List;
-
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
 
 public class FileStore {
@@ -50,7 +46,8 @@ public class FileStore {
 
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       FileStoreStateModelFactory modelFactory = new FileStoreStateModelFactory(_manager);
-      stateMach.registerStateModelFactory(SetupCluster.DEFAULT_STATE_MODEL, modelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.from(SetupCluster.DEFAULT_STATE_MODEL),
+          modelFactory);
       _manager.connect();
       // _manager.addExternalViewChangeListener(replicator);
       Thread.currentThread().join();

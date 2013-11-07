@@ -29,6 +29,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
@@ -67,9 +68,9 @@ public class TestResetPartitionState extends AdminTestBase {
     @Override
     public void doTransition(Message message, NotificationContext context) {
       super.doTransition(message, context);
-      String fromState = message.getFromState();
-      String toState = message.getToState();
-      if (fromState.equals("ERROR") && toState.equals("OFFLINE")) {
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
+      if (fromState.toString().equals("ERROR") && toState.toString().equals("OFFLINE")) {
         // System.err.println("doReset() invoked");
         _errToOfflineInvoked.incrementAndGet();
       }
@@ -191,8 +192,8 @@ public class TestResetPartitionState extends AdminTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getSessionId(),
-        resource, partition));
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getTypedSessionId()
+        .stringify(), resource, partition));
 
   }
 

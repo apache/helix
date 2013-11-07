@@ -29,9 +29,9 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.alerts.AlertParser;
 import org.apache.helix.alerts.AlertProcessor;
 import org.apache.helix.alerts.AlertValueAndStatus;
@@ -320,7 +320,7 @@ public class StatsAggregationStage extends AbstractBaseStage {
     Builder kb = accessor.keyBuilder();
     List<IdealState> idealStates = accessor.getChildValues(kb.idealStates());
     for (IdealState idealState : idealStates) {
-      String resourceName = idealState.getResourceName();
+      String resourceName = idealState.getResourceId().stringify();
       if (actualStatName.contains("=" + resourceName + ".")
           || actualStatName.contains("=" + resourceName + ";")) {
         return resourceName;

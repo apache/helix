@@ -30,6 +30,7 @@ import static org.apache.helix.PropertyType.IDEALSTATES;
 import static org.apache.helix.PropertyType.LIVEINSTANCES;
 import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.PAUSE;
+import static org.apache.helix.PropertyType.RESOURCEASSIGNMENTS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 
@@ -50,6 +51,7 @@ import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
@@ -78,11 +80,14 @@ public class PropertyPathConfig {
     typeToClassMapping.put(ALERTS, Alerts.class);
     typeToClassMapping.put(ALERT_STATUS, AlertStatus.class);
     typeToClassMapping.put(PAUSE, PauseSignal.class);
+    typeToClassMapping.put(RESOURCEASSIGNMENTS, ResourceAssignment.class);
 
     // @formatter:off
+    addEntry(PropertyType.CLUSTER, 1, "/{clusterName}");
     addEntry(PropertyType.CONFIGS, 1, "/{clusterName}/CONFIGS");
     addEntry(PropertyType.CONFIGS, 2, "/{clusterName}/CONFIGS/{scope}");
     addEntry(PropertyType.CONFIGS, 3, "/{clusterName}/CONFIGS/{scope}/{scopeKey}");
+    addEntry(PropertyType.CONFIGS, 4, "/{clusterName}/CONFIGS/{scope}/{scopeKey}/{subScopeKey}");
     // addEntry(PropertyType.CONFIGS,2,"/{clusterName}/CONFIGS/{instanceName}");
     addEntry(PropertyType.LIVEINSTANCES, 1, "/{clusterName}/LIVEINSTANCES");
     addEntry(PropertyType.LIVEINSTANCES, 2, "/{clusterName}/LIVEINSTANCES/{instanceName}");
@@ -90,6 +95,9 @@ public class PropertyPathConfig {
     addEntry(PropertyType.INSTANCES, 2, "/{clusterName}/INSTANCES/{instanceName}");
     addEntry(PropertyType.IDEALSTATES, 1, "/{clusterName}/IDEALSTATES");
     addEntry(PropertyType.IDEALSTATES, 2, "/{clusterName}/IDEALSTATES/{resourceName}");
+    addEntry(PropertyType.RESOURCEASSIGNMENTS, 1, "/{clusterName}/RESOURCEASSIGNMENTS");
+    addEntry(PropertyType.RESOURCEASSIGNMENTS, 2,
+        "/{clusterName}/RESOURCEASSIGNMENTS/{resourceName}");
     addEntry(PropertyType.EXTERNALVIEW, 1, "/{clusterName}/EXTERNALVIEW");
     addEntry(PropertyType.EXTERNALVIEW, 2, "/{clusterName}/EXTERNALVIEW/{resourceName}");
     addEntry(PropertyType.STATEMODELDEFS, 1, "/{clusterName}/STATEMODELDEFS");

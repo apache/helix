@@ -19,18 +19,17 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 
 import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.HealthStatsAggregationTask;
 import org.apache.helix.healthcheck.HealthStatsAggregator;
@@ -150,7 +149,7 @@ public class ControllerManager extends AbstractManager {
       LiveInstance leader = _dataAccessor.getProperty(_keyBuilder.controllerLeader());
       if (leader != null) {
         String leaderName = leader.getInstanceName();
-        String sessionId = leader.getSessionId();
+        String sessionId = leader.getTypedSessionId().stringify();
         if (leaderName != null && leaderName.equals(_instanceName) && sessionId != null
             && sessionId.equals(_sessionId)) {
           return true;

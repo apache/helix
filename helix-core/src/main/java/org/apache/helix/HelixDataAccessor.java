@@ -47,7 +47,7 @@ public interface HelixDataAccessor {
    * creating the node.
    * @param key
    * @param value
-   * @true if the operation was successful
+   * @return true if the operation was successful
    */
   <T extends HelixProperty> boolean setProperty(PropertyKey key, T value);
 

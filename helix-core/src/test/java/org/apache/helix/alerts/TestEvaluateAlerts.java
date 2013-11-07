@@ -24,11 +24,6 @@ import java.util.Map;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.Mocks.MockManager;
-import org.apache.helix.alerts.AlertParser;
-import org.apache.helix.alerts.AlertProcessor;
-import org.apache.helix.alerts.AlertValueAndStatus;
-import org.apache.helix.alerts.AlertsHolder;
-import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.controller.stages.HealthDataCache;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;

@@ -22,7 +22,6 @@ package org.apache.helix.manager.zk;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
@@ -34,7 +33,6 @@ import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
@@ -46,34 +44,38 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
-import org.apache.zookeeper.server.DataTree;
 
 public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
+  /**
+   * return code for zk operations
+   */
   enum RetCode {
     OK,
     NODE_EXISTS,
+    NONODE,
     ERROR
   }
 
   /**
-   * struct holding return information
+   * structure holding return information
    */
   public class AccessResult {
-    RetCode _retCode;
-    List<String> _pathCreated;
+    final RetCode _retCode;
+    final List<String> _pathCreated;
 
-    Stat _stat;
+    final Stat _stat;
 
-    /**
-     * used by update only
-     */
-    T _updatedValue;
+    final T _resultValue;
 
-    public AccessResult() {
-      _retCode = RetCode.ERROR;
-      _pathCreated = new ArrayList<String>();
-      _stat = new Stat();
-      _updatedValue = null;
+    public AccessResult(RetCode retCode) {
+      this(retCode, null, null, null);
+    }
+
+    public AccessResult(RetCode retCode, List<String> pathCreated, Stat stat, T resultValue) {
+      _retCode = retCode;
+      _pathCreated = pathCreated;
+      _stat = stat;
+      _resultValue = resultValue;
     }
   }
 
@@ -86,7 +88,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync create
+   * sync create a znode
    */
   @Override
   public boolean create(String path, T record, int options) {
@@ -95,32 +97,40 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync create
+   * sync create a znode. create parent znodes if necessary
+   * @param path path to create
+   * @param record value to create, null for no value
+   * @param options
+   * @return
    */
   public AccessResult doCreate(String path, T record, int options) {
-    AccessResult result = new AccessResult();
+    if (path == null) {
+      throw new NullPointerException("path can't be null");
+    }
+
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid create mode. options: " + options);
-      result._retCode = RetCode.ERROR;
-      return result;
+      throw new IllegalArgumentException("Invalid create options: " + options);
     }
 
     boolean retry;
+    List<String> pathCreated = null;
     do {
       retry = false;
       try {
         _zkClient.create(path, record, mode);
-        result._pathCreated.add(path);
+        if (pathCreated == null) {
+          pathCreated = new ArrayList<String>();
+        }
+        pathCreated.add(path);
 
-        result._retCode = RetCode.OK;
-        return result;
+        return new AccessResult(RetCode.OK, pathCreated, null, null);
       } catch (ZkNoNodeException e) {
         // this will happen if parent node does not exist
         String parentPath = HelixUtil.getZkParentPath(path);
         try {
           AccessResult res = doCreate(parentPath, null, AccessOption.PERSISTENT);
-          result._pathCreated.addAll(res._pathCreated);
+          pathCreated = res._pathCreated;
           RetCode rc = res._retCode;
           if (rc == RetCode.OK || rc == RetCode.NODE_EXISTS) {
             // if parent node created/exists, retry
@@ -128,26 +138,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           }
         } catch (Exception e1) {
           LOG.error("Exception while creating path: " + parentPath, e1);
-          result._retCode = RetCode.ERROR;
-          return result;
+          return new AccessResult(RetCode.ERROR, pathCreated, null, null);
         }
       } catch (ZkNodeExistsException e) {
         LOG.warn("Node already exists. path: " + path);
-        result._retCode = RetCode.NODE_EXISTS;
-        return result;
+        return new AccessResult(RetCode.NODE_EXISTS);
       } catch (Exception e) {
         LOG.error("Exception while creating path: " + path, e);
-        result._retCode = RetCode.ERROR;
-        return result;
+        return new AccessResult(RetCode.ERROR);
       }
     } while (retry);
 
-    result._retCode = RetCode.OK;
-    return result;
+    return new AccessResult(RetCode.OK, pathCreated, null, null);
   }
 
   /**
-   * sync set
+   * sync set a znode
    */
   @Override
   public boolean set(String path, T record, int options) {
@@ -155,7 +161,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync set
+   * sync set a znode with expect version
    */
   @Override
   public boolean set(String path, T record, int expectVersion, int options) {
@@ -168,35 +174,39 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync set
+   * sync set a znode, create parent paths if necessary
+   * @param path
+   * @param record
+   * @param expectVersion
+   * @param options
    */
   public AccessResult doSet(String path, T record, int expectVersion, int options) {
-    AccessResult result = new AccessResult();
+    if (path == null) {
+      throw new NullPointerException("path can't be null");
+    }
 
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid set mode. options: " + options);
-      result._retCode = RetCode.ERROR;
-      return result;
+      throw new IllegalArgumentException("Invalid set options: " + options);
     }
 
+    Stat stat = null;
+    List<String> pathCreated = null;
     boolean retry;
     do {
       retry = false;
       try {
-        Stat stat = _zkClient.writeDataGetStat(path, record, expectVersion);
-        DataTree.copyStat(stat, result._stat);
+        stat = _zkClient.writeDataGetStat(path, record, expectVersion);
       } catch (ZkNoNodeException e) {
         // node not exists, try create if expectedVersion == -1; in this case, stat will not be set
         if (expectVersion != -1) {
           LOG.error("Could not create node if expectVersion != -1, was " + expectVersion);
-          result._retCode = RetCode.ERROR;
-          return result;
+          return new AccessResult(RetCode.ERROR);
         }
         try {
           // may create recursively
           AccessResult res = doCreate(path, record, options);
-          result._pathCreated.addAll(res._pathCreated);
+          pathCreated = res._pathCreated;
           RetCode rc = res._retCode;
           switch (rc) {
           case OK:
@@ -207,29 +217,25 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             break;
           default:
             LOG.error("Fail to set path by creating: " + path);
-            result._retCode = RetCode.ERROR;
-            return result;
+            return new AccessResult(RetCode.ERROR, pathCreated, null, null);
           }
         } catch (Exception e1) {
           LOG.error("Exception while setting path by creating: " + path, e);
-          result._retCode = RetCode.ERROR;
-          return result;
+          return new AccessResult(RetCode.ERROR, pathCreated, null, null);
         }
       } catch (ZkBadVersionException e) {
         throw e;
       } catch (Exception e) {
         LOG.error("Exception while setting path: " + path, e);
-        result._retCode = RetCode.ERROR;
-        return result;
+        return new AccessResult(RetCode.ERROR, pathCreated, null, null);
       }
     } while (retry);
 
-    result._retCode = RetCode.OK;
-    return result;
+    return new AccessResult(RetCode.OK, pathCreated, stat, null);
   }
 
   /**
-   * sync update
+   * sync update a znode
    */
   @Override
   public boolean update(String path, DataUpdater<T> updater, int options) {
@@ -238,27 +244,32 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * sync update
+   * sync update a znode, create parent paths if necessary
+   * @param path
+   * @param updater
+   * @param options
    */
   public AccessResult doUpdate(String path, DataUpdater<T> updater, int options) {
-    AccessResult result = new AccessResult();
+    if (path == null || updater == null) {
+      throw new NullPointerException("path|updater can't be null");
+    }
+
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid update mode. options: " + options);
-      result._retCode = RetCode.ERROR;
-      return result;
+      throw new IllegalArgumentException("Invalid update options: " + options);
     }
 
     boolean retry;
+    Stat setStat = null;
     T updatedData = null;
+    List<String> pathCreated = null;
     do {
       retry = false;
       try {
         Stat readStat = new Stat();
         T oldData = (T) _zkClient.readData(path, readStat);
         T newData = updater.update(oldData);
-        Stat setStat = _zkClient.writeDataGetStat(path, newData, readStat.getVersion());
-        DataTree.copyStat(setStat, result._stat);
+        setStat = _zkClient.writeDataGetStat(path, newData, readStat.getVersion());
 
         updatedData = newData;
       } catch (ZkBadVersionException e) {
@@ -268,7 +279,7 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         try {
           T newData = updater.update(null);
           AccessResult res = doCreate(path, newData, options);
-          result._pathCreated.addAll(res._pathCreated);
+          pathCreated = res._pathCreated;
           RetCode rc = res._retCode;
           switch (rc) {
           case OK:
@@ -279,31 +290,30 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
             break;
           default:
             LOG.error("Fail to update path by creating: " + path);
-            result._retCode = RetCode.ERROR;
-            return result;
+            return new AccessResult(RetCode.ERROR, pathCreated, null, null);
           }
         } catch (Exception e1) {
           LOG.error("Exception while updating path by creating: " + path, e1);
-          result._retCode = RetCode.ERROR;
-          return result;
+          return new AccessResult(RetCode.ERROR, pathCreated, null, null);
         }
       } catch (Exception e) {
         LOG.error("Exception while updating path: " + path, e);
-        result._retCode = RetCode.ERROR;
-        return result;
+        return new AccessResult(RetCode.ERROR, pathCreated, null, null);
       }
     } while (retry);
 
-    result._retCode = RetCode.OK;
-    result._updatedValue = updatedData;
-    return result;
+    return new AccessResult(RetCode.OK, pathCreated, setStat, updatedData);
   }
 
   /**
-   * sync get
+   * sync get a znode
    */
   @Override
   public T get(String path, Stat stat, int options) {
+    if (path == null) {
+      throw new NullPointerException("path can't be null");
+    }
+
     T data = null;
     try {
       data = (T) _zkClient.readData(path, stat);
@@ -316,38 +326,77 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * async get
+   * async get a list of znodes
    */
   @Override
   public List<T> get(List<String> paths, List<Stat> stats, int options) {
+    if (paths == null) {
+      throw new NullPointerException("paths can't be null");
+    }
+
+    if (stats != null && stats.size() > 0) {
+      throw new IllegalArgumentException(
+          "stats list is an output parameter and should be empty, but was: " + stats);
+    }
+
     boolean[] needRead = new boolean[paths.size()];
     Arrays.fill(needRead, true);
 
-    return get(paths, stats, needRead);
+    List<AccessResult> accessResults = doGet(paths, needRead);
+    List<T> values = new ArrayList<T>();
+
+    for (AccessResult accessResult : accessResults) {
+      values.add(accessResult._resultValue);
+      if (stats != null) {
+        stats.add(accessResult._stat);
+      }
+    }
+
+    return values;
   }
 
   /**
-   * async get
+   * async get a list of znodes
    */
-  List<T> get(List<String> paths, List<Stat> stats, boolean[] needRead) {
-    if (paths == null || paths.size() == 0) {
+  List<AccessResult> doGet(List<String> paths, boolean[] needRead) {
+    if (paths == null || needRead == null) {
+      throw new NullPointerException("paths|needRead can't be null");
+    }
+
+    final int size = paths.size();
+    if (size != needRead.length) {
+      throw new IllegalArgumentException(
+          "paths and needRead should of equal size, but paths size: " + size + ", needRead size: "
+              + needRead.length);
+    }
+
+    for (int i = 0; i < size; i++) {
+      if (!needRead[i]) {
+        continue;
+      }
+
+      if (paths.get(i) == null) {
+        throw new NullPointerException("path[" + i + "] can't be null, but was: " + paths);
+      }
+    }
+
+    if (size == 0) {
       return Collections.emptyList();
     }
 
-    // init stats
-    if (stats != null) {
-      stats.clear();
-      stats.addAll(Collections.<Stat> nCopies(paths.size(), null));
-    }
+    // init all results to null
+    List<AccessResult> results =
+        new ArrayList<AccessResult>(Collections.<AccessResult> nCopies(size, null));
 
     long startT = System.nanoTime();
 
     try {
       // issue asyn get requests
-      GetDataCallbackHandler[] cbList = new GetDataCallbackHandler[paths.size()];
-      for (int i = 0; i < paths.size(); i++) {
-        if (!needRead[i])
+      GetDataCallbackHandler[] cbList = new GetDataCallbackHandler[size];
+      for (int i = 0; i < size; i++) {
+        if (!needRead[i]) {
           continue;
+        }
 
         String path = paths.get(i);
         cbList[i] = new GetDataCallbackHandler();
@@ -355,38 +404,46 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       }
 
       // wait for completion
-      for (int i = 0; i < cbList.length; i++) {
-        if (!needRead[i])
+      for (int i = 0; i < size; i++) {
+        if (!needRead[i]) {
           continue;
+        }
 
         GetDataCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
       }
 
       // construct return results
-      List<T> records = new ArrayList<T>(Collections.<T> nCopies(paths.size(), null));
-
       for (int i = 0; i < paths.size(); i++) {
-        if (!needRead[i])
+        if (!needRead[i]) {
           continue;
+        }
 
         GetDataCallbackHandler cb = cbList[i];
-        if (Code.get(cb.getRc()) == Code.OK) {
+        switch (Code.get(cb.getRc())) {
+        case OK: {
           @SuppressWarnings("unchecked")
-          T record = (T) _zkClient.deserialize(cb._data, paths.get(i));
-          records.set(i, record);
-          if (stats != null) {
-            stats.set(i, cb._stat);
-          }
+          T value = (T) _zkClient.deserialize(cb._data, paths.get(i));
+          results.set(i, new AccessResult(RetCode.OK, null, cb._stat, value));
+          break;
+        }
+        case NONODE: {
+          results.set(i, new AccessResult(RetCode.NONODE));
+          break;
+        }
+        default: {
+          results.set(i, new AccessResult(RetCode.ERROR));
+          break;
+        }
         }
       }
 
-      return records;
+      return results;
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("getData_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("getData_async, size: " + size + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
   }
@@ -396,6 +453,11 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public List<T> getChildren(String parentPath, List<Stat> stats, int options) {
+    if (stats != null && stats.size() > 0) {
+      throw new IllegalArgumentException(
+          "stats list is an output parameter and should be empty, but was: " + stats);
+    }
+
     try {
       // prepare child paths
       List<String> childNames = getChildNames(parentPath, options);
@@ -409,25 +471,21 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         paths.add(path);
       }
 
-      // remove null record
-      List<Stat> curStats = new ArrayList<Stat>(paths.size());
-      List<T> records = get(paths, curStats, options);
-      Iterator<T> recordIter = records.iterator();
-      Iterator<Stat> statIter = curStats.iterator();
-      while (statIter.hasNext()) {
-        recordIter.next();
-        if (statIter.next() == null) {
-          statIter.remove();
-          recordIter.remove();
+      boolean[] needRead = new boolean[paths.size()];
+      Arrays.fill(needRead, true);
+
+      List<AccessResult> results = doGet(paths, needRead);
+      List<T> values = new ArrayList<T>();
+      for (AccessResult result : results) {
+        if (result._retCode == RetCode.OK) {
+          values.add(result._resultValue);
+          if (stats != null) {
+            stats.add(result._stat);
+          }
         }
       }
 
-      if (stats != null) {
-        stats.clear();
-        stats.addAll(curStats);
-      }
-
-      return records;
+      return values;
     } catch (ZkNoNodeException e) {
       return Collections.emptyList();
     }
@@ -480,166 +538,219 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   /**
    * async create. give up on error other than NONODE
    */
-  CreateCallbackHandler[] create(List<String> paths, List<T> records, boolean[] needCreate,
-      List<List<String>> pathsCreated, int options) {
-    if ((records != null && records.size() != paths.size()) || needCreate.length != paths.size()
-        || (pathsCreated != null && pathsCreated.size() != paths.size())) {
-      throw new IllegalArgumentException(
-          "paths, records, needCreate, and pathsCreated should be of same size");
+  List<AccessResult> doCreate(List<String> paths, List<T> records, boolean[] needCreate, int options) {
+    if (paths == null) {
+      throw new NullPointerException("paths can't be null");
     }
 
-    CreateCallbackHandler[] cbList = new CreateCallbackHandler[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      if (!needCreate[i]) {
+        continue;
+      }
+
+      if (paths.get(i) == null) {
+        throw new NullPointerException("path[" + i + "] can't be null, but was: " + paths);
+      }
+    }
+
+    if (records != null && records.size() != paths.size()) {
+      throw new IllegalArgumentException(
+          "paths and records should be of same size, but paths size: " + paths.size()
+              + ", records size: " + records.size());
+    }
+
+    if (needCreate == null) {
+      throw new NullPointerException("needCreate can't be null");
+    }
+
+    if (needCreate.length != paths.size()) {
+      throw new IllegalArgumentException(
+          "paths and needCreate should be of same size, but paths size: " + paths.size()
+              + ", needCreate size: " + needCreate.length);
+    }
 
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid async set mode. options: " + options);
-      return cbList;
+      throw new IllegalArgumentException("Invalid async set options: " + options);
     }
+
+    CreateCallbackHandler[] cbList = new CreateCallbackHandler[paths.size()];
+    List<List<String>> pathsCreated =
+        new ArrayList<List<String>>(Collections.<List<String>> nCopies(paths.size(), null));
+    RetCode retCodes[] = new RetCode[paths.size()];
 
     boolean retry;
     do {
       retry = false;
 
       for (int i = 0; i < paths.size(); i++) {
-        if (!needCreate[i])
+        if (!needCreate[i]) {
           continue;
+        }
 
         String path = paths.get(i);
-        T record = records == null ? null : records.get(i);
+        T record = (records == null ? null : records.get(i));
         cbList[i] = new CreateCallbackHandler();
+
         _zkClient.asyncCreate(path, record, mode, cbList[i]);
       }
 
       List<String> parentPaths =
           new ArrayList<String>(Collections.<String> nCopies(paths.size(), null));
-      boolean failOnNoNode = false;
+      boolean failOnNoParentNode = false;
 
       for (int i = 0; i < paths.size(); i++) {
-        if (!needCreate[i])
+        if (!needCreate[i]) {
           continue;
+        }
 
         CreateCallbackHandler cb = cbList[i];
         cb.waitForSuccess();
         String path = paths.get(i);
 
-        if (Code.get(cb.getRc()) == Code.NONODE) {
+        Code code = Code.get(cb.getRc());
+        switch (code) {
+        case NONODE: {
+          // we will try create parent nodes
           String parentPath = HelixUtil.getZkParentPath(path);
           parentPaths.set(i, parentPath);
-          failOnNoNode = true;
-        } else {
-          // if create succeed or fail on error other than NONODE,
-          // give up
+          failOnNoParentNode = true;
+          break;
+        }
+        case NODEEXISTS: {
+          retCodes[i] = RetCode.NODE_EXISTS;
           needCreate[i] = false;
-
-          // if succeeds, record what paths we've created
-          if (Code.get(cb.getRc()) == Code.OK && pathsCreated != null) {
-            if (pathsCreated.get(i) == null) {
-              pathsCreated.set(i, new ArrayList<String>());
-            }
-            pathsCreated.get(i).add(path);
+          break;
+        }
+        case OK: {
+          retCodes[i] = RetCode.OK;
+          if (pathsCreated.get(i) == null) {
+            pathsCreated.set(i, new ArrayList<String>());
           }
+          pathsCreated.get(i).add(path);
+          needCreate[i] = false;
+          break;
+        }
+        default: {
+          retCodes[i] = RetCode.ERROR;
+          needCreate[i] = false;
+          break;
+        }
         }
       }
 
-      if (failOnNoNode) {
-        boolean[] needCreateParent = Arrays.copyOf(needCreate, needCreate.length);
-
-        CreateCallbackHandler[] parentCbList =
-            create(parentPaths, null, needCreateParent, pathsCreated, AccessOption.PERSISTENT);
-        for (int i = 0; i < parentCbList.length; i++) {
-          CreateCallbackHandler parentCb = parentCbList[i];
-          if (parentCb == null)
+      if (failOnNoParentNode) {
+        List<AccessResult> createParentResults =
+            doCreate(parentPaths, null, Arrays.copyOf(needCreate, needCreate.length), AccessOption.PERSISTENT);
+        for (int i = 0; i < createParentResults.size(); i++) {
+          if (!needCreate[i]) {
             continue;
-
-          Code rc = Code.get(parentCb.getRc());
+          }
 
           // if parent is created, retry create child
-          if (rc == Code.OK || rc == Code.NODEEXISTS) {
+          AccessResult result = createParentResults.get(i);
+          pathsCreated.set(i, result._pathCreated);
+
+          if (result._retCode == RetCode.OK || result._retCode == RetCode.NODE_EXISTS) {
             retry = true;
-            break;
+          } else {
+            retCodes[i] = RetCode.ERROR;
+            needCreate[i] = false;
           }
         }
       }
     } while (retry);
 
-    return cbList;
+    List<AccessResult> results = new ArrayList<AccessResult>();
+    for (int i = 0; i < paths.size(); i++) {
+      results.add(new AccessResult(retCodes[i], pathsCreated.get(i), null, null));
+    }
+    return results;
   }
 
+  // TODO: rename to create
   /**
-   * async create
-   * TODO: rename to create
+   * async create multiple znodes
    */
   @Override
   public boolean[] createChildren(List<String> paths, List<T> records, int options) {
     boolean[] success = new boolean[paths.size()];
 
-    CreateMode mode = AccessOption.getMode(options);
-    if (mode == null) {
-      LOG.error("Invalid async create mode. options: " + options);
-      return success;
-    }
-
     boolean[] needCreate = new boolean[paths.size()];
     Arrays.fill(needCreate, true);
-    List<List<String>> pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(paths.size(), null));
 
     long startT = System.nanoTime();
     try {
+      List<AccessResult> results = doCreate(paths, records, needCreate, options);
 
-      CreateCallbackHandler[] cbList = create(paths, records, needCreate, pathsCreated, options);
-
-      for (int i = 0; i < cbList.length; i++) {
-        CreateCallbackHandler cb = cbList[i];
-        success[i] = (Code.get(cb.getRc()) == Code.OK);
+      for (int i = 0; i < paths.size(); i++) {
+        AccessResult result = results.get(i);
+        success[i] = (result._retCode == RetCode.OK);
       }
 
       return success;
-
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("create_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("create_async, size: " + paths.size() + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
   }
 
+  // TODO: rename to set
   /**
-   * async set
-   * TODO: rename to set
+   * async set multiple znodes
    */
   @Override
   public boolean[] setChildren(List<String> paths, List<T> records, int options) {
-    return set(paths, records, null, null, options);
+    List<AccessResult> results = doSet(paths, records, options);
+    boolean[] success = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      success[i] = (results.get(i)._retCode == RetCode.OK);
+    }
+
+    return success;
   }
 
   /**
    * async set, give up on error other than NoNode
    */
-  boolean[] set(List<String> paths, List<T> records, List<List<String>> pathsCreated,
-      List<Stat> stats, int options) {
-    if (paths == null || paths.size() == 0) {
-      return new boolean[0];
+  List<AccessResult> doSet(List<String> paths, List<T> records, int options) {
+    if (paths == null) {
+      throw new NullPointerException("paths can't be null");
     }
 
-    if ((records != null && records.size() != paths.size())
-        || (pathsCreated != null && pathsCreated.size() != paths.size())) {
-      throw new IllegalArgumentException("paths, records, and pathsCreated should be of same size");
+    for (String path : paths) {
+      if (path == null) {
+        throw new NullPointerException("path can't be null, but was: " + paths);
+      }
     }
 
-    boolean[] success = new boolean[paths.size()];
+    final int size = paths.size();
+    if (records != null && records.size() != size) {
+      throw new IllegalArgumentException(
+          "paths and records should be of same size, but paths size: " + size
+              + ", records size: " + records.size());
+    }
 
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid async set mode. options: " + options);
-      return success;
+      throw new IllegalArgumentException("Invalid async set options: " + options);
     }
 
-    List<Stat> setStats = new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
-    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
-    CreateCallbackHandler[] createCbList = null;
-    boolean[] needSet = new boolean[paths.size()];
+    if (size == 0) {
+      return Collections.emptyList();
+    }
+
+    Stat[] setStats = new Stat[size];
+    RetCode[] retCodes = new RetCode[size];
+    List<List<String>> pathsCreated =
+        new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
+
+    SetDataCallbackHandler[] setCbList = new SetDataCallbackHandler[size];
+
+    boolean[] needSet = new boolean[size];
     Arrays.fill(needSet, true);
 
     long startT = System.nanoTime();
@@ -649,94 +760,96 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       do {
         retry = false;
 
-        for (int i = 0; i < paths.size(); i++) {
-          if (!needSet[i])
+        for (int i = 0; i < size; i++) {
+          if (!needSet[i]) {
             continue;
+          }
 
           String path = paths.get(i);
-          T record = records.get(i);
-          cbList[i] = new SetDataCallbackHandler();
-          _zkClient.asyncSetData(path, record, -1, cbList[i]);
+          T record = (records == null ? null : records.get(i));
+          setCbList[i] = new SetDataCallbackHandler();
 
+          _zkClient.asyncSetData(path, record, -1, setCbList[i]);
         }
 
         boolean failOnNoNode = false;
 
-        for (int i = 0; i < cbList.length; i++) {
-          SetDataCallbackHandler cb = cbList[i];
+        for (int i = 0; i < size; i++) {
+          if (!needSet[i]) {
+            continue;
+          }
+
+          SetDataCallbackHandler cb = setCbList[i];
           cb.waitForSuccess();
           Code rc = Code.get(cb.getRc());
           switch (rc) {
-          case OK:
-            setStats.set(i, cb.getStat());
+          case OK: {
+            setStats[i] = cb.getStat();
+            retCodes[i] = RetCode.OK;
             needSet[i] = false;
             break;
-          case NONODE:
+          }
+          case NONODE: {
             // if fail on NoNode, try create the node
             failOnNoNode = true;
             break;
-          default:
+          }
+          default: {
             // if fail on error other than NoNode, give up
+            retCodes[i] = RetCode.ERROR;
             needSet[i] = false;
             break;
+          }
           }
         }
 
         // if failOnNoNode, try create
         if (failOnNoNode) {
-          boolean[] needCreate = Arrays.copyOf(needSet, needSet.length);
-          createCbList = create(paths, records, needCreate, pathsCreated, options);
-          for (int i = 0; i < createCbList.length; i++) {
-            CreateCallbackHandler createCb = createCbList[i];
-            if (createCb == null) {
+          List<AccessResult> createResults =
+              doCreate(paths, records, Arrays.copyOf(needSet, size), options);
+          for (int i = 0; i < size; i++) {
+            if (!needSet[i]) {
               continue;
             }
 
-            Code rc = Code.get(createCb.getRc());
-            switch (rc) {
-            case OK:
-              setStats.set(i, ZNode.ZERO_STAT);
+            AccessResult createResult = createResults.get(i);
+            RetCode code = createResult._retCode;
+            pathsCreated.set(i, createResult._pathCreated);
+
+            switch (code) {
+            case OK: {
+              setStats[i] = ZNode.ZERO_STAT;
+              retCodes[i] = RetCode.OK;
               needSet[i] = false;
               break;
-            case NODEEXISTS:
+            }
+            case NODE_EXISTS: {
               retry = true;
               break;
-            default:
-              // if creation fails on error other than NodeExists
-              // no need to retry set
+            }
+            default: {
+              // creation fails on error other than NodeExists
+              retCodes[i] = RetCode.ERROR;
               needSet[i] = false;
               break;
+            }
             }
           }
         }
       } while (retry);
 
       // construct return results
-      for (int i = 0; i < cbList.length; i++) {
-        SetDataCallbackHandler cb = cbList[i];
-
-        Code rc = Code.get(cb.getRc());
-        if (rc == Code.OK) {
-          success[i] = true;
-        } else if (rc == Code.NONODE) {
-          CreateCallbackHandler createCb = createCbList[i];
-          if (Code.get(createCb.getRc()) == Code.OK) {
-            success[i] = true;
-          }
-        }
+      List<AccessResult> results = new ArrayList<AccessResult>();
+      for (int i = 0; i < size; i++) {
+        results.add(new AccessResult(retCodes[i], pathsCreated.get(i), setStats[i], null));
       }
 
-      if (stats != null) {
-        stats.clear();
-        stats.addAll(setStats);
-      }
-
-      return success;
+      return results;
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("setData_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("setData_async, size: " + size + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
   }
@@ -748,43 +861,59 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Override
   public boolean[] updateChildren(List<String> paths, List<DataUpdater<T>> updaters, int options) {
 
-    List<T> updateData = update(paths, updaters, null, null, options);
-    boolean[] success = new boolean[paths.size()]; // init to false
+    List<AccessResult> results = doUpdate(paths, updaters, options);
+    boolean[] success = new boolean[paths.size()];
     for (int i = 0; i < paths.size(); i++) {
-      T data = updateData.get(i);
-      success[i] = (data != null);
+      success[i] = (results.get(i)._retCode == RetCode.OK);
     }
+
     return success;
   }
 
   /**
-   * async update
-   * return: updatedData on success or null on fail
+   * async update multiple znodes
    */
-  List<T> update(List<String> paths, List<DataUpdater<T>> updaters,
-      List<List<String>> pathsCreated, List<Stat> stats, int options) {
-    if (paths == null || paths.size() == 0) {
-      LOG.error("paths is null or empty");
-      return Collections.emptyList();
+  List<AccessResult> doUpdate(List<String> paths, List<DataUpdater<T>> updaters, int options) {
+    if (paths == null || updaters == null) {
+      throw new NullPointerException("paths|updaters can't be null");
     }
 
-    if (updaters.size() != paths.size()
-        || (pathsCreated != null && pathsCreated.size() != paths.size())) {
-      throw new IllegalArgumentException("paths, updaters, and pathsCreated should be of same size");
+    for (String path : paths) {
+      if (path == null) {
+        throw new NullPointerException("path can't be null, but was: " + paths);
+      }
     }
 
-    List<Stat> setStats = new ArrayList<Stat>(Collections.<Stat> nCopies(paths.size(), null));
-    List<T> updateData = new ArrayList<T>(Collections.<T> nCopies(paths.size(), null));
+    for (DataUpdater<T> updater : updaters) {
+      if (updater == null) {
+        throw new NullPointerException("updater can't be null, but was: " + updaters + ", paths: "
+            + paths);
+      }
+    }
+
+    final int size = paths.size();
+    if (updaters.size() != size) {
+      throw new IllegalArgumentException(
+          "paths and updaters should be of same size, but paths size: " + size
+              + ", updaters size: " + updaters.size());
+    }
 
     CreateMode mode = AccessOption.getMode(options);
     if (mode == null) {
-      LOG.error("Invalid update mode. options: " + options);
-      return updateData;
+      throw new IllegalArgumentException("Invalid update options: " + options);
     }
 
-    SetDataCallbackHandler[] cbList = new SetDataCallbackHandler[paths.size()];
-    CreateCallbackHandler[] createCbList = null;
-    boolean[] needUpdate = new boolean[paths.size()];
+    if (size == 0) {
+      return Collections.emptyList();
+    }
+
+    Stat[] updateStats = new Stat[size];
+    RetCode[] retCodes = new RetCode[size];
+    List<List<String>> pathsCreated =
+        new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
+    List<T> updateData = new ArrayList<T>(Collections.<T> nCopies(size, null));
+
+    boolean[] needUpdate = new boolean[size];
     Arrays.fill(needUpdate, true);
 
     long startT = System.nanoTime();
@@ -793,89 +922,101 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
       boolean retry;
       do {
         retry = false;
-        boolean[] needCreate = new boolean[paths.size()]; // init'ed with false
+        SetDataCallbackHandler[] setCbList = new SetDataCallbackHandler[size];
+        boolean[] needCreate = new boolean[size]; // init'ed with false
         boolean failOnNoNode = false;
 
         // asycn read all data
-        List<Stat> curStats = new ArrayList<Stat>();
-        List<T> curDataList = get(paths, curStats, Arrays.copyOf(needUpdate, needUpdate.length));
+        List<AccessResult> readResults = doGet(paths, Arrays.copyOf(needUpdate, size));
 
         // async update
-        List<T> newDataList = new ArrayList<T>();
-        for (int i = 0; i < paths.size(); i++) {
+        List<T> newDataList = new ArrayList<T>(Collections.<T> nCopies(size, null));
+        for (int i = 0; i < size; i++) {
           if (!needUpdate[i]) {
-            newDataList.add(null);
             continue;
           }
           String path = paths.get(i);
           DataUpdater<T> updater = updaters.get(i);
-          T newData = updater.update(curDataList.get(i));
-          newDataList.add(newData);
-          Stat curStat = curStats.get(i);
-          if (curStat == null) {
+          AccessResult readResult = readResults.get(i);
+          T newData = updater.update(readResult._resultValue);
+          newDataList.set(i, newData);
+          if (readResult._retCode == RetCode.NONODE) {
             // node not exists
             failOnNoNode = true;
             needCreate[i] = true;
           } else {
-            cbList[i] = new SetDataCallbackHandler();
-            _zkClient.asyncSetData(path, newData, curStat.getVersion(), cbList[i]);
+            setCbList[i] = new SetDataCallbackHandler();
+            _zkClient.asyncSetData(path, newData, readResult._stat.getVersion(), setCbList[i]);
           }
         }
 
         // wait for completion
         boolean failOnBadVersion = false;
 
-        for (int i = 0; i < paths.size(); i++) {
-          SetDataCallbackHandler cb = cbList[i];
-          if (cb == null)
+        for (int i = 0; i < size; i++) {
+          SetDataCallbackHandler cb = setCbList[i];
+          if (cb == null) {
             continue;
+          }
 
           cb.waitForSuccess();
 
           switch (Code.get(cb.getRc())) {
-          case OK:
+          case OK: {
             updateData.set(i, newDataList.get(i));
-            setStats.set(i, cb.getStat());
+            updateStats[i] = cb.getStat();
+            retCodes[i] = RetCode.OK;
             needUpdate[i] = false;
             break;
-          case NONODE:
+          }
+          case NONODE: {
             failOnNoNode = true;
             needCreate[i] = true;
             break;
-          case BADVERSION:
+          }
+          case BADVERSION: {
             failOnBadVersion = true;
             break;
-          default:
-            // if fail on error other than NoNode or BadVersion
-            // will not retry
+          }
+          default: {
+            // fail on error other than NoNode or BadVersion
             needUpdate[i] = false;
+            retCodes[i] = RetCode.ERROR;
             break;
+          }
           }
         }
 
         // if failOnNoNode, try create
         if (failOnNoNode) {
-          createCbList = create(paths, newDataList, needCreate, pathsCreated, options);
-          for (int i = 0; i < paths.size(); i++) {
-            CreateCallbackHandler createCb = createCbList[i];
-            if (createCb == null) {
+          List<AccessResult> createResults =
+              doCreate(paths, newDataList, Arrays.copyOf(needCreate, size), options);
+          for (int i = 0; i < size; i++) {
+            if (!needCreate[i]) {
               continue;
             }
 
-            switch (Code.get(createCb.getRc())) {
-            case OK:
+            AccessResult result = createResults.get(i);
+            pathsCreated.set(i, result._pathCreated);
+
+            switch (result._retCode) {
+            case OK: {
               needUpdate[i] = false;
               updateData.set(i, newDataList.get(i));
-              setStats.set(i, ZNode.ZERO_STAT);
+              updateStats[i] = ZNode.ZERO_STAT;
+              retCodes[i] = RetCode.OK;
               break;
-            case NODEEXISTS:
+            }
+            case NODE_EXISTS: {
               retry = true;
               break;
-            default:
-              // if fail on error other than NodeExists
-              // will not retry
+            }
+            default: {
+              // fail on error other than NodeExists
+              retCodes[i] = RetCode.ERROR;
               needUpdate[i] = false;
               break;
+            }
             }
           }
         }
@@ -886,24 +1027,24 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         }
       } while (retry);
 
-      if (stats != null) {
-        stats.clear();
-        stats.addAll(setStats);
+      List<AccessResult> results = new ArrayList<AccessResult>();
+      for (int i = 0; i < size; i++) {
+        results.add(new AccessResult(retCodes[i], pathsCreated.get(i), updateStats[i], updateData
+            .get(i)));
       }
-
-      return updateData;
+      return results;
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("setData_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("updateData_async, size: " + size + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
 
   }
 
   /**
-   * async exists
+   * async test existence on multiple znodes
    */
   @Override
   public boolean[] exists(List<String> paths, int options) {
@@ -918,12 +1059,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   }
 
   /**
-   * async getStat
+   * async get stats of mulitple znodes
    */
   @Override
   public Stat[] getStats(List<String> paths, int options) {
-    if (paths == null || paths.size() == 0) {
-      LOG.error("paths is null or empty");
+    if (paths == null) {
+      throw new NullPointerException("paths can't be null");
+    }
+
+    if (paths.size() == 0) {
       return new Stat[0];
     }
 
@@ -949,18 +1093,22 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("exists_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("exists_async, size: " + paths.size() + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
   }
 
   /**
-   * async remove
+   * async remove multiple znodes
    */
   @Override
   public boolean[] remove(List<String> paths, int options) {
-    if (paths == null || paths.size() == 0) {
+    if (paths == null) {
+      throw new NullPointerException("paths can't be null");
+    }
+
+    if (paths.size() == 0) {
       return new boolean[0];
     }
 
@@ -987,8 +1135,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     } finally {
       long endT = System.nanoTime();
       if (LOG.isTraceEnabled()) {
-        LOG.trace("delete_async, size: " + paths.size() + ", paths: " + paths.get(0)
-            + ",... time: " + (endT - startT) + " ns");
+        LOG.trace("delete_async, size: " + paths.size() + ", paths: " + paths + ", time: "
+            + (endT - startT) + " ns");
       }
     }
   }
@@ -1023,69 +1171,6 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   @Override
   public void unsubscribeChildChanges(String path, IZkChildListener childListener) {
     _zkClient.unsubscribeChildChanges(path, childListener);
-  }
-
-  // simple test
-  public static void main(String[] args) {
-    ZkClient zkclient = new ZkClient("localhost:2191");
-    zkclient.setZkSerializer(new ZNRecordSerializer());
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(zkclient);
-
-    // test async create
-    List<String> createPaths = Arrays.asList("/test/child1/child1", "/test/child2/child2");
-    List<ZNRecord> createRecords = Arrays.asList(new ZNRecord("child1"), new ZNRecord("child2"));
-
-    boolean[] needCreate = new boolean[createPaths.size()];
-    Arrays.fill(needCreate, true);
-    List<List<String>> pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(createPaths.size(), null));
-    accessor.create(createPaths, createRecords, needCreate, pathsCreated, AccessOption.PERSISTENT);
-    System.out.println("pathsCreated: " + pathsCreated);
-
-    // test async set
-    List<String> setPaths = Arrays.asList("/test/setChild1/setChild1", "/test/setChild2/setChild2");
-    List<ZNRecord> setRecords = Arrays.asList(new ZNRecord("setChild1"), new ZNRecord("setChild2"));
-
-    pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(setPaths.size(), null));
-    boolean[] success =
-        accessor.set(setPaths, setRecords, pathsCreated, null, AccessOption.PERSISTENT);
-    System.out.println("pathsCreated: " + pathsCreated);
-    System.out.println("setSuccess: " + Arrays.toString(success));
-
-    // test async update
-    List<String> updatePaths =
-        Arrays.asList("/test/updateChild1/updateChild1", "/test/setChild2/setChild2");
-    class TestUpdater implements DataUpdater<ZNRecord> {
-      final ZNRecord _newData;
-
-      public TestUpdater(ZNRecord newData) {
-        _newData = newData;
-      }
-
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        return _newData;
-
-      }
-    }
-    List<DataUpdater<ZNRecord>> updaters =
-        Arrays.asList((DataUpdater<ZNRecord>) new TestUpdater(new ZNRecord("updateChild1")),
-            (DataUpdater<ZNRecord>) new TestUpdater(new ZNRecord("updateChild2")));
-
-    pathsCreated =
-        new ArrayList<List<String>>(Collections.<List<String>> nCopies(updatePaths.size(), null));
-
-    List<ZNRecord> updateRecords =
-        accessor.update(updatePaths, updaters, pathsCreated, null, AccessOption.PERSISTENT);
-    for (int i = 0; i < updatePaths.size(); i++) {
-      success[i] = updateRecords.get(i) != null;
-    }
-    System.out.println("pathsCreated: " + pathsCreated);
-    System.out.println("updateSuccess: " + Arrays.toString(success));
-
-    System.out.println("CLOSING");
-    zkclient.close();
   }
 
   /**

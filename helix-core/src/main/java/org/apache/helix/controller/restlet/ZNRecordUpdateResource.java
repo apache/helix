@@ -38,40 +38,42 @@ import org.restlet.resource.ServerResource;
  * that submits ZNRecordUpdates
  */
 public class ZNRecordUpdateResource extends ServerResource {
-    public static final String UPDATEKEY = "ZNRecordUpdate";
-    private static Logger LOG = Logger.getLogger(ZNRecordUpdateResource.class);
+  public static final String UPDATEKEY = "ZNRecordUpdate";
+  private static Logger LOG = Logger.getLogger(ZNRecordUpdateResource.class);
 
-    public ZNRecordUpdateResource() { 
-        getVariants().add(new Variant(MediaType.TEXT_PLAIN));
-        getVariants().add(new Variant(MediaType.APPLICATION_JSON));
-        setNegotiated(false);
+  public ZNRecordUpdateResource() {
+    getVariants().add(new Variant(MediaType.TEXT_PLAIN));
+    getVariants().add(new Variant(MediaType.APPLICATION_JSON));
+    setNegotiated(false);
+  }
+
+  @Override
+  public Representation put(Representation entity) {
+    try {
+      ZKPropertyTransferServer server = ZKPropertyTransferServer.getInstance();
+
+      Form form = new Form(entity);
+      String jsonPayload = form.getFirstValue(UPDATEKEY, true);
+
+      // Parse the map from zkPath --> ZNRecordUpdate from the payload
+      StringReader sr = new StringReader(jsonPayload);
+      ObjectMapper mapper = new ObjectMapper();
+      TypeReference<TreeMap<String, ZNRecordUpdate>> typeRef =
+          new TypeReference<TreeMap<String, ZNRecordUpdate>>() {
+          };
+      Map<String, ZNRecordUpdate> holderMap = mapper.readValue(sr, typeRef);
+      // Enqueue the ZNRecordUpdate for sending
+      for (ZNRecordUpdate holder : holderMap.values()) {
+        server.enqueueData(holder);
+        LOG.info("Received " + holder.getPath() + " from "
+            + getRequest().getClientInfo().getAddress());
+      }
+      getResponse().setStatus(Status.SUCCESS_OK);
+    } catch (Exception e) {
+      LOG.error("", e);
+      getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
     }
-    
-    @Override
-    public Representation put(Representation entity) {
-        try {
-            ZKPropertyTransferServer server = ZKPropertyTransferServer.getInstance();
-
-            Form form = new Form(entity);
-            String jsonPayload = form.getFirstValue(UPDATEKEY, true);
-
-            // Parse the map from zkPath --> ZNRecordUpdate from the payload
-            StringReader sr = new StringReader(jsonPayload);
-            ObjectMapper mapper = new ObjectMapper();
-            TypeReference<TreeMap<String, ZNRecordUpdate>> typeRef = new TypeReference<TreeMap<String, ZNRecordUpdate>>() {
-            };
-            Map<String, ZNRecordUpdate> holderMap = mapper.readValue(sr, typeRef);
-            // Enqueue the ZNRecordUpdate for sending
-            for (ZNRecordUpdate holder : holderMap.values()) {
-                server.enqueueData(holder);
-                LOG.info("Received " + holder.getPath() + " from " + getRequest().getClientInfo().getAddress());
-            }
-            getResponse().setStatus(Status.SUCCESS_OK);
-        } catch (Exception e) {
-            LOG.error("", e);
-            getResponse().setStatus(Status.SERVER_ERROR_INTERNAL);
-        }
-        return null;
-    }
+    return null;
+  }
 
 }

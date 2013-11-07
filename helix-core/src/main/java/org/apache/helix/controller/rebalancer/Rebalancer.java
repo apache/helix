@@ -23,20 +23,21 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
 
 /**
  * Allows one to come up with custom implementation of a rebalancer.<br/>
  * This will be invoked on all changes that happen in the cluster.<br/>
  * Simply return the newIdealState for a resource in this method.<br/>
+ * <br/>
+ * Deprecated. Use {@link HelixRebalancer} instead.
  */
+@Deprecated
 public interface Rebalancer {
   /**
    * Initialize the rebalancer with a HelixManager if necessary
    * @param manager
    */
-  void init(HelixManager manager);
+  public void init(HelixManager manager);
 
   /**
    * Given an ideal state for a resource and liveness of instances, compute a assignment of
@@ -49,7 +50,7 @@ public interface Rebalancer {
    * @param currentStateOutput the current states of all partitions
    * @param clusterData cache of the cluster state
    */
-  ResourceAssignment computeResourceMapping(final Resource resource,
+  public IdealState computeResourceMapping(final String resourceName,
       final IdealState currentIdealState, final CurrentStateOutput currentStateOutput,
       final ClusterDataCache clusterData);
 }

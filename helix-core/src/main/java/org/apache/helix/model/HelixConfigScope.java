@@ -92,6 +92,8 @@ public class HelixConfigScope {
    */
   final String _participantName;
 
+  final String _resourceName;
+
   final String _zkPath;
   final String _mapKey;
 
@@ -131,6 +133,13 @@ public class HelixConfigScope {
       _participantName = null;
     }
 
+    // init resourceName
+    if (type == ConfigScopeProperty.RESOURCE && _isFullKey) {
+      _resourceName = zkPathKeys.get(1);
+    } else {
+      _resourceName = null;
+    }
+
     _zkPath = template.instantiate(type, zkPathKeys.toArray(new String[0]));
     _mapKey = mapKey;
   }
@@ -157,6 +166,14 @@ public class HelixConfigScope {
    */
   public String getParticipantName() {
     return _participantName;
+  }
+
+  /**
+   * Get the resource name if it exists
+   * @return the resource name if the type is RESOURCE, or null
+   */
+  public String getResourceName() {
+    return _resourceName;
   }
 
   /**

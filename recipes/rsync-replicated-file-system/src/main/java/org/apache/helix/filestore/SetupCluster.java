@@ -55,9 +55,8 @@ public class SetupCluster {
       admin.addCluster(clusterName, true);
 
       // add state model definition
-      StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL,
-          new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+      admin.addStateModelDef(clusterName, DEFAULT_STATE_MODEL, new StateModelDefinition(
+          StateModelConfigGenerator.generateConfigForOnlineOffline()));
       // addNodes
       for (int i = 0; i < numNodes; i++) {
         String port = "" + (12001 + i);

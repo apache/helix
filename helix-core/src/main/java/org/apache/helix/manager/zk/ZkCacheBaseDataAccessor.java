@@ -35,14 +35,12 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
-import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.store.HelixPropertyListener;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZNode;
 import org.apache.helix.util.PathUtils;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.data.Stat;
 import org.apache.zookeeper.server.DataTree;
 
@@ -250,7 +248,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         cache.lockWrite();
         ZkBaseDataAccessor<T>.AccessResult result =
             _baseAccessor.doSet(serverPath, data, expectVersion, options);
-        boolean success = result._retCode == RetCode.OK;
+        boolean success = (result._retCode == RetCode.OK);
 
         updateCache(cache, result._pathCreated, success, serverPath, data, result._stat);
 
@@ -279,7 +277,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         ZkBaseDataAccessor<T>.AccessResult result =
             _baseAccessor.doUpdate(serverPath, updater, options);
         boolean success = (result._retCode == RetCode.OK);
-        updateCache(cache, result._pathCreated, success, serverPath, result._updatedValue,
+        updateCache(cache, result._pathCreated, success, serverPath, result._resultValue,
             result._stat);
 
         return success;
@@ -421,17 +419,15 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         cache.lockWrite();
         boolean[] needCreate = new boolean[size];
         Arrays.fill(needCreate, true);
-        List<List<String>> pathsCreatedList =
-            new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
-        CreateCallbackHandler[] createCbList =
-            _baseAccessor.create(serverPaths, records, needCreate, pathsCreatedList, options);
+        List<ZkBaseDataAccessor<T>.AccessResult> results =
+            _baseAccessor.doCreate(serverPaths, records, needCreate, options);
 
         boolean[] success = new boolean[size];
         for (int i = 0; i < size; i++) {
-          CreateCallbackHandler cb = createCbList[i];
-          success[i] = (Code.get(cb.getRc()) == Code.OK);
+          ZkBaseDataAccessor<T>.AccessResult result = results.get(i);
+          success[i] = (result._retCode == RetCode.OK);
 
-          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+          updateCache(cache, results.get(i)._pathCreated, success[i], serverPaths.get(i),
               records.get(i), ZNode.ZERO_STAT);
         }
 
@@ -454,15 +450,14 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
     if (cache != null) {
       try {
         cache.lockWrite();
-        List<Stat> setStats = new ArrayList<Stat>();
-        List<List<String>> pathsCreatedList =
-            new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
-        boolean[] success =
-            _baseAccessor.set(serverPaths, records, pathsCreatedList, setStats, options);
+        List<ZkBaseDataAccessor<T>.AccessResult> results =
+            _baseAccessor.doSet(serverPaths, records, options);
 
+        boolean[] success = new boolean[size];
         for (int i = 0; i < size; i++) {
-          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
-              records.get(i), setStats.get(i));
+          success[i] = (results.get(i)._retCode == RetCode.OK);
+          updateCache(cache, results.get(i)._pathCreated, success[i], serverPaths.get(i),
+              records.get(i), results.get(i)._stat);
         }
 
         return success;
@@ -484,23 +479,17 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       try {
         cache.lockWrite();
 
-        List<Stat> setStats = new ArrayList<Stat>();
         boolean[] success = new boolean[size];
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
-        List<T> updateData =
-            _baseAccessor.update(serverPaths, updaters, pathsCreatedList, setStats, options);
 
-        // System.out.println("updateChild: ");
-        // for (T data : updateData)
-        // {
-        // System.out.println(data);
-        // }
+        List<ZkBaseDataAccessor<T>.AccessResult> results = _baseAccessor.doUpdate(serverPaths, updaters, options);
 
         for (int i = 0; i < size; i++) {
-          success[i] = (updateData.get(i) != null);
-          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
-              updateData.get(i), setStats.get(i));
+          ZkBaseDataAccessor<T>.AccessResult result = results.get(i);
+          success[i] = (result._retCode == RetCode.OK);
+            updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+              result._resultValue, results.get(i)._stat);
         }
         return success;
       } finally {
@@ -590,11 +579,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
       if (needRead) {
         cache.lockWrite();
         try {
-          List<T> readRecords = _baseAccessor.get(serverPaths, readStats, needReads);
+          List<ZkBaseDataAccessor<T>.AccessResult> readResults =
+              _baseAccessor.doGet(serverPaths, needReads);
           for (int i = 0; i < size; i++) {
             if (needReads[i]) {
-              records.set(i, readRecords.get(i));
-              cache.update(serverPaths.get(i), readRecords.get(i), readStats.get(i));
+              records.set(i, readResults.get(i)._resultValue);
+              readStats.set(i, readResults.get(i)._stat);
+              cache.update(serverPaths.get(i), records.get(i), readStats.get(i));
             }
           }
         } finally {

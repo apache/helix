@@ -67,7 +67,7 @@ public class TestStandAloneCMSessionExpiry extends ZkIntegrationTestBase {
     Assert.assertTrue(result);
 
     // participant session expiry
-    ZkHelixTestManager participantToExpire = (ZkHelixTestManager) participants[1].getManager();
+    ZkHelixTestManager participantToExpire = participants[1].getManager();
 
     System.out.println("Expire participant session");
     String oldSessionId = participantToExpire.getSessionId();

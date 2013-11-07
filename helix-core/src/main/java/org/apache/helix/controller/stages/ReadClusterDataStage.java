@@ -21,52 +21,53 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
-  private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
-  ClusterDataCache _cache;
-
-  public ReadClusterDataStage() {
-    _cache = new ClusterDataCache();
-  }
+  private static final Logger LOG = Logger.getLogger(ReadClusterDataStage.class.getName());
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
-    logger.info("START ReadClusterDataStage.process()");
+    LOG.info("START ReadClusterDataStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
     }
-    HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
-    _cache.refresh(dataAccessor);
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    ClusterId clusterId = ClusterId.from(manager.getClusterName());
+    ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor);
+
+    Cluster cluster = clusterAccessor.readCluster();
 
     ClusterStatusMonitor clusterStatusMonitor =
         (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
     if (clusterStatusMonitor != null) {
-      int disabledInstances = 0;
-      int disabledPartitions = 0;
-      for (InstanceConfig config : _cache._instanceConfigMap.values()) {
-        if (config.getInstanceEnabled() == false) {
-          disabledInstances++;
-        }
-        if (config.getDisabledPartitions() != null) {
-          disabledPartitions += config.getDisabledPartitions().size();
-        }
-      }
-      clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(),
-          _cache._instanceConfigMap.size(), disabledInstances, disabledPartitions);
+      // TODO fix it
+      // int disabledInstances = 0;
+      // int disabledPartitions = 0;
+      // for (InstanceConfig config : _cache._instanceConfigMap.values()) {
+      // if (config.getInstanceEnabled() == false) {
+      // disabledInstances++;
+      // }
+      // if (config.getDisabledPartitions() != null) {
+      // disabledPartitions += config.getDisabledPartitions().size();
+      // }
+      // }
+      // clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(),
+      // _cache._instanceConfigMap.size(), disabledInstances, disabledPartitions);
     }
 
-    event.addAttribute("ClusterDataCache", _cache);
+    event.addAttribute("ClusterDataCache", cluster);
 
     long endTime = System.currentTimeMillis();
-    logger.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
+    LOG.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");
   }
 }

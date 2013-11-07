@@ -21,6 +21,7 @@ package org.apache.helix.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,10 +29,30 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.api.State;
+import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.api.id.StateModelFactoryId;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Enums;
+import com.google.common.base.Function;
+import com.google.common.base.Optional;
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.ListMultimap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
+import com.google.common.collect.Sets;
 
 /**
  * The ideal states of all partitions in a resource
@@ -91,6 +112,14 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Instantiate an ideal state for a resource
+   * @param resourceId the id of the resource
+   */
+  public IdealState(ResourceId resourceId) {
+    super(resourceId.stringify());
+  }
+
+  /**
    * Instantiate an ideal state from a record
    * @param record ZNRecord corresponding to an ideal state
    */
@@ -104,6 +133,14 @@ public class IdealState extends HelixProperty {
    */
   public String getResourceName() {
     return _record.getId();
+  }
+
+  /**
+   * Get the associated resource
+   * @return the id of the resource
+   */
+  public ResourceId getResourceId() {
+    return ResourceId.from(getResourceName());
   }
 
   /**
@@ -137,7 +174,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Define a custom rebalancer that implements {@link Rebalancer}
+   * Define a custom rebalancer that implements {@link HelixRebalancer}
    * @param rebalancerClassName the name of the custom rebalancing class
    */
   public void setRebalancerClassName(String rebalancerClassName) {
@@ -151,6 +188,30 @@ public class IdealState extends HelixProperty {
    */
   public String getRebalancerClassName() {
     return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
+  }
+
+  /**
+   * Set a reference to the user-defined rebalancer associated with this resource(if any)
+   * @param rebalancerRef a reference to a user-defined rebalancer
+   */
+  public void setRebalancerRef(RebalancerRef rebalancerRef) {
+    if (rebalancerRef != null) {
+      setRebalancerClassName(rebalancerRef.toString());
+    } else {
+      setRebalancerClassName(null);
+    }
+  }
+
+  /**
+   * Get a reference to the user-defined rebalancer associated with this resource(if any)
+   * @return RebalancerRef
+   */
+  public RebalancerRef getRebalancerRef() {
+    String className = getRebalancerClassName();
+    if (className != null) {
+      return RebalancerRef.from(getRebalancerClassName());
+    }
+    return null;
   }
 
   /**
@@ -201,6 +262,20 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the preferred participant placement and state for a partition replica
+   * @param partitionId the replica to set
+   * @param participantId the assigned participant
+   * @param state the replica state in this instance
+   */
+  public void setPartitionState(PartitionId partitionId, ParticipantId participantId, State state) {
+    Map<String, String> mapField = _record.getMapField(partitionId.stringify());
+    if (mapField == null) {
+      _record.setMapField(partitionId.stringify(), new TreeMap<String, String>());
+    }
+    _record.getMapField(partitionId.stringify()).put(participantId.stringify(), state.toString());
+  }
+
+  /**
    * Get all of the partitions
    * @return a set of partition names
    */
@@ -218,12 +293,15 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Set the current mapping of a partition
-   * @param partition the partition to set
-   * @param instanceStateMap (instance name, state) pairs
+   * Get all of the partitions
+   * @return a set of partitions
    */
-  public void setInstanceStateMap(String partition, Map<String, String> instanceStateMap) {
-    _record.setMapField(partition, instanceStateMap);
+  public Set<PartitionId> getPartitionIdSet() {
+    Set<PartitionId> partitionSet = Sets.newHashSet();
+    for (String partitionName : getPartitionSet()) {
+      partitionSet.add(PartitionId.from(partitionName));
+    }
+    return partitionSet;
   }
 
   /**
@@ -233,6 +311,47 @@ public class IdealState extends HelixProperty {
    */
   public Map<String, String> getInstanceStateMap(String partitionName) {
     return _record.getMapField(partitionName);
+  }
+
+  /**
+   * Set the current mapping of a partition
+   * @param partitionName the partition to set
+   * @param instanceStateMap (participant name, state) pairs
+   */
+  public void setInstanceStateMap(String partitionName, Map<String, String> instanceStateMap) {
+    _record.setMapField(partitionName, instanceStateMap);
+  }
+
+  /**
+   * Set the current mapping of a partition
+   * @param partitionId the partition to set
+   * @param participantStateMap (participant id, state) pairs
+   */
+  public void setParticipantStateMap(PartitionId partitionId,
+      Map<ParticipantId, State> participantStateMap) {
+    Map<String, String> rawMap = new HashMap<String, String>();
+    for (ParticipantId participantId : participantStateMap.keySet()) {
+      rawMap.put(participantId.stringify(), participantStateMap.get(participantId).toString());
+    }
+    _record.setMapField(partitionId.stringify(), rawMap);
+  }
+
+  /**
+   * Get the current mapping of a partition
+   * @param partitionId the name of the partition
+   * @return the instances where the replicas live and the state of each
+   */
+  public Map<ParticipantId, State> getParticipantStateMap(PartitionId partitionId) {
+    Map<String, String> instanceStateMap = getInstanceStateMap(partitionId.stringify());
+    Map<ParticipantId, State> participantStateMap = Maps.newHashMap();
+    if (instanceStateMap != null) {
+      for (String participantId : instanceStateMap.keySet()) {
+        participantStateMap.put(ParticipantId.from(participantId),
+            State.from(instanceStateMap.get(participantId)));
+      }
+      return participantStateMap;
+    }
+    return null;
   }
 
   /**
@@ -263,16 +382,41 @@ public class IdealState extends HelixProperty {
       logger.error("Invalid ideal state mode: " + getResourceName());
       return Collections.emptySet();
     }
+  }
 
+  /**
+   * Get the participants who host replicas of a partition
+   * @param partitionId the partition to look up
+   * @return set of participant ids
+   */
+  public Set<ParticipantId> getParticipantSet(PartitionId partitionId) {
+    Set<ParticipantId> participantSet = Sets.newHashSet();
+    for (String participantName : getInstanceSet(partitionId.stringify())) {
+      participantSet.add(ParticipantId.from(participantName));
+    }
+    return participantSet;
   }
 
   /**
    * Set the preference list of a partition
    * @param partitionName the name of the partition to set
-   * @param preferenceList a list of instances that can serve replicas of the partition
+   * @param preferenceList a list of participants that can serve replicas of the partition
    */
   public void setPreferenceList(String partitionName, List<String> preferenceList) {
     _record.setListField(partitionName, preferenceList);
+  }
+
+  /**
+   * Set the preference list of a partition
+   * @param partitionId the id of the partition to set
+   * @param preferenceList a list of participants that can serve replicas of the partition
+   */
+  public void setPreferenceList(PartitionId partitionId, List<ParticipantId> preferenceList) {
+    List<String> rawPreferenceList = new ArrayList<String>();
+    for (ParticipantId participantId : preferenceList) {
+      rawPreferenceList.add(participantId.stringify());
+    }
+    _record.setListField(partitionId.stringify(), rawPreferenceList);
   }
 
   /**
@@ -291,6 +435,23 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the preference list of a partition
+   * @param partitionId the partition id
+   * @return an ordered list of participants that can serve replicas of the partition
+   */
+  public List<ParticipantId> getPreferenceList(PartitionId partitionId) {
+    List<ParticipantId> preferenceList = Lists.newArrayList();
+    List<String> preferenceStringList = getPreferenceList(partitionId.stringify());
+    if (preferenceStringList != null) {
+      for (String participantName : preferenceStringList) {
+        preferenceList.add(ParticipantId.from(participantName));
+      }
+      return preferenceList;
+    }
+    return null;
+  }
+
+  /**
    * Get the state model associated with this resource
    * @return an identifier of the state model
    */
@@ -299,11 +460,27 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the state model associated with this resource
+   * @return an identifier of the state model
+   */
+  public StateModelDefId getStateModelDefId() {
+    return StateModelDefId.from(getStateModelDefRef());
+  }
+
+  /**
    * Set the state model associated with this resource
    * @param stateModel state model identifier
    */
   public void setStateModelDefRef(String stateModel) {
     _record.setSimpleField(IdealStateProperty.STATE_MODEL_DEF_REF.toString(), stateModel);
+  }
+
+  /**
+   * Set the state model associated with this resource
+   * @param stateModel state model identifier
+   */
+  public void setStateModelDefId(StateModelDefId stateModelDefId) {
+    setStateModelDefRef(stateModelDefId.stringify());
   }
 
   /**
@@ -371,7 +548,7 @@ public class IdealState extends HelixProperty {
         break;
       default:
         replica = "0";
-        logger.error("could NOT determine replicas. set to 0");
+        logger.warn("could NOT determine replicas. set to 0");
         break;
       }
     }
@@ -388,12 +565,30 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the state model factory associated with this resource
+   * @param name state model factory id
+   */
+  public void setStateModelFactoryId(StateModelFactoryId stateModelFactoryId) {
+    if (stateModelFactoryId != null) {
+      setStateModelFactoryName(stateModelFactoryId.stringify());
+    }
+  }
+
+  /**
    * Get the state model factory associated with this resource
    * @return state model factory name
    */
   public String getStateModelFactoryName() {
     return _record.getStringField(IdealStateProperty.STATE_MODEL_FACTORY_NAME.toString(),
         HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+  }
+
+  /**
+   * Get the state model factory associated with this resource
+   * @return state model factory id
+   */
+  public StateModelFactoryId getStateModelFactoryId() {
+    return StateModelFactoryId.from(getStateModelFactoryName());
   }
 
   /**
@@ -462,18 +657,38 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Update the ideal state mapping from a ResourceAssignment
-   * @param assignment ResourceAssignment result from the rebalancer
+   * Update the ideal state from a ResourceAssignment computed during a rebalance
+   * @param assignment the new resource assignment
+   * @param stateModelDef state model of the resource
    */
-  public void updateFromAssignment(ResourceAssignment assignment) {
+  public void updateFromAssignment(ResourceAssignment assignment, StateModelDefinition stateModelDef) {
+    // clear all preference lists and maps
     _record.getMapFields().clear();
     _record.getListFields().clear();
-    if (assignment != null) {
-      for (Partition partition : assignment.getMappedPartitions()) {
-        Map<String, String> replicaMap = assignment.getReplicaMap(partition);
-        setInstanceStateMap(partition.getPartitionName(), replicaMap);
-        setPreferenceList(partition.getPartitionName(), new ArrayList<String>(replicaMap.keySet()));
+
+    // assign a partition at a time
+    for (PartitionId partition : assignment.getMappedPartitionIds()) {
+      List<ParticipantId> preferenceList = new ArrayList<ParticipantId>();
+      Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
+
+      // invert the map to get in state order
+      Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partition);
+      ListMultimap<State, ParticipantId> inverseMap = ArrayListMultimap.create();
+      Multimaps.invertFrom(Multimaps.forMap(replicaMap), inverseMap);
+
+      // update the ideal state in order of state priorities
+      for (State state : stateModelDef.getTypedStatesPriorityList()) {
+        if (!state.equals(State.from(HelixDefinedState.DROPPED))
+            && !state.equals(State.from(HelixDefinedState.ERROR))) {
+          List<ParticipantId> stateParticipants = inverseMap.get(state);
+          for (ParticipantId participant : stateParticipants) {
+            preferenceList.add(participant);
+            participantStateMap.put(participant, state);
+          }
+        }
       }
+      setPreferenceList(partition, preferenceList);
+      setParticipantStateMap(partition, participantStateMap);
     }
   }
 
@@ -520,7 +735,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Parse a RebalanceMode from a string. It can also understand IdealStateModeProperty values.
+   * Parse a rebalance mode from a string. It can also understand IdealStateModeProperty values
    * @param mode string containing a RebalanceMode value
    * @param defaultMode the mode to use if the string is not valid
    * @return converted RebalanceMode value
@@ -538,5 +753,132 @@ public class IdealState extends HelixProperty {
       }
     }
     return rebalanceMode;
+  }
+
+  /**
+   * Get the non-Helix simple fields from this property and add them to a UserConfig
+   * @param userConfig the user config to update
+   */
+  public void updateUserConfig(UserConfig userConfig) {
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      Optional<IdealStateProperty> enumField =
+          Enums.getIfPresent(IdealStateProperty.class, simpleField);
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
+  }
+
+  /**
+   * Convert a preference list of strings into a preference list of participants
+   * @param rawPreferenceList the list of strings representing participant names
+   * @return converted list
+   */
+  public static List<ParticipantId> preferenceListFromStringList(List<String> rawPreferenceList) {
+    if (rawPreferenceList == null) {
+      return Collections.emptyList();
+    }
+    return Lists.transform(new ArrayList<String>(rawPreferenceList),
+        new Function<String, ParticipantId>() {
+          @Override
+          public ParticipantId apply(String participantName) {
+            return ParticipantId.from(participantName);
+          }
+        });
+  }
+
+  /**
+   * Convert preference lists of strings into preference lists of participants
+   * @param rawPreferenceLists a map of partition name to a list of participant names
+   * @return converted lists as a map
+   */
+  public static Map<? extends PartitionId, List<ParticipantId>> preferenceListsFromStringLists(
+      Map<String, List<String>> rawPreferenceLists) {
+    if (rawPreferenceLists == null) {
+      return Collections.emptyMap();
+    }
+    Map<PartitionId, List<ParticipantId>> preferenceLists =
+        new HashMap<PartitionId, List<ParticipantId>>();
+    for (String partitionId : rawPreferenceLists.keySet()) {
+      preferenceLists.put(PartitionId.from(partitionId),
+          preferenceListFromStringList(rawPreferenceLists.get(partitionId)));
+    }
+    return preferenceLists;
+  }
+
+  /**
+   * Convert a preference list of participants into a preference list of strings
+   * @param preferenceList the list of strings representing participant ids
+   * @return converted list
+   */
+  public static List<String> stringListFromPreferenceList(List<ParticipantId> preferenceList) {
+    if (preferenceList == null) {
+      return Collections.emptyList();
+    }
+    return Lists.transform(new ArrayList<ParticipantId>(preferenceList),
+        new Function<ParticipantId, String>() {
+          @Override
+          public String apply(ParticipantId participantId) {
+            return participantId.stringify();
+          }
+        });
+  }
+
+  /**
+   * Convert preference lists of participants into preference lists of strings
+   * @param preferenceLists a map of partition id to a list of participant ids
+   * @return converted lists as a map
+   */
+  public static Map<String, List<String>> stringListsFromPreferenceLists(
+      Map<PartitionId, List<ParticipantId>> preferenceLists) {
+    if (preferenceLists == null) {
+      return Collections.emptyMap();
+    }
+    Map<String, List<String>> rawPreferenceLists = new HashMap<String, List<String>>();
+    for (PartitionId partitionId : preferenceLists.keySet()) {
+      rawPreferenceLists.put(partitionId.stringify(),
+          stringListFromPreferenceList(preferenceLists.get(partitionId)));
+    }
+    return rawPreferenceLists;
+  }
+
+  /**
+   * Convert a partition mapping as strings into a participant state map
+   * @param rawMap the map of participant name to state
+   * @return converted map
+   */
+  public static Map<ParticipantId, State> participantStateMapFromStringMap(
+      Map<String, String> rawMap) {
+    return ResourceAssignment.replicaMapFromStringMap(rawMap);
+  }
+
+  /**
+   * Convert a full state mapping as strings into participant state maps
+   * @param rawMaps the map of partition name to participant name and state
+   * @return converted maps
+   */
+  public static Map<? extends PartitionId, Map<ParticipantId, State>> participantStateMapsFromStringMaps(
+      Map<String, Map<String, String>> rawMaps) {
+    return ResourceAssignment.replicaMapsFromStringMaps(rawMaps);
+  }
+
+  /**
+   * Convert a partition mapping into a mapping of string names
+   * @param participantStateMap the map of participant id to state
+   * @return converted map
+   */
+  public static Map<String, String> stringMapFromParticipantStateMap(
+      Map<ParticipantId, State> participantStateMap) {
+    return ResourceAssignment.stringMapFromReplicaMap(participantStateMap);
+  }
+
+  /**
+   * Convert a full state mapping into a mapping of string names
+   * @param participantStateMaps the map of partition id to participant id and state
+   * @return converted maps
+   */
+  public static Map<String, Map<String, String>> stringMapsFromParticipantStateMaps(
+      Map<PartitionId, Map<ParticipantId, State>> participantStateMaps) {
+    return ResourceAssignment.stringMapsFromReplicaMaps(participantStateMaps);
   }
 }

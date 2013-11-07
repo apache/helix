@@ -22,11 +22,9 @@ package org.apache.helix.alerts;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.alerts.AlertParser;
-import org.apache.helix.alerts.AlertsHolder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.HealthDataCache;
 import org.testng.AssertJUnit;
 import org.testng.annotations.BeforeMethod;

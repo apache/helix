@@ -24,6 +24,10 @@ import java.util.UUID;
 import org.apache.helix.Criteria;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory;
 import org.apache.helix.manager.zk.DefaultParticipantErrorMessageHandlerFactory.ActionOnError;
 import org.apache.helix.model.ExternalView;
@@ -41,8 +45,9 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     String participant2 = "localhost_" + (START_PORT + 1);
 
     Message errorMessage1 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, UUID.randomUUID().toString());
-    errorMessage1.setTgtSessionId("*");
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, MessageId.from(UUID.randomUUID()
+            .toString()));
+    errorMessage1.setTgtSessionId(SessionId.from("*"));
     errorMessage1.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_INSTANCE.toString());
@@ -53,10 +58,11 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
         errorMessage1);
 
     Message errorMessage2 =
-        new Message(MessageType.PARTICIPANT_ERROR_REPORT, UUID.randomUUID().toString());
-    errorMessage2.setTgtSessionId("*");
-    errorMessage2.setResourceName("TestDB");
-    errorMessage2.setPartitionName("TestDB_14");
+        new Message(MessageType.PARTICIPANT_ERROR_REPORT, MessageId.from(UUID.randomUUID()
+            .toString()));
+    errorMessage2.setTgtSessionId(SessionId.from("*"));
+    errorMessage2.setResourceId(ResourceId.from("TestDB"));
+    errorMessage2.setPartitionId(PartitionId.from("TestDB_14"));
     errorMessage2.getRecord().setSimpleField(
         DefaultParticipantErrorMessageHandlerFactory.ACTIONKEY,
         ActionOnError.DISABLE_PARTITION.toString());

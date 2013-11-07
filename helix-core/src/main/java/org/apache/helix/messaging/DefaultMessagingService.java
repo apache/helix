@@ -28,19 +28,23 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.log4j.Logger;
 
 public class DefaultMessagingService implements ClusterMessagingService {
@@ -157,11 +161,12 @@ public class DefaultMessagingService implements ClusterMessagingService {
           List<LiveInstance> liveInstances = accessor.getChildValues(keyBuilder.liveInstances());
 
           for (LiveInstance liveInstance : liveInstances) {
-            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getSessionId());
+            sessionIdMap.put(liveInstance.getInstanceName(), liveInstance.getTypedSessionId()
+                .stringify());
           }
         }
         for (Map<String, String> map : matchedList) {
-          String id = UUID.randomUUID().toString();
+          MessageId id = MessageId.from(UUID.randomUUID().toString());
           Message newMessage = new Message(message.getRecord(), id);
           String srcInstanceName = _manager.getInstanceName();
           String tgtInstanceName = map.get("instanceName");
@@ -172,10 +177,10 @@ public class DefaultMessagingService implements ClusterMessagingService {
           }
           newMessage.setSrcName(srcInstanceName);
           newMessage.setTgtName(tgtInstanceName);
-          newMessage.setResourceName(map.get("resourceName"));
-          newMessage.setPartitionName(map.get("partitionName"));
+          newMessage.setResourceId(ResourceId.from(map.get("resourceName")));
+          newMessage.setPartitionId(PartitionId.from(map.get("partitionName")));
           if (recipientCriteria.isSessionSpecific()) {
-            newMessage.setTgtSessionId(sessionIdMap.get(tgtInstanceName));
+            newMessage.setTgtSessionId(SessionId.from(sessionIdMap.get(tgtInstanceName)));
           }
           messages.add(newMessage);
         }
@@ -187,9 +192,9 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
   private List<Message> generateMessagesForController(Message message) {
     List<Message> messages = new ArrayList<Message>();
-    String id = UUID.randomUUID().toString();
+    MessageId id = MessageId.from(UUID.randomUUID().toString());
     Message newMessage = new Message(message.getRecord(), id);
-    newMessage.setMsgId(id);
+    newMessage.setMessageId(id);
     newMessage.setSrcName(_manager.getInstanceName());
     newMessage.setTgtName("Controller");
     messages.add(newMessage);
@@ -262,7 +267,8 @@ public class DefaultMessagingService implements ClusterMessagingService {
   public void sendNopMessage() {
     if (_manager.isConnected()) {
       try {
-        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+        Message nopMsg =
+            new Message(MessageType.NO_OP, MessageId.from(UUID.randomUUID().toString()));
         nopMsg.setSrcName(_manager.getInstanceName());
 
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();

@@ -19,7 +19,6 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import java.io.File;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkNoNodeException;

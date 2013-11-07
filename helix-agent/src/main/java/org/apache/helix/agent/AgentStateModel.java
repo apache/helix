@@ -29,9 +29,10 @@ import java.util.regex.Pattern;
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.State;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
@@ -71,21 +72,24 @@ public class AgentStateModel extends StateModel {
 
     HelixManager manager = context.getManager();
     String clusterName = manager.getClusterName();
-    String fromState = message.getFromState();
-    String toState = message.getToState();
+    State fromState = message.getTypedFromState();
+    State toState = message.getTypedToState();
 
     // construct keys for command-config
-    String cmdKey = buildKey(fromState, toState, CommandAttribute.COMMAND);
-    String workingDirKey = buildKey(fromState, toState, CommandAttribute.WORKING_DIR);
-    String timeoutKey = buildKey(fromState, toState, CommandAttribute.TIMEOUT);
-    String pidFileKey = buildKey(fromState, toState, CommandAttribute.PID_FILE);
+    String cmdKey = buildKey(fromState.toString(), toState.toString(), CommandAttribute.COMMAND);
+    String workingDirKey =
+        buildKey(fromState.toString(), toState.toString(), CommandAttribute.WORKING_DIR);
+    String timeoutKey =
+        buildKey(fromState.toString(), toState.toString(), CommandAttribute.TIMEOUT);
+    String pidFileKey =
+        buildKey(fromState.toString(), toState.toString(), CommandAttribute.PID_FILE);
     List<String> cmdConfigKeys = Arrays.asList(cmdKey, workingDirKey, timeoutKey, pidFileKey);
 
     // read command from resource-scope configures
     if (cmd == null) {
       HelixConfigScope resourceScope =
           new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
-              .forResource(message.getResourceName()).build();
+              .forResource(message.getResourceId().stringify()).build();
       Map<String, String> cmdKeyValueMap =
           manager.getConfigAccessor().get(resourceScope, cmdConfigKeys);
       if (cmdKeyValueMap != null) {
@@ -112,8 +116,8 @@ public class AgentStateModel extends StateModel {
     }
 
     if (cmd == null) {
-      throw new Exception("Unable to find command for transition from:" + message.getFromState()
-          + " to:" + message.getToState());
+      throw new Exception("Unable to find command for transition from:" + message.getTypedFromState()
+          + " to:" + message.getTypedToState());
     }
     _logger.info("Executing command: " + cmd + ", using workingDir: " + workingDir + ", timeout: "
         + timeout + ", on " + manager.getInstanceName());

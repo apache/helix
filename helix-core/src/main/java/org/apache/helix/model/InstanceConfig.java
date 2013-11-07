@@ -27,7 +27,13 @@ import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
+import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+
+import com.google.common.base.Enums;
+import com.google.common.base.Optional;
 
 /**
  * Instance configurations
@@ -44,14 +50,20 @@ public class InstanceConfig extends HelixProperty {
     TAG_LIST
   }
 
-  private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
-
   /**
    * Instantiate for a specific instance
    * @param instanceId the instance identifier
    */
   public InstanceConfig(String instanceId) {
     super(instanceId);
+  }
+
+  /**
+   * Instantiate for a specific instance
+   * @param participantId the instance identifier
+   */
+  public InstanceConfig(ParticipantId participantId) {
+    super(participantId.stringify());
   }
 
   /**
@@ -213,6 +225,15 @@ public class InstanceConfig extends HelixProperty {
     _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
   }
 
+  /**
+   * Set the enabled state for a partition on this instance
+   * @param partitionId the partition to set
+   * @param enabled true to enable, false to disable
+   */
+  public void setParticipantEnabledForPartition(PartitionId partitionId, boolean enabled) {
+    setInstanceEnabledForPartition(partitionId.stringify(), enabled);
+  }
+
   @Override
   public boolean equals(Object obj) {
     if (obj instanceof InstanceConfig) {
@@ -236,6 +257,44 @@ public class InstanceConfig extends HelixProperty {
    */
   public String getInstanceName() {
     return _record.getId();
+  }
+
+  /**
+   * Get the identifier of this participant
+   * @return the participant id
+   */
+  public ParticipantId getParticipantId() {
+    return ParticipantId.from(getInstanceName());
+  }
+
+  /**
+   * Get a backward-compatible participant user config
+   * @return UserConfig
+   */
+  public UserConfig getUserConfig() {
+    UserConfig userConfig = UserConfig.from(this);
+    for (String simpleField : _record.getSimpleFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
+      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+      }
+    }
+    for (String listField : _record.getListFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, listField);
+      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setListField(listField, _record.getListField(listField));
+      }
+    }
+    for (String mapField : _record.getMapFields().keySet()) {
+      Optional<InstanceConfigProperty> enumField =
+          Enums.getIfPresent(InstanceConfigProperty.class, mapField);
+      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      }
+    }
+    return userConfig;
   }
 
   @Override

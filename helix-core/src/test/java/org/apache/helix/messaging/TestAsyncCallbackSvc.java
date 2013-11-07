@@ -19,17 +19,6 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
-import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
-import org.apache.helix.Mocks;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.messaging.AsyncCallback;
-import org.apache.helix.messaging.handling.AsyncCallbackService;
-import org.apache.helix.messaging.handling.MessageHandler;
-import org.apache.helix.messaging.handling.TestHelixTaskExecutor.MockClusterManager;
-import org.apache.helix.model.Message;
-import org.testng.annotations.Test;
-import org.testng.AssertJUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,7 +26,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.testng.Assert;
+import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.Mocks;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.messaging.handling.AsyncCallbackService;
+import org.apache.helix.messaging.handling.MessageHandler;
+import org.apache.helix.model.Message;
+import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestAsyncCallbackSvc {
@@ -48,7 +46,7 @@ public class TestAsyncCallbackSvc {
   }
 
   class TestAsyncCallback extends AsyncCallback {
-    HashSet<String> _repliedMessageId = new HashSet<String>();
+    HashSet<MessageId> _repliedMessageId = new HashSet<MessageId>();
 
     @Override
     public void onTimeOut() {
@@ -59,7 +57,7 @@ public class TestAsyncCallbackSvc {
     @Override
     public void onReplyMessage(Message message) {
       // TODO Auto-generated method stub
-      _repliedMessageId.add(message.getMsgId());
+      _repliedMessageId.add(message.getMessageId());
     }
 
   }
@@ -72,27 +70,27 @@ public class TestAsyncCallbackSvc {
     HelixManager manager = new MockHelixManager();
     NotificationContext changeContext = new NotificationContext(manager);
 
-    Message msg = new Message(svc.getMessageType(), UUID.randomUUID().toString());
-    msg.setTgtSessionId(manager.getSessionId());
+    Message msg = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
       MessageHandler aHandler = svc.createHandler(msg, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMessageId().stringify()) != -1);
     }
-    Message msg2 = new Message("RandomType", UUID.randomUUID().toString());
-    msg2.setTgtSessionId(manager.getSessionId());
+    Message msg2 = new Message("RandomType", MessageId.from(UUID.randomUUID().toString()));
+    msg2.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
       MessageHandler aHandler = svc.createHandler(msg2, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMessageId().stringify()) != -1);
     }
-    Message msg3 = new Message(svc.getMessageType(), UUID.randomUUID().toString());
-    msg3.setTgtSessionId(manager.getSessionId());
+    Message msg3 = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg3.setTgtSessionId(SessionId.from(manager.getSessionId()));
     msg3.setCorrelationId("wfwegw");
     try {
       MessageHandler aHandler = svc.createHandler(msg3, changeContext);
     } catch (HelixException e) {
-      AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMsgId()) != -1);
+      AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMessageId().stringify()) != -1);
     }
 
     TestAsyncCallback callback = new TestAsyncCallback();
@@ -101,11 +99,11 @@ public class TestAsyncCallbackSvc {
     svc.registerAsyncCallback(corrId, callback);
 
     List<Message> msgSent = new ArrayList<Message>();
-    msgSent.add(new Message("Test", UUID.randomUUID().toString()));
+    msgSent.add(new Message("Test", MessageId.from(UUID.randomUUID().toString())));
     callback.setMessagesSent(msgSent);
 
-    msg = new Message(svc.getMessageType(), UUID.randomUUID().toString());
-    msg.setTgtSessionId("*");
+    msg = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
+    msg.setTgtSessionId(SessionId.from("*"));
     msg.setCorrelationId(corrId);
 
     MessageHandler aHandler = svc.createHandler(msg, changeContext);
@@ -113,6 +111,6 @@ public class TestAsyncCallbackSvc {
     aHandler.handleMessage();
 
     AssertJUnit.assertTrue(callback.isDone());
-    AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMsgId()));
+    AssertJUnit.assertTrue(callback._repliedMessageId.contains(msg.getMessageId()));
   }
 }

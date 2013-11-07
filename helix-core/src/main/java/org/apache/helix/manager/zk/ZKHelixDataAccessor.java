@@ -79,12 +79,12 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     boolean success = false;
     switch (type) {
     case STATEMODELDEFS:
-      if (value.isValid()) {
+      if (value != null && value.isValid()) {
         success = _baseDataAccessor.create(path, value.getRecord(), options);
       }
       break;
     default:
-      success = _baseDataAccessor.create(path, value.getRecord(), options);
+      success = _baseDataAccessor.create(path, value == null ? null : value.getRecord(), options);
       break;
     }
     return success;
@@ -469,7 +469,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     // TODO: set success accordingly
     _baseDataAccessor.setChildren(allBucketizedPaths, allBucketizedRecords, options);
-
     return success;
   }
 

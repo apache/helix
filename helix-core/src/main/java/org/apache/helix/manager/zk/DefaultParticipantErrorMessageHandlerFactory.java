@@ -79,15 +79,15 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
           _logger.info("Instance " + _message.getMsgSrc() + " disabled");
         } else if (actionOnError == ActionOnError.DISABLE_PARTITION) {
           _manager.getClusterManagmentTool().enablePartition(false, _manager.getClusterName(),
-              _message.getMsgSrc(), _message.getResourceName(),
-              Arrays.asList(_message.getPartitionName()));
-          _logger.info("partition " + _message.getPartitionName() + " disabled");
+              _message.getMsgSrc(), _message.getResourceId().stringify(),
+              Arrays.asList(_message.getPartitionId().stringify()));
+          _logger.info("partition " + _message.getPartitionId() + " disabled");
         } else if (actionOnError == ActionOnError.DISABLE_RESOURCE) {
           // NOT IMPLEMENTED, or we can disable all partitions
           // _manager.getClusterManagmentTool().en(_manager.getClusterName(),
           // _manager.getInstanceName(),
           // _message.getResourceName(), _message.getPartitionName(), false);
-          _logger.info("resource " + _message.getResourceName() + " disabled");
+          _logger.info("resource " + _message.getResourceId() + " disabled");
         }
       } catch (Exception e) {
         _logger.error("", e);
@@ -99,7 +99,7 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMsgId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(), e);
     }
 
   }
@@ -109,7 +109,7 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
     String type = message.getMsgType();
 
     if (!type.equals(getMessageType())) {
-      throw new HelixException("Unexpected msg type for message " + message.getMsgId() + " type:"
+      throw new HelixException("Unexpected msg type for message " + message.getMessageId() + " type:"
           + message.getMsgType());
     }
 

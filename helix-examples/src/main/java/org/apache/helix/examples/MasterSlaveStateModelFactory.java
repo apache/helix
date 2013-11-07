@@ -24,7 +24,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
-@SuppressWarnings("rawtypes")
 public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> {
   int _delay;
 
@@ -75,8 +74,8 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
 
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
 
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
-          + message.getToState() + " for " + partitionName);
+      System.out.println(_instanceName + " transitioning from " + message.getTypedFromState() + " to "
+          + message.getTypedToState() + " for " + partitionName);
       sleep();
     }
 
@@ -89,22 +88,22 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
     }
 
     public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
-          + message.getToState() + " for " + partitionName);
+      System.out.println(_instanceName + " transitioning from " + message.getTypedFromState() + " to "
+          + message.getTypedToState() + " for " + partitionName);
       sleep();
 
     }
 
     public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
-          + message.getToState() + " for " + partitionName);
+      System.out.println(_instanceName + " transitioning from " + message.getTypedFromState() + " to "
+          + message.getTypedToState() + " for " + partitionName);
       sleep();
 
     }
 
     public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
-      System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
-          + message.getToState() + " for " + partitionName);
+      System.out.println(_instanceName + " transitioning from " + message.getTypedFromState() + " to "
+          + message.getTypedToState() + " for " + partitionName);
       sleep();
 
     }

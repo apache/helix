@@ -24,12 +24,12 @@ import java.util.List;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
 
 public class Consumer {
   private final String _zkAddr;
@@ -54,7 +54,8 @@ public class Consumer {
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
       ConsumerStateModelFactory modelFactory =
           new ConsumerStateModelFactory(_consumerId, _mqServer);
-      stateMach.registerStateModelFactory(SetupConsumerCluster.DEFAULT_STATE_MODEL, modelFactory);
+      stateMach.registerStateModelFactory(
+          StateModelDefId.from(SetupConsumerCluster.DEFAULT_STATE_MODEL), modelFactory);
 
       _manager.connect();
 

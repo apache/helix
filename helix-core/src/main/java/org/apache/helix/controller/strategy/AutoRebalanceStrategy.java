@@ -34,7 +34,15 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 
 public class AutoRebalanceStrategy {
 
@@ -79,12 +87,58 @@ public class AutoRebalanceStrategy {
   }
 
   /**
-   * Initialize the strategy with a default placement scheme and no
+   * Initialize the strategy with a default placement scheme
    * @see #AutoRebalanceStrategy(String, List, LinkedHashMap, int, ReplicaPlacementScheme)
    */
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states) {
     this(resourceName, partitions, states, Integer.MAX_VALUE, new DefaultPlacementScheme());
+  }
+
+  /**
+   * Constructor to support logically-typed Helix components
+   * @param resourceId the resource for which to compute an assignment
+   * @param partitions the partitions of the resource
+   * @param states the states and counts for each state
+   * @param maximumPerNode the maximum number of replicas per node
+   * @param placementScheme the scheme to use for preferred replica locations. If null, this is
+   *          {@link DefaultPlacementScheme}
+   */
+  public AutoRebalanceStrategy(ResourceId resourceId, final List<PartitionId> partitions,
+      final LinkedHashMap<State, Integer> states, int maximumPerNode,
+      ReplicaPlacementScheme placementScheme) {
+    LinkedHashMap<String, Integer> rawStateCountMap = new LinkedHashMap<String, Integer>();
+    for (State state : states.keySet()) {
+      rawStateCountMap.put(state.toString(), states.get(state));
+    }
+    List<String> partitionNames = Lists.transform(partitions, Functions.toStringFunction());
+    _resourceName = resourceId.stringify();
+    _partitions = partitionNames;
+    _states = rawStateCountMap;
+    _maximumPerNode = maximumPerNode;
+    if (placementScheme != null) {
+      _placementScheme = placementScheme;
+    } else {
+      _placementScheme = new DefaultPlacementScheme();
+    }
+  }
+
+  /**
+   * Wrap {@link #computePartitionAssignment(List, Map, List)} with a function that takes concrete
+   * types
+   * @param liveNodes list of live participant ids
+   * @param currentMapping map of partition id to map of participant id to state
+   * @param allNodes list of all participant ids
+   * @return the preference list and replica mapping
+   */
+  public ZNRecord typedComputePartitionAssignment(final List<ParticipantId> liveNodes,
+      final Map<PartitionId, Map<ParticipantId, State>> currentMapping,
+      final List<ParticipantId> allNodes) {
+    final List<String> rawLiveNodes = Lists.transform(liveNodes, Functions.toStringFunction());
+    final List<String> rawAllNodes = Lists.transform(allNodes, Functions.toStringFunction());
+    final Map<String, Map<String, String>> rawCurrentMapping =
+        ResourceAssignment.stringMapsFromReplicaMaps(currentMapping);
+    return computePartitionAssignment(rawLiveNodes, rawCurrentMapping, rawAllNodes);
   }
 
   /**
@@ -96,23 +150,27 @@ public class AutoRebalanceStrategy {
    */
   public ZNRecord computePartitionAssignment(final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, final List<String> allNodes) {
+    List<String> sortedLiveNodes = new ArrayList<String>(liveNodes);
+    Collections.sort(sortedLiveNodes);
+    List<String> sortedAllNodes = new ArrayList<String>(allNodes);
+    Collections.sort(sortedAllNodes);
     int numReplicas = countStateReplicas();
     ZNRecord znRecord = new ZNRecord(_resourceName);
-    if (liveNodes.size() == 0) {
+    if (sortedLiveNodes.size() == 0) {
       return znRecord;
     }
-    int distRemainder = (numReplicas * _partitions.size()) % liveNodes.size();
-    int distFloor = (numReplicas * _partitions.size()) / liveNodes.size();
+    int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
+    int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
     _nodeMap = new HashMap<String, Node>();
     _liveNodesList = new ArrayList<Node>();
 
-    for (String id : allNodes) {
+    for (String id : sortedAllNodes) {
       Node node = new Node(id);
       node.capacity = 0;
       node.hasCeilingCapacity = false;
       _nodeMap.put(id, node);
     }
-    for (int i = 0; i < liveNodes.size(); i++) {
+    for (int i = 0; i < sortedLiveNodes.size(); i++) {
       boolean usingCeiling = false;
       int targetSize = (_maximumPerNode > 0) ? Math.min(distFloor, _maximumPerNode) : distFloor;
       if (distRemainder > 0 && targetSize < _maximumPerNode) {
@@ -120,7 +178,7 @@ public class AutoRebalanceStrategy {
         distRemainder = distRemainder - 1;
         usingCeiling = true;
       }
-      Node node = _nodeMap.get(liveNodes.get(i));
+      Node node = _nodeMap.get(sortedLiveNodes.get(i));
       node.isAlive = true;
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
@@ -131,7 +189,7 @@ public class AutoRebalanceStrategy {
     _stateMap = generateStateMap();
 
     // compute the preferred mapping if all nodes were up
-    _preferredAssignment = computePreferredPlacement(allNodes);
+    _preferredAssignment = computePreferredPlacement(sortedAllNodes);
 
     // logger.info("preferred mapping:"+ preferredAssignment);
     // from current mapping derive the ones in preferred location
@@ -700,7 +758,7 @@ public class AutoRebalanceStrategy {
     @Override
     public int compareTo(Replica that) {
       if (that instanceof Replica) {
-        return this.format.compareTo(((Replica) that).format);
+        return this.format.compareTo(that.format);
       }
       return -1;
     }

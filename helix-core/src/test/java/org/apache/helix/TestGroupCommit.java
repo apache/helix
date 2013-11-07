@@ -22,10 +22,6 @@ package org.apache.helix;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.GroupCommit;
-import org.apache.helix.ZNRecord;
-
 public class TestGroupCommit {
   // @Test
   public void testGroupCommit() throws InterruptedException {

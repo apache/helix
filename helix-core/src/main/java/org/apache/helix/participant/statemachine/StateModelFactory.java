@@ -19,13 +19,16 @@ package org.apache.helix.participant.statemachine;
  * under the License.
  */
 
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
+/**
+ * Replaced by {@link org.apache.helix.participant.statemachine.HelixStateModelFactory}
+ */
+@Deprecated
 public abstract class StateModelFactory<T extends StateModel> {
   /**
    * mapping from partitionName to StateModel

@@ -45,6 +45,11 @@ import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
@@ -309,7 +314,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String instanceName : instanceNames) {
@@ -392,7 +397,7 @@ public class TestHelper {
 
     try {
       ZKHelixDataAccessor accessor =
-          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+          new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
       Builder keyBuilder = accessor.keyBuilder();
 
       for (String resGroupPartitionKey : stateMap.keySet()) {
@@ -494,15 +499,15 @@ public class TestHelper {
     return resultsMap;
   }
 
-  public static Message createMessage(String msgId, String fromState, String toState,
+  public static Message createMessage(MessageId msgId, String fromState, String toState,
       String tgtName, String resourceName, String partitionName) {
     Message msg = new Message(MessageType.STATE_TRANSITION, msgId);
-    msg.setFromState(fromState);
-    msg.setToState(toState);
+    msg.setFromState(State.from(fromState));
+    msg.setToState(State.from(toState));
     msg.setTgtName(tgtName);
-    msg.setResourceName(resourceName);
-    msg.setPartitionName(partitionName);
-    msg.setStateModelDef("MasterSlave");
+    msg.setResourceId(ResourceId.from(resourceName));
+    msg.setPartitionId(PartitionId.from(partitionName));
+    msg.setStateModelDef(StateModelDefId.from("MasterSlave"));
 
     return msg;
   }

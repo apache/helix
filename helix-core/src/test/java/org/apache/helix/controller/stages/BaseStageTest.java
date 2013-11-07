@@ -29,15 +29,24 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.Resource;
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.annotations.AfterClass;
@@ -90,7 +99,7 @@ public class BaseStageTest {
         record.setListField(resourceName + "_" + p, value);
       }
       IdealState idealState = new IdealState(record);
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
       idealState.setRebalanceMode(rebalanceMode);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
@@ -107,11 +116,16 @@ public class BaseStageTest {
   protected void setupLiveInstances(int numLiveInstances) {
     // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++) {
-      LiveInstance liveInstance = new LiveInstance("localhost_" + i);
+      String instanceName = "localhost_" + i;
+      InstanceConfig instanceConfig = new InstanceConfig(ParticipantId.from(instanceName));
+      instanceConfig.setHostName("localhost");
+      instanceConfig.setPort(Integer.toString(i));
+      LiveInstance liveInstance = new LiveInstance(instanceName);
       liveInstance.setSessionId("session_" + i);
 
       Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.liveInstance("localhost_" + i), liveInstance);
+      accessor.setProperty(keyBuilder.instanceConfig(instanceName), instanceConfig);
+      accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
     }
   }
 
@@ -128,32 +142,40 @@ public class BaseStageTest {
     stage.postProcess();
   }
 
-  protected void setupStateModel() {
-    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
-
+  protected Map<StateModelDefId, StateModelDefinition> setupStateModel() {
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(
-        masterSlave));
+    Map<StateModelDefId, StateModelDefinition> defs =
+        new HashMap<StateModelDefId, StateModelDefinition>();
 
-    ZNRecord leaderStandby = new StateModelConfigGenerator().generateConfigForLeaderStandby();
-    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), new StateModelDefinition(
-        leaderStandby));
+    ZNRecord masterSlave = StateModelConfigGenerator.generateConfigForMasterSlave();
+    StateModelDefinition masterSlaveDef = new StateModelDefinition(masterSlave);
+    defs.put(StateModelDefId.from(masterSlaveDef.getId()), masterSlaveDef);
+    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlaveDef);
 
-    ZNRecord onlineOffline = new StateModelConfigGenerator().generateConfigForOnlineOffline();
-    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), new StateModelDefinition(
-        onlineOffline));
+    ZNRecord leaderStandby = StateModelConfigGenerator.generateConfigForLeaderStandby();
+    StateModelDefinition leaderStandbyDef = new StateModelDefinition(leaderStandby);
+    defs.put(StateModelDefId.from(leaderStandbyDef.getId()), leaderStandbyDef);
+    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandbyDef);
+
+    ZNRecord onlineOffline = StateModelConfigGenerator.generateConfigForOnlineOffline();
+    StateModelDefinition onlineOfflineDef = new StateModelDefinition(onlineOffline);
+    defs.put(StateModelDefId.from(onlineOfflineDef.getId()), onlineOfflineDef);
+    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOfflineDef);
+
+    return defs;
   }
 
-  protected Map<String, Resource> getResourceMap() {
-    Map<String, Resource> resourceMap = new HashMap<String, Resource>();
-    Resource testResource = new Resource("testResourceName");
-    testResource.setStateModelDefRef("MasterSlave");
-    testResource.addPartition("testResourceName_0");
-    testResource.addPartition("testResourceName_1");
-    testResource.addPartition("testResourceName_2");
-    testResource.addPartition("testResourceName_3");
-    testResource.addPartition("testResourceName_4");
-    resourceMap.put("testResourceName", testResource);
+  protected Map<ResourceId, ResourceConfig> getResourceMap(List<IdealState> idealStates) {
+    Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
+    for (IdealState idealState : idealStates) {
+      ResourceId resourceId = idealState.getResourceId();
+      RebalancerContext context = PartitionedRebalancerContext.from(idealState);
+      Resource resource =
+          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context,
+              new UserConfig(Scope.resource(resourceId)), idealState.getBucketSize(),
+              idealState.getBatchMessageMode());
+      resourceMap.put(resourceId, resource.getConfig());
+    }
 
     return resourceMap;
   }

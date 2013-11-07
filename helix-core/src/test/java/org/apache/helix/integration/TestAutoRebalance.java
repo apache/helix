@@ -26,10 +26,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -37,7 +38,11 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
@@ -51,6 +56,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
   String db2 = TEST_DB + "2";
   String _tag = "SSDSSD";
 
+  @Override
   @BeforeClass
   public void beforeClass() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -158,7 +164,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     // kill 1 node
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _startCMResultMap.get(instanceName)._manager.disconnect();
-    Thread.currentThread().sleep(1000);
+    Thread.sleep(1000);
     _startCMResultMap.get(instanceName)._thread.interrupt();
 
     // verifyBalanceExternalView();
@@ -176,7 +182,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
           TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, storageNodeName.replace(':', '_'));
       _startCMResultMap.put(storageNodeName, resultx);
     }
-    Thread.sleep(1000);
+    Thread.sleep(5000);
     result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkClient,
             CLUSTER_NAME, TEST_DB));
@@ -187,7 +193,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
             CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Set<String> instancesSet = new HashSet<String>();
@@ -225,16 +231,14 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     for (String instanceName : masterPartitionsCountMap.keySet()) {
       int instancePartitionCount = masterPartitionsCountMap.get(instanceName);
       totalCount += instancePartitionCount;
-      if (!(instancePartitionCount == perInstancePartition || instancePartitionCount == perInstancePartition + 1)) {
+      if (Math.abs(instancePartitionCount - perInstancePartition) > 1) {
+        // System.out.println("instanceName: " + instanceName + ", instancePartitionCnt: "
+        // + instancePartitionCount + ", perInstancePartition: " + perInstancePartition);
         return false;
-      }
-      if (instancePartitionCount == perInstancePartition + 1) {
-        if (partitionCount % instances == 0) {
-          return false;
-        }
       }
     }
     if (partitionCount != totalCount) {
+      // System.out.println("partitionCnt: " + partitionCount + ", totalCnt: " + totalCount);
       return false;
     }
     return true;
@@ -255,33 +259,41 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
     @Override
     public boolean verify() {
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
+          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
       Builder keyBuilder = accessor.keyBuilder();
-      int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-              .size();
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
-      String masterValue =
-          cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityList().get(0);
-      int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-      String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
+      IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
+      if (idealState == null) {
+        return false;
+      }
+
+      int numberOfPartitions = idealState.getRecord().getListFields().size();
+      String stateModelDefName = idealState.getStateModelDefId().stringify();
+      StateModelDefinition stateModelDef =
+          accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
+      State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
+      int replicas = Integer.parseInt(idealState.getReplicas());
+
+      String instanceGroupTag = idealState.getInstanceGroupTag();
+
       int instances = 0;
-      for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-        if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+      Map<String, LiveInstance> liveInstanceMap =
+          accessor.getChildValuesMap(keyBuilder.liveInstances());
+      Map<String, InstanceConfig> instanceConfigMap =
+          accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      for (String liveInstanceName : liveInstanceMap.keySet()) {
+        if (instanceConfigMap.get(liveInstanceName).containsTag(instanceGroupTag)) {
           instances++;
         }
       }
       if (instances == 0) {
-        instances = cache.getLiveInstances().size();
+        instances = liveInstanceMap.size();
       }
       ExternalView ev = accessor.getProperty(keyBuilder.externalView(_resourceName));
       if (ev == null) {
         return false;
       }
-      return verifyBalanceExternalView(ev.getRecord(), numberOfPartitions, masterValue, replicas,
-          instances);
+      return verifyBalanceExternalView(ev.getRecord(), numberOfPartitions, masterValue.toString(),
+          replicas, instances);
     }
 
     @Override

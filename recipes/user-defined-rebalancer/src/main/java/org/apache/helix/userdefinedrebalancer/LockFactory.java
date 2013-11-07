@@ -19,16 +19,18 @@ package org.apache.helix.userdefinedrebalancer;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
 /**
  * This factory allows a participant to get the appropriate state model callbacks for the lock
  * manager state model. This is used exactly once per participant to get a valid instance of a Lock,
  * and then the same Lock instance is used for all state transition callbacks.
  */
-public class LockFactory extends StateModelFactory<Lock> {
+public class LockFactory extends HelixStateModelFactory<Lock> {
   @Override
-  public Lock createNewStateModel(String lockName) {
-    return new Lock(lockName);
+  public Lock createNewStateModel(PartitionId partitionId) {
+    // TODO Auto-generated method stub
+    return new Lock(partitionId.stringify());
   }
 }

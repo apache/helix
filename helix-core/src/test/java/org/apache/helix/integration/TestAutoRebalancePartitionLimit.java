@@ -25,18 +25,21 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
 import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
@@ -49,6 +52,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
   private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLimit.class
       .getName());
 
+  @Override
   @BeforeClass
   public void beforeClass() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -121,7 +125,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
     // kill 1 node
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     _startCMResultMap.get(instanceName)._manager.disconnect();
-    Thread.currentThread().sleep(1000);
+    Thread.sleep(1000);
     _startCMResultMap.get(instanceName)._thread.interrupt();
 
     // verifyBalanceExternalView();
@@ -136,7 +140,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
 
     instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 1);
     _startCMResultMap.get(instanceName)._manager.disconnect();
-    Thread.currentThread().sleep(1000);
+    Thread.sleep(1000);
     _startCMResultMap.get(instanceName)._thread.interrupt();
 
     // verifyBalanceExternalView();
@@ -222,20 +226,20 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithP
     @Override
     public boolean verify() {
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
+          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
       Builder keyBuilder = accessor.keyBuilder();
-      int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-              .size();
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
-      String masterValue =
-          cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityList().get(0);
-      int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
+      IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
+      int numberOfPartitions = idealState.getRecord().getListFields().size();
+      String stateModelDefName = idealState.getStateModelDefId().stringify();
+      StateModelDefinition stateModelDef =
+          accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
+      State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
+      Map<String, LiveInstance> liveInstanceMap =
+          accessor.getChildValuesMap(keyBuilder.liveInstances());
+      int replicas = Integer.parseInt(idealState.getReplicas());
       return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName))
-          .getRecord(), numberOfPartitions, masterValue, replicas, cache.getLiveInstances().size(),
-          cache.getIdealState(_resourceName).getMaxPartitionsPerInstance());
+          .getRecord(), numberOfPartitions, masterValue.toString(), replicas,
+          liveInstanceMap.size(), idealState.getMaxPartitionsPerInstance());
     }
 
     @Override

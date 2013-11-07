@@ -31,6 +31,11 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -96,8 +101,9 @@ public class TestZkReconnect {
 
     IdealState idealState = helixAdmin.getResourceIdealState(clusterName, resourceName);
     idealState.setReplicas("1");
-    idealState.setStateModelFactoryName("test");
-    idealState.setPartitionState(resourceName + "_0", instanceId, "ONLINE");
+    idealState.setStateModelFactoryId(StateModelFactoryId.from("test"));
+    idealState.setPartitionState(PartitionId.from(ResourceId.from(resourceName), "0"),
+        ParticipantId.from(instanceId), State.from("ONLINE"));
 
     LOG.info("Shutdown ZK server");
     TestHelper.stopZkServer(zkServerRef.get());

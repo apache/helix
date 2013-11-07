@@ -19,20 +19,18 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockMSModelFactory;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
+import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
@@ -87,7 +85,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB1"));
-    idealState.setStateModelFactoryName("TestDB1_Factory");
+    idealState.setStateModelFactoryId(StateModelFactoryId.from("TestDB1_Factory"));
     accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 

@@ -57,7 +57,7 @@ public class PerformanceHealthReportProvider extends HealthReportProvider {
     Map<String, String> result = new TreeMap<String, String>();
 
     result.put(_testStat, "" + testStat);
-    result.put(_readLatencyStat, "" + readLatencySum / (double) readLatencyCount);
+    result.put(_readLatencyStat, "" + readLatencySum / readLatencyCount);
     result.put(_requestCountStat, "" + requestCount);
 
     return result;

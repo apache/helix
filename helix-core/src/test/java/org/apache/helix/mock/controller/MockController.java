@@ -28,16 +28,20 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.util.HelixUtil;
@@ -57,18 +61,18 @@ public class MockController {
     client.setZkSerializer(new ZNRecordSerializer());
   }
 
-  void sendMessage(String msgId, String instanceName, String fromState, String toState,
+  void sendMessage(MessageId msgId, String instanceName, String fromState, String toState,
       String partitionKey, int partitionId) throws InterruptedException, JsonGenerationException,
       JsonMappingException, IOException {
     Message message = new Message(MessageType.STATE_TRANSITION, msgId);
-    message.setMsgId(msgId);
+    message.setMessageId(msgId);
     message.setSrcName(srcName);
     message.setTgtName(instanceName);
     message.setMsgState(MessageState.NEW);
-    message.setFromState(fromState);
-    message.setToState(toState);
+    message.setFromState(State.from(fromState));
+    message.setToState(State.from(toState));
     // message.setPartitionId(partitionId);
-    message.setPartitionName(partitionKey);
+    message.setPartitionId(PartitionId.from(partitionKey));
 
     String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
     ObjectMapper mapper = new ObjectMapper();
@@ -79,8 +83,8 @@ public class MockController {
 
     Thread.sleep(10000);
     ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
-    message.setTgtSessionId(record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString())
-        .toString());
+    message.setTgtSessionId(SessionId.from(record.getSimpleField(
+        LiveInstanceProperty.SESSION_ID.toString()).toString()));
     client.createPersistent(path, message);
   }
 

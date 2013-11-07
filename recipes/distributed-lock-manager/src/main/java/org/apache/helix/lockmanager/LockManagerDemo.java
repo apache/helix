@@ -56,9 +56,8 @@ public class LockManagerDemo {
       startLocalZookeeper(2199);
       HelixAdmin admin = new ZKHelixAdmin(zkAddress);
       admin.addCluster(clusterName, true);
-      StateModelConfigGenerator generator = new StateModelConfigGenerator();
-      admin.addStateModelDef(clusterName, "OnlineOffline",
-          new StateModelDefinition(generator.generateConfigForOnlineOffline()));
+      admin.addStateModelDef(clusterName, "OnlineOffline", new StateModelDefinition(
+          StateModelConfigGenerator.generateConfigForOnlineOffline()));
       admin.addResource(clusterName, lockGroupName, numPartitions, "OnlineOffline",
           RebalanceMode.FULL_AUTO.toString());
       admin.rebalance(clusterName, lockGroupName, 1);
@@ -148,7 +147,7 @@ public class LockManagerDemo {
       }
     };
     int zkPort = 2199;
-    final String zkAddress = "localhost:" + zkPort;
+    // final String zkAddress = "localhost:" + zkPort;
 
     server = new ZkServer(dataDir, logDir, defaultNameSpace, zkPort);
     server.start();

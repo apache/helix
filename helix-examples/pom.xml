@@ -79,6 +79,10 @@ under the License.
               <mainClass>org.apache.helix.examples.Quickstart</mainClass>
               <name>quickstart</name>
             </program>
+            <program>
+              <mainClass>org.apache.helix.examples.LogicalModelExample</mainClass>
+              <name>run-logical-model-example</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

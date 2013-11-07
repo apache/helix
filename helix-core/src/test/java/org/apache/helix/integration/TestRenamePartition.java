@@ -27,6 +27,7 @@ import java.util.Map;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -57,7 +58,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     // rename partition name TestDB0_0 tp TestDB0_100
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -100,7 +101,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
     IdealState idealState = new IdealState(destIS);
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
     idealState.setReplicas("3");
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));

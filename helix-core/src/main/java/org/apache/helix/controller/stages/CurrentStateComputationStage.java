@@ -22,13 +22,21 @@ package org.apache.helix.controller.stages;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.Partition;
+import org.apache.helix.api.State;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
 import org.apache.helix.model.Message.MessageType;
 
 /**
@@ -39,50 +47,54 @@ import org.apache.helix.model.Message.MessageType;
 public class CurrentStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
-    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Map<ResourceId, ResourceConfig> resourceMap =
+        event.getAttribute(AttributeName.RESOURCES.toString());
 
-    if (cache == null || resourceMap == null) {
+    if (cluster == null || resourceMap == null) {
       throw new StageException("Missing attributes in event:" + event
           + ". Requires DataCache|RESOURCE");
     }
 
-    Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+    ResourceCurrentState currentStateOutput = new ResourceCurrentState();
 
-    for (LiveInstance instance : liveInstances.values()) {
-      String instanceName = instance.getInstanceName();
-      Map<String, Message> instanceMessages = cache.getMessages(instanceName);
-      for (Message message : instanceMessages.values()) {
+    for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
+      ParticipantId participantId = liveParticipant.getId();
+
+      // add pending messages
+      Map<MessageId, Message> instanceMsgs = liveParticipant.getMessageMap();
+      for (Message message : instanceMsgs.values()) {
         if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())) {
           continue;
         }
-        if (!instance.getSessionId().equals(message.getTgtSessionId())) {
+
+        if (!liveParticipant.getRunningInstance().getSessionId().equals(message.getTypedTgtSessionId())) {
           continue;
         }
-        String resourceName = message.getResourceName();
-        Resource resource = resourceMap.get(resourceName);
+
+        ResourceId resourceId = message.getResourceId();
+        ResourceConfig resource = resourceMap.get(resourceId);
         if (resource == null) {
           continue;
         }
 
         if (!message.getBatchMessageMode()) {
-          String partitionName = message.getPartitionName();
-          Partition partition = resource.getPartition(partitionName);
+          PartitionId partitionId = message.getPartitionId();
+          Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {
-            currentStateOutput.setPendingState(resourceName, partition, instanceName,
-                message.getToState());
+            currentStateOutput.setPendingState(resourceId, partitionId, participantId,
+                message.getTypedToState());
           } else {
             // log
           }
         } else {
-          List<String> partitionNames = message.getPartitionNames();
+          List<PartitionId> partitionNames = message.getPartitionIds();
           if (!partitionNames.isEmpty()) {
-            for (String partitionName : partitionNames) {
-              Partition partition = resource.getPartition(partitionName);
+            for (PartitionId partitionId : partitionNames) {
+              Partition partition = resource.getSubUnit(partitionId);
               if (partition != null) {
-                currentStateOutput.setPendingState(resourceName, partition, instanceName,
-                    message.getToState());
+                currentStateOutput.setPendingState(resourceId, partitionId, participantId,
+                    message.getTypedToState());
               } else {
                 // log
               }
@@ -90,43 +102,41 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           }
         }
       }
-    }
-    for (LiveInstance instance : liveInstances.values()) {
-      String instanceName = instance.getInstanceName();
 
-      String clientSessionId = instance.getSessionId();
-      Map<String, CurrentState> currentStateMap =
-          cache.getCurrentState(instanceName, clientSessionId);
-      for (CurrentState currentState : currentStateMap.values()) {
-
-        if (!instance.getSessionId().equals(currentState.getSessionId())) {
+      // add current state
+      SessionId sessionId = liveParticipant.getRunningInstance().getSessionId();
+      Map<ResourceId, CurrentState> curStateMap = liveParticipant.getCurrentStateMap();
+      for (CurrentState curState : curStateMap.values()) {
+        if (!sessionId.equals(curState.getTypedSessionId())) {
           continue;
         }
-        String resourceName = currentState.getResourceName();
-        String stateModelDefName = currentState.getStateModelDefRef();
-        Resource resource = resourceMap.get(resourceName);
+
+        ResourceId resourceId = curState.getResourceId();
+        StateModelDefId stateModelDefId = curState.getStateModelDefId();
+        ResourceConfig resource = resourceMap.get(resourceId);
         if (resource == null) {
           continue;
         }
-        if (stateModelDefName != null) {
-          currentStateOutput.setResourceStateModelDef(resourceName, stateModelDefName);
+
+        if (stateModelDefId != null) {
+          currentStateOutput.setResourceStateModelDef(resourceId, stateModelDefId);
         }
 
-        currentStateOutput.setBucketSize(resourceName, currentState.getBucketSize());
+        currentStateOutput.setBucketSize(resourceId, curState.getBucketSize());
 
-        Map<String, String> partitionStateMap = currentState.getPartitionStateMap();
-        for (String partitionName : partitionStateMap.keySet()) {
-          Partition partition = resource.getPartition(partitionName);
+        Map<PartitionId, State> partitionStateMap = curState.getTypedPartitionStateMap();
+        for (PartitionId partitionId : partitionStateMap.keySet()) {
+          Partition partition = resource.getSubUnit(partitionId);
           if (partition != null) {
-            currentStateOutput.setCurrentState(resourceName, partition, instanceName,
-                currentState.getState(partitionName));
-
+            currentStateOutput.setCurrentState(resourceId, partitionId, participantId,
+                curState.getState(partitionId));
           } else {
             // log
           }
         }
       }
     }
+
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
   }
 }

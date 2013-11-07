@@ -25,9 +25,11 @@ import java.util.List;
 import org.apache.helix.Mocks;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.testng.Assert;
@@ -51,7 +53,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
         DefaultTwoStateStrategy.calculateIdealState(instances, partitions, replicas, resourceName,
             "MASTER", "SLAVE");
     IdealState idealState = new IdealState(record);
-    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     Builder keyBuilder = accessor.keyBuilder();
     accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
@@ -64,6 +66,8 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
     accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
+    InstanceConfig config = new InstanceConfig(liveInstance.getInstanceName());
+    accessor.setProperty(keyBuilder.instanceConfig(config.getInstanceName()), config);
 
     if (controllerVersion != null) {
       ((Mocks.MockManager) manager).setVersion(controllerVersion);

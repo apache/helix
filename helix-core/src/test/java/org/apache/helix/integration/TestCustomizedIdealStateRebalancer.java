@@ -28,9 +28,14 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -38,8 +43,8 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -53,38 +58,38 @@ public class TestCustomizedIdealStateRebalancer extends
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
 
-  public static class TestRebalancer implements Rebalancer {
-
-    @Override
-    public void init(HelixManager manager) {
-      testRebalancerCreated = true;
-    }
+  public static class TestRebalancer implements HelixRebalancer {
 
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(Resource resource,
-        IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-        ClusterDataCache clusterData) {
-      List<String> liveInstances = new ArrayList<String>(clusterData.getLiveInstances().keySet());
-      String stateModelName = currentIdealState.getStateModelDefRef();
-      StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
-      ResourceAssignment resourceMapping = new ResourceAssignment(resource.getResourceName());
+    public ResourceAssignment computeResourceMapping(RebalancerConfig config, Cluster cluster,
+        ResourceCurrentState currentState) {
+      PartitionedRebalancerContext context =
+          config.getRebalancerContext(PartitionedRebalancerContext.class);
+      StateModelDefinition stateModelDef =
+          cluster.getStateModelMap().get(context.getStateModelDefId());
+      List<ParticipantId> liveParticipants =
+          new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
+      ResourceAssignment resourceMapping = new ResourceAssignment(context.getResourceId());
       int i = 0;
-      for (Partition partition : resource.getPartitions()) {
-        String partitionName = partition.getPartitionName();
-        int nodeIndex = i % liveInstances.size();
-        currentIdealState.getInstanceStateMap(partitionName).clear();
-        currentIdealState.getInstanceStateMap(partitionName).put(liveInstances.get(nodeIndex),
-            stateModelDef.getStatesPriorityList().get(0));
-        resourceMapping.addReplicaMap(partition,
-            currentIdealState.getInstanceStateMap(partitionName));
+      for (PartitionId partitionId : context.getPartitionSet()) {
+        int nodeIndex = i % liveParticipants.size();
+        Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
+        replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getTypedStatesPriorityList()
+            .get(0));
+        resourceMapping.addReplicaMap(partitionId, replicaMap);
         i++;
       }
       testRebalancerInvoked = true;
       return resourceMapping;
+    }
+
+    @Override
+    public void init(HelixManager helixManager) {
+      testRebalancerCreated = true;
     }
   }
 
@@ -105,7 +110,7 @@ public class TestCustomizedIdealStateRebalancer extends
     Assert.assertTrue(result);
     Thread.sleep(1000);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionSet().size(), 60);
@@ -113,9 +118,9 @@ public class TestCustomizedIdealStateRebalancer extends
       Assert.assertEquals(ev.getStateMap(partition).size(), 1);
     }
     IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
-    for (String partition : is.getPartitionSet()) {
+    for (PartitionId partition : is.getPartitionIdSet()) {
       Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
-      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
+      Assert.assertEquals(is.getParticipantStateMap(partition).size(), 0);
     }
     Assert.assertTrue(testRebalancerCreated);
     Assert.assertTrue(testRebalancerInvoked);
@@ -136,30 +141,32 @@ public class TestCustomizedIdealStateRebalancer extends
     public boolean verify() {
       try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor(_client));
+            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
         Builder keyBuilder = accessor.keyBuilder();
-        int numberOfPartitions =
-            accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-                .size();
-        ClusterDataCache cache = new ClusterDataCache();
-        cache.refresh(accessor);
-        String masterValue =
-            cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-                .getStatesPriorityList().get(0);
-        int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
-        String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
+        IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
+        int numberOfPartitions = idealState.getRecord().getListFields().size();
+        String stateModelDefName = idealState.getStateModelDefId().stringify();
+        StateModelDefinition stateModelDef =
+            accessor.getProperty(keyBuilder.stateModelDef(stateModelDefName));
+        State masterValue = stateModelDef.getTypedStatesPriorityList().get(0);
+        int replicas = Integer.parseInt(idealState.getReplicas());
+        String instanceGroupTag = idealState.getInstanceGroupTag();
         int instances = 0;
-        for (String liveInstanceName : cache.getLiveInstances().keySet()) {
-          if (cache.getInstanceConfigMap().get(liveInstanceName).containsTag(instanceGroupTag)) {
+        Map<String, LiveInstance> liveInstanceMap =
+            accessor.getChildValuesMap(keyBuilder.liveInstances());
+        Map<String, InstanceConfig> instanceCfgMap =
+            accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+        for (String liveInstanceName : liveInstanceMap.keySet()) {
+          if (instanceCfgMap.get(liveInstanceName).containsTag(instanceGroupTag)) {
             instances++;
           }
         }
         if (instances == 0) {
-          instances = cache.getLiveInstances().size();
+          instances = liveInstanceMap.size();
         }
-        return verifyBalanceExternalView(
-            accessor.getProperty(keyBuilder.externalView(_resourceName)).getRecord(),
-            numberOfPartitions, masterValue, replicas, instances);
+        ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
+        return verifyBalanceExternalView(externalView.getRecord(), numberOfPartitions,
+            masterValue.toString(), replicas, instances);
       } catch (Exception e) {
         return false;
       }

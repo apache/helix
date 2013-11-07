@@ -22,8 +22,9 @@ package org.apache.helix.monitoring.mbeans;
 import java.util.Map;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyType;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
@@ -88,30 +89,31 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
     // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
     // or list fields (AUDO mode)
-    for (String partitionName : idealState.getRecord().getMapFields().keySet()) {
-      Map<String, String> idealRecord = idealState.getInstanceStateMap(partitionName);
-      Map<String, String> externalViewRecord = externalView.getStateMap(partitionName);
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
+      Map<ParticipantId, State> idealRecord = idealState.getParticipantStateMap(partitionId);
+      Map<ParticipantId, State> externalViewRecord = externalView.getStateMap(partitionId);
 
       if (externalViewRecord == null) {
         numOfDiff += idealRecord.size();
         continue;
       }
-      for (String host : idealRecord.keySet()) {
+      for (ParticipantId host : idealRecord.keySet()) {
         if (!externalViewRecord.containsKey(host)
             || !externalViewRecord.get(host).equals(idealRecord.get(host))) {
           numOfDiff++;
         }
       }
 
-      for (String host : externalViewRecord.keySet()) {
-        if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
+      for (ParticipantId host : externalViewRecord.keySet()) {
+        if (externalViewRecord.get(host).toString()
+            .equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           numOfErrorPartitions++;
         }
       }
     }
     _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
-    _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
+    _numOfPartitionsInExternalView = externalView.getPartitionIdSet().size();
   }
 
   @Override

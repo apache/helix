@@ -6,17 +6,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
+import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
+import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
-public class LockManagerRebalancer implements Rebalancer {
+public class LockManagerRebalancer implements HelixRebalancer {
   private static final Logger LOG = Logger.getLogger(LockManagerRebalancer.class);
 
   @Override
@@ -31,25 +34,30 @@ public class LockManagerRebalancer implements Rebalancer {
    * model.
    */
   @Override
-  public ResourceAssignment computeResourceMapping(Resource resource, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+      Cluster cluster, ResourceCurrentState currentState) {
+    // get a typed context
+    PartitionedRebalancerContext context =
+        rebalancerConfig.getRebalancerContext(PartitionedRebalancerContext.class);
+
     // Initialize an empty mapping of locks to participants
-    ResourceAssignment assignment = new ResourceAssignment(resource.getResourceName());
+    ResourceAssignment assignment = new ResourceAssignment(context.getResourceId());
 
     // Get the list of live participants in the cluster
-    List<String> liveParticipants = new ArrayList<String>(clusterData.getLiveInstances().keySet());
+    List<ParticipantId> liveParticipants =
+        new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
 
     // Get the state model (should be a simple lock/unlock model) and the highest-priority state
-    String stateModelName = currentIdealState.getStateModelDefRef();
-    StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
+    StateModelDefId stateModelDefId = context.getStateModelDefId();
+    StateModelDefinition stateModelDef = cluster.getStateModelMap().get(stateModelDefId);
     if (stateModelDef.getStatesPriorityList().size() < 1) {
       LOG.error("Invalid state model definition. There should be at least one state.");
       return assignment;
     }
-    String lockState = stateModelDef.getStatesPriorityList().get(0);
+    State lockState = stateModelDef.getTypedStatesPriorityList().get(0);
 
     // Count the number of participants allowed to lock each lock
-    String stateCount = stateModelDef.getNumInstancesPerState(lockState);
+    String stateCount = stateModelDef.getNumParticipantsPerState(lockState);
     int lockHolders = 0;
     try {
       // a numeric value is a custom-specified number of participants allowed to lock the lock
@@ -66,11 +74,11 @@ public class LockManagerRebalancer implements Rebalancer {
     // This assumes a simple lock-unlock model where the only state of interest is which nodes have
     // acquired each lock.
     int i = 0;
-    for (Partition partition : resource.getPartitions()) {
-      Map<String, String> replicaMap = new HashMap<String, String>();
+    for (PartitionId partition : context.getPartitionSet()) {
+      Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
       for (int j = i; j < i + lockHolders; j++) {
         int participantIndex = j % liveParticipants.size();
-        String participant = liveParticipants.get(participantIndex);
+        ParticipantId participant = liveParticipants.get(participantIndex);
         // enforce that a participant can only have one instance of a given lock
         if (!replicaMap.containsKey(participant)) {
           replicaMap.put(participant, lockState);

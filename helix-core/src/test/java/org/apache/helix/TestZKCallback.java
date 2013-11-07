@@ -24,19 +24,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import org.apache.helix.ConfigChangeListener;
-import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.IdealStateChangeListener;
-import org.apache.helix.InstanceType;
-import org.apache.helix.LiveInstanceChangeListener;
-import org.apache.helix.MessageListener;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -155,7 +149,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     testListener.Reset();
 
     CurrentState curState = new CurrentState("db-12345");
-    curState.setSessionId("sessionId");
+    curState.setSessionId(SessionId.from("sessionId"));
     curState.setStateModelDefRef("StateModelDef");
     accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
         curState.getId()), curState);
@@ -166,7 +160,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     IdealState idealState = new IdealState("db-1234");
     idealState.setNumPartitions(400);
     idealState.setReplicas(Integer.toString(2));
-    idealState.setStateModelDefRef("StateModeldef");
+    idealState.setStateModelDefId(StateModelDefId.from("StateModeldef"));
     accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
@@ -184,13 +178,14 @@ public class TestZKCallback extends ZkUnitTestBase {
     // recList.add(dummyRecord);
 
     testListener.Reset();
-    Message message = new Message(MessageType.STATE_TRANSITION, UUID.randomUUID().toString());
-    message.setTgtSessionId("*");
-    message.setResourceName("testResource");
-    message.setPartitionName("testPartitionKey");
-    message.setStateModelDef("MasterSlave");
-    message.setToState("toState");
-    message.setFromState("fromState");
+    Message message =
+        new Message(MessageType.STATE_TRANSITION, MessageId.from(UUID.randomUUID().toString()));
+    message.setTgtSessionId(SessionId.from("*"));
+    message.setResourceId(ResourceId.from("testResource"));
+    message.setPartitionId(PartitionId.from("testPartitionKey"));
+    message.setStateModelDef(StateModelDefId.from("MasterSlave"));
+    message.setToState(State.from("toState"));
+    message.setFromState(State.from("fromState"));
     message.setTgtName("testTarget");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 

@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
 class DefaultHealthReportProvider extends HealthReportProvider {

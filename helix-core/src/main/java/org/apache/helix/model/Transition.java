@@ -1,5 +1,7 @@
 package org.apache.helix.model;
 
+import org.apache.helix.api.State;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -23,8 +25,18 @@ package org.apache.helix.model;
  * Defines a transition from one state to another
  */
 public class Transition {
-  final private String _fromState;
-  final private String _toState;
+  final private State _fromState;
+  final private State _toState;
+
+  /**
+   * Instantiate with a source and destination state
+   * @param fromState source name
+   * @param toState destination name
+   */
+  public Transition(State fromState, State toState) {
+    _fromState = fromState;
+    _toState = toState;
+  }
 
   /**
    * Instantiate with a source and destination state
@@ -32,8 +44,7 @@ public class Transition {
    * @param toState destination name
    */
   public Transition(String fromState, String toState) {
-    _fromState = fromState;
-    _toState = toState;
+    this(State.from(fromState), State.from(toState));
   }
 
   @Override
@@ -58,7 +69,7 @@ public class Transition {
    * Get the source state
    * @return source state name
    */
-  public String getFromState() {
+  public State getTypedFromState() {
     return _fromState;
   }
 
@@ -66,8 +77,33 @@ public class Transition {
    * Get the destination state
    * @return destination state name
    */
-  public String getToState() {
+  public State getTypedToState() {
     return _toState;
   }
 
+  /**
+   * Get the source state
+   * @return source state name
+   */
+  public String getFromState() {
+    return _fromState.toString();
+  }
+
+  /**
+   * Get the destination state
+   * @return destination state name
+   */
+  public String getToState() {
+    return _toState.toString();
+  }
+
+  /**
+   * Create a new transition
+   * @param fromState string source state
+   * @param toState string destination state
+   * @return Transition
+   */
+  public static Transition from(State fromState, State toState) {
+    return new Transition(fromState, toState);
+  }
 }

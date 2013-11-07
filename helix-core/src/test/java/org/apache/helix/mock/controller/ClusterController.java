@@ -21,8 +21,6 @@ package org.apache.helix.mock.controller;
 
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.controller.HelixControllerMain;

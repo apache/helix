@@ -20,9 +20,10 @@ package org.apache.helix.filestore;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
-public class FileStoreStateModelFactory extends StateModelFactory<FileStoreStateModel> {
+public class FileStoreStateModelFactory extends HelixStateModelFactory<FileStoreStateModel> {
   private final HelixManager manager;
 
   public FileStoreStateModelFactory(HelixManager manager) {
@@ -30,9 +31,10 @@ public class FileStoreStateModelFactory extends StateModelFactory<FileStoreState
   }
 
   @Override
-  public FileStoreStateModel createNewStateModel(String partition) {
+  public FileStoreStateModel createNewStateModel(PartitionId partition) {
     FileStoreStateModel model;
-    model = new FileStoreStateModel(manager, partition.split("_")[0], partition);
+    model =
+        new FileStoreStateModel(manager, partition.toString().split("_")[0], partition.toString());
     return model;
   }
 }

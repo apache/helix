@@ -19,8 +19,6 @@ package org.apache.helix.mock.participant;
  * under the License.
  */
 
-import java.util.Map;
-
 import org.apache.helix.participant.statemachine.StateModelFactory;
 
 // mock master slave state model factory

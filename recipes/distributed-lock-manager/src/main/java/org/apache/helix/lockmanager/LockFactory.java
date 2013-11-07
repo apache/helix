@@ -19,11 +19,12 @@ package org.apache.helix.lockmanager;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
-public class LockFactory extends StateModelFactory<Lock> {
+public class LockFactory extends HelixStateModelFactory<Lock> {
   @Override
-  public Lock createNewStateModel(String lockName) {
-    return new Lock(lockName);
+  public Lock createNewStateModel(PartitionId lockName) {
+    return new Lock(lockName.toString());
   }
 }

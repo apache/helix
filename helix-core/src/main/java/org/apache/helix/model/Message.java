@@ -27,12 +27,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.SessionId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.api.id.StateModelFactoryId;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
+
+import com.google.common.collect.Lists;
 
 /**
  * Messages sent internally among nodes in the system to respond to changes in state.
@@ -111,8 +123,30 @@ public class Message extends HelixProperty {
    * @param type the message category
    * @param msgId unique message identifier
    */
-  public Message(MessageType type, String msgId) {
+  public Message(MessageType type, MessageId msgId) {
     this(type.toString(), msgId);
+  }
+
+  /**
+   * Instantiate a message
+   * @param type the message category
+   * @param msgId unique message identifier
+   */
+  public Message(MessageType type, String msgId) {
+    this(type, MessageId.from(msgId));
+  }
+
+  /**
+   * Instantiate a message
+   * @param type {@link MessageType} as a string or a custom message type
+   * @param msgId unique message identifier
+   */
+  public Message(String type, MessageId msgId) {
+    super(new ZNRecord(msgId.stringify()));
+    _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
+    setMessageId(msgId);
+    setMsgState(MessageState.NEW);
+    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
   }
 
   /**
@@ -121,11 +155,26 @@ public class Message extends HelixProperty {
    * @param msgId unique message identifier
    */
   public Message(String type, String msgId) {
-    super(new ZNRecord(msgId));
-    _record.setSimpleField(Attributes.MSG_TYPE.toString(), type);
-    setMsgId(msgId);
-    setMsgState(MessageState.NEW);
-    _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), new Date().getTime());
+    this(type, MessageId.from(msgId));
+  }
+
+  /**
+   * Instantiate a message with a new id
+   * @param record a ZNRecord corresponding to a message
+   * @param id unique message identifier
+   */
+  public Message(ZNRecord record, MessageId id) {
+    super(new ZNRecord(record, id.stringify()));
+    setMessageId(id);
+  }
+
+  /**
+   * Instantiate a message with a new id
+   * @param record a ZNRecord corresponding to a message
+   * @param id unique message identifier
+   */
+  public Message(ZNRecord record, String id) {
+    this(record, MessageId.from(id));
   }
 
   /**
@@ -143,21 +192,27 @@ public class Message extends HelixProperty {
   }
 
   /**
+   * Convert a string map to a message
+   * @param msgStrMap
+   * @return message
+   */
+  public static Message toMessage(Map<String, String> msgStrMap) {
+    String msgId = msgStrMap.get(Attributes.MSG_ID.name());
+    if (msgId == null) {
+      throw new IllegalArgumentException("Missing msgId in message string map: " + msgStrMap);
+    }
+
+    ZNRecord record = new ZNRecord(msgId);
+    record.getSimpleFields().putAll(msgStrMap);
+    return new Message(record);
+  }
+
+  /**
    * Set the time that the message was created
    * @param timestamp a UNIX timestamp
    */
   public void setCreateTimeStamp(long timestamp) {
     _record.setLongField(Attributes.CREATE_TIMESTAMP.toString(), timestamp);
-  }
-
-  /**
-   * Instantiate a message with a new id
-   * @param record a ZNRecord corresponding to a message
-   * @param id unique message identifier
-   */
-  public Message(ZNRecord record, String id) {
-    super(new ZNRecord(record, id));
-    setMsgId(id);
   }
 
   /**
@@ -196,8 +251,26 @@ public class Message extends HelixProperty {
    * Get the session identifier of the destination node
    * @return session identifier
    */
+  public SessionId getTypedTgtSessionId() {
+    return SessionId.from(getTgtSessionId());
+  }
+
+  /**
+   * Get the session identifier of the destination node
+   * @return session identifier
+   */
   public String getTgtSessionId() {
     return _record.getSimpleField(Attributes.TGT_SESSION_ID.toString());
+  }
+
+  /**
+   * Set the session identifier of the destination node
+   * @param tgtSessionId session identifier
+   */
+  public void setTgtSessionId(SessionId tgtSessionId) {
+    if (tgtSessionId != null) {
+      setTgtSessionId(tgtSessionId.stringify());
+    }
   }
 
   /**
@@ -212,8 +285,26 @@ public class Message extends HelixProperty {
    * Get the session identifier of the source node
    * @return session identifier
    */
+  public SessionId getTypedSrcSessionId() {
+    return SessionId.from(getSrcSessionId());
+  }
+
+  /**
+   * Get the session identifier of the source node
+   * @return session identifier
+   */
   public String getSrcSessionId() {
     return _record.getSimpleField(Attributes.SRC_SESSION_ID.toString());
+  }
+
+  /**
+   * Set the session identifier of the source node
+   * @param srcSessionId session identifier
+   */
+  public void setSrcSessionId(SessionId srcSessionId) {
+    if (srcSessionId != null) {
+      setSrcSessionId(srcSessionId.stringify());
+    }
   }
 
   /**
@@ -228,8 +319,26 @@ public class Message extends HelixProperty {
    * Get the session identifier of the node that executes the message
    * @return session identifier
    */
+  public SessionId getTypedExecutionSessionId() {
+    return SessionId.from(getExecutionSessionId());
+  }
+
+  /**
+   * Get the session identifier of the node that executes the message
+   * @return session identifier
+   */
   public String getExecutionSessionId() {
     return _record.getSimpleField(Attributes.EXE_SESSION_ID.toString());
+  }
+
+  /**
+   * Set the session identifier of the node that executes the message
+   * @param exeSessionId session identifier
+   */
+  public void setExecuteSessionId(SessionId exeSessionId) {
+    if (exeSessionId != null) {
+      setExecuteSessionId(exeSessionId.stringify());
+    }
   }
 
   /**
@@ -301,11 +410,29 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set the name of the partition this message concerns
-   * @param partitionName
+   * Set the id of the partition this message concerns
+   * @param partitionId
+   */
+  public void setPartitionId(PartitionId partitionId) {
+    if (partitionId != null) {
+      setPartitionName(partitionId.stringify());
+    }
+  }
+
+  /**
+   * Set the id of the partition this message concerns
+   * @param partitionId
    */
   public void setPartitionName(String partitionName) {
     _record.setSimpleField(Attributes.PARTITION_NAME.toString(), partitionName);
+  }
+
+  /**
+   * Get the unique identifier of this message
+   * @return message identifier
+   */
+  public MessageId getMessageId() {
+    return MessageId.from(getMsgId());
   }
 
   /**
@@ -320,21 +447,49 @@ public class Message extends HelixProperty {
    * Set the unique identifier of this message
    * @param msgId message identifier
    */
+  public void setMessageId(MessageId msgId) {
+    if (msgId != null) {
+      setMsgId(msgId.stringify());
+    }
+  }
+
+  /**
+   * Set the unique identifier of this message
+   * @param msgId message identifier
+   */
   public void setMsgId(String msgId) {
     _record.setSimpleField(Attributes.MSG_ID.toString(), msgId);
   }
 
   /**
    * Set the "from state" for transition-related messages
-   * @param state the state name
+   * @param state the state
+   */
+  public void setFromState(State state) {
+    if (state != null) {
+      setFromState(state.toString());
+    }
+  }
+
+  /**
+   * Set the "from state" for transition-related messages
+   * @param state the state
    */
   public void setFromState(String state) {
-    _record.setSimpleField(Attributes.FROM_STATE.toString(), state);
+    _record.setSimpleField(Attributes.FROM_STATE.toString(), state.toString());
   }
 
   /**
    * Get the "from-state" for transition-related messages
-   * @return state name, or null for other message types
+   * @return state, or null for other message types
+   */
+  public State getTypedFromState() {
+    return State.from(getFromState());
+  }
+
+  /**
+   * Get the "from-state" for transition-related messages
+   * @return state, or null for other message types
    */
   public String getFromState() {
     return _record.getSimpleField(Attributes.FROM_STATE.toString());
@@ -342,15 +497,33 @@ public class Message extends HelixProperty {
 
   /**
    * Set the "to state" for transition-related messages
-   * @param state the state name
+   * @param state the state
+   */
+  public void setToState(State state) {
+    if (state != null) {
+      setToState(state.toString());
+    }
+  }
+
+  /**
+   * Set the "to state" for transition-related messages
+   * @param state the state
    */
   public void setToState(String state) {
-    _record.setSimpleField(Attributes.TO_STATE.toString(), state);
+    _record.setSimpleField(Attributes.TO_STATE.toString(), state.toString());
   }
 
   /**
    * Get the "to state" for transition-related messages
-   * @return state name, or null for other message types
+   * @return state, or null for other message types
+   */
+  public State getTypedToState() {
+    return State.from(getToState());
+  }
+
+  /**
+   * Get the "to state" for transition-related messages
+   * @return state, or null for other message types
    */
   public String getToState() {
     return _record.getSimpleField(Attributes.TO_STATE.toString());
@@ -382,10 +555,28 @@ public class Message extends HelixProperty {
 
   /**
    * Set the resource associated with this message
+   * @param resourceId resource name to set
+   */
+  public void setResourceId(ResourceId resourceId) {
+    if (resourceId != null) {
+      setResourceName(resourceId.stringify());
+    }
+  }
+
+  /**
+   * Set the resource associated with this message
    * @param resourceName resource name to set
    */
   public void setResourceName(String resourceName) {
     _record.setSimpleField(Attributes.RESOURCE_NAME.toString(), resourceName);
+  }
+
+  /**
+   * Get the resource associated with this message
+   * @return resource name
+   */
+  public ResourceId getResourceId() {
+    return ResourceId.from(getResourceName());
   }
 
   /**
@@ -398,7 +589,15 @@ public class Message extends HelixProperty {
 
   /**
    * Get the resource partition associated with this message
-   * @return partition name
+   * @return partition id
+   */
+  public PartitionId getPartitionId() {
+    return PartitionId.from(getPartitionName());
+  }
+
+  /**
+   * Get the resource partition associated with this message
+   * @return partition id
    */
   public String getPartitionName() {
     return _record.getSimpleField(Attributes.PARTITION_NAME.toString());
@@ -413,11 +612,29 @@ public class Message extends HelixProperty {
   }
 
   /**
-   * Set the state model definition name
+   * Get the state model definition id
+   * @return a reference to the state model definition
+   */
+  public StateModelDefId getStateModelDefId() {
+    return StateModelDefId.from(getStateModelDef());
+  }
+
+  /**
+   * Set the state model definition
    * @param stateModelDefName a reference to the state model definition, e.g. "MasterSlave"
    */
-  public void setStateModelDef(String stateModelDefName) {
-    _record.setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelDefName);
+  public void setStateModelDef(StateModelDefId stateModelDefId) {
+    if (stateModelDefId != null) {
+      setStateModelDef(stateModelDefId.stringify());
+    }
+  }
+
+  /**
+   * Set the state model definition
+   * @param stateModelDefName a reference to the state model definition, e.g. "MasterSlave"
+   */
+  public void setStateModelDef(String stateModelDefId) {
+    _record.setSimpleField(Attributes.STATE_MODEL_DEF.toString(), stateModelDefId);
   }
 
   /**
@@ -540,6 +757,18 @@ public class Message extends HelixProperty {
     _record.setSimpleField(Attributes.STATE_MODEL_FACTORY_NAME.toString(), factoryName);
   }
 
+  /**
+   * Set the state model factory associated with this message
+   * @param factoryName the name of the factory
+   */
+  public void setStateModelFactoryId(StateModelFactoryId factoryId) {
+    if (factoryId != null) {
+      setStateModelFactoryName(factoryId.stringify());
+    } else {
+      setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    }
+  }
+
   // TODO: remove this. impl in HelixProperty
   @Override
   public int getBucketSize() {
@@ -581,13 +810,14 @@ public class Message extends HelixProperty {
   public static Message createReplyMessage(Message srcMessage, String instanceName,
       Map<String, String> taskResultMap) {
     if (srcMessage.getCorrelationId() == null) {
-      throw new HelixException("Message " + srcMessage.getMsgId()
+      throw new HelixException("Message " + srcMessage.getMessageId()
           + " does not contain correlation id");
     }
-    Message replyMessage = new Message(MessageType.TASK_REPLY, UUID.randomUUID().toString());
+    Message replyMessage =
+        new Message(MessageType.TASK_REPLY, MessageId.from(UUID.randomUUID().toString()));
     replyMessage.setCorrelationId(srcMessage.getCorrelationId());
     replyMessage.setResultMap(taskResultMap);
-    replyMessage.setTgtSessionId("*");
+    replyMessage.setTgtSessionId(SessionId.from("*"));
     replyMessage.setMsgState(MessageState.NEW);
     replyMessage.setSrcName(instanceName);
     if (srcMessage.getSrcInstanceType() == InstanceType.CONTROLLER) {
@@ -615,26 +845,27 @@ public class Message extends HelixProperty {
 
   /**
    * Get a list of partitions associated with this message
-   * @return list of partition names
+   * @return list of partition ids
    */
-  public List<String> getPartitionNames() {
+  public List<PartitionId> getPartitionIds() {
     List<String> partitionNames = _record.getListField(Attributes.PARTITION_NAME.toString());
     if (partitionNames == null) {
       return Collections.emptyList();
     }
-
-    return partitionNames;
+    List<PartitionId> partitionIds = Lists.newArrayList();
+    for (String partitionName : partitionNames) {
+      partitionIds.add(PartitionId.from(partitionName));
+    }
+    return partitionIds;
   }
 
-  // public AtomicInteger getGroupMsgCountDown()
-  // {
-  // return _groupMsgCountDown;
-  // }
-  //
-  // public void setGroupMsgCountDown(AtomicInteger countDown)
-  // {
-  // _groupMsgCountDown = countDown;
-  // }
+  /**
+   * Get a list of partitions associated with this message
+   * @return list of partition ids
+   */
+  public List<String> getPartitionNames() {
+    return _record.getListField(Attributes.PARTITION_NAME.toString());
+  }
 
   /**
    * Check if this message is targetted for a controller
@@ -658,6 +889,55 @@ public class Message extends HelixProperty {
     }
   }
 
+  /**
+   * Get timeout
+   * @return timeout or -1 if not available
+   */
+  public int getTimeout() {
+    String timeoutStr = _record.getSimpleField(Attributes.TIMEOUT.name());
+    int timeout = -1;
+    if (timeoutStr != null) {
+      try {
+        timeout = Integer.parseInt(timeoutStr);
+      } catch (Exception e) {
+        // ignore
+      }
+    }
+    return timeout;
+  }
+
+  /**
+   * Get controller message id, used for scheduler-task-queue state model only
+   * @return controller message id
+   */
+  public String getControllerMessageId() {
+    return _record.getSimpleField(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
+  }
+
+  /**
+   * Set an inner message
+   * @param inner message
+   */
+  public void setInnerMessage(Message message) {
+    _record.setMapField(Attributes.INNER_MESSAGE.name(), message.getRecord().getSimpleFields());
+  }
+
+  /**
+   * Set the cluster event generating this message
+   * @param event cluster event
+   */
+  public void setClusterEvent(ClusterEvent event) {
+    _record.setSimpleField("ClusterEventName", event.getName());
+  }
+
+  /**
+   * Get the cluster event name generating this message
+   * @param the cluster event event name
+   */
+  public String getClusterEventName() {
+    return _record.getSimpleField("ClusterEventName");
+  }
+
   private boolean isNullOrEmpty(String data) {
     return data == null || data.length() == 0 || data.trim().length() == 0;
   }
@@ -669,10 +949,11 @@ public class Message extends HelixProperty {
 
     if (getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
       boolean isNotValid =
-          isNullOrEmpty(getTgtName()) || isNullOrEmpty(getPartitionName())
-              || isNullOrEmpty(getResourceName()) || isNullOrEmpty(getStateModelDef())
-              || isNullOrEmpty(getToState()) || isNullOrEmpty(getStateModelFactoryName())
-              || isNullOrEmpty(getFromState());
+          isNullOrEmpty(getTgtName()) || isNullOrEmpty(getPartitionId().stringify())
+              || isNullOrEmpty(getResourceId().stringify()) || isNullOrEmpty(getStateModelDef())
+              || isNullOrEmpty(getTypedToState().toString())
+              || isNullOrEmpty(getStateModelFactoryName())
+              || isNullOrEmpty(getTypedFromState().toString());
 
       return !isNotValid;
     }

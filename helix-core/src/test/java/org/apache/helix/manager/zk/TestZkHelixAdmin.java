@@ -25,18 +25,24 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.*;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyType;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -265,7 +271,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     constraints =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    ConstraintItem item = constraints.getConstraintItem("constraint1");
+    ConstraintItem item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
     Assert.assertEquals(item.getConstraintValue(), "1");
     Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
@@ -273,7 +279,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // test admin.getMessageConstraints()
     constraints = tool.getConstraints(clusterName, ConstraintType.MESSAGE_CONSTRAINT);
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    item = constraints.getConstraintItem("constraint1");
+    item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNotNull(item, "message-constraint for constraint1 should exist");
     Assert.assertEquals(item.getConstraintValue(), "1");
     Assert.assertEquals(item.getAttributeValue(ConstraintAttribute.RESOURCE), "MyDB");
@@ -283,7 +289,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     constraints =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()));
     Assert.assertNotNull(constraints, "message-constraint should exist");
-    item = constraints.getConstraintItem("constraint1");
+    item = constraints.getConstraintItem(ConstraintId.from("constraint1"));
     Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

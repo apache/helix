@@ -26,7 +26,13 @@ import java.util.Set;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
-import org.apache.helix.*;
+import org.apache.helix.CurrentStateChangeListener;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZkHelixTestManager;
+import org.apache.helix.ZkTestHelper;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.controller.ClusterController;
@@ -76,7 +82,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert.assertTrue(result);
     final ZkHelixTestManager controllerManager = controller.getManager();
     final ZkHelixTestManager participantManagerToExpire =
-        (ZkHelixTestManager) participants[1].getManager();
+        participants[1].getManager();
 
     // check controller zk-watchers
     result = TestHelper.verify(new TestHelper.Verifier() {

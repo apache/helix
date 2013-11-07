@@ -39,23 +39,23 @@ import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.CompatibilityCheckStage;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
-import org.apache.helix.controller.stages.MessageGenerationPhase;
+import org.apache.helix.controller.stages.MessageGenerationStage;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.RebalanceIdealStateStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.controller.stages.PersistAssignmentStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -179,11 +179,12 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline();
+      rebalancePipeline.addStage(new CompatibilityCheckStage());
       rebalancePipeline.addStage(new ResourceComputationStage());
       rebalancePipeline.addStage(new CurrentStateComputationStage());
-      rebalancePipeline.addStage(new RebalanceIdealStateStage());
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
-      rebalancePipeline.addStage(new MessageGenerationPhase());
+      rebalancePipeline.addStage(new PersistAssignmentStage());
+      rebalancePipeline.addStage(new MessageGenerationStage());
       rebalancePipeline.addStage(new MessageSelectionStage());
       rebalancePipeline.addStage(new MessageThrottleStage());
       rebalancePipeline.addStage(new TaskAssignmentStage());
@@ -192,28 +193,16 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       Pipeline externalViewPipeline = new Pipeline();
       externalViewPipeline.addStage(new ExternalViewComputeStage());
 
-      // backward compatibility check
-      Pipeline liveInstancePipeline = new Pipeline();
-      liveInstancePipeline.addStage(new CompatibilityCheckStage());
-
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange", dataRefresh, rebalancePipeline, externalViewPipeline);
       registry.register("configChange", dataRefresh, rebalancePipeline);
-      registry.register("liveInstanceChange", dataRefresh, liveInstancePipeline, rebalancePipeline,
-          externalViewPipeline);
+      registry.register("liveInstanceChange", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       registry.register("messageChange", dataRefresh, rebalancePipeline);
       registry.register("externalView", dataRefresh);
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
       registry
           .register("periodicalRebalance", dataRefresh, rebalancePipeline, externalViewPipeline);
-
-      // health stats pipeline
-      // Pipeline healthStatsAggregationPipeline = new Pipeline();
-      // StatsAggregationStage statsStage = new StatsAggregationStage();
-      // healthStatsAggregationPipeline.addStage(new ReadHealthDataStage());
-      // healthStatsAggregationPipeline.addStage(statsStage);
-      // registry.register("healthChange", healthStatsAggregationPipeline);
 
       return registry;
     }
@@ -480,7 +469,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     Map<String, LiveInstance> curSessions = new HashMap<String, LiveInstance>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
-      curSessions.put(liveInstance.getSessionId(), liveInstance);
+      curSessions.put(liveInstance.getTypedSessionId().stringify(), liveInstance);
     }
 
     Map<String, LiveInstance> lastInstances = _lastSeenInstances.get();

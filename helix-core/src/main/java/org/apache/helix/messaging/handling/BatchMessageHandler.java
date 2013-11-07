@@ -35,6 +35,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -63,11 +65,12 @@ public class BatchMessageHandler extends MessageHandler {
 
     // create sub-messages
     _subMessages = new ArrayList<Message>();
-    List<String> partitionKeys = _message.getPartitionNames();
-    for (String partitionKey : partitionKeys) {
+    List<PartitionId> partitionKeys = _message.getPartitionIds();
+    for (PartitionId partitionKey : partitionKeys) {
       // assign a new message id, put batch-msg-id to parent-id field
-      Message subMsg = new Message(_message.getRecord(), UUID.randomUUID().toString());
-      subMsg.setPartitionName(partitionKey);
+      Message subMsg =
+          new Message(_message.getRecord(), MessageId.from(UUID.randomUUID().toString()));
+      subMsg.setPartitionId(partitionKey);
       subMsg.setAttribute(Attributes.PARENT_MSG_ID, _message.getId());
       subMsg.setBatchMessageMode(false);
 
@@ -131,7 +134,7 @@ public class BatchMessageHandler extends MessageHandler {
         preHandleMessage();
 
         int exeBatchSize = 1; // TODO: getExeBatchSize from msg
-        List<String> partitionKeys = _message.getPartitionNames();
+        List<PartitionId> partitionKeys = _message.getPartitionIds();
         for (int i = 0; i < partitionKeys.size(); i += exeBatchSize) {
           if (i + exeBatchSize <= partitionKeys.size()) {
             List<Message> msgs = _subMessages.subList(i, i + exeBatchSize);

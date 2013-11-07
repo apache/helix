@@ -32,9 +32,10 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
@@ -49,13 +50,13 @@ public class Quickstart {
   private static final int NUM_PARTITIONS = 6;
   private static final int NUM_REPLICAS = 2;
 
-  private static final String STATE_MODEL_NAME = "MyStateModel";
+  private static final StateModelDefId STATE_MODEL_NAME = StateModelDefId.from("MyStateModel");
 
   // states
-  private static final String SLAVE = "SLAVE";
-  private static final String OFFLINE = "OFFLINE";
-  private static final String MASTER = "MASTER";
-  private static final String DROPPED = "DROPPED";
+  private static final State SLAVE = State.from("SLAVE");
+  private static final State OFFLINE = State.from("OFFLINE");
+  private static final State MASTER = State.from("MASTER");
+  private static final State DROPPED = State.from("DROPPED");
 
   private static List<InstanceConfig> INSTANCE_CONFIG_LIST;
   private static List<MyProcess> PROCESS_LIST;
@@ -90,11 +91,12 @@ public class Quickstart {
     // Add a state model
     StateModelDefinition myStateModel = defineStateModel();
     echo("Configuring StateModel: " + "MyStateModel  with 1 Master and 1 Slave");
-    admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, myStateModel);
+    admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME.stringify(), myStateModel);
 
     // Add a resource with 6 partitions and 2 replicas
     echo("Adding a resource MyResource: " + "with 6 partitions and 2 replicas");
-    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME, "AUTO");
+    admin.addResource(CLUSTER_NAME, RESOURCE_NAME, NUM_PARTITIONS, STATE_MODEL_NAME.stringify(),
+        "AUTO");
     // this will set up the ideal state, it calculates the preference list for
     // each partition similar to consistent hashing
     admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
@@ -250,7 +252,7 @@ public class Quickstart {
           new MasterSlaveStateModelFactory(instanceName);
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
-      stateMach.registerStateModelFactory(STATE_MODEL_NAME, stateModelFactory);
+      stateMach.registerStateModelFactory(STATE_MODEL_NAME.stringify(), stateModelFactory);
       manager.connect();
     }
 

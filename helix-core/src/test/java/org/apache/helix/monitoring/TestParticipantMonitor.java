@@ -33,9 +33,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
-import org.apache.helix.monitoring.ParticipantMonitor;
-import org.apache.helix.monitoring.StateTransitionContext;
-import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;

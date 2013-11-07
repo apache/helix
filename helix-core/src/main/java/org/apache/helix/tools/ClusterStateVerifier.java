@@ -19,9 +19,7 @@ package org.apache.helix.tools;
  * under the License.
  */
 
-import java.io.File;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -41,17 +39,24 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.State;
+import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -59,11 +64,8 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.Partition;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
-import org.apache.helix.store.PropertyJsonComparator;
-import org.apache.helix.store.PropertyJsonSerializer;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.builder.ResourceAssignmentBuilder;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -156,7 +158,7 @@ public class ClusterStateVerifier {
         HelixDataAccessor accessor =
             new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates);
+        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, clusterName);
       } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
@@ -222,23 +224,18 @@ public class ClusterStateVerifier {
   }
 
   static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
-      Map<String, Map<String, String>> errStates) {
+      Map<String, Map<String, String>> errStates, String clusterName) {
     try {
       Builder keyBuilder = accessor.keyBuilder();
-      // read cluster once and do verification
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
 
-      Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null) // || idealStates.isEmpty())
-      {
+      Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+      if (idealStates == null) {
         // ideal state is null because ideal state is dropped
         idealStates = Collections.emptyMap();
       }
 
       Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (extViews == null) // || extViews.isEmpty())
-      {
+      if (extViews == null) {
         extViews = Collections.emptyMap();
       }
 
@@ -250,28 +247,33 @@ public class ClusterStateVerifier {
         }
       }
 
+      ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
+      Cluster cluster = clusterAccessor.readCluster();
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cache);
-      Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
-          bestPossOutput.getStateMap();
+      BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cluster);
 
       // set error states
       if (errStates != null) {
         for (String resourceName : errStates.keySet()) {
+          ResourceId resourceId = ResourceId.from(resourceName);
           Map<String, String> partErrStates = errStates.get(resourceName);
+          ResourceAssignment resourceAssignment = bestPossOutput.getResourceAssignment(resourceId);
+
+          ResourceAssignmentBuilder raBuilder = new ResourceAssignmentBuilder(resourceId);
+          List<? extends PartitionId> mappedPartitions = resourceAssignment.getMappedPartitionIds();
+          for (PartitionId partitionId : mappedPartitions) {
+            raBuilder.addAssignments(partitionId, resourceAssignment.getReplicaMap(partitionId));
+          }
+
           for (String partitionName : partErrStates.keySet()) {
             String instanceName = partErrStates.get(partitionName);
-
-            if (!bestPossStateMap.containsKey(resourceName)) {
-              bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
-            }
-            Partition partition = new Partition(partitionName);
-            if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
-              bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
-            }
-            bestPossStateMap.get(resourceName).get(partition)
-                .put(instanceName, HelixDefinedState.ERROR.toString());
+            PartitionId partitionId = PartitionId.from(partitionName);
+            ParticipantId participantId = ParticipantId.from(instanceName);
+            raBuilder.addAssignment(partitionId, participantId,
+                State.from(HelixDefinedState.ERROR.toString()));
           }
+          bestPossOutput.setResourceAssignment(resourceId, raBuilder.build());
+
         }
       }
 
@@ -285,11 +287,12 @@ public class ClusterStateVerifier {
         }
 
         // step 0: remove empty map and DROPPED state from best possible state
-        Map<Partition, Map<String, String>> bpStateMap =
-            bestPossOutput.getResourceMap(resourceName);
-        Iterator<Entry<Partition, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
+        Map<String, Map<String, String>> bpStateMap =
+            ResourceAssignment.stringMapsFromReplicaMaps(bestPossOutput.getResourceAssignment(
+                ResourceId.from(resourceName)).getResourceMap());
+        Iterator<Entry<String, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
         while (iter.hasNext()) {
-          Map.Entry<Partition, Map<String, String>> entry = iter.next();
+          Map.Entry<String, Map<String, String>> entry = iter.next();
           Map<String, String> instanceStateMap = entry.getValue();
           if (instanceStateMap.isEmpty()) {
             iter.remove();
@@ -310,7 +313,9 @@ public class ClusterStateVerifier {
 
         // step 1: externalView and bestPossibleState has equal size
         int extViewSize = extView.getRecord().getMapFields().size();
-        int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
+        int bestPossStateSize =
+            bestPossOutput.getResourceAssignment(ResourceId.from(resourceName))
+                .getMappedPartitionIds().size();
         if (extViewSize != bestPossStateSize) {
           LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
               + bestPossStateSize + ") for resource: " + resourceName);
@@ -328,7 +333,8 @@ public class ClusterStateVerifier {
         for (String partition : extView.getRecord().getMapFields().keySet()) {
           Map<String, String> evInstanceStateMap = extView.getRecord().getMapField(partition);
           Map<String, String> bpInstanceStateMap =
-              bestPossOutput.getInstanceStateMap(resourceName, new Partition(partition));
+              ResourceAssignment.stringMapFromReplicaMap(bestPossOutput.getResourceAssignment(
+                  ResourceId.from(resourceName)).getReplicaMap(PartitionId.from(partition)));
 
           boolean result =
               ClusterStateVerifier.<String, String> compareMap(evInstanceStateMap,
@@ -404,14 +410,15 @@ public class ClusterStateVerifier {
   /**
    * calculate the best possible state note that DROPPED states are not checked since when
    * kick off the BestPossibleStateCalcStage we are providing an empty current state map
+   * @param convertedDefs
    * @param cache
    * @return
    * @throws Exception
    */
 
-  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
+  static BestPossibleStateOutput calcBestPossState(Cluster cluster) throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute("ClusterDataCache", cluster);
 
     ResourceComputationStage rcState = new ResourceComputationStage();
     CurrentStateComputationStage csStage = new CurrentStateComputationStage();
@@ -424,7 +431,6 @@ public class ClusterStateVerifier {
     BestPossibleStateOutput output =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
 
-    // System.out.println("output:" + output);
     return output;
   }
 

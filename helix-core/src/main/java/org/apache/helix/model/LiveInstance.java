@@ -21,6 +21,10 @@ package org.apache.helix.model;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.HelixVersion;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.ProcId;
+import org.apache.helix.api.id.SessionId;
 import org.apache.log4j.Logger;
 
 /**
@@ -48,6 +52,14 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
+   * Instantiate with an participant identifier
+   * @param id participant identifier
+   */
+  public LiveInstance(ParticipantId id) {
+    super(id.stringify());
+  }
+
+  /**
    * Instantiate with a pre-populated record
    * @param record ZNRecord corresponding to a live instance
    */
@@ -64,7 +76,15 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Get the session that this instance corresponds to
+   * Get the session that this participant corresponds to
+   * @return session identifier
+   */
+  public SessionId getTypedSessionId() {
+    return SessionId.from(getSessionId());
+  }
+
+  /**
+   * Get the session that this participant corresponds to
    * @return session identifier
    */
   public String getSessionId() {
@@ -80,7 +100,23 @@ public class LiveInstance extends HelixProperty {
   }
 
   /**
-   * Get the version of Helix that this instance is running
+   * Get the id of this participant
+   * @return participant id
+   */
+  public ParticipantId getParticipantId() {
+    return ParticipantId.from(getInstanceName());
+  }
+
+  /**
+   * Get the version of Helix that this participant is running
+   * @return the version
+   */
+  public HelixVersion getTypedHelixVersion() {
+    return HelixVersion.from(getHelixVersion());
+  }
+
+  /**
+   * Get the version of Helix that this participant is running
    * @return the version
    */
   public String getHelixVersion() {
@@ -101,6 +137,14 @@ public class LiveInstance extends HelixProperty {
    */
   public String getLiveInstance() {
     return _record.getSimpleField(LiveInstanceProperty.LIVE_INSTANCE.toString());
+  }
+
+  /**
+   * Get an identifier that represents the instance and where it is located
+   * @return process identifier
+   */
+  public ProcId getProcessId() {
+    return ProcId.from(getLiveInstance());
   }
 
   /**
@@ -137,11 +181,11 @@ public class LiveInstance extends HelixProperty {
 
   @Override
   public boolean isValid() {
-    if (getSessionId() == null) {
+    if (getTypedSessionId() == null) {
       _logger.error("liveInstance does not have session id. id:" + _record.getId());
       return false;
     }
-    if (getHelixVersion() == null) {
+    if (getTypedHelixVersion() == null) {
       _logger.error("liveInstance does not have CLM verion. id:" + _record.getId());
       return false;
     }

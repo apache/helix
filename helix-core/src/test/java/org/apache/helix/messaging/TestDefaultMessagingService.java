@@ -33,6 +33,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.MessageId;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -173,7 +174,8 @@ public class TestDefaultMessagingService {
     recipientCriteria.setRecipientInstanceType(InstanceType.PARTICIPANT);
     recipientCriteria.setSelfExcluded(true);
 
-    Message template = new Message(factory.getMessageType(), UUID.randomUUID().toString());
+    Message template =
+        new Message(factory.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
     AssertJUnit.assertEquals(0, svc.send(recipientCriteria, template));
 
     recipientCriteria.setSelfExcluded(false);

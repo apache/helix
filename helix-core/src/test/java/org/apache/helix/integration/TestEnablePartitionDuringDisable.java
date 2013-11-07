@@ -24,6 +24,8 @@ import java.util.Date;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.mock.controller.ClusterController;
 import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockTransition;
@@ -49,10 +51,10 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
       String clusterName = manager.getClusterName();
 
       String instance = message.getTgtName();
-      String partitionName = message.getPartitionName();
-      String fromState = message.getFromState();
-      String toState = message.getToState();
-      if (instance.equals("localhost_12919") && partitionName.equals("TestDB0_0")) {
+      PartitionId partitionId = message.getPartitionId();
+      State fromState = message.getTypedFromState();
+      State toState = message.getTypedToState();
+      if (instance.equals("localhost_12919") && partitionId.equals(PartitionId.from("TestDB0_0"))) {
         if (fromState.equals("SLAVE") && toState.equals("OFFLINE")) {
           slaveToOfflineCnt++;
 
@@ -67,7 +69,8 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
             e.printStackTrace();
           }
 
-        } else if (slaveToOfflineCnt > 0 && fromState.equals("OFFLINE") && toState.equals("SLAVE")) {
+        } else if (slaveToOfflineCnt > 0 && fromState.equals(State.from("OFFLINE"))
+            && toState.equals(State.from("SLAVE"))) {
           offlineToSlave++;
         }
       }

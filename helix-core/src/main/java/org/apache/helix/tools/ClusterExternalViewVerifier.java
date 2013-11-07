@@ -6,6 +6,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -18,7 +20,10 @@ import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
 
 /**
  * given zk, cluster, and a list of expected live-instances
@@ -136,9 +141,15 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
     for (String resourceName : externalViews.keySet()) {
       ExternalView externalView = externalViews.get(resourceName);
-      Map<Partition, Map<String, String>> bestPossbileState =
-          bestPossbileStates.getResourceMap(resourceName);
-      success = verifyExternalView(externalView, bestPossbileState);
+      ResourceAssignment assignment =
+          bestPossbileStates.getResourceAssignment(ResourceId.from(resourceName));
+      final Map<Partition, Map<String, String>> bestPossibleState = Maps.newHashMap();
+      for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
+        Map<String, String> rawStateMap =
+            ResourceAssignment.stringMapFromReplicaMap(assignment.getReplicaMap(partitionId));
+        bestPossibleState.put(new Partition(partitionId.stringify()), rawStateMap);
+      }
+      success = verifyExternalView(externalView, bestPossibleState);
       if (!success) {
         LOG.info("external-view for resource: " + resourceName + " not match");
         return false;

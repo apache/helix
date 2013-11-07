@@ -19,40 +19,87 @@ package org.apache.helix.model.builder;
  * under the License.
  */
 
-import org.apache.helix.model.IdealState.RebalanceMode;
-
 import java.util.Map;
 import java.util.TreeMap;
 
-public class CustomModeISBuilder extends IdealStateBuilder {
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.model.IdealState.RebalanceMode;
 
+/**
+ * IdealState builder for CUSTOMIZED mode
+ */
+public class CustomModeISBuilder extends IdealStateBuilder {
+  /**
+   * Start building a CUSTOMIZED IdealState
+   * @param resourceName the resource
+   */
   public CustomModeISBuilder(String resourceName) {
     super(resourceName);
     setRebalancerMode(RebalanceMode.CUSTOMIZED);
   }
 
   /**
-   * Add a sub-resource
-   * @param partitionName
+   * Start building a SEMI_AUTO IdealState
+   * @param resourceId the resource
    */
-  public void add(String partitionName) {
+  public CustomModeISBuilder(ResourceId resourceId) {
+    this(resourceId.stringify());
+  }
+
+  /**
+   * Add a sub-resource
+   * @param partitionName partition to add
+   * @return CustomModeISBuilder
+   */
+  public CustomModeISBuilder add(String partitionName) {
     if (_record.getMapField(partitionName) == null) {
       _record.setMapField(partitionName, new TreeMap<String, String>());
     }
+    return this;
+  }
+
+  /**
+   * Add a sub-resource
+   * @param partitionId partition to add
+   * @return CustomModeISBuilder
+   */
+  public CustomModeISBuilder add(PartitionId partitionId) {
+    if (partitionId != null) {
+      add(partitionId.stringify());
+    }
+    return this;
   }
 
   /**
    * add an instance->state assignment
-   * @param partitionName
-   * @param instanceName
-   * @param state
-   * @return
+   * @param partitionName partition to update
+   * @param instanceName participant name
+   * @param state state the replica should be in
+   * @return CustomModeISBuilder
    */
   public CustomModeISBuilder assignInstanceAndState(String partitionName, String instanceName,
       String state) {
     add(partitionName);
     Map<String, String> partitionToInstanceStateMapping = _record.getMapField(partitionName);
     partitionToInstanceStateMapping.put(instanceName, state);
+    return this;
+  }
+
+  /**
+   * add an instance->state assignment
+   * @param partitionId partition to update
+   * @param participantId participant to assign to
+   * @param state state the replica should be in
+   * @return CustomModeISBuilder
+   */
+  public CustomModeISBuilder assignParticipantAndState(PartitionId partitionId,
+      ParticipantId participantId, State state) {
+    if (partitionId != null && participantId != null && state != null) {
+      assignInstanceAndState(partitionId.stringify(), participantId.stringify(), state.toString());
+    }
     return this;
   }
 

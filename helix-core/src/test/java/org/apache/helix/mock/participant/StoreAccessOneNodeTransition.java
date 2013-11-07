@@ -25,6 +25,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
@@ -36,7 +37,7 @@ public class StoreAccessOneNodeTransition extends MockTransition {
     ZkHelixPropertyStore<ZNRecord> store = manager.getHelixPropertyStore();
     final String setPath = "/TEST_PERF/set";
     final String updatePath = "/TEST_PERF/update";
-    final String key = message.getPartitionName();
+    final PartitionId key = message.getPartitionId();
     try {
       // get/set once
       ZNRecord record = null;
@@ -56,7 +57,7 @@ public class StoreAccessOneNodeTransition extends MockTransition {
           if (currentData == null) {
             currentData = new ZNRecord(updatePath);
           }
-          currentData.setSimpleField(key, "" + System.currentTimeMillis());
+          currentData.setSimpleField(key.stringify(), "" + System.currentTimeMillis());
 
           return currentData;
         }

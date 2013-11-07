@@ -19,9 +19,10 @@ package org.apache.helix.recipes.rabbitmq;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
-public class ConsumerStateModelFactory extends StateModelFactory<ConsumerStateModel> {
+public class ConsumerStateModelFactory extends HelixStateModelFactory<ConsumerStateModel> {
   private final String _consumerId;
   private final String _mqServer;
 
@@ -31,8 +32,9 @@ public class ConsumerStateModelFactory extends StateModelFactory<ConsumerStateMo
   }
 
   @Override
-  public ConsumerStateModel createNewStateModel(String partition) {
-    ConsumerStateModel model = new ConsumerStateModel(_consumerId, partition, _mqServer);
+  public ConsumerStateModel createNewStateModel(PartitionId partition) {
+    ConsumerStateModel model =
+        new ConsumerStateModel(_consumerId, partition.stringify(), _mqServer);
     return model;
   }
 }

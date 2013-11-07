@@ -20,11 +20,7 @@ package org.apache.helix.alerts;
  */
 
 import org.apache.helix.HelixException;
-import org.apache.helix.alerts.ExpressionOperatorType;
-import org.apache.helix.alerts.ExpressionParser;
-import org.testng.annotations.Test;
 import org.testng.AssertJUnit;
-import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @Test

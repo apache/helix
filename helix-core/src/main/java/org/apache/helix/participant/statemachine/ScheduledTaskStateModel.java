@@ -52,6 +52,7 @@ public class ScheduledTaskStateModel extends StateModel {
   public void onBecomeCompletedFromOffline(Message message, NotificationContext context)
       throws InterruptedException {
     logger.info(_partitionName + " onBecomeCompletedFromOffline");
+    // System.err.println("\t\t" + _partitionName + " onBecomeCompletedFromOffline");
 
     // Construct the inner task message from the mapfields of scheduledTaskQueue resource group
     Map<String, String> messageInfo =

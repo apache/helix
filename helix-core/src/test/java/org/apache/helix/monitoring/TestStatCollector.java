@@ -35,7 +35,7 @@ public class TestStatCollector {
     }
     AssertJUnit.assertEquals(collector.getNumDataPoints(), nPoints);
     AssertJUnit.assertEquals((long) collector.getMax(), 99000);
-    AssertJUnit.assertEquals((long) collector.getTotalSum(), 4950000);
+    AssertJUnit.assertEquals(collector.getTotalSum(), 4950000);
     AssertJUnit.assertEquals((long) collector.getPercentile(40), 39400);
     AssertJUnit.assertEquals((long) collector.getMean(), 49500);
     AssertJUnit.assertEquals((long) collector.getMin(), 0);
@@ -44,7 +44,7 @@ public class TestStatCollector {
 
     AssertJUnit.assertEquals(collector.getNumDataPoints(), 0);
     AssertJUnit.assertEquals((long) collector.getMax(), 0);
-    AssertJUnit.assertEquals((long) collector.getTotalSum(), 0);
+    AssertJUnit.assertEquals(collector.getTotalSum(), 0);
     AssertJUnit.assertEquals((long) collector.getPercentile(40), 0);
     AssertJUnit.assertEquals((long) collector.getMean(), 0);
     AssertJUnit.assertEquals((long) collector.getMin(), 0);

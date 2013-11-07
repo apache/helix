@@ -19,12 +19,13 @@ package org.apache.helix.agent;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
-public class AgentStateModelFactory extends StateModelFactory<AgentStateModel> {
+public class AgentStateModelFactory extends HelixStateModelFactory<AgentStateModel> {
 
   @Override
-  public AgentStateModel createNewStateModel(String partitionKey) {
+  public AgentStateModel createNewStateModel(PartitionId partitionKey) {
     AgentStateModel model = new AgentStateModel();
     return model;
   }

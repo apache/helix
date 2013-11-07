@@ -28,6 +28,10 @@ import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.State;
+import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -43,9 +47,9 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -164,7 +168,7 @@ public class ZkUnitTestBase {
   public void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
       boolean wantEnabled) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
@@ -173,15 +177,15 @@ public class ZkUnitTestBase {
 
   public void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
-    for (String partitionName : idealState.getPartitionSet()) {
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionName).size());
+        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionId).size());
       } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-        AssertJUnit.assertEquals(repl, idealState.getInstanceStateMap(partitionName).size());
+        AssertJUnit.assertEquals(repl, idealState.getParticipantStateMap(partitionId).size());
       }
     }
   }
@@ -247,20 +251,19 @@ public class ZkUnitTestBase {
 
   protected void setupStateModel(String clusterName) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    StateModelConfigGenerator generator = new StateModelConfigGenerator();
     StateModelDefinition masterSlave =
-        new StateModelDefinition(generator.generateConfigForMasterSlave());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
     accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlave);
 
     StateModelDefinition leaderStandby =
-        new StateModelDefinition(generator.generateConfigForLeaderStandby());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby());
     accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandby);
 
     StateModelDefinition onlineOffline =
-        new StateModelDefinition(generator.generateConfigForOnlineOffline());
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
     accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOffline);
 
   }
@@ -268,7 +271,7 @@ public class ZkUnitTestBase {
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<IdealState>();
@@ -289,7 +292,7 @@ public class ZkUnitTestBase {
       }
 
       idealState.setReplicas(Integer.toString(replicas));
-      idealState.setStateModelDefRef("MasterSlave");
+      idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
       idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setNumPartitions(partitions);
       idealStates.add(idealState);
@@ -302,14 +305,14 @@ public class ZkUnitTestBase {
 
   protected void setupLiveInstances(String clusterName, int[] liveInstances) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < liveInstances.length; i++) {
       String instance = "localhost_" + liveInstances[i];
       LiveInstance liveInstance = new LiveInstance(instance);
       liveInstance.setSessionId("session_" + liveInstances[i]);
-      liveInstance.setHelixVersion("0.0.0");
+      liveInstance.setHelixVersion("0.4.0");
       accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
     }
   }
@@ -344,11 +347,11 @@ public class ZkUnitTestBase {
     stage.postProcess();
   }
 
-  protected Message createMessage(MessageType type, String msgId, String fromState, String toState,
-      String resourceName, String tgtName) {
+  protected Message createMessage(MessageType type, MessageId msgId, String fromState,
+      String toState, String resourceName, String tgtName) {
     Message msg = new Message(type.toString(), msgId);
-    msg.setFromState(fromState);
-    msg.setToState(toState);
+    msg.setFromState(State.from(fromState));
+    msg.setToState(State.from(toState));
     msg.getRecord().setSimpleField(Attributes.RESOURCE_NAME.toString(), resourceName);
     msg.setTgtName(tgtName);
     return msg;

@@ -30,7 +30,7 @@ import org.apache.helix.model.IdealState.RebalanceMode;
  */
 public class FullAutoRebalancerContext extends PartitionedRebalancerContext {
   public FullAutoRebalancerContext() {
-    super(RebalanceMode.FULL_AUTO);
+    setRebalanceMode(RebalanceMode.FULL_AUTO);
     setRebalancerRef(RebalancerRef.from(FullAutoRebalancer.class));
   }
 
@@ -46,6 +46,7 @@ public class FullAutoRebalancerContext extends PartitionedRebalancerContext {
     public Builder(ResourceId resourceId) {
       super(resourceId);
       super.rebalancerRef(RebalancerRef.from(FullAutoRebalancer.class));
+      super.rebalanceMode(RebalanceMode.FULL_AUTO);
     }
 
     @Override

@@ -436,12 +436,14 @@ public class ResourceAccessor {
     int bucketSize = 0;
     boolean batchMessageMode = false;
     if (idealState != null) {
-      if (resourceConfiguration != null) {
+      if (resourceConfiguration != null
+          && idealState.getRebalanceMode() != RebalanceMode.USER_DEFINED) {
+        // prefer rebalancer context for non-user_defined data rebalancing
         rebalancerContext =
             resourceConfiguration.getRebalancerContext(PartitionedRebalancerContext.class);
       }
       if (rebalancerContext == null) {
-        // fallback: get rebalancer context from ideal state
+        // prefer ideal state for non-user_defined data rebalancing
         rebalancerContext = PartitionedRebalancerContext.from(idealState);
       }
       bucketSize = idealState.getBucketSize();
@@ -454,7 +456,7 @@ public class ResourceAccessor {
       rebalancerContext = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
     }
     if (rebalancerContext == null) {
-      rebalancerContext = new PartitionedRebalancerContext(RebalanceMode.NONE);
+      rebalancerContext = new PartitionedRebalancerContext();
     }
     return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
         rebalancerContext, userConfig, bucketSize, batchMessageMode);

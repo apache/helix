@@ -49,17 +49,17 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
   private boolean _anyLiveParticipant;
   private int _replicaCount;
   private int _maxPartitionsPerParticipant;
-  private final RebalanceMode _rebalanceMode;
+  private RebalanceMode _rebalanceMode;
 
   /**
    * Instantiate a DataRebalancerContext
    */
-  public PartitionedRebalancerContext(RebalanceMode rebalanceMode) {
+  public PartitionedRebalancerContext() {
     _partitionMap = Collections.emptyMap();
     _replicaCount = 1;
     _anyLiveParticipant = false;
     _maxPartitionsPerParticipant = Integer.MAX_VALUE;
-    _rebalanceMode = rebalanceMode;
+    _rebalanceMode = RebalanceMode.USER_DEFINED;
   }
 
   /**
@@ -137,6 +137,14 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
    */
   public void setMaxPartitionsPerParticipant(int maxPartitionsPerParticipant) {
     _maxPartitionsPerParticipant = maxPartitionsPerParticipant;
+  }
+
+  /**
+   * Set the rebalancer mode of the partitioned resource
+   * @param rebalanceMode {@link RebalanceMode} enum value
+   */
+  public void setRebalanceMode(RebalanceMode rebalanceMode) {
+    _rebalanceMode = rebalanceMode;
   }
 
   /**
@@ -258,8 +266,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
 
     @Override
     public PartitionedRebalancerContext build() {
-      PartitionedRebalancerContext context =
-          new PartitionedRebalancerContext(RebalanceMode.USER_DEFINED);
+      PartitionedRebalancerContext context = new PartitionedRebalancerContext();
       super.update(context);
       return context;
     }
@@ -272,6 +279,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
       extends BasicRebalancerContext.AbstractBuilder<T> {
     private final ResourceId _resourceId;
     private final Map<PartitionId, Partition> _partitionMap;
+    private RebalanceMode _rebalanceMode;
     private boolean _anyLiveParticipant;
     private int _replicaCount;
     private int _maxPartitionsPerParticipant;
@@ -284,9 +292,20 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
       super(resourceId);
       _resourceId = resourceId;
       _partitionMap = Maps.newHashMap();
+      _rebalanceMode = RebalanceMode.USER_DEFINED;
       _anyLiveParticipant = false;
       _replicaCount = 1;
       _maxPartitionsPerParticipant = Integer.MAX_VALUE;
+    }
+
+    /**
+     * Set the rebalance mode for a partitioned rebalancer context
+     * @param rebalanceMode {@link RebalanceMode} enum value
+     * @return Builder
+     */
+    public T rebalanceMode(RebalanceMode rebalanceMode) {
+      _rebalanceMode = rebalanceMode;
+      return self();
     }
 
     /**
@@ -364,6 +383,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
       if (_partitionMap.isEmpty()) {
         addPartitions(1);
       }
+      context.setRebalanceMode(_rebalanceMode);
       context.setPartitionMap(_partitionMap);
       context.setAnyLiveParticipant(_anyLiveParticipant);
       context.setMaxPartitionsPerParticipant(_maxPartitionsPerParticipant);

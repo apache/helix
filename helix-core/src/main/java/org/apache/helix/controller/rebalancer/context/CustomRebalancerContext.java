@@ -53,7 +53,7 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
    * Instantiate a CustomRebalancerContext
    */
   public CustomRebalancerContext() {
-    super(RebalanceMode.CUSTOMIZED);
+    setRebalanceMode(RebalanceMode.CUSTOMIZED);
     setRebalancerRef(RebalancerRef.from(CustomRebalancer.class));
     _preferenceMaps = Maps.newHashMap();
   }
@@ -133,6 +133,7 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
     public Builder(ResourceId resourceId) {
       super(resourceId);
       super.rebalancerRef(RebalancerRef.from(CustomRebalancer.class));
+      super.rebalanceMode(RebalanceMode.CUSTOMIZED);
       _preferenceMaps = Maps.newHashMap();
     }
 

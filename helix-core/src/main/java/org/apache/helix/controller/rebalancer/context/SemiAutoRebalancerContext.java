@@ -56,7 +56,7 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
    * Instantiate a SemiAutoRebalancerContext
    */
   public SemiAutoRebalancerContext() {
-    super(RebalanceMode.SEMI_AUTO);
+    setRebalanceMode(RebalanceMode.SEMI_AUTO);
     setRebalancerRef(RebalancerRef.from(SemiAutoRebalancer.class));
     _preferenceLists = Maps.newHashMap();
   }
@@ -110,9 +110,8 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
         Set<ParticipantId> disabledParticipants = Collections.emptySet();
         Map<ParticipantId, State> emptyCurrentState = Collections.emptyMap();
         Map<ParticipantId, State> initialMap =
-            ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
-                participantSet, stateModelDef, preferenceList, emptyCurrentState,
-                disabledParticipants);
+            ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, participantSet,
+                stateModelDef, preferenceList, emptyCurrentState, disabledParticipants);
         currentMapping.put(partitionId, initialMap);
       }
     }
@@ -148,6 +147,7 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
     public Builder(ResourceId resourceId) {
       super(resourceId);
       super.rebalancerRef(RebalancerRef.from(SemiAutoRebalancer.class));
+      super.rebalanceMode(RebalanceMode.SEMI_AUTO);
       _preferenceLists = Maps.newHashMap();
     }
 

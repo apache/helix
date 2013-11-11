@@ -37,6 +37,7 @@ import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
 import org.restlet.engine.util.Base64;
 
+import com.google.common.collect.Maps;
 
 public class ZNRecordStreamingSerializer implements ZkSerializer {
   private static Logger LOG = Logger.getLogger(ZNRecordStreamingSerializer.class);
@@ -173,7 +174,13 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
     }
 
     ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
+
     ZNRecord record = null;
+    String id = null;
+    Map<String, String> simpleFields = Maps.newHashMap();
+    Map<String, List<String>> listFields = Maps.newHashMap();
+    Map<String, Map<String, String>> mapFields = Maps.newHashMap();
+    byte[] rawPayload = null;
 
     try {
       JsonFactory f = new JsonFactory();
@@ -185,24 +192,24 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
         jp.nextToken(); // move to value, or START_OBJECT/START_ARRAY
         if ("id".equals(fieldname)) {
           // contains an object
-          record = new ZNRecord(jp.getText());
+          id = jp.getText();
         } else if ("simpleFields".equals(fieldname)) {
           while (jp.nextToken() != JsonToken.END_OBJECT) {
             String key = jp.getCurrentName();
             jp.nextToken(); // move to value
-            record.setSimpleField(key, jp.getText());
+            simpleFields.put(key, jp.getText());
           }
         } else if ("mapFields".equals(fieldname)) {
           // user.setVerified(jp.getCurrentToken() == JsonToken.VALUE_TRUE);
           while (jp.nextToken() != JsonToken.END_OBJECT) {
             String key = jp.getCurrentName();
-            record.setMapField(key, new TreeMap<String, String>());
+            mapFields.put(key, new TreeMap<String, String>());
             jp.nextToken(); // move to value
 
             while (jp.nextToken() != JsonToken.END_OBJECT) {
               String mapKey = jp.getCurrentName();
               jp.nextToken(); // move to value
-              record.getMapField(key).put(mapKey, jp.getText());
+              mapFields.get(key).put(mapKey, jp.getText());
             }
           }
 
@@ -210,25 +217,33 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
           // user.setUserImage(jp.getBinaryValue());
           while (jp.nextToken() != JsonToken.END_OBJECT) {
             String key = jp.getCurrentName();
-            record.setListField(key, new ArrayList<String>());
+            listFields.put(key, new ArrayList<String>());
             jp.nextToken(); // move to value
             while (jp.nextToken() != JsonToken.END_ARRAY) {
-              record.getListField(key).add(jp.getText());
+              listFields.get(key).add(jp.getText());
             }
 
           }
 
         } else if ("rawPayload".equals(fieldname)) {
-          record.setRawPayload(Base64.decode(jp.getText()));
+          rawPayload = Base64.decode(jp.getText());
         } else {
           throw new IllegalStateException("Unrecognized field '" + fieldname + "'!");
         }
       }
       jp.close(); // ensure resources get cleaned up timely and properly
+
+      if (id == null) {
+        throw new IllegalStateException("ZNRecord id field is required!");
+      }
+      record = new ZNRecord(id);
+      record.setSimpleFields(simpleFields);
+      record.setListFields(listFields);
+      record.setMapFields(mapFields);
+      record.setRawPayload(rawPayload);
     } catch (Exception e) {
       LOG.error("Exception during deserialization of bytes: " + new String(bytes), e);
     }
-
     return record;
   }
 

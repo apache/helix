@@ -32,7 +32,6 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
 
 /**
@@ -94,20 +93,18 @@ public class ResourceAssignment extends HelixProperty {
   /**
    * Get the participant, state pairs for a partition
    * @param partition the Partition to look up
-   * @return immutable map of (participant id, state)
+   * @return map of (participant id, state)
    */
   public Map<ParticipantId, State> getReplicaMap(PartitionId partitionId) {
     Map<String, String> rawReplicaMap = _record.getMapField(partitionId.stringify());
-    if (rawReplicaMap == null) {
-      return Collections.emptyMap();
+    Map<ParticipantId, State> replicaMap = Maps.newHashMap();
+    if (rawReplicaMap != null) {
+      for (String participantName : rawReplicaMap.keySet()) {
+        replicaMap.put(ParticipantId.from(participantName),
+            State.from(rawReplicaMap.get(participantName)));
+      }
     }
-    ImmutableMap.Builder<ParticipantId, State> builder =
-        new ImmutableMap.Builder<ParticipantId, State>();
-    for (String participantName : rawReplicaMap.keySet()) {
-      builder.put(ParticipantId.from(participantName),
-          State.from(rawReplicaMap.get(participantName)));
-    }
-    return builder.build();
+    return replicaMap;
   }
 
   /**

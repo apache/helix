@@ -56,7 +56,7 @@ public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServ
 
     TestHelper.verifyState(CLUSTER_NAME, ZK_ADDR, map, "OFFLINE");
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.enablePartition(true, CLUSTER_NAME, "localhost_12919", "TestDB", Arrays.asList("TestDB_9"));
 
     result =

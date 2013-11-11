@@ -293,4 +293,10 @@ public class HelixConnectionAdaptor implements HelixManager {
     }
   }
 
+  @Override
+  public void addControllerMessageListener(MessageListener listener) {
+    // TODO Auto-generated method stub
+
+  }
+
 }

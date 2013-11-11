@@ -22,6 +22,7 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
@@ -39,6 +40,8 @@ import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Sets;
 
 /**
  * For partition compute best possible (instance,state) pair based on
@@ -86,7 +89,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private ResourceAssignment mapDroppedResource(Cluster cluster, ResourceId resourceId,
       ResourceCurrentState currentStateOutput, StateModelDefinition stateModelDef) {
     ResourceAssignment partitionMapping = new ResourceAssignment(resourceId);
-    Set<? extends PartitionId> mappedPartitions =
+    Set<PartitionId> mappedPartitions =
         currentStateOutput.getCurrentStateMappedPartitions(resourceId);
     if (mappedPartitions == null) {
       return partitionMapping;
@@ -104,6 +107,58 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
               disabledParticipantsForPartition));
     }
     return partitionMapping;
+  }
+
+  /**
+   * Update a ResourceAssignment with dropped and disabled participants for partitions
+   * @param cluster cluster snapshot
+   * @param resourceAssignment current resource assignment
+   * @param currentStateOutput aggregated current state
+   * @param stateModelDef state model definition for the resource
+   */
+  private void mapDroppedAndDisabledPartitions(Cluster cluster,
+      ResourceAssignment resourceAssignment, ResourceCurrentState currentStateOutput,
+      StateModelDefinition stateModelDef) {
+    // get the total partition set: mapped and current state
+    ResourceId resourceId = resourceAssignment.getResourceId();
+    Set<PartitionId> mappedPartitions = Sets.newHashSet();
+    mappedPartitions.addAll(currentStateOutput.getCurrentStateMappedPartitions(resourceId));
+    mappedPartitions.addAll(resourceAssignment.getMappedPartitionIds());
+    for (PartitionId partitionId : mappedPartitions) {
+      // for each partition, get the dropped and disabled mappings
+      Set<ParticipantId> disabledParticipants =
+          ConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
+              partitionId);
+
+      // get the error participants
+      Map<ParticipantId, State> currentStateMap =
+          currentStateOutput.getCurrentStateMap(resourceId, partitionId);
+      Set<ParticipantId> errorParticipants = Sets.newHashSet();
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        State state = currentStateMap.get(participantId);
+        if (state.equals(State.from(HelixDefinedState.ERROR))) {
+          errorParticipants.add(participantId);
+        }
+      }
+
+      // get the dropped and disabled map
+      State initialState = stateModelDef.getTypedInitialState();
+      Map<ParticipantId, State> participantStateMap = resourceAssignment.getReplicaMap(partitionId);
+      Set<ParticipantId> participants = participantStateMap.keySet();
+      Map<ParticipantId, State> droppedAndDisabledMap =
+          ConstraintBasedAssignment.dropAndDisablePartitions(currentStateMap, participants,
+              disabledParticipants, initialState);
+
+      // don't map error participants
+      for (ParticipantId participantId : errorParticipants) {
+        droppedAndDisabledMap.remove(participantId);
+      }
+      // save the mappings, overwriting as necessary
+      participantStateMap.putAll(droppedAndDisabledMap);
+
+      // include this add step in case the resource assignment did not already map this partition
+      resourceAssignment.addReplicaMap(partitionId, participantStateMap);
+    }
   }
 
   private BestPossibleStateOutput compute(Cluster cluster, ClusterEvent event,
@@ -127,11 +182,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
               rebalancer.computeResourceMapping(rebalancerConfig, cluster, currentStateOutput);
         }
       }
+      RebalancerContext context = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
+      StateModelDefinition stateModelDef = stateModelDefs.get(context.getStateModelDefId());
       if (resourceAssignment == null) {
-        RebalancerContext context = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
-        StateModelDefinition stateModelDef = stateModelDefs.get(context.getStateModelDefId());
         resourceAssignment =
             mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);
+      } else {
+        mapDroppedAndDisabledPartitions(cluster, resourceAssignment, currentStateOutput,
+            stateModelDef);
       }
       output.setResourceAssignment(resourceId, resourceAssignment);
     }

@@ -9,6 +9,7 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
@@ -59,6 +60,7 @@ public class SemiAutoRebalancer implements HelixRebalancer {
       LOG.debug("Processing resource:" + config.getResourceId());
     }
     ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
+
     for (PartitionId partition : config.getPartitionSet()) {
       Map<ParticipantId, State> currentStateMap =
           currentState.getCurrentStateMap(config.getResourceId(), partition);
@@ -71,6 +73,7 @@ public class SemiAutoRebalancer implements HelixRebalancer {
       Map<State, String> upperBounds =
           ConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
               cluster.getConfig());
+
       Map<ParticipantId, State> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, cluster
               .getLiveParticipantMap().keySet(), stateModelDef, preferenceList, currentStateMap,

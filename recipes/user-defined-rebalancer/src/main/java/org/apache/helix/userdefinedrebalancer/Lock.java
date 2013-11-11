@@ -45,4 +45,9 @@ public class Lock extends StateModel {
     System.out.println(context.getManager().getInstanceName() + " releasing lock:" + lockName);
   }
 
+  @Transition(from = "*", to = "DROPPED")
+  public void drop(Message m, NotificationContext context) {
+    System.out.println(context.getManager().getInstanceName() + " dropping lock:" + lockName);
+  }
+
 }

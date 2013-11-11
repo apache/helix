@@ -19,7 +19,6 @@ package org.apache.helix.controller.strategy;
  * under the License.
  */
 
-import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -29,8 +28,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ZNRecord;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -68,44 +65,33 @@ public class TestShufflingTwoStateStrategy {
 
     // ByteArrayOutputStream baos = new ByteArrayOutputStream();
     StringWriter sw = new StringWriter();
-    try {
-      mapper.writeValue(sw, result);
-      // System.out.println(sw.toString());
+    mapper.writeValue(sw, result);
+    // System.out.println(sw.toString());
 
-      ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
-      System.out.println(result.toString());
-      System.out.println(zn.toString());
-      AssertJUnit.assertTrue(zn.toString().equalsIgnoreCase(result.toString()));
-      System.out.println();
+    ZNRecord zn = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
+    System.out.println(result.toString());
+    System.out.println(zn.toString());
+    AssertJUnit.assertTrue(zn.toString().equalsIgnoreCase(result.toString()));
+    System.out.println();
 
-      sw = new StringWriter();
-      mapper.writeValue(sw, result2);
+    sw = new StringWriter();
+    mapper.writeValue(sw, result2);
 
-      ZNRecord zn2 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
-      System.out.println(result2.toString());
-      System.out.println(zn2.toString());
-      AssertJUnit.assertTrue(zn2.toString().equalsIgnoreCase(result2.toString()));
+    ZNRecord zn2 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
+    System.out.println(result2.toString());
+    System.out.println(zn2.toString());
+    AssertJUnit.assertTrue(zn2.toString().equalsIgnoreCase(result2.toString()));
 
-      sw = new StringWriter();
-      mapper.writeValue(sw, result3);
-      System.out.println();
+    sw = new StringWriter();
+    mapper.writeValue(sw, result3);
+    System.out.println();
 
-      ZNRecord zn3 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
-      System.out.println(result3.toString());
-      System.out.println(zn3.toString());
-      AssertJUnit.assertTrue(zn3.toString().equalsIgnoreCase(result3.toString()));
-      System.out.println();
+    ZNRecord zn3 = mapper.readValue(new StringReader(sw.toString()), ZNRecord.class);
+    System.out.println(result3.toString());
+    System.out.println(zn3.toString());
+    AssertJUnit.assertTrue(zn3.toString().equalsIgnoreCase(result3.toString()));
+    System.out.println();
 
-    } catch (JsonGenerationException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (JsonMappingException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (IOException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
   }
 
   @Test

@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer.util;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -110,6 +111,38 @@ public class ConstraintBasedAssignment {
   }
 
   /**
+   * Get a mapping for a partition for the current state participants who have been dropped or
+   * disabled for a given partition.
+   * @param currentStateMap current map of participant id to state for a partition
+   * @param participants participants selected to serve the partition
+   * @param disabledParticipants participants that have been disabled for this partition
+   * @param initialState the initial state of the resource state model
+   * @return map of participant id to state of dropped and disabled partitions
+   */
+  public static Map<ParticipantId, State> dropAndDisablePartitions(
+      Map<ParticipantId, State> currentStateMap, Collection<ParticipantId> participants,
+      Set<ParticipantId> disabledParticipants, State initialState) {
+    Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
+    // if the resource is deleted, instancePreferenceList will be empty and
+    // we should drop all resources.
+    if (currentStateMap != null) {
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        if ((participants == null || !participants.contains(participantId))
+            && !disabledParticipants.contains(participantId)) {
+          // if dropped and not disabled, transit to DROPPED
+          participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
+        } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
+            participantId).equals(State.from(HelixDefinedState.ERROR)))
+            && disabledParticipants.contains(participantId)) {
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
+          participantStateMap.put(participantId, initialState);
+        }
+      }
+    }
+    return participantStateMap;
+  }
+
+  /**
    * compute best state for resource in SEMI_AUTO and FULL_AUTO modes
    * @param upperBounds map of state to upper bound
    * @param liveParticipantSet set of live participant ids
@@ -124,24 +157,10 @@ public class ConstraintBasedAssignment {
       Map<State, String> upperBounds, Set<ParticipantId> liveParticipantSet,
       StateModelDefinition stateModelDef, List<ParticipantId> participantPreferenceList,
       Map<ParticipantId, State> currentStateMap, Set<ParticipantId> disabledParticipantsForPartition) {
-    Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
-
-    // if the resource is deleted, instancePreferenceList will be empty and
-    // we should drop all resources.
-    if (currentStateMap != null) {
-      for (ParticipantId participantId : currentStateMap.keySet()) {
-        if ((participantPreferenceList == null || !participantPreferenceList
-            .contains(participantId)) && !disabledParticipantsForPartition.contains(participantId)) {
-          // if dropped and not disabled, transit to DROPPED
-          participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
-        } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
-            participantId).equals(State.from(HelixDefinedState.ERROR)))
-            && disabledParticipantsForPartition.contains(participantId)) {
-          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
-        }
-      }
-    }
+    // drop and disable participants if necessary
+    Map<ParticipantId, State> participantStateMap =
+        dropAndDisablePartitions(currentStateMap, participantPreferenceList,
+            disabledParticipantsForPartition, stateModelDef.getTypedInitialState());
 
     // resource is deleted
     if (participantPreferenceList == null) {

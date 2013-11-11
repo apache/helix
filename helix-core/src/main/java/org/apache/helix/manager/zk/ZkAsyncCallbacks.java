@@ -143,8 +143,7 @@ public class ZkAsyncCallbacks {
           }
         }
       } catch (InterruptedException e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        LOG.error("Interrupted waiting for success", e);
       }
       return true;
     }

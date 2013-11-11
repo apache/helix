@@ -20,6 +20,7 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -31,9 +32,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -43,8 +46,10 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.ResourceAssignment;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -62,7 +67,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    List<IdealState> idealStates = setupIdealState(clusterName, new int[] {
         0, 1
     }, new String[] {
       "TestDB"
@@ -77,6 +82,10 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
+
+    // get an empty best possible output for the partitions
+    BestPossibleStateOutput bestPossOutput = getEmptyBestPossibleStateOutput(idealStates);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossOutput);
 
     MessageThrottleStage throttleStage = new MessageThrottleStage();
     try {
@@ -138,7 +147,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    List<IdealState> idealStates = setupIdealState(clusterName, new int[] {
         0, 1
     }, new String[] {
       "TestDB"
@@ -270,6 +279,10 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
 
+    // get an empty best possible output for the partitions
+    BestPossibleStateOutput bestPossOutput = getEmptyBestPossibleStateOutput(idealStates);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossOutput);
+
     Pipeline dataRefresh = new Pipeline();
     dataRefresh.addStage(new ReadClusterDataStage());
     runPipeline(event, dataRefresh);
@@ -329,5 +342,18 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     return false;
   }
 
+  private BestPossibleStateOutput getEmptyBestPossibleStateOutput(List<IdealState> idealStates) {
+    BestPossibleStateOutput output = new BestPossibleStateOutput();
+    for (IdealState idealState : idealStates) {
+      ResourceId resourceId = idealState.getResourceId();
+      ResourceAssignment assignment = new ResourceAssignment(resourceId);
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
+        Map<ParticipantId, State> emptyMap = Collections.emptyMap();
+        assignment.addReplicaMap(partitionId, emptyMap);
+      }
+      output.setResourceAssignment(resourceId, assignment);
+    }
+    return output;
+  }
   // add pending message test case
 }

@@ -27,8 +27,8 @@ import org.testng.annotations.Test;
 public class TestParseInfoFromAlert extends ZkStandAloneCMTestBase {
   @Test
   public void TestParse() {
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+
+    HelixManager manager = _controller;
 
     String instanceName =
         StatsAggregationStage.parseInstanceName("localhost_12918.TestStat@DB=123.latency", manager);
@@ -50,6 +50,7 @@ public class TestParseInfoFromAlert extends ZkStandAloneCMTestBase {
     String partitionName =
         StatsAggregationStage.parsePartitionName(
             "localhost_12918.TestStat@DB=TestDB;Partition=TestDB_22.latency", manager);
+
     Assert.assertTrue(partitionName.equals("TestDB_22"));
   }
 }

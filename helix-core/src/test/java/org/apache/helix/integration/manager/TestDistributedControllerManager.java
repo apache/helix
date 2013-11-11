@@ -22,14 +22,16 @@ package org.apache.helix.integration.manager;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.helix.HelixManager;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.DistributedControllerManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
@@ -61,11 +63,12 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    DistributedControllerManager[] distributedControllers = new DistributedControllerManager[n];
+    HelixManager[] distributedControllers = new HelixManager[n];
     for (int i = 0; i < n; i++) {
       int port = 12918 + i;
       distributedControllers[i] =
-          new DistributedControllerManager(ZK_ADDR, clusterName, "localhost_" + port);
+          new ZKHelixManager(clusterName, "localhost_" + port, InstanceType.CONTROLLER_PARTICIPANT,
+              ZK_ADDR);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       distributedControllers[i].connect();

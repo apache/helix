@@ -21,21 +21,18 @@ package org.apache.helix.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
-import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -46,7 +43,6 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestCommand.CommandType;
-import org.apache.helix.tools.TestCommand.NodeOpArg;
 import org.apache.helix.tools.TestExecutor;
 import org.apache.helix.tools.TestExecutor.ZnodePropertyType;
 import org.apache.helix.tools.TestTrigger;
@@ -79,10 +75,8 @@ public class TestDriver {
     public final int _numNode;
     public final int _replica;
 
-    // public final Map<String, ZNRecord> _idealStateMap = new
-    // ConcurrentHashMap<String, ZNRecord>();
-    public final Map<String, StartCMResult> _startCMResultMap =
-        new ConcurrentHashMap<String, StartCMResult>();
+    public final Map<String, HelixManager> _managers =
+        new ConcurrentHashMap<String, HelixManager>();
 
     public TestInfo(String clusterName, ZkClient zkClient, int numDb, int numPartitionsPerDb,
         int numNode, int replica) {
@@ -118,10 +112,6 @@ public class TestDriver {
         replica, true);
   }
 
-  // public static void setupCluster(String uniqTestName, ZkClient zkClient, int
-  // numDb,
-  // int numPartitionPerDb, int numNodes, int replica, boolean doRebalance)
-  // throws Exception
   public static void setupCluster(String uniqClusterName, String zkAddr, int numResources,
       int numPartitionsPerResource, int numInstances, int replica, boolean doRebalance)
       throws Exception {
@@ -193,11 +183,15 @@ public class TestDriver {
     for (int id : instanceIds) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + id);
 
-      if (testInfo._startCMResultMap.containsKey(instanceName)) {
+      // if (testInfo._startCMResultMap.containsKey(instanceName)) {
+      if (testInfo._managers.containsKey(instanceName)) {
         LOG.warn("Dummy participant:" + instanceName + " has already started; skip starting it");
       } else {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, clusterName, instanceName);
-        testInfo._startCMResultMap.put(instanceName, result);
+        // StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, clusterName, instanceName);
+        MockParticipantManager participant =
+            new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participant.syncStart();
+        testInfo._managers.put(instanceName, participant);
         // testInfo._instanceStarted.countDown();
       }
     }
@@ -220,13 +214,13 @@ public class TestDriver {
 
     for (int id : nodeIds) {
       String controllerName = CONTROLLER_PREFIX + "_" + id;
-      if (testInfo._startCMResultMap.containsKey(controllerName)) {
+      if (testInfo._managers.containsKey(controllerName)) {
         LOG.warn("Controller:" + controllerName + " has already started; skip starting it");
       } else {
-        StartCMResult result =
-            TestHelper.startController(clusterName, controllerName, ZK_ADDR,
-                HelixControllerMain.STANDALONE);
-        testInfo._startCMResultMap.put(controllerName, result);
+        ClusterControllerManager controller =
+            new ClusterControllerManager(ZK_ADDR, clusterName, controllerName);
+        controller.syncStart();
+        testInfo._managers.put(controllerName, controller);
       }
     }
   }
@@ -257,27 +251,22 @@ public class TestDriver {
     TestInfo testInfo = _testInfoMap.remove(uniqClusterName);
 
     // stop controller first
-    for (Iterator<Entry<String, StartCMResult>> it =
-        testInfo._startCMResultMap.entrySet().iterator(); it.hasNext();) {
-      Map.Entry<String, StartCMResult> entry = it.next();
-      String instanceName = entry.getKey();
+    for (String instanceName : testInfo._managers.keySet()) {
       if (instanceName.startsWith(CONTROLLER_PREFIX)) {
-        it.remove();
-        HelixManager manager = entry.getValue()._manager;
-        manager.disconnect();
-        Thread thread = entry.getValue()._thread;
-        thread.interrupt();
+        ClusterControllerManager controller =
+            (ClusterControllerManager) testInfo._managers.get(instanceName);
+        controller.syncStop();
       }
     }
 
     Thread.sleep(1000);
 
-    // stop the rest
-    for (Map.Entry<String, StartCMResult> entry : testInfo._startCMResultMap.entrySet()) {
-      HelixManager manager = entry.getValue()._manager;
-      manager.disconnect();
-      Thread thread = entry.getValue()._thread;
-      thread.interrupt();
+    for (String instanceName : testInfo._managers.keySet()) {
+      if (!instanceName.startsWith(CONTROLLER_PREFIX)) {
+        MockParticipantManager participant =
+            (MockParticipantManager) testInfo._managers.get(instanceName);
+        participant.syncStop();
+      }
     }
 
     testInfo._zkClient.close();
@@ -292,23 +281,24 @@ public class TestDriver {
     }
 
     TestInfo testInfo = _testInfoMap.get(uniqClusterName);
-    // String clusterName = testInfo._clusterName;
 
     String failHost = PARTICIPANT_PREFIX + "_" + (START_PORT + instanceId);
-    StartCMResult result = testInfo._startCMResultMap.remove(failHost);
+    MockParticipantManager participant =
+        (MockParticipantManager) testInfo._managers.remove(failHost);
 
     // TODO need sync
-    if (result == null || result._manager == null || result._thread == null) {
+    if (participant == null) {
       String errMsg = "Dummy participant:" + failHost + " seems not running";
       LOG.error(errMsg);
     } else {
       // System.err.println("try to stop participant: " +
       // result._manager.getInstanceName());
-      NodeOpArg arg = new NodeOpArg(result._manager, result._thread);
-      TestCommand command = new TestCommand(CommandType.STOP, new TestTrigger(beginTime), arg);
-      List<TestCommand> commandList = new ArrayList<TestCommand>();
-      commandList.add(command);
-      TestExecutor.executeTestAsync(commandList, ZK_ADDR);
+      // NodeOpArg arg = new NodeOpArg(result._manager, result._thread);
+      // TestCommand command = new TestCommand(CommandType.STOP, new TestTrigger(beginTime), arg);
+      // List<TestCommand> commandList = new ArrayList<TestCommand>();
+      // commandList.add(command);
+      // TestExecutor.executeTestAsync(commandList, ZK_ADDR);
+      participant.syncStop();
     }
   }
 

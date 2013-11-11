@@ -117,9 +117,6 @@ public class DefaultMessagingService implements ClusterMessagingService {
         Builder keyBuilder = accessor.keyBuilder();
 
         if (receiverType == InstanceType.CONTROLLER) {
-          // _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
-          // tempMessage,
-          // tempMessage.getId());
           accessor.setProperty(keyBuilder.controllerMessage(tempMessage.getId()), tempMessage);
         }
 
@@ -137,6 +134,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
     return totalMessageCount;
   }
 
+  @Override
   public Map<InstanceType, List<Message>> generateMessage(final Criteria recipientCriteria,
       final Message message) {
     Map<InstanceType, List<Message>> messagesToSendMap = new HashMap<InstanceType, List<Message>>();

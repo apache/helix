@@ -472,6 +472,12 @@ public class Mocks {
       return _properties;
     }
 
+    @Override
+    public void addControllerMessageListener(MessageListener listener) {
+      // TODO Auto-generated method stub
+
+    }
+
   }
 
   public static class MockAccessor implements HelixDataAccessor // DataAccessor

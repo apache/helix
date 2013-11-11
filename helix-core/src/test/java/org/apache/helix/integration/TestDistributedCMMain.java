@@ -25,10 +25,10 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ClusterDistributedController;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -77,11 +77,10 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase {
         "LeaderStandby", true); // do rebalance
 
     // start distributed cluster controllers
-    ClusterController[] controllers = new ClusterController[n + n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[n + n];
     for (int i = 0; i < n; i++) {
       controllers[i] =
-          new ClusterController(controllerClusterName, "controller_" + i, ZK_ADDR,
-              HelixControllerMain.DISTRIBUTED.toString());
+          new ClusterDistributedController(ZK_ADDR, controllerClusterName, "controller_" + i);
       controllers[i].syncStart();
     }
 
@@ -92,11 +91,11 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase {
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // start first cluster
-    MockParticipant[] participants = new MockParticipant[n];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
     final String firstClusterName = clusterNamePrefix + "0_0";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost0_" + (12918 + i);
-      participants[i] = new MockParticipant(firstClusterName, instanceName, ZK_ADDR, null);
+      participants[i] = new MockParticipantManager(ZK_ADDR, firstClusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -114,8 +113,7 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase {
     setupTool.rebalanceStorageCluster(controllerClusterName, clusterNamePrefix + "0", 6);
     for (int i = n; i < 2 * n; i++) {
       controllers[i] =
-          new ClusterController(controllerClusterName, "controller_" + i, ZK_ADDR,
-              HelixControllerMain.DISTRIBUTED.toString());
+          new ClusterDistributedController(ZK_ADDR, controllerClusterName, "controller_" + i);
       controllers[i].syncStart();
     }
 
@@ -157,7 +155,6 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase {
     // clean up
     // wait for all zk callbacks done
     System.out.println("Cleaning up...");
-    Thread.sleep(2000);
     for (int i = 0; i < 5; i++) {
       result =
           ClusterStateVerifier
@@ -166,7 +163,6 @@ public class TestDistributedCMMain extends ZkIntegrationTestBase {
       controllers[i].syncStop();
     }
 
-    // Thread.sleep(2000);
     for (int i = 0; i < 5; i++) {
       participants[i].syncStop();
     }

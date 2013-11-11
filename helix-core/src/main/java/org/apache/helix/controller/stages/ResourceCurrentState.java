@@ -31,6 +31,8 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.CurrentState;
 
+import com.google.common.collect.Sets;
+
 public class ResourceCurrentState {
   /**
    * map of resource-id to map of partition-id to map of participant-id to state
@@ -225,12 +227,17 @@ public class ResourceCurrentState {
    * @param resourceId resource to look up
    * @return set of mapped partitions, or empty set if there are none
    */
-  public Set<? extends PartitionId> getCurrentStateMappedPartitions(ResourceId resourceId) {
+  public Set<PartitionId> getCurrentStateMappedPartitions(ResourceId resourceId) {
     Map<PartitionId, Map<ParticipantId, State>> currentStateMap = _currentStateMap.get(resourceId);
+    Map<PartitionId, Map<ParticipantId, State>> pendingStateMap = _pendingStateMap.get(resourceId);
+    Set<PartitionId> partitionSet = Sets.newHashSet();
     if (currentStateMap != null) {
-      return currentStateMap.keySet();
+      partitionSet.addAll(currentStateMap.keySet());
     }
-    return Collections.emptySet();
+    if (pendingStateMap != null) {
+      partitionSet.addAll(pendingStateMap.keySet());
+    }
+    return partitionSet;
   }
 
   /**

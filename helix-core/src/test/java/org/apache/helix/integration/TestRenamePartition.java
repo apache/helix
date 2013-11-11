@@ -23,16 +23,17 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -40,6 +41,14 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRenamePartition extends ZkIntegrationTestBase {
+  // map from clusterName to participants
+  final Map<String, MockParticipantManager[]> _participantMap =
+      new ConcurrentHashMap<String, MockParticipantManager[]>();
+
+  // map from clusterName to controllers
+  final Map<String, ClusterControllerManager> _controllerMap =
+      new ConcurrentHashMap<String, ClusterControllerManager>();
+
   @Test()
   public void testRenamePartitionAutoIS() throws Exception {
     String clusterName = "CLUSTER_" + getShortClassName() + "_auto";
@@ -72,8 +81,8 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
+    stop(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-
   }
 
   @Test()
@@ -104,7 +113,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
     idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
@@ -119,23 +128,25 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
+
+    stop(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
   private void startAndVerify(String clusterName) throws Exception {
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    TestHelper
-        .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
-      // new Thread(participants[i]).start();
     }
 
     boolean result =
@@ -143,5 +154,21 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
 
+    _participantMap.put(clusterName, participants);
+    _controllerMap.put(clusterName, controller);
+  }
+
+  private void stop(String clusterName) {
+    ClusterControllerManager controller = _controllerMap.get(clusterName);
+    if (controller != null) {
+      controller.syncStop();
+    }
+
+    MockParticipantManager[] participants = _participantMap.get(clusterName);
+    if (participants != null) {
+      for (MockParticipantManager participant : participants) {
+        participant.syncStop();
+      }
+    }
   }
 }

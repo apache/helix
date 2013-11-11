@@ -321,6 +321,7 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
             _manager.getMessagingService().send(recipientCriteria, messageTemplate, callback,
                 timeOut);
       }
+
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
 

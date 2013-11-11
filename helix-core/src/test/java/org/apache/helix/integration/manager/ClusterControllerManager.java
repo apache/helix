@@ -22,12 +22,14 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.HelixTimerTask;
+import org.apache.helix.InstanceType;
 import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ControllerManager;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 
-public class ClusterControllerManager extends ControllerManager implements Runnable, ZkTestManager {
+public class ClusterControllerManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = Logger.getLogger(ClusterControllerManager.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
@@ -35,7 +37,7 @@ public class ClusterControllerManager extends ControllerManager implements Runna
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
   public ClusterControllerManager(String zkAddr, String clusterName, String controllerName) {
-    super(zkAddr, clusterName, controllerName);
+    super(clusterName, controllerName, InstanceType.CONTROLLER, zkAddr);
   }
 
   public void syncStop() {
@@ -43,8 +45,7 @@ public class ClusterControllerManager extends ControllerManager implements Runna
     try {
       _waitStopFinishCountDown.await();
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted waiting for finish", e);
     }
   }
 
@@ -54,8 +55,7 @@ public class ClusterControllerManager extends ControllerManager implements Runna
     try {
       _startCountDown.await();
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted waiting for start", e);
     }
   }
 
@@ -84,4 +84,7 @@ public class ClusterControllerManager extends ControllerManager implements Runna
     return _handlers;
   }
 
+  public List<HelixTimerTask> getControllerTimerTasks() {
+    return _controllerTimerTasks;
+  }
 }

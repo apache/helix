@@ -22,6 +22,7 @@ package org.apache.helix.manager.zk;
 import java.util.List;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.HelixManager;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
@@ -35,14 +36,14 @@ import org.apache.log4j.Logger;
 public class ControllerManagerHelper {
   private static Logger LOG = Logger.getLogger(ControllerManagerHelper.class);
 
-  final AbstractManager _manager;
+  final HelixManager _manager;
   final DefaultMessagingService _messagingService;
   final List<HelixTimerTask> _controllerTimerTasks;
 
-  public ControllerManagerHelper(AbstractManager manager) {
+  public ControllerManagerHelper(HelixManager manager, List<HelixTimerTask> controllerTimerTasks) {
     _manager = manager;
     _messagingService = (DefaultMessagingService) manager.getMessagingService();
-    _controllerTimerTasks = manager.getControllerHelixTimerTasks();
+    _controllerTimerTasks = controllerTimerTasks;
   }
 
   public void addListenersToController(GenericHelixController controller) {

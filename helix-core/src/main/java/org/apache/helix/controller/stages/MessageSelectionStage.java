@@ -95,11 +95,13 @@ public class MessageSelectionStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.RESOURCES.toString());
     ResourceCurrentState currentStateOutput =
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    BestPossibleStateOutput bestPossibleStateOutput =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     MessageOutput messageGenOutput = event.getAttribute(AttributeName.MESSAGES_ALL.toString());
     if (cluster == null || resourceMap == null || currentStateOutput == null
-        || messageGenOutput == null) {
+        || messageGenOutput == null || bestPossibleStateOutput == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache|RESOURCES|CURRENT_STATE|MESSAGES_ALL");
+          + ". Requires DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE|MESSAGES_ALL");
     }
 
     MessageOutput output = new MessageOutput();
@@ -120,7 +122,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
               configResource == null ? null : configResource.getRebalancerConfig(), cluster);
 
       // TODO fix it
-      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
+      for (PartitionId partitionId : bestPossibleStateOutput.getResourceAssignment(resourceId)
+          .getMappedPartitionIds()) {
         List<Message> messages = messageGenOutput.getMessages(resourceId, partitionId);
         List<Message> selectedMessages =
             selectMessages(cluster.getLiveParticipantMap(),

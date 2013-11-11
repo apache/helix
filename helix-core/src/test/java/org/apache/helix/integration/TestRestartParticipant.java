@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.mock.participant.MockParticipant;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -35,15 +35,15 @@ import org.testng.annotations.Test;
 
 public class TestRestartParticipant extends ZkIntegrationTestBase {
   public class KillOtherTransition extends MockTransition {
-    final AtomicReference<MockParticipant> _other;
+    final AtomicReference<MockParticipantManager> _other;
 
-    public KillOtherTransition(MockParticipant other) {
-      _other = new AtomicReference<MockParticipant>(other);
+    public KillOtherTransition(MockParticipantManager other) {
+      _other = new AtomicReference<MockParticipantManager>(other);
     }
 
     @Override
     public void doTransition(Message message, NotificationContext context) {
-      MockParticipant other = _other.getAndSet(null);
+      MockParticipantManager other = _other.getAndSet(null);
       if (other != null) {
         System.err.println("Kill " + other.getInstanceName()
             + ". Interrupted exceptions are IGNORABLE");
@@ -58,7 +58,7 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
     System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
 
     String clusterName = getShortClassName();
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
 
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
         "localhost", // participant name prefix
@@ -69,19 +69,19 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    TestHelper
-        .startController(clusterName, "controller_0", ZK_ADDR, HelixControllerMain.STANDALONE);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
+
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 4) {
-        participants[i] =
-            new MockParticipant(clusterName, instanceName, ZK_ADDR, new KillOtherTransition(
-                participants[0]));
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i].setTransition(new KillOtherTransition(participants[0]));
       } else {
-        participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
-        // Thread.sleep(100);
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       }
 
       participants[i].syncStart();
@@ -94,15 +94,22 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
 
     // restart
     Thread.sleep(500);
-    MockParticipant participant =
-        new MockParticipant(participants[0].getClusterName(), participants[0].getInstanceName(),
-            ZK_ADDR, null);
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, participants[0].getClusterName(),
+            participants[0].getInstanceName());
     System.err.println("Restart " + participant.getInstanceName());
     participant.syncStart();
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
+
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < 5; i++) {
+      participants[i].syncStop();
+    }
+    participant.syncStop();
 
     System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
 

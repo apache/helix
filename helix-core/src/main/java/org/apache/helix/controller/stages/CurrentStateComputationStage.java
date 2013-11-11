@@ -68,7 +68,8 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           continue;
         }
 
-        if (!liveParticipant.getRunningInstance().getSessionId().equals(message.getTypedTgtSessionId())) {
+        if (!liveParticipant.getRunningInstance().getSessionId()
+            .equals(message.getTypedTgtSessionId())) {
           continue;
         }
 
@@ -126,17 +127,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
         Map<PartitionId, State> partitionStateMap = curState.getTypedPartitionStateMap();
         for (PartitionId partitionId : partitionStateMap.keySet()) {
-          Partition partition = resource.getSubUnit(partitionId);
-          if (partition != null) {
-            currentStateOutput.setCurrentState(resourceId, partitionId, participantId,
-                curState.getState(partitionId));
-          } else {
-            // log
-          }
+          currentStateOutput.setCurrentState(resourceId, partitionId, participantId,
+              curState.getState(partitionId));
         }
       }
     }
-
     event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
   }
 }

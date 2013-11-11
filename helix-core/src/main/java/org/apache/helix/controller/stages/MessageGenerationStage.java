@@ -82,7 +82,7 @@ public class MessageGenerationStage extends AbstractBaseStage {
 
       ResourceAssignment resourceAssignment =
           bestPossibleStateOutput.getResourceAssignment(resourceId);
-      for (PartitionId subUnitId : resourceConfig.getSubUnitMap().keySet()) {
+      for (PartitionId subUnitId : resourceAssignment.getMappedPartitionIds()) {
         Map<ParticipantId, State> instanceStateMap = resourceAssignment.getReplicaMap(subUnitId);
 
         // we should generate message based on the desired-state priority

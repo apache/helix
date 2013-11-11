@@ -121,10 +121,13 @@ public class MessageThrottleStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
+    BestPossibleStateOutput bestPossibleStateOutput =
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
 
-    if (cluster == null || resourceMap == null || msgSelectionOutput == null) {
+    if (cluster == null || resourceMap == null || msgSelectionOutput == null
+        || bestPossibleStateOutput == null) {
       throw new StageException("Missing attributes in event: " + event
-          + ". Requires ClusterDataCache|RESOURCES|MESSAGES_SELECTED");
+          + ". Requires ClusterDataCache|RESOURCES|BEST_POSSIBLE_STATE|MESSAGES_SELECTED");
     }
 
     MessageOutput output = new MessageOutput();
@@ -145,9 +148,9 @@ public class MessageThrottleStage extends AbstractBaseStage {
     // go through all new messages, throttle if necessary
     // assume messages should be sorted by state transition priority in messageSelection stage
     for (ResourceId resourceId : resourceMap.keySet()) {
-      ResourceConfig resource = resourceMap.get(resourceId);
       // TODO fix it
-      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
+      for (PartitionId partitionId : bestPossibleStateOutput.getResourceAssignment(resourceId)
+          .getMappedPartitionIds()) {
         List<Message> messages = msgSelectionOutput.getMessages(resourceId, partitionId);
         if (constraint != null && messages != null && messages.size() > 0) {
           messages = throttle(throttleCounterMap, constraint, messages, true);

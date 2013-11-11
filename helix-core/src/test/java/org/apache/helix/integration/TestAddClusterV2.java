@@ -20,14 +20,9 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Map.Entry;
 
-import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ClusterDistributedController;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -44,12 +39,14 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
   protected ClusterSetup _setupTool = null;
-  protected Map<String, StartCMResult> _startCMResultMap = new HashMap<String, StartCMResult>();
 
   protected final String CLASS_NAME = getShortClassName();
   protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
 
   protected static final String TEST_DB = "TestDB";
+
+  MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
+  ClusterDistributedController[] _distControllers = new ClusterDistributedController[NODE_NR];
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -88,29 +85,18 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
         "MasterSlave", 3, true);
 
     // start dummy participants for the first cluster
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      if (_startCMResultMap.get(instanceName) != null) {
-        LOG.error("fail to start participant:" + instanceName
-            + "(participant with the same name already running");
-      } else {
-        StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, firstCluster, instanceName);
-        _startCMResultMap.put(instanceName, result);
-      }
+      _participants[i] = new MockParticipantManager(ZK_ADDR, firstCluster, instanceName);
+      _participants[i].syncStart();
     }
 
     // start distributed cluster controllers
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < NODE_NR; i++) {
       String controllerName = CONTROLLER_PREFIX + "_" + i;
-      if (_startCMResultMap.get(controllerName) != null) {
-        LOG.error("fail to start controller:" + controllerName
-            + "(controller with the same name already running");
-      } else {
-        StartCMResult result =
-            TestHelper.startController(CONTROLLER_CLUSTER, controllerName, ZK_ADDR,
-                HelixControllerMain.DISTRIBUTED);
-        _startCMResultMap.put(controllerName, result);
-      }
+      _distControllers[i] =
+          new ClusterDistributedController(ZK_ADDR, CONTROLLER_CLUSTER, controllerName);
+      _distControllers[i].syncStart();
     }
 
     verifyClusters();
@@ -132,36 +118,22 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
      * 3) disconnect leader/disconnect participant
      */
     String leader = getCurrentLeader(_gZkClient, CONTROLLER_CLUSTER);
-    // pauseController(_startCMResultMap.get(leader)._manager.getDataAccessor());
-
-    StartCMResult result;
-
-    Iterator<Entry<String, StartCMResult>> it = _startCMResultMap.entrySet().iterator();
-
-    while (it.hasNext()) {
-      String instanceName = it.next().getKey();
-      if (!instanceName.equals(leader) && instanceName.startsWith(CONTROLLER_PREFIX)) {
-        result = _startCMResultMap.get(instanceName);
-        result._manager.disconnect();
-        result._thread.interrupt();
-        it.remove();
+    int leaderIdx = -1;
+    for (int i = 0; i < NODE_NR; i++) {
+      if (!_distControllers[i].getInstanceName().equals(leader)) {
+        _distControllers[i].syncStop();
+        verifyClusters();
+      } else {
+        leaderIdx = i;
       }
-      verifyClusters();
     }
+    Assert.assertNotSame(leaderIdx, -1);
 
-    result = _startCMResultMap.remove(leader);
-    result._manager.disconnect();
-    result._thread.interrupt();
+    _distControllers[leaderIdx].syncStop();
 
-    it = _startCMResultMap.entrySet().iterator();
-    while (it.hasNext()) {
-      String instanceName = it.next().getKey();
-      result = _startCMResultMap.get(instanceName);
-      result._manager.disconnect();
-      result._thread.interrupt();
-      it.remove();
+    for (int i = 0; i < NODE_NR; i++) {
+      _participants[i].syncStop();
     }
-
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 

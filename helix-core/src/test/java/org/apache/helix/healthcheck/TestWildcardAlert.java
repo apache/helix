@@ -43,18 +43,16 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.alerts.AlertValueAndStatus;
 import org.apache.helix.api.State;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.integration.ZkIntegrationTestBase;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.MockEspressoHealthReportProvider;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ClusterAlertMBeanCollection;
@@ -125,7 +123,6 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
   }
 
   private static final Logger _logger = Logger.getLogger(TestWildcardAlert.class);
-  ZkClient _zkClient;
   protected ClusterSetup _setupTool = null;
   protected final String _alertStr =
       "EXP(decay(1)(localhost_*.RestQueryStats@DBName=TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)";
@@ -134,15 +131,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    _setupTool = new ClusterSetup(ZK_ADDR);
+    _setupTool = new ClusterSetup(_gZkClient);
   }
 
   @AfterClass
   public void afterClass() {
-    _zkClient.close();
   }
 
   public class WildcardAlertTransition extends MockTransition {
@@ -208,7 +202,7 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
   @Test()
   public void testWildcardAlert() throws Exception {
     String clusterName = getShortClassName();
-    MockParticipant[] participants = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
 
     System.out.println("START TestWildcardAlert at " + new Date(System.currentTimeMillis()));
 
@@ -227,18 +221,18 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
     _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr);
     // _setupTool.getClusterManagementTool().addAlert(clusterName, _alertStr2);
 
-    StartCMResult cmResult =
-        TestHelper.startController(clusterName, "controller_0", ZK_ADDR,
-            HelixControllerMain.STANDALONE);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    controller.syncStart();
     // start participants
     for (int i = 0; i < 5; i++) // !!!change back to 5
     {
       String instanceName = "localhost_" + (12918 + i);
 
       participants[i] =
-          new MockParticipant(clusterName, instanceName, ZK_ADDR, new WildcardAlertTransition());
+          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i].setTransition(new WildcardAlertTransition());
       participants[i].syncStart();
-      // new Thread(participants[i]).start();
     }
 
     TestClusterMBeanObserver jmxMBeanObserver =
@@ -251,13 +245,13 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
     Thread.sleep(3000);
     // HealthAggregationTask is supposed to run by a timer every 30s
     // To make sure HealthAggregationTask is run, we invoke it explicitly for this test
-    new HealthStatsAggregator(cmResult._manager).aggregate();
+    new HealthStatsAggregator(controller).aggregate();
 
     // sleep for a few seconds to give stats stage time to trigger and for bean to trigger
     Thread.sleep(3000);
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // for (int i = 0; i < 1; i++) //change 1 back to 5
@@ -291,6 +285,12 @@ public class TestWildcardAlert extends ZkIntegrationTestBase {
             (String) (beanValueMap.get("SensorName")),
             "EXP(decay(1)(localhost_%.RestQueryStats@DBName#TestDB0.latency)|EXPAND|SUMEACH)CMP(GREATER)CON(10)--(%)");
     // }
+
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < 5; i++) {
+      participants[i].syncStop();
+    }
 
     System.out.println("END TestWildcardAlert at " + new Date(System.currentTimeMillis()));
   }

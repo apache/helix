@@ -30,10 +30,13 @@ import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory.Defaul
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestDefaultControllerMsgHandlerFactory {
+  private static Logger LOG = Logger.getLogger(TestDefaultControllerMsgHandlerFactory.class);
+
   @Test()
   public void testDefaultControllerMsgHandlerFactory() {
     System.out.println("START TestDefaultControllerMsgHandlerFactory at "
@@ -70,8 +73,7 @@ public class TestDefaultControllerMsgHandlerFactory {
     } catch (HelixException e) {
       exceptionCaught = true;
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted handling message", e);
     }
     AssertJUnit.assertTrue(exceptionCaught);
 
@@ -83,8 +85,7 @@ public class TestDefaultControllerMsgHandlerFactory {
     } catch (HelixException e) {
       exceptionCaught = true;
     } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Interrupted handling message", e);
     }
     AssertJUnit.assertFalse(exceptionCaught);
     System.out.println("END TestDefaultControllerMsgHandlerFactory at "

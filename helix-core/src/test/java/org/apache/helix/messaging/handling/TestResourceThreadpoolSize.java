@@ -35,8 +35,7 @@ import org.testng.annotations.Test;
 public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   @Test
   public void TestThreadPoolSizeConfig() {
-    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    HelixManager manager = _startCMResultMap.get(instanceName)._manager;
+    HelixManager manager = _participants[0];
     ConfigAccessor accessor = manager.getConfigAccessor();
     ConfigScope scope =
         new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource("NextDB").build();
@@ -52,11 +51,8 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
 
     long taskcount = 0;
     for (int i = 0; i < NODE_NR; i++) {
-      instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-
       DefaultMessagingService svc =
-          (DefaultMessagingService) (_startCMResultMap.get(instanceName)._manager
-              .getMessagingService());
+          (DefaultMessagingService) (_participants[i].getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
       ThreadPoolExecutor executor =
           (ThreadPoolExecutor) (helixExecutor._executorMap.get(MessageType.STATE_TRANSITION + "."

@@ -21,10 +21,10 @@ package org.apache.helix.manager.zk;
 
 import java.util.Date;
 
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -47,17 +47,17 @@ public class TestHandleNewSession extends ZkIntegrationTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    ZKHelixManager manager =
-        new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, ZK_ADDR);
-    manager.connect();
+    MockParticipantManager participant =
+        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
+    participant.syncStart();
 
     // Logger.getRootLogger().setLevel(Level.INFO);
-    String lastSessionId = manager.getSessionId();
+    String lastSessionId = participant.getSessionId();
     for (int i = 0; i < 3; i++) {
       // System.err.println("curSessionId: " + lastSessionId);
-      ZkTestHelper.expireSession(manager._zkClient);
+      ZkTestHelper.expireSession(participant.getZkClient());
 
-      String sessionId = manager.getSessionId();
+      String sessionId = participant.getSessionId();
       Assert.assertTrue(sessionId.compareTo(lastSessionId) > 0,
           "Session id should be increased after expiry");
       lastSessionId = sessionId;
@@ -71,7 +71,7 @@ public class TestHandleNewSession extends ZkIntegrationTestBase {
 
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("Disconnecting ...");
-    manager.disconnect();
+    participant.syncStop();
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

@@ -27,10 +27,10 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -46,7 +46,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     String clusterName = className + "_" + methodName;
     int n = 5;
 
-    MockParticipant[] participants = new MockParticipant[n];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -70,14 +70,15 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
         Arrays.asList(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString()));
     accessor.setProperty(key, idealState);
 
-    ClusterController controller = new ClusterController(clusterName, "controller", ZK_ADDR);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
     controller.syncStart();
 
     // start n-1 participants
     for (int i = 1; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR, null);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -87,7 +88,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     Assert.assertTrue(result);
 
     // start the remaining 1 participant
-    participants[0] = new MockParticipant(clusterName, "localhost_12918", ZK_ADDR, null);
+    participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
     participants[0].syncStart();
 
     // make sure we have all participants in MASTER state
@@ -107,6 +108,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     }
 
     // clean up
+    controller.syncStop();
     for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }

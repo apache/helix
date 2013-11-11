@@ -33,6 +33,7 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.healthcheck.HealthReportProvider;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.log4j.Logger;
 
 public class MockHealthReportParticipant {
@@ -209,9 +210,9 @@ public class MockHealthReportParticipant {
 
   // NOT working for kill -9, working for kill -2/-15
   static class MockHealthReportParticipantShutdownHook extends Thread {
-    final MockParticipant _participant;
+    final MockParticipantManager _participant;
 
-    MockHealthReportParticipantShutdownHook(MockParticipant participant) {
+    MockHealthReportParticipantShutdownHook(MockParticipantManager participant) {
       _participant = participant;
     }
 
@@ -231,12 +232,11 @@ public class MockHealthReportParticipant {
 
     String instanceName = hostStr + "_" + portStr;
 
-    MockParticipant participant =
-        new MockParticipant(clusterName, instanceName, zkConnectStr, null, // new
-                                                                           // StoreAccessDiffNodeTransition(),
-                                                                           // // new
-                                                                           // StoreAccessOneNodeTransition(),
-            new MockHealthReportJob());
+    MockParticipantManager participant =
+        new MockParticipantManager(zkConnectStr, clusterName, instanceName);
+    // participant.setTransition(new StoreAccessDiffNodeTransition());
+    // participant.setTransition(new StoreAccessOneNodeTransition()));
+    // new MockHealthReportJob());
     Runtime.getRuntime().addShutdownHook(new MockHealthReportParticipantShutdownHook(participant));
 
     // Espresso_driver.py will consume this

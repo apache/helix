@@ -19,14 +19,13 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Map;
 import java.util.logging.Level;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -37,7 +36,6 @@ import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
-import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -85,7 +83,7 @@ public class ZkIntegrationTestBase {
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -93,49 +91,6 @@ public class ZkIntegrationTestBase {
       return null;
     }
     return leader.getInstanceName();
-  }
-
-  /**
-   * Stop current leader and returns the new leader
-   * @param zkClient
-   * @param clusterName
-   * @param startCMResultMap
-   * @return
-   */
-  protected String stopCurrentLeader(ZkClient zkClient, String clusterName,
-      Map<String, StartCMResult> startCMResultMap) {
-    String leader = getCurrentLeader(zkClient, clusterName);
-    Assert.assertTrue(leader != null);
-    System.out.println("stop leader: " + leader + " in " + clusterName);
-    Assert.assertTrue(leader != null);
-
-    StartCMResult result = startCMResultMap.remove(leader);
-    Assert.assertTrue(result._manager != null);
-    result._manager.disconnect();
-
-    Assert.assertTrue(result._thread != null);
-    result._thread.interrupt();
-
-    boolean isNewLeaderElected = false;
-    String newLeader = null;
-    try {
-      for (int i = 0; i < 5; i++) {
-        Thread.sleep(1000);
-        newLeader = getCurrentLeader(zkClient, clusterName);
-        if (!newLeader.equals(leader)) {
-          isNewLeaderElected = true;
-          System.out.println("new leader elected: " + newLeader + " in " + clusterName);
-          break;
-        }
-      }
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    }
-    if (isNewLeaderElected == false) {
-      System.out.println("fail to elect a new leader in " + clusterName);
-    }
-    AssertJUnit.assertTrue(isNewLeaderElected);
-    return newLeader;
   }
 
   protected void enableHealthCheck(String clusterName) {

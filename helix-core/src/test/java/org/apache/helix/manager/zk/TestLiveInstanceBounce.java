@@ -19,10 +19,8 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.TestHelper;
-import org.apache.helix.TestHelper.StartCMResult;
-import org.apache.helix.ZkHelixTestManager;
 import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -30,24 +28,20 @@ import org.testng.annotations.Test;
 public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   @Test
   public void testInstanceBounce() throws Exception {
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    StartCMResult controllerResult = _startCMResultMap.get(controllerName);
-    ZkHelixTestManager controller = controllerResult._manager;
-    int handlerSize = controller.getHandlers().size();
+    int handlerSize = _controller.getHandlers().size();
 
     for (int i = 0; i < 2; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       // kill 2 participants
-      _startCMResultMap.get(instanceName)._manager.disconnect();
-      _startCMResultMap.get(instanceName)._thread.interrupt();
+      _participants[i].syncStop();
       try {
         Thread.sleep(1000);
       } catch (InterruptedException e) {
         e.printStackTrace();
       }
       // restart the participant
-      StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instanceName);
-      _startCMResultMap.put(instanceName, result);
+      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      _participants[i].syncStart();
       Thread.sleep(100);
     }
     Thread.sleep(4000);
@@ -61,11 +55,11 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertySe
     // and we will remove current-state listener on expired session
     // so the number of callback handlers is unchanged
     for (int j = 0; j < 10; j++) {
-      if (controller.getHandlers().size() == (handlerSize)) {
+      if (_controller.getHandlers().size() == (handlerSize)) {
         break;
       }
       Thread.sleep(400);
     }
-    Assert.assertEquals(controller.getHandlers().size(), handlerSize);
+    Assert.assertEquals(_controller.getHandlers().size(), handlerSize);
   }
 }

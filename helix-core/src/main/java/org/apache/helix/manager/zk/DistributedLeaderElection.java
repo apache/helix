@@ -20,10 +20,12 @@ package org.apache.helix.manager.zk;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
 
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
@@ -40,12 +42,15 @@ import org.apache.log4j.Logger;
 public class DistributedLeaderElection implements ControllerChangeListener {
   private static Logger LOG = Logger.getLogger(DistributedLeaderElection.class);
 
-  final AbstractManager _manager;
+  final HelixManager _manager;
   final GenericHelixController _controller;
+  final List<HelixTimerTask> _controllerTimerTasks;
 
-  public DistributedLeaderElection(AbstractManager manager, GenericHelixController controller) {
+  public DistributedLeaderElection(HelixManager manager, GenericHelixController controller,
+      List<HelixTimerTask> controllerTimerTasks) {
     _manager = manager;
     _controller = controller;
+    _controllerTimerTasks = controllerTimerTasks;
   }
 
   /**
@@ -68,7 +73,8 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       return;
     }
 
-    ControllerManagerHelper controllerHelper = new ControllerManagerHelper(_manager);
+    ControllerManagerHelper controllerHelper =
+        new ControllerManagerHelper(_manager, _controllerTimerTasks);
     try {
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
@@ -84,7 +90,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
                 + _manager.getClusterName());
 
             updateHistory(manager);
-            _manager._baseDataAccessor.reset();
+            _manager.getHelixDataAccessor().getBaseDataAccessor().reset();
             controllerHelper.addListenersToController(_controller);
             controllerHelper.startControllerTimerTasks();
           }
@@ -98,7 +104,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
         /**
          * clear write-through cache
          */
-        _manager._baseDataAccessor.reset();
+        _manager.getHelixDataAccessor().getBaseDataAccessor().reset();
       }
 
     } catch (Exception e) {

@@ -102,6 +102,7 @@ public interface HelixManager {
    * @param listener
    * @deprecated replaced by addInstanceConfigChangeListener()
    */
+  @Deprecated
   void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
 
   /**
@@ -153,6 +154,12 @@ public interface HelixManager {
    * Used in distributed cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
+
+  /**
+   * Add message listener for controller
+   * @param listener
+   */
+  void addControllerMessageListener(MessageListener listener);
 
   /**
    * Removes the listener. If the same listener was used for multiple changes,

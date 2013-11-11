@@ -43,9 +43,9 @@ import org.testng.annotations.Test;
 public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
   @Test
   public void testStateMismatch() throws InterruptedException {
-    String controllerName = CONTROLLER_PREFIX + "_0";
+    // String controllerName = CONTROLLER_PREFIX + "_0";
 
-    HelixManager manager = _startCMResultMap.get(controllerName)._manager;
+    HelixManager manager = _controller; // _startCMResultMap.get(controllerName)._manager;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder kb = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));

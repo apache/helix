@@ -28,21 +28,22 @@ import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.MockJobIntf;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
+  private static Logger LOG = Logger.getLogger(TestHelixCustomCodeRunner.class);
+
   private final String _clusterName = "CLUSTER_" + getShortClassName();
   private final int _nodeNb = 5;
   private final int _startPort = 12918;
@@ -75,8 +76,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
         customCodeRunner.invoke(_callback).on(ChangeType.LIVE_INSTANCE)
             .usingLeaderStandbyModel("TestParticLeader").start();
       } catch (Exception e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        LOG.error("Exception do pre-connect job", e);
       }
     }
 
@@ -101,15 +101,19 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
         _nodeNb, // replica
         "MasterSlave", true);
 
-    TestHelper.startController(_clusterName, "controller_0", ZK_ADDR,
-        HelixControllerMain.STANDALONE);
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
+    controller.syncStart();
 
-    MockParticipant[] partics = new MockParticipant[5];
+    MockParticipantManager[] participants = new MockParticipantManager[5];
     for (int i = 0; i < _nodeNb; i++) {
       String instanceName = "localhost_" + (_startPort + i);
 
-      partics[i] = new MockParticipant(_clusterName, instanceName, ZK_ADDR, null, new MockJob());
-      partics[i].syncStart();
+      MockJob job = new MockJob();
+      participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
+
+      job.doPreConnectJob(participants[i]);
+      participants[i].syncStart();
     }
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -121,19 +125,25 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     _callback._isCallbackInvoked = false;
 
     // add a new live instance
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
+    // ZkClient zkClient = new ZkClient(ZK_ADDR);
+    // zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+        new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
-    newLiveIns.setHelixVersion("0.0.0");
+    newLiveIns.setHelixVersion("0.6.0");
     newLiveIns.setSessionId("randomSessionId");
     accessor.setProperty(keyBuilder.liveInstance("newLiveInstance"), newLiveIns);
 
     Thread.sleep(1000); // wait for the CALLBACK type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);
+
+    // clean up
+    controller.syncStop();
+    for (int i = 0; i < _nodeNb; i++) {
+      participants[i].syncStop();
+    }
 
     System.out.println("END " + _clusterName + " at " + new Date(System.currentTimeMillis()));
   }

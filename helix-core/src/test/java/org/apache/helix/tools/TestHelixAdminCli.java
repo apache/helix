@@ -31,13 +31,12 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.ZkIntegrationTestBase;
+import org.apache.helix.integration.manager.ClusterDistributedController;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.controller.ClusterController;
-import org.apache.helix.mock.participant.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -240,8 +239,8 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     final int n = 6;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-    MockParticipant[] participants = new MockParticipant[n];
-    ClusterController[] controllers = new ClusterController[2];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
 
     // activate clusters
@@ -311,14 +310,12 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     Assert.assertTrue(verifyResult);
 
     // clean up
-    // for (int i = 0; i < 2; i++) {
-    // controllers[i].syncStop();
-    // Thread.sleep(1000); // wait for all zk callbacks done
-    // }
-    // Thread.sleep(5000);
-    // for (int i = 0; i < n; i++) {
-    // participants[i].syncStop();
-    // }
+    for (ClusterDistributedController controller : controllers) {
+      controller.syncStop();
+    }
+    for (int i = 0; i < participants.length; i++) {
+      participants[i].syncStop();
+    }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -333,11 +330,11 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipant[] participants = new MockParticipant[n];
-    ClusterController[] controllers = new ClusterController[2];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Thread.sleep(500);
 
@@ -357,7 +354,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     pw.write(new String(serializer.serialize(idealState.getRecord())));
     pw.close();
 
-    command = "-zkSvr localhost:2183 -dropResource " + clusterName + " db_11 ";
+    command = "-zkSvr " + ZK_ADDR + " -dropResource " + clusterName + " db_11 ";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     boolean verifyResult =
@@ -365,7 +362,8 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(verifyResult);
 
-    command = "-zkSvr localhost:2183 -addIdealState " + clusterName + " db_11 " + tmpIdealStateFile;
+    command =
+        "-zkSvr " + ZK_ADDR + " -addIdealState " + clusterName + " db_11 " + tmpIdealStateFile;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     verifyResult =
@@ -377,61 +375,59 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     Assert.assertTrue(idealState2.getRecord().equals(idealState.getRecord()));
 
     // clean up
-    // for (int i = 0; i < 2; i++) {
-    // controllers[i].syncStop();
-    // Thread.sleep(1000); // wait for all zk callbacks done
-    // }
-    // Thread.sleep(5000);
-    // for (int i = 0; i < n; i++) {
-    // participants[i].syncStop();
-    // }
+    for (int i = 0; i < controllers.length; i++) {
+      controllers[i].syncStop();
+    }
+    for (int i = 0; i < participants.length; i++) {
+      participants[i].syncStop();
+    }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
   }
 
   private void setupCluster(String clusterName, String grandClusterName, final int n,
-      MockParticipant[] participants, ClusterController[] controllers) throws Exception,
+      MockParticipantManager[] participants, ClusterDistributedController[] controllers)
+      throws Exception,
       InterruptedException {
     // add cluster
-    String command = "-zkSvr localhost:2183 -addCluster " + clusterName;
+    String command = "-zkSvr " + ZK_ADDR + " -addCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // add grand cluster
-    command = "-zkSvr localhost:2183 -addCluster " + grandClusterName;
+    command = "-zkSvr " + ZK_ADDR + " -addCluster " + grandClusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // add nodes
     for (int i = 0; i < n; i++) {
-      command = "-zkSvr localhost:2183 -addNode " + clusterName + " localhost:123" + i;
+      command = "-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:123" + i;
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     }
 
     // add resource
-    command = "-zkSvr localhost:2183 -addResource " + clusterName + " db_11 48 MasterSlave";
+    command = "-zkSvr " + ZK_ADDR + " -addResource " + clusterName + " db_11 48 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // rebalance with key prefix
-    command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 2 -key alias";
+    command = "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 2 -key alias";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // add nodes to grand cluster
     command =
-        "-zkSvr localhost:2183 -addNode " + grandClusterName + " controller:9000;controller:9001";
+        "-zkSvr " + ZK_ADDR + " -addNode " + grandClusterName + " controller:9000;controller:9001";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // start mock nodes
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_123" + i;
-      participants[i] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       controllers[i] =
-          new ClusterController(grandClusterName, "controller_900" + i, ZK_ADDR,
-              HelixControllerMain.DISTRIBUTED);
+          new ClusterDistributedController(ZK_ADDR, grandClusterName, "controller_900" + i);
       controllers[i].syncStart();
     }
 
@@ -448,16 +444,16 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipant[] participants = new MockParticipant[n];
-    ClusterController[] controllers = new ClusterController[2];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Thread.sleep(500);
 
     // drop node should fail if the node is not disabled
-    command = "-zkSvr localhost:2183 -dropNode " + clusterName + " localhost:1232";
+    command = "-zkSvr " + ZK_ADDR + " -dropNode " + clusterName + " localhost:1232";
     try {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("dropNode should fail since the node is not disabled");
@@ -466,11 +462,11 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     }
 
     // disabled node
-    command = "-zkSvr localhost:2183 -enableInstance " + clusterName + " localhost:1232 false";
+    command = "-zkSvr " + ZK_ADDR + " -enableInstance " + clusterName + " localhost:1232 false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // Cannot dropNode if the node is not disconnected
-    command = "-zkSvr localhost:2183 -dropNode " + clusterName + " localhost:1232";
+    command = "-zkSvr " + ZK_ADDR + " -dropNode " + clusterName + " localhost:1232";
     try {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("dropNode should fail since the node is not disconnected");
@@ -480,7 +476,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     // Cannot swapNode if the node is not disconnected
     command =
-        "-zkSvr localhost:2183 -swapInstance " + clusterName + " localhost_1232 localhost_12320";
+        "-zkSvr " + ZK_ADDR + " -swapInstance " + clusterName + " localhost_1232 localhost_12320";
     try {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("swapInstance should fail since the node is not disconnected");
@@ -492,12 +488,12 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     participants[2].syncStop();
 
     // add new node then swap instance
-    command = "-zkSvr localhost:2183 -addNode " + clusterName + " localhost:12320";
+    command = "-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:12320";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // swap instance. The instance get swapped out should not exist anymore
     command =
-        "-zkSvr localhost:2183 -swapInstance " + clusterName + " localhost_1232 localhost_12320";
+        "-zkSvr " + ZK_ADDR + " -swapInstance " + clusterName + " localhost_1232 localhost_12320";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
@@ -505,6 +501,14 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
     Assert.assertFalse(_gZkClient.exists(path), path
         + " should not exist since localhost_1232 has been swapped by localhost_12320");
+
+    // clean up
+    for (int i = 0; i < controllers.length; i++) {
+      controllers[i].syncStop();
+    }
+    for (int i = 0; i < participants.length; i++) {
+      participants[i].syncStop();
+    }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -519,26 +523,26 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipant[] participants = new MockParticipant[n];
-    ClusterController[] controllers = new ClusterController[2];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Thread.sleep(500);
 
     command =
-        "-zkSvr localhost:2183 -addNode " + clusterName
+        "-zkSvr " + ZK_ADDR + " -addNode " + clusterName
             + " localhost:12331;localhost:12341;localhost:12351;localhost:12361";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     command = "-zkSvr localhost:2183 -expandCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    MockParticipant[] newParticipants = new MockParticipant[4];
+    MockParticipantManager[] newParticipants = new MockParticipantManager[4];
     for (int i = 3; i <= 6; i++) {
       String instanceName = "localhost_123" + i + "1";
-      newParticipants[i - 3] = new MockParticipant(clusterName, instanceName, ZK_ADDR);
+      newParticipants[i - 3] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       newParticipants[i - 3].syncStart();
     }
 
@@ -551,6 +555,17 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(verifyResult);
+
+    // clean up
+    for (int i = 0; i < controllers.length; i++) {
+      controllers[i].syncStop();
+    }
+    for (int i = 0; i < participants.length; i++) {
+      participants[i].syncStop();
+    }
+    for (int i = 0; i < newParticipants.length; i++) {
+      newParticipants[i].syncStop();
+    }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -565,17 +580,18 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipant[] participants = new MockParticipant[n];
-    ClusterController[] controllers = new ClusterController[2];
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " true";
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     Thread.sleep(500);
 
     // deactivate cluster
     command =
-        "-zkSvr localhost:2183 -activateCluster " + clusterName + " " + grandClusterName + " false";
+        "-zkSvr " + ZK_ADDR + " -activateCluster " + clusterName + " " + grandClusterName
+            + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
@@ -590,7 +606,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     Assert.assertFalse(_gZkClient.exists(path),
         "leader should be gone after deactivate the cluster");
 
-    command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
+    command = "-zkSvr " + ZK_ADDR + " -dropCluster " + clusterName;
     try {
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
       Assert.fail("dropCluster should fail since there are still instances running");
@@ -598,16 +614,15 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
       // OK
     }
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < participants.length; i++) {
       participants[i].syncStop();
     }
 
     command = "-zkSvr localhost:2183 -dropCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s"));
 
-    for (int i = 0; i < 2; i++) {
+    for (int i = 0; i < controllers.length; i++) {
       controllers[i].syncStop();
-      Thread.sleep(1000);
     }
     command = "-zkSvr localhost:2183 -dropCluster " + grandClusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
@@ -627,29 +642,30 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    String command = "-zkSvr localhost:2183 -addCluster " + clusterName;
+    String command = "-zkSvr " + ZK_ADDR + " -addCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     command = "-zkSvr localhost:2183 -addResource " + clusterName + " db_11 12 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     for (int i = 0; i < 6; i++) {
-      command = "-zkSvr localhost:2183 -addNode " + clusterName + " localhost:123" + i;
+      command = "-zkSvr " + ZK_ADDR + " -addNode " + clusterName + " localhost:123" + i;
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     }
 
     for (int i = 0; i < 2; i++) {
       command =
-          "-zkSvr localhost:2183 -addInstanceTag " + clusterName + " localhost_123" + i + "  tag1";
+          "-zkSvr " + ZK_ADDR + " -addInstanceTag " + clusterName + " localhost_123" + i + "  tag1";
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     }
     for (int i = 2; i < 6; i++) {
       command =
-          "-zkSvr localhost:2183 -addInstanceTag " + clusterName + " localhost_123" + i + "  tag2";
+          "-zkSvr " + ZK_ADDR + " -addInstanceTag " + clusterName + " localhost_123" + i + "  tag2";
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     }
 
-    command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 2 -instanceGroupTag tag1";
+    command =
+        "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 2 -instanceGroupTag tag1";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     IdealState dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
@@ -664,14 +680,15 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     }
     Assert.assertEquals(hosts.size(), 2);
 
-    command = "-zkSvr localhost:2183 -dropResource " + clusterName + " db_11 ";
+    command = "-zkSvr " + ZK_ADDR + " -dropResource " + clusterName + " db_11 ";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     // re-add and rebalance
-    command = "-zkSvr localhost:2183 -addResource " + clusterName + " db_11 48 MasterSlave";
+    command = "-zkSvr " + ZK_ADDR + " -addResource " + clusterName + " db_11 48 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
+    command =
+        "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
@@ -686,21 +703,22 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     }
     Assert.assertEquals(hosts.size(), 4);
 
-    command = "-zkSvr localhost:2183 -dropResource " + clusterName + " db_11 ";
+    command = "-zkSvr " + ZK_ADDR + " -dropResource " + clusterName + " db_11 ";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     for (int i = 3; i <= 3; i++) {
       command =
-          "-zkSvr localhost:2183 -removeInstanceTag " + clusterName + " localhost_123" + i
+          "-zkSvr " + ZK_ADDR + " -removeInstanceTag " + clusterName + " localhost_123" + i
               + " tag2";
       ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     }
 
     // re-add and rebalance
-    command = "-zkSvr localhost:2183 -addResource " + clusterName + " db_11 48 MasterSlave";
+    command = "-zkSvr " + ZK_ADDR + " -addResource " + clusterName + " db_11 48 MasterSlave";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
+    command =
+        "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 3 -instanceGroupTag tag2";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     dbIs = accessor.getProperty(accessor.keyBuilder().idealStates("db_11"));
     hosts = new HashSet<ParticipantId>();
@@ -715,7 +733,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
     Assert.assertEquals(hosts.size(), 3);
 
     // rebalance with key prefix
-    command = "-zkSvr localhost:2183 -rebalance " + clusterName + " db_11 2 -key alias";
+    command = "-zkSvr " + ZK_ADDR + " -rebalance " + clusterName + " db_11 2 -key alias";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

@@ -130,6 +130,15 @@ under the License.
       <timezone>-8</timezone>
     </developer>
     <developer>
+      <id>swaroop-aj</id>
+      <name>Swaroop Jagadish</name>
+      <email>swaroop-aj@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
+    <developer>
       <id>rahula</id>
       <name>Rahul Aggarwal</name>
       <email>rahula@apache.org</email>
@@ -244,7 +253,7 @@ under the License.
     </repository>
   </repositories>
 
- 
+
   <pluginRepositories>
     <pluginRepository>
       <id>apache.snapshots</id>
@@ -308,10 +317,10 @@ under the License.
     <osgi.ignore/>
     <osgi.activator/>
     <osgi.export.service/>
-    
+
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->
-    
+
     <!--  Configuration for unit/integration tests section 1 of 3 (properties) STARTS HERE.
     Property for running integration tests with profiles
     at the command line, where you do:
@@ -523,7 +532,7 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.2</version>
+        <version>3.3</version>
         <dependencies>
           <dependency>
             <groupId>org.apache.maven.doxia</groupId>

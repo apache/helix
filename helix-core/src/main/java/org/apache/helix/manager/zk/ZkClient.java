@@ -345,6 +345,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   @Override
   public boolean delete(final String path) {
+    return this.delete(path, -1);
+  }
+
+  public boolean delete(final String path, final int version) {
     long startT = System.nanoTime();
     try {
       try {
@@ -352,7 +356,8 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
           @Override
           public Object call() throws Exception {
-            _connection.delete(path);
+            ZkConnection connection = (ZkConnection) _connection;
+            connection.getZookeeper().delete(path, version);
             return null;
           }
         });

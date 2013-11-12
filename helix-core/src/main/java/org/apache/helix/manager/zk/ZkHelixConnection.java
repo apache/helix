@@ -1,5 +1,24 @@
 package org.apache.helix.manager.zk;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,6 +41,7 @@ import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixAutoController;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixConnectionStateListener;
@@ -67,7 +87,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   final Set<HelixConnectionStateListener> _connectionListener =
       new CopyOnWriteArraySet<HelixConnectionStateListener>();
 
-  final Map<HelixRole, List<CallbackHandler>> _handlers;
+  final Map<HelixRole, List<ZkCallbackHandler>> _handlers;
   final HelixManagerProperties _properties;
 
   /**
@@ -88,7 +108,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
 
   public ZkHelixConnection(String zkAddr) {
     _zkAddr = zkAddr;
-    _handlers = new HashMap<HelixRole, List<CallbackHandler>>();
+    _handlers = new HashMap<HelixRole, List<ZkCallbackHandler>>();
 
     /**
      * use system property if available
@@ -198,6 +218,11 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   @Override
   public HelixController createController(ClusterId clusterId, ControllerId controllerId) {
     return new ZkHelixController(this, clusterId, controllerId);
+  }
+
+  @Override
+  public HelixAutoController createAutoController(ClusterId clusterId, ControllerId controllerId) {
+    return new ZkHelixAutoController(this, clusterId, controllerId);
   }
 
   @Override
@@ -374,14 +399,14 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   public boolean removeListener(HelixRole role, Object listener, PropertyKey key) {
     LOG.info("role: " + role + " removing listener: " + listener + " on path: " + key.getPath()
         + " from connection: " + this);
-    List<CallbackHandler> toRemove = new ArrayList<CallbackHandler>();
-    List<CallbackHandler> handlerList = _handlers.get(role);
+    List<ZkCallbackHandler> toRemove = new ArrayList<ZkCallbackHandler>();
+    List<ZkCallbackHandler> handlerList = _handlers.get(role);
     if (handlerList == null) {
       return true;
     }
 
     synchronized (this) {
-      for (CallbackHandler handler : handlerList) {
+      for (ZkCallbackHandler handler : handlerList) {
         // compare property-key path and listener reference
         if (handler.getPath().equals(key.getPath()) && handler.getListener().equals(listener)) {
           toRemove.add(handler);
@@ -395,7 +420,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
     }
 
     // handler.reset() may modify the handlers list, so do it outside the iteration
-    for (CallbackHandler handler : toRemove) {
+    for (ZkCallbackHandler handler : toRemove) {
       handler.reset();
     }
 
@@ -529,16 +554,15 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   void addListener(HelixRole role, Object listener, PropertyKey propertyKey, ChangeType changeType,
       EventType[] eventType) {
     // checkConnected();
-    HelixManager manager = new HelixConnectionAdaptor(role);
     PropertyType type = propertyKey.getType();
 
     synchronized (this) {
       if (!_handlers.containsKey(role)) {
-        _handlers.put(role, new CopyOnWriteArrayList<CallbackHandler>());
+        _handlers.put(role, new CopyOnWriteArrayList<ZkCallbackHandler>());
       }
-      List<CallbackHandler> handlerList = _handlers.get(role);
+      List<ZkCallbackHandler> handlerList = _handlers.get(role);
 
-      for (CallbackHandler handler : handlerList) {
+      for (ZkCallbackHandler handler : handlerList) {
         // compare property-key path and listener reference
         if (handler.getPath().equals(propertyKey.getPath())
             && handler.getListener().equals(listener)) {
@@ -549,8 +573,8 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
         }
       }
 
-      CallbackHandler newHandler =
-          new CallbackHandler(manager, _zkclient, propertyKey, listener, eventType, changeType);
+      ZkCallbackHandler newHandler =
+          new ZkCallbackHandler(role, _zkclient, propertyKey, listener, eventType, changeType);
 
       handlerList.add(newHandler);
       LOG.info("role: " + role + " added listener: " + listener + " for type: " + type
@@ -560,10 +584,10 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
 
   void initHandlers(HelixRole role) {
     synchronized (this) {
-      List<CallbackHandler> handlerList = _handlers.get(role);
+      List<ZkCallbackHandler> handlerList = _handlers.get(role);
 
       if (handlerList != null) {
-        for (CallbackHandler handler : handlerList) {
+        for (ZkCallbackHandler handler : handlerList) {
           handler.init();
           LOG.info("role: " + role + ", init handler: " + handler.getPath() + ", "
               + handler.getListener());
@@ -574,10 +598,10 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
 
   void resetHandlers(HelixRole role) {
     synchronized (this) {
-      List<CallbackHandler> handlerList = _handlers.get(role);
+      List<ZkCallbackHandler> handlerList = _handlers.get(role);
 
       if (handlerList != null) {
-        for (CallbackHandler handler : handlerList) {
+        for (ZkCallbackHandler handler : handlerList) {
           handler.reset();
           LOG.info("role: " + role + ", reset handler: " + handler.getPath() + ", "
               + handler.getListener());

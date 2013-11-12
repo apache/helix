@@ -142,10 +142,9 @@ public class LogicalModelExample {
     autoJoinParticipant.stopAsync();
 
     // stop the controller
-    helixParticipant.stopAsync();
+    helixController.stopAsync();
 
     // drop the cluster
-    Thread.sleep(5000);
     dropCluster(clusterId, connection);
     connection.disconnect();
   }

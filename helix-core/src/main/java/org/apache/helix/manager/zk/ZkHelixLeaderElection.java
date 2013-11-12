@@ -1,5 +1,24 @@
 package org.apache.helix.manager.zk;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.lang.management.ManagementFactory;
 
 import org.apache.helix.ControllerChangeListener;
@@ -58,11 +77,13 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
     }
 
     try {
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
       if (changeContext.getType().equals(NotificationContext.Type.INIT)
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
         LOG.info(_controllerId + " is trying to acquire leadership for cluster: " + _clusterId);
-        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
 
         while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
           boolean success = tryUpdateController(_manager);
@@ -83,7 +104,17 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
         /**
          * clear write-through cache
          */
-        _manager.getHelixDataAccessor().getBaseDataAccessor().reset();
+        accessor.getBaseDataAccessor().reset();
+
+        /**
+         * remove leader ephemeral znode if this is the leader
+         * note that session expiry may happen during checking leader and remove leader
+         * in this race condition, we may remove a leader node created by another controller
+         * this is fine since it will just invoke another round of leader-election
+         */
+        if (_controller.isLeader()) {
+          accessor.removeProperty(keyBuilder.controllerLeader());
+        }
       }
 
     } catch (Exception e) {

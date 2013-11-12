@@ -25,6 +25,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.Stage;
@@ -42,6 +46,8 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Functions;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -60,9 +66,10 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
     Collections.sort(_expectSortedLiveNodes);
   }
 
-  boolean verifyLiveNodes(List<String> actualLiveNodes) {
+  boolean verifyLiveNodes(List<ParticipantId> actualLiveNodes) {
     Collections.sort(actualLiveNodes);
-    return _expectSortedLiveNodes.equals(actualLiveNodes);
+    List<String> rawActualLiveNodes = Lists.transform(actualLiveNodes, Functions.toStringFunction());
+    return _expectSortedLiveNodes.equals(rawActualLiveNodes);
   }
 
   /**
@@ -71,7 +78,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
    * @return
    */
   boolean verifyExternalView(ExternalView externalView,
-      Map<Partition, Map<String, String>> bestPossibleState) {
+      Map<PartitionId, Map<String, String>> bestPossibleState) {
     Map<String, Map<String, String>> bestPossibleStateMap =
         convertBestPossibleState(bestPossibleState);
     // trimBestPossibleState(bestPossibleStateMap);
@@ -88,9 +95,9 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
     stage.postProcess();
   }
 
-  BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache) throws Exception {
+  BestPossibleStateOutput calculateBestPossibleState(Cluster cluster) throws Exception {
     ClusterEvent event = new ClusterEvent("event");
-    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute("ClusterDataCache", cluster);
 
     List<Stage> stages = new ArrayList<Stage>();
     stages.add(new ResourceComputationStage());
@@ -130,21 +137,21 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
   // }
 
   static Map<String, Map<String, String>> convertBestPossibleState(
-      Map<Partition, Map<String, String>> bestPossibleState) {
+      Map<PartitionId, Map<String, String>> bestPossibleState) {
     Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-    for (Partition partition : bestPossibleState.keySet()) {
-      result.put(partition.getPartitionName(), bestPossibleState.get(partition));
+    for (PartitionId partition : bestPossibleState.keySet()) {
+      result.put(partition.stringify(), bestPossibleState.get(partition));
     }
     return result;
   }
 
   @Override
   public boolean verify() throws Exception {
-    ClusterDataCache cache = new ClusterDataCache();
-    cache.refresh(_accessor);
+    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(_clusterName), _accessor);
+    Cluster cluster = clusterAccessor.readCluster();
 
-    List<String> liveInstances = new ArrayList<String>();
-    liveInstances.addAll(cache.getLiveInstances().keySet());
+    List<ParticipantId> liveInstances = new ArrayList<ParticipantId>();
+    liveInstances.addAll(cluster.getLiveParticipantMap().keySet());
     boolean success = verifyLiveNodes(liveInstances);
     if (!success) {
       LOG.info("liveNodes not match, expect: " + _expectSortedLiveNodes + ", actual: "
@@ -152,7 +159,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
       return false;
     }
 
-    BestPossibleStateOutput bestPossbileStates = calculateBestPossibleState(cache);
+    BestPossibleStateOutput bestPossbileStates = calculateBestPossibleState(cluster);
     Map<String, ExternalView> externalViews =
         _accessor.getChildValuesMap(_keyBuilder.externalViews());
 
@@ -162,11 +169,11 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
       ExternalView externalView = externalViews.get(resourceName);
       ResourceAssignment assignment =
           bestPossbileStates.getResourceAssignment(ResourceId.from(resourceName));
-      final Map<Partition, Map<String, String>> bestPossibleState = Maps.newHashMap();
+      final Map<PartitionId, Map<String, String>> bestPossibleState = Maps.newHashMap();
       for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
         Map<String, String> rawStateMap =
             ResourceAssignment.stringMapFromReplicaMap(assignment.getReplicaMap(partitionId));
-        bestPossibleState.put(new Partition(partitionId.stringify()), rawStateMap);
+        bestPossibleState.put(partitionId, rawStateMap);
       }
       success = verifyExternalView(externalView, bestPossibleState);
       if (!success) {

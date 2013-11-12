@@ -68,6 +68,17 @@ public class ResourceCurrentState {
   }
 
   /**
+   * Get all the resources seen in the aggregated current state
+   * @return set of ResourceId
+   */
+  public Set<ResourceId> getResourceIds() {
+    Set<ResourceId> allResources = Sets.newHashSet();
+    allResources.addAll(_currentStateMap.keySet());
+    allResources.addAll(_pendingStateMap.keySet());
+    return allResources;
+  }
+
+  /**
    * @param resourceId
    * @param stateModelDefId
    */

@@ -33,6 +33,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.controller.rebalancer.FallbackRebalancer;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.context.RebalancerContext;
@@ -172,18 +173,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
+      RebalancerContext context = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
+      StateModelDefinition stateModelDef = stateModelDefs.get(context.getStateModelDefId());
       ResourceAssignment resourceAssignment = null;
       if (rebalancerConfig != null) {
         HelixRebalancer rebalancer = rebalancerConfig.getRebalancer();
-        if (rebalancer != null) {
-          HelixManager manager = event.getAttribute("helixmanager");
-          rebalancer.init(manager);
-          resourceAssignment =
-              rebalancer.computeResourceMapping(rebalancerConfig, cluster, currentStateOutput);
+        HelixManager manager = event.getAttribute("helixmanager");
+        if (rebalancer == null) {
+          rebalancer = new FallbackRebalancer();
         }
+        rebalancer.init(manager);
+        resourceAssignment =
+            rebalancer.computeResourceMapping(rebalancerConfig, cluster, currentStateOutput);
       }
-      RebalancerContext context = rebalancerConfig.getRebalancerContext(RebalancerContext.class);
-      StateModelDefinition stateModelDef = stateModelDefs.get(context.getStateModelDefId());
       if (resourceAssignment == null) {
         resourceAssignment =
             mapDroppedResource(cluster, resourceId, currentStateOutput, stateModelDef);

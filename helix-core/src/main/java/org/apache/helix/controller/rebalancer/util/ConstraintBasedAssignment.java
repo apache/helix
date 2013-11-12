@@ -260,4 +260,54 @@ public class ConstraintBasedAssignment {
     }
     return stateCountMap;
   }
+
+  /**
+   * compute best state for resource in CUSTOMIZED rebalancer mode
+   * @param liveParticipantMap
+   * @param stateModelDef
+   * @param preferenceMap
+   * @param currentStateMap
+   * @param disabledParticipantsForPartition
+   * @return
+   */
+  public static Map<ParticipantId, State> computeCustomizedBestStateForPartition(
+      Set<ParticipantId> liveParticipantSet, StateModelDefinition stateModelDef,
+      Map<ParticipantId, State> preferenceMap, Map<ParticipantId, State> currentStateMap,
+      Set<ParticipantId> disabledParticipantsForPartition) {
+    Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
+
+    // if the resource is deleted, idealStateMap will be null/empty and
+    // we should drop all resources.
+    if (currentStateMap != null) {
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        if ((preferenceMap == null || !preferenceMap.containsKey(participantId))
+            && !disabledParticipantsForPartition.contains(participantId)) {
+          // if dropped and not disabled, transit to DROPPED
+          participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
+        } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
+            participantId).equals(State.from(HelixDefinedState.ERROR)))
+            && disabledParticipantsForPartition.contains(participantId)) {
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
+          participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
+        }
+      }
+    }
+
+    // ideal state is deleted
+    if (preferenceMap == null) {
+      return participantStateMap;
+    }
+
+    for (ParticipantId participantId : preferenceMap.keySet()) {
+      boolean notInErrorState =
+          currentStateMap == null || currentStateMap.get(participantId) == null
+              || !currentStateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR));
+
+      if (liveParticipantSet.contains(participantId) && notInErrorState
+          && !disabledParticipantsForPartition.contains(participantId)) {
+        participantStateMap.put(participantId, preferenceMap.get(participantId));
+      }
+    }
+    return participantStateMap;
+  }
 }

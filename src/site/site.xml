@@ -89,14 +89,13 @@
     <menu ref="reports" inherit="bottom"/>
     <menu ref="modules" inherit="bottom"/>
 
-
+-->
     <menu name="ASF">
       <item name="How Apache Works" href="http://www.apache.org/foundation/how-it-works.html"/>
       <item name="Foundation" href="http://www.apache.org/foundation/"/>
       <item name="Sponsoring Apache" href="http://www.apache.org/foundation/sponsorship.html"/>
       <item name="Thanks" href="http://www.apache.org/foundation/thanks.html"/>
     </menu>
--->
     <footer>
       <div class="row span16"><div>Apache Helix, Apache, the Apache feather logo, and the Apache Helix project logos are trademarks of The Apache Software Foundation.
         All other marks mentioned may be trademarks or registered trademarks of their respective owners.</div>

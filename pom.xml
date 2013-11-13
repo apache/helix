@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.2-incubating-SNAPSHOT</version>
+  <version>0.7.0-incubating</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -271,7 +271,7 @@ under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</developerConnection>
     <url>https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary</url>
-    <tag>HEAD</tag>
+    <tag>helix-0.7.0-incubating</tag>
   </scm>
   <issueManagement>
     <system>jira</system>
@@ -309,14 +309,14 @@ under the License.
     <currentRelease>0.6.1-incubating</currentRelease>
 
     <!-- OSGi Properties -->
-    <osgi.import/>
-    <osgi.dynamic.import/>
-    <osgi.require.bundles/>
-    <osgi.export/>
-    <osgi.private/>
-    <osgi.ignore/>
-    <osgi.activator/>
-    <osgi.export.service/>
+    <osgi.import />
+    <osgi.dynamic.import />
+    <osgi.require.bundles />
+    <osgi.export />
+    <osgi.private />
+    <osgi.ignore />
+    <osgi.activator />
+    <osgi.export.service />
 
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->

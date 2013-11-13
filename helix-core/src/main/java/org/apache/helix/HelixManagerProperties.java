@@ -96,7 +96,7 @@ public class HelixManagerProperties {
    */
   static boolean versionNoLessThan(String version1, String version2) {
     if (version1 == null || version2 == null) {
-      LOG.warn("fail to compare versions. version1: " + version1 + ", version2: " + version2);
+      LOG.warn("Skip null version check. version1: " + version1 + ", version2: " + version2);
       return true;
     }
 
@@ -105,7 +105,8 @@ public class HelixManagerProperties {
 
     if (version1Splits == null || version1Splits.length == 0 || version2Splits == null
         || version2Splits.length == 0) {
-      LOG.warn("fail to compare versions. version1: " + version1 + ", version2: " + version2);
+      LOG.warn("Skip empty version check. version1: " + version1 + ", version2: " + version2);
+      return true;
     }
 
     for (int i = 0; i < version1Splits.length && i < version2Splits.length; i++) {
@@ -115,9 +116,13 @@ public class HelixManagerProperties {
 
         if (versionNum1 < versionNum2) {
           return false;
+        } else if (versionNum1 > versionNum2) {
+          return true;
         }
       } catch (Exception e) {
         // ignore non-numerical strings and strings after non-numerical strings
+        LOG.warn("Skip non-numerical version check. version1: " + version1 + ", version2: "
+            + version2);
         break;
       }
     }

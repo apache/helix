@@ -191,7 +191,7 @@ public class HelixConnectionAdaptor implements HelixManager {
 
   @Override
   public HelixAdmin getClusterManagmentTool() {
-    return _connection.createClusterManagmentTool();
+    return _connection.createClusterManagementTool();
   }
 
   @Override

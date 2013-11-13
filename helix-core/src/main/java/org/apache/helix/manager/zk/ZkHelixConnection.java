@@ -241,7 +241,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   }
 
   @Override
-  public HelixAdmin createClusterManagmentTool() {
+  public HelixAdmin createClusterManagementTool() {
     return new ZKHelixAdmin(_zkclient);
   }
 

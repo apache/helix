@@ -112,7 +112,7 @@ public interface HelixConnection {
    * Provides admin interface to setup and modify cluster
    * @return instantiated HelixAdmin
    */
-  HelixAdmin createClusterManagmentTool();
+  HelixAdmin createClusterManagementTool();
 
   /**
    * create a default property-store for a cluster

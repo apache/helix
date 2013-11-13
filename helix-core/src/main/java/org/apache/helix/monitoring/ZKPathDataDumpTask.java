@@ -47,7 +47,7 @@ public class ZKPathDataDumpTask extends TimerTask {
   public ZKPathDataDumpTask(HelixManager manager, ZkClient zkClient, int thresholdNoChangeInMs) {
     _manager = manager;
     _zkClient = zkClient;
-    logger.info("Scannning cluster statusUpdate " + manager.getClusterName()
+    logger.info("Scanning cluster statusUpdate " + manager.getClusterName()
         + " thresholdNoChangeInMs: " + thresholdNoChangeInMs);
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
   }
@@ -59,7 +59,7 @@ public class ZKPathDataDumpTask extends TimerTask {
     // We need to think if we should create per-instance log files that contains
     // per-instance statusUpdates
     // and errors
-    logger.info("Scannning status updates ...");
+    logger.info("Scanning status updates ...");
     try {
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
@@ -82,7 +82,7 @@ public class ZKPathDataDumpTask extends TimerTask {
   }
 
   void scanPath(String path, int thresholdNoChangeInMs) {
-    logger.info("Scannning path " + path);
+    logger.info("Scanning path " + path);
     List<String> subPaths = _zkClient.getChildren(path);
     for (String subPath : subPaths) {
       try {

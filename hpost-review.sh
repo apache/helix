@@ -35,7 +35,19 @@ REVLIST=$1;
 JIRA=$2
 shift 2;
 
+# Run the rat plugin
+echo 'Checking source for license headers'
+mvn -Prat -DskipTests > /dev/null
+RAT_STATUS=$?
+
+if [[ $RAT_STATUS -ne 0 ]] ; then
+	echo "Maven rat plugin failed. Add license headers and try again."
+	exit 1;
+fi;
+echo 'Checking source for license headers: PASSED'
+
 # Check if the commit is prefixed with [HELIX-NNN]
+echo 'Checking commit message format'
 BUG_NAME=HELIX-$JIRA
 COMMIT_PREFIX=\[$BUG_NAME\]
 DESCRIPTION=$(git log --pretty=format:%s $REVLIST)
@@ -44,8 +56,10 @@ if [[ "$DESCRIPTION" != "$COMMIT_PREFIX"* ]] ; then
     echo "Commit message must start with $COMMIT_PREFIX"
     usage
 fi;
+echo 'Checking commit message format: PASSED'
 
 # Check if HELIX-NNN is a valid bug
+echo 'Checking JIRA existence'
 JIRA_URL=https://issues.apache.org/jira/rest/api/latest/issue/$BUG_NAME
 JIRA_STATUS=$(curl -o /dev/null --silent --head --write-out '%{http_code}\n' $JIRA_URL)
 
@@ -53,6 +67,7 @@ if [[ $JIRA_STATUS -eq 404 ]]; then
     echo "$BUG_NAME does not exist in JIRA"
     usage
 fi;
+echo 'Checking JIRA existence: PASSED'
 
 post-review --server="https://reviews.apache.org" --target-groups=helix --summary="$(git log --pretty=format:%s $REVLIST)" --description="$(git whatchanged $REVLIST)" --diff-filename=<(git diff --no-prefix $REVLIST) -o --bugs-closed=$BUG_NAME $*
 

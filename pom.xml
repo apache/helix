@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.3-incubating-SNAPSHOT</version>
+  <version>0.6.2-incubating</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -193,7 +193,7 @@ under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</developerConnection>
     <url>https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary</url>
-    <tag>HEAD</tag>
+    <tag>helix-0.6.2-incubating</tag>
   </scm>
   <issueManagement>
     <system>jira</system>

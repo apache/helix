@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.2-incubating-SNAPSHOT</version>
+  <version>0.7.1-incubating-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -314,14 +314,14 @@ under the License.
     <currentRelease>0.6.1-incubating</currentRelease>
 
     <!-- OSGi Properties -->
-    <osgi.import/>
-    <osgi.dynamic.import/>
-    <osgi.require.bundles/>
-    <osgi.export/>
-    <osgi.private/>
-    <osgi.ignore/>
-    <osgi.activator/>
-    <osgi.export.service/>
+    <osgi.import />
+    <osgi.dynamic.import />
+    <osgi.require.bundles />
+    <osgi.export />
+    <osgi.private />
+    <osgi.ignore />
+    <osgi.activator />
+    <osgi.export.service />
 
     <!--Skips test in default 'mvn clean install' build command-->
     <!-- <maven.test.skip.exec>true</maven.test.skip.exec> -->

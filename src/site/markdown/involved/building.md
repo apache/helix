@@ -24,7 +24,7 @@ Building Apache Helix
 First you need to install Apache Maven.
 
 To install jars locally:
-mvn clean install (-DskipTests if you don't want to run tests).
 
-
-   
+```
+mvn clean install (-DskipTests if you don't want to run tests)
+```

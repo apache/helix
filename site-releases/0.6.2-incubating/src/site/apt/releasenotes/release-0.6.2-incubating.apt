@@ -1,0 +1,181 @@
+ -----
+ Release Notes for Apache Helix 0.6.2-incubating
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one                      
+~~ or more contributor license agreements.  See the NOTICE file                    
+~~ distributed with this work for additional information                           
+~~ regarding copyright ownership.  The ASF licenses this file                      
+~~ to you under the Apache License, Version 2.0 (the                               
+~~ "License"); you may not use this file except in compliance                      
+~~ with the License.  You may obtain a copy of the License at                      
+~~                                                                                 
+~~   http://www.apache.org/licenses/LICENSE-2.0                                    
+~~                                                                                 
+~~ Unless required by applicable law or agreed to in writing,                      
+~~ software distributed under the License is distributed on an                     
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY                          
+~~ KIND, either express or implied.  See the License for the                       
+~~ specific language governing permissions and limitations                         
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.6.2-incubating
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.6.2-incubating
+
+  This is the third release under the Apache umbrella.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+  []
+
+* Changes
+
+** Sub-task
+
+  * [HELIX-28] - ZkHelixManager.handleNewSession() can happen when a liveinstance already exists
+
+  * [HELIX-85] - Remove mock service module
+
+  * [HELIX-106] - Remove all string constants in the code
+
+  * [HELIX-107] - Add support to set custom objects into ZNRecord
+
+  * [HELIX-124] - race condition in ZkHelixManager.handleNewSession()
+
+  * [HELIX-165] - Add dependency for Guava libraries
+
+  * [HELIX-169] - Take care of consecutive handleNewSession() and session expiry during handleNewSession() 
+
+  * [HELIX-170] - HelixManager#isLeader() should compare both instanceName and sessionId 
+
+  * [HELIX-195] - Race condition between FINALIZE callbacks and Zk Callbacks
+
+  * [HELIX-207] - Add javadocs to classes and public methods in the top-level package
+
+  * [HELIX-208] - Add javadocs to classes and public methods in the model package
+
+  * [HELIX-277] - FULL_AUTO rebalancer should not prefer nodes that are just coming up
+
+** Bug
+
+  * [HELIX-7] - Tune test parameters to fix random test failures
+
+  * [HELIX-87] - Bad repository links in website
+
+  * [HELIX-117] - backward incompatibility problem in accessing zkPath vis HelixWebAdmin
+
+  * [HELIX-118] - PropertyStore -> HelixPropertyStore backwards incompatible location
+
+  * [HELIX-119] - HelixManager serializer no longer needs ByteArraySerializer for /PROPERTYSTORE
+
+  * [HELIX-129] - ZKDumper should use byte[] instead of String to read/write file/zk
+
+  * [HELIX-131] - Connection timeout not set while connecting to zookeeper via zkHelixAdmin
+
+  * [HELIX-133] - Cluster-admin command parsing does not work with removeConfig
+
+  * [HELIX-140] - In ClusterSetup.java, the removeConfig is wrong wired to getConfig
+
+  * [HELIX-141] - Autorebalance does not work reliably and fails when replica>1
+
+  * [HELIX-144] - Need to validate StateModelDefinition when adding new StateModelDefinition to Cluster
+
+  * [HELIX-147] - Fix typo in Idealstate property max_partitions_per_instance
+
+  * [HELIX-148] - Current preferred placement for auto rebalace is suboptimal for n > p
+
+  * [HELIX-150] - Auto rebalance might not evenly distribute states across nodes
+
+  * [HELIX-151] - Auto rebalance doesn't assign some replicas when other nodes could make room
+
+  * [HELIX-153] - Auto rebalance tester uses the returned map fields, but production uses only list fields
+
+  * [HELIX-155] - PropertyKey.instances() is wrongly wired to CONFIG type instead of INSTANCES type
+
+  * [HELIX-197] - state model leak
+
+  * [HELIX-199] - ZNRecord should not publish rawPayload unless it exists
+
+  * [HELIX-216] - Allow HelixAdmin addResource to accept the old rebalancing types
+
+  * [HELIX-221] - Can't find default error->dropped transition method using name convention
+
+  * [HELIX-257] - Upgrade Restlet to 2.1.4 - due security flaw
+
+  * [HELIX-258] - Upgrade Apache Camel due to CVE-2013-4330
+
+  * [HELIX-264] - fix zkclient#close() bug
+
+  * [HELIX-279] - Apply gc handling fixes to main ZKHelixManager class
+
+  * [HELIX-280] - Full auto rebalancer should check for resource tag first
+
+  * [HELIX-288] - helix-core uses an old version of guava
+
+  * [HELIX-299] - Some files in 0.6.2 are missing license headers
+
+** Improvement
+
+  * [HELIX-20] - AUTO-REBALANCE helix controller should re-assign disabled partitions on a node to other available nodes
+
+  * [HELIX-70] - Make Helix OSGi ready
+
+  * [HELIX-149] - Allow clients to pass in preferred placement strategies
+
+  * [HELIX-198] - Unify helix code style
+
+  * [HELIX-218] - Add a reviewboard submission script
+
+  * [HELIX-284] - Support participant auto join in YAML cluster setup
+
+** New Feature
+
+  * [HELIX-215] - Allow setting up the cluster with a YAML file
+
+** Task
+
+  * [HELIX-95] - Tracker for 0.6.2 release
+
+  * [HELIX-154] - Auto rebalance algorithm should not depend on state
+
+  * [HELIX-166] - Rename modes to auto, semi-auto, and custom
+
+  * [HELIX-173] - Move rebalancing strategies to separate classes that implement the Rebalancer interface
+
+  * [HELIX-188] - Add admin command line / REST API documentations
+
+  * [HELIX-194] - ZNRecord has too many constructors
+
+  * [HELIX-205] - Have user-defined rebalancers use RebalanceMode.USER_DEFINED
+
+  * [HELIX-210] - Add support to set data with expect version in BaseDataAccessor
+
+  * [HELIX-217] - Remove mock service module
+
+  * [HELIX-273] - Rebalancer interface should remain unchanged in 0.6.2
+
+  * [HELIX-274] - Verify FULL_AUTO tagged node behavior
+
+  * [HELIX-285] - add integration test util's
+
+  []
+
+  Cheers,
+  --
+  The Apache Helix Team

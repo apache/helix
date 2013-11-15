@@ -311,7 +311,7 @@ under the License.
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
     <!-- for release changelog and download pages -->
-    <currentRelease>0.6.1-incubating</currentRelease>
+    <currentRelease>0.7.0-incubating</currentRelease>
 
     <!-- OSGi Properties -->
     <osgi.import />
@@ -507,6 +507,10 @@ under the License.
             <content>${helix.siteFilePath}</content>
             <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>
+            <ignorePathsToDelete>
+              <ignorePathToDelete>javadocs</ignorePathToDelete>
+              <ignorePathToDelete>javadocs**</ignorePathToDelete>
+            </ignorePathsToDelete>
           </configuration>
           <dependencies>
             <dependency>

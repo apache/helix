@@ -63,5 +63,5 @@ System Admins can also perform ad-hoc tasks, such as on-demand backups or a syst
           requestBackupUriRequest, responseHandler, timeout);
 ```
 
-See HelixManager.DefaultMessagingService in [Javadocs](./apidocs/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more info.
+See HelixManager.DefaultMessagingService in [Javadocs](http://helix.incubator.apache.org/javadocs/0.6.1-incubating/reference/org/apache/helix/messaging/DefaultMessagingService.html) for more info.
 

@@ -21,51 +21,23 @@ under the License.
   <title>Home</title>
 </head>
 
-Navigating the Documentation
-----------------------------
+News
+----
 
-### Conceptual Understanding
+Apache Helix has two new releases:
 
-[Concepts / Terminology](./Concepts.html)
+* [0.7.0-incubating](./site-releases/0.7.0-incubating-site/index.html) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. This release should be considered alpha, but contains many new features, is backward-compatible, and is the basis for future development of Helix. [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
 
-[Architecture](./Architecture.html)
-
-### Hands-on Helix
-
-[Quickstart](./Quickstart.html)
-
-[Tutorial](./Tutorial.html)
-
-[Javadocs](./apidocs/index.html)
-
-[IRC](./IRC.html)
-
-### Recipes
-
-[Distributed lock manager](./recipes/lock_manager.html)
-
-[Rabbit MQ consumer group](./recipes/rabbitmq_consumer_group.html)
-
-[Rsync replicated file store](./recipes/rsync_replicated_file_store.html)
-
-[Service discovery](./recipes/service_discovery.html)
-
-[Distributed Task DAG Execution](./recipes/task_dag_execution.html)
-
-[User-Defined Rebalancer Example](./recipes/user_def_rebalancer.html)
-
-### Download
-
-[Current Release](./download.html)
+* [0.6.2-incubating](./site-releases/0.6.2-incubating-site/index.html) - A bug and security fix release hardening the Helix platform. [\[Release Notes\]](./releasenotes/release-0.6.2-incubating.html)
 
 
-What Is Helix
+What Is Helix?
 --------------
 Helix is a generic _cluster management_ framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
 
 
-What Is Cluster Management
---------------------------
+What Is Cluster Management?
+---------------------------
 To understand Helix, first you need to understand _cluster management_.  A distributed system typically runs on multiple nodes for the following reasons:
 
 * scalability
@@ -82,8 +54,8 @@ Each node performs one or more of the primary function of the cluster, such as s
 While it is possible to integrate these functions into the distributed system, it complicates the code.  Helix has abstracted common cluster management tasks, enabling the system builder to model the desired behavior with a declarative state model, and let Helix manage the coordination.  The result is less new code to write, and a robust, highly operable system.
 
 
-Key Features of Helix
----------------------
+What does Helix provide?
+------------------------
 1. Automatic assignment of resources and partitions to nodes
 2. Node failure detection and recovery
 3. Dynamic addition of resources
@@ -93,8 +65,8 @@ Key Features of Helix
 7. Optional pluggable rebalancing for user-defined assignment of resources and partitions
 
 
-Why Helix
----------
+Why Helix?
+----------
 Modeling a distributed system as a state machine with constraints on states and transitions has the following benefits:
 
 * Separates cluster management from the core functionality of the system.
@@ -102,40 +74,32 @@ Modeling a distributed system as a state machine with constraints on states and 
 * Increases simplicity: system components do not have to manage a global cluster.  This division of labor makes it easier to build, debug, and maintain your system.
 
 
+Download
+--------
+
+[0.7.0-incubating](./site-releases/0.7.0-incubating-site/download.html)
+
+[0.6.2-incubating](./site-releases/0.6.2-incubating-site/download.html)
+
 Build Instructions
 ------------------
 
 Requirements: JDK 1.6+, Maven 2.0.8+
 
 ```
-    git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-    cd incubator-helix
-    git checkout tags/helix-0.6.1-incubating
-    mvn install package -DskipTests
+git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+cd incubator-helix
+git checkout tags/helix-0.7.0-incubating
+mvn install package -DskipTests
 ```
 
 Maven dependency
 
 ```
-    <dependency>
-      <groupId>org.apache.helix</groupId>
-      <artifactId>helix-core</artifactId>
-      <version>0.6.1-incubating</version>
-    </dependency>
+<dependency>
+  <groupId>org.apache.helix</groupId>
+  <artifactId>helix-core</artifactId>
+  <version>0.7.0-incubating</version>
+</dependency>
 ```
-
-[Download](./download.html) Helix artifacts from here.
-
-Publications
--------------
-
-* Untangling cluster management using Helix at [SOCC Oct 2012](http://www.socc2012.org/home/program)
-    - [paper](https://915bbc94-a-62cb3a1a-s-sites.googlegroups.com/site/acm2012socc/helix_onecol.pdf)
-    - [presentation](http://www.slideshare.net/KishoreGopalakrishna/helix-socc-v10final)
-* Building distributed systems using Helix Apache Con Feb 2013
-    - [presentation at ApacheCon](http://www.slideshare.net/KishoreGopalakrishna/apache-con-buildingddsusinghelix)
-    - [presentation at VMWare](http://www.slideshare.net/KishoreGopalakrishna/apache-helix-presentation-at-vmware)
-* Data driven testing:
-    - [short talk at LSPE meetup](http://www.slideshare.net/KishoreGopalakrishna/data-driven-testing)
-    - [paper DBTest 2013 acm SIGMOD:will be published on Jun 24, 2013](http://dbtest2013.soe.ucsc.edu/Program.htm)
 

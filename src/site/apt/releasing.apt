@@ -52,12 +52,6 @@ Helix release process
     You should have a GPG agent running in the session you will run the maven release commands(preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
     If you do not have a GPG agent running, make sure that you have the "apache-release" profile set in your settings.xml as shown below.
 
-   Run the release
-
-+-------------
-mvn release:prepare release:perform -B
-+-------------
-
   GPG configuration in maven settings xml:
 
 +-------------
@@ -69,17 +63,28 @@ mvn release:prepare release:perform -B
 </profile>
 +-------------
 
- [[4]] go to https://repository.apache.org and close your staged repository. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
+   Run the release
+
++-------------
+mvn release:prepare
+mvn release:perform
++-------------
+
+ [[4]] go to https://repository.apache.org and close your staged repository. Log in, click on Staging Repositories, check your repository, and click Close. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
+
+ [[5]] Stage the release (stagingRepoUrl format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
 
 +-------------
 svn co https://dist.apache.org/repos/dist/dev/incubator/helix helix-dev-release
 cd helix-dev-release
 sh ./release-script-svn.sh version stagingRepoUrl
-then svn add <new directory created with new version as name>
-then svn ci 
+svn add <new directory created with new version as name>
+gpg -k email@domain.com >> KEYS
+gpg --armor --export email@domain.com >> KEYS
+svn ci 
 +-------------
 
- [[5]] Validating the release
+ [[6]] Validating the release
 
 +-------------
   * Download sources, extract, build and run tests - mvn clean package
@@ -90,18 +95,38 @@ then svn ci
   * Check signatures of all the binaries using gpg <binary>
 +-------------
 
- [[6]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
+ [[7]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
   After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
 
- [[7]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
++-------------
+Hi, I'd like to release Apache Helix [VERSION]-incubating.
+
+Release notes: http://helix.incubator.apache.org/releasenotes/release-[VERSION]-incubating.html
+
+Maven staged release repository: https://repository.apache.org/content/repositories/orgapachehelix-[NNN]/
+
+Distribution:
+* binaries: https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/binaries/
+* sources: https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/src/
+
+KEYS file available here: https://dist.apache.org/repos/dist/release/incubator/helix/KEYS
+
+Vote open for 72H
+
+[+1]
+[0]
+[-1] 
++-------------
+
+ [[8]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
 
 
- [[8]] Send out an announcement of the release to:
+ [[9]] Send out an announcement of the release to:
 
-  * users@helix.incubator.apache.org
+  * user@helix.incubator.apache.org
 
   * dev@helix.incubator.apache.org
 
- [[9]] Celebrate !
+ [[10]] Celebrate!
 
 

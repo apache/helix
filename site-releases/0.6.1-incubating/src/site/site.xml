@@ -58,13 +58,18 @@
       <item name="Release 0.6.1-incubating" href="http://helix.incubator.apache.org/site-releases/0.6.1-incubating-site/"/>
     </breadcrumbs>
 
-    <menu name="Helix 0.6.1-incubating">
+    <menu name="Apache Helix">
       <item name="Home" href="../../index.html"/>
+    </menu>
+
+    <menu name="Helix 0.6.1-incubating">
       <item name="Introduction" href="./index.html"/>
+      <item name="Getting Helix" href="./Building.html"/>
       <item name="Core concepts" href="./Concepts.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Quick Start" href="./Quickstart.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
+      <item name="Release Notes" href="releasenotes/release-0.6.1-incubating.html"/>
       <item name="Download" href="./download.html"/>
     </menu>
 
@@ -101,7 +106,7 @@
     <fluidoSkin>
       <topBarEnabled>true</topBarEnabled>
       <!-- twitter link work only with sidebar disabled -->
-      <sideBarEnabled>false</sideBarEnabled>
+      <sideBarEnabled>true</sideBarEnabled>
       <googleSearch></googleSearch>
       <twitter>
         <user>ApacheHelix</user>

@@ -1,0 +1,107 @@
+ -----
+ Helix release process
+ -----
+ -----
+ 2012-12-15
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Helix release process
+
+ [[1]] Post to the dev list a few days before you plan to do an Helix release
+
+ [[2]] Your maven setting must contains the entry to be able to deploy.
+
+ ~/.m2/settings.xml
+
++-------------
+   <server>
+     <id>apache.releases.https</id>
+     <username></username>
+     <password></password>
+   </server>
++-------------
+
+ [[3]] Apache DAV passwords
+
++-------------
+ Add the following info into your ~/.netrc
+ machine git-wip-us.apache.org login <apache username> <password>
+
++-------------
+ [[4]] Release Helix
+    You should have a GPG agent running in the session you will run the maven release commands(preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
+    If you do not have a GPG agent running, make sure that you have the "apache-release" profile set in your settings.xml as shown below.
+
+   Run the release
+
++-------------
+mvn release:prepare release:perform -B
++-------------
+
+  GPG configuration in maven settings xml:
+
++-------------
+<profile>
+  <id>apache-release</id>
+  <properties>
+    <gpg.passphrase>[GPG_PASSWORD]</gpg.passphrase>
+  </properties>
+</profile>
++-------------
+
+ [[4]] go to https://repository.apache.org and close your staged repository. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
+
++-------------
+svn co https://dist.apache.org/repos/dist/dev/incubator/helix helix-dev-release
+cd helix-dev-release
+sh ./release-script-svn.sh version stagingRepoUrl
+then svn add <new directory created with new version as name>
+then svn ci 
++-------------
+
+ [[5]] Validating the release
+
++-------------
+  * Download sources, extract, build and run tests - mvn clean package
+  * Verify license headers - mvn -Prat -DskipTests
+  * Download binaries and .asc files
+  * Download release manager's public key - From the KEYS file, get the release manager's public key finger print and run  gpg --keyserver pgpkeys.mit.edu --recv-key <key>
+  * Validate authenticity of key - run  gpg --fingerprint <key>
+  * Check signatures of all the binaries using gpg <binary>
++-------------
+
+ [[6]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
+  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
+
+ [[7]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
+
+
+ [[8]] Send out an announcement of the release to:
+
+  * users@helix.incubator.apache.org
+
+  * dev@helix.incubator.apache.org
+
+ [[9]] Celebrate !
+
+

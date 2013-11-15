@@ -1,0 +1,174 @@
+ -----
+ Release Notes for Apache Helix 0.7.0-incubating
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one                      
+~~ or more contributor license agreements.  See the NOTICE file                    
+~~ distributed with this work for additional information                           
+~~ regarding copyright ownership.  The ASF licenses this file                      
+~~ to you under the Apache License, Version 2.0 (the                               
+~~ "License"); you may not use this file except in compliance                      
+~~ with the License.  You may obtain a copy of the License at                      
+~~                                                                                 
+~~   http://www.apache.org/licenses/LICENSE-2.0                                    
+~~                                                                                 
+~~ Unless required by applicable law or agreed to in writing,                      
+~~ software distributed under the License is distributed on an                     
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY                          
+~~ KIND, either express or implied.  See the License for the                       
+~~ specific language governing permissions and limitations                         
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.7.0-incubating
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.7.0-incubating
+
+  This is the fourth release and second major release under the Apache umbrella.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+  * Configurable, pluggable rebalancing
+
+  []
+
+* Changes
+
+** Sub-task
+
+    * [HELIX-18] - Unify cluster setup and helixadmin
+
+    * [HELIX-79] - consecutive GC may mess up helix session ids
+
+    * [HELIX-83] - Add typed classes to denote helix ids
+
+    * [HELIX-90] - Clean up Api's
+
+    * [HELIX-98] - clean up setting constraint api
+
+    * [HELIX-100] - Improve the helix config api
+
+    * [HELIX-102] - Add new wrapper classes for Participant, Controller, Spectator, Administrator
+
+    * [HELIX-104] - Add support to reuse zkclient
+
+    * [HELIX-123] - ZkHelixManager.isLeader() should check session id in addition to instance name
+
+    * [HELIX-139] - Need to double check the logic to prevent 2 controllers to control the same cluster
+
+    * [HELIX-168] - separate HelixManager implementation for participant, controller, and distributed controller
+
+    * [HELIX-176] - Need a list of tests that must pass to certify a release
+
+    * [HELIX-224] - Move helix examples to separate module
+
+    * [HELIX-233] - Ensure that website and wiki fully capture the updated changes in 0.7.0
+
+    * [HELIX-234] - Create concrete id classes for constructs, replacing strings
+
+    * [HELIX-235] - Create a hierarchical logical model for the cluster
+
+    * [HELIX-236] - Create a hierarchical cluster snapshot to replace ClusterDataCache
+
+    * [HELIX-237] - Create helix-internal config classes for the hierarchical model
+
+    * [HELIX-238] - Create accessors for the logical model
+
+    * [HELIX-239] - List use cases for the logical model
+
+    * [HELIX-240] - Write an example of the key use cases for the logical model
+
+    * [HELIX-241] - Write the controller pipeline with the logical model
+
+    * [HELIX-242] - Re-integrate the scheduler rebalancing into the new controller pipeline
+
+    * [HELIX-243] - Fix failing tests related to helix model overhaul
+
+    * [HELIX-244] - Redesign rebalancers using rebalancer-specific configs
+
+    * [HELIX-246] - Refactor scheduler task config to comply with new rebalancer config and fix related scheduler task tests
+
+    * [HELIX-248] - Resource logical model should be general enough to handle various resource types
+
+    * [HELIX-268] - Atomic API
+
+    * [HELIX-297] - Make 0.7.0 backward compatible for user-defined rebalancing
+
+
+** Bug
+
+    * [HELIX-40] - fix zkclient subscribe path leaking and zk callback-handler leaking in case of session expiry
+
+    * [HELIX-46] - Add REST/cli admin command for message selection constraints
+
+    * [HELIX-47] - when drop resource, remove resource-level config also
+
+    * [HELIX-48] - use resource instead of db in output messages
+
+    * [HELIX-50] - Ensure num replicas and preference list size in idealstate matches
+
+    * [HELIX-59] - controller not cleaning dead external view generated from old sessions
+
+    * [HELIX-136] - Write IdealState back to ZK when computed by custom Rebalancer
+
+    * [HELIX-200] - helix controller send ERROR->DROPPED transition infinitely
+
+    * [HELIX-214] - User-defined rebalancer should never use SEMI_AUTO code paths
+
+    * [HELIX-225] - fix helix-example package build error
+
+    * [HELIX-271] - ZkHelixAdmin#addResource() backward compatible problem
+
+    * [HELIX-292] - ZNRecordStreamingSerializer should not assume id comes first
+
+    * [HELIX-296] - HelixConnection in 0.7.0 does not remove LiveInstance znode
+
+    * [HELIX-300] - Some files in 0.7.0 are missing license headers
+
+    * [HELIX-302] - fix helix version compare bug
+
+** Improvement
+
+    * [HELIX-37] - Cleanup CallbackHandler
+
+    * [HELIX-202] - Ideal state should be a full mapping, not just a set of instance preferences
+
+** Task
+
+    * [HELIX-109] - Review Helix model package
+
+    * [HELIX-174] - Clean up ideal state calculators, move them to the controller rebalancer package
+
+    * [HELIX-212] - Rebalancer interface should have 1 function to compute the entire ideal state
+
+    * [HELIX-232] - Validation of 0.7.0
+
+    * [HELIX-290] - Ensure 0.7.0 can respond correctly to ideal state changes
+
+    * [HELIX-295] - Upgrade or remove xstream dependency
+
+    * [HELIX-301] - Update integration test utils for 0.7.0
+
+** Test
+
+    * [HELIX-286] - add a test for redefine state model definition
+
+  []
+
+  Cheers,
+  --
+  The Apache Helix Team

@@ -18,3 +18,6 @@
 #
 
 Redirect /download.html /download.cgi
+Redirect /site-releases/0.6.1-incubating-site/download.html /site-releases/0.6.1-incubating-site/download.cgi
+Redirect /site-releases/0.6.2-incubating-site/download.html /site-releases/0.6.2-incubating-site/download.cgi
+Redirect /site-releases/0.7.0-incubating-site/download.html /site-releases/0.7.0-incubating-site/download.cgi

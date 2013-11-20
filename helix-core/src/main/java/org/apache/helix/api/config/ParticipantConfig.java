@@ -176,14 +176,8 @@ public class ParticipantConfig {
     }
 
     /**
-     * <<<<<<< HEAD:helix-core/src/main/java/org/apache/helix/api/config/ParticipantConfig.java
      * Set the enabled status of the participant
      * @param isEnabled true if enabled, false if disabled
-     *          =======
-     *          Set whether or not the participant is enabled
-     * @param isEnabled true if enabled, false otherwise
-     *          >>>>>>> helix-logical-model:helix-core/src/main/java/org/apache/helix/api/
-     *          ParticipantConfig.java
      * @return Delta
      */
     public Delta setEnabled(boolean isEnabled) {

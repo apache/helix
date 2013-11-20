@@ -48,14 +48,7 @@ public class ShufflingTwoStateStrategy {
    * the partitions array 3. Scan the shuffled array, then assign
    * partitionList[i] to node (i % nodes)
    * for the slave partitions, simply put them in the node after the node that
-   * <<<<<<<
-   * HEAD:helix-core/src/main/java/org/apache/helix/controller/strategy/ShufflingTwoStateStrategy
-   * .java
-   * contains the primary partition.
-   * =======
    * contains the master partition.
-   * >>>>>>>
-   * master:helix-core/src/main/java/org/apache/helix/tools/IdealStateCalculatorByShuffling.java
    * The result of the method is a ZNRecord, which contains a list of maps; each
    * map is from the name of nodes to either state name ("MASTER" or "SLAVE" for
    * MasterSlave).

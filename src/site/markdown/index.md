@@ -26,7 +26,7 @@ News
 
 Apache Helix has two new releases:
 
-* [0.7.0-incubating](./site-releases/0.7.0-incubating-site/index.html) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. This release should be considered alpha, but contains many new features, is backward-compatible, and is the basis for future development of Helix. [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
+* [0.7.0-incubating](./site-releases/0.7.0-incubating-site/index.html) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. This release is a beta, but contains many new features, is backward-compatible, and is the basis for future development of Helix. [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
 
 * [0.6.2-incubating](./site-releases/0.6.2-incubating-site/index.html) - A bug and security fix release hardening the Helix platform. [\[Release Notes\]](./releasenotes/release-0.6.2-incubating.html)
 

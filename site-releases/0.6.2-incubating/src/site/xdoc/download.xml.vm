@@ -19,7 +19,7 @@ under the License.
 
 -->
 #set( $releaseName = "0.6.2-incubating" )
-#set( $releaseDate = "10/31/2013" )
+#set( $releaseDate = "11/22/2013" )
 <document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
 
@@ -34,11 +34,11 @@ under the License.
         <param name="class" value="toc"/>
       </macro>
     </div>
-    
+
     <section name="Introduction">
       <p>Apache Helix artifacts are distributed in source and binary form under the terms of the
         <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
-        See the included <tt>LICENSE</tt> and <tt>NOTICE</tt> files included in each artifact for additional license 
+        See the included <tt>LICENSE</tt> and <tt>NOTICE</tt> files included in each artifact for additional license
         information.
       </p>
       <p>Use the links below to download a source distribution of Apache Helix.
@@ -147,6 +147,16 @@ under the License.
                 <a href="http://www.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar">helix-agent-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
           </tbody>
         </table>
       </subsection>
@@ -157,22 +167,22 @@ under the License.
 
     <section name="Verifying Releases">
       <p>We strongly recommend you verify the integrity of the downloaded files with both PGP and MD5.</p>
-      
-      <p>The PGP signatures can be verified using <a href="http://www.pgpi.org/">PGP</a> or 
-      <a href="http://www.gnupg.org/">GPG</a>. 
+
+      <p>The PGP signatures can be verified using <a href="http://www.pgpi.org/">PGP</a> or
+      <a href="http://www.gnupg.org/">GPG</a>.
       First download the <a href="http://www.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the
-      <tt>*.asc</tt> signature file for the particular distribution. Make sure you get these files from the main 
+      <tt>*.asc</tt> signature file for the particular distribution. Make sure you get these files from the main
       distribution directory, rather than from a mirror. Then verify the signatures using one of the following sets of
       commands:
 
         <source>$ pgp -ka KEYS
 $ pgp helix-*.zip.asc</source>
-      
+
         <source>$ gpg --import KEYS
 $ gpg --verify helix-*.zip.asc</source>
        </p>
-    <p>Alternatively, you can verify the MD5 signature on the files. A Unix/Linux program called  
-      <code>md5</code> or 
+    <p>Alternatively, you can verify the MD5 signature on the files. A Unix/Linux program called
+      <code>md5</code> or
       <code>md5sum</code> is included in most distributions.  It is also available as part of
       <a href="http://www.gnu.org/software/textutils/textutils.html">GNU Textutils</a>.
       Windows users can get binary md5 programs from these (and likely other) places:

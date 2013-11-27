@@ -69,12 +69,10 @@ public class HelixConnectionAdaptor implements HelixManager {
   final InstanceType _instanceType;
   final HelixDataAccessor _accessor;
   final ClusterMessagingService _messagingService;
-  final SessionId _sessionId;
 
   public HelixConnectionAdaptor(HelixRole role) {
     _role = role;
     _connection = role.getConnection();
-    _sessionId = _connection.getSessionId();
     _clusterId = role.getClusterId();
     _accessor = _connection.createDataAccessor(_clusterId);
 
@@ -181,7 +179,7 @@ public class HelixConnectionAdaptor implements HelixManager {
 
   @Override
   public String getSessionId() {
-    return _sessionId.stringify();
+    return _connection.getSessionId().stringify();
   }
 
   @Override

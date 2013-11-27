@@ -59,12 +59,12 @@ First, we need to set up the system.  Let\'s walk through the steps in building 
 This starts a zookeeper in standalone mode. For production deployment, see [Apache Zookeeper](http://zookeeper.apache.org) for instructions.
 
 ```
-    ./start-standalone-zookeeper.sh 2199 &
+./start-standalone-zookeeper.sh 2199 &
 ```
 
 ### Create a cluster
 
-Creating a cluster will define the cluster in appropriate znodes on zookeeper.   
+Creating a cluster will define the cluster in appropriate znodes on zookeeper.
 
 Using the Java accessor API:
 
@@ -99,13 +99,13 @@ OR
 Using the command-line interface:
 
 ```
-    ./helix-admin.sh --zkSvr localhost:2199 --addCluster helix-demo 
+./helix-admin.sh --zkSvr localhost:2199 --addCluster helix-demo
 ```
 
 
 ### Configure the nodes of the cluster
 
-First we\'ll add new nodes to the cluster, then configure the nodes in the cluster. Each node in the cluster must be uniquely identifiable. 
+First we\'ll add new nodes to the cluster, then configure the nodes in the cluster. Each node in the cluster must be uniquely identifiable.
 The most commonly used convention is hostname_port.
 
 ```
@@ -157,19 +157,19 @@ A _resource_ can be divided into many sub-parts known as _partitions_.
 
 #### Define the _state model_ and _constraints_
 
-For scalability and fault tolerance, each partition can have one or more replicas. 
+For scalability and fault tolerance, each partition can have one or more replicas.
 The _state model_ allows one to declare the system behavior by first enumerating the various STATES, and the TRANSITIONS between them.
 A simple model is ONLINE-OFFLINE where ONLINE means the task is active and OFFLINE means it\'s not active.
 You can also specify how many replicas must be in each state, these are known as _constraints_.
 For example, in a search system, one might need more than one node serving the same index to handle the load.
 
-The allowed states: 
+The allowed states:
 
 * MASTER
 * SLAVE
 * OFFLINE
 
-The allowed transitions: 
+The allowed transitions:
 
 * OFFLINE to SLAVE
 * SLAVE to OFFLINE
@@ -206,7 +206,7 @@ builder.addTransition(MASTER, SLAVE);
 builder.upperBound(MASTER, 1);
 
 // dynamic constraint: R means it should be derived based on the replication factor for the cluster
-// this allows a different replication factor for each resource without 
+// this allows a different replication factor for each resource without
 // having to define a new state model
 //
 builder.dynamicUpperBound(SLAVE, "R");
@@ -227,7 +227,7 @@ admin.addStateModelDef(CLUSTER_NAME, STATE_MODEL_NAME, stateModelDefinition);
 
 #### Assigning partitions to nodes
 
-The final goal of Helix is to ensure that the constraints on the state model are satisfied. 
+The final goal of Helix is to ensure that the constraints on the state model are satisfied.
 Helix does this by assigning a STATE to a partition (such as MASTER, SLAVE), and placing it on a particular node.
 
 There are 3 assignment modes Helix can operate on
@@ -257,6 +257,12 @@ context.setPreferenceLists(preferenceLists);
 
 // or generate a default set of preference lists given the set of all participants
 context.generateDefaultConfiguration(stateModelDefinition, participantIdSet);
+
+// add the resource to the cluster
+ResourceConfig resourceConfig = new ResourceConfig.Builder(resourceId)
+  .rebalancerContext(context)
+  .build();
+clusterAccessor.addResourceToCluster(resourceConfig);
 ```
 
 OR
@@ -278,7 +284,7 @@ idealState.setPreferenceList(partitionId, preferenceList); // preferred location
 idealState.getRecord().setListFields(preferenceLists);
 admin.setResourceIdealState(CLUSTER_NAME, RESOURCE_NAME, idealState);
 
-// or generate a default set of preference lists 
+// or generate a default set of preference lists
 admin.rebalance(CLUSTER_NAME, RESOURCE_NAME, NUM_REPLICAS);
 ```
 

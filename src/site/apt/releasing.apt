@@ -1,5 +1,5 @@
  -----
- Helix release process
+ Helix Release Process
  -----
  -----
  2012-12-15
@@ -27,18 +27,18 @@
 
 Helix release process
 
- [[1]] Post to the dev list a few days before you plan to do an Helix release
+ [[1]] Post to dev@helix.incubator.apache.org a few days before you plan to do a Helix release
 
- [[2]] Your maven setting must contains the entry to be able to deploy.
+ [[2]] Your Maven settings must contain this entry to be able to deploy.
 
  ~/.m2/settings.xml
 
 +-------------
-   <server>
-     <id>apache.releases.https</id>
-     <username></username>
-     <password></password>
-   </server>
+<server>
+  <id>apache.releases.https</id>
+  <username>[USERNAME]</username>
+  <password>[PASSWORD]</password>
+</server>
 +-------------
 
  [[3]] Apache DAV passwords
@@ -49,8 +49,10 @@ Helix release process
 
 +-------------
  [[4]] Release Helix
-    You should have a GPG agent running in the session you will run the maven release commands(preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
+
+    You should have a GPG agent running in the session you will run the maven release commands (preferred), and confirm it works by running "gpg -ab" (type some text and press Ctrl-D).
     If you do not have a GPG agent running, make sure that you have the "apache-release" profile set in your settings.xml as shown below.
+
 
   GPG configuration in maven settings xml:
 
@@ -70,9 +72,9 @@ mvn release:prepare
 mvn release:perform
 +-------------
 
- [[4]] go to https://repository.apache.org and close your staged repository. Log in, click on Staging Repositories, check your repository, and click Close. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
+ [[5]] Go to https://repository.apache.org and close your staged repository. Log in, click on Staging Repositories, check your repository, and click Close. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-[NNN]/org/apache/helix/helix/[VERSION]-incubating/)
 
- [[5]] Stage the release (stagingRepoUrl format https://repository.apache.org/content/repositories/orgapachehelix-019/org/apache/helix/helix/0.6-incubating/)
+ [[6]] Stage the release (stagingRepoUrl format https://repository.apache.org/content/repositories/orgapachehelix-[NNN]/org/apache/helix/helix/[VERSION]-incubating/)
 
 +-------------
 svn co https://dist.apache.org/repos/dist/dev/incubator/helix helix-dev-release
@@ -81,10 +83,10 @@ sh ./release-script-svn.sh version stagingRepoUrl
 svn add <new directory created with new version as name>
 gpg -k email@domain.com >> KEYS
 gpg --armor --export email@domain.com >> KEYS
-svn ci 
+svn ci
 +-------------
 
- [[6]] Validating the release
+ [[7]] Validate the release
 
 +-------------
   * Download sources, extract, build and run tests - mvn clean package
@@ -95,10 +97,12 @@ svn ci
   * Check signatures of all the binaries using gpg <binary>
 +-------------
 
- [[7]] Call for a vote in the dev list and wait for 72 hrs. for the vote results. 3 binding votes are necessary for the release to be finalized. example
-  After the vote has passed, move the files from dist dev to dist release: svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/version to https://dist.apache.org/repos/dist/release/incubator/helix/
+ [[8]] Call for a vote in the dev list and wait for 72 hours for the vote results.
 
 +-------------
+Subject: [VOTE] Apache Helix [VERSION]-incubating Release
+To: dev@helix.incubator.apache.org
+---------------------------------------------------------
 Hi, I'd like to release Apache Helix [VERSION]-incubating.
 
 Release notes: http://helix.incubator.apache.org/releasenotes/release-[VERSION]-incubating.html
@@ -115,18 +119,166 @@ Vote open for 72H
 
 [+1]
 [0]
-[-1] 
+[-1]
 +-------------
 
- [[8]] Prepare release note. Add a page in src/site/apt/releasenotes/ and change value of \<currentRelease> in parent pom.
+ [[9]] If there are no objections, send the following email. Otherwise, repeat the previous step.
+
++-------------
+Subject: [RESULT][VOTE] Apache Helix [VERSION]-incubating Release
+To: dev@helix.incubator.apache.org
+-----------------------------------------------------------------
+Thanks for voting on the 0.6.2-incubating release. It has now exceeded 72 hours so I am closing the vote.
+
+Binding +1s:
+ [Names of IPMC members (i.e. mentors) who +1'd this release]
+
+Nonbinding +1s:
+ [All other +1s]
+
+Binding 0s:
+ [Names of IPMC members (i.e. mentors) who 0'd this release]
+
+Nonbinding 0s:
+ [All other 0s]
+
+Binding -1s:
+ [Names of IPMC members (i.e. mentors) who -1'd this release]
+
+Nonbinding -1s:
+ [All other -1s]
+
+I will now start a vote on the general incubator list, as that is the next step in the release approval process.
++-------------
+
+ [[10]] Open a vote on the general incubator mailing list. A total of 3 IPMC +1s are required for the release to be approved. This total can include the IPMC members who voted +1 in the previous vote.
+
++-------------
+Subject: [VOTE] Apache Helix [VERSION]-incubating Release
+To: general@incubator.apache.org
+---------------------------------------------------------
+Hi,
+
+This is to call for a vote on releasing the following candidate as Apache
+Helix [VERSION]-incubating. This is the first release candidate of our third
+release at Apache.
+
+Apache Helix is a generic cluster management framework that makes it easy
+to build partitioned and replicated, fault tolerant and scalable
+distributed systems.
+
+Release notes:
+http://helix.incubator.apache.org/site-releases/[VERSION]-incubating-site/releasenotes/release-[VERSION]-incubating.html
+
+Our vote thread on helix-dev:
+http://markmail.org/message/[MESSAGE ID]
+
+The following IPMC members have voted +1
+[IPMC members who voted +1 in the previous voting round]
+
+Release artifacts:
+https://repository.apache.org/content/repositories/orgapachehelix-[NNN]
+
+Distribution:
+* binaries:
+https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/binaries/
+* sources:
+https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/src/
+
+The 0.6.2-incubating release tag
+https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=tag;h=[TAG HASH]
+
+KEYS file available here:
+https://dist.apache.org/repos/dist/dev/incubator/helix/KEYS
+
+Please vote on the release. The vote will be open for 72 hours.
+
+[+1]
+[0]
+[-1]
+
+Thanks,
+The Apache Helix Team
++-------------
+
+ [[11]] After 72 hours, if the sum of IPMC members who have voted +1 in the two rounds of voting is at least 3, close the vote with the following email.
+
++-------------
+Subject: [RESULT][VOTE] Apache Helix [VERSION]-incubating Release
+To: general@incubator.apache.org
+-----------------------------------------------------------------
+Hi:
+
+Closing the vote since it has passed 72 hours.
+
+Here is the result:
+
++1: [NNN] (binding)
+[IPMC members who voted +1]
+
+0: [NNN] (binding)
+[IPMC members who voted 0]
+
+-1: [NNN] (binding)
+[IPMC members who voted -1]
+
+The vote has passed, thanks a lot to everyone for voting, Thanks to the
+mentors for all the support!
+
+Cheers,
+The Helix Team
++-------------
+
+ [[12]] Move the keys, sources, and binaries from the dev tree to the release tree:
+
++-------------
+svn rm https://dist.apache.org/repos/dist/release/incubator/helix/KEYS
+svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating https://dist.apache.org/repos/dist/release/incubator/helix
+svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/KEYS https://dist.apache.org/repos/dist/release/incubator/helix
++-------------
+
+ [[13]] Go to https://repository.apache.org and release your staged repository. Log in, click on Staging Repositories, check your repository, and click Release.
+
+ [[14]] Prepare release notes. Add a page in src/site/apt/releasenotes/ and site-releases/[VERSION]-incubating/apt/releasenotes and change the value of \<currentRelease\> in parent pom.
 
 
- [[9]] Send out an announcement of the release to:
+ [[15]] Send out an announcement of the release to Helix developers and users:
 
-  * user@helix.incubator.apache.org
++-------------
+Subject: [ANNOUNCE] Apache Helix [VERSION]-incubating Release
+To: dev@helix.incubator.apache.org; user@helix.incubator.apache.org
+-------------------------------------------------------------------
+The Apache Helix Team is pleased to announce the [NTH] release,
+[VERSION]-incubating, of the Apache Helix project.
 
-  * dev@helix.incubator.apache.org
+Apache Helix is a generic cluster management framework that makes it easy
+to build partitioned, fault tolerant, and scalable distributed systems.
 
- [[10]] Celebrate!
+The full release notes are available here:
+http://helix.incubator.apache.org/releasenotes/release-[VERSION]-incubating.html
+
+You can declare a maven dependency to use it:
+
+<dependency>
+  <groupId>org.apache.helix</groupId>
+  <artifactId>helix-core</artifactId>
+  <version>[VERSION]-incubating</version>
+</dependency>
+
+Or download the release sources:
+http://helix.incubator.apache.org/site-releases/[VERSION]-incubating-site/download.cgi
+
+Additional info
+
+Website: http://helix.incubator.apache.org/
+Helix mailing lists: http://helix.incubator.apache.org/mail-lists.html
+
+We hope you will enjoy using the latest release of Apache Helix!
+
+Cheers,
+Apache Helix Team
++-------------
+
+ [[16]] Celebrate!
 
 

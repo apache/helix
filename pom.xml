@@ -168,11 +168,6 @@ under the License.
       <name>SnakeYAML repository</name>
       <url>http://oss.sonatype.org/content/groups/public/</url>
     </repository>
-    <repository>
-      <id>jboss-fs-public</id>
-      <name>JBoss FuseSource repository</name>
-      <url>http://repository.jboss.org/nexus/content/groups/fs-public/</url>
-    </repository>
   </repositories>
 
  

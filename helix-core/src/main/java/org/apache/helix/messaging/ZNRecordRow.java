@@ -1,4 +1,4 @@
-package org.apache.helix.josql;
+package org.apache.helix.messaging;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -170,5 +170,24 @@ public class ZNRecordRow {
   public static List<ZNRecordRow> getRowListFromMap(Map<String, List<ZNRecordRow>> rowMap,
       String key) {
     return rowMap.get(key);
+  }
+
+  @Override
+  public String toString() {
+    return _rowDataMap.toString();
+  }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other instanceof ZNRecordRow) {
+      ZNRecordRow that = (ZNRecordRow) other;
+      return this._rowDataMap.equals(that._rowDataMap);
+    }
+    return false;
+  }
+
+  @Override
+  public int hashCode() {
+    return _rowDataMap.hashCode();
   }
 }

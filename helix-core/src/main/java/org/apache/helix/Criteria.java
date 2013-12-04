@@ -39,16 +39,16 @@ public class Criteria {
    */
   boolean sessionSpecific;
   /**
-   * applicable only in case PARTICIPANT use * to broadcast to all instances
+   * applicable only in case PARTICIPANT use % to broadcast to all instances
    */
   String instanceName = "";
   /**
-   * Name of the resource. Use * to send message to all resources
+   * Name of the resource. Use % to send message to all resources
    * owned by an instance.
    */
   String resourceName = "";
   /**
-   * Resource partition. Use * to send message to all partitions of a given
+   * Resource partition. Use % to send message to all partitions of a given
    * resource
    */
   String partitionName = "";
@@ -140,7 +140,7 @@ public class Criteria {
 
   /**
    * Set the name of the destination instance (PARTICIPANT only)
-   * @param instanceName the instance name or * for all instances
+   * @param instanceName the instance name or % for all instances
    */
   public void setInstanceName(String instanceName) {
     this.instanceName = instanceName;
@@ -156,7 +156,7 @@ public class Criteria {
 
   /**
    * Set the destination resource name
-   * @param resourceName the resource name or * for all resources
+   * @param resourceName the resource name or % for all resources
    */
   public void setResource(String resourceName) {
     this.resourceName = resourceName;
@@ -172,7 +172,7 @@ public class Criteria {
 
   /**
    * Set the destination partition name
-   * @param partitionName the partition name, or * for all partitions of a resource
+   * @param partitionName the partition name, or % for all partitions of a resource
    */
   public void setPartition(String partitionName) {
     this.partitionName = partitionName;

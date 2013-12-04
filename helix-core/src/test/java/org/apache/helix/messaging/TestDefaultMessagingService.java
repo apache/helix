@@ -181,30 +181,63 @@ public class TestDefaultMessagingService {
     recipientCriteria.setSelfExcluded(false);
     AssertJUnit.assertEquals(1, svc.send(recipientCriteria, template));
 
+    // all instances, all partitions
     recipientCriteria.setSelfExcluded(false);
     recipientCriteria.setInstanceName("%");
     recipientCriteria.setResource("DB");
     recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
 
+    // all instances, all partitions, use * instead of %
+    recipientCriteria.setSelfExcluded(false);
+    recipientCriteria.setInstanceName("*");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("*");
+    AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
+
+    // tail pattern
+    recipientCriteria.setSelfExcluded(false);
+    recipientCriteria.setInstanceName("localhost%");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
+    AssertJUnit.assertEquals(200, svc.send(recipientCriteria, template));
+
+    // exclude this instance, send to all others for all partitions
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("%");
     recipientCriteria.setResource("DB");
     recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
 
-    recipientCriteria.setSelfExcluded(true);
-    recipientCriteria.setInstanceName("%");
-    recipientCriteria.setResource("DB");
-    recipientCriteria.setPartition("%");
-    AssertJUnit.assertEquals(159, svc.send(recipientCriteria, template));
-
+    // single instance, all partitions
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setResource("DB");
     recipientCriteria.setPartition("%");
     AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
 
+    // single character wildcards
+    recipientCriteria.setSelfExcluded(true);
+    recipientCriteria.setInstanceName("l_calhost_12_20");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
+    AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
+
+    // head pattern
+    recipientCriteria.setSelfExcluded(true);
+    recipientCriteria.setInstanceName("%12920");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
+    AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
+
+    // middle pattern
+    recipientCriteria.setSelfExcluded(true);
+    recipientCriteria.setInstanceName("l%_12920");
+    recipientCriteria.setResource("DB");
+    recipientCriteria.setPartition("%");
+    AssertJUnit.assertEquals(39, svc.send(recipientCriteria, template));
+
+    // send to a controller
     recipientCriteria.setSelfExcluded(true);
     recipientCriteria.setInstanceName("localhost_12920");
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);

@@ -19,80 +19,124 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.apache.helix.Criteria;
+import org.apache.helix.Criteria.DataSource;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.josql.ClusterJosqlQueryProcessor;
-import org.apache.helix.josql.ZNRecordRow;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 public class CriteriaEvaluator {
   private static Logger logger = Logger.getLogger(CriteriaEvaluator.class);
 
+  /**
+   * Examine persisted data to match wildcards in {@link Criteria}
+   * @param recipientCriteria Criteria specifying the message destinations
+   * @param manager connection to the persisted data
+   * @return map of evaluated criteria
+   */
   public List<Map<String, String>> evaluateCriteria(Criteria recipientCriteria, HelixManager manager) {
-    List<Map<String, String>> selected = new ArrayList<Map<String, String>>();
-
-    String queryFields =
-        (!recipientCriteria.getInstanceName().equals("") ? " " + ZNRecordRow.MAP_SUBKEY : " ''")
-            + ","
-            + (!recipientCriteria.getResource().equals("") ? " " + ZNRecordRow.ZNRECORD_ID : " ''")
-            + ","
-            + (!recipientCriteria.getPartition().equals("") ? " " + ZNRecordRow.MAP_KEY : " ''")
-            + ","
-            + (!recipientCriteria.getPartitionState().equals("") ? " " + ZNRecordRow.MAP_VALUE
-                : " '' ");
-
-    String matchCondition =
-        ZNRecordRow.MAP_SUBKEY
-            + " LIKE '"
-            + (!recipientCriteria.getInstanceName().equals("") ? (recipientCriteria
-                .getInstanceName() + "'") : "%' ")
-            + " AND "
-            + ZNRecordRow.ZNRECORD_ID
-            + " LIKE '"
-            + (!recipientCriteria.getResource().equals("") ? (recipientCriteria.getResource() + "'")
-                : "%' ")
-            + " AND "
-            + ZNRecordRow.MAP_KEY
-            + " LIKE '"
-            + (!recipientCriteria.getPartition().equals("") ? (recipientCriteria.getPartition() + "'")
-                : "%' ")
-            + " AND "
-            + ZNRecordRow.MAP_VALUE
-            + " LIKE '"
-            + (!recipientCriteria.getPartitionState().equals("") ? (recipientCriteria
-                .getPartitionState() + "'") : "%' ") + " AND " + ZNRecordRow.MAP_SUBKEY
-            + " IN ((SELECT [*]id FROM :LIVEINSTANCES))";
-
-    String queryTarget =
-        recipientCriteria.getDataSource().toString() + ClusterJosqlQueryProcessor.FLATTABLE;
-
-    String josql =
-        "SELECT DISTINCT " + queryFields + " FROM " + queryTarget + " WHERE " + matchCondition;
-    ClusterJosqlQueryProcessor p = new ClusterJosqlQueryProcessor(manager);
-    List<Object> result = new ArrayList<Object>();
-    try {
-      logger.info("JOSQL query: " + josql);
-      result = p.runJoSqlQuery(josql, null, null);
-    } catch (Exception e) {
-      logger.error("", e);
-      return selected;
+    // get the data
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Set<Map<String, String>> selected = Sets.newHashSet();
+    List<HelixProperty> properties;
+    if (recipientCriteria.getDataSource() == DataSource.EXTERNALVIEW) {
+      properties = accessor.getChildValues(keyBuilder.externalViews());
+    } else if (recipientCriteria.getDataSource() == DataSource.IDEALSTATES) {
+      properties = accessor.getChildValues(keyBuilder.idealStates());
+    } else {
+      return Collections.emptyList();
     }
 
-    for (Object o : result) {
+    // flatten the data
+    List<ZNRecordRow> allRows = ZNRecordRow.flatten(HelixProperty.convertToList(properties));
+
+    // save the matches
+    Set<String> liveParticipants = accessor.getChildValuesMap(keyBuilder.liveInstances()).keySet();
+    List<ZNRecordRow> result = Lists.newArrayList();
+    for (ZNRecordRow row : allRows) {
+      if (rowMatches(recipientCriteria, row) && liveParticipants.contains(row.getMapSubKey())) {
+        result.add(row);
+      }
+    }
+
+    // deduplicate and convert the matches into the required format
+    for (ZNRecordRow row : result) {
       Map<String, String> resultRow = new HashMap<String, String>();
-      List<Object> row = (List<Object>) o;
-      resultRow.put("instanceName", (String) (row.get(0)));
-      resultRow.put("resourceName", (String) (row.get(1)));
-      resultRow.put("partitionName", (String) (row.get(2)));
-      resultRow.put("partitionState", (String) (row.get(3)));
+      resultRow.put("instanceName",
+          !recipientCriteria.getInstanceName().equals("") ? row.getMapSubKey() : "");
+      resultRow.put("resourceName", !recipientCriteria.getResource().equals("") ? row.getRecordId()
+          : "");
+      resultRow.put("partitionName", !recipientCriteria.getPartition().equals("") ? row.getMapKey()
+          : "");
+      resultRow.put("partitionState",
+          !recipientCriteria.getPartitionState().equals("") ? row.getMapValue() : "");
       selected.add(resultRow);
     }
-    logger.info("JOSQL query return " + selected.size() + " rows");
-    return selected;
+    logger.info("Query returned " + selected.size() + " rows");
+    return Lists.newArrayList(selected);
+  }
+
+  /**
+   * Check if a given row matches the specified criteria
+   * @param criteria the criteria
+   * @param row row of currently persisted data
+   * @return true if it matches, false otherwise
+   */
+  private boolean rowMatches(Criteria criteria, ZNRecordRow row) {
+    String instanceName = normalizePattern(criteria.getInstanceName());
+    String resourceName = normalizePattern(criteria.getResource());
+    String partitionName = normalizePattern(criteria.getPartition());
+    String partitionState = normalizePattern(criteria.getPartitionState());
+    return stringMatches(instanceName, row.getMapSubKey())
+        && stringMatches(resourceName, row.getRecordId())
+        && stringMatches(partitionName, row.getMapKey())
+        && stringMatches(partitionState, row.getMapValue());
+  }
+
+  /**
+   * Convert an SQL like expression into a Java matches expression
+   * @param pattern SQL like match pattern (i.e. contains '%'s and '_'s)
+   * @return Java matches expression (i.e. contains ".*?"s and '.'s)
+   */
+  private String normalizePattern(String pattern) {
+    if (pattern == null || pattern.equals("") || pattern.equals("*")) {
+      pattern = "%";
+    }
+    StringBuilder builder = new StringBuilder();
+    for (int i = 0; i < pattern.length(); i++) {
+      char ch = pattern.charAt(i);
+      if ("[](){}.*+?$^|#\\".indexOf(ch) != -1) {
+        // escape any reserved characters
+        builder.append("\\");
+      }
+      // append the character
+      builder.append(ch);
+    }
+    pattern = builder.toString().toLowerCase().replace("_", ".").replace("%", ".*?");
+    return pattern;
+  }
+
+  /**
+   * Check if a string matches a pattern
+   * @param pattern pattern allowed by Java regex matching
+   * @param value the string to check
+   * @return true if they match, false otherwise
+   */
+  private boolean stringMatches(String pattern, String value) {
+    Pattern p = Pattern.compile(pattern, Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+    return p.matcher(value).matches();
   }
 }

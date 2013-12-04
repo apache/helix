@@ -1,0 +1,16 @@
+/target
+/.project
+/.classpath
+/.settings
+/zkdata
+/test-output
+/src/main/scripts/integration-test/var
+#/src/test/java/com/linkedin/dds/
+#/src/main/scripts/integration-test/config
+/src/main/scripts/target/
+/src/main/scripts/integration-test/script/.metadata_infra
+#/src/main/scripts/integration-test/script/dds_driver.py
+#/src/main/scripts/integration-test/script/pexpect.py
+#/src/main/scripts/integration-test/script/utility.py
+*.pyc
+/bin

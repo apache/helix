@@ -171,7 +171,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
       agentThread.start();
 
       // wait participant thread to start
-      Thread.sleep(100);
+      Thread.sleep(1000);
     }
 
     boolean result =

@@ -21,21 +21,26 @@ package org.apache.helix.controller.context;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.api.id.ContextId;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * An interface for getting and setting {@link ControllerContext} objects, which will eventually
- * be persisted and acessible across runs of the controller pipeline.
+ * be persisted and accessible across runs of the controller pipeline.
  */
 public class ControllerContextProvider {
   private static final Logger LOG = Logger.getLogger(ControllerContextProvider.class);
 
   private Map<ContextId, ControllerContext> _persistedContexts;
   private Map<ContextId, ControllerContext> _pendingContexts;
+  private Set<ContextId> _removedContexts;
 
   /**
    * Instantiate with already-persisted controller contexts
@@ -44,6 +49,7 @@ public class ControllerContextProvider {
   public ControllerContextProvider(Map<ContextId, ControllerContext> contexts) {
     _persistedContexts = contexts != null ? contexts : new HashMap<ContextId, ControllerContext>();
     _pendingContexts = Maps.newHashMap();
+    _removedContexts = Sets.newHashSet();
   }
 
   /**
@@ -51,8 +57,8 @@ public class ControllerContextProvider {
    * @param contextId the context id to look up
    * @return a ControllerContext, or null if not found
    */
-  public ControllerContext getControllerContext(ContextId contextId) {
-    return getControllerContext(contextId, ControllerContext.class);
+  public ControllerContext getContext(ContextId contextId) {
+    return getContext(contextId, ControllerContext.class);
   }
 
   /**
@@ -62,7 +68,7 @@ public class ControllerContextProvider {
    * @return a typed ControllerContext, or null if no context with given id is available for this
    *         type
    */
-  public <T extends ControllerContext> T getControllerContext(ContextId contextId,
+  public <T extends ControllerContext> T getContext(ContextId contextId,
       Class<T> contextClass) {
     try {
       if (_pendingContexts.containsKey(contextId)) {
@@ -81,8 +87,8 @@ public class ControllerContextProvider {
    * @param contextId the id to set
    * @param context the context object
    */
-  public void putControllerContext(ContextId contextId, ControllerContext context) {
-    putControllerContext(contextId, context, true);
+  public void putContext(ContextId contextId, ControllerContext context) {
+    putContext(contextId, context, true);
   }
 
   /**
@@ -92,13 +98,41 @@ public class ControllerContextProvider {
    * @param overwriteAllowed true if existing objects can be overwritten, false otherwise
    * @return true if saved, false if an object with that id exists and overwrite is not allowed
    */
-  public boolean putControllerContext(ContextId contextId, ControllerContext context,
+  public boolean putContext(ContextId contextId, ControllerContext context,
       boolean overwriteAllowed) {
+    // avoid persisting null contexts
+    if (context == null) {
+      LOG.error("Cannot save a null context, id: " + contextId);
+      return false;
+    }
     if (overwriteAllowed || !exists(contextId)) {
       _pendingContexts.put(contextId, context);
+      if (_removedContexts.contains(contextId)) {
+        // no need to mark as removed if it's being added again
+        _removedContexts.remove(contextId);
+      }
       return true;
     }
     return false;
+  }
+
+  /**
+   * Remove a controller context
+   * @param contextId the id to remove
+   * @return ControllerContext that was removed, or null
+   */
+  public ControllerContext removeContext(ContextId contextId) {
+    ControllerContext removed = null;
+    if (_persistedContexts.containsKey(contextId)) {
+      removed = _persistedContexts.remove(contextId);
+    }
+    if (_pendingContexts.containsKey(contextId)) {
+      // check pending second since it might overwrite a persisted context
+      removed = _pendingContexts.remove(contextId);
+    }
+    // mark as removed even if pending; this is so that remove, put, remove works
+    _removedContexts.add(contextId);
+    return removed;
   }
 
   /**
@@ -111,10 +145,29 @@ public class ControllerContextProvider {
   }
 
   /**
+   * Get all contexts, both persisted and pending
+   * @return an immutable map of context id to context
+   */
+  public Map<ContextId, ControllerContext> getContexts() {
+    Map<ContextId, ControllerContext> aggregateMap = Maps.newHashMap();
+    aggregateMap.putAll(_persistedContexts);
+    aggregateMap.putAll(_pendingContexts);
+    return ImmutableMap.copyOf(aggregateMap);
+  }
+
+  /**
    * Get all contexts that have been put, but not yet persisted
-   * @return a map of context id to context
+   * @return an immutable map of context id to context
    */
   public Map<ContextId, ControllerContext> getPendingContexts() {
-    return _pendingContexts;
+    return ImmutableMap.copyOf(_pendingContexts);
+  }
+
+  /**
+   * Get all context ids that have been marked for removal
+   * @return a set of context ids
+   */
+  public Set<ContextId> getRemovedContexts() {
+    return ImmutableSet.copyOf(_removedContexts);
   }
 }

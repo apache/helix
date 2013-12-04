@@ -92,7 +92,7 @@ public class TestCustomizedIdealStateRebalancer extends
 
       // set some basic context
       ContextId contextId = ContextId.from(config.getResourceId().stringify());
-      _contextProvider.putControllerContext(contextId, new BasicControllerContext(contextId));
+      _contextProvider.putContext(contextId, new BasicControllerContext(contextId));
       return resourceMapping;
     }
 

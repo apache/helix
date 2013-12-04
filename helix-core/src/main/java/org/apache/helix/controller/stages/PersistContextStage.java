@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -44,6 +45,14 @@ public class PersistContextStage extends AbstractBaseStage {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     ControllerContextProvider contextProvider =
         event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
+
+    // remove marked contexts
+    Set<ContextId> removedContexts = contextProvider.getRemovedContexts();
+    for (ContextId contextId : removedContexts) {
+      accessor.removeProperty(keyBuilder.controllerContext(contextId.stringify()));
+    }
+
+    // persist pending contexts
     Map<ContextId, ControllerContext> pendingContexts = contextProvider.getPendingContexts();
     List<PropertyKey> keys = Lists.newArrayList();
     List<ControllerContextHolder> properties = Lists.newArrayList();

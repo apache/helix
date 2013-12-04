@@ -30,8 +30,7 @@ import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -52,18 +51,16 @@ public class Resource {
    * @param idealState ideal state of the resource
    * @param externalView external view of the resource
    * @param resourceAssignment current resource assignment of the cluster
-   * @param rebalancerContext contextual parameters that the rebalancer should be aware of
+   * @param rebalancerConfig parameters that the rebalancer should be aware of
    * @param userConfig any resource user-defined configuration
    * @param bucketSize the bucket size to use for physically saved state
    * @param batchMessageMode true if batch messaging allowed, false otherwise
    */
   public Resource(ResourceId id, ResourceType type, IdealState idealState,
       ResourceAssignment resourceAssignment, ExternalView externalView,
-      RebalancerContext rebalancerContext, UserConfig userConfig, int bucketSize,
+      RebalancerConfig rebalancerConfig, UserConfig userConfig, int bucketSize,
       boolean batchMessageMode) {
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
-    RebalancerConfig rebalancerConfig = new RebalancerConfig(rebalancerContext);
-
     _config =
         new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, userConfig, bucketSize,
             batchMessageMode);

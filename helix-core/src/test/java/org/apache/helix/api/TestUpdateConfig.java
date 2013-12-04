@@ -9,8 +9,9 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -91,29 +92,29 @@ public class TestUpdateConfig {
     // message mode
     UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
     userConfig.setSimpleField("key1", "value1");
-    SemiAutoRebalancerContext rebalancerContext =
-        new SemiAutoRebalancerContext.Builder(resourceId).build();
+    SemiAutoRebalancerConfig rebalancerContext =
+        new SemiAutoRebalancerConfig.Builder(resourceId).build();
     ResourceConfig config =
         new ResourceConfig.Builder(resourceId).userConfig(userConfig)
-            .rebalancerContext(rebalancerContext).bucketSize(OLD_BUCKET_SIZE)
-            .batchMessageMode(true).build();
+            .rebalancerConfig(rebalancerContext).bucketSize(OLD_BUCKET_SIZE).batchMessageMode(true)
+            .build();
 
     // update: overwrite user config, change to full auto rebalancer context, and change the bucket
     // size
     UserConfig newUserConfig = new UserConfig(Scope.resource(resourceId));
     newUserConfig.setSimpleField("key2", "value2");
-    FullAutoRebalancerContext newRebalancerContext =
-        new FullAutoRebalancerContext.Builder(resourceId).build();
+    FullAutoRebalancerConfig newRebalancerContext =
+        new FullAutoRebalancerConfig.Builder(resourceId).build();
     ResourceConfig updated =
         new ResourceConfig.Delta(resourceId).setBucketSize(NEW_BUCKET_SIZE)
-            .setUserConfig(newUserConfig).setRebalancerContext(newRebalancerContext)
+            .setUserConfig(newUserConfig).setRebalancerConfig(newRebalancerContext)
             .mergeInto(config);
     Assert.assertEquals(updated.getBucketSize(), NEW_BUCKET_SIZE);
     Assert.assertTrue(updated.getBatchMessageMode());
-    Assert.assertNull(updated.getRebalancerConfig().getRebalancerContext(
-        SemiAutoRebalancerContext.class));
-    Assert.assertNotNull(updated.getRebalancerConfig().getRebalancerContext(
-        FullAutoRebalancerContext.class));
+    Assert.assertNull(BasicRebalancerConfig.convert(updated.getRebalancerConfig(),
+        SemiAutoRebalancerConfig.class));
+    Assert.assertNotNull(BasicRebalancerConfig.convert(updated.getRebalancerConfig(),
+        FullAutoRebalancerConfig.class));
     Assert.assertNull(updated.getUserConfig().getSimpleField("key1"));
     Assert.assertEquals(updated.getUserConfig().getSimpleField("key2"), "value2");
   }

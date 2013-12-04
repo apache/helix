@@ -27,11 +27,13 @@ import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ContextId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SpectatorId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -73,6 +75,8 @@ public class Cluster {
    */
   private final Map<SpectatorId, Spectator> _spectatorMap;
 
+  private final Map<ContextId, ControllerContext> _contextMap;
+
   private final ControllerId _leaderId;
 
   private final ClusterConfig _config;
@@ -86,6 +90,7 @@ public class Cluster {
    * @param leaderId
    * @param constraintMap
    * @param stateModelMap
+   * @param contextMap
    * @param stats
    * @param alerts
    * @param userConfig
@@ -95,8 +100,9 @@ public class Cluster {
   public Cluster(ClusterId id, Map<ResourceId, Resource> resourceMap,
       Map<ParticipantId, Participant> participantMap, Map<ControllerId, Controller> controllerMap,
       ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
-      Map<StateModelDefId, StateModelDefinition> stateModelMap, PersistentStats stats,
-      Alerts alerts, UserConfig userConfig, boolean isPaused, boolean autoJoinAllowed) {
+      Map<StateModelDefId, StateModelDefinition> stateModelMap,
+      Map<ContextId, ControllerContext> contextMap, PersistentStats stats, Alerts alerts,
+      UserConfig userConfig, boolean isPaused, boolean autoJoinAllowed) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -136,6 +142,8 @@ public class Cluster {
     _liveParticipantMap = liveParticipantBuilder.build();
 
     _leaderId = leaderId;
+
+    _contextMap = ImmutableMap.copyOf(contextMap);
 
     // TODO impl this when we persist controllers and spectators on zookeeper
     _controllerMap = ImmutableMap.copyOf(controllerMap);
@@ -221,6 +229,14 @@ public class Cluster {
    */
   public Map<StateModelDefId, StateModelDefinition> getStateModelMap() {
     return _config.getStateModelMap();
+  }
+
+  /**
+   * Get all the controller context currently on the cluster
+   * @return map of context id to controller context objects
+   */
+  public Map<ContextId, ControllerContext> getContextMap() {
+    return _contextMap;
   }
 
   /**

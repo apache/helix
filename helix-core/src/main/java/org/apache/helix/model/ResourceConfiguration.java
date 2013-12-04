@@ -6,8 +6,8 @@ import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
@@ -105,11 +105,11 @@ public class ResourceConfiguration extends HelixProperty {
   }
 
   /**
-   * Get a RebalancerContext if available
-   * @return RebalancerContext, or null
+   * Get a RebalancerConfig if available
+   * @return RebalancerConfig, or null
    */
-  public RebalancerContext getRebalancerContext(Class<? extends RebalancerContext> clazz) {
-    RebalancerConfig config = new RebalancerConfig(this);
-    return config.getRebalancerContext(clazz);
+  public RebalancerConfig getRebalancerConfig(Class<? extends RebalancerConfig> clazz) {
+    RebalancerConfigHolder config = new RebalancerConfigHolder(this);
+    return config.getRebalancerConfig(clazz);
   }
 }

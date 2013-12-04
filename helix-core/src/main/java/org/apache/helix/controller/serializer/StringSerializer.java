@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.controller.serializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,19 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  CONTEXT_PROVIDER,
+public interface StringSerializer {
+  /**
+   * Convert an object instance to a String
+   * @param data instance of an arbitrary type
+   * @return String representing the object
+   */
+  public <T> String serialize(final T data);
+
+  /**
+   * Convert raw bytes to a generic object instance
+   * @param clazz The class represented by the deserialized string
+   * @param string String representing the object
+   * @return instance of the generic type or null if the conversion failed
+   */
+  public <T> T deserialize(final Class<T> clazz, final String string);
 }

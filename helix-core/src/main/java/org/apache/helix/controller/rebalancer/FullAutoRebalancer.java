@@ -16,8 +16,10 @@ import org.apache.helix.api.Participant;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.context.ControllerContextProvider;
+import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
@@ -56,15 +58,15 @@ public class FullAutoRebalancer implements HelixRebalancer {
   private static Logger LOG = Logger.getLogger(FullAutoRebalancer.class);
 
   @Override
-  public void init(HelixManager helixManager) {
+  public void init(HelixManager helixManager, ControllerContextProvider contextProvider) {
     // do nothing
   }
 
   @Override
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      Cluster cluster, ResourceCurrentState currentState) {
-    FullAutoRebalancerContext config =
-        rebalancerConfig.getRebalancerContext(FullAutoRebalancerContext.class);
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
+    FullAutoRebalancerConfig config =
+        BasicRebalancerConfig.convert(rebalancerConfig, FullAutoRebalancerConfig.class);
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     // Compute a preference list based on the current ideal state
@@ -181,7 +183,7 @@ public class FullAutoRebalancer implements HelixRebalancer {
   }
 
   private Map<PartitionId, Map<ParticipantId, State>> currentMapping(
-      FullAutoRebalancerContext config, ResourceCurrentState currentStateOutput,
+      FullAutoRebalancerConfig config, ResourceCurrentState currentStateOutput,
       Map<State, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();

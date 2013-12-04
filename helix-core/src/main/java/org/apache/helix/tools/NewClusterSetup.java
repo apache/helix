@@ -64,10 +64,12 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.CustomRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
+import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -300,9 +302,9 @@ public class NewClusterSetup {
     idealState.setMaxPartitionsPerInstance(maxPartitionsPerNode);
     idealState.setStateModelDefId(stateModelDefId);
 
-    RebalancerContext rebalancerCtx = PartitionedRebalancerContext.from(idealState);
+    RebalancerConfig rebalancerCtx = PartitionedRebalancerConfig.from(idealState);
     ResourceConfig.Builder builder =
-        new ResourceConfig.Builder(resourceId).rebalancerContext(rebalancerCtx).bucketSize(
+        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalancerCtx).bucketSize(
             bucketSize);
 
     ClusterAccessor accessor = clusterAccessor(clusterName);
@@ -407,10 +409,10 @@ public class NewClusterSetup {
           new IdealState(
               (ZNRecord) (new ZNRecordSerializer().deserialize(readFile(idealStateJsonFile))));
 
-      RebalancerContext rebalancerCtx = PartitionedRebalancerContext.from(idealState);
+      RebalancerConfig rebalancerCtx = PartitionedRebalancerConfig.from(idealState);
       ResourceConfig.Builder builder =
-          new ResourceConfig.Builder(ResourceId.from(resourceName))
-              .rebalancerContext(rebalancerCtx).bucketSize(idealState.getBucketSize());
+          new ResourceConfig.Builder(ResourceId.from(resourceName)).rebalancerConfig(rebalancerCtx)
+              .bucketSize(idealState.getBucketSize());
 
       ClusterAccessor accessor = clusterAccessor(clusterName);
       accessor.addResourceToCluster(builder.build());
@@ -459,23 +461,25 @@ public class NewClusterSetup {
     StringBuilder sb = new StringBuilder();
     Map<ParticipantId, State> stateMap = resource.getExternalView().getStateMap(partitionId);
     sb.append(resourceName + "/" + partitionName + ", externalView: " + stateMap);
-    PartitionedRebalancerContext partitionedContext =
-        resource.getRebalancerConfig().getRebalancerContext(PartitionedRebalancerContext.class);
-    if (partitionedContext != null) {
+    PartitionedRebalancerConfig partitionedConfig =
+        PartitionedRebalancerConfig.from(resource.getRebalancerConfig());
+    if (partitionedConfig != null) {
       // for partitioned contexts, check the mode and apply mode-specific information if possible
-      if (partitionedContext.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-        SemiAutoRebalancerContext semiAutoContext =
-            resource.getRebalancerConfig().getRebalancerContext(SemiAutoRebalancerContext.class);
-        sb.append(", preferenceList: " + semiAutoContext.getPreferenceList(partitionId));
-      } else if (partitionedContext.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
-        CustomRebalancerContext customContext =
-            resource.getRebalancerConfig().getRebalancerContext(CustomRebalancerContext.class);
-        sb.append(", preferenceMap: " + customContext.getPreferenceMap(partitionId));
+      if (partitionedConfig.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+        SemiAutoRebalancerConfig semiAutoConfig =
+            BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
+                SemiAutoRebalancerConfig.class);
+        sb.append(", preferenceList: " + semiAutoConfig.getPreferenceList(partitionId));
+      } else if (partitionedConfig.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+        CustomRebalancerConfig customConfig =
+            BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
+                CustomRebalancerConfig.class);
+        sb.append(", preferenceMap: " + customConfig.getPreferenceMap(partitionId));
       }
-      if (partitionedContext.anyLiveParticipant()) {
-        sb.append(", anyLiveParticipant: " + partitionedContext.anyLiveParticipant());
+      if (partitionedConfig.anyLiveParticipant()) {
+        sb.append(", anyLiveParticipant: " + partitionedConfig.anyLiveParticipant());
       } else {
-        sb.append(", replicaCount: " + partitionedContext.getReplicaCount());
+        sb.append(", replicaCount: " + partitionedConfig.getReplicaCount());
       }
     }
 
@@ -750,12 +754,13 @@ public class NewClusterSetup {
     ResourceAccessor accessor = resourceAccessor(clusterName);
     ResourceId resourceId = ResourceId.from(resourceName);
     Resource resource = accessor.readResource(resourceId);
+    RebalancerConfigHolder holder = new RebalancerConfigHolder(resource.getRebalancerConfig());
     StringBuilder sb =
         new StringBuilder("Resource ").append(resourceName).append(" in cluster ")
             .append(clusterName).append(":\n").append("externalView: ")
             .append(resource.getExternalView()).append(", userConfig: ")
-            .append(resource.getUserConfig()).append(", rebalancerContext: ")
-            .append(resource.getRebalancerConfig().getSerializedContext());
+            .append(resource.getUserConfig()).append(", rebalancerConfig: ")
+            .append(holder.getSerializedConfig());
     System.out.println(sb.toString());
   }
 
@@ -956,17 +961,18 @@ public class NewClusterSetup {
   private void expandResource(ClusterId clusterId, ResourceId resourceId) {
     ResourceAccessor accessor = resourceAccessor(clusterId.stringify());
     Resource resource = accessor.readResource(resourceId);
-    SemiAutoRebalancerContext context =
-        resource.getRebalancerConfig().getRebalancerContext(SemiAutoRebalancerContext.class);
-    if (context == null) {
+    SemiAutoRebalancerConfig config =
+        BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
+            SemiAutoRebalancerConfig.class);
+    if (config == null) {
       LOG.info("Only SEMI_AUTO mode supported for resource expansion");
       return;
     }
-    if (context.anyLiveParticipant()) {
+    if (config.anyLiveParticipant()) {
       LOG.info("Resource uses ANY_LIVE_PARTICIPANT, skipping default assignment");
       return;
     }
-    if (context.getPreferenceLists().size() == 0) {
+    if (config.getPreferenceLists().size() == 0) {
       LOG.info("No preference lists have been set yet, skipping default assignment");
       return;
     }

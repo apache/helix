@@ -23,7 +23,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.FullAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Message;
@@ -219,10 +219,10 @@ public class LogicalModelExample {
     Partition partition2 = new Partition(PartitionId.from(resourceId, "2"));
 
     // specify the rebalancer configuration
-    // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerContext
+    // this resource will be rebalanced in FULL_AUTO mode, so use the FullAutoRebalancerConfig
     // builder
-    FullAutoRebalancerContext.Builder rebalanceContextBuilder =
-        new FullAutoRebalancerContext.Builder(resourceId).replicaCount(1).addPartition(partition1)
+    FullAutoRebalancerConfig.Builder rebalanceConfigBuilder =
+        new FullAutoRebalancerConfig.Builder(resourceId).replicaCount(1).addPartition(partition1)
             .addPartition(partition2).stateModelDefId(stateModelDef.getStateModelDefId());
 
     // create (optional) user-defined configuration properties for the resource
@@ -231,7 +231,7 @@ public class LogicalModelExample {
 
     // create the configuration for a new resource
     ResourceConfig.Builder resourceBuilder =
-        new ResourceConfig.Builder(resourceId).rebalancerContext(rebalanceContextBuilder.build())
+        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalanceConfigBuilder.build())
             .userConfig(userConfig);
     return resourceBuilder.build();
   }

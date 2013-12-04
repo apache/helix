@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.api.id;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +19,39 @@ package org.apache.helix.controller.rebalancer.context;
  * under the License.
  */
 
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
 /**
- * Methods specifying a rebalancer context that allows replicas. For instance, a rebalancer context
- * with partitions may accept state model definitions that support multiple replicas per partition,
- * and it's possible that the policy is that each live participant in the system should have a
- * replica.
+ * Identifies a context
  */
-public interface ReplicatedRebalancerContext extends RebalancerContext {
-  /**
-   * Check if this resource should be assigned to any live participant
-   * @return true if any live participant expected, false otherwise
-   */
-  public boolean anyLiveParticipant();
+public class ContextId extends Id {
+  @JsonProperty("id")
+  final private String _id;
 
   /**
-   * Get the number of replicas that each resource subunit should have
-   * @return replica count
+   * Create a context id
+   * @param id string representation of the id
    */
-  public int getReplicaCount();
+  @JsonCreator
+  public ContextId(@JsonProperty("id") String id) {
+    _id = id;
+  }
+
+  @Override
+  public String stringify() {
+    return _id;
+  }
+
+  /**
+   * Get a concrete context id for a string name
+   * @param contextId string context identifier
+   * @return ContextId
+   */
+  public static ContextId from(String contextId) {
+    if (contextId == null) {
+      return null;
+    }
+    return new ContextId(contextId);
+  }
 }

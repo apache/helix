@@ -45,14 +45,18 @@ import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ConstraintId;
+import org.apache.helix.api.id.ContextId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.context.ControllerContext;
+import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
@@ -60,6 +64,7 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -266,9 +271,13 @@ public class ClusterAccessor {
     // read the alerts
     Alerts alerts = _accessor.getProperty(_keyBuilder.alerts());
 
+    // read controller context
+    Map<ContextId, ControllerContext> contextMap = readControllerContext();
+
     // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, stateModelMap, stats, alerts, userConfig, isPaused, autoJoinAllowed);
+        clusterConstraintMap, stateModelMap, contextMap, stats, alerts, userConfig, isPaused,
+        autoJoinAllowed);
   }
 
   /**
@@ -459,6 +468,20 @@ public class ClusterAccessor {
   }
 
   /**
+   * Read the persisted controller contexts
+   * @return map of context id to controller context
+   */
+  public Map<ContextId, ControllerContext> readControllerContext() {
+    Map<String, ControllerContextHolder> contextHolders =
+        _accessor.getChildValuesMap(_keyBuilder.controllerContexts());
+    Map<ContextId, ControllerContext> contexts = Maps.newHashMap();
+    for (String contextName : contextHolders.keySet()) {
+      contexts.put(ContextId.from(contextName), contextHolders.get(contextName).getContext());
+    }
+    return contexts;
+  }
+
+  /**
    * Add a statistic specification to the cluster. Existing stat specifications will not be
    * overwritten
    * @param statName string representing a stat specification
@@ -623,7 +646,7 @@ public class ClusterAccessor {
    */
   public boolean addResourceToCluster(ResourceConfig resource) {
     if (resource == null || resource.getRebalancerConfig() == null) {
-      LOG.error("Resource not fully defined with a rebalancer context");
+      LOG.error("Resource not fully defined with a rebalancer config");
       return false;
     }
 
@@ -631,9 +654,8 @@ public class ClusterAccessor {
       LOG.error("Cluster: " + _clusterId + " structure is not valid");
       return false;
     }
-    RebalancerContext context =
-        resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
-    StateModelDefId stateModelDefId = context.getStateModelDefId();
+    RebalancerConfig config = resource.getRebalancerConfig();
+    StateModelDefId stateModelDefId = config.getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
       LOG.error("State model: " + stateModelDefId + " not found in cluster: " + _clusterId);
       return false;
@@ -656,17 +678,21 @@ public class ClusterAccessor {
       ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
       configuration.setType(resource.getType());
       configuration.addNamespacedConfig(resource.getUserConfig());
-      configuration.addNamespacedConfig(resource.getRebalancerConfig().toNamespacedConfig());
-      configuration.setBucketSize(resource.getBucketSize());
-      configuration.setBatchMessageMode(resource.getBatchMessageMode());
+      PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
+      if (partitionedConfig == null
+          || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        // only persist if this is not easily convertible to an ideal state
+        configuration
+            .addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
+                .toNamespacedConfig());
+      }
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
 
     // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
-    RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
     IdealState idealState =
-        ResourceAccessor.rebalancerConfigToIdealState(rebalancerConfig, resource.getBucketSize(),
-            resource.getBatchMessageMode());
+        ResourceAccessor.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
+            resource.getBucketSize(), resource.getBatchMessageMode());
     if (idealState != null) {
       _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
     }

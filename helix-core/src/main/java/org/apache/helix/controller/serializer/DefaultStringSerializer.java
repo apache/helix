@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.serializer;
 
 import java.io.ByteArrayInputStream;
 import java.io.StringWriter;
@@ -29,12 +29,12 @@ import org.codehaus.jackson.map.SerializationConfig;
  */
 
 /**
- * Default serializer implementation for RebalancerContexts. Uses the Jackson JSON library to
- * convert to and from strings
+ * Default serializer implementation for converting to/from strings. Uses the Jackson JSON library
+ * to do the conversion
  */
-public class DefaultContextSerializer implements ContextSerializer {
+public class DefaultStringSerializer implements StringSerializer {
 
-  private static Logger logger = Logger.getLogger(DefaultContextSerializer.class);
+  private static Logger logger = Logger.getLogger(DefaultStringSerializer.class);
 
   @Override
   public <T> String serialize(final T data) {
@@ -70,7 +70,6 @@ public class DefaultContextSerializer implements ContextSerializer {
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_CREATORS, true);
-    deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     deserializationConfig.set(DeserializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
     try {
       T payload = mapper.readValue(bais, clazz);

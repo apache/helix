@@ -7,8 +7,7 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 
 import com.google.common.collect.Sets;
 
@@ -80,7 +79,7 @@ public class ResourceConfig {
    * @return map of subunit id to subunit or empty map if none
    */
   public Map<? extends PartitionId, ? extends Partition> getSubUnitMap() {
-    return _rebalancerConfig.getRebalancerContext(RebalancerContext.class).getSubUnitMap();
+    return _rebalancerConfig.getSubUnitMap();
   }
 
   /**
@@ -167,7 +166,7 @@ public class ResourceConfig {
   public static class Delta {
     private enum Fields {
       TYPE,
-      REBALANCER_CONTEXT,
+      REBALANCER_CONFIG,
       USER_CONFIG,
       BUCKET_SIZE,
       BATCH_MESSAGE_MODE
@@ -198,12 +197,12 @@ public class ResourceConfig {
 
     /**
      * Set the rebalancer configuration
-     * @param context properties of interest for rebalancing
+     * @param config properties of interest for rebalancing
      * @return Delta
      */
-    public Delta setRebalancerContext(RebalancerContext context) {
-      _builder.rebalancerContext(context);
-      _updateFields.add(Fields.REBALANCER_CONTEXT);
+    public Delta setRebalancerConfig(RebalancerConfig config) {
+      _builder.rebalancerConfig(config);
+      _updateFields.add(Fields.REBALANCER_CONFIG);
       return this;
     }
 
@@ -248,10 +247,8 @@ public class ResourceConfig {
     public ResourceConfig mergeInto(ResourceConfig orig) {
       ResourceConfig deltaConfig = _builder.build();
       Builder builder =
-          new Builder(orig.getId())
-              .type(orig.getType())
-              .rebalancerContext(
-                  orig.getRebalancerConfig().getRebalancerContext(RebalancerContext.class))
+          new Builder(orig.getId()).type(orig.getType())
+              .rebalancerConfig(orig.getRebalancerConfig())
               .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig())
               .bucketSize(orig.getBucketSize()).batchMessageMode(orig.getBatchMessageMode());
       for (Fields field : _updateFields) {
@@ -259,9 +256,8 @@ public class ResourceConfig {
         case TYPE:
           builder.type(deltaConfig.getType());
           break;
-        case REBALANCER_CONTEXT:
-          builder.rebalancerContext(deltaConfig.getRebalancerConfig().getRebalancerContext(
-              RebalancerContext.class));
+        case REBALANCER_CONFIG:
+          builder.rebalancerConfig(deltaConfig.getRebalancerConfig());
           break;
         case USER_CONFIG:
           builder.userConfig(deltaConfig.getUserConfig());
@@ -314,11 +310,11 @@ public class ResourceConfig {
 
     /**
      * Set the rebalancer configuration
-     * @param rebalancerContext properties of interest for rebalancing
+     * @param rebalancerConfig properties of interest for rebalancing
      * @return Builder
      */
-    public Builder rebalancerContext(RebalancerContext rebalancerContext) {
-      _rebalancerConfig = new RebalancerConfig(rebalancerContext);
+    public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
+      _rebalancerConfig = rebalancerConfig;
       return this;
     }
 

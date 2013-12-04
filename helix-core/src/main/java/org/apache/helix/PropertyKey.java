@@ -24,6 +24,7 @@ import static org.apache.helix.PropertyType.ALERT_HISTORY;
 import static org.apache.helix.PropertyType.ALERT_STATUS;
 import static org.apache.helix.PropertyType.CLUSTER;
 import static org.apache.helix.PropertyType.CONFIGS;
+import static org.apache.helix.PropertyType.CONTEXT;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
 import static org.apache.helix.PropertyType.ERRORS;
@@ -46,6 +47,7 @@ import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 
 import java.util.Arrays;
 
+import org.apache.helix.controller.context.ControllerContextHolder;
 import org.apache.helix.model.AlertHistory;
 import org.apache.helix.model.AlertStatus;
 import org.apache.helix.model.Alerts;
@@ -720,6 +722,22 @@ public class PropertyKey {
      */
     public PropertyKey propertyStore() {
       return new PropertyKey(PROPERTYSTORE, null, _clusterName);
+    }
+
+    /**
+     * Get a propertykey associated with the root of the Helix contexts
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey controllerContexts() {
+      return new PropertyKey(CONTEXT, ControllerContextHolder.class, _clusterName);
+    }
+
+    /**
+     * Get a propertykey associated with the root of the Helix contexts
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey controllerContext(String contextId) {
+      return new PropertyKey(CONTEXT, ControllerContextHolder.class, _clusterName, contextId);
     }
   }
 

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import java.util.Set;
 
@@ -8,6 +8,8 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
+import org.apache.helix.controller.serializer.DefaultStringSerializer;
+import org.apache.helix.controller.serializer.StringSerializer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 
 /*
@@ -30,22 +32,22 @@ import org.codehaus.jackson.annotate.JsonIgnore;
  */
 
 /**
- * Abstract RebalancerContext that functions for generic subunits. Use a subclass that more
+ * Abstract RebalancerConfig that functions for generic subunits. Use a subclass that more
  * concretely defines the subunits.
  */
-public abstract class BasicRebalancerContext implements RebalancerContext {
+public abstract class BasicRebalancerConfig implements RebalancerConfig {
   private ResourceId _resourceId;
   private StateModelDefId _stateModelDefId;
   private StateModelFactoryId _stateModelFactoryId;
   private String _participantGroupTag;
-  private Class<? extends ContextSerializer> _serializer;
+  private Class<? extends StringSerializer> _serializer;
   private RebalancerRef _rebalancerRef;
 
   /**
-   * Instantiate a basic rebalancer context
+   * Instantiate a basic rebalancer config
    */
-  public BasicRebalancerContext() {
-    _serializer = DefaultContextSerializer.class;
+  public BasicRebalancerConfig() {
+    _serializer = DefaultStringSerializer.class;
   }
 
   @Override
@@ -101,18 +103,18 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
   }
 
   /**
-   * Get the serializer. If none is provided, {@link DefaultContextSerializer} is used
+   * Get the serializer. If none is provided, {@link DefaultStringSerializer} is used
    */
   @Override
-  public Class<? extends ContextSerializer> getSerializerClass() {
+  public Class<? extends StringSerializer> getSerializerClass() {
     return _serializer;
   }
 
   /**
-   * Set the class that can serialize this context
-   * @param serializer serializer class that implements ContextSerializer
+   * Set the class that can serialize this config
+   * @param serializer serializer class that implements StringSerializer
    */
-  public void setSerializerClass(Class<? extends ContextSerializer> serializer) {
+  public void setSerializerClass(Class<? extends StringSerializer> serializer) {
     _serializer = serializer;
   }
 
@@ -142,14 +144,28 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
   }
 
   /**
-   * Abstract builder for the base rebalancer context
+   * Safely cast a RebalancerConfig into a subtype
+   * @param config RebalancerConfig object
+   * @param clazz the target class
+   * @return An instance of clazz, or null if the conversion is not possible
+   */
+  public static <T extends RebalancerConfig> T convert(RebalancerConfig config, Class<T> clazz) {
+    try {
+      return clazz.cast(config);
+    } catch (ClassCastException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Abstract builder for the base rebalancer config
    */
   public static abstract class AbstractBuilder<T extends AbstractBuilder<T>> {
     private final ResourceId _resourceId;
     private StateModelDefId _stateModelDefId;
     private StateModelFactoryId _stateModelFactoryId;
     private String _participantGroupTag;
-    private Class<? extends ContextSerializer> _serializerClass;
+    private Class<? extends StringSerializer> _serializerClass;
     private RebalancerRef _rebalancerRef;
 
     /**
@@ -158,7 +174,7 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
      */
     public AbstractBuilder(ResourceId resourceId) {
       _resourceId = resourceId;
-      _serializerClass = DefaultContextSerializer.class;
+      _serializerClass = DefaultStringSerializer.class;
     }
 
     /**
@@ -192,11 +208,11 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
     }
 
     /**
-     * Set the serializer class for this rebalancer context
-     * @param serializerClass class that implements ContextSerializer
+     * Set the serializer class for this rebalancer config
+     * @param serializerClass class that implements StringSerializer
      * @return Builder
      */
-    public T serializerClass(Class<? extends ContextSerializer> serializerClass) {
+    public T serializerClass(Class<? extends StringSerializer> serializerClass) {
       _serializerClass = serializerClass;
       return self();
     }
@@ -213,15 +229,15 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
 
     /**
      * Update an existing context with base fields
-     * @param context derived context
+     * @param config derived config
      */
-    protected final void update(BasicRebalancerContext context) {
-      context.setResourceId(_resourceId);
-      context.setStateModelDefId(_stateModelDefId);
-      context.setStateModelFactoryId(_stateModelFactoryId);
-      context.setParticipantGroupTag(_participantGroupTag);
-      context.setSerializerClass(_serializerClass);
-      context.setRebalancerRef(_rebalancerRef);
+    protected final void update(BasicRebalancerConfig config) {
+      config.setResourceId(_resourceId);
+      config.setStateModelDefId(_stateModelDefId);
+      config.setStateModelFactoryId(_stateModelFactoryId);
+      config.setParticipantGroupTag(_participantGroupTag);
+      config.setSerializerClass(_serializerClass);
+      config.setRebalancerRef(_rebalancerRef);
     }
 
     /**
@@ -232,9 +248,9 @@ public abstract class BasicRebalancerContext implements RebalancerContext {
     protected abstract T self();
 
     /**
-     * Get the rebalancer context from the built fields
-     * @return RebalancerContext
+     * Get the rebalancer config from the built fields
+     * @return RebalancerConfig
      */
-    public abstract RebalancerContext build();
+    public abstract RebalancerConfig build();
   }
 }

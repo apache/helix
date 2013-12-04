@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -43,16 +43,16 @@ import com.google.common.collect.Maps;
  */
 
 /**
- * RebalancerContext for a resource that should be rebalanced in CUSTOMIZED mode. By default, it
+ * RebalancerConfig for a resource that should be rebalanced in CUSTOMIZED mode. By default, it
  * corresponds to {@link CustomRebalancer}
  */
-public class CustomRebalancerContext extends PartitionedRebalancerContext {
+public class CustomRebalancerConfig extends PartitionedRebalancerConfig {
   private Map<PartitionId, Map<ParticipantId, State>> _preferenceMaps;
 
   /**
-   * Instantiate a CustomRebalancerContext
+   * Instantiate a CustomRebalancerConfig
    */
-  public CustomRebalancerContext() {
+  public CustomRebalancerConfig() {
     setRebalanceMode(RebalanceMode.CUSTOMIZED);
     setRebalancerRef(RebalancerRef.from(CustomRebalancer.class));
     _preferenceMaps = Maps.newHashMap();
@@ -121,9 +121,9 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
   }
 
   /**
-   * Build a CustomRebalancerContext. By default, it corresponds to {@link CustomRebalancer}
+   * Build a CustomRebalancerConfig. By default, it corresponds to {@link CustomRebalancer}
    */
-  public static final class Builder extends PartitionedRebalancerContext.AbstractBuilder<Builder> {
+  public static final class Builder extends PartitionedRebalancerConfig.AbstractBuilder<Builder> {
     private final Map<PartitionId, Map<ParticipantId, State>> _preferenceMaps;
 
     /**
@@ -154,11 +154,11 @@ public class CustomRebalancerContext extends PartitionedRebalancerContext {
     }
 
     @Override
-    public CustomRebalancerContext build() {
-      CustomRebalancerContext context = new CustomRebalancerContext();
-      super.update(context);
-      context.setPreferenceMaps(_preferenceMaps);
-      return context;
+    public CustomRebalancerConfig build() {
+      CustomRebalancerConfig config = new CustomRebalancerConfig();
+      super.update(config);
+      config.setPreferenceMaps(_preferenceMaps);
+      return config;
     }
   }
 }

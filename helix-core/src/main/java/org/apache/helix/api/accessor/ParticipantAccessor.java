@@ -51,8 +51,8 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -315,16 +315,15 @@ public class ParticipantAccessor {
       return false;
     }
 
-    // need the rebalancer context for the resource
-    RebalancerContext context =
-        resource.getRebalancerConfig().getRebalancerContext(RebalancerContext.class);
-    if (context == null) {
-      LOG.error("Rebalancer context for resource does not exist");
+    // need the rebalancer config for the resource
+    RebalancerConfig config = resource.getRebalancerConfig();
+    if (config == null) {
+      LOG.error("Rebalancer config for resource does not exist");
       return false;
     }
 
     // ensure that all partitions to reset exist
-    Set<PartitionId> partitionSet = ImmutableSet.copyOf(context.getSubUnitIdSet());
+    Set<PartitionId> partitionSet = ImmutableSet.copyOf(config.getSubUnitIdSet());
     if (!partitionSet.containsAll(resetPartitionIdSet)) {
       LOG.error("Not all of the specified partitions to reset exist for the resource");
       return false;
@@ -368,7 +367,7 @@ public class ParticipantAccessor {
     }
 
     // build messages to signal the transition
-    StateModelDefId stateModelDefId = context.getStateModelDefId();
+    StateModelDefId stateModelDefId = config.getStateModelDefId();
     StateModelDefinition stateModelDef =
         _accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify()));
     Map<MessageId, Message> messageMap = Maps.newHashMap();
@@ -385,7 +384,7 @@ public class ParticipantAccessor {
       message.setStateModelDef(stateModelDefId);
       message.setFromState(State.from(HelixDefinedState.ERROR.toString()));
       message.setToState(stateModelDef.getTypedInitialState());
-      message.setStateModelFactoryId(context.getStateModelFactoryId());
+      message.setStateModelFactoryId(config.getStateModelFactoryId());
 
       messageMap.put(message.getMessageId(), message);
     }
@@ -666,8 +665,8 @@ public class ParticipantAccessor {
     for (String resourceName : idealStateMap.keySet()) {
       IdealState idealState = idealStateMap.get(resourceName);
       swapParticipantsInIdealState(idealState, oldParticipantId, newParticipantId);
-      PartitionedRebalancerContext context = PartitionedRebalancerContext.from(idealState);
-      resourceAccessor.setRebalancerContext(ResourceId.from(resourceName), context);
+      PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(idealState);
+      resourceAccessor.setRebalancerConfig(ResourceId.from(resourceName), config);
       _accessor.setProperty(_keyBuilder.idealStates(resourceName), idealState);
     }
     return true;

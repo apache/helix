@@ -30,9 +30,10 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
@@ -42,7 +43,7 @@ public class LockManagerRebalancer implements HelixRebalancer {
   private static final Logger LOG = Logger.getLogger(LockManagerRebalancer.class);
 
   @Override
-  public void init(HelixManager manager) {
+  public void init(HelixManager manager, ControllerContextProvider contextProvider) {
     // do nothing; this rebalancer is independent of the manager
   }
 
@@ -54,20 +55,19 @@ public class LockManagerRebalancer implements HelixRebalancer {
    */
   @Override
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      Cluster cluster, ResourceCurrentState currentState) {
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
     // get a typed context
-    PartitionedRebalancerContext context =
-        rebalancerConfig.getRebalancerContext(PartitionedRebalancerContext.class);
+    PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
 
     // Initialize an empty mapping of locks to participants
-    ResourceAssignment assignment = new ResourceAssignment(context.getResourceId());
+    ResourceAssignment assignment = new ResourceAssignment(config.getResourceId());
 
     // Get the list of live participants in the cluster
     List<ParticipantId> liveParticipants =
         new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
 
     // Get the state model (should be a simple lock/unlock model) and the highest-priority state
-    StateModelDefId stateModelDefId = context.getStateModelDefId();
+    StateModelDefId stateModelDefId = config.getStateModelDefId();
     StateModelDefinition stateModelDef = cluster.getStateModelMap().get(stateModelDefId);
     if (stateModelDef.getStatesPriorityList().size() < 1) {
       LOG.error("Invalid state model definition. There should be at least one state.");
@@ -93,7 +93,7 @@ public class LockManagerRebalancer implements HelixRebalancer {
     // This assumes a simple lock-unlock model where the only state of interest is which nodes have
     // acquired each lock.
     int i = 0;
-    for (PartitionId partition : context.getPartitionSet()) {
+    for (PartitionId partition : config.getPartitionSet()) {
       Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
       for (int j = i; j < i + lockHolders; j++) {
         int participantIndex = j % liveParticipants.size();

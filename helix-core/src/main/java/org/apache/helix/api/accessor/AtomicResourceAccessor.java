@@ -6,7 +6,7 @@ import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.lock.HelixLock;
 import org.apache.helix.lock.HelixLockable;
 import org.apache.log4j.Logger;
@@ -96,12 +96,12 @@ public class AtomicResourceAccessor extends ResourceAccessor {
   }
 
   @Override
-  public boolean setRebalancerContext(ResourceId resourceId, RebalancerContext context) {
+  public boolean setRebalancerConfig(ResourceId resourceId, RebalancerConfig config) {
     HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
-        return _resourceAccessor.setRebalancerContext(resourceId, context);
+        return _resourceAccessor.setRebalancerConfig(resourceId, config);
       } finally {
         lock.unlock();
       }

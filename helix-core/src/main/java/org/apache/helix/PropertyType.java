@@ -64,7 +64,8 @@ public enum PropertyType {
   PERSISTENTSTATS(Type.CONTROLLER, true, false, false, false),
   ALERTS(Type.CONTROLLER, true, false, false, false),
   ALERT_STATUS(Type.CONTROLLER, true, false, false, false),
-  ALERT_HISTORY(Type.CONTROLLER, true, false, false, false);
+  ALERT_HISTORY(Type.CONTROLLER, true, false, false, false),
+  CONTEXT(Type.CONTROLLER, true, false);
 
   // @formatter:on
 

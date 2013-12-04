@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.FullAutoRebalancer;
@@ -25,20 +25,20 @@ import org.apache.helix.model.IdealState.RebalanceMode;
  */
 
 /**
- * RebalancerContext for FULL_AUTO rebalancing mode. By default, it corresponds to
+ * RebalancerConfig for FULL_AUTO rebalancing mode. By default, it corresponds to
  * {@link FullAutoRebalancer}
  */
-public class FullAutoRebalancerContext extends PartitionedRebalancerContext {
-  public FullAutoRebalancerContext() {
+public class FullAutoRebalancerConfig extends PartitionedRebalancerConfig {
+  public FullAutoRebalancerConfig() {
     setRebalanceMode(RebalanceMode.FULL_AUTO);
     setRebalancerRef(RebalancerRef.from(FullAutoRebalancer.class));
   }
 
   /**
-   * Builder for a full auto rebalancer context. By default, it corresponds to
+   * Builder for a full auto rebalancer config. By default, it corresponds to
    * {@link FullAutoRebalancer}
    */
-  public static final class Builder extends PartitionedRebalancerContext.AbstractBuilder<Builder> {
+  public static final class Builder extends PartitionedRebalancerConfig.AbstractBuilder<Builder> {
     /**
      * Instantiate with a resource
      * @param resourceId resource id
@@ -55,10 +55,10 @@ public class FullAutoRebalancerContext extends PartitionedRebalancerContext {
     }
 
     @Override
-    public FullAutoRebalancerContext build() {
-      FullAutoRebalancerContext context = new FullAutoRebalancerContext();
-      super.update(context);
-      return context;
+    public FullAutoRebalancerConfig build() {
+      FullAutoRebalancerConfig config = new FullAutoRebalancerConfig();
+      super.update(config);
+      return config;
     }
   }
 }

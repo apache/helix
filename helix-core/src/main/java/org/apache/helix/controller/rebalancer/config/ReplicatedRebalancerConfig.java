@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,19 +19,22 @@ package org.apache.helix.controller.rebalancer.context;
  * under the License.
  */
 
-public interface ContextSerializer {
+/**
+ * Methods specifying a rebalancer config that allows replicas. For instance, a rebalancer config
+ * with partitions may accept state model definitions that support multiple replicas per partition,
+ * and it's possible that the policy is that each live participant in the system should have a
+ * replica.
+ */
+public interface ReplicatedRebalancerConfig extends RebalancerConfig {
   /**
-   * Convert a RebalancerContext object instance to a String
-   * @param data instance of the rebalancer context type
-   * @return String representing the object
+   * Check if this resource should be assigned to any live participant
+   * @return true if any live participant expected, false otherwise
    */
-  public <T> String serialize(final T data);
+  public boolean anyLiveParticipant();
 
   /**
-   * Convert raw bytes to a generic object instance
-   * @param clazz The class represented by the deserialized string
-   * @param string String representing the object
-   * @return instance of the generic type or null if the conversion failed
+   * Get the number of replicas that each resource subunit should have
+   * @return replica count
    */
-  public <T> T deserialize(final Class<T> clazz, final String string);
+  public int getReplicaCount();
 }

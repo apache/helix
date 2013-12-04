@@ -33,7 +33,6 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
@@ -79,8 +78,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertEquals(resource.values().iterator().next().getId(),
         ResourceId.from(resourceName));
     AssertJUnit.assertEquals(resource.values().iterator().next().getRebalancerConfig()
-        .getRebalancerContext(RebalancerContext.class).getStateModelDefId(),
-        idealState.getStateModelDefId());
+        .getStateModelDefId(), idealState.getStateModelDefId());
     AssertJUnit
         .assertEquals(resource.values().iterator().next().getSubUnitSet().size(), partitions);
   }
@@ -107,8 +105,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
-          .getRebalancerContext(RebalancerContext.class).getStateModelDefId(),
-          idealState.getStateModelDefId());
+          .getStateModelDefId(), idealState.getStateModelDefId());
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getSubUnitSet().size(),
           idealState.getNumPartitions());
     }
@@ -182,8 +179,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       AssertJUnit.assertTrue(resourceMap.containsKey(resourceId));
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getId(), resourceId);
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getRebalancerConfig()
-          .getRebalancerContext(RebalancerContext.class).getStateModelDefId(),
-          idealState.getStateModelDefId());
+          .getStateModelDefId(), idealState.getStateModelDefId());
       AssertJUnit.assertEquals(resourceMap.get(resourceId).getSubUnitSet().size(),
           idealState.getNumPartitions());
     }
@@ -192,8 +188,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     AssertJUnit.assertTrue(resourceMap.containsKey(oldResourceId));
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getId(), oldResourceId);
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getRebalancerConfig()
-        .getRebalancerContext(RebalancerContext.class).getStateModelDefId(),
-        currentState.getStateModelDefId());
+        .getStateModelDefId(), currentState.getStateModelDefId());
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getSubUnitSet().size(), currentState
         .getTypedPartitionStateMap().size());
     AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(

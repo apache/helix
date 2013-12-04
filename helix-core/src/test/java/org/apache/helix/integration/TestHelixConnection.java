@@ -42,8 +42,8 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.context.RebalancerContext;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Message;
@@ -122,13 +122,13 @@ public class TestHelixConnection extends ZkUnitTestBase {
             .addTransition(slave, offline, 4).addTransition(slave, master, 2)
             .addTransition(master, slave, 1).addTransition(offline, dropped).initialState(offline)
             .upperBound(master, 1).dynamicUpperBound(slave, "R").build();
-    RebalancerContext rebalancerCtx =
-        new SemiAutoRebalancerContext.Builder(resourceId).addPartitions(1).replicaCount(1)
+    RebalancerConfig rebalancerCtx =
+        new SemiAutoRebalancerConfig.Builder(resourceId).addPartitions(1).replicaCount(1)
             .stateModelDefId(stateModelDefId)
             .preferenceList(PartitionId.from("testDB_0"), Arrays.asList(participantId)).build();
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
         stateModelDef).build());
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId).rebalancerContext(
+    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId).rebalancerConfig(
         rebalancerCtx).build());
     clusterAccessor.addParticipantToCluster(new ParticipantConfig.Builder(participantId).build());
 

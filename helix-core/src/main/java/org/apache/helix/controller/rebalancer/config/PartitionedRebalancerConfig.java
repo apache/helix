@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,12 +39,12 @@ import com.google.common.collect.Maps;
  */
 
 /**
- * RebalancerContext for a resource whose subunits are partitions. In addition, these partitions can
+ * RebalancerConfig for a resource whose subunits are partitions. In addition, these partitions can
  * be replicated.
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class PartitionedRebalancerContext extends BasicRebalancerContext implements
-    ReplicatedRebalancerContext {
+public class PartitionedRebalancerConfig extends BasicRebalancerConfig implements
+    ReplicatedRebalancerConfig {
   private Map<PartitionId, Partition> _partitionMap;
   private boolean _anyLiveParticipant;
   private int _replicaCount;
@@ -52,9 +52,9 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
   private RebalanceMode _rebalanceMode;
 
   /**
-   * Instantiate a DataRebalancerContext
+   * Instantiate a PartitionedRebalancerConfig
    */
-  public PartitionedRebalancerContext() {
+  public PartitionedRebalancerConfig() {
     _partitionMap = Collections.emptyMap();
     _replicaCount = 1;
     _anyLiveParticipant = false;
@@ -169,48 +169,61 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
   @JsonIgnore
   public void generateDefaultConfiguration(StateModelDefinition stateModelDef,
       Set<ParticipantId> participantSet) {
-    // the base context does not understand enough to know do to anything
+    // the base config does not understand enough to know do to anything
   }
 
   /**
-   * Convert a physically-stored IdealState into a rebalancer context for a partitioned resource
-   * @param idealState populated IdealState
-   * @return PartitionedRebalancerContext
+   * Safely get a {@link PartitionedRebalancerConfig} from a {@link RebalancerConfig}
+   * @param config the base config
+   * @return a {@link PartitionedRebalancerConfig}, or null if the conversion is not possible
    */
-  public static PartitionedRebalancerContext from(IdealState idealState) {
-    PartitionedRebalancerContext context;
+  public static PartitionedRebalancerConfig from(RebalancerConfig config) {
+    try {
+      return PartitionedRebalancerConfig.class.cast(config);
+    } catch (ClassCastException e) {
+      return null;
+    }
+  }
+
+  /**
+   * Convert a physically-stored IdealState into a rebalancer config for a partitioned resource
+   * @param idealState populated IdealState
+   * @return PartitionedRebalancerConfig
+   */
+  public static PartitionedRebalancerConfig from(IdealState idealState) {
+    PartitionedRebalancerConfig config;
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
-      FullAutoRebalancerContext.Builder fullAutoBuilder =
-          new FullAutoRebalancerContext.Builder(idealState.getResourceId());
-      populateContext(fullAutoBuilder, idealState);
-      context = fullAutoBuilder.build();
+      FullAutoRebalancerConfig.Builder fullAutoBuilder =
+          new FullAutoRebalancerConfig.Builder(idealState.getResourceId());
+      populateConfig(fullAutoBuilder, idealState);
+      config = fullAutoBuilder.build();
       break;
     case SEMI_AUTO:
-      SemiAutoRebalancerContext.Builder semiAutoBuilder =
-          new SemiAutoRebalancerContext.Builder(idealState.getResourceId());
+      SemiAutoRebalancerConfig.Builder semiAutoBuilder =
+          new SemiAutoRebalancerConfig.Builder(idealState.getResourceId());
       for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         semiAutoBuilder.preferenceList(partitionId, idealState.getPreferenceList(partitionId));
       }
-      populateContext(semiAutoBuilder, idealState);
-      context = semiAutoBuilder.build();
+      populateConfig(semiAutoBuilder, idealState);
+      config = semiAutoBuilder.build();
       break;
     case CUSTOMIZED:
-      CustomRebalancerContext.Builder customBuilder =
-          new CustomRebalancerContext.Builder(idealState.getResourceId());
+      CustomRebalancerConfig.Builder customBuilder =
+          new CustomRebalancerConfig.Builder(idealState.getResourceId());
       for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         customBuilder.preferenceMap(partitionId, idealState.getParticipantStateMap(partitionId));
       }
-      populateContext(customBuilder, idealState);
-      context = customBuilder.build();
+      populateConfig(customBuilder, idealState);
+      config = customBuilder.build();
       break;
     default:
       Builder baseBuilder = new Builder(idealState.getResourceId());
-      populateContext(baseBuilder, idealState);
-      context = baseBuilder.build();
+      populateConfig(baseBuilder, idealState);
+      config = baseBuilder.build();
       break;
     }
-    return context;
+    return config;
   }
 
   /**
@@ -218,8 +231,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
    * @param builder builder that extends AbstractBuilder
    * @param idealState populated IdealState
    */
-  private static <T extends AbstractBuilder<T>> void populateContext(T builder,
-      IdealState idealState) {
+  private static <T extends AbstractBuilder<T>> void populateConfig(T builder, IdealState idealState) {
     String replicas = idealState.getReplicas();
     int replicaCount = 0;
     boolean anyLiveParticipant = false;
@@ -248,7 +260,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
   }
 
   /**
-   * Builder for a basic data rebalancer context
+   * Builder for a basic data rebalancer config
    */
   public static final class Builder extends AbstractBuilder<Builder> {
     /**
@@ -265,18 +277,18 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     }
 
     @Override
-    public PartitionedRebalancerContext build() {
-      PartitionedRebalancerContext context = new PartitionedRebalancerContext();
-      super.update(context);
-      return context;
+    public PartitionedRebalancerConfig build() {
+      PartitionedRebalancerConfig config = new PartitionedRebalancerConfig();
+      super.update(config);
+      return config;
     }
   }
 
   /**
-   * Abstract builder for a generic partitioned resource rebalancer context
+   * Abstract builder for a generic partitioned resource rebalancer config
    */
-  public static abstract class AbstractBuilder<T extends BasicRebalancerContext.AbstractBuilder<T>>
-      extends BasicRebalancerContext.AbstractBuilder<T> {
+  public static abstract class AbstractBuilder<T extends BasicRebalancerConfig.AbstractBuilder<T>>
+      extends BasicRebalancerConfig.AbstractBuilder<T> {
     private final ResourceId _resourceId;
     private final Map<PartitionId, Partition> _partitionMap;
     private RebalanceMode _rebalanceMode;
@@ -299,7 +311,7 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     }
 
     /**
-     * Set the rebalance mode for a partitioned rebalancer context
+     * Set the rebalance mode for a partitioned rebalancer config
      * @param rebalanceMode {@link RebalanceMode} enum value
      * @return Builder
      */
@@ -374,20 +386,20 @@ public class PartitionedRebalancerContext extends BasicRebalancerContext impleme
     }
 
     /**
-     * Update a DataRebalancerContext with fields from this builder level
-     * @param context DataRebalancerContext
+     * Update a PartitionedRebalancerConfig with fields from this builder level
+     * @param config PartitionedRebalancerConfig
      */
-    protected final void update(PartitionedRebalancerContext context) {
-      super.update(context);
+    protected final void update(PartitionedRebalancerConfig config) {
+      super.update(config);
       // enforce at least one partition
       if (_partitionMap.isEmpty()) {
         addPartitions(1);
       }
-      context.setRebalanceMode(_rebalanceMode);
-      context.setPartitionMap(_partitionMap);
-      context.setAnyLiveParticipant(_anyLiveParticipant);
-      context.setMaxPartitionsPerParticipant(_maxPartitionsPerParticipant);
-      context.setReplicaCount(_replicaCount);
+      config.setRebalanceMode(_rebalanceMode);
+      config.setPartitionMap(_partitionMap);
+      config.setAnyLiveParticipant(_anyLiveParticipant);
+      config.setMaxPartitionsPerParticipant(_maxPartitionsPerParticipant);
+      config.setReplicaCount(_replicaCount);
     }
   }
 }

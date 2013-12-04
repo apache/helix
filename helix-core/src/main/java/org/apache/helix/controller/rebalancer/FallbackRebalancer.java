@@ -30,8 +30,9 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.context.ControllerContextProvider;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
@@ -54,31 +55,30 @@ public class FallbackRebalancer implements HelixRebalancer {
   private HelixManager _helixManager;
 
   @Override
-  public void init(HelixManager helixManager) {
+  public void init(HelixManager helixManager, ControllerContextProvider contextProvider) {
     _helixManager = helixManager;
   }
 
   @Override
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      Cluster cluster, ResourceCurrentState currentState) {
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
     // make sure the manager is not null
     if (_helixManager == null) {
       LOG.info("HelixManager is null!");
       return null;
     }
 
-    // get the context
-    PartitionedRebalancerContext context =
-        rebalancerConfig.getRebalancerContext(PartitionedRebalancerContext.class);
-    if (context == null) {
+    // get the config
+    PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
+    if (config == null) {
       LOG.info("Resource is not partitioned");
       return null;
     }
 
     // get the ideal state and rebalancer class
-    ResourceId resourceId = context.getResourceId();
+    ResourceId resourceId = config.getResourceId();
     StateModelDefinition stateModelDef =
-        cluster.getStateModelMap().get(context.getStateModelDefId());
+        cluster.getStateModelMap().get(config.getStateModelDefId());
     if (stateModelDef == null) {
       LOG.info("StateModelDefinition unavailable for " + resourceId);
       return null;

@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,17 +45,17 @@ import com.google.common.collect.Maps;
  */
 
 /**
- * RebalancerContext for SEMI_AUTO rebalancer mode. It indicates the preferred locations of each
+ * RebalancerConfig for SEMI_AUTO rebalancer mode. It indicates the preferred locations of each
  * partition replica. By default, it corresponds to {@link SemiAutoRebalancer}
  */
-public final class SemiAutoRebalancerContext extends PartitionedRebalancerContext {
+public final class SemiAutoRebalancerConfig extends PartitionedRebalancerConfig {
   @JsonProperty("preferenceLists")
   private Map<PartitionId, List<ParticipantId>> _preferenceLists;
 
   /**
-   * Instantiate a SemiAutoRebalancerContext
+   * Instantiate a SemiAutoRebalancerConfig
    */
-  public SemiAutoRebalancerContext() {
+  public SemiAutoRebalancerConfig() {
     setRebalanceMode(RebalanceMode.SEMI_AUTO);
     setRebalancerRef(RebalancerRef.from(SemiAutoRebalancer.class));
     _preferenceLists = Maps.newHashMap();
@@ -135,9 +135,9 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
   }
 
   /**
-   * Build a SemiAutoRebalancerContext. By default, it corresponds to {@link SemiAutoRebalancer}
+   * Build a SemiAutoRebalancerConfig. By default, it corresponds to {@link SemiAutoRebalancer}
    */
-  public static final class Builder extends PartitionedRebalancerContext.AbstractBuilder<Builder> {
+  public static final class Builder extends PartitionedRebalancerConfig.AbstractBuilder<Builder> {
     private final Map<PartitionId, List<ParticipantId>> _preferenceLists;
 
     /**
@@ -168,11 +168,11 @@ public final class SemiAutoRebalancerContext extends PartitionedRebalancerContex
     }
 
     @Override
-    public SemiAutoRebalancerContext build() {
-      SemiAutoRebalancerContext context = new SemiAutoRebalancerContext();
-      super.update(context);
-      context.setPreferenceLists(_preferenceLists);
-      return context;
+    public SemiAutoRebalancerConfig build() {
+      SemiAutoRebalancerConfig config = new SemiAutoRebalancerConfig();
+      super.update(config);
+      config.setPreferenceLists(_preferenceLists);
+      return config;
     }
   }
 }

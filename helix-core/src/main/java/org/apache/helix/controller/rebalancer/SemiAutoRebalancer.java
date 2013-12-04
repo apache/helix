@@ -9,9 +9,10 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
+import org.apache.helix.controller.context.ControllerContextProvider;
+import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.ResourceAssignment;
@@ -45,15 +46,15 @@ public class SemiAutoRebalancer implements HelixRebalancer {
   private static final Logger LOG = Logger.getLogger(SemiAutoRebalancer.class);
 
   @Override
-  public void init(HelixManager helixManager) {
+  public void init(HelixManager helixManager, ControllerContextProvider contextProvider) {
     // do nothing
   }
 
   @Override
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      Cluster cluster, ResourceCurrentState currentState) {
-    SemiAutoRebalancerContext config =
-        rebalancerConfig.getRebalancerContext(SemiAutoRebalancerContext.class);
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
+    SemiAutoRebalancerConfig config =
+        BasicRebalancerConfig.convert(rebalancerConfig, SemiAutoRebalancerConfig.class);
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
@@ -65,8 +66,7 @@ public class SemiAutoRebalancer implements HelixRebalancer {
       Map<ParticipantId, State> currentStateMap =
           currentState.getCurrentStateMap(config.getResourceId(), partition);
       Set<ParticipantId> disabledInstancesForPartition =
-          ConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(),
-              partition);
+          ConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(), partition);
       List<ParticipantId> preferenceList =
           ConstraintBasedAssignment.getPreferenceList(cluster, partition,
               config.getPreferenceList(partition));

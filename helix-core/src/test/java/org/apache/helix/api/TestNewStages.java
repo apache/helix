@@ -33,11 +33,12 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.context.SemiAutoRebalancerContext;
+import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -99,8 +100,8 @@ public class TestNewStages extends ZkUnitTestBase {
     ResourceId resourceId = ResourceId.from("TestDB0");
     Assert.assertTrue(resourceMap.containsKey(resourceId));
     Resource resource = resourceMap.get(resourceId);
-    Assert.assertNotNull(resource.getRebalancerConfig().getRebalancerContext(
-        SemiAutoRebalancerContext.class));
+    Assert.assertNotNull(BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
+        SemiAutoRebalancerConfig.class));
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -163,8 +164,12 @@ public class TestNewStages extends ZkUnitTestBase {
     Resource resource = cluster.getResource(resourceId);
     ResourceCurrentState currentStateOutput = new ResourceCurrentState();
     ResourceAssignment semiAutoResult =
-        resource.getRebalancerConfig().getRebalancer()
-            .computeResourceMapping(resource.getRebalancerConfig(), cluster, currentStateOutput);
+        resource
+            .getRebalancerConfig()
+            .getRebalancerRef()
+            .getRebalancer()
+            .computeResourceMapping(resource.getRebalancerConfig(), null, cluster,
+                currentStateOutput);
     verifySemiAutoRebalance(resource, semiAutoResult);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
@@ -177,8 +182,9 @@ public class TestNewStages extends ZkUnitTestBase {
    */
   private void verifySemiAutoRebalance(Resource resource, ResourceAssignment assignment) {
     Assert.assertEquals(assignment.getMappedPartitionIds().size(), resource.getSubUnitSet().size());
-    SemiAutoRebalancerContext context =
-        resource.getRebalancerConfig().getRebalancerContext(SemiAutoRebalancerContext.class);
+    SemiAutoRebalancerConfig context =
+        BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
+            SemiAutoRebalancerConfig.class);
     for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
       List<ParticipantId> preferenceList = context.getPreferenceList(partitionId);
       Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partitionId);

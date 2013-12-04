@@ -1,4 +1,4 @@
-package org.apache.helix.controller.rebalancer.context;
+package org.apache.helix.controller.rebalancer.config;
 
 import java.util.Map;
 import java.util.Set;
@@ -9,6 +9,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
+import org.apache.helix.controller.serializer.StringSerializer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -31,11 +32,11 @@ import org.apache.helix.controller.rebalancer.RebalancerRef;
 
 /**
  * Defines the state available to a rebalancer. The most common use case is to use a
- * {@link PartitionedRebalancerContext} or a subclass and set up a resource with it. A rebalancer
+ * {@link PartitionedRebalancerConfig} or a subclass and set up a resource with it. A rebalancer
  * configuration, at a minimum, is aware of subunits of a resource, the state model to follow, and
  * how the configuration should be serialized.
  */
-public interface RebalancerContext {
+public interface RebalancerConfig {
   /**
    * Get a map of resource partition identifiers to partitions. A partition is a subunit of a
    * resource, e.g. a subtask of a task
@@ -81,10 +82,10 @@ public interface RebalancerContext {
   public String getParticipantGroupTag();
 
   /**
-   * Get the serializer for this context
-   * @return ContextSerializer class object
+   * Get the serializer for this config
+   * @return StringSerializer class object
    */
-  public Class<? extends ContextSerializer> getSerializerClass();
+  public Class<? extends StringSerializer> getSerializerClass();
 
   /**
    * Get a reference to the class used to rebalance this resource

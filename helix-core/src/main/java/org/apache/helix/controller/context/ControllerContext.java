@@ -1,4 +1,4 @@
-package org.apache.helix.controller.stages;
+package org.apache.helix.controller.context;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-public enum AttributeName {
-  RESOURCES,
-  BEST_POSSIBLE_STATE,
-  CURRENT_STATE,
-  MESSAGES_ALL,
-  MESSAGES_SELECTED,
-  MESSAGES_THROTTLE,
-  LOCAL_STATE,
-  CONTEXT_PROVIDER,
+import org.apache.helix.api.id.ContextId;
+import org.apache.helix.controller.serializer.StringSerializer;
+
+/**
+ * Controller stages can implement this interface to set and get persistent state
+ */
+public interface ControllerContext {
+  /**
+   * Get the identifier of this context
+   * @return {@link ContextId}
+   */
+  ContextId getId();
+
+  /**
+   * Get the class that can be used to convert this object to and from a String
+   * @return {@link StringSerializer} implementation class
+   */
+  Class<? extends StringSerializer> getSerializerClass();
 }

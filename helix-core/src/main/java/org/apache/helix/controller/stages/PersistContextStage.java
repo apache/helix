@@ -19,27 +19,41 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
+import java.util.Map;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.api.accessor.ResourceAccessor;
-import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.api.id.ContextId;
+import org.apache.helix.controller.context.ControllerContext;
+import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
-import org.apache.helix.model.ResourceAssignment;
+
+import com.google.common.collect.Lists;
 
 /**
- * Persist the ResourceAssignment of each resource that went through rebalancing
+ * Persist all dirty contexts set in the controller pipeline
  */
-public class PersistAssignmentStage extends AbstractBaseStage {
+public class PersistContextStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     HelixManager helixManager = event.getAttribute("helixmanager");
     HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
-    ResourceAccessor resourceAccessor = new ResourceAccessor(accessor);
-    BestPossibleStateOutput assignments =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    for (ResourceId resourceId : assignments.getAssignedResources()) {
-      ResourceAssignment assignment = assignments.getResourceAssignment(resourceId);
-      resourceAccessor.setResourceAssignment(resourceId, assignment);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    ControllerContextProvider contextProvider =
+        event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
+    Map<ContextId, ControllerContext> pendingContexts = contextProvider.getPendingContexts();
+    List<PropertyKey> keys = Lists.newArrayList();
+    List<ControllerContextHolder> properties = Lists.newArrayList();
+    for (ContextId contextId : pendingContexts.keySet()) {
+      ControllerContextHolder holder = new ControllerContextHolder(pendingContexts.get(contextId));
+      if (holder != null) {
+        keys.add(keyBuilder.controllerContext(contextId.stringify()));
+        properties.add(holder);
+      }
     }
+    accessor.setChildren(keys, properties);
   }
 }

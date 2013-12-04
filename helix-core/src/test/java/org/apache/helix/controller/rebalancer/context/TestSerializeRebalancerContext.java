@@ -8,6 +8,9 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.model.ResourceConfiguration;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -41,7 +44,7 @@ public class TestSerializeRebalancerContext {
   @Test
   public void basicTest() {
     // populate a context
-    CustomRebalancerContext context = new CustomRebalancerContext();
+    CustomRebalancerConfig context = new CustomRebalancerConfig();
     context.setAnyLiveParticipant(false);
     context.setMaxPartitionsPerParticipant(Integer.MAX_VALUE);
     Map<PartitionId, Partition> partitionMap = Maps.newHashMap();
@@ -61,9 +64,8 @@ public class TestSerializeRebalancerContext {
     context.setResourceId(resourceId);
 
     // serialize and deserialize by wrapping in a config
-    RebalancerConfig config = new RebalancerConfig(context);
-    CustomRebalancerContext deserialized =
-        config.getRebalancerContext(CustomRebalancerContext.class);
+    RebalancerConfigHolder config = new RebalancerConfigHolder(context);
+    CustomRebalancerConfig deserialized = config.getRebalancerConfig(CustomRebalancerConfig.class);
 
     // check to make sure that the two objects contain the same data
     Assert.assertNotNull(deserialized);
@@ -79,9 +81,9 @@ public class TestSerializeRebalancerContext {
     // wrap in a physical config and then unwrap it
     ResourceConfiguration physicalConfig = new ResourceConfiguration(resourceId);
     physicalConfig.addNamespacedConfig(config.toNamespacedConfig());
-    RebalancerConfig extractedConfig = new RebalancerConfig(physicalConfig);
-    CustomRebalancerContext extractedContext =
-        extractedConfig.getRebalancerContext(CustomRebalancerContext.class);
+    RebalancerConfigHolder extractedConfig = new RebalancerConfigHolder(physicalConfig);
+    CustomRebalancerConfig extractedContext =
+        extractedConfig.getRebalancerConfig(CustomRebalancerConfig.class);
 
     // make sure the unwrapped data hasn't changed
     Assert.assertNotNull(extractedContext);
@@ -95,8 +97,8 @@ public class TestSerializeRebalancerContext {
     Assert.assertEquals(extractedContext.getResourceId(), context.getResourceId());
 
     // make sure that it's legal to use a base rebalancer context
-    RebalancerContext rebalancerContext =
-        extractedConfig.getRebalancerContext(RebalancerContext.class);
+    RebalancerConfig rebalancerContext =
+        extractedConfig.getRebalancerConfig(RebalancerConfig.class);
     Assert.assertNotNull(rebalancerContext);
     Assert.assertEquals(rebalancerContext.getResourceId(), context.getResourceId());
   }

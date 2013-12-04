@@ -2,7 +2,8 @@ package org.apache.helix.controller.rebalancer;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.context.ControllerContextProvider;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.ResourceAssignment;
 
@@ -32,10 +33,11 @@ import org.apache.helix.model.ResourceAssignment;
  */
 public interface HelixRebalancer {
   /**
-   * Initialize the rebalancer with a HelixManager if necessary
-   * @param manager
+   * Initialize the rebalancer with a HelixManager and ControllerContextProvider if necessary
+   * @param manager HelixManager instance
+   * @param contextProvider An object that supports getting and setting context across pipeline runs
    */
-  public void init(HelixManager helixManager);
+  public void init(HelixManager helixManager, ControllerContextProvider contextProvider);
 
   /**
    * Given an ideal state for a resource and liveness of participants, compute a assignment of
@@ -47,18 +49,20 @@ public interface HelixRebalancer {
    * Say that you have:<br/>
    * 
    * <pre>
-   * class MyRebalancerContext implements RebalancerContext
+   * class MyRebalancerConfig implements RebalancerConfig
    * </pre>
    * 
-   * as your rebalancer context. To extract it from a RebalancerConfig, do the following:<br/>
+   * as your rebalancer config. To get a typed version, you can do the following:<br/>
    * 
    * <pre>
-   * MyRebalancerContext context = rebalancerConfig.getRebalancerContext(MyRebalancerContext.class);
+   * MyRebalancerConfig config = BasicRebalancerConfig.convert(rebalancerConfig,
+   *     MyRebalancerConfig.class);
    * </pre>
    * @param rebalancerConfig the properties of the resource for which a mapping will be computed
+   * @param prevAssignment the previous ResourceAssignment of this cluster, or null if none
    * @param cluster complete snapshot of the cluster
    * @param currentState the current states of all partitions
    */
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      Cluster cluster, ResourceCurrentState currentState);
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState);
 }

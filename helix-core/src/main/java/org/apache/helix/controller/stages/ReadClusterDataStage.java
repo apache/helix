@@ -19,15 +19,22 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Map;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ContextId;
+import org.apache.helix.controller.context.ControllerContext;
+import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(ReadClusterDataStage.class.getName());
@@ -66,6 +73,16 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     }
 
     event.addAttribute("ClusterDataCache", cluster);
+
+    // read contexts (if any)
+    Map<ContextId, ControllerContext> persistedContexts = null;
+    if (cluster != null) {
+      persistedContexts = cluster.getContextMap();
+    } else {
+      persistedContexts = Maps.newHashMap();
+    }
+    ControllerContextProvider contextProvider = new ControllerContextProvider(persistedContexts);
+    event.addAttribute(AttributeName.CONTEXT_PROVIDER.toString(), contextProvider);
 
     long endTime = System.currentTimeMillis();
     LOG.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");

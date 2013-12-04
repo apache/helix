@@ -30,11 +30,15 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
+import org.apache.helix.api.id.ContextId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.context.BasicControllerContext;
+import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
-import org.apache.helix.controller.rebalancer.context.PartitionedRebalancerContext;
-import org.apache.helix.controller.rebalancer.context.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -60,22 +64,23 @@ public class TestCustomizedIdealStateRebalancer extends
 
   public static class TestRebalancer implements HelixRebalancer {
 
+    private ControllerContextProvider _contextProvider;
+
     /**
      * Very basic mapping that evenly assigns one replica of each partition to live nodes, each of
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(RebalancerConfig config, Cluster cluster,
-        ResourceCurrentState currentState) {
-      PartitionedRebalancerContext context =
-          config.getRebalancerContext(PartitionedRebalancerContext.class);
+    public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
+        ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
+      PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
       StateModelDefinition stateModelDef =
-          cluster.getStateModelMap().get(context.getStateModelDefId());
+          cluster.getStateModelMap().get(config.getStateModelDefId());
       List<ParticipantId> liveParticipants =
           new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
-      ResourceAssignment resourceMapping = new ResourceAssignment(context.getResourceId());
+      ResourceAssignment resourceMapping = new ResourceAssignment(config.getResourceId());
       int i = 0;
-      for (PartitionId partitionId : context.getPartitionSet()) {
+      for (PartitionId partitionId : config.getPartitionSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
         replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getTypedStatesPriorityList()
@@ -84,12 +89,17 @@ public class TestCustomizedIdealStateRebalancer extends
         i++;
       }
       testRebalancerInvoked = true;
+
+      // set some basic context
+      ContextId contextId = ContextId.from(config.getResourceId().stringify());
+      _contextProvider.putControllerContext(contextId, new BasicControllerContext(contextId));
       return resourceMapping;
     }
 
     @Override
-    public void init(HelixManager helixManager) {
+    public void init(HelixManager helixManager, ControllerContextProvider contextProvider) {
       testRebalancerCreated = true;
+      _contextProvider = contextProvider;
     }
   }
 
@@ -124,6 +134,11 @@ public class TestCustomizedIdealStateRebalancer extends
     }
     Assert.assertTrue(testRebalancerCreated);
     Assert.assertTrue(testRebalancerInvoked);
+
+    // check that context can be extracted
+    ControllerContextHolder holder = accessor.getProperty(keyBuilder.controllerContext(db2));
+    Assert.assertNotNull(holder);
+    Assert.assertNotNull(holder.getContext());
   }
 
   public static class ExternalViewBalancedVerifier implements ZkVerifier {

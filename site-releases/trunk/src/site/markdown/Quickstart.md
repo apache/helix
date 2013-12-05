@@ -617,5 +617,5 @@ To start zooinspector run the following command from <zk_install_directory>/cont
 
 #### Next
 
-Now that you understand the idea of Helix, read the [tutorial](./tutorial.html) to learn how to choose the right state model and constraints for your system, and how to implement it.  In many cases, the built-in features meet your requirements.  And best of all, Helix is a customizable framework, so you can plug in your own behavior, while retaining the automation provided by Helix.
+Now that you understand the idea of Helix, read the [tutorial](./Tutorial.html) to learn how to choose the right state model and constraints for your system, and how to implement it.  In many cases, the built-in features meet your requirements.  And best of all, Helix is a customizable framework, so you can plug in your own behavior, while retaining the automation provided by Helix.
 

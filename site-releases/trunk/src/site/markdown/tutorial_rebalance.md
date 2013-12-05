@@ -140,7 +140,7 @@ In this mode when node1 fails, unlike in FULL_AUTO mode the partition is _not_ m
 #### CUSTOMIZED
 
 Helix offers a third mode called CUSTOMIZED, in which the application controls the placement _and_ state of each replica. The application needs to implement a callback interface that Helix invokes when the cluster state changes. 
-Within this callback, the application can recompute the idealstate. Helix will then issue appropriate transitions such that _Idealstate_ and _Currentstate_ converges.
+Within this callback, the application can recompute the IdealState. Helix will then issue appropriate transitions such that _IdealState_ and _CurrentState_ converges.
 
 Here\'s an example, again with 3 partitions, 2 replicas per partition, and the MasterSlave state model:
 

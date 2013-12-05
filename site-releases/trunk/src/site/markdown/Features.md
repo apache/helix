@@ -28,7 +28,7 @@ Features
 ### CONFIGURING IDEALSTATE
 
 
-Read concepts page for definition of Idealstate.
+Read the [concepts page](./Concepts.html) for definition of IdealState.
 
 The placement of partitions in a DDS is very critical for reliability and scalability of the system. 
 For example, when a node fails, it is important that the partitions hosted on that node are reallocated evenly among the remaining nodes. Consistent hashing is one such algorithm that can guarantee this.
@@ -56,14 +56,14 @@ Helix provides multiple ways to control the placement and state of a replica.
 #### HELIX EXECUTION MODE 
 
 
-Idealstate is defined as the state of the DDS when all nodes are up and running and healthy. 
+IdealState is defined as the state of the DDS when all nodes are up and running and healthy. 
 Helix uses this as the target state of the system and computes the appropriate transitions needed in the system to bring it to a stable state. 
 
 Helix supports 3 different execution modes which allows application to explicitly control the placement and state of the replica.
 
 ##### AUTO_REBALANCE
 
-When the idealstate mode is set to AUTO_REBALANCE, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive. Example
+When the IdealState mode is set to AUTO_REBALANCE, Helix controls both the location of the replica along with the state. This option is useful for applications where creation of a replica is not expensive. Example
 
 ```
 {
@@ -116,7 +116,7 @@ When one node fails Helix redistributes its 15 tasks to the remaining 3 nodes. S
 
 #### AUTO
 
-When the idealstate mode is set to AUTO, Helix only controls STATE of the replicas where as the location of the partition is controlled by application. Example: The below idealstate indicates thats 'MyResource_0' must be only on node1 and node2.  But gives the control of assigning the STATE to Helix.
+When the IdealState mode is set to AUTO, Helix only controls STATE of the replicas where as the location of the partition is controlled by application. Example: The below IdealState indicates thats 'MyResource_0' must be only on node1 and node2.  But gives the control of assigning the STATE to Helix.
 
 ```
 {
@@ -141,7 +141,7 @@ In this mode when node1 fails, unlike in AUTO-REBALANCE mode the partition is no
 #### CUSTOM
 
 Helix offers a third mode called CUSTOM, in which application can completely control the placement and state of each replica. Applications will have to implement an interface that Helix will invoke when the cluster state changes. 
-Within this callback, the application can recompute the idealstate. Helix will then issue appropriate transitions such that Idealstate and Currentstate converges.
+Within this callback, the application can recompute the IdealState. Helix will then issue appropriate transitions such that IdealState and CurrentState converges.
 
 ```
 {

@@ -62,7 +62,7 @@
       <item name="Core concepts" href="./Concepts.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Publications" href="./Publications.html"/>
-      <item name="Client Libraries" href="./ClientLibraries.md"/>
+      <item name="Client Libraries" href="./ClientLibraries.html"/>
     </menu>
 
     <menu name="Releases">

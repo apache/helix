@@ -124,4 +124,26 @@ public class TestZNRecord {
     expectRecord.setMapField("mapKey2", expectMap2);
     Assert.assertEquals(record, expectRecord, "Should be equal.");
   }
+
+  @Test
+  public void testSubtract() {
+    ZNRecord record = new ZNRecord("test");
+    Map<String, String> map = new HashMap<String, String>();
+    map.put("mapKey1", "mapValue1");
+    map.put("mapKey2", "mapValue2");
+    record.setMapField("key1", map);
+
+    ZNRecord delta = new ZNRecord("test");
+    Map<String, String> deltaMap = new HashMap<String, String>();
+    deltaMap.put("mapKey1", "mapValue1");
+    delta.setMapField("key1", deltaMap);
+
+    record.subtract(delta);
+
+    Assert.assertEquals(record.getMapFields().size(), 1);
+    Assert.assertNotNull(record.getMapField("key1"));
+    Assert.assertEquals(record.getMapField("key1").size(), 1);
+    Assert.assertNotNull(record.getMapField("key1").get("mapKey2"));
+    Assert.assertEquals(record.getMapField("key1").get("mapKey2"), "mapValue2");
+  }
 }

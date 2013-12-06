@@ -111,6 +111,12 @@ public class MessageSelectionStage extends AbstractBaseStage {
       StateModelDefinition stateModelDef =
           stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
 
+      if (stateModelDef == null) {
+        LOG.info("resource: " + resourceId
+            + " doesn't have state-model-def; e.g. we add a resource config but not add the resource in ideal-states");
+        continue;
+      }
+
       // TODO have a logical model for transition
       Map<String, Integer> stateTransitionPriorities = getStateTransitionPriorityMap(stateModelDef);
       Resource configResource = cluster.getResource(resourceId);

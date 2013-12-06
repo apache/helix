@@ -129,6 +129,12 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         for (PartitionId partitionId : partitionStateMap.keySet()) {
           currentStateOutput.setCurrentState(resourceId, partitionId, participantId,
               curState.getState(partitionId));
+
+          currentStateOutput.setRequestedState(resourceId, partitionId, participantId,
+              curState.getRequestedState(partitionId));
+
+          currentStateOutput.setInfo(resourceId, partitionId, participantId,
+              curState.getInfo(partitionId));
         }
       }
     }

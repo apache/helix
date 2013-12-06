@@ -26,7 +26,8 @@ public class HelixTaskResult {
 
   private boolean _success;
   private String _message = "";
-  private Map<String, String> _taskResultMap = new HashMap<String, String>();
+  private String _info = "";
+  private final Map<String, String> _taskResultMap = new HashMap<String, String>();
   private boolean _interrupted = false;
   Exception _exception = null;
 
@@ -64,5 +65,13 @@ public class HelixTaskResult {
 
   public Exception getException() {
     return _exception;
+  }
+
+  public String getInfo() {
+    return _info;
+  }
+
+  public void setInfo(String info) {
+    _info = info;
   }
 }

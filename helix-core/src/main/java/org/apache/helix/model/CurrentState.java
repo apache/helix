@@ -45,6 +45,8 @@ public class CurrentState extends HelixProperty {
   public enum CurrentStateProperty {
     SESSION_ID,
     CURRENT_STATE,
+    REQUESTED_STATE,
+    INFO,
     STATE_MODEL_DEF,
     STATE_MODEL_FACTORY_NAME,
     RESOURCE // ,
@@ -327,5 +329,55 @@ public class CurrentState extends HelixProperty {
       rawMap.put(partitionId.stringify(), partitionStateMap.get(partitionId).toString());
     }
     return rawMap;
+  }
+
+  /**
+   * @param partitionId
+   * @return
+   */
+  public String getInfo(PartitionId partitionId) {
+    Map<String, String> mapField = _record.getMapField(partitionId.stringify());
+    if (mapField != null) {
+      return mapField.get(CurrentStateProperty.INFO.name());
+    }
+    return null;
+  }
+
+  /**
+   * @param partitionId
+   * @return
+   */
+  public State getRequestedState(PartitionId partitionId) {
+    Map<String, String> mapField = _record.getMapField(partitionId.stringify());
+    if (mapField != null) {
+      return State.from(mapField.get(CurrentStateProperty.REQUESTED_STATE.name()));
+    }
+    return null;
+  }
+
+  /**
+   * @param partitionId
+   * @param info
+   */
+  public void setInfo(PartitionId partitionId, String info) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    String partitionName = partitionId.stringify();
+    if (mapFields.get(partitionName) == null) {
+      mapFields.put(partitionName, new TreeMap<String, String>());
+    }
+    mapFields.get(partitionName).put(CurrentStateProperty.INFO.name(), info);
+  }
+
+  /**
+   * @param partitionId
+   * @param state
+   */
+  public void setRequestedState(PartitionId partitionId, State state) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    String partitionName = partitionId.stringify();
+    if (mapFields.get(partitionName) == null) {
+      mapFields.put(partitionName, new TreeMap<String, String>());
+    }
+    mapFields.get(partitionName).put(CurrentStateProperty.REQUESTED_STATE.name(), state.toString());
   }
 }

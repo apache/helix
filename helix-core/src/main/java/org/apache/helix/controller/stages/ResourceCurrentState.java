@@ -57,6 +57,19 @@ public class ResourceCurrentState {
   private final Map<ResourceId, CurrentState> _curStateMetaMap;
 
   /**
+   * Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the
+   * REQUESTED_STATE field in the CURRENTSTATES node.
+   */
+  private final Map<ResourceId, Map<PartitionId, Map<ParticipantId, State>>> _requestedStateMap;
+
+  /**
+   * Contains per-resource maps of partition -> (instance, info). This corresponds to the INFO field
+   * in the CURRENTSTATES node. This is information returned by state transition methods on the
+   * participants. It may be used by the rebalancer.
+   */
+  private final Map<ResourceId, Map<PartitionId, Map<ParticipantId, String>>> _infoMap;
+
+  /**
    * construct
    */
   public ResourceCurrentState() {
@@ -64,6 +77,9 @@ public class ResourceCurrentState {
     _pendingStateMap = new HashMap<ResourceId, Map<PartitionId, Map<ParticipantId, State>>>();
     _resourceStateModelMap = new HashMap<ResourceId, StateModelDefId>();
     _curStateMetaMap = new HashMap<ResourceId, CurrentState>();
+
+    _requestedStateMap = new HashMap<ResourceId, Map<PartitionId, Map<ParticipantId, State>>>();
+    _infoMap = new HashMap<ResourceId, Map<PartitionId, Map<ParticipantId, String>>>();
 
   }
 
@@ -270,4 +286,72 @@ public class ResourceCurrentState {
 
   }
 
+  /**
+   * @param resourceId
+   * @param partitionId
+   * @param participantId
+   * @param state
+   */
+  public void setRequestedState(ResourceId resourceId, PartitionId partitionId,
+      ParticipantId participantId, State state) {
+    if (!_requestedStateMap.containsKey(resourceId)) {
+      _requestedStateMap.put(resourceId, new HashMap<PartitionId, Map<ParticipantId, State>>());
+    }
+    if (!_requestedStateMap.get(resourceId).containsKey(partitionId)) {
+      _requestedStateMap.get(resourceId).put(partitionId, new HashMap<ParticipantId, State>());
+    }
+    _requestedStateMap.get(resourceId).get(partitionId).put(participantId, state);
+  }
+
+  /**
+   * @param resourceId
+   * @param partitionId
+   * @param participantId
+   * @param state
+   */
+  public void setInfo(ResourceId resourceId, PartitionId partitionId, ParticipantId participantId,
+      String info) {
+    if (!_infoMap.containsKey(resourceId)) {
+      _infoMap.put(resourceId, new HashMap<PartitionId, Map<ParticipantId, String>>());
+    }
+    if (!_infoMap.get(resourceId).containsKey(partitionId)) {
+      _infoMap.get(resourceId).put(partitionId, new HashMap<ParticipantId, String>());
+    }
+    _infoMap.get(resourceId).get(partitionId).put(participantId, info);
+  }
+
+  /**
+   * @param resourceId
+   * @param partitionId
+   * @param participantId
+   * @return
+   */
+  public State getRequestedState(ResourceId resourceId, PartitionId partitionId,
+      ParticipantId participantId) {
+    Map<PartitionId, Map<ParticipantId, State>> map = _requestedStateMap.get(resourceId);
+    if (map != null) {
+      Map<ParticipantId, State> instanceStateMap = map.get(partitionId);
+      if (instanceStateMap != null) {
+        return instanceStateMap.get(participantId);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @param resourceId
+   * @param partitionId
+   * @param participantId
+   * @return
+   */
+  public String getInfo(ResourceId resourceId, PartitionId partitionId, ParticipantId participantId) {
+    Map<PartitionId, Map<ParticipantId, String>> map = _infoMap.get(resourceId);
+    if (map != null) {
+      Map<ParticipantId, String> instanceStateMap = map.get(partitionId);
+      if (instanceStateMap != null) {
+        return instanceStateMap.get(participantId);
+      }
+    }
+    return null;
+  }
 }

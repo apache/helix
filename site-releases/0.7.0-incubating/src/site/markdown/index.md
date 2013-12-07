@@ -21,6 +21,8 @@ under the License.
   <title>Home</title>
 </head>
 
+__Alpha!__ This release contains many new features, but things might not work just right, and some APIs are still in the process of being developed.
+
 Navigating the Documentation
 ----------------------------
 

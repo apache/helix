@@ -66,16 +66,10 @@
     </menu>
 
     <menu name="Releases">
-      <item name="0.7.0-incubating (beta)" href="./site-releases/0.7.0-incubating-site/index.html"/>
       <item name="0.6.2-incubating (stable)" href="./site-releases/0.6.2-incubating-site/index.html"/>
+      <item name="0.7.0-incubating (alpha)" href="./site-releases/0.7.0-incubating-site/index.html"/>
       <item name="0.6.1-incubating" href="./site-releases/0.6.1-incubating-site/index.html"/>
       <item name="trunk" href="./site-releases/trunk-site/index.html"/>
-    </menu>
-
-    <menu name="Helix 0.7.0-incubating">
-      <item name="Quick Start" href="./site-releases/0.7.0-incubating-site/Quickstart.html"/>
-      <item name="Tutorial" href="./site-releases/0.7.0-incubating-site/Tutorial.html"/>
-      <item name="Download" href="./site-releases/0.7.0-incubating-site/download.html"/>
     </menu>
 
     <menu name="Helix 0.6.2-incubating">

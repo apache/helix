@@ -26,9 +26,9 @@ News
 
 Apache Helix has two new releases:
 
-* [0.7.0-incubating](./site-releases/0.7.0-incubating-site/index.html) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. This release is a beta, but contains many new features, is backward-compatible, and is the basis for future development of Helix. [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
+* [0.6.2-incubating](./site-releases/0.6.2-incubating-site/index.html) - A release that fixes numerous bugs and improves platform stability. [\[Release Notes\]](./releasenotes/release-0.6.2-incubating.html)
 
-* [0.6.2-incubating](./site-releases/0.6.2-incubating-site/index.html) - A bug and security fix release hardening the Helix platform. [\[Release Notes\]](./releasenotes/release-0.6.2-incubating.html)
+* [0.7.0-incubating](./site-releases/0.7.0-incubating-site/index.html) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. __This release is an alpha and APIs are in the process of being finalized__. Feel free to play with it and provide any feedback you have! [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
 
 
 What Is Helix?
@@ -77,9 +77,9 @@ Modeling a distributed system as a state machine with constraints on states and 
 Download
 --------
 
-[0.7.0-incubating](./site-releases/0.7.0-incubating-site/download.html)
-
 [0.6.2-incubating](./site-releases/0.6.2-incubating-site/download.html)
+
+[0.7.0-incubating](./site-releases/0.7.0-incubating-site/download.html) (alpha)
 
 Build Instructions
 ------------------
@@ -89,7 +89,7 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
 cd incubator-helix
-git checkout tags/helix-0.7.0-incubating
+git checkout tags/helix-0.6.2-incubating
 mvn install package -DskipTests
 ```
 
@@ -99,7 +99,7 @@ Maven dependency
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.7.0-incubating</version>
+  <version>0.6.2-incubating</version>
 </dependency>
 ```
 

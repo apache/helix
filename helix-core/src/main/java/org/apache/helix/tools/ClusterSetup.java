@@ -153,7 +153,6 @@ public class ClusterSetup {
   public void addCluster(String clusterName, boolean overwritePrevious) {
     _admin.addCluster(clusterName, overwritePrevious);
 
-    // StateModelConfigGenerator generator = new StateModelConfigGenerator();
     addStateModelDef(clusterName, "MasterSlave",
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
     addStateModelDef(clusterName, "LeaderStandby", new StateModelDefinition(
@@ -164,6 +163,9 @@ public class ClusterSetup {
         StateModelConfigGenerator.generateConfigForOnlineOffline()));
     addStateModelDef(clusterName, "ScheduledTask", new StateModelDefinition(
         StateModelConfigGenerator.generateConfigForScheduledTaskQueue()));
+
+    addStateModelDef(clusterName, "Task",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForTaskStateModel()));
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {

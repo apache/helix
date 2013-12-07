@@ -31,6 +31,11 @@ public abstract class StateModel {
   // StateModel with initial state other than OFFLINE should override this field
   protected String _currentState = DEFAULT_INITIAL_STATE;
 
+  /**
+   * requested-state is used (e.g. by task-framework) to request next state
+   */
+  protected String _requestedState = null;
+
   public String getCurrentState() {
     return _currentState;
   }
@@ -44,6 +49,22 @@ public abstract class StateModel {
   public boolean updateState(String newState) {
     _currentState = newState;
     return true;
+  }
+
+  /**
+   * Get requested-state
+   * @return requested-state
+   */
+  public String getRequestedState() {
+    return _requestedState;
+  }
+
+  /**
+   * Set requested-state
+   * @param requestedState
+   */
+  public void setRequestedState(String requestedState) {
+    _requestedState = requestedState;
   }
 
   /**

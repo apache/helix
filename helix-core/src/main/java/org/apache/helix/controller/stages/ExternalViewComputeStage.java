@@ -139,6 +139,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         // scheduler
         // message, and then remove the partitions from the ideal state
         if (rebalancerConfig != null
+            && rebalancerConfig.getStateModelDefId() != null
             && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
                 StateModelDefId.SchedulerTaskQueue)) {
           updateScheduledTaskStatus(resourceId, view, manager, schedulerTaskConfig);

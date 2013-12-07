@@ -380,7 +380,7 @@ public class ResourceAccessor {
    * @param batchMessageMode true if batch messaging allowed, false otherwise
    * @return IdealState, or null
    */
-  static IdealState rebalancerConfigToIdealState(RebalancerConfig config, int bucketSize,
+  public static IdealState rebalancerConfigToIdealState(RebalancerConfig config, int bucketSize,
       boolean batchMessageMode) {
     PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
     if (partitionedConfig != null) {

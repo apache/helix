@@ -155,7 +155,7 @@ public class IntegrationTestUtil {
   static void printUsage(Options cliOptions) {
     HelpFormatter helpFormatter = new HelpFormatter();
     helpFormatter.setWidth(1000);
-    helpFormatter.printHelp("java " + ClusterExternalViewVerifier.class.getName(), cliOptions);
+    helpFormatter.printHelp("java " + IntegrationTestUtil.class.getName(), cliOptions);
   }
 
   static void processCommandLineArgs(String[] cliArgs) {

@@ -7,6 +7,7 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 
 import com.google.common.collect.Sets;
@@ -365,5 +366,9 @@ public class ResourceConfig {
       return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
           _bucketSize, _batchMessageMode);
     }
+  }
+
+  public ProvisionerConfig getProvisionerConfig() {
+    return null;
   }
 }

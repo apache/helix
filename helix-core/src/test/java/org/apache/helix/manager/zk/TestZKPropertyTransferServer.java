@@ -40,8 +40,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBaseWithProp
 
     // kill controller, participant should not know about the svc url
     for (int i = 0; i < NODE_NR; i++) {
-      HelixDataAccessor accessor =
-          _participants[i].getHelixDataAccessor();
+      HelixDataAccessor accessor = _participants[i].getHelixDataAccessor();
       ZKHelixDataAccessor zkAccessor = (ZKHelixDataAccessor) accessor;
       Assert.assertTrue(zkAccessor._zkPropertyTransferSvcUrl == null
           || zkAccessor._zkPropertyTransferSvcUrl.equals(""));
@@ -54,8 +53,7 @@ public class TestZKPropertyTransferServer extends ZkStandAloneCMTestBaseWithProp
 
     // create controller again, the svc url is notified to the participants
     for (int i = 0; i < NODE_NR; i++) {
-      HelixDataAccessor accessor =
-          _participants[i].getHelixDataAccessor();
+      HelixDataAccessor accessor = _participants[i].getHelixDataAccessor();
       ZKHelixDataAccessor zkAccessor = (ZKHelixDataAccessor) accessor;
       Assert.assertTrue(zkAccessor._zkPropertyTransferSvcUrl.equals(ZKPropertyTransferServer
           .getInstance().getWebserviceUrl()));

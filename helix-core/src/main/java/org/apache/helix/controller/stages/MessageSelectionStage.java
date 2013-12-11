@@ -112,7 +112,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
           stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
 
       if (stateModelDef == null) {
-        LOG.info("resource: " + resourceId
+        LOG.info("resource: "
+            + resourceId
             + " doesn't have state-model-def; e.g. we add a resource config but not add the resource in ideal-states");
         continue;
       }

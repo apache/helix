@@ -99,8 +99,8 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
 
     // setup grand cluster
     final String grandClusterName = "GRAND_" + clusterName;
-    TestHelper.setupCluster(grandClusterName, ZK_ADDR, 0, "controller", null, 0, 0, 1, 0,
-        null, true);
+    TestHelper.setupCluster(grandClusterName, ZK_ADDR, 0, "controller", null, 0, 0, 1, 0, null,
+        true);
 
     ClusterDistributedController distController =
         new ClusterDistributedController(ZK_ADDR, grandClusterName, "controller_0");

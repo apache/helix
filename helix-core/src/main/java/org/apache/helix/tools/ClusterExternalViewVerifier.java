@@ -68,7 +68,8 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
   boolean verifyLiveNodes(List<ParticipantId> actualLiveNodes) {
     Collections.sort(actualLiveNodes);
-    List<String> rawActualLiveNodes = Lists.transform(actualLiveNodes, Functions.toStringFunction());
+    List<String> rawActualLiveNodes =
+        Lists.transform(actualLiveNodes, Functions.toStringFunction());
     return _expectSortedLiveNodes.equals(rawActualLiveNodes);
   }
 

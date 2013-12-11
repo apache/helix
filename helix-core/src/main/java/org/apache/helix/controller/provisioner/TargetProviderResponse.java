@@ -5,7 +5,7 @@ import java.util.List;
 import org.apache.helix.api.Participant;
 
 public class TargetProviderResponse {
-  
+
   List<ContainerSpec> containersToAcquire;
 
   List<Participant> containersToRelease;
@@ -45,8 +45,5 @@ public class TargetProviderResponse {
   public void setContainersToStart(List<Participant> containersToStart) {
     this.containersToStart = containersToStart;
   }
-
-
-  
 
 }

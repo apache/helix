@@ -690,7 +690,6 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
       }
       Assert.assertEquals(messageResultCount, _PARTITIONS * 3 / 5);
 
-
       boolean success = false;
       for (int j = 0; j < 6; j++) {
         int count = 0;
@@ -763,7 +762,8 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     String crString = sw.toString();
 
     schedulerMessage.getRecord().setSimpleField("Criteria", crString);
-    schedulerMessage.getRecord().setMapField("MessageTemplate", msgTemplate.getRecord().getSimpleFields());
+    schedulerMessage.getRecord().setMapField("MessageTemplate",
+        msgTemplate.getRecord().getSimpleFields());
     schedulerMessage.getRecord().setSimpleField("TIMEOUT", "-1");
     schedulerMessage.getRecord().setSimpleField("WAIT_ALL", "true");
 

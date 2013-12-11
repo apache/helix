@@ -98,8 +98,7 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        participants[i] =
-            new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
         participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
@@ -189,8 +188,8 @@ public class TestResetPartitionState extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance.getTypedSessionId()
-        .stringify(), resource, partition));
+    accessor.removeProperty(keyBuilder.stateTransitionStatus(instance, liveInstance
+        .getTypedSessionId().stringify(), resource, partition));
 
   }
   // TODO: throw exception in reset()

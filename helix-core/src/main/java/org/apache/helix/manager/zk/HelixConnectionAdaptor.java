@@ -235,8 +235,7 @@ public class HelixConnectionAdaptor implements HelixManager {
       engine = autoController.getStateMachineEngine();
       break;
     default:
-      LOG.info("helix manager type: " + _role.getType()
-          + " does NOT have state-machine-engine");
+      LOG.info("helix manager type: " + _role.getType() + " does NOT have state-machine-engine");
       break;
     }
 

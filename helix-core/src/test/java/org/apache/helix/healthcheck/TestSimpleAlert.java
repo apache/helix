@@ -143,8 +143,7 @@ public class TestSimpleAlert extends ZkIntegrationTestBase {
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].setTransition(new SimpleAlertTransition(15));
       participants[i].syncStart();
     }

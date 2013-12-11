@@ -380,8 +380,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
       ClusterId clusterId, ParticipantId participantId) {
     addListener(role, listener,
         new PropertyKey.Builder(clusterId.stringify()).healthReports(participantId.stringify()),
-        ChangeType.HEALTH,
-        new EventType[] {
+        ChangeType.HEALTH, new EventType[] {
             EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
         });
   }

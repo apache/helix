@@ -33,6 +33,7 @@ public interface StateMachineEngine extends MessageHandlerFactory {
 
   /**
    * Replaced by {@link #registerStateModelFactory(StateModelDefId, HelixStateModelFactory)
+
    */
   @Deprecated
   public boolean registerStateModelFactory(String stateModelDef,
@@ -82,7 +83,7 @@ public interface StateMachineEngine extends MessageHandlerFactory {
   public boolean registerStateModelFactory(StateModelDefId stateModelDefId, String factoryName,
       HelixStateModelFactory<? extends StateModel> factory);
 
-  /**
+/**
    * Remove the default state model factory for a state model definition
    * Replacing {@link #removeStateModelFactory(String, StateModelFactory)
    * @param stateModelDefId

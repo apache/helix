@@ -305,8 +305,9 @@ public class StatusUpdateUtil {
 
   String getRecordIdForMessage(Message message) {
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION)) {
-      return message.getPartitionId() + " Trans:" + message.getTypedFromState().toString().charAt(0)
-          + "->" + message.getTypedToState().toString().charAt(0) + "  " + UUID.randomUUID().toString();
+      return message.getPartitionId() + " Trans:"
+          + message.getTypedFromState().toString().charAt(0) + "->"
+          + message.getTypedToState().toString().charAt(0) + "  " + UUID.randomUUID().toString();
     } else {
       return message.getMsgType() + " " + UUID.randomUUID().toString();
     }

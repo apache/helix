@@ -84,7 +84,6 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
         LOG.info(_controllerId + " is trying to acquire leadership for cluster: " + _clusterId);
 
-
         while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
           boolean success = tryUpdateController(_manager);
           if (success) {

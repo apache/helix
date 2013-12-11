@@ -51,8 +51,7 @@ public class TaskRunner implements Runnable {
   private volatile boolean _done = false;
 
   public TaskRunner(StateModel taskStateModel, Task task, String taskName, String taskPartition,
-      String instance,
-      HelixManager manager, String sessionId) {
+      String instance, HelixManager manager, String sessionId) {
     _taskStateModel = taskStateModel;
     _task = task;
     _taskName = taskName;

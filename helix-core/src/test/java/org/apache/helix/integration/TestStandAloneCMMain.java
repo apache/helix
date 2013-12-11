@@ -44,8 +44,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
     ClusterControllerManager newController = null;
     for (int i = 1; i <= 2; i++) {
       String controllerName = "controller_" + i;
-      newController =
-          new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+      newController = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
       newController.syncStart();
     }
 

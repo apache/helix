@@ -94,7 +94,7 @@ public class Workflow {
    * the following
    * form:
    * <p/>
-   *
+   * 
    * <pre>
    * name: MyFlow
    * tasks:

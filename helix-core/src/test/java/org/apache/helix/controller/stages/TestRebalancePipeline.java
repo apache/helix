@@ -174,7 +174,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
     clusterAccessor.initClusterStructure();
 
-
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();

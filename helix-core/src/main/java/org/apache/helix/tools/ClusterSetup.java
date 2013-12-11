@@ -312,8 +312,8 @@ public class ClusterSetup {
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates) {
       swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
-      accessor.setProperty(
-          accessor.keyBuilder().idealStates(idealState.getResourceId().stringify()), idealState);
+      accessor.setProperty(accessor.keyBuilder()
+          .idealStates(idealState.getResourceId().stringify()), idealState);
     }
   }
 

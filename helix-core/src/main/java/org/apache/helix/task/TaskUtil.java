@@ -107,8 +107,7 @@ public class TaskUtil {
     ZNRecord r =
         manager.getHelixPropertyStore().get(
             Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName,
-                TaskUtilEnum.PREV_RA_NODE.value()),
-            null, AccessOption.PERSISTENT);
+                TaskUtilEnum.PREV_RA_NODE.value()), null, AccessOption.PERSISTENT);
     return r != null ? new ResourceAssignment(r) : null;
   }
 
@@ -116,24 +115,21 @@ public class TaskUtil {
       ResourceAssignment ra) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName,
-            TaskUtilEnum.PREV_RA_NODE.value()),
-        ra.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.PREV_RA_NODE.value()), ra.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static TaskContext getTaskContext(HelixManager manager, String taskResource) {
     ZNRecord r =
         manager.getHelixPropertyStore().get(
             Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, taskResource,
-                TaskUtilEnum.CONTEXT_NODE.value()),
-            null, AccessOption.PERSISTENT);
+                TaskUtilEnum.CONTEXT_NODE.value()), null, AccessOption.PERSISTENT);
     return r != null ? new TaskContext(r) : null;
   }
 
   public static void setTaskContext(HelixManager manager, String taskResource, TaskContext ctx) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, taskResource,
-            TaskUtilEnum.CONTEXT_NODE.value()),
-        ctx.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.CONTEXT_NODE.value()), ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
@@ -148,8 +144,7 @@ public class TaskUtil {
       WorkflowContext ctx) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource,
-            TaskUtilEnum.CONTEXT_NODE.value()),
-        ctx.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.CONTEXT_NODE.value()), ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static String getNamespacedTaskName(String singleTaskWorkflow) {

@@ -917,7 +917,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceId().stringify()), idealState);
+    accessor
+        .setProperty(keyBuilder.idealStates(idealState.getResourceId().stringify()), idealState);
   }
 
   @Override

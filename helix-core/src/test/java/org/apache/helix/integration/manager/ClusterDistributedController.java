@@ -30,8 +30,7 @@ import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-public class ClusterDistributedController extends ZKHelixManager implements Runnable,
-    ZkTestManager {
+public class ClusterDistributedController extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = Logger.getLogger(ClusterDistributedController.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);

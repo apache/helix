@@ -58,23 +58,23 @@ public class ZkStandAloneCMTestBaseWithPropertyServerCheck extends ZkStandAloneC
           accessor.getChildValues(kb.stateTransitionStatus(instanceName,
               _participants[i].getSessionId(), TEST_DB));
 
-        for (int j = 0; j < 10; j++) {
-          statusUpdates =
-              accessor.getChildValues(kb.stateTransitionStatus(instanceName,
+      for (int j = 0; j < 10; j++) {
+        statusUpdates =
+            accessor.getChildValues(kb.stateTransitionStatus(instanceName,
                 _participants[i].getSessionId(), TEST_DB));
-          if (statusUpdates.size() == 0) {
-            Thread.sleep(500);
-          } else {
-            break;
-          }
+        if (statusUpdates.size() == 0) {
+          Thread.sleep(500);
+        } else {
+          break;
         }
-        Assert.assertTrue(statusUpdates.size() > 0);
-        for (StatusUpdate update : statusUpdates) {
-          Assert.assertTrue(update.getRecord()
-              .getSimpleField(ZkPropertyTransferClient.USE_PROPERTYTRANSFER).equals("true"));
-          Assert
-              .assertTrue(update.getRecord().getSimpleField(ZKPropertyTransferServer.SERVER) != null);
-        }
+      }
+      Assert.assertTrue(statusUpdates.size() > 0);
+      for (StatusUpdate update : statusUpdates) {
+        Assert.assertTrue(update.getRecord()
+            .getSimpleField(ZkPropertyTransferClient.USE_PROPERTYTRANSFER).equals("true"));
+        Assert
+            .assertTrue(update.getRecord().getSimpleField(ZKPropertyTransferServer.SERVER) != null);
+      }
     }
   }
 

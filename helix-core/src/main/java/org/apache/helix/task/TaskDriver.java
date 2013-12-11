@@ -283,13 +283,11 @@ public class TaskDriver {
 
     Option clusterNameOption =
         OptionBuilder.isRequired().hasArgs(1).withArgName("clusterName")
-            .withLongOpt(CLUSTER_NAME_OPTION)
-            .withDescription("Target cluster name").create();
+            .withLongOpt(CLUSTER_NAME_OPTION).withDescription("Target cluster name").create();
 
     Option taskResourceOption =
         OptionBuilder.isRequired().hasArgs(1).withArgName("resourceName")
-            .withLongOpt(RESOURCE_OPTION)
-            .withDescription("Target workflow or task").create();
+            .withLongOpt(RESOURCE_OPTION).withDescription("Target workflow or task").create();
 
     OptionGroup group = new OptionGroup();
     group.addOption(zkAddressOption);

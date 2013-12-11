@@ -85,7 +85,8 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
             message.setStateModelFactoryName("DEFAULT");
           }
           accessor.setProperty(
-              accessor.keyBuilder().message(instanceName, message.getMessageId().stringify()), message);
+              accessor.keyBuilder().message(instanceName, message.getMessageId().stringify()),
+              message);
         }
       }
     }

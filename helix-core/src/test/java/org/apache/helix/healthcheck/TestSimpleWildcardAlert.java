@@ -149,8 +149,7 @@ public class TestSimpleWildcardAlert extends ZkIntegrationTestBase {
     {
       String instanceName = "localhost_" + (12944 + i);
 
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].setTransition(new SimpleAlertTransition(i * 5));
       participants[i].syncStart();
     }

@@ -31,6 +31,9 @@ import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerSpec;
+import org.apache.helix.controller.provisioner.ContainerState;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
@@ -47,7 +50,10 @@ public class InstanceConfig extends HelixProperty {
     HELIX_PORT,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
-    TAG_LIST
+    TAG_LIST,
+    CONTAINER_SPEC,
+    CONTAINER_STATE,
+    CONTAINER_ID
   }
 
   /**
@@ -295,6 +301,32 @@ public class InstanceConfig extends HelixProperty {
       }
     }
     return userConfig;
+  }
+
+  public void setContainerSpec(ContainerSpec spec) {
+    _record.setSimpleField(InstanceConfigProperty.CONTAINER_SPEC.toString(), spec.toString());
+  }
+
+  public ContainerSpec getContainerSpec() {
+    return ContainerSpec.from(_record.getSimpleField(InstanceConfigProperty.CONTAINER_SPEC
+        .toString()));
+  }
+
+  public void setContainerState(ContainerState state) {
+    _record.setEnumField(InstanceConfigProperty.CONTAINER_STATE.toString(), state);
+  }
+
+  public ContainerState getContainerState() {
+    return _record.getEnumField(InstanceConfigProperty.CONTAINER_STATE.toString(),
+        ContainerState.class, null);
+  }
+
+  public void setContainerId(ContainerId containerId) {
+    _record.setSimpleField(InstanceConfigProperty.CONTAINER_ID.toString(), containerId.toString());
+  }
+
+  public ContainerId getContainerId() {
+    return ContainerId.from(_record.getSimpleField(InstanceConfigProperty.CONTAINER_ID.toString()));
   }
 
   @Override

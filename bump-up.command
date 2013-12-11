@@ -18,21 +18,6 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-# colorful echo
-red='\e[00;31m'
-green='\e[00;32m'
-function cecho
-{
-  message="$1"
-  if [ -n "$message" ]; then
-    color="$2"
-    if [ -z "$color" ]; then
-      echo "$message"
-    else
-      echo -e "$color$message\e[00m"
-    fi
-  fi
-}
 
 echo There are $# arguments to $0: $*
 if [ "$#" -eq 2 ]; then
@@ -48,15 +33,15 @@ else
 #  new_version=`echo $version | sed -e "s/${minor_version}/${new_minor_version}/g"`
   new_version="$major_version.$submajor_version.$new_minor_version"
 fi
-cecho "bump up: $version -> $new_version" $red
+echo "bump up: $version -> $new_version"
 
 #: <<'END'
-cecho "bump up pom.xml" $green
+echo "bump up pom.xml"
 sed -i "s/${version}/${new_version}/g" pom.xml
 # git diff pom.xml
 grep -C 1 "$new_version" pom.xml
 
-cecho "bump up helix-core/pom.xml" $green
+echo "bump up helix-core/pom.xml"
 sed -i "s/${version}/${new_version}/g" helix-core/pom.xml
 grep -C 1 "$new_version" helix-core/pom.xml
 # git diff helix-core/pom.xml
@@ -65,15 +50,15 @@ ivy_file="helix-core-"$version".ivy"
 new_ivy_file="helix-core-"$new_version".ivy"
 # echo "$ivy_file"
 if [ -f helix-core/$ivy_file ]; then
-  cecho "bump up helix-core/$ivy_file" $green
+  echo "bump up helix-core/$ivy_file"
   git mv "helix-core/$ivy_file" "helix-core/$new_ivy_file"
   sed -i "s/${version}/${new_version}/g" "helix-core/$new_ivy_file"
   grep -C 1 "$new_version" "helix-core/$new_ivy_file"
 else
-  cecho "helix-core/$ivy_file not exist" $red
+  echo "helix-core/$ivy_file not exist"
 fi
 
-cecho "bump up helix-admin-webapp/pom.xml" $green
+echo "bump up helix-admin-webapp/pom.xml"
 sed -i "s/${version}/${new_version}/g" helix-admin-webapp/pom.xml
 grep -C 1 "$new_version" helix-admin-webapp/pom.xml
 # git diff helix-core/pom.xml
@@ -82,17 +67,17 @@ ivy_file="helix-admin-webapp-"$version".ivy"
 new_ivy_file="helix-admin-webapp-"$new_version".ivy"
 # echo "$ivy_file"
 if [ -f helix-admin-webapp/$ivy_file ]; then
-  cecho "bump up helix-admin-webapp/$ivy_file" $green
+  echo "bump up helix-admin-webapp/$ivy_file"
   git mv "helix-admin-webapp/$ivy_file" "helix-admin-webapp/$new_ivy_file"
   sed -i "s/${version}/${new_version}/g" "helix-admin-webapp/$new_ivy_file"
   grep -C 1 "$new_version" "helix-admin-webapp/$new_ivy_file"
 else
-  cecho "helix-admin-webapp/$ivy_file not exist" $red
+  echo "helix-admin-webapp/$ivy_file not exist"
 fi
 
 for POM in helix-agent/pom.xml recipes/task-execution/pom.xml recipes/pom.xml recipes/distributed-lock-manager/pom.xml recipes/rsync-replicated-file-system/pom.xml recipes/rabbitmq-consumer-group/pom.xml recipes/service-discovery/pom.xml
 do
-  cecho "bump up $POM" $green
+  echo "bump up $POM"
   sed -i "s/${version}/${new_version}/g" $POM 
   grep -C 1 "$new_version" $POM
 done

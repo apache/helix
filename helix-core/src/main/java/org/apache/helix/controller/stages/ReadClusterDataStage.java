@@ -31,6 +31,7 @@ import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
@@ -83,6 +84,15 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     }
     ControllerContextProvider contextProvider = new ControllerContextProvider(persistedContexts);
     event.addAttribute(AttributeName.CONTEXT_PROVIDER.toString(), contextProvider);
+
+    // read ideal state rules (if any)
+    ClusterConfiguration clusterConfiguration =
+        accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    if (clusterConfiguration == null) {
+      clusterConfiguration = new ClusterConfiguration(cluster.getId());
+    }
+    event.addAttribute(AttributeName.IDEAL_STATE_RULES.toString(),
+        clusterConfiguration.getIdealStateRules());
 
     long endTime = System.currentTimeMillis();
     LOG.info("END ReadClusterDataStage.process(). took: " + (endTime - startTime) + " ms");

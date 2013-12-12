@@ -1,11 +1,15 @@
 package org.apache.helix.model;
 
+import java.util.Map;
+
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.manager.zk.ZKHelixManager;
+
+import com.google.common.collect.Maps;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -30,6 +34,8 @@ import org.apache.helix.manager.zk.ZKHelixManager;
  * Persisted configuration properties for a cluster
  */
 public class ClusterConfiguration extends HelixProperty {
+  private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule";
+
   /**
    * Instantiate for an id
    * @param id cluster id
@@ -93,6 +99,28 @@ public class ClusterConfiguration extends HelixProperty {
       }
     }
     return userConfig;
+  }
+
+  /**
+   * Get the rules, if any, that all ideal states in this cluster must follow
+   * @return map of rule name to key-value requirements in the ideal state
+   */
+  public Map<String, Map<String, String>> getIdealStateRules() {
+    NamespacedConfig rules = new NamespacedConfig(this, IDEAL_STATE_RULE_PREFIX);
+    Map<String, Map<String, String>> idealStateRuleMap = Maps.newHashMap();
+    for (String simpleKey : rules.getSimpleFields().keySet()) {
+      String simpleValue = rules.getSimpleField(simpleKey);
+      String[] splitRules = simpleValue.split("(?<!\\\\),");
+      Map<String, String> singleRule = Maps.newHashMap();
+      for (String rule : splitRules) {
+        String[] keyValue = rule.split("(?<!\\\\)=");
+        if (keyValue.length >= 2) {
+          singleRule.put(keyValue[0], keyValue[1]);
+        }
+      }
+      idealStateRuleMap.put(simpleKey, singleRule);
+    }
+    return idealStateRuleMap;
   }
 
   /**

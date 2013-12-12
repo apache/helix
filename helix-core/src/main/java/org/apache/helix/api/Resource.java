@@ -43,6 +43,7 @@ public class Resource {
   private final ResourceConfig _config;
   private final ExternalView _externalView;
   private final ResourceAssignment _resourceAssignment;
+  private final IdealState _idealState;
 
   /**
    * Construct a resource
@@ -66,6 +67,7 @@ public class Resource {
             batchMessageMode);
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
+    _idealState = idealState;
   }
 
   /**
@@ -205,5 +207,13 @@ public class Resource {
    */
   public ResourceConfig getConfig() {
     return _config;
+  }
+
+  /**
+   * Get the ideal state of the resource
+   * @return IdealState for this resource, if it exists
+   */
+  public IdealState getIdealState() {
+    return _idealState;
   }
 }

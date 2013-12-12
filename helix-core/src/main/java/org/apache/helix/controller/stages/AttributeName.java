@@ -28,4 +28,5 @@ public enum AttributeName {
   MESSAGES_THROTTLE,
   LOCAL_STATE,
   CONTEXT_PROVIDER,
+  IDEAL_STATE_RULES
 }

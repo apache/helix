@@ -44,7 +44,6 @@ import org.apache.log4j.Logger;
  */
 @Deprecated
 public class ClusterDataCache {
-
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, IdealState> _idealStateMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
@@ -73,7 +72,8 @@ public class ClusterDataCache {
     _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
 
     for (LiveInstance instance : _liveInstanceMap.values()) {
-      LOG.trace("live instance: " + instance.getParticipantId() + " " + instance.getTypedSessionId());
+      LOG.trace("live instance: " + instance.getParticipantId() + " "
+          + instance.getTypedSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());

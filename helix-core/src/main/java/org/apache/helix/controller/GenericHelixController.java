@@ -56,6 +56,7 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.RebalanceIdealStateStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -180,6 +181,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       // rebalance pipeline
       Pipeline rebalancePipeline = new Pipeline();
       rebalancePipeline.addStage(new ResourceComputationStage());
+      rebalancePipeline.addStage(new ResourceValidationStage());
       rebalancePipeline.addStage(new CurrentStateComputationStage());
       rebalancePipeline.addStage(new RebalanceIdealStateStage());
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());

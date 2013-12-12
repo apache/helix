@@ -20,7 +20,6 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -37,7 +36,6 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -360,69 +358,6 @@ public class TestFullAutoNodeTagging extends ZkUnitTestBase {
         total += value;
       }
       return total / countMap.size();
-    }
-
-    @Override
-    public ZkClient getZkClient() {
-      return _zkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
-    }
-  }
-
-  /**
-   * Ensures that external view and current state are empty
-   */
-  private static class EmptyZkVerifier implements ZkVerifier {
-    private final String _clusterName;
-    private final String _resourceName;
-    private final ZkClient _zkClient;
-
-    /**
-     * Instantiate the verifier
-     * @param clusterName the cluster to verify
-     * @param resourceName the resource to verify
-     */
-    public EmptyZkVerifier(String clusterName, String resourceName) {
-      _clusterName = clusterName;
-      _resourceName = resourceName;
-      _zkClient = ZKClientPool.getZkClient(ZK_ADDR);
-    }
-
-    @Override
-    public boolean verify() {
-      BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
-      HelixDataAccessor accessor = new ZKHelixDataAccessor(_clusterName, baseAccessor);
-      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      ExternalView externalView = accessor.getProperty(keyBuilder.externalView(_resourceName));
-
-      // verify external view empty
-      for (String partition : externalView.getPartitionSet()) {
-        Map<String, String> stateMap = externalView.getStateMap(partition);
-        if (stateMap != null && !stateMap.isEmpty()) {
-          LOG.error("External view not empty for " + partition);
-          return false;
-        }
-      }
-
-      // verify current state empty
-      List<String> liveParticipants = accessor.getChildNames(keyBuilder.liveInstances());
-      for (String participant : liveParticipants) {
-        List<String> sessionIds = accessor.getChildNames(keyBuilder.sessions(participant));
-        for (String sessionId : sessionIds) {
-          CurrentState currentState =
-              accessor.getProperty(keyBuilder.currentState(participant, sessionId, _resourceName));
-          Map<String, String> partitionStateMap = currentState.getPartitionStateMap();
-          if (partitionStateMap != null && !partitionStateMap.isEmpty()) {
-            LOG.error("Current state not empty for " + participant);
-            return false;
-          }
-        }
-      }
-      return true;
     }
 
     @Override

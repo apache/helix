@@ -25,24 +25,29 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixConstants.StateModelToken;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
 
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  */
 public class ClusterDataCache {
+
+  private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, IdealState> _idealStateMap;
@@ -51,6 +56,7 @@ public class ClusterDataCache {
   Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
+  Map<String, Map<String, String>> _idealStateRuleMap;
 
   // Map<String, Map<String, HealthStat>> _healthStatMap;
   // private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
@@ -105,6 +111,25 @@ public class ClusterDataCache {
     }
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
+    _idealStateRuleMap = Maps.newHashMap();
+    HelixProperty clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
+    if (clusterConfig != null) {
+      for (String simpleKey : clusterConfig.getRecord().getSimpleFields().keySet()) {
+        if (simpleKey.startsWith(IDEAL_STATE_RULE_PREFIX)) {
+          String simpleValue = clusterConfig.getRecord().getSimpleField(simpleKey);
+          String[] rules = simpleValue.split("(?<!\\\\),");
+          Map<String, String> singleRule = Maps.newHashMap();
+          for (String rule : rules) {
+            String[] keyValue = rule.split("(?<!\\\\)=");
+            if (keyValue.length >= 2) {
+              singleRule.put(keyValue[0], keyValue[1]);
+            }
+          }
+          _idealStateRuleMap.put(simpleKey, singleRule);
+        }
+      }
+    }
+
     return true;
   }
 
@@ -114,6 +139,10 @@ public class ClusterDataCache {
    */
   public Map<String, IdealState> getIdealStates() {
     return _idealStateMap;
+  }
+
+  public Map<String, Map<String, String>> getIdealStateRules() {
+    return _idealStateRuleMap;
   }
 
   /**

@@ -30,6 +30,7 @@ import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -52,18 +53,19 @@ public class Resource {
    * @param externalView external view of the resource
    * @param resourceAssignment current resource assignment of the cluster
    * @param rebalancerConfig parameters that the rebalancer should be aware of
+   * @param provisionerConfig parameters that the provisioner should be aware of
    * @param userConfig any resource user-defined configuration
    * @param bucketSize the bucket size to use for physically saved state
    * @param batchMessageMode true if batch messaging allowed, false otherwise
    */
   public Resource(ResourceId id, ResourceType type, IdealState idealState,
       ResourceAssignment resourceAssignment, ExternalView externalView,
-      RebalancerConfig rebalancerConfig, UserConfig userConfig, int bucketSize,
-      boolean batchMessageMode) {
+      RebalancerConfig rebalancerConfig, ProvisionerConfig provisionerConfig,
+      UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
     _config =
-        new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, userConfig, bucketSize,
-            batchMessageMode);
+        new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, provisionerConfig,
+            userConfig, bucketSize, batchMessageMode);
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
   }
@@ -197,6 +199,14 @@ public class Resource {
    */
   public boolean getBatchMessageMode() {
     return _config.getBatchMessageMode();
+  }
+
+  /**
+   * Get the properties configuring provisioning
+   * @return ProvisionerConfig properties
+   */
+  public ProvisionerConfig getProvisionerConfig() {
+    return _config.getProvisionerConfig();
   }
 
   /**

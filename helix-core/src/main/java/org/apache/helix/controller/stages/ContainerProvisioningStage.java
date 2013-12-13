@@ -89,7 +89,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           }
         }
 
-        Cluster cluster = event.getAttribute("clusterDataCache");
+        Cluster cluster = event.getAttribute("ClusterDataCache");
         Collection<Participant> participants = cluster.getParticipantMap().values();
 
         // Participants registered in helix
@@ -106,11 +106,10 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         TargetProviderResponse response =
             provisioner.evaluateExistingContainers(cluster, resourceId, participants);
 
-        // random participant id
-        ParticipantId participantId = ParticipantId.from(UUID.randomUUID().toString());
-
         // allocate new containers
         for (ContainerSpec spec : response.getContainersToAcquire()) {
+          // random participant id
+          ParticipantId participantId = ParticipantId.from(UUID.randomUUID().toString());
           // create a new Participant, attach the container spec
           InstanceConfig instanceConfig = new InstanceConfig(participantId);
           instanceConfig.setContainerSpec(spec);
@@ -118,63 +117,71 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           instanceConfig.setContainerState(ContainerState.ACQUIRING);
           // create the helix participant and add it to cluster
           helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
-
           ContainerId containerId = provisioner.allocateContainer(spec);
           InstanceConfig existingInstance =
               helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
           existingInstance.setContainerId(containerId);
+          existingInstance.setContainerState(ContainerState.ACQUIRED);
           accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
               existingInstance);
         }
 
         // start new containers
         for (Participant participant : response.getContainersToStart()) {
-          String containerIdStr = participant.getUserConfig().getSimpleField("ContainerId");
-          ContainerId containerId = ContainerId.from(containerIdStr);
           InstanceConfig existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
+          ContainerId containerId = existingInstance.getContainerId();
+          existingInstance.setContainerId(containerId);
           existingInstance.setContainerState(ContainerState.CONNECTING);
-          accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
+          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
           provisioner.startContainer(containerId);
           existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
           existingInstance.setContainerState(ContainerState.ACTIVE);
-          accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
+          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
         }
 
         // release containers
         for (Participant participant : response.getContainersToRelease()) {
-          String containerIdStr = participant.getUserConfig().getSimpleField("ContainerId");
-          ContainerId containerId = ContainerId.from(containerIdStr);
           // this will change the container state
+          InstanceConfig existingInstance =
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
+          ContainerId containerId = existingInstance.getContainerId();
+          existingInstance.setContainerState(ContainerState.FINALIZING);
+          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
+              existingInstance);
           provisioner.deallocateContainer(containerId);
           // remove the participant
-          InstanceConfig existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+          existingInstance =
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
           helixAdmin.dropInstance(cluster.getId().toString(), existingInstance);
         }
 
         // stop but don't remove
-        for (Participant participant : participants) {
-          String containerIdStr = participant.getUserConfig().getSimpleField("ContainerId");
+        for (Participant participant : response.getContainersToStop()) {
           // disable the node first
-          // TODO: get the participant id from the container id
           InstanceConfig existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
+          ContainerId containerId = existingInstance.getContainerId();
           existingInstance.setInstanceEnabled(false);
           existingInstance.setContainerState(ContainerState.TEARDOWN);
-          accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
+          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // stop the container
-          ContainerId containerId = ContainerId.from(containerIdStr);
           provisioner.stopContainer(containerId);
           existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                  .toString());
           existingInstance.setContainerState(ContainerState.HALTED);
-          accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
+          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
         }
       }

@@ -1,12 +1,5 @@
 package org.apache.helix.model;
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.api.config.NamespacedConfig;
-import org.apache.helix.api.config.UserConfig;
-import org.apache.helix.api.id.ClusterId;
-import org.apache.helix.manager.zk.ZKHelixManager;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -25,6 +18,13 @@ import org.apache.helix.manager.zk.ZKHelixManager;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.NamespacedConfig;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.manager.zk.ZKHelixManager;
 
 /**
  * Persisted configuration properties for a cluster

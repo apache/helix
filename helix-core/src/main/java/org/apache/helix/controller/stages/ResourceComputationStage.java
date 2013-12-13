@@ -72,6 +72,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
       resCfgBuilder.batchMessageMode(resource.getBatchMessageMode());
       resCfgBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
       resCfgBuilder.rebalancerConfig(rebalancerCfg);
+      resCfgBuilder.provisionerConfig(resource.getProvisionerConfig());
       resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 

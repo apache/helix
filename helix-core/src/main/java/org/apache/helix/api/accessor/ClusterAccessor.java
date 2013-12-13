@@ -54,6 +54,7 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
@@ -70,6 +71,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
+import org.apache.helix.model.ProvisionerConfigHolder;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
@@ -673,21 +675,23 @@ public class ClusterAccessor {
       return false;
     }
 
-    // Add resource user config
-    if (resource.getUserConfig() != null) {
-      ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
-      configuration.setType(resource.getType());
-      configuration.addNamespacedConfig(resource.getUserConfig());
-      PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
-      if (partitionedConfig == null
-          || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
-        // only persist if this is not easily convertible to an ideal state
-        configuration
-            .addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
-                .toNamespacedConfig());
-      }
-      _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+    // Add resource config ZNode
+    ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
+    configuration.setType(resource.getType());
+    configuration.addNamespacedConfig(resource.getUserConfig());
+    PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
+    if (partitionedConfig == null
+        || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      // only persist if this is not easily convertible to an ideal state
+      configuration.addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
+          .toNamespacedConfig());
     }
+    ProvisionerConfig provisionerConfig = resource.getProvisionerConfig();
+    if (provisionerConfig != null) {
+      configuration.addNamespacedConfig(new ProvisionerConfigHolder(provisionerConfig)
+          .toNamespacedConfig());
+    }
+    _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
 
     // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
     IdealState idealState =

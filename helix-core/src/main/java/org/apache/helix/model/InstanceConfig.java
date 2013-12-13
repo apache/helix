@@ -304,7 +304,9 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public void setContainerSpec(ContainerSpec spec) {
-    _record.setSimpleField(InstanceConfigProperty.CONTAINER_SPEC.toString(), spec.toString());
+    if (spec != null) {
+      _record.setSimpleField(InstanceConfigProperty.CONTAINER_SPEC.toString(), spec.toString());
+    }
   }
 
   public ContainerSpec getContainerSpec() {
@@ -322,7 +324,10 @@ public class InstanceConfig extends HelixProperty {
   }
 
   public void setContainerId(ContainerId containerId) {
-    _record.setSimpleField(InstanceConfigProperty.CONTAINER_ID.toString(), containerId.toString());
+    if (containerId != null) {
+      _record
+          .setSimpleField(InstanceConfigProperty.CONTAINER_ID.toString(), containerId.toString());
+    }
   }
 
   public ContainerId getContainerId() {

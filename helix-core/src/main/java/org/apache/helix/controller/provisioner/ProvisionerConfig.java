@@ -19,6 +19,13 @@ package org.apache.helix.controller.provisioner;
  * under the License.
  */
 
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.serializer.StringSerializer;
+
 public interface ProvisionerConfig {
   ProvisionerRef getProvisionerRef();
+
+  ResourceId getResourceId();
+
+  Class<? extends StringSerializer> getSerializerClass();
 }

@@ -6,6 +6,7 @@ import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 
@@ -111,5 +112,15 @@ public class ResourceConfiguration extends HelixProperty {
   public RebalancerConfig getRebalancerConfig(Class<? extends RebalancerConfig> clazz) {
     RebalancerConfigHolder config = new RebalancerConfigHolder(this);
     return config.getRebalancerConfig(clazz);
+  }
+
+  /**
+   * Get a ProvisionerConfig, if available
+   * @param clazz the class to cast to
+   * @return ProvisionerConfig, or null
+   */
+  public ProvisionerConfig getProvisionerConfig(Class<? extends ProvisionerConfig> clazz) {
+    ProvisionerConfigHolder configHolder = new ProvisionerConfigHolder(this);
+    return configHolder.getProvisionerConfig(clazz);
   }
 }

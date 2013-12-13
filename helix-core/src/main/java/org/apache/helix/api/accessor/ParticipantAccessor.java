@@ -43,6 +43,7 @@ import org.apache.helix.api.Resource;
 import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
+import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.MessageId;
@@ -51,6 +52,9 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerSpec;
+import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.CurrentState;
@@ -547,8 +551,17 @@ public class ParticipantAccessor {
       }
     }
 
+    // set up the container config if it exists
+    ContainerConfig containerConfig = null;
+    ContainerSpec containerSpec = instanceConfig.getContainerSpec();
+    ContainerState containerState = instanceConfig.getContainerState();
+    ContainerId containerId = instanceConfig.getContainerId();
+    if (containerSpec != null || containerState != null || containerId != null) {
+      containerConfig = new ContainerConfig(containerId, containerSpec, containerState);
+    }
+
     return new Participant(participantId, hostName, port, isEnabled, disabledPartitionIdSet, tags,
-        runningInstance, curStateMap, msgMap, userConfig);
+        runningInstance, curStateMap, msgMap, userConfig, containerConfig);
   }
 
   /**

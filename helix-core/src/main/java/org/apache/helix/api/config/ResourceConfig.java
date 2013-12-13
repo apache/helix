@@ -48,6 +48,7 @@ public class ResourceConfig {
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
   private final SchedulerTaskConfig _schedulerTaskConfig;
+  private final ProvisionerConfig _provisionerConfig;
   private final UserConfig _userConfig;
   private final int _bucketSize;
   private final boolean _batchMessageMode;
@@ -59,17 +60,20 @@ public class ResourceConfig {
    * @param partitionMap map of partition identifiers to partition objects
    * @param schedulerTaskConfig configuration for scheduler tasks associated with the resource
    * @param rebalancerConfig configuration for rebalancing the resource
+   * @param provisionerConfig configuration for provisioning for the resource
    * @param userConfig user-defined resource properties
    * @param bucketSize bucket size for this resource
    * @param batchMessageMode whether or not batch messaging is allowed
    */
   public ResourceConfig(ResourceId id, ResourceType resourceType,
       SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig,
-      UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
+      ProvisionerConfig provisionerConfig, UserConfig userConfig, int bucketSize,
+      boolean batchMessageMode) {
     _id = id;
     _resourceType = resourceType;
     _schedulerTaskConfig = schedulerTaskConfig;
     _rebalancerConfig = rebalancerConfig;
+    _provisionerConfig = provisionerConfig;
     _userConfig = userConfig;
     _bucketSize = bucketSize;
     _batchMessageMode = batchMessageMode;
@@ -130,6 +134,14 @@ public class ResourceConfig {
    */
   public SchedulerTaskConfig getSchedulerTaskConfig() {
     return _schedulerTaskConfig;
+  }
+
+  /**
+   * Get the properties configuring the provisioner
+   * @return ProvisionerConfig properties
+   */
+  public ProvisionerConfig getProvisionerConfig() {
+    return _provisionerConfig;
   }
 
   /**
@@ -283,6 +295,7 @@ public class ResourceConfig {
     private ResourceType _type;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
+    private ProvisionerConfig _provisionerConfig;
     private UserConfig _userConfig;
     private int _bucketSize;
     private boolean _batchMessageMode;
@@ -339,6 +352,15 @@ public class ResourceConfig {
     }
 
     /**
+     * @param schedulerTaskConfig
+     * @return
+     */
+    public Builder provisionerConfig(ProvisionerConfig provisionerConfig) {
+      _provisionerConfig = provisionerConfig;
+      return this;
+    }
+
+    /**
      * Set the bucket size
      * @param bucketSize the size to use
      * @return Builder
@@ -363,12 +385,8 @@ public class ResourceConfig {
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
-          _bucketSize, _batchMessageMode);
+      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig,
+          _provisionerConfig, _userConfig, _bucketSize, _batchMessageMode);
     }
-  }
-
-  public ProvisionerConfig getProvisionerConfig() {
-    return null;
   }
 }

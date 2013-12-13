@@ -171,7 +171,7 @@ public class BaseStageTest {
       ResourceId resourceId = idealState.getResourceId();
       RebalancerConfig context = PartitionedRebalancerConfig.from(idealState);
       Resource resource =
-          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context,
+          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context, null,
               new UserConfig(Scope.resource(resourceId)), idealState.getBucketSize(),
               idealState.getBatchMessageMode());
       resourceMap.put(resourceId, resource.getConfig());

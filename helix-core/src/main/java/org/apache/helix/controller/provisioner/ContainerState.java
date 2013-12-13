@@ -21,10 +21,12 @@ package org.apache.helix.controller.provisioner;
 
 public enum ContainerState {
   ACQUIRING,
+  ACQUIRED,
   CONNECTING,
   ACTIVE,
   TEARDOWN,
   FAILED,
   HALTED,
-  FINALIZING
+  FINALIZING,
+  FINALIZED
 }

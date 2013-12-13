@@ -47,6 +47,7 @@ import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CompatibilityCheckStage;
+import org.apache.helix.controller.stages.ContainerProvisioningStage;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
 import org.apache.helix.controller.stages.MessageGenerationStage;
@@ -182,6 +183,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       Pipeline rebalancePipeline = new Pipeline();
       rebalancePipeline.addStage(new CompatibilityCheckStage());
       rebalancePipeline.addStage(new ResourceComputationStage());
+      rebalancePipeline.addStage(new ContainerProvisioningStage());
       rebalancePipeline.addStage(new CurrentStateComputationStage());
       rebalancePipeline.addStage(new BestPossibleStateCalcStage());
       rebalancePipeline.addStage(new MessageGenerationStage());

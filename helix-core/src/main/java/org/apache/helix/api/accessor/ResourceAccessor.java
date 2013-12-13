@@ -38,6 +38,7 @@ import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
@@ -440,6 +441,7 @@ public class ResourceAccessor {
       ResourceConfiguration resourceConfiguration, IdealState idealState,
       ExternalView externalView, ResourceAssignment resourceAssignment) {
     UserConfig userConfig;
+    ProvisionerConfig provisionerConfig = null;
     RebalancerConfig rebalancerConfig = null;
     ResourceType type = ResourceType.DATA;
     if (resourceConfiguration != null) {
@@ -472,8 +474,11 @@ public class ResourceAccessor {
     if (rebalancerConfig == null) {
       rebalancerConfig = new PartitionedRebalancerConfig();
     }
+    if (resourceConfiguration != null) {
+      provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
+    }
     return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
-        rebalancerConfig, userConfig, bucketSize, batchMessageMode);
+        rebalancerConfig, provisionerConfig, userConfig, bucketSize, batchMessageMode);
   }
 
   /**

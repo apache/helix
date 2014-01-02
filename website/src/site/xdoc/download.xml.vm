@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+
+-->
+<document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
+
+  <properties>
+    <title>Apache Helix Downloads</title>
+    <author email="dev@helix.incubator.apache.org">Apache Helix Documentation Team</author>
+  </properties>
+
+  <body>
+    <div class="toc_container">
+      <macro name="toc">
+        <param name="class" value="toc"/>
+      </macro>
+    </div>
+
+    <section name="Apache Helix Downloads">
+      <p>Apache Helix artifacts are distributed in source and binary form under the terms of the
+        <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
+        See the included <tt>LICENSE</tt> and <tt>NOTICE</tt> files included in each artifact for additional license
+        information.
+      </p>
+      <p>Use the links below to download a source distribution of Apache Helix.
+      It is good practice to <a href="#Verifying_Releases">verify the integrity</a> of the distribution files.</p>
+    </section>
+
+    <section name="Current Release">
+      <p>Release date: 11/22/2013 </p>
+      <p><a href="releasenotes/release-${currentRelease}.html">${currentRelease} Release notes</a></p>
+      <a name="mirror"/>
+      <subsection name="Mirror">
+
+        <p>
+          [if-any logo]
+          <a href="[link]">
+            <img align="right" src="[logo]" border="0"
+                 alt="logo"/>
+          </a>
+          [end]
+          The currently selected mirror is
+          <b>[preferred]</b>.
+          If you encounter a problem with this mirror,
+          please select another mirror.
+          If all mirrors are failing, there are
+          <i>backup</i>
+          mirrors
+          (at the end of the mirrors list) that should be available.
+        </p>
+
+        <form action="[location]" method="get" id="SelectMirror" class="form-inline">
+          Other mirrors:
+          <select name="Preferred" class="input-xlarge">
+            [if-any http]
+            [for http]
+            <option value="[http]">[http]</option>
+            [end]
+            [end]
+            [if-any ftp]
+            [for ftp]
+            <option value="[ftp]">[ftp]</option>
+            [end]
+            [end]
+            [if-any backup]
+            [for backup]
+            <option value="[backup]">[backup] (backup)</option>
+            [end]
+            [end]
+          </select>
+          <input type="submit" value="Change" class="btn"/>
+        </form>
+
+        <p>
+          You may also consult the
+          <a href="http://www.apache.org/mirrors/">complete list of mirrors.</a>
+        </p>
+
+      </subsection>
+      <subsection name="${currentRelease} Sources">
+        <table>
+          <thead>
+            <tr>
+              <th>Artifact</th>
+              <th>Signatures</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip">helix-${currentRelease}-src.zip</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.sha1">sha1</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </subsection>
+      <subsection name="${currentRelease} Binaries">
+        <table>
+          <thead>
+            <tr>
+              <th>Artifact</th>
+              <th>Signatures</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar">helix-core-${currentRelease}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar">helix-admin-webapp-${currentRelease}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar">helix-agent-${currentRelease}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="[preferred]incubator/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar">helix-examples-${currentRelease}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/incubator/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </subsection>
+    </section>
+
+<!--    <section name="Older Releases">
+    </section>-->
+
+    <section name="Verifying Releases">
+      <p>We strongly recommend you verify the integrity of the downloaded files with both PGP and MD5.</p>
+
+      <p>The PGP signatures can be verified using <a href="http://www.pgpi.org/">PGP</a> or
+      <a href="http://www.gnupg.org/">GPG</a>.
+      First download the <a href="http://www.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the
+      <tt>*.asc</tt> signature file for the particular distribution. Make sure you get these files from the main
+      distribution directory, rather than from a mirror. Then verify the signatures using one of the following sets of
+      commands:
+
+        <source>$ pgp -ka KEYS
+$ pgp helix-*.zip.asc</source>
+
+        <source>$ gpg --import KEYS
+$ gpg --verify helix-*.zip.asc</source>
+       </p>
+    <p>Alternatively, you can verify the MD5 signature on the files. A Unix/Linux program called
+      <code>md5</code> or
+      <code>md5sum</code> is included in most distributions.  It is also available as part of
+      <a href="http://www.gnu.org/software/textutils/textutils.html">GNU Textutils</a>.
+      Windows users can get binary md5 programs from these (and likely other) places:
+      <ul>
+        <li>
+          <a href="http://www.md5summer.org/">http://www.md5summer.org/</a>
+        </li>
+        <li>
+          <a href="http://www.fourmilab.ch/md5/">http://www.fourmilab.ch/md5/</a>
+        </li>
+        <li>
+          <a href="http://www.pc-tools.net/win32/md5sums/">http://www.pc-tools.net/win32/md5sums/</a>
+        </li>
+      </ul>
+    </p>
+    </section>
+  </body>
+</document>

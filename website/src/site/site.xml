@@ -58,7 +58,7 @@
     </breadcrumbs>
 
     <menu name="Learn">
-      <item name="Core concepts" href="./Concepts.html"/>
+      <item name="Core Concepts" href="./Concepts.html"/>
       <item name="Architecture" href="./Architecture.html"/>
       <item name="Publications" href="./Publications.html"/>
       <item name="Client Libraries" href="./ClientLibraries.html"/>
@@ -87,6 +87,7 @@
       <item name="Continuous Integration" href="integration.html"/>
       <item name="Building Guide" href="/involved/building.html"/>
       <item name="Release Guide" href="/releasing.html"/>
+      <item name="Improve this Website" href="/involved/contribdocs.html"/>
     </menu>
 <!--
     <menu ref="reports" inherit="bottom"/>

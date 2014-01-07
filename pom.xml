@@ -197,6 +197,7 @@ under the License.
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>helix-agent</module>
+    <module>helix-provisioning</module>
     <module>helix-examples</module>
     <module>recipes</module>
     <module>site-releases</module>

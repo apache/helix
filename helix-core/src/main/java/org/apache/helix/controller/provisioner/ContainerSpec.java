@@ -24,6 +24,8 @@ public class ContainerSpec {
    * Some unique id representing the container.
    */
   ContainerId containerId;
+  
+  String memory;
 
   public ContainerSpec(ContainerId containerId) {
     this.containerId = containerId;

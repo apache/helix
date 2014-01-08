@@ -29,7 +29,7 @@ under the License.
   <artifactId>website</artifactId>
   <name>Apache Helix :: Website</name>
 
-  <url>http://helix.incubator.apache.org</url>
+  <url>http://helix.apache.org</url>
 
   <modules>
     <module>0.6.1-incubating</module>
@@ -92,7 +92,7 @@ under the License.
             <providerImplementations>
               <svn>${svnImpl}</svn>
             </providerImplementations>
-            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/incubator/helix/site-content/</pubScmUrl>
+            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/helix/site-content/</pubScmUrl>
             <content>${helix.siteFilePath}</content>
             <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>

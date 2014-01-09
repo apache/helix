@@ -28,6 +28,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
@@ -39,13 +40,14 @@ import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.ClusterEventBlockingQueue;
 import org.apache.helix.controller.stages.CompatibilityCheckStage;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ExternalViewComputeStage;
@@ -55,8 +57,8 @@ import org.apache.helix.controller.stages.MessageThrottleStage;
 import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.RebalanceIdealStateStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
+import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HealthStat;
@@ -93,6 +95,12 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   final AtomicReference<Map<String, LiveInstance>> _lastSeenSessions;
 
   ClusterStatusMonitor _clusterStatusMonitor;
+
+  /**
+   * A queue for controller events and a thread that will consume it
+   */
+  private final ClusterEventBlockingQueue _eventQueue;
+  private final ClusterEventProcessor _eventThread;
 
   /**
    * The _paused flag is checked by function handleEvent(), while if the flag is set
@@ -134,7 +142,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       List<ZNRecord> dummy = new ArrayList<ZNRecord>();
       event.addAttribute("eventData", dummy);
       // Should be able to process
-      handleEvent(event);
+      _eventQueue.put(event);
     }
   }
 
@@ -226,6 +234,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _registry = registry;
     _lastSeenInstances = new AtomicReference<Map<String, LiveInstance>>();
     _lastSeenSessions = new AtomicReference<Map<String, LiveInstance>>();
+    _eventQueue = new ClusterEventBlockingQueue();
+    _eventThread = new ClusterEventProcessor();
+    _eventThread.start();
   }
 
   /**
@@ -277,6 +288,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       return;
     }
 
+    logger.info("START: Invoking controller pipeline for event: " + event.getName());
+    long startTime = System.currentTimeMillis();
     for (Pipeline pipeline : pipelines) {
       try {
         pipeline.handle(event);
@@ -287,6 +300,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         break;
       }
     }
+    long endTime = System.currentTimeMillis();
+    logger.info("END: Invoking controller pipeline for event: " + event.getName() + ", took "
+        + (endTime - startTime) + " ms");
   }
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
@@ -300,7 +316,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     // event.addAttribute("helixmanager", changeContext.getManager());
     // event.addAttribute("changeContext", changeContext);
     // event.addAttribute("eventData", externalViewList);
-    // // handleEvent(event);
+    // _eventQueue.put(event);
     // logger.info("END: GenericClusterController.onExternalViewChange()");
   }
 
@@ -313,7 +329,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", statesInfo);
-    handleEvent(event);
+    _eventQueue.put(event);
     logger.info("END: GenericClusterController.onStateChange()");
   }
 
@@ -337,7 +353,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("instanceName", instanceName);
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", messages);
-    handleEvent(event);
+    _eventQueue.put(event);
 
     if (_clusterStatusMonitor != null && messages != null) {
       _clusterStatusMonitor.addMessageQueueSize(instanceName, messages.size());
@@ -371,7 +387,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", liveInstances);
-    handleEvent(event);
+    _eventQueue.put(event);
     logger.info("END: Generic GenericClusterController.onLiveInstanceChange()");
   }
 
@@ -397,13 +413,13 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", idealStates);
-    handleEvent(event);
+    _eventQueue.put(event);
 
     if (changeContext.getType() != Type.FINALIZE) {
       checkRebalancingTimer(changeContext.getManager(), idealStates);
     }
 
-    logger.info("END: Generic GenericClusterController.onIdealStateChange()");
+    logger.info("END: GenericClusterController.onIdealStateChange()");
   }
 
   @Override
@@ -413,7 +429,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
-    handleEvent(event);
+    _eventQueue.put(event);
     logger.info("END: GenericClusterController.onConfigChange()");
   }
 
@@ -456,7 +472,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         event.addAttribute("changeContext", changeContext);
         event.addAttribute("helixmanager", changeContext.getManager());
         event.addAttribute("eventData", pauseSignal);
-        handleEvent(event);
+        _eventQueue.put(event);
       } else {
         _paused = false;
       }
@@ -537,11 +553,34 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _lastSeenSessions.set(curSessions);
 
   }
+
   public void shutdownClusterStatusMonitor(String clusterName) {
-     if (_clusterStatusMonitor != null) {
+    if (_clusterStatusMonitor != null) {
       logger.info("Shut down _clusterStatusMonitor for cluster " + clusterName);
-       _clusterStatusMonitor.reset();
-       _clusterStatusMonitor = null;
+      _clusterStatusMonitor.reset();
+      _clusterStatusMonitor = null;
+    }
+  }
+
+  private class ClusterEventProcessor extends Thread {
+    @Override
+    public void run() {
+      logger.info("START ClusterEventProcessor thread");
+      while (!isInterrupted()) {
+        try {
+          ClusterEvent event = _eventQueue.take();
+          handleEvent(event);
+        } catch (InterruptedException e) {
+          logger.warn("ClusterEventProcessor interrupted", e);
+          interrupt();
+        } catch (ZkInterruptedException e) {
+          logger.warn("ClusterEventProcessor caught a ZK connection interrupt", e);
+          interrupt();
+        } catch (Throwable t) {
+          logger.error("ClusterEventProcessor failed while running the controller pipeline", t);
+        }
+      }
+      logger.info("END ClusterEventProcessor thread");
     }
   }
 }

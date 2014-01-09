@@ -142,6 +142,7 @@ public class TestHelixConnection extends ZkUnitTestBase {
         StateModelDefId.from("MasterSlave"), new MockStateModelFactory());
 
     participant.startAsync();
+    Thread.sleep(1000);
 
     // verify
     final HelixDataAccessor accessor = connection.createDataAccessor(clusterId);

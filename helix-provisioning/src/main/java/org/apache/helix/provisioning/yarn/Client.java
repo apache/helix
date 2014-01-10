@@ -1,6 +1,5 @@
 package org.apache.helix.provisioning.yarn;
 
-
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -20,7 +19,9 @@ package org.apache.helix.provisioning.yarn;
  */
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,6 +34,9 @@ import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.commons.compress.archivers.ArchiveStreamFactory;
+import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
+import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -76,34 +80,40 @@ import org.apache.hadoop.yarn.util.Records;
 
 /**
  * Client for Distributed Shell application submission to YARN.
- * 
- * <p> The distributed shell client allows an application master to be launched that in turn would run 
- * the provided shell command on a set of containers. </p>
- * 
- * <p>This client is meant to act as an example on how to write yarn-based applications. </p>
- * 
- * <p> To submit an application, a client first needs to connect to the <code>ResourceManager</code> 
- * aka ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The {@link ApplicationClientProtocol} 
- * provides a way for the client to get access to cluster information and to request for a
- * new {@link ApplicationId}. <p>
- * 
- * <p> For the actual job submission, the client first has to create an {@link ApplicationSubmissionContext}. 
- * The {@link ApplicationSubmissionContext} defines the application details such as {@link ApplicationId} 
- * and application name, the priority assigned to the application and the queue
- * to which this application needs to be assigned. In addition to this, the {@link ApplicationSubmissionContext}
- * also defines the {@link ContainerLaunchContext} which describes the <code>Container</code> with which 
- * the {@link ApplicationMaster} is launched. </p>
- * 
- * <p> The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the 
- * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made available 
- * and the environment to be set for the {@link ApplicationMaster} and the commands to be executed to run the 
- * {@link ApplicationMaster}. <p>
- * 
- * <p> Using the {@link ApplicationSubmissionContext}, the client submits the application to the 
- * <code>ResourceManager</code> and then monitors the application by requesting the <code>ResourceManager</code> 
- * for an {@link ApplicationReport} at regular time intervals. In case of the application taking too long, the client 
- * kills the application by submitting a {@link KillApplicationRequest} to the <code>ResourceManager</code>. </p>
- *
+ * <p>
+ * The distributed shell client allows an application master to be launched that in turn would run
+ * the provided shell command on a set of containers.
+ * </p>
+ * <p>
+ * This client is meant to act as an example on how to write yarn-based applications.
+ * </p>
+ * <p>
+ * To submit an application, a client first needs to connect to the <code>ResourceManager</code> aka
+ * ApplicationsManager or ASM via the {@link ApplicationClientProtocol}. The
+ * {@link ApplicationClientProtocol} provides a way for the client to get access to cluster
+ * information and to request for a new {@link ApplicationId}.
+ * <p>
+ * <p>
+ * For the actual job submission, the client first has to create an
+ * {@link ApplicationSubmissionContext}. The {@link ApplicationSubmissionContext} defines the
+ * application details such as {@link ApplicationId} and application name, the priority assigned to
+ * the application and the queue to which this application needs to be assigned. In addition to
+ * this, the {@link ApplicationSubmissionContext} also defines the {@link ContainerLaunchContext}
+ * which describes the <code>Container</code> with which the {@link ApplicationMaster} is launched.
+ * </p>
+ * <p>
+ * The {@link ContainerLaunchContext} in this scenario defines the resources to be allocated for the
+ * {@link ApplicationMaster}'s container, the local resources (jars, configuration files) to be made
+ * available and the environment to be set for the {@link ApplicationMaster} and the commands to be
+ * executed to run the {@link ApplicationMaster}.
+ * <p>
+ * <p>
+ * Using the {@link ApplicationSubmissionContext}, the client submits the application to the
+ * <code>ResourceManager</code> and then monitors the application by requesting the
+ * <code>ResourceManager</code> for an {@link ApplicationReport} at regular time intervals. In case
+ * of the application taking too long, the client kills the application by submitting a
+ * {@link KillApplicationRequest} to the <code>ResourceManager</code>.
+ * </p>
  */
 @InterfaceAudience.Public
 @InterfaceStability.Unstable
@@ -121,32 +131,21 @@ public class Client {
   // Queue for App master
   private String amQueue = "";
   // Amt. of memory resource to request for to run the App Master
-  private int amMemory = 10; 
+  private int amMemory = 10;
 
   // Application master jar file
-  private String appMasterJar = ""; 
+  private String appMasterArchive = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
 
-  // Shell command to be executed 
-  private String shellCommand = ""; 
-  // Location of shell script 
-  private String shellScriptPath = ""; 
-  // Args to be passed to the shell command
-  private String shellArgs = "";
-  // Env variables to be setup for the shell command 
-  private Map<String, String> shellEnv = new HashMap<String, String>();
-  // Shell Command Container priority 
-  private int shellCmdPriority = 0;
-
   // Amt of memory to request for container in which shell script will be executed
-  private int containerMemory = 10; 
+  private int containerMemory = 10;
   // No. of containers in which the shell script needs to be executed
   private int numContainers = 1;
 
-  // log4j.properties file 
-  // if available, add to local resources and set into classpath 
-  private String log4jPropFile = "";  
+  // log4j.properties file
+  // if available, add to local resources and set into classpath
+  private String log4jPropFile = "";
 
   // Start time for client
   private final long clientStartTime = System.currentTimeMillis();
@@ -154,13 +153,13 @@ public class Client {
   private long clientTimeout = 600000;
 
   // Debug flag
-  boolean debugFlag = false;  
+  boolean debugFlag = false;
 
   // Command line options
   private Options opts;
 
   /**
-   * @param args Command line arguments 
+   * @param args Command line arguments
    */
   public static void main(String[] args) {
     boolean result = false;
@@ -184,18 +183,16 @@ public class Client {
     }
     if (result) {
       LOG.info("Application completed successfully");
-      System.exit(0);     
-    } 
+      System.exit(0);
+    }
     LOG.error("Application failed to complete successfully");
     System.exit(2);
   }
 
   /**
    */
-  public Client(Configuration conf) throws Exception  {
-    this(
-      "org.apache.helix.provisioning.yarn.ApplicationMaster",
-      conf);
+  public Client(Configuration conf) throws Exception {
+    this("org.apache.helix.provisioning.yarn.HelixYarnApplicationMasterMain", conf);
   }
 
   Client(String appMasterMainClass, Configuration conf) {
@@ -208,15 +205,19 @@ public class Client {
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
     opts.addOption("timeout", true, "Application timeout in milliseconds");
-    opts.addOption("master_memory", true, "Amount of memory in MB to be requested to run the application master");
-    opts.addOption("jar", true, "Jar file containing the application master");
+    opts.addOption("master_memory", true,
+        "Amount of memory in MB to be requested to run the application master");
+    opts.addOption("archive", true, "Jar file containing the application master");
     opts.addOption("shell_command", true, "Shell command to be executed by the Application Master");
     opts.addOption("shell_script", true, "Location of the shell script to be executed");
     opts.addOption("shell_args", true, "Command line args for the shell script");
-    opts.addOption("shell_env", true, "Environment for shell script. Specified as env_key=env_val pairs");
+    opts.addOption("shell_env", true,
+        "Environment for shell script. Specified as env_key=env_val pairs");
     opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
-    opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
-    opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
+    opts.addOption("container_memory", true,
+        "Amount of memory in MB to be requested to run the shell command");
+    opts.addOption("num_containers", true,
+        "No. of containers on which the shell command needs to be executed");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("debug", false, "Dump out debug information");
     opts.addOption("help", false, "Print usage");
@@ -225,7 +226,7 @@ public class Client {
 
   /**
    */
-  public Client() throws Exception  {
+  public Client() throws Exception {
     this(new YarnConfiguration());
   }
 
@@ -238,7 +239,7 @@ public class Client {
 
   /**
    * Parse command line options
-   * @param args Parsed command line options 
+   * @param args Parsed command line options
    * @return Whether the init was successful to run the client
    * @throws ParseException
    */
@@ -248,7 +249,7 @@ public class Client {
 
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
-    }   
+    }
 
     if (cliParser.hasOption("help")) {
       printUsage();
@@ -263,56 +264,27 @@ public class Client {
     appName = cliParser.getOptionValue("appname", "DistributedShell");
     amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
     amQueue = cliParser.getOptionValue("queue", "default");
-    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));   
+    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));
 
     if (amMemory < 0) {
-      throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
-          + " Specified memory=" + amMemory);
+      throw new IllegalArgumentException(
+          "Invalid memory specified for application master, exiting." + " Specified memory="
+              + amMemory);
     }
 
-    if (!cliParser.hasOption("jar")) {
-      throw new IllegalArgumentException("No jar file specified for application master");
-    }   
+    if (!cliParser.hasOption("archive")) {
+      throw new IllegalArgumentException("No archive file specified for application master");
+    }
 
-    appMasterJar = cliParser.getOptionValue("jar");
-
-    if (!cliParser.hasOption("shell_command")) {
-      throw new IllegalArgumentException("No shell command specified to be executed by application master");
-    }
-    shellCommand = cliParser.getOptionValue("shell_command");
-
-    if (cliParser.hasOption("shell_script")) {
-      shellScriptPath = cliParser.getOptionValue("shell_script");
-    }
-    if (cliParser.hasOption("shell_args")) {
-      shellArgs = cliParser.getOptionValue("shell_args");
-    }
-    if (cliParser.hasOption("shell_env")) { 
-      String envs[] = cliParser.getOptionValues("shell_env");
-      for (String env : envs) {
-        env = env.trim();
-        int index = env.indexOf('=');
-        if (index == -1) {
-          shellEnv.put(env, "");
-          continue;
-        }
-        String key = env.substring(0, index);
-        String val = "";
-        if (index < (env.length()-1)) {
-          val = env.substring(index+1);
-        }
-        shellEnv.put(key, val);
-      }
-    }
-    shellCmdPriority = Integer.parseInt(cliParser.getOptionValue("shell_cmd_priority", "0"));
+    appMasterArchive = cliParser.getOptionValue("archive");
 
     containerMemory = Integer.parseInt(cliParser.getOptionValue("container_memory", "10"));
     numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "1"));
 
     if (containerMemory < 0 || numContainers < 1) {
-      throw new IllegalArgumentException("Invalid no. of containers or container memory specified, exiting."
-          + " Specified containerMemory=" + containerMemory
-          + ", numContainer=" + numContainers);
+      throw new IllegalArgumentException(
+          "Invalid no. of containers or container memory specified, exiting."
+              + " Specified containerMemory=" + containerMemory + ", numContainer=" + numContainers);
     }
 
     clientTimeout = Integer.parseInt(cliParser.getOptionValue("timeout", "600000"));
@@ -334,55 +306,48 @@ public class Client {
     yarnClient.start();
 
     YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
-    LOG.info("Got Cluster metric info from ASM" 
-        + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
+    LOG.info("Got Cluster metric info from ASM" + ", numNodeManagers="
+        + clusterMetrics.getNumNodeManagers());
 
-    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
-        NodeState.RUNNING);
+    List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(NodeState.RUNNING);
     LOG.info("Got Cluster node info from ASM");
     for (NodeReport node : clusterNodeReports) {
-      LOG.info("Got node report from ASM for"
-          + ", nodeId=" + node.getNodeId() 
-          + ", nodeAddress" + node.getHttpAddress()
-          + ", nodeRackName" + node.getRackName()
-          + ", nodeNumContainers" + node.getNumContainers());
+      LOG.info("Got node report from ASM for" + ", nodeId=" + node.getNodeId() + ", nodeAddress"
+          + node.getHttpAddress() + ", nodeRackName" + node.getRackName() + ", nodeNumContainers"
+          + node.getNumContainers());
     }
 
     QueueInfo queueInfo = yarnClient.getQueueInfo(this.amQueue);
-    LOG.info("Queue info"
-        + ", queueName=" + queueInfo.getQueueName()
-        + ", queueCurrentCapacity=" + queueInfo.getCurrentCapacity()
-        + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
+    LOG.info("Queue info" + ", queueName=" + queueInfo.getQueueName() + ", queueCurrentCapacity="
+        + queueInfo.getCurrentCapacity() + ", queueMaxCapacity=" + queueInfo.getMaximumCapacity()
         + ", queueApplicationCount=" + queueInfo.getApplications().size()
-        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());   
+        + ", queueChildQueueCount=" + queueInfo.getChildQueues().size());
 
     List<QueueUserACLInfo> listAclInfo = yarnClient.getQueueAclsInfo();
     for (QueueUserACLInfo aclInfo : listAclInfo) {
       for (QueueACL userAcl : aclInfo.getUserAcls()) {
-        LOG.info("User ACL Info for Queue"
-            + ", queueName=" + aclInfo.getQueueName()     
-            + ", userAcl=" + userAcl.name());
+        LOG.info("User ACL Info for Queue" + ", queueName=" + aclInfo.getQueueName() + ", userAcl="
+            + userAcl.name());
       }
-    }   
+    }
 
     // Get a new application id
     YarnClientApplication app = yarnClient.createApplication();
     GetNewApplicationResponse appResponse = app.getNewApplicationResponse();
     // TODO get min/max resource capabilities from RM and change memory ask if needed
-    // If we do not have min/max, we may not be able to correctly request 
+    // If we do not have min/max, we may not be able to correctly request
     // the required resources from the RM for the app master
-    // Memory ask has to be a multiple of min and less than max. 
+    // Memory ask has to be a multiple of min and less than max.
     // Dump out information about cluster capability as seen by the resource manager
     int maxMem = appResponse.getMaximumResourceCapability().getMemory();
     LOG.info("Max mem capabililty of resources in this cluster " + maxMem);
 
-    // A resource ask cannot exceed the max. 
+    // A resource ask cannot exceed the max.
     if (amMemory > maxMem) {
       LOG.info("AM memory specified above max threshold of cluster. Using max value."
-          + ", specified=" + amMemory
-          + ", max=" + maxMem);
+          + ", specified=" + amMemory + ", max=" + maxMem);
       amMemory = maxMem;
-    }       
+    }
 
     // set the application name
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
@@ -394,15 +359,15 @@ public class Client {
 
     // set local resources for the application master
     // local files or archives as needed
-    // In this scenario, the jar file for the application master is part of the local resources     
+    // In this scenario, the jar file for the application master is part of the local resources
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-    LOG.info("Copy App Master jar from local filesystem and add to local environment");
-    // Copy the application master jar to the filesystem 
-    // Create a local resource to point to the destination jar path 
+    LOG.info("Copy App archive file from local filesystem and add to local environment");
+    // Copy the application master jar to the filesystem
+    // Create a local resource to point to the destination jar path
     FileSystem fs = FileSystem.get(conf);
-    Path src = new Path(appMasterJar);
-    String pathSuffix = appName + "/" + appId.getId() + "/AppMaster.jar";     
+    Path src = new Path(appMasterArchive);
+    String pathSuffix = appName + "/" + appId.getId() + "/app-pkg.tar";
     Path dst = new Path(fs.getHomeDirectory(), pathSuffix);
     fs.copyFromLocalFile(false, true, src, dst);
     FileStatus destStatus = fs.getFileStatus(dst);
@@ -411,21 +376,21 @@ public class Client {
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    amJarRsrc.setType(LocalResourceType.FILE);
-    // Set visibility of the resource 
+    amJarRsrc.setType(LocalResourceType.ARCHIVE);
+    // Set visibility of the resource
     // Setting to most private option
-    amJarRsrc.setVisibility(LocalResourceVisibility.APPLICATION);    
+    amJarRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
     // Set the resource to be copied over
-    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(dst)); 
-    // Set timestamp and length of file so that the framework 
-    // can do basic sanity checks for the local resource 
-    // after it has been copied over to ensure it is the same 
+    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(dst));
+    // Set timestamp and length of file so that the framework
+    // can do basic sanity checks for the local resource
+    // after it has been copied over to ensure it is the same
     // resource the client intended to use with the application
     amJarRsrc.setTimestamp(destStatus.getModificationTime());
     amJarRsrc.setSize(destStatus.getLen());
-    localResources.put("AppMaster.jar",  amJarRsrc);
+    localResources.put("app-pkg", amJarRsrc);
 
-    // Set the log4j properties if needed 
+    // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
       Path log4jSrc = new Path(log4jPropFile);
       Path log4jDst = new Path(fs.getHomeDirectory(), "log4j.props");
@@ -433,60 +398,48 @@ public class Client {
       FileStatus log4jFileStatus = fs.getFileStatus(log4jDst);
       LocalResource log4jRsrc = Records.newRecord(LocalResource.class);
       log4jRsrc.setType(LocalResourceType.FILE);
-      log4jRsrc.setVisibility(LocalResourceVisibility.APPLICATION);    
+      log4jRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
       log4jRsrc.setResource(ConverterUtils.getYarnUrlFromURI(log4jDst.toUri()));
       log4jRsrc.setTimestamp(log4jFileStatus.getModificationTime());
       log4jRsrc.setSize(log4jFileStatus.getLen());
       localResources.put("log4j.properties", log4jRsrc);
-    }     
-
-    // The shell script has to be made available on the final container(s)
-    // where it will be executed. 
-    // To do this, we need to first copy into the filesystem that is visible 
-    // to the yarn framework. 
-    // We do not need to set this as a local resource for the application 
-    // master as the application master does not need it.     
-    String hdfsShellScriptLocation = ""; 
-    long hdfsShellScriptLen = 0;
-    long hdfsShellScriptTimestamp = 0;
-    if (!shellScriptPath.isEmpty()) {
-      Path shellSrc = new Path(shellScriptPath);
-      String shellPathSuffix = appName + "/" + appId.getId() + "/ExecShellScript.sh";
-      Path shellDst = new Path(fs.getHomeDirectory(), shellPathSuffix);
-      fs.copyFromLocalFile(false, true, shellSrc, shellDst);
-      hdfsShellScriptLocation = shellDst.toUri().toString(); 
-      FileStatus shellFileStatus = fs.getFileStatus(shellDst);
-      hdfsShellScriptLen = shellFileStatus.getLen();
-      hdfsShellScriptTimestamp = shellFileStatus.getModificationTime();
     }
 
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
 
     // Set the necessary security tokens as needed
-    //amContainer.setContainerTokens(containerToken);
+    // amContainer.setContainerTokens(containerToken);
 
-    // Set the env variables to be setup in the env where the application master will be run
-    LOG.info("Set the environment for the application master");
-    Map<String, String> env = new HashMap<String, String>();
 
-    // put location of shell script into env
-    // using the env info, the application master will create the correct local resource for the 
-    // eventual containers that will be launched to execute the shell scripts
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLOCATION, hdfsShellScriptLocation);
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTTIMESTAMP, Long.toString(hdfsShellScriptTimestamp));
-    env.put(DSConstants.DISTRIBUTEDSHELLSCRIPTLEN, Long.toString(hdfsShellScriptLen));
-
-    // Add AppMaster.jar location to classpath    
-    // At some point we should not be required to add 
-    // the hadoop specific classpaths to the env. 
-    // It should be provided out of the box. 
+    // Add AppMaster.jar location to classpath
+    // At some point we should not be required to add
+    // the hadoop specific classpaths to the env.
+    // It should be provided out of the box.
     // For now setting all required classpaths including
     // the classpath to "." for the application jar
-    StringBuilder classPathEnv = new StringBuilder(Environment.CLASSPATH.$())
-      .append(File.pathSeparatorChar).append("./*");
-    for (String c : conf.getStrings(
-        YarnConfiguration.YARN_APPLICATION_CLASSPATH,
+    StringBuilder classPathEnv =
+        new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*");
+    StringBuilder appClassPathEnv = new StringBuilder();
+    // put the jar files under the archive in the classpath
+    try {
+      final InputStream is = new FileInputStream(appMasterArchive);
+      final TarArchiveInputStream debInputStream =
+          (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
+      TarArchiveEntry entry = null;
+      while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null) {
+        if (entry.isFile()) {
+          appClassPathEnv.append(File.pathSeparatorChar);
+          appClassPathEnv.append("./app-pkg/" + entry.getName());
+        }
+      }
+      debInputStream.close();
+
+    } catch (Exception e) {
+      LOG.error("Unable to read archive file:" + appMasterArchive, e);
+    }
+    classPathEnv.append(appClassPathEnv);
+    for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
       classPathEnv.append(File.pathSeparatorChar);
       classPathEnv.append(c.trim());
@@ -498,34 +451,32 @@ public class Client {
       classPathEnv.append(':');
       classPathEnv.append(System.getProperty("java.class.path"));
     }
-
+    System.out.println("classpath" + classPathEnv.toString());
+    // Set the env variables to be setup in the env where the application master will be run
+    LOG.info("Set the environment for the application master");
+    Map<String, String> env = new HashMap<String, String>();
+    env.put("app_pkg_path", fs.getHomeDirectory() + "/" + appName + "/" + appId.getId() + "/app-pkg.tar");
+    env.put("appName", appName);
+    env.put("appId", "" + appId.getId());
     env.put("CLASSPATH", classPathEnv.toString());
-
+    env.put("appClasspath", appClassPathEnv.toString());
+    env.put("containerParticipantMainClass", "org.apache.helix.provisioning.yarn.ContainerParticipant");
     amContainer.setEnvironment(env);
 
-    // Set the necessary command to execute the application master 
+    // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
 
-    // Set java executable command 
+    // Set java executable command
     LOG.info("Setting up app master command");
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + amMemory + "m");
-    // Set class name 
+    // Set class name
     vargs.add(appMasterMainClass);
     // Set params for Application Master
     vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--num_containers " + String.valueOf(numContainers));
-    vargs.add("--priority " + String.valueOf(shellCmdPriority));
-    if (!shellCommand.isEmpty()) {
-      vargs.add("--shell_command " + shellCommand + "");
-    }
-    if (!shellArgs.isEmpty()) {
-      vargs.add("--shell_args " + shellArgs + "");
-    }
-    for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
-      vargs.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
-    }     
+
     if (debugFlag) {
       vargs.add("--debug");
     }
@@ -539,9 +490,9 @@ public class Client {
       command.append(str).append(" ");
     }
 
-    LOG.info("Completed setting up app master command " + command.toString());     
+    LOG.info("Completed setting up app master command " + command.toString());
     List<String> commands = new ArrayList<String>();
-    commands.add(command.toString());   
+    commands.add(command.toString());
     amContainer.setCommands(commands);
 
     // Set up resource type requirements
@@ -559,13 +510,11 @@ public class Client {
       Credentials credentials = new Credentials();
       String tokenRenewer = conf.get(YarnConfiguration.RM_PRINCIPAL);
       if (tokenRenewer == null || tokenRenewer.length() == 0) {
-        throw new IOException(
-          "Can't get Master Kerberos principal for the RM to use as renewer");
+        throw new IOException("Can't get Master Kerberos principal for the RM to use as renewer");
       }
 
       // For now, only getting tokens for the default file-system.
-      final Token<?> tokens[] =
-          fs.addDelegationTokens(tokenRenewer, credentials);
+      final Token<?> tokens[] = fs.addDelegationTokens(tokenRenewer, credentials);
       if (tokens != null) {
         for (Token<?> token : tokens) {
           LOG.info("Got dt for " + fs.getUri() + "; " + token);
@@ -581,7 +530,7 @@ public class Client {
 
     // Set the priority for the application master
     Priority pri = Records.newRecord(Priority.class);
-    // TODO - what is the range for priority? how to decide? 
+    // TODO - what is the range for priority? how to decide?
     pri.setPriority(amPriority);
     appContext.setPriority(pri);
 
@@ -590,7 +539,7 @@ public class Client {
 
     // Submit the application to the applications manager
     // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
-    // Ignore the response as either a valid response object is returned on success 
+    // Ignore the response as either a valid response object is returned on success
     // or an exception thrown to denote some form of a failure
     LOG.info("Submitting application to ASM");
 
@@ -606,15 +555,14 @@ public class Client {
   }
 
   /**
-   * Monitor the submitted application for completion. 
-   * Kill application if time expires. 
+   * Monitor the submitted application for completion.
+   * Kill application if time expires.
    * @param appId Application Id of application to be monitored
    * @return true if application completed successfully
    * @throws YarnException
    * @throws IOException
    */
-  private boolean monitorApplication(ApplicationId appId)
-      throws YarnException, IOException {
+  private boolean monitorApplication(ApplicationId appId) throws YarnException, IOException {
 
     while (true) {
 
@@ -625,68 +573,57 @@ public class Client {
         LOG.debug("Thread sleep in monitoring loop interrupted");
       }
 
-      // Get application report for the appId we are interested in 
+      // Get application report for the appId we are interested in
       ApplicationReport report = yarnClient.getApplicationReport(appId);
 
-      LOG.info("Got application report from ASM for"
-          + ", appId=" + appId.getId()
-          + ", clientToAMToken=" + report.getClientToAMToken()
-          + ", appDiagnostics=" + report.getDiagnostics()
-          + ", appMasterHost=" + report.getHost()
-          + ", appQueue=" + report.getQueue()
-          + ", appMasterRpcPort=" + report.getRpcPort()
-          + ", appStartTime=" + report.getStartTime()
-          + ", yarnAppState=" + report.getYarnApplicationState().toString()
+      LOG.info("Got application report from ASM for" + ", appId=" + appId.getId()
+          + ", clientToAMToken=" + report.getClientToAMToken() + ", appDiagnostics="
+          + report.getDiagnostics() + ", appMasterHost=" + report.getHost() + ", appQueue="
+          + report.getQueue() + ", appMasterRpcPort=" + report.getRpcPort() + ", appStartTime="
+          + report.getStartTime() + ", yarnAppState=" + report.getYarnApplicationState().toString()
           + ", distributedFinalState=" + report.getFinalApplicationStatus().toString()
-          + ", appTrackingUrl=" + report.getTrackingUrl()
-          + ", appUser=" + report.getUser());
+          + ", appTrackingUrl=" + report.getTrackingUrl() + ", appUser=" + report.getUser());
 
       YarnApplicationState state = report.getYarnApplicationState();
       FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
       if (YarnApplicationState.FINISHED == state) {
         if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
           LOG.info("Application has completed successfully. Breaking monitoring loop");
-          return true;        
-        }
-        else {
-          LOG.info("Application did finished unsuccessfully."
-              + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-              + ". Breaking monitoring loop");
+          return true;
+        } else {
+          LOG.info("Application did finished unsuccessfully." + " YarnState=" + state.toString()
+              + ", DSFinalStatus=" + dsStatus.toString() + ". Breaking monitoring loop");
           return false;
-        }       
-      }
-      else if (YarnApplicationState.KILLED == state 
-          || YarnApplicationState.FAILED == state) {
-        LOG.info("Application did not finish."
-            + " YarnState=" + state.toString() + ", DSFinalStatus=" + dsStatus.toString()
-            + ". Breaking monitoring loop");
+        }
+      } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
+        LOG.info("Application did not finish." + " YarnState=" + state.toString()
+            + ", DSFinalStatus=" + dsStatus.toString() + ". Breaking monitoring loop");
         return false;
-      }     
+      }
 
       if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
         LOG.info("Reached client specified timeout for application. Killing application");
         forceKillApplication(appId);
-        return false;       
+        return false;
       }
-    }     
+    }
 
   }
 
   /**
    * Kill a submitted application by sending a call to the ASM
-   * @param appId Application Id to be killed. 
+   * @param appId Application Id to be killed.
    * @throws YarnException
    * @throws IOException
    */
-  private void forceKillApplication(ApplicationId appId)
-      throws YarnException, IOException {
-    // TODO clarify whether multiple jobs with the same app id can be submitted and be running at 
-    // the same time. 
+  private void forceKillApplication(ApplicationId appId) throws YarnException, IOException {
+    // TODO clarify whether multiple jobs with the same app id can be submitted and be running at
+    // the same time.
     // If yes, can we kill a particular attempt only?
 
-    // Response can be ignored as it is non-null on success or 
+    // Response can be ignored as it is non-null on success or
     // throws an exception in case of failures
-    yarnClient.killApplication(appId);  
+    yarnClient.killApplication(appId);
   }
 
 }

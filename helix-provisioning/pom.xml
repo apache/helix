@@ -26,7 +26,7 @@ under the License.
   </parent>
   <artifactId>helix-provisioning</artifactId>
   <packaging>bundle</packaging>
-  <name>Apache Helix :: HelixAgent</name>
+  <name>Apache Helix :: HelixProvisioning</name>
 
   <properties>
     <hadoop.version>2.2.0</hadoop.version>

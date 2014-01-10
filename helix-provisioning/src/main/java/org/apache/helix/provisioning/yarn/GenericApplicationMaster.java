@@ -98,24 +98,22 @@ public class GenericApplicationMaster {
   // Tracking url to which app master publishes info for clients to monitor
   private String appMasterTrackingUrl = "";
 
-  // Counter for completed containers ( complete denotes successful or failed )
-  AtomicInteger numCompletedContainers = new AtomicInteger();
-  // Allocated container count so that we know how many containers has the RM
-  // allocated to us
-  AtomicInteger numAllocatedContainers = new AtomicInteger();
-  // Count of failed containers
-  AtomicInteger numFailedContainers = new AtomicInteger();
-  // Count of containers already requested from the RM
-  // Needed as once requested, we should not request for containers again.
-  // Only request for more if the original requirement changes.
-  AtomicInteger numRequestedContainers = new AtomicInteger();
+
   Map<ContainerRequest, SettableFuture<ContainerAskResponse>> containerRequestMap =
       new LinkedHashMap<AMRMClient.ContainerRequest, SettableFuture<ContainerAskResponse>>();
+  Map<ContainerId, SettableFuture<ContainerReleaseResponse>> containerReleaseMap =
+      new LinkedHashMap<ContainerId, SettableFuture<ContainerReleaseResponse>>();
+  Map<ContainerId, SettableFuture<ContainerStopResponse>> containerStopMap =
+      new LinkedHashMap<ContainerId, SettableFuture<ContainerStopResponse>>();
+  Map<ContainerId, SettableFuture<ContainerLaunchResponse>> containerLaunchResponseMap =
+      new LinkedHashMap<ContainerId, SettableFuture<ContainerLaunchResponse>>();
 
+  
   ByteBuffer allTokens;
 
   // Launch threads
   List<Thread> launchThreads = new ArrayList<Thread>();
+
 
   public GenericApplicationMaster(ApplicationAttemptId appAttemptID) {
     this.appAttemptID = appAttemptID;
@@ -238,28 +236,31 @@ public class GenericApplicationMaster {
 
 
   public Future<ContainerAskResponse> acquireContainer(ContainerRequest containerAsk) {
-    amRMClient.addContainerRequest(containerAsk);
-    numRequestedContainers.incrementAndGet();
     SettableFuture<ContainerAskResponse> future = SettableFuture.create();
+    containerRequestMap.put(containerAsk, future);
+    amRMClient.addContainerRequest(containerAsk);
     return future;
   }
 
   public Future<ContainerStopResponse> stopContainer(Container container) {
-    nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
     SettableFuture<ContainerStopResponse> future = SettableFuture.create();
+    containerStopMap.put(container.getId(), future);
+    nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
     return future;
   }
 
   public Future<ContainerReleaseResponse> releaseContainer(Container container) {
-    amRMClient.releaseAssignedContainer(container.getId());
     SettableFuture<ContainerReleaseResponse> future = SettableFuture.create();
+    containerReleaseMap.put(container.getId(), future);
+    amRMClient.releaseAssignedContainer(container.getId());
     return future;
   }
 
   public Future<ContainerLaunchResponse> launchContainer(Container container,
       ContainerLaunchContext containerLaunchContext) {
-    nmClientAsync.startContainerAsync(container, containerLaunchContext);
     SettableFuture<ContainerLaunchResponse> future = SettableFuture.create();
+    containerLaunchResponseMap.put(container.getId(), future);
+    nmClientAsync.startContainerAsync(container, containerLaunchContext);
     return future;
   }
 

@@ -25,8 +25,8 @@ public enum ContainerState {
   CONNECTING,
   ACTIVE,
   TEARDOWN,
-  FAILED,
   HALTED,
   FINALIZING,
-  FINALIZED
+  FINALIZED,
+  FAILED
 }

@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
@@ -51,57 +52,70 @@ import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 
 import com.google.common.collect.Lists;
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 public class YarnProvisioner implements Provisioner {
 
   private static final Log LOG = LogFactory.getLog(YarnProvisioner.class);
   static GenericApplicationMaster applicationMaster;
+  static ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors
+      .newCachedThreadPool());
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
   int DEFAULT_CONTAINER = 4;
 
   @Override
-  public ContainerId allocateContainer(ContainerSpec spec) {
+  public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
     ContainerRequest containerAsk = setupContainerAskForRM(spec);
-    Future<ContainerAskResponse> requestNewContainer =
+    ListenableFuture<ContainerAskResponse> requestNewContainer =
         applicationMaster.acquireContainer(containerAsk);
-    ContainerAskResponse containerAskResponse;
-    try {
-      containerAskResponse = requestNewContainer.get();
-      ContainerId helixContainerId =
-          ContainerId.from(containerAskResponse.getContainer().getId().toString());
-      allocatedContainersMap.put(helixContainerId, containerAskResponse.getContainer());
-      return helixContainerId;
-    } catch (Exception e) {
-      LOG.error("Exception in allocateContainer for spec:" + spec, e);
-    }
-    return null;
+    return Futures.transform(requestNewContainer,
+        new Function<ContainerAskResponse, ContainerId>() {
+          @Override
+          public ContainerId apply(ContainerAskResponse containerAskResponse) {
+            ContainerId helixContainerId =
+                ContainerId.from(containerAskResponse.getContainer().getId().toString());
+            allocatedContainersMap.put(helixContainerId, containerAskResponse.getContainer());
+            return helixContainerId;
+          }
+        });
+
   }
 
   @Override
-  public boolean deallocateContainer(ContainerId containerId) {
-    Future<ContainerReleaseResponse> releaseContainer =
+  public ListenableFuture<Boolean> deallocateContainer(ContainerId containerId) {
+    ListenableFuture<ContainerReleaseResponse> releaseContainer =
         applicationMaster.releaseContainer(allocatedContainersMap.get(containerId));
-    try {
-      releaseContainer.get();
-      return true;
-    } catch (Exception e) {
-      LOG.error("Exception in deallocateContainer containerId:" + containerId, e);
-    }
-    return false;
+    return Futures.transform(releaseContainer, new Function<ContainerReleaseResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerReleaseResponse response) {
+        return response != null;
+      }
+    }, service);
+
   }
 
   @Override
-  public boolean startContainer(ContainerId containerId) {
+  public ListenableFuture<Boolean> startContainer(final ContainerId containerId) {
     Container container = allocatedContainersMap.get(containerId);
+    ContainerLaunchContext launchContext;
     try {
-      Future<ContainerLaunchResponse> launchContainer =
-          applicationMaster.launchContainer(container, createLaunchContext(containerId));
-      ContainerLaunchResponse containerLaunchResponse = launchContainer.get();
-      return true;
+      launchContext = createLaunchContext(containerId);
     } catch (Exception e) {
-      LOG.error("Exception while starting container containerId:" + containerId, e);
+      LOG.error("Exception while creating context to launch container:" + containerId, e);
+      return null;
     }
-    return false;
+    ListenableFuture<ContainerLaunchResponse> future =
+        applicationMaster.launchContainer(container, launchContext);
+    return Futures.transform(future, new Function<ContainerLaunchResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerLaunchResponse response) {
+        return response != null;
+      }
+    }, service);
   }
 
   private ContainerLaunchContext createLaunchContext(ContainerId containerId) throws Exception {
@@ -212,16 +226,15 @@ public class YarnProvisioner implements Provisioner {
   }
 
   @Override
-  public boolean stopContainer(ContainerId containerId) {
+  public ListenableFuture<Boolean> stopContainer(final ContainerId containerId) {
     Container container = allocatedContainersMap.get(containerId);
-    Future<ContainerStopResponse> stopContainer = applicationMaster.stopContainer(container);
-    try {
-      ContainerStopResponse containerStopResponse = stopContainer.get();
-      return true;
-    } catch (Exception e) {
-      LOG.error("Exception while stopping container containerId:" + containerId, e);
-    }
-    return false;
+    ListenableFuture<ContainerStopResponse> future = applicationMaster.stopContainer(container);
+    return Futures.transform(future, new Function<ContainerStopResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerStopResponse response) {
+        return response != null;
+      }
+    }, service);
   }
 
   @Override

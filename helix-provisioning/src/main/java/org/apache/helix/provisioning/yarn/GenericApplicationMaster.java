@@ -30,10 +30,6 @@ import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -61,9 +57,9 @@ import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
-import org.apache.hadoop.yarn.util.ConverterUtils;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
@@ -98,7 +94,6 @@ public class GenericApplicationMaster {
   // Tracking url to which app master publishes info for clients to monitor
   private String appMasterTrackingUrl = "";
 
-
   Map<ContainerRequest, SettableFuture<ContainerAskResponse>> containerRequestMap =
       new LinkedHashMap<AMRMClient.ContainerRequest, SettableFuture<ContainerAskResponse>>();
   Map<ContainerId, SettableFuture<ContainerReleaseResponse>> containerReleaseMap =
@@ -108,19 +103,17 @@ public class GenericApplicationMaster {
   Map<ContainerId, SettableFuture<ContainerLaunchResponse>> containerLaunchResponseMap =
       new LinkedHashMap<ContainerId, SettableFuture<ContainerLaunchResponse>>();
 
-  
   ByteBuffer allTokens;
 
   // Launch threads
   List<Thread> launchThreads = new ArrayList<Thread>();
-
 
   public GenericApplicationMaster(ApplicationAttemptId appAttemptID) {
     this.appAttemptID = appAttemptID;
     // Set up the configuration
     conf = new YarnConfiguration();
   }
-  
+
   /**
    * Dump out contents of $CWD and the environment to stdout for debugging
    */
@@ -154,15 +147,13 @@ public class GenericApplicationMaster {
     }
   }
 
-
-
   /**
    * Parse command line options
    * @param args Command line args
    * @return Whether init successful and run should be invoked
    * @throws ParseException
    * @throws IOException
-   * @throws YarnException 
+   * @throws YarnException
    */
   public boolean start() throws ParseException, IOException, YarnException {
 
@@ -234,29 +225,31 @@ public class GenericApplicationMaster {
     return true;
   }
 
-
-  public Future<ContainerAskResponse> acquireContainer(ContainerRequest containerAsk) {
+  public ListenableFuture<ContainerAskResponse> acquireContainer(ContainerRequest containerAsk) {
+    amRMClient.addContainerRequest(containerAsk);
     SettableFuture<ContainerAskResponse> future = SettableFuture.create();
     containerRequestMap.put(containerAsk, future);
     amRMClient.addContainerRequest(containerAsk);
     return future;
   }
 
-  public Future<ContainerStopResponse> stopContainer(Container container) {
+  public ListenableFuture<ContainerStopResponse> stopContainer(Container container) {
+    nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
     SettableFuture<ContainerStopResponse> future = SettableFuture.create();
     containerStopMap.put(container.getId(), future);
     nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
     return future;
   }
 
-  public Future<ContainerReleaseResponse> releaseContainer(Container container) {
+  public ListenableFuture<ContainerReleaseResponse> releaseContainer(Container container) {
+    amRMClient.releaseAssignedContainer(container.getId());
     SettableFuture<ContainerReleaseResponse> future = SettableFuture.create();
     containerReleaseMap.put(container.getId(), future);
     amRMClient.releaseAssignedContainer(container.getId());
     return future;
   }
 
-  public Future<ContainerLaunchResponse> launchContainer(Container container,
+  public ListenableFuture<ContainerLaunchResponse> launchContainer(Container container,
       ContainerLaunchContext containerLaunchContext) {
     SettableFuture<ContainerLaunchResponse> future = SettableFuture.create();
     containerLaunchResponseMap.put(container.getId(), future);

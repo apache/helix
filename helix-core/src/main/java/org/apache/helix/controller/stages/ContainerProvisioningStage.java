@@ -44,6 +44,10 @@ import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.log4j.Logger;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
 /**
  * This stage will manager the container allocation/deallocation needed for a
  * specific resource.<br/>
@@ -61,12 +65,12 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    HelixManager helixManager = event.getAttribute("helixmanager");
-    Map<ResourceId, ResourceConfig> resourceMap =
+    final HelixManager helixManager = event.getAttribute("helixmanager");
+    final Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
-    HelixAdmin helixAdmin = helixManager.getClusterManagmentTool();
-    HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    final HelixAdmin helixAdmin = helixManager.getClusterManagmentTool();
+    final HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
+    final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       ProvisionerConfig provisionerConfig = resourceConfig.getProvisionerConfig();
@@ -89,8 +93,8 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           }
         }
 
-        Cluster cluster = event.getAttribute("ClusterDataCache");
-        Collection<Participant> participants = cluster.getParticipantMap().values();
+        final Cluster cluster = event.getAttribute("ClusterDataCache");
+        final Collection<Participant> participants = cluster.getParticipantMap().values();
 
         // Participants registered in helix
         // Give those participants to targetprovider
@@ -103,13 +107,13 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
 
         // TargetProvider should be stateless, given the state of cluster and existing participants
         // it should return the same result
-        TargetProviderResponse response =
+        final TargetProviderResponse response =
             provisioner.evaluateExistingContainers(cluster, resourceId, participants);
 
         // allocate new containers
-        for (ContainerSpec spec : response.getContainersToAcquire()) {
+        for (final ContainerSpec spec : response.getContainersToAcquire()) {
           // random participant id
-          ParticipantId participantId = ParticipantId.from(UUID.randomUUID().toString());
+          final ParticipantId participantId = ParticipantId.from(UUID.randomUUID().toString());
           // create a new Participant, attach the container spec
           InstanceConfig instanceConfig = new InstanceConfig(participantId);
           instanceConfig.setContainerSpec(spec);
@@ -117,74 +121,128 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           instanceConfig.setContainerState(ContainerState.ACQUIRING);
           // create the helix participant and add it to cluster
           helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
-          ContainerId containerId = provisioner.allocateContainer(spec);
-          InstanceConfig existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
-          existingInstance.setContainerId(containerId);
-          existingInstance.setContainerState(ContainerState.ACQUIRED);
-          accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
-              existingInstance);
+
+          ListenableFuture<ContainerId> future = provisioner.allocateContainer(spec);
+          Futures.addCallback(future, new FutureCallback<ContainerId>() {
+            @Override
+            public void onSuccess(ContainerId containerId) {
+              InstanceConfig existingInstance =
+                  helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+              existingInstance.setContainerId(containerId);
+              existingInstance.setContainerState(ContainerState.ACQUIRED);
+              accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()),
+                  existingInstance);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+              LOG.error("Could not allocate a container for participant " + participantId, t);
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participantId,
+                  ContainerState.FAILED);
+            }
+          });
         }
 
         // start new containers
-        for (Participant participant : response.getContainersToStart()) {
-          InstanceConfig existingInstance =
+        for (final Participant participant : response.getContainersToStart()) {
+          final InstanceConfig existingInstance =
               helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
                   .toString());
-          ContainerId containerId = existingInstance.getContainerId();
+          final ContainerId containerId = existingInstance.getContainerId();
           existingInstance.setContainerId(containerId);
           existingInstance.setContainerState(ContainerState.CONNECTING);
           accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
-          provisioner.startContainer(containerId);
-          existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
-                  .toString());
-          existingInstance.setContainerState(ContainerState.ACTIVE);
-          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
-              existingInstance);
+          ListenableFuture<Boolean> future = provisioner.startContainer(containerId);
+          Futures.addCallback(future, new FutureCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
+                  ContainerState.ACTIVE);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+              LOG.error("Could not start container" + containerId + "for participant "
+                  + participant.getId(), t);
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
+                  ContainerState.FAILED);
+            }
+          });
         }
 
         // release containers
-        for (Participant participant : response.getContainersToRelease()) {
-          // this will change the container state
-          InstanceConfig existingInstance =
+        for (final Participant participant : response.getContainersToRelease()) {
+          // mark it as finalizing
+          final InstanceConfig existingInstance =
               helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
                   .toString());
-          ContainerId containerId = existingInstance.getContainerId();
+          final ContainerId containerId = existingInstance.getContainerId();
           existingInstance.setContainerState(ContainerState.FINALIZING);
           accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
-          provisioner.deallocateContainer(containerId);
           // remove the participant
-          existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
-                  .toString());
-          helixAdmin.dropInstance(cluster.getId().toString(), existingInstance);
+          ListenableFuture<Boolean> future = provisioner.deallocateContainer(containerId);
+          Futures.addCallback(future, new FutureCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {
+              InstanceConfig existingInstance =
+                  helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
+                      .toString());
+              helixAdmin.dropInstance(cluster.getId().toString(), existingInstance);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+              LOG.error("Could not deallocate container" + containerId + "for participant "
+                  + participant.getId(), t);
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
+                  ContainerState.FAILED);
+            }
+          });
         }
 
         // stop but don't remove
-        for (Participant participant : response.getContainersToStop()) {
+        for (final Participant participant : response.getContainersToStop()) {
           // disable the node first
-          InstanceConfig existingInstance =
+          final InstanceConfig existingInstance =
               helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
                   .toString());
-          ContainerId containerId = existingInstance.getContainerId();
+          final ContainerId containerId = existingInstance.getContainerId();
           existingInstance.setInstanceEnabled(false);
           existingInstance.setContainerState(ContainerState.TEARDOWN);
           accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // stop the container
-          provisioner.stopContainer(containerId);
-          existingInstance =
-              helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
-                  .toString());
-          existingInstance.setContainerState(ContainerState.HALTED);
-          accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
-              existingInstance);
+          ListenableFuture<Boolean> future = provisioner.stopContainer(containerId);
+          Futures.addCallback(future, new FutureCallback<Boolean>() {
+            @Override
+            public void onSuccess(Boolean result) {
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
+                  ContainerState.HALTED);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+              LOG.error(
+                  "Could not stop container" + containerId + "for participant "
+                      + participant.getId(), t);
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
+                  ContainerState.FAILED);
+            }
+          });
         }
       }
     }
+  }
+
+  private void updateContainerState(HelixAdmin helixAdmin, HelixDataAccessor accessor,
+      PropertyKey.Builder keyBuilder, Cluster cluster, ParticipantId participantId,
+      ContainerState state) {
+    InstanceConfig existingInstance =
+        helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
+    existingInstance.setContainerState(state);
+    accessor.setProperty(keyBuilder.instanceConfig(participantId.toString()), existingInstance);
   }
 }

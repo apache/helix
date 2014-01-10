@@ -3,8 +3,7 @@ package org.apache.helix.provisioning.yarn;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
+import java.util.concurrent.Executors;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -24,60 +23,70 @@ import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 
+import com.google.common.base.Function;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
+
 public class YarnProvisioner implements Provisioner {
 
   private static final Log LOG = LogFactory.getLog(YarnProvisioner.class);
   static GenericApplicationMaster applicationMaster;
+  static ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors.newCachedThreadPool());
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
 
   @Override
-  public ContainerId allocateContainer(ContainerSpec spec) {
+  public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
     ContainerRequest containerAsk = setupContainerAskForRM(spec);
-    Future<ContainerAskResponse> requestNewContainer =
+    ListenableFuture<ContainerAskResponse> requestNewContainer =
         applicationMaster.acquireContainer(containerAsk);
-    ContainerAskResponse containerAskResponse;
-    try {
-      containerAskResponse = requestNewContainer.get();
-      ContainerId helixContainerId =
-          ContainerId.from(containerAskResponse.getContainer().getId().toString());
-      allocatedContainersMap.put(helixContainerId, containerAskResponse.getContainer());
-      return helixContainerId;
-    } catch (InterruptedException e) {
-      e.printStackTrace();
-    } catch (ExecutionException e) {
-      e.printStackTrace();
-    }
-    return null;
+    return Futures.transform(requestNewContainer, new Function<ContainerAskResponse, ContainerId>() {
+      @Override
+      public ContainerId apply(ContainerAskResponse containerAskResponse) {
+        ContainerId helixContainerId =
+            ContainerId.from(containerAskResponse.getContainer().getId().toString());
+        allocatedContainersMap.put(helixContainerId, containerAskResponse.getContainer());
+        return helixContainerId;
+      }
+    });
   }
 
   @Override
-  public boolean deallocateContainer(ContainerId containerId) {
-    Future<ContainerReleaseResponse> releaseContainer =
+  public ListenableFuture<Boolean> deallocateContainer(ContainerId containerId) {
+    ListenableFuture<ContainerReleaseResponse> releaseContainer =
         applicationMaster.releaseContainer(allocatedContainersMap.get(containerId));
-    try {
-      releaseContainer.get();
-      return true;
-    } catch (InterruptedException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (ExecutionException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    }
-    return false;
+    return Futures.transform(releaseContainer, new Function<ContainerReleaseResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerReleaseResponse response) {
+        return response != null;
+      }
+    }, service);
   }
 
   @Override
-  public boolean startContainer(ContainerId containerId) {
+  public ListenableFuture<Boolean> startContainer(final ContainerId containerId) {
     Container container = allocatedContainersMap.get(containerId);
     ContainerLaunchContext containerLaunchContext = Records.newRecord(ContainerLaunchContext.class);
-    applicationMaster.launchContainer(container, containerLaunchContext);
-    return false;
+    ListenableFuture<ContainerLaunchResponse> future = applicationMaster.launchContainer(container, containerLaunchContext);
+    return Futures.transform(future, new Function<ContainerLaunchResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerLaunchResponse response) {
+        return response != null;
+      }
+    }, service);
   }
 
   @Override
-  public boolean stopContainer(ContainerId containerId) {
-    return false;
+  public ListenableFuture<Boolean> stopContainer(final ContainerId containerId) {
+    Container container = allocatedContainersMap.get(containerId);
+    ListenableFuture<ContainerStopResponse> future = applicationMaster.stopContainer(container);
+    return Futures.transform(future, new Function<ContainerStopResponse, Boolean>() {
+      @Override
+      public Boolean apply(ContainerStopResponse response) {
+        return response != null;
+      }
+    }, service);
   }
 
   @Override

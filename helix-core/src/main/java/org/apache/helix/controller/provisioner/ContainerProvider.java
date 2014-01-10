@@ -1,5 +1,7 @@
 package org.apache.helix.controller.provisioner;
 
+import com.google.common.util.concurrent.ListenableFuture;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -21,13 +23,13 @@ package org.apache.helix.controller.provisioner;
 
 public interface ContainerProvider {
 
-  ContainerId allocateContainer(ContainerSpec spec);
+  ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec);
 
-  boolean deallocateContainer(ContainerId containerId);
+  ListenableFuture<Boolean> deallocateContainer(ContainerId containerId);
 
-  boolean startContainer(ContainerId containerId);
+  ListenableFuture<Boolean> startContainer(ContainerId containerId);
 
-  boolean stopContainer(ContainerId containerId);
+  ListenableFuture<Boolean> stopContainer(ContainerId containerId);
 
   ContainerState getContainerState(ContainerId containerId);
 }

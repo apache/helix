@@ -62,6 +62,8 @@ import org.testng.annotations.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.AbstractService;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 public class TestLocalContainerProvider extends ZkUnitTestBase {
   private static final int MAX_PARTICIPANTS = 10;
@@ -219,24 +221,28 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     }
 
     @Override
-    public ContainerId allocateContainer(ContainerSpec spec) {
+    public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
       // allocation is a no-op
       ContainerId containerId = spec.getContainerId();
       _states.put(containerId, ContainerState.ACQUIRED);
       allocated++;
-      return containerId;
+      SettableFuture<ContainerId> future = SettableFuture.create();
+      future.set(containerId);
+      return future;
     }
 
     @Override
-    public boolean deallocateContainer(ContainerId containerId) {
+    public ListenableFuture<Boolean> deallocateContainer(ContainerId containerId) {
       // deallocation is a no-op
       _states.put(containerId, ContainerState.FINALIZED);
       deallocated++;
-      return true;
+      SettableFuture<Boolean> future = SettableFuture.create();
+      future.set(true);
+      return future;
     }
 
     @Override
-    public boolean startContainer(ContainerId containerId) {
+    public ListenableFuture<Boolean> startContainer(ContainerId containerId) {
       ParticipantService participant =
           new ParticipantService(_clusterId, _containerParticipants.get(containerId));
       participant.startAsync();
@@ -244,17 +250,21 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       _participants.put(containerId, participant);
       _states.put(containerId, ContainerState.ACTIVE);
       started++;
-      return true;
+      SettableFuture<Boolean> future = SettableFuture.create();
+      future.set(true);
+      return future;
     }
 
     @Override
-    public boolean stopContainer(ContainerId containerId) {
+    public ListenableFuture<Boolean> stopContainer(ContainerId containerId) {
       ParticipantService participant = _participants.get(containerId);
       participant.stopAsync();
       participant.awaitTerminated();
       _states.put(containerId, ContainerState.HALTED);
       stopped++;
-      return true;
+      SettableFuture<Boolean> future = SettableFuture.create();
+      future.set(true);
+      return future;
     }
 
     @Override
@@ -297,6 +307,8 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
           case HALTED:
             // halted containers can be released
             containersToRelease.add(participant);
+            break;
+          default:
             break;
           }
           ContainerId containerId = containerConfig.getId();

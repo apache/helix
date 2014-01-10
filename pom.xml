@@ -37,7 +37,7 @@ under the License.
     Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
   </description>
 
-  <url>http://helix.incubator.apache.org</url>
+  <url>http://helix.apache.org</url>
   <developers>
     <developer>
       <id>olamy</id>

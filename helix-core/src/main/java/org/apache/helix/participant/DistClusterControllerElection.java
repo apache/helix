@@ -100,6 +100,7 @@ public class DistClusterControllerElection implements ControllerChangeListener {
         if (_leader != null) {
           _leader.disconnect();
         }
+        _controller.shutdownClusterStatusMonitor(manager.getClusterName());
       }
 
     } catch (Exception e) {

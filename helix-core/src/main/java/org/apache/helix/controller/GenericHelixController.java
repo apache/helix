@@ -259,11 +259,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     // Initialize _clusterStatusMonitor
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
-        if (_clusterStatusMonitor != null) {
-          _clusterStatusMonitor.reset();
-          _clusterStatusMonitor = null;
-        }
-
         stopRebalancingTimer();
         logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
         return;
@@ -542,5 +537,11 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _lastSeenSessions.set(curSessions);
 
   }
-
+  public void shutdownClusterStatusMonitor(String clusterName) {
+     if (_clusterStatusMonitor != null) {
+      logger.info("Shut down _clusterStatusMonitor for cluster " + clusterName);
+       _clusterStatusMonitor.reset();
+       _clusterStatusMonitor = null;
+    }
+  }
 }

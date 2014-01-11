@@ -11,6 +11,7 @@ import javax.management.MalformedObjectNameException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.TestDistributedCMMain;
+import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
@@ -23,7 +24,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestClusterStatusMonitorLifecycle extends TestDistributedCMMain{
+public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase{
 
   MockParticipantManager[] _participants;
   ClusterDistributedController[] _controllers;
@@ -35,7 +36,7 @@ public class TestClusterStatusMonitorLifecycle extends TestDistributedCMMain{
   final int clusterNb = 10;
     
   @BeforeClass
-  public void testDistributedCMMain() throws Exception {
+  public void beforeClass() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     _clusterNamePrefix = className + "_" + methodName;

@@ -39,6 +39,7 @@ import com.google.common.collect.ImmutableMap;
  */
 public class Participant {
   private final ParticipantConfig _config;
+  
   private final ContainerConfig _containerConfig;
 
   private final RunningInstance _runningInstance;

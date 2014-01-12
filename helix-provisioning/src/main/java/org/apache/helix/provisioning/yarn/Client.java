@@ -131,7 +131,7 @@ public class Client {
   // Queue for App master
   private String amQueue = "";
   // Amt. of memory resource to request for to run the App Master
-  private int amMemory = 10;
+  private int amMemory = 1024;
 
   // Application master jar file
   private String appMasterArchive = "";
@@ -201,19 +201,13 @@ public class Client {
     yarnClient = YarnClient.createYarnClient();
     yarnClient.init(conf);
     opts = new Options();
-    opts.addOption("appname", true, "Application Name. Default value - DistributedShell");
+    opts.addOption("appName", true, "Application Name.");
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
     opts.addOption("timeout", true, "Application timeout in milliseconds");
     opts.addOption("master_memory", true,
         "Amount of memory in MB to be requested to run the application master");
     opts.addOption("archive", true, "Jar file containing the application master");
-    opts.addOption("shell_command", true, "Shell command to be executed by the Application Master");
-    opts.addOption("shell_script", true, "Location of the shell script to be executed");
-    opts.addOption("shell_args", true, "Command line args for the shell script");
-    opts.addOption("shell_env", true,
-        "Environment for shell script. Specified as env_key=env_val pairs");
-    opts.addOption("shell_cmd_priority", true, "Priority for the shell command containers");
     opts.addOption("container_memory", true,
         "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("num_containers", true,
@@ -258,13 +252,12 @@ public class Client {
 
     if (cliParser.hasOption("debug")) {
       debugFlag = true;
-
     }
 
-    appName = cliParser.getOptionValue("appname", "DistributedShell");
+    appName = cliParser.getOptionValue("appName");
     amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
     amQueue = cliParser.getOptionValue("queue", "default");
-    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));
+    amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "1024"));
 
     if (amMemory < 0) {
       throw new IllegalArgumentException(
@@ -277,17 +270,6 @@ public class Client {
     }
 
     appMasterArchive = cliParser.getOptionValue("archive");
-
-    containerMemory = Integer.parseInt(cliParser.getOptionValue("container_memory", "10"));
-    numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "1"));
-
-    if (containerMemory < 0 || numContainers < 1) {
-      throw new IllegalArgumentException(
-          "Invalid no. of containers or container memory specified, exiting."
-              + " Specified containerMemory=" + containerMemory + ", numContainer=" + numContainers);
-    }
-
-    clientTimeout = Integer.parseInt(cliParser.getOptionValue("timeout", "600000"));
 
     log4jPropFile = cliParser.getOptionValue("log_properties", "");
 
@@ -460,7 +442,7 @@ public class Client {
     env.put("appId", "" + appId.getId());
     env.put("CLASSPATH", classPathEnv.toString());
     env.put("appClasspath", appClassPathEnv.toString());
-    env.put("containerParticipantMainClass", "org.apache.helix.provisioning.yarn.ContainerParticipant");
+    env.put("containerParticipantMainClass", "org.apache.helix.provisioning.yarn.ParticipantLauncher");
     amContainer.setEnvironment(env);
 
     // Set the necessary command to execute the application master
@@ -623,7 +605,7 @@ public class Client {
 
     // Response can be ignored as it is non-null on success or
     // throws an exception in case of failures
-    yarnClient.killApplication(appId);
+    //yarnClient.killApplication(appId);
   }
 
 }

@@ -1,5 +1,7 @@
 package org.apache.helix.controller.provisioner;
 
+import org.apache.helix.api.Participant;
+
 import com.google.common.util.concurrent.ListenableFuture;
 
 /*
@@ -27,7 +29,7 @@ public interface ContainerProvider {
 
   ListenableFuture<Boolean> deallocateContainer(ContainerId containerId);
 
-  ListenableFuture<Boolean> startContainer(ContainerId containerId);
+  ListenableFuture<Boolean> startContainer(ContainerId containerId, Participant participant);
 
   ListenableFuture<Boolean> stopContainer(ContainerId containerId);
 

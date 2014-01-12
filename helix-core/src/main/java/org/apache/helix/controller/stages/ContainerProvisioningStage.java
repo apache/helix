@@ -154,7 +154,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.setProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
-          ListenableFuture<Boolean> future = provisioner.startContainer(containerId);
+          ListenableFuture<Boolean> future = provisioner.startContainer(containerId, participant);
           Futures.addCallback(future, new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {

@@ -16,7 +16,7 @@ import com.google.common.util.concurrent.SettableFuture;
 
 class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
   private static final Log LOG = LogFactory.getLog(RMCallbackHandler.class);
-
+  long startTime;
   /**
    * 
    */
@@ -27,6 +27,7 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
    */
   RMCallbackHandler(GenericApplicationMaster genericApplicationMaster) {
     _genericApplicationMaster = genericApplicationMaster;
+    startTime = System.currentTimeMillis();
   }
 
   @SuppressWarnings("unchecked")
@@ -96,7 +97,7 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
   @Override
   public float getProgress() {
     // set progress to deliver to RM on next heartbeat
-    return 0.5f;
+    return (System.currentTimeMillis()-startTime) % Integer.MAX_VALUE;
   }
 
   @Override

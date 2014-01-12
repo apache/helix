@@ -242,12 +242,12 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     }
 
     @Override
-    public ListenableFuture<Boolean> startContainer(ContainerId containerId) {
-      ParticipantService participant =
+    public ListenableFuture<Boolean> startContainer(ContainerId containerId, Participant participant ) {
+      ParticipantService participantService =
           new ParticipantService(_clusterId, _containerParticipants.get(containerId));
-      participant.startAsync();
-      participant.awaitRunning();
-      _participants.put(containerId, participant);
+      participantService.startAsync();
+      participantService.awaitRunning();
+      _participants.put(containerId, participantService);
       _states.put(containerId, ContainerState.ACTIVE);
       started++;
       SettableFuture<Boolean> future = SettableFuture.create();

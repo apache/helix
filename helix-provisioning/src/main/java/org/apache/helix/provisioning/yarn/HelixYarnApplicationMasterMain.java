@@ -1,10 +1,12 @@
 package org.apache.helix.provisioning.yarn;
 
+import java.io.File;
 import java.util.Map;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
@@ -41,9 +43,12 @@ public class HelixYarnApplicationMasterMain {
 
       @Override
       public void createDefaultNameSpace(ZkClient zkClient) {
-
+        
       }
     };
+    FileUtils.deleteDirectory(new File(dataDir));
+    FileUtils.deleteDirectory(new File(logDir));
+    
     final ZkServer server = new ZkServer(dataDir, logDir, defaultNameSpace);
     server.start();
 
@@ -62,7 +67,7 @@ public class HelixYarnApplicationMasterMain {
     YarnProvisioner.applicationMaster = genericApplicationMaster;
 
     String zkAddress = envs.get(Environment.NM_HOST.name()) + ":2181";
-    String clusterName = "testCluster";
+    String clusterName = envs.get("appName");
     String resourceName = "testResource";
     int NUM_PARTITIONS = 6;
     int NUM_REPLICAS = 2;
@@ -91,7 +96,7 @@ public class HelixYarnApplicationMasterMain {
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync(); // TODO: is this really async?
+    controller.startAsync(); 
 
     Thread shutdownhook = new Thread(new Runnable() {
       @Override

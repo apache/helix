@@ -65,7 +65,8 @@ public class YarnProvisioner implements Provisioner {
   static ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors
       .newCachedThreadPool());
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
-  int DEFAULT_CONTAINER = 4;
+  int DEFAULT_CONTAINER = 1;
+  private HelixManager _helixManager;
 
   @Override
   public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
@@ -99,11 +100,11 @@ public class YarnProvisioner implements Provisioner {
   }
 
   @Override
-  public ListenableFuture<Boolean> startContainer(final ContainerId containerId) {
+  public ListenableFuture<Boolean> startContainer(final ContainerId containerId, Participant participant) {
     Container container = allocatedContainersMap.get(containerId);
     ContainerLaunchContext launchContext;
     try {
-      launchContext = createLaunchContext(containerId);
+      launchContext = createLaunchContext(containerId, container, participant);
     } catch (Exception e) {
       LOG.error("Exception while creating context to launch container:" + containerId, e);
       return null;
@@ -118,9 +119,9 @@ public class YarnProvisioner implements Provisioner {
     }, service);
   }
 
-  private ContainerLaunchContext createLaunchContext(ContainerId containerId) throws Exception {
+  private ContainerLaunchContext createLaunchContext(ContainerId containerId, Container container, Participant participant) throws Exception {
 
-    ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
+    ContainerLaunchContext participantContainer = Records.newRecord(ContainerLaunchContext.class);
 
     Map<String, String> envs = System.getenv();
     String appName = envs.get("appName");
@@ -158,7 +159,7 @@ public class YarnProvisioner implements Provisioner {
     localResources.put("app-pkg", amJarRsrc);
 
     // Set local resource info into app master container launch context
-    amContainer.setLocalResources(localResources);
+    participantContainer.setLocalResources(localResources);
 
     // Set the necessary security tokens as needed
     // amContainer.setContainerTokens(containerToken);
@@ -166,7 +167,7 @@ public class YarnProvisioner implements Provisioner {
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
-    env.put("app-pkg-path", dst.getName());
+    env.put("app_pkg_path", dst.getName());
     // Add AppMaster.jar location to classpath
     // At some point we should not be required to add
     // the hadoop specific classpaths to the env.
@@ -190,10 +191,9 @@ public class YarnProvisioner implements Provisioner {
       classPathEnv.append(':');
       classPathEnv.append(System.getProperty("java.class.path"));
     }
-    System.out.println("classoath" + classPathEnv.toString());
     env.put("CLASSPATH", classPathEnv.toString());
 
-    amContainer.setEnvironment(env);
+    participantContainer.setEnvironment(env);
 
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
@@ -206,8 +206,9 @@ public class YarnProvisioner implements Provisioner {
     // Set class name
     vargs.add(containerParticipantMainClass);
     // Set params for container participant
-    vargs.add("--zk_address " + zkAddress);
-    vargs.add("--participantId " + containerId.stringify());
+    vargs.add("--zkAddress " + zkAddress);
+    vargs.add("--cluster " + appName);
+    vargs.add("--participantId " + participant.getId().stringify());
 
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stderr");
@@ -218,11 +219,11 @@ public class YarnProvisioner implements Provisioner {
       command.append(str).append(" ");
     }
 
-    LOG.info("Completed setting up app master command " + command.toString());
+    LOG.info("Completed setting up  container launch command " + command.toString() + " with arguments \n" + vargs);
     List<String> commands = new ArrayList<String>();
     commands.add(command.toString());
-    amContainer.setCommands(commands);
-    return amContainer;
+    participantContainer.setCommands(commands);
+    return participantContainer;
   }
 
   @Override
@@ -244,6 +245,7 @@ public class YarnProvisioner implements Provisioner {
 
   @Override
   public void init(HelixManager helixManager) {
+    _helixManager = helixManager;
 
   }
 

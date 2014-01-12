@@ -5,7 +5,6 @@ import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.ProvisionerRef;
 import org.apache.helix.controller.serializer.DefaultStringSerializer;
 import org.apache.helix.controller.serializer.StringSerializer;
-import org.apache.helix.integration.TestLocalContainerProvider.LocalProvisioner;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 public class YarnProvisionerConfig implements ProvisionerConfig {

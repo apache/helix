@@ -1,11 +1,15 @@
 package org.apache.helix.provisioning.yarn;
 
 import java.io.File;
+import java.util.Arrays;
 import java.util.Map;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
@@ -24,6 +28,7 @@ import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.log4j.Logger;
 
 /**
  * This will <br/>
@@ -35,7 +40,21 @@ import org.apache.helix.tools.StateModelConfigGenerator;
  * </ul>
  */
 public class HelixYarnApplicationMasterMain {
+  public static Logger LOG = Logger.getLogger(HelixYarnApplicationMasterMain.class);
+
   public static void main(String[] args) throws Exception {
+    int numContainers = 1;
+
+    Options opts;
+    opts = new Options();
+    opts.addOption("num_containers", true, "Number of containers");
+    try {
+      CommandLine cliParser = new GnuParser().parse(opts, args);
+      numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers"));
+    } catch (Exception e) {
+      LOG.error("Error parsing input arguments" + Arrays.toString(args), e);
+    }
+
     // START ZOOKEEPER
     String dataDir = "dataDir";
     String logDir = "logDir";
@@ -43,18 +62,17 @@ public class HelixYarnApplicationMasterMain {
 
       @Override
       public void createDefaultNameSpace(ZkClient zkClient) {
-        
+
       }
     };
     FileUtils.deleteDirectory(new File(dataDir));
     FileUtils.deleteDirectory(new File(logDir));
-    
+
     final ZkServer server = new ZkServer(dataDir, logDir, defaultNameSpace);
     server.start();
 
     // start
     Map<String, String> envs = System.getenv();
-
     ContainerId containerId =
         ConverterUtils.toContainerId(envs.get(Environment.CONTAINER_ID.name()));
     ApplicationAttemptId appAttemptID = containerId.getApplicationAttemptId();
@@ -86,7 +104,8 @@ public class HelixYarnApplicationMasterMain {
 
     // add the resource with the local provisioner
     ResourceId resourceId = ResourceId.from(resourceName);
-    ProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
+    YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
+    provisionerConfig.setNumContainers(numContainers);
     RebalancerConfig rebalancerConfig =
         new FullAutoRebalancerConfig.Builder(resourceId).addPartitions(NUM_PARTITIONS)
             .replicaCount(NUM_REPLICAS).stateModelDefId(masterSlave.getStateModelDefId()).build();
@@ -96,7 +115,7 @@ public class HelixYarnApplicationMasterMain {
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync(); 
+    controller.startAsync();
 
     Thread shutdownhook = new Thread(new Runnable() {
       @Override

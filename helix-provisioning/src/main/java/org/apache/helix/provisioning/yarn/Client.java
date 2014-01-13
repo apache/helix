@@ -138,9 +138,7 @@ public class Client {
   // Main class to invoke application master
   private final String appMasterMainClass;
 
-  // Amt of memory to request for container in which shell script will be executed
-  private int containerMemory = 10;
-  // No. of containers in which the shell script needs to be executed
+  // No. of containers in which helix participants will be started
   private int numContainers = 1;
 
   // log4j.properties file
@@ -204,14 +202,11 @@ public class Client {
     opts.addOption("appName", true, "Application Name.");
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
-    opts.addOption("timeout", true, "Application timeout in milliseconds");
     opts.addOption("master_memory", true,
         "Amount of memory in MB to be requested to run the application master");
-    opts.addOption("archive", true, "Jar file containing the application master");
-    opts.addOption("container_memory", true,
-        "Amount of memory in MB to be requested to run the shell command");
+    opts.addOption("archive", true, "Archive file containing the app code");
     opts.addOption("num_containers", true,
-        "No. of containers on which the shell command needs to be executed");
+        "No. of containers on which Helix Participants will be launched");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("debug", false, "Dump out debug information");
     opts.addOption("help", false, "Print usage");
@@ -271,6 +266,8 @@ public class Client {
 
     appMasterArchive = cliParser.getOptionValue("archive");
 
+    numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "4"));
+    
     log4jPropFile = cliParser.getOptionValue("log_properties", "");
 
     return true;
@@ -456,7 +453,6 @@ public class Client {
     // Set class name
     vargs.add(appMasterMainClass);
     // Set params for Application Master
-    vargs.add("--container_memory " + String.valueOf(containerMemory));
     vargs.add("--num_containers " + String.valueOf(numContainers));
 
     if (debugFlag) {
@@ -548,9 +544,9 @@ public class Client {
 
     while (true) {
 
-      // Check app status every 1 second.
+      // Check app status every 10 second.
       try {
-        Thread.sleep(1000);
+        Thread.sleep(10000);
       } catch (InterruptedException e) {
         LOG.debug("Thread sleep in monitoring loop interrupted");
       }
@@ -583,11 +579,11 @@ public class Client {
         return false;
       }
 
-      if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
+      /*if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
         LOG.info("Reached client specified timeout for application. Killing application");
         forceKillApplication(appId);
         return false;
-      }
+      }*/
     }
 
   }

@@ -12,11 +12,20 @@ public class YarnProvisionerConfig implements ProvisionerConfig {
   private ResourceId _resourceId;
   private Class<? extends StringSerializer> _serializerClass;
   private ProvisionerRef _provisionerRef;
+  private Integer _numContainers;
 
   public YarnProvisionerConfig(@JsonProperty("resourceId") ResourceId resourceId) {
     _resourceId = resourceId;
     _serializerClass = DefaultStringSerializer.class;
     _provisionerRef = ProvisionerRef.from(YarnProvisioner.class.getName());
+  }
+
+  public void setNumContainers(int numContainers) {
+    _numContainers = numContainers;
+  }
+
+  public Integer getNumContainers() {
+    return _numContainers;
   }
 
   @Override

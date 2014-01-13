@@ -49,6 +49,7 @@ import org.apache.helix.controller.provisioner.ContainerId;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 
 import com.google.common.collect.Lists;
@@ -65,7 +66,6 @@ public class YarnProvisioner implements Provisioner {
   static ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors
       .newCachedThreadPool());
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
-  int DEFAULT_CONTAINER = 1;
   private HelixManager _helixManager;
 
   @Override
@@ -258,10 +258,11 @@ public class YarnProvisioner implements Provisioner {
     List<Participant> containersToStart = Lists.newArrayList();
     List<Participant> containersToRelease = Lists.newArrayList();
     List<Participant> containersToStop = Lists.newArrayList();
-
-    for (int i = 0; i < DEFAULT_CONTAINER - participants.size(); i++) {
+    YarnProvisionerConfig  provisionerConfig = (YarnProvisionerConfig) cluster.getConfig().getResourceMap().get(resourceId).getProvisionerConfig();
+    int targetNumContainers = provisionerConfig.getNumContainers();
+    for (int i = 0; i < targetNumContainers - participants.size(); i++) {
       containersToAcquire.add(new ContainerSpec(ContainerId.from("container"
-          + (DEFAULT_CONTAINER - i))));
+          + (targetNumContainers - i))));
     }
     response.setContainersToAcquire(containersToAcquire);
 

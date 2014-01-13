@@ -48,13 +48,13 @@ under the License.
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client</artifactId>
       <version>${hadoop.version}</version>
-      <scope>provided</scope>
+      <!-- <scope>provided</scope> -->
     </dependency>
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-yarn-api</artifactId>
       <version>${hadoop.version}</version>
-      <scope>provided</scope>
+    <!--    <scope>provided</scope>  -->
     </dependency>
     <dependency>
       <groupId>org.testng</groupId>
@@ -82,8 +82,8 @@ under the License.
         <configuration>
           <programs>
             <program>
-              <mainClass>org.apache.helix.provisioning.HelixAgentMain</mainClass>
-              <name>start-helix-provisioning</name>
+              <mainClass>org.apache.helix.provisioning.yarn.Client</mainClass>
+              <name>yarn-job-launcher</name>
             </program>
           </programs>
         </configuration>

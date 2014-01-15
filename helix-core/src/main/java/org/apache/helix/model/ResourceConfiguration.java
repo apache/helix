@@ -109,7 +109,7 @@ public class ResourceConfiguration extends HelixProperty {
    * Get a RebalancerConfig if available
    * @return RebalancerConfig, or null
    */
-  public RebalancerConfig getRebalancerConfig(Class<? extends RebalancerConfig> clazz) {
+  public <T extends RebalancerConfig> T getRebalancerConfig(Class<T> clazz) {
     RebalancerConfigHolder config = new RebalancerConfigHolder(this);
     return config.getRebalancerConfig(clazz);
   }
@@ -119,7 +119,7 @@ public class ResourceConfiguration extends HelixProperty {
    * @param clazz the class to cast to
    * @return ProvisionerConfig, or null
    */
-  public ProvisionerConfig getProvisionerConfig(Class<? extends ProvisionerConfig> clazz) {
+  public <T extends ProvisionerConfig> T getProvisionerConfig(Class<T> clazz) {
     ProvisionerConfigHolder configHolder = new ProvisionerConfigHolder(this);
     return configHolder.getProvisionerConfig(clazz);
   }

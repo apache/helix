@@ -115,7 +115,7 @@ public class HelixYarnApplicationMasterMain {
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync();
+    controller.start();
 
     Thread shutdownhook = new Thread(new Runnable() {
       @Override

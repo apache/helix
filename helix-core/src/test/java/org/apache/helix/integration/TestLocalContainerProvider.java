@@ -115,12 +115,12 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync(); // TODO: is this really async?
+    controller.start();
 
     Thread.sleep(10000);
 
     // clean up
-    controller.stopAsync(); // TODO: is this really async?
+    controller.stop();
     connection.disconnect();
 
     Assert.assertEquals(allocated, MAX_PARTICIPANTS);
@@ -148,13 +148,13 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       _participant = connection.createParticipant(_clusterId, _participantId);
       _participant.getStateMachineEngine().registerStateModelFactory(
           StateModelDefId.from("MasterSlave"), new TestHelixConnection.MockStateModelFactory());
-      _participant.startAsync();
+      _participant.start();
       notifyStarted();
     }
 
     @Override
     protected void doStop() {
-      _participant.stopAsync();
+      _participant.stop();
       notifyStopped();
     }
 
@@ -242,7 +242,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     }
 
     @Override
-    public ListenableFuture<Boolean> startContainer(ContainerId containerId, Participant participant ) {
+    public ListenableFuture<Boolean> startContainer(ContainerId containerId, Participant participant) {
       ParticipantService participantService =
           new ParticipantService(_clusterId, _containerParticipants.get(containerId));
       participantService.startAsync();

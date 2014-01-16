@@ -440,13 +440,13 @@ public class ZkHelixParticipant implements HelixParticipant {
   }
 
   @Override
-  public void startAsync() {
+  public void start() {
     _connection.addConnectionStateListener(this);
     onConnected();
   }
 
   @Override
-  public void stopAsync() {
+  public void stop() {
     _connection.removeConnectionStateListener(this);
     onDisconnecting();
   }

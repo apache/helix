@@ -71,7 +71,7 @@ public class TestZkHelixParticipant extends ZkUnitTestBase {
       participants[i].getStateMachineEngine().registerStateModelFactory(
           StateModelDefId.from("MasterSlave"), new TestHelixConnection.MockStateModelFactory());
 
-      participants[i].startAsync();
+      participants[i].start();
     }
 
     // check live-instance znode for localhost_12918/12919 exist
@@ -85,7 +85,7 @@ public class TestZkHelixParticipant extends ZkUnitTestBase {
     }
 
     // stop participant localhost_12918
-    participants[0].stopAsync();
+    participants[0].stop();
 
     // check live-instance znode for localhost_12918 is gone
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(participants[0]

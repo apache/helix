@@ -24,12 +24,12 @@ package org.apache.helix;
  */
 public interface HelixService {
   /**
-   * start helix service async
+   * start helix service
    */
-  void startAsync();
+  void start();
 
   /**
-   * stop helix service async
+   * stop helix service
    */
-  void stopAsync();
+  void stop();
 }

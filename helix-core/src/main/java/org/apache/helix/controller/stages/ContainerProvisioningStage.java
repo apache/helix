@@ -96,6 +96,8 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         final Cluster cluster = event.getAttribute("ClusterDataCache");
         final Collection<Participant> participants = cluster.getParticipantMap().values();
 
+        // TODO: if a process died, we need to mark it as stopped or something
+
         // Participants registered in helix
         // Give those participants to targetprovider
         // Provide the response that contains, new containerspecs, containers to be released,

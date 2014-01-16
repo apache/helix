@@ -63,7 +63,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
     ClusterId clusterId = ClusterId.from(clusterName);
     ControllerId controllerId = ControllerId.from("controller");
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync();
+    controller.start();
 
     // check leader znode exists
     HelixDataAccessor accessor = connection.createDataAccessor(clusterId);
@@ -73,7 +73,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
     Assert.assertEquals(leader.getInstanceName(), controllerId.stringify());
 
     // stop participant
-    controller.stopAsync();
+    controller.stop();
 
     // check leader znode is gone
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
@@ -120,7 +120,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
 
     // start controller
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync();
+    controller.start();
 
     // check live-instance znode for localhost_12918 exists
     final HelixDataAccessor accessor =

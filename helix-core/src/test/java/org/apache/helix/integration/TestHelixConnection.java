@@ -134,14 +134,14 @@ public class TestHelixConnection extends ZkUnitTestBase {
 
     // start controller
     HelixController controller = connection.createController(clusterId, controllerId);
-    controller.startAsync();
+    controller.start();
 
     // start participant
     HelixParticipant participant = connection.createParticipant(clusterId, participantId);
     participant.getStateMachineEngine().registerStateModelFactory(
         StateModelDefId.from("MasterSlave"), new MockStateModelFactory());
 
-    participant.startAsync();
+    participant.start();
 
     // verify
     final HelixDataAccessor accessor = connection.createDataAccessor(clusterId);
@@ -164,8 +164,8 @@ public class TestHelixConnection extends ZkUnitTestBase {
     Assert.assertTrue(success);
 
     // clean up
-    controller.stopAsync();
-    participant.stopAsync();
+    controller.stop();
+    participant.stop();
     connection.disconnect();
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

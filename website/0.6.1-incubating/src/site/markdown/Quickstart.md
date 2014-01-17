@@ -28,8 +28,8 @@ First, let\'s get Helix. Either build it, or download it.
 ### Build
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.6.1-incubating
 mvn install package -DskipTests
 cd helix-core/target/helix-core-pkg/bin # This folder contains all the scripts used in following sections
@@ -56,7 +56,7 @@ Helix provides command line interfaces to set up the cluster and view the cluste
 If you built the code:
 
 ```
-cd helix/incubator-helix/helix-core/target/helix-core-pkg/bin
+cd helix/helix/helix-core/target/helix-core-pkg/bin
 ```
 
 If you downloaded the release package, extract it.
@@ -78,7 +78,7 @@ You can observe the components working together in this demo, which does the fol
 ### Run the Demo
 
 ```
-cd helix/incubator-helix/helix-core/target/helix-core-pkg/bin
+cd helix/helix/helix-core/target/helix-core-pkg/bin
 ./quickstart.sh
 ```
 

@@ -42,4 +42,4 @@ cd target/rsync-replicated-file-system-pkg/bin
 
 ```
 
-See [rsync_replicated_file_store](http://helix.incubator.apache.org/recipes/rsync_replicated_file_store.html) for more information
+See [rsync_replicated_file_store](http://helix.apache.org/recipes/rsync_replicated_file_store.html) for more information

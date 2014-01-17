@@ -18,7 +18,7 @@
 <project name="Apache Helix">
   <bannerLeft>
     <src>../images/helix-logo.jpg</src>
-    <href>http://helix.incubator.apache.org/</href>
+    <href>http://helix.apache.org/</href>
   </bannerLeft>
   <bannerRight>
     <src>../images/feather_small.gif</src>
@@ -54,8 +54,8 @@
     </head>
 
     <breadcrumbs position="left">
-      <item name="Apache Helix" href="http://helix.incubator.apache.org/"/>
-      <item name="Release 0.7.0-incubating" href="http://helix.incubator.apache.org/0.7.0-incubating-docs/"/>
+      <item name="Apache Helix" href="http://helix.apache.org/"/>
+      <item name="Release 0.7.0-incubating" href="http://helix.apache.org/0.7.0-incubating-docs/"/>
     </breadcrumbs>
 
     <links>
@@ -71,7 +71,7 @@
     <menu name="Hands-On">
       <item name="Quick Start" href="./Quickstart.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
-      <item name="Javadocs" href="http://helix.incubator.apache.org/javadocs/0.7.0-incubating"/>
+      <item name="Javadocs" href="http://helix.apache.org/javadocs/0.7.0-incubating"/>
     </menu>
 
     <menu name="Recipes">
@@ -110,7 +110,7 @@
       <highlightJs>false</highlightJs>
       <brand>
         <name>Apache Helix</name>
-        <href>http://helix.incubator.apache.org</href>
+        <href>http://helix.apache.org</href>
       </brand>
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>

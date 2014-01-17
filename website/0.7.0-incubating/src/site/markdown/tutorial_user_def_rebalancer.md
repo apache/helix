@@ -27,7 +27,7 @@ Even though Helix can compute both the location and the state of replicas intern
 
 Whenever the state of the cluster changes, as is the case when participants join or leave the cluster, Helix automatically calls the rebalancer to compute a new mapping of all the replicas in the resource. When using a pluggable rebalancer, the only required step is to register it with Helix. Subsequently, no additional bootstrapping steps are necessary. Helix uses reflection to look up and load the class dynamically at runtime. As a result, it is also technically possible to change the rebalancing strategy used at any time.
 
-The [HelixRebalancer](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/HelixRebalancer.html) interface is as follows:
+The [HelixRebalancer](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/HelixRebalancer.html) interface is as follows:
 
 ```
 public void init(HelixManager helixManager);
@@ -41,7 +41,7 @@ A ResourceAssignment is a full representation of the location and the state of e
 
 ### Rebalancer Context
 
-Helix provides an interface called [RebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/RebalancerContext.html). For each of the four main [rebalancing modes](./tutorial_rebalance.html), there is a base class called [PartitionedRebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/PartitionedRebalancerContext.html), which contains all of the basic properties required for a partitioned resource. Helix provides three derived classes for PartitionedRebalancerContext: FullAutoRebalancerContext, SemiAutoRebalancerContext, and CustomizedRebalancerContext. If none of these work for your application, you can create your own class that derives PartiitonedRebalancerContext (or even only implements RebalancerContext).
+Helix provides an interface called [RebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/RebalancerContext.html). For each of the four main [rebalancing modes](./tutorial_rebalance.html), there is a base class called [PartitionedRebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/PartitionedRebalancerContext.html), which contains all of the basic properties required for a partitioned resource. Helix provides three derived classes for PartitionedRebalancerContext: FullAutoRebalancerContext, SemiAutoRebalancerContext, and CustomizedRebalancerContext. If none of these work for your application, you can create your own class that derives PartiitonedRebalancerContext (or even only implements RebalancerContext).
 
 ### Specifying a Rebalancer
 

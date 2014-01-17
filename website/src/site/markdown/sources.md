@@ -31,14 +31,14 @@ This project uses [Git](http://git-scm.com/) to manage its source code. Instruct
 
 The following is a link to the online source repository.
 
-[https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary](https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary)
+[https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary](https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary)
 
 ### Anonymous Access
 
 The source can be checked out anonymously from Git with this command (See [http://git-scm.com/docs/git-clone](http://git-scm.com/docs/git-clone)):
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
 ```
 
 ### Developer Access
@@ -46,7 +46,7 @@ git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
 Only project developers can access the Git tree via this method (See [http://git-scm.com/docs/git-clone](http://git-scm.com/docs/git-clone)).
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
 ```
 
 ### Access from Behind a Firewall

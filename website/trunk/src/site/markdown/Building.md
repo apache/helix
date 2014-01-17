@@ -25,7 +25,7 @@ Build Instructions
 Requirements: JDK 1.6+, Maven 2.0.8+
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 mvn install package -DskipTests
 ```

@@ -34,8 +34,8 @@ Near-Realtime Rsync Replicated File System
 
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.7.0-incubating
 cd recipes/rsync-replicated-file-system/
 mvn clean install package -DskipTests

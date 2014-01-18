@@ -2,6 +2,7 @@ package org.apache.helix.provisioning.yarn;
 
 import java.io.InputStream;
 import java.util.List;
+import java.util.Map;
 
 import org.yaml.snakeyaml.Yaml;
 
@@ -12,7 +13,8 @@ class DefaultApplicationSpec implements ApplicationSpec {
 	
 	public AppConfig appConfig;
 
-	public List<ServiceConfig> serviceConfig;
+	public List<String> services;
+	public Map<String, ServiceConfig> serviceConfigMap;
 
 	@Override
 	public String getAppName() {
@@ -35,10 +37,14 @@ class DefaultApplicationSpec implements ApplicationSpec {
 	}
 
 	@Override
-	public List<ServiceConfig> getServices() {
-		return serviceConfig;
+	public List<String> getServices() {
+		return services;
 	}
-	
+
+	@Override
+	public ServiceConfig getServiceConfig(String name) {
+		return serviceConfigMap.get(name);
+	}
 }
 
 public class YamlApplicationSpecFactory {

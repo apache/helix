@@ -137,6 +137,8 @@ public class Client {
   private String appMasterArchive = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
+  
+  private String appSpecFile = "";
 
   // No. of containers in which helix participants will be started
   private int numContainers = 1;
@@ -205,6 +207,7 @@ public class Client {
     opts.addOption("master_memory", true,
         "Amount of memory in MB to be requested to run the application master");
     opts.addOption("archive", true, "Archive file containing the app code");
+    opts.addOption("appSpec", true, "Application specification");
     opts.addOption("num_containers", true,
         "No. of containers on which Helix Participants will be launched");
     opts.addOption("log_properties", true, "log4j.properties file");
@@ -368,6 +371,21 @@ public class Client {
     amJarRsrc.setTimestamp(destStatus.getModificationTime());
     amJarRsrc.setSize(destStatus.getLen());
     localResources.put("app-pkg", amJarRsrc);
+    
+    Path localAppSpec = new Path(appSpecFile);
+    pathSuffix = appName + "/" + appId.getId() + "/app-spec.yaml";
+    Path dstAppSpec = new Path(fs.getHomeDirectory(), pathSuffix);
+    fs.copyFromLocalFile(false, true, localAppSpec, dstAppSpec);
+    destStatus = fs.getFileStatus(dst);
+    LocalResource appSpecResource = Records.newRecord(LocalResource.class);
+
+    appSpecResource.setType(LocalResourceType.FILE);
+    appSpecResource.setVisibility(LocalResourceVisibility.APPLICATION);
+    appSpecResource.setResource(ConverterUtils.getYarnUrlFromPath(dstAppSpec));
+    appSpecResource.setTimestamp(destStatus.getModificationTime());
+    appSpecResource.setSize(destStatus.getLen());
+    localResources.put("app-spec", appSpecResource);
+
 
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {

@@ -7,5 +7,6 @@ public interface ApplicationSpec {
 	public int getMinContainers();
 	public int getMaxContainers();
 	public AppConfig getConfig();
-	public List<ServiceConfig> getServices();
+	public List<String> getServices();
+	public ServiceConfig getServiceConfig(String name);
 }

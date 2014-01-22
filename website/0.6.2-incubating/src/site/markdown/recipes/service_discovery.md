@@ -82,8 +82,8 @@ Helix provides these additional features compared to other implementations avail
 ### Checkout and Build
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.6.2-incubating
 mvn clean install package -DskipTests
 cd recipes/service-discovery/target/service-discovery-pkg/bin

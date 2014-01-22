@@ -201,10 +201,6 @@ under the License.
               <name>start-standalone-zookeeper</name>
             </program>
             <program>
-              <mainClass>org.apache.helix.tools.ZkLogAnalyzer</mainClass>
-              <name>zk-log-analyzer</name>
-            </program>
-            <program>
               <mainClass>org.apache.helix.tools.JmxDumper</mainClass>
               <name>JmxDumper</name>
             </program>
@@ -215,6 +211,10 @@ under the License.
             <program>
               <mainClass>org.apache.helix.tools.IntegrationTestUtil</mainClass>
               <name>test-util</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.tools.ZkGrep</mainClass>
+              <name>zkgrep</name>
             </program>
           </programs>
         </configuration>

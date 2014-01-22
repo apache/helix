@@ -65,6 +65,14 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 ---
 
+### Join the Conversation
+
+[Bay Area Meetup Group](http://www.meetup.com/Building-distributed-systems-using-Apache-Helix-Meetup-group/)
+
+[`#apachehelix`](./IRC.html)
+
+[`user@helix.apache.org`](mailto:user@helix.apache.org)
+
 ### News
 
 Apache Helix has two new releases:
@@ -98,14 +106,8 @@ Apache Helix has two new releases:
 Requirements: JDK 1.6+, Maven 2.0.8+
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout helix-0.6.2-incubating
 mvn install package -DskipTests
 ```
-
-### Get Help
-
-[#apachehelix](./IRC.html)
-
-`user@helix.incubator.apache.org`

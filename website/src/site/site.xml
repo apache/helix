@@ -18,7 +18,7 @@
 <project name="Apache Helix">
   <bannerLeft>
     <src>images/helix-logo.jpg</src>
-    <href>http://helix.incubator.apache.org/</href>
+    <href>http://helix.apache.org/</href>
   </bannerLeft>
   <bannerRight>
     <src>images/feather_small.gif</src>
@@ -54,7 +54,7 @@
     </head>
 
     <breadcrumbs position="left">
-      <item name="Apache Helix" href="http://helix.incubator.apache.org/"/>
+      <item name="Apache Helix" href="http://helix.apache.org/"/>
     </breadcrumbs>
 
     <menu name="Learn">
@@ -126,7 +126,7 @@
       <highlightJs>false</highlightJs>
       <brand>
         <name>Apache Helix</name>
-        <href>http://helix.incubator.apache.org</href>
+        <href>http://helix.apache.org</href>
       </brand>
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>

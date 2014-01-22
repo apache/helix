@@ -27,7 +27,7 @@
 
 Helix Release Process
 
- [[1]] Post to dev@helix.incubator.apache.org a few days before you plan to do a Helix release
+ [[1]] Post to dev@helix.apache.org a few days before you plan to do a Helix release
 
  [[2]] Your Maven settings must contain this entry to be able to deploy.
 
@@ -101,11 +101,11 @@ svn ci
 
 +-------------
 Subject: [VOTE] Apache Helix [VERSION]-incubating Release
-To: dev@helix.incubator.apache.org
+To: dev@helix.apache.org
 ---------------------------------------------------------
 Hi, I'd like to release Apache Helix [VERSION]-incubating.
 
-Release notes: http://helix.incubator.apache.org/releasenotes/release-[VERSION]-incubating.html
+Release notes: http://helix.apache.org/releasenotes/release-[VERSION]-incubating.html
 
 Maven staged release repository: https://repository.apache.org/content/repositories/orgapachehelix-[NNN]/
 
@@ -126,7 +126,7 @@ Vote open for 72H
 
 +-------------
 Subject: [RESULT][VOTE] Apache Helix [VERSION]-incubating Release
-To: dev@helix.incubator.apache.org
+To: dev@helix.apache.org
 -----------------------------------------------------------------
 Thanks for voting on the 0.6.2-incubating release. It has now exceeded 72 hours so I am closing the vote.
 
@@ -168,7 +168,7 @@ to build partitioned and replicated, fault tolerant and scalable
 distributed systems.
 
 Release notes:
-http://helix.incubator.apache.org/[VERSION]-incubating-docs/releasenotes/release-[VERSION]-incubating.html
+http://helix.apache.org/[VERSION]-incubating-docs/releasenotes/release-[VERSION]-incubating.html
 
 Our vote thread on helix-dev:
 http://markmail.org/message/[MESSAGE ID]
@@ -186,7 +186,7 @@ https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/bina
 https://dist.apache.org/repos/dist/dev/incubator/helix/[VERSION]-incubating/src/
 
 The 0.6.2-incubating release tag
-https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=tag;h=[TAG HASH]
+https://git-wip-us.apache.org/repos/asf?p=helix.git;a=tag;h=[TAG HASH]
 
 KEYS file available here:
 https://dist.apache.org/repos/dist/dev/incubator/helix/KEYS
@@ -246,7 +246,7 @@ svn mv https://dist.apache.org/repos/dist/dev/incubator/helix/KEYS https://dist.
 
 +-------------
 Subject: [ANNOUNCE] Apache Helix [VERSION]-incubating Release
-To: dev@helix.incubator.apache.org; user@helix.incubator.apache.org
+To: dev@helix.apache.org; user@helix.apache.org
 -------------------------------------------------------------------
 The Apache Helix Team is pleased to announce the [NTH] release,
 [VERSION]-incubating, of the Apache Helix project.
@@ -255,7 +255,7 @@ Apache Helix is a generic cluster management framework that makes it easy
 to build partitioned, fault tolerant, and scalable distributed systems.
 
 The full release notes are available here:
-http://helix.incubator.apache.org/releasenotes/release-[VERSION]-incubating.html
+http://helix.apache.org/releasenotes/release-[VERSION]-incubating.html
 
 You can declare a maven dependency to use it:
 
@@ -266,12 +266,12 @@ You can declare a maven dependency to use it:
 </dependency>
 
 Or download the release sources:
-http://helix.incubator.apache.org/[VERSION]-incubating-docs/download.cgi
+http://helix.apache.org/[VERSION]-incubating-docs/download.cgi
 
 Additional info
 
-Website: http://helix.incubator.apache.org/
-Helix mailing lists: http://helix.incubator.apache.org/mail-lists.html
+Website: http://helix.apache.org/
+Helix mailing lists: http://helix.apache.org/mail-lists.html
 
 We hope you will enjoy using the latest release of Apache Helix!
 

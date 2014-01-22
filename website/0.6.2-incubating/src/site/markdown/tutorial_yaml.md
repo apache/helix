@@ -82,7 +82,7 @@ participants: # list of nodes that can serve replicas (optional if dynamic joini
 Using a file like the one above, the cluster can be set up either with the command line:
 
 ```
-incubator-helix/helix-core/target/helix-core/pkg/bin/YAMLClusterSetup.sh localhost:2199 lock-manager-config.yaml
+helix/helix-core/target/helix-core/pkg/bin/YAMLClusterSetup.sh localhost:2199 lock-manager-config.yaml
 ```
 
 or with code:

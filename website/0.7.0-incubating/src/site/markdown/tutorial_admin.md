@@ -30,7 +30,7 @@ Helix provides a set of admin APIs for cluster management operations. They are s
 * REST Interface via helix-admin-webapp
 
 ### Java API
-See interface [_org.apache.helix.HelixAdmin_](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/HelixAdmin.html)
+See interface [_org.apache.helix.HelixAdmin_](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/HelixAdmin.html)
 
 ### Command Line Interface
 The command line tool comes with helix-core package:
@@ -38,8 +38,8 @@ The command line tool comes with helix-core package:
 Get the command line tool:
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.7.0-incubating
 ./build
 cd helix-core/target/helix-core-pkg/bin
@@ -108,8 +108,8 @@ All other commands have this form:
 The REST interface comes wit helix-admin-webapp package:
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.7.0-incubating
 ./build
 cd helix-admin-webapp/target/helix-admin-webapp-pkg/bin

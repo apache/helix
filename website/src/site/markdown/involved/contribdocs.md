@@ -24,8 +24,8 @@ Learn something new about Helix that you think would benefit others? The source 
 
 ### Get the Code
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix/website
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix/website
 ```
 
 ### Make Changes

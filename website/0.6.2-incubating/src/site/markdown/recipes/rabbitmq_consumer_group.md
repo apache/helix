@@ -50,8 +50,8 @@ We showcase how such a dynamic application can be developed using Helix. Even th
 ### Try It
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 git checkout tags/helix-0.6.2-incubating
 mvn clean install package -DskipTests
 cd recipes/rabbitmq-consumer-group/bin
@@ -138,7 +138,7 @@ In any terminal press CTRL^C and notice that Helix detects the consumer failure 
 
 ### How does this work?
 
-Find the entire code [here](https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=tree;f=recipes/rabbitmq-consumer-group/src/main/java/org/apache/helix/recipes/rabbitmq).
+Find the entire code [here](https://git-wip-us.apache.org/repos/asf?p=helix.git;a=tree;f=recipes/rabbitmq-consumer-group/src/main/java/org/apache/helix/recipes/rabbitmq).
 
 #### Cluster Setup
 

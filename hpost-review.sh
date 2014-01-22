@@ -69,5 +69,5 @@ if [[ $JIRA_STATUS -eq 404 ]]; then
 fi;
 echo 'Checking JIRA existence: PASSED'
 
-post-review --server="https://reviews.apache.org" --target-groups=helix --summary="$(git log --pretty=format:%s $REVLIST)" --description="$(git whatchanged $REVLIST)" --diff-filename=<(git diff --no-prefix $REVLIST) -o --bugs-closed=$BUG_NAME $*
+post-review --server="https://reviews.apache.org" --target-groups=helix --summary="$(git log --pretty=format:%s $REVLIST)" --description="$(git whatchanged $REVLIST)" --diff-filename=<(git diff --no-prefix $REVLIST) --repository-url=git://git.apache.org/helix.git -o --bugs-closed=$BUG_NAME $*
 

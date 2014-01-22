@@ -35,6 +35,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.SchedulerTaskConfig;
@@ -45,11 +46,13 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class ExternalViewComputeStage extends AbstractBaseStage {
@@ -113,19 +116,18 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
 
-      // TODO fix this
       // Update cluster status monitor mbean
-      // ClusterStatusMonitor clusterStatusMonitor =
-      // (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-      // IdealState idealState = cache._idealStateMap.get(view.getResourceName());
-      // if (idealState != null) {
-      // if (clusterStatusMonitor != null
-      // && !idealState.getStateModelDefRef().equalsIgnoreCase(
-      // DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-      // clusterStatusMonitor.onExternalViewChange(view,
-      // cache._idealStateMap.get(view.getResourceName()));
-      // }
-      // }
+      ClusterStatusMonitor clusterStatusMonitor =
+          (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+      Resource currentResource = cluster.getResourceMap().get(view.getResourceId());
+      if (currentResource != null) {
+        IdealState idealState = currentResource.getIdealState();
+        if (clusterStatusMonitor != null
+            && !idealState.getStateModelDefRef().equalsIgnoreCase(
+                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+          clusterStatusMonitor.onExternalViewChange(view, idealState);
+        }
+      }
 
       // compare the new external view with current one, set only on different
       ExternalView curExtView = curExtViews.get(resourceId.stringify());

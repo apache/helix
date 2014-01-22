@@ -25,7 +25,7 @@ under the License.
 
 Helix constructs follow a logical hierarchy. A cluster contains participants, and serve logical resources. Each resource can be divided into partitions, which themselves can be replicated. Helix now supports configuring and modifying clusters programmatically in a hierarchical way using logical accessors.
 
-[Click here](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/api/accessor/package-summary.html) for the Javadocs of the accessors.
+[Click here](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/api/accessor/package-summary.html) for the Javadocs of the accessors.
 
 ### An Example
 
@@ -42,13 +42,13 @@ ParticipantConfig participantConfig = new ParticipantConfig.Builder(participantI
 #### Configure a Resource
 
 ##### RebalancerContext
-A Resource is essentially a combination of a RebalancerContext and a UserConfig. A [RebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/RebalancerContext.html) consists of all the key properties required to rebalance a resource, including how it is partitioned and replicated, and what state model it follows. Most Helix resources will make use of a [PartitionedRebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/PartitionedRebalancerContext.html), which is a RebalancerContext for resources that are partitioned.
+A Resource is essentially a combination of a RebalancerContext and a UserConfig. A [RebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/RebalancerContext.html) consists of all the key properties required to rebalance a resource, including how it is partitioned and replicated, and what state model it follows. Most Helix resources will make use of a [PartitionedRebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/PartitionedRebalancerContext.html), which is a RebalancerContext for resources that are partitioned.
 
 Recall that there are four [rebalancing modes](./tutorial_rebalance.html) that Helix provides, and so Helix also provides the following subclasses for PartitionedRebalancerContext:
 
-* [FullAutoRebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/FullAutoRebalancerContext.html) for FULL_AUTO mode.
-* [SemiAutoRebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/SemiAutoRebalancerContext.html) for SEMI_AUTO mode. This class allows a user to specify "preference lists" to indicate where each partition should ideally be served
-* [CustomRebalancerContext](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/CustomRebalancerContext.html) for CUSTOMIZED mode. This class allows a user tp specify "preference maps" to indicate the location and state for each partition replica.
+* [FullAutoRebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/FullAutoRebalancerContext.html) for FULL_AUTO mode.
+* [SemiAutoRebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/SemiAutoRebalancerContext.html) for SEMI_AUTO mode. This class allows a user to specify "preference lists" to indicate where each partition should ideally be served
+* [CustomRebalancerContext](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/controller/rebalancer/context/CustomRebalancerContext.html) for CUSTOMIZED mode. This class allows a user tp specify "preference maps" to indicate the location and state for each partition replica.
 
 Helix also supports arbitrary subclasses of PartitionedRebalancerContext and even arbitrary implementations of RebalancerContext for applications that need a user-defined approach for rebalancing. For more, see [User-Defined Rebalancing](./tutorial_user_def_rebalancer.html)
 
@@ -87,7 +87,7 @@ clusterAccessor.createCluster(clusterConfig);
 
 ### Create, Read, Update, and Delete
 
-Note that you don't have to specify the entire cluster beforehand! Helix provides a ClusterAccessor, ParticipantAccessor, and ResourceAccessor to allow changing as much or as little of the cluster as needed on the fly. You can add a resource or participant to a cluster, reconfigure a resource, participant, or cluster, remove components from the cluster, and more. See the [Javadocs](http://helix.incubator.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/api/accessor/package-summary.html) to see all that the accessor classes can do.
+Note that you don't have to specify the entire cluster beforehand! Helix provides a ClusterAccessor, ParticipantAccessor, and ResourceAccessor to allow changing as much or as little of the cluster as needed on the fly. You can add a resource or participant to a cluster, reconfigure a resource, participant, or cluster, remove components from the cluster, and more. See the [Javadocs](http://helix.apache.org/javadocs/0.7.0-incubating/reference/org/apache/helix/api/accessor/package-summary.html) to see all that the accessor classes can do.
 
 #### Delta Classes
 

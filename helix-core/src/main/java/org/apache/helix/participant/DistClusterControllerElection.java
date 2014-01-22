@@ -95,13 +95,13 @@ public class DistClusterControllerElection implements ControllerChangeListener {
 
           }
         }
-      } else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
-
-        if (_leader != null) {
+      } 
+      else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
+        if(_leader != null) {
           _leader.disconnect();
         }
+        _controller.shutdownClusterStatusMonitor(manager.getClusterName());
       }
-
     } catch (Exception e) {
       LOG.error("Exception when trying to become leader", e);
     }

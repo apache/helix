@@ -19,8 +19,6 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
-
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -28,12 +26,9 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.controller.HelixControllerMain;
-import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
-import org.apache.helix.model.LeaderHistory;
-import org.apache.helix.model.LiveInstance;
+import org.apache.helix.manager.zk.ZkHelixLeaderElection;
 import org.apache.log4j.Logger;
 
 // TODO: merge with GenericHelixController
@@ -75,9 +70,9 @@ public class DistClusterControllerElection implements ControllerChangeListener {
         Builder keyBuilder = accessor.keyBuilder();
 
         while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
-          boolean success = tryUpdateController(manager);
+          boolean success = ZkHelixLeaderElection.tryUpdateController(manager);
           if (success) {
-            updateHistory(manager);
+            ZkHelixLeaderElection.updateHistory(manager);
             if (type == InstanceType.CONTROLLER) {
               HelixControllerMain.addListenersToController(manager, _controller);
               manager.startTimerTasks();
@@ -95,9 +90,8 @@ public class DistClusterControllerElection implements ControllerChangeListener {
 
           }
         }
-      } 
-      else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
-        if(_leader != null) {
+      } else if (changeContext.getType().equals(NotificationContext.Type.FINALIZE)) {
+        if (_leader != null) {
           _leader.disconnect();
         }
         _controller.shutdownClusterStatusMonitor(manager.getClusterName());
@@ -105,63 +99,5 @@ public class DistClusterControllerElection implements ControllerChangeListener {
     } catch (Exception e) {
       LOG.error("Exception when trying to become leader", e);
     }
-  }
-
-  private boolean tryUpdateController(HelixManager manager) {
-    // DataAccessor dataAccessor = manager.getDataAccessor();
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-
-    LiveInstance leader = new LiveInstance(manager.getInstanceName());
-    try {
-      leader.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
-      // TODO: this session id is not the leader's session id in
-      // distributed mode
-      leader.setSessionId(manager.getSessionId());
-      leader.setHelixVersion(manager.getVersion());
-      if (ZKPropertyTransferServer.getInstance() != null) {
-        String zkPropertyTransferServiceUrl =
-            ZKPropertyTransferServer.getInstance().getWebserviceUrl();
-        if (zkPropertyTransferServiceUrl != null) {
-          leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
-        }
-      } else {
-        LOG.warn("ZKPropertyTransferServer instnace is null");
-      }
-      boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
-      if (success) {
-        return true;
-      } else {
-        LOG.info("Unable to become leader probably because some other controller becames the leader");
-      }
-    } catch (Exception e) {
-      LOG.error(
-          "Exception when trying to updating leader record in cluster:" + manager.getClusterName()
-              + ". Need to check again whether leader node has been created or not", e);
-    }
-
-    leader = accessor.getProperty(keyBuilder.controllerLeader());
-    if (leader != null) {
-      String leaderSessionId = leader.getTypedSessionId().stringify();
-      LOG.info("Leader exists for cluster: " + manager.getClusterName() + ", currentLeader: "
-          + leader.getInstanceName() + ", leaderSessionId: " + leaderSessionId);
-
-      if (leaderSessionId != null && leaderSessionId.equals(manager.getSessionId())) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  private void updateHistory(HelixManager manager) {
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-
-    LeaderHistory history = accessor.getProperty(keyBuilder.controllerLeaderHistory());
-    if (history == null) {
-      history = new LeaderHistory(PropertyType.HISTORY.toString());
-    }
-    history.updateHistory(manager.getClusterName(), manager.getInstanceName());
-    accessor.setProperty(keyBuilder.controllerLeaderHistory(), history);
   }
 }

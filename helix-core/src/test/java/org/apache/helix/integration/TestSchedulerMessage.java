@@ -725,6 +725,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   @Test()
   public void testSchedulerMsg4() throws Exception {
     _factory._results.clear();
+    Thread.sleep(2000);
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(

@@ -43,6 +43,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.SessionId;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.PipelineRegistry;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
@@ -484,7 +485,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     Map<String, LiveInstance> curSessions = new HashMap<String, LiveInstance>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
-      curSessions.put(liveInstance.getTypedSessionId().stringify(), liveInstance);
+      curSessions.put(liveInstance.getInstanceName() + "|" + liveInstance.getSessionId(),
+          liveInstance);
     }
 
     Map<String, LiveInstance> lastInstances = _lastSeenInstances.get();
@@ -497,7 +499,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         if (!curSessions.containsKey(session)) {
           // remove current-state listener for expired session
           String instanceName = lastSessions.get(session).getInstanceName();
-          manager.removeListener(keyBuilder.currentStates(instanceName, session), this);
+          SessionId sessionId = lastSessions.get(session).getTypedSessionId();
+          manager
+              .removeListener(keyBuilder.currentStates(instanceName, sessionId.toString()), this);
         }
       }
     }
@@ -514,9 +518,10 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     for (String session : curSessions.keySet()) {
       if (lastSessions == null || !lastSessions.containsKey(session)) {
         String instanceName = curSessions.get(session).getInstanceName();
+        SessionId sessionId = curSessions.get(session).getTypedSessionId();
         try {
           // add current-state listeners for new sessions
-          manager.addCurrentStateChangeListener(this, instanceName, session);
+          manager.addCurrentStateChangeListener(this, instanceName, sessionId.toString());
           logger.info(manager.getInstanceName() + " added current-state listener for instance: "
               + instanceName + ", session: " + session + ", listener: " + this);
         } catch (Exception e) {

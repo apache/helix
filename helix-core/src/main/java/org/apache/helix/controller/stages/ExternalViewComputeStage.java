@@ -46,7 +46,6 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -120,12 +119,14 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       ClusterStatusMonitor clusterStatusMonitor =
           (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
       Resource currentResource = cluster.getResourceMap().get(view.getResourceId());
-      if (currentResource != null) {
+      if (clusterStatusMonitor != null && currentResource != null) {
         IdealState idealState = currentResource.getIdealState();
-        if (clusterStatusMonitor != null
-            && !idealState.getStateModelDefRef().equalsIgnoreCase(
-                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          clusterStatusMonitor.onExternalViewChange(view, idealState);
+        if (idealState != null) {
+          StateModelDefId stateModelDefId = idealState.getStateModelDefId();
+          if (stateModelDefId != null
+              && !stateModelDefId.equals(StateModelDefId.SchedulerTaskQueue)) {
+            clusterStatusMonitor.onExternalViewChange(view, idealState);
+          }
         }
       }
 

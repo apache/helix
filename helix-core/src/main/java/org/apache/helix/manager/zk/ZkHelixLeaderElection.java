@@ -22,8 +22,6 @@ package org.apache.helix.manager.zk;
 import java.lang.management.ManagementFactory;
 
 import org.apache.helix.ControllerChangeListener;
-import org.apache.helix.HelixConnection;
-import org.apache.helix.HelixController;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
@@ -84,7 +82,6 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
           || changeContext.getType().equals(NotificationContext.Type.CALLBACK)) {
         LOG.info(_controllerId + " is trying to acquire leadership for cluster: " + _clusterId);
 
-
         while (accessor.getProperty(keyBuilder.controllerLeader()) == null) {
           boolean success = tryUpdateController(_manager);
           if (success) {
@@ -122,7 +119,12 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
     }
   }
 
-  private boolean tryUpdateController(HelixManager manager) {
+  /**
+   * Try to become the leader controller
+   * @param manager a live helix manager connection
+   * @return true if this controller has been elected the leader, false otherwise
+   */
+  public static boolean tryUpdateController(HelixManager manager) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
@@ -155,17 +157,22 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
     leader = accessor.getProperty(keyBuilder.controllerLeader());
     if (leader != null) {
       String leaderSessionId = leader.getSessionId();
+      String leaderId = leader.getId();
       LOG.info("Leader exists for cluster: " + manager.getClusterName() + ", currentLeader: "
           + leader.getInstanceName() + ", leaderSessionId: " + leaderSessionId);
-
-      if (leaderSessionId != null && leaderSessionId.equals(manager.getSessionId())) {
+      if (leaderId != null && leaderId.equals(manager.getInstanceName()) && leaderSessionId != null
+          && leaderSessionId.equals(manager.getSessionId())) {
         return true;
       }
     }
     return false;
   }
 
-  private void updateHistory(HelixManager manager) {
+  /**
+   * Update the history with this controller as the most recent leader
+   * @param manager active helix manager connection
+   */
+  public static void updateHistory(HelixManager manager) {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 

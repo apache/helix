@@ -48,6 +48,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 10. [Application Property Store](./tutorial_propstore.html)
 11. [Admin Interface](./tutorial_admin.html)
 12. [YAML Cluster Setup](./tutorial_yaml.html)
+13. [Helix Agent (for non-JVM systems)](./tutorial_agent.html)
 
 ### Preliminaries
 

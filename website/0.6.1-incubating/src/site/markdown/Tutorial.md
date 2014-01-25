@@ -42,6 +42,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 8. [Throttling](./tutorial_throttling.html)
 9. [Application Property Store](./tutorial_propstore.html)
 10. [Admin Interface](./tutorial_admin.html)
+11. [Helix Agent (for non-JVM systems)](./tutorial_agent.html)
 
 ### Preliminaries
 

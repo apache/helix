@@ -49,6 +49,7 @@ Convention: we first cover the _basic_ approach, which is the easiest to impleme
 11. [Logical Accessors](./tutorial_accessors.html)
 12. [Admin Interface](./tutorial_admin.html)
 13. [YAML Cluster Setup](./tutorial_yaml.html)
+14. [Helix Agent (for non-JVM systems)](./tutorial_agent.html)
 
 ### Preliminaries
 

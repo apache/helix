@@ -74,6 +74,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
 
+    long cacheStart = System.currentTimeMillis();
+    cache.cacheMessages(outputMessages);
+    long cacheEnd = System.currentTimeMillis();
+    logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
+
     long endTime = System.currentTimeMillis();
     logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");
 

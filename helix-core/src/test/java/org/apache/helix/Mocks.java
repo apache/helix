@@ -603,7 +603,7 @@ public class Mocks {
           String[] keySplit = key.split("\\/");
           String[] pathSplit = path.split("\\/");
           if (keySplit.length > pathSplit.length) {
-            child.add(keySplit[pathSplit.length + 1]);
+            child.add(keySplit[pathSplit.length]);
           }
         }
       }

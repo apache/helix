@@ -64,11 +64,11 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
    */
   public AtomicParticipantAccessor(ClusterId clusterId, HelixDataAccessor accessor,
       HelixLockable lockProvider) {
-    super(accessor);
+    super(clusterId, accessor);
     _clusterId = clusterId;
     _accessor = accessor;
     _lockProvider = lockProvider;
-    _participantAccessor = new ParticipantAccessor(accessor);
+    _participantAccessor = new ParticipantAccessor(clusterId, accessor);
   }
 
   @Override

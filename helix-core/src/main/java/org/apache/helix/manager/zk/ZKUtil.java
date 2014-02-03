@@ -44,7 +44,44 @@ public final class ZKUtil {
     if (clusterName == null || zkClient == null) {
       return false;
     }
-    ArrayList<String> requiredPaths = new ArrayList<String>();
+
+    List<String> requiredPaths = getRequiredPathsForCluster(clusterName);
+    boolean isValid = true;
+
+    for (String path : requiredPaths) {
+      if (!zkClient.exists(path)) {
+        isValid = false;
+        logger.info("Invalid cluster setup, missing znode path: " + path);
+      }
+    }
+    return isValid;
+  }
+
+  public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName,
+      InstanceType type) {
+    if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
+      List<String> requiredPaths = getRequiredPathsForInstance(clusterName, instanceName);
+      boolean isValid = true;
+
+      for (String path : requiredPaths) {
+        if (!zkclient.exists(path)) {
+          isValid = false;
+          logger.info("Invalid instance setup, missing znode path: " + path);
+        }
+      }
+      return isValid;
+    }
+
+    return true;
+  }
+
+  /**
+   * Get the required ZK paths for a valid cluster
+   * @param clusterName the cluster to check
+   * @return List of paths as strings
+   */
+  public static List<String> getRequiredPathsForCluster(String clusterName) {
+    List<String> requiredPaths = new ArrayList<String>();
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName));
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
         ConfigScopeProperty.CLUSTER.toString(), clusterName));
@@ -63,42 +100,26 @@ public final class ZKUtil {
     requiredPaths.add(PropertyPathConfig
         .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
-    boolean isValid = true;
-
-    for (String path : requiredPaths) {
-      if (!zkClient.exists(path)) {
-        isValid = false;
-        logger.info("Invalid cluster setup, missing znode path: " + path);
-      }
-    }
-    return isValid;
+    return requiredPaths;
   }
 
-  public static boolean isInstanceSetup(ZkClient zkclient, String clusterName, String instanceName,
-      InstanceType type) {
-    if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
-      ArrayList<String> requiredPaths = new ArrayList<String>();
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-          ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
-      requiredPaths.add(PropertyPathConfig
-          .getPath(PropertyType.MESSAGES, clusterName, instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName,
-          instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, clusterName,
-          instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, instanceName));
-      boolean isValid = true;
-
-      for (String path : requiredPaths) {
-        if (!zkclient.exists(path)) {
-          isValid = false;
-          logger.info("Invalid instance setup, missing znode path: " + path);
-        }
-      }
-      return isValid;
-    }
-
-    return true;
+  /**
+   * Get the required ZK paths for a valid instance
+   * @param clusterName the cluster that owns the instance
+   * @param instanceName the instance to check
+   * @return List of paths as strings
+   */
+  public static List<String> getRequiredPathsForInstance(String clusterName, String instanceName) {
+    List<String> requiredPaths = new ArrayList<String>();
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName,
+        instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, clusterName,
+        instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, instanceName));
+    return requiredPaths;
   }
 
   public static void createChildren(ZkClient client, String parentPath, List<ZNRecord> list) {

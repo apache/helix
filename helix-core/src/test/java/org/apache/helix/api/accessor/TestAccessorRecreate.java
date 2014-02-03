@@ -118,7 +118,7 @@ public class TestAccessorRecreate extends ZkUnitTestBase {
     Assert.assertTrue(created);
 
     // read the participant
-    ParticipantAccessor participantAccessor = new ParticipantAccessor(helixAccessor);
+    ParticipantAccessor participantAccessor = new ParticipantAccessor(clusterId, helixAccessor);
     Participant participantSnapshot = participantAccessor.readParticipant(participantId);
     Assert.assertEquals(participantSnapshot.getUserConfig().getIntField(MODIFIER, -1), 1);
 

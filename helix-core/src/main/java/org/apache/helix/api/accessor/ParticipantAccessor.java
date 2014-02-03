@@ -45,6 +45,7 @@ import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -53,6 +54,7 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -75,9 +77,11 @@ public class ParticipantAccessor {
   private static final Logger LOG = Logger.getLogger(ParticipantAccessor.class);
 
   private final HelixDataAccessor _accessor;
+  private final ClusterId _clusterId;
   private final PropertyKey.Builder _keyBuilder;
 
-  public ParticipantAccessor(HelixDataAccessor accessor) {
+  public ParticipantAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
+    _clusterId = clusterId;
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
   }
@@ -709,7 +713,8 @@ public class ParticipantAccessor {
    * Create empty persistent properties to ensure that there is a valid participant structure
    */
   public void initParticipantStructure(ParticipantId participantId) {
-    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    List<String> paths =
+        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
@@ -723,7 +728,8 @@ public class ParticipantAccessor {
    * Clear properties for the participant
    */
   void clearParticipantStructure(ParticipantId participantId) {
-    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    List<String> paths =
+        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     baseAccessor.remove(paths, 0);
   }
@@ -733,7 +739,8 @@ public class ParticipantAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isParticipantStructureValid(ParticipantId participantId) {
-    List<String> paths = getRequiredPaths(_keyBuilder, participantId);
+    List<String> paths =
+        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
@@ -747,27 +754,10 @@ public class ParticipantAccessor {
   }
 
   /**
-   * Get the paths that should be created if the participant exists
-   * @param keyBuilder PropertyKey.Builder for the cluster
-   * @param participantId the participant for which to generate paths
-   * @return list of required paths as strings
-   */
-  private static List<String> getRequiredPaths(PropertyKey.Builder keyBuilder,
-      ParticipantId participantId) {
-    List<String> paths = Lists.newArrayList();
-    paths.add(keyBuilder.instanceConfig(participantId.stringify()).getPath());
-    paths.add(keyBuilder.messages(participantId.stringify()).getPath());
-    paths.add(keyBuilder.currentStates(participantId.stringify()).getPath());
-    paths.add(keyBuilder.participantErrors(participantId.stringify()).getPath());
-    paths.add(keyBuilder.statusUpdates(participantId.stringify()).getPath());
-    return paths;
-  }
-
-  /**
    * Get a ResourceAccessor instance
    * @return ResourceAccessor
    */
   protected ResourceAccessor resourceAccessor() {
-    return new ResourceAccessor(_accessor);
+    return new ResourceAccessor(_clusterId, _accessor);
   }
 }

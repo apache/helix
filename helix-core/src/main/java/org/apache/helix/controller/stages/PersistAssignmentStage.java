@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.Cluster;
 import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -33,8 +34,9 @@ public class PersistAssignmentStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     HelixManager helixManager = event.getAttribute("helixmanager");
+    Cluster cluster = event.getAttribute("ClusterDataCache");
     HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
-    ResourceAccessor resourceAccessor = new ResourceAccessor(accessor);
+    ResourceAccessor resourceAccessor = new ResourceAccessor(cluster.getId(), accessor);
     BestPossibleStateOutput assignments =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
     for (ResourceId resourceId : assignments.getAssignedResources()) {

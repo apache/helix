@@ -44,6 +44,8 @@ import com.google.common.collect.Sets;
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(ReadClusterDataStage.class.getName());
 
+  private ClusterDataCache _cache = null;
+
   @Override
   public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
@@ -54,8 +56,15 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       throw new StageException("HelixManager attribute value is null");
     }
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
+
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    if (cache == null && _cache == null) {
+      cache = new ClusterDataCache();
+    }
+    _cache = cache;
+
     ClusterId clusterId = ClusterId.from(manager.getClusterName());
-    ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor);
+    ClusterAccessor clusterAccessor = new ClusterAccessor(clusterId, accessor, _cache);
 
     Cluster cluster = clusterAccessor.readCluster();
 
@@ -87,7 +96,8 @@ public class ReadClusterDataStage extends AbstractBaseStage {
           disabledInstanceSet, disabledPartitions, tags);
     }
 
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
+    event.addAttribute("ClusterDataCache", _cache);
 
     // read contexts (if any)
     Map<ContextId, ControllerContext> persistedContexts = null;

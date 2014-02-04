@@ -110,6 +110,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     boolean success = false;
     switch (type) {
+    case RESOURCEASSIGNMENTS:
     case IDEALSTATES:
     case EXTERNALVIEW:
       // check if bucketized
@@ -200,6 +201,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       // ZNRecord record = null;
 
       switch (type) {
+      case RESOURCEASSIGNMENTS:
       case CURRENTSTATES:
       case IDEALSTATES:
       case EXTERNALVIEW:
@@ -251,6 +253,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     }
 
     switch (type) {
+    case RESOURCEASSIGNMENTS:
     case CURRENTSTATES:
     case IDEALSTATES:
     case EXTERNALVIEW:
@@ -313,6 +316,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     if (children != null) {
       for (ZNRecord record : children) {
         switch (type) {
+        case RESOURCEASSIGNMENTS:
         case CURRENTSTATES:
         case IDEALSTATES:
         case EXTERNALVIEW:
@@ -419,6 +423,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
       HelixProperty value = children.get(i);
 
       switch (type) {
+      case RESOURCEASSIGNMENTS:
       case EXTERNALVIEW:
         if (value.getBucketSize() == 0) {
           records.add(value.getRecord());

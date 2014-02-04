@@ -34,23 +34,44 @@ public class RebalancerRef {
   @JsonProperty("rebalancerClassName")
   private final String _rebalancerClassName;
 
+  @JsonIgnore
+  private Class<? extends HelixRebalancer> _class;
+
   @JsonCreator
   private RebalancerRef(@JsonProperty("rebalancerClassName") String rebalancerClassName) {
     _rebalancerClassName = rebalancerClassName;
+    _class = null;
   }
 
   /**
-   * Get an instantiated Rebalancer
-   * @return Rebalancer or null if instantiation failed
+   * Get an instantiated HelixRebalancer
+   * @return HelixRebalancer or null if instantiation failed
    */
   @JsonIgnore
   public HelixRebalancer getRebalancer() {
     try {
-      return (HelixRebalancer) (HelixUtil.loadClass(getClass(), _rebalancerClassName).newInstance());
+      return (HelixRebalancer) (getRebalancerClass().newInstance());
     } catch (Exception e) {
       LOG.warn("Exception while invoking custom rebalancer class:" + _rebalancerClassName, e);
     }
     return null;
+  }
+
+  /**
+   * Get the class object of this rebalancer ref
+   * @return Class
+   */
+  @JsonIgnore
+  public Class<? extends HelixRebalancer> getRebalancerClass() {
+    try {
+      if (_class == null) {
+        _class =
+            HelixUtil.loadClass(getClass(), _rebalancerClassName).asSubclass(HelixRebalancer.class);
+      }
+    } catch (Exception e) {
+      LOG.warn("Exception while loading rebalancer class:" + _rebalancerClassName, e);
+    }
+    return _class;
   }
 
   @Override

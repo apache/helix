@@ -19,6 +19,7 @@ package org.apache.helix.api.accessor;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -54,9 +55,11 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
+import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConfiguration;
@@ -86,15 +89,27 @@ public class ClusterAccessor {
   private final PropertyKey.Builder _keyBuilder;
   private final ClusterId _clusterId;
 
+  private final ClusterDataCache _cache;
+
   /**
    * Instantiate a cluster accessor
    * @param clusterId the cluster to access
    * @param accessor HelixDataAccessor for the physical store
    */
   public ClusterAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
+    this(clusterId, accessor, new ClusterDataCache());
+  }
+
+  /**
+   * Instantiate a cluster accessor
+   * @param clusterId the cluster to access
+   * @param accessor HelixDataAccessor for the physical store
+   */
+  public ClusterAccessor(ClusterId clusterId, HelixDataAccessor accessor, ClusterDataCache cache) {
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
     _clusterId = clusterId;
+    _cache = cache;
   }
 
   /**
@@ -128,9 +143,6 @@ public class ClusterAccessor {
     ClusterConfiguration clusterConfig = ClusterConfiguration.from(cluster.getUserConfig());
     if (cluster.autoJoinAllowed()) {
       clusterConfig.setAutoJoinAllowed(cluster.autoJoinAllowed());
-    }
-    if (cluster.getStats() != null && !cluster.getStats().getMapFields().isEmpty()) {
-      _accessor.setProperty(_keyBuilder.persistantStat(), cluster.getStats());
     }
     if (cluster.isPaused()) {
       pauseCluster();
@@ -173,16 +185,6 @@ public class ClusterAccessor {
       ClusterConstraints constraint = constraints.get(type);
       _accessor.setProperty(_keyBuilder.constraint(type.toString()), constraint);
     }
-    if (config.getStats() == null || config.getStats().getMapFields().isEmpty()) {
-      _accessor.removeProperty(_keyBuilder.persistantStat());
-    } else {
-      _accessor.setProperty(_keyBuilder.persistantStat(), config.getStats());
-    }
-    if (config.getAlerts() == null || config.getAlerts().getMapFields().isEmpty()) {
-      _accessor.removeProperty(_keyBuilder.alerts());
-    } else {
-      _accessor.setProperty(_keyBuilder.alerts(), config.getAlerts());
-    }
     return true;
   }
 
@@ -218,19 +220,22 @@ public class ClusterAccessor {
       LOG.error("Cluster is not fully set up");
       return null;
     }
-    LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
+
+    // refresh the cache
+    _cache.refresh(_accessor);
+
+    LiveInstance leader = _cache.getLeader();
 
     /**
      * map of constraint-type to constraints
      */
-    Map<String, ClusterConstraints> constraintMap =
-        _accessor.getChildValuesMap(_keyBuilder.constraints());
+    Map<String, ClusterConstraints> constraintMap = _cache.getConstraintMap();
 
     // read all the resources
-    Map<ResourceId, Resource> resourceMap = readResources();
+    Map<ResourceId, Resource> resourceMap = readResources(true);
 
     // read all the participants
-    Map<ParticipantId, Participant> participantMap = readParticipants();
+    Map<ParticipantId, Participant> participantMap = readParticipants(true);
 
     // read the controllers
     Map<ControllerId, Controller> controllerMap = new HashMap<ControllerId, Controller>();
@@ -249,10 +254,10 @@ public class ClusterAccessor {
     }
 
     // read the pause status
-    PauseSignal pauseSignal = _accessor.getProperty(_keyBuilder.pause());
+    PauseSignal pauseSignal = _cache.getPauseSignal();
     boolean isPaused = pauseSignal != null;
 
-    ClusterConfiguration clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
+    ClusterConfiguration clusterConfig = _cache.getClusterConfig();
     boolean autoJoinAllowed = false;
     UserConfig userConfig;
     if (clusterConfig != null) {
@@ -263,21 +268,14 @@ public class ClusterAccessor {
     }
 
     // read the state model definitions
-    Map<StateModelDefId, StateModelDefinition> stateModelMap = readStateModelDefinitions();
-
-    // read the stats
-    PersistentStats stats = _accessor.getProperty(_keyBuilder.persistantStat());
-
-    // read the alerts
-    Alerts alerts = _accessor.getProperty(_keyBuilder.alerts());
+    Map<StateModelDefId, StateModelDefinition> stateModelMap = readStateModelDefinitions(true);
 
     // read controller context
-    Map<ContextId, ControllerContext> contextMap = readControllerContext();
+    Map<ContextId, ControllerContext> contextMap = readControllerContext(true);
 
     // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, stateModelMap, contextMap, stats, alerts, userConfig, isPaused,
-        autoJoinAllowed);
+        clusterConstraintMap, stateModelMap, contextMap, userConfig, isPaused, autoJoinAllowed);
   }
 
   /**
@@ -285,9 +283,22 @@ public class ClusterAccessor {
    * @return map of state model def id to state model definition
    */
   public Map<StateModelDefId, StateModelDefinition> readStateModelDefinitions() {
+    return readStateModelDefinitions(false);
+  }
+
+  /**
+   * Get all the state model definitions for this cluster
+   * @param useCache Use the ClusterDataCache associated with this class rather than reading again
+   * @return map of state model def id to state model definition
+   */
+  private Map<StateModelDefId, StateModelDefinition> readStateModelDefinitions(boolean useCache) {
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = Maps.newHashMap();
-    List<StateModelDefinition> stateModelList =
-        _accessor.getChildValues(_keyBuilder.stateModelDefs());
+    Collection<StateModelDefinition> stateModelList;
+    if (useCache) {
+      stateModelList = _cache.getStateModelDefMap().values();
+    } else {
+      stateModelList = _accessor.getChildValues(_keyBuilder.stateModelDefs());
+    }
     for (StateModelDefinition stateModelDef : stateModelList) {
       stateModelDefs.put(stateModelDef.getStateModelDefId(), stateModelDef);
     }
@@ -299,35 +310,70 @@ public class ClusterAccessor {
    * @return map of resource id to resource
    */
   public Map<ResourceId, Resource> readResources() {
-    if (!isClusterStructureValid()) {
+    return readResources(false);
+  }
+
+  /**
+   * Read all resources in the cluster
+   * @param useCache Use the ClusterDataCache associated with this class rather than reading again
+   * @return map of resource id to resource
+   */
+  private Map<ResourceId, Resource> readResources(boolean useCache) {
+    if (!useCache && !isClusterStructureValid()) {
       LOG.error("Cluster is not fully set up yet!");
       return Collections.emptyMap();
     }
 
-    /**
-     * map of resource-id to ideal-state
-     */
-    Map<String, IdealState> idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
+    Map<String, IdealState> idealStateMap;
+    Map<String, ResourceConfiguration> resourceConfigMap;
+    Map<String, ExternalView> externalViewMap;
+    Map<String, ResourceAssignment> resourceAssignmentMap;
+    if (useCache) {
+      idealStateMap = _cache.getIdealStates();
+      resourceConfigMap = _cache.getResourceConfigs();
+    } else {
+      idealStateMap = _accessor.getChildValuesMap(_keyBuilder.idealStates());
+      resourceConfigMap = _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
+    }
 
-    /**
-     * Map of resource id to external view
-     */
-    Map<String, ExternalView> externalViewMap =
-        _accessor.getChildValuesMap(_keyBuilder.externalViews());
+    // check if external view and resource assignment reads are required
+    boolean extraReadsRequired = false;
+    for (String resourceName : idealStateMap.keySet()) {
+      if (extraReadsRequired) {
+        break;
+      }
+      // a rebalancer can be user defined if it has that mode set, or has a different rebalancer
+      // class
+      IdealState idealState = idealStateMap.get(resourceName);
+      extraReadsRequired =
+          extraReadsRequired || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED);
+      RebalancerRef ref = idealState.getRebalancerRef();
+      if (ref != null) {
+        extraReadsRequired =
+            extraReadsRequired
+                || !PartitionedRebalancerConfig.isBuiltinRebalancer(ref.getRebalancerClass());
+      }
+    }
+    for (String resourceName : resourceConfigMap.keySet()) {
+      if (extraReadsRequired) {
+        break;
+      }
+      extraReadsRequired =
+          extraReadsRequired || resourceConfigMap.get(resourceName).hasRebalancerConfig();
+    }
 
-    /**
-     * Map of resource id to user configuration
-     */
-    Map<String, ResourceConfiguration> resourceConfigMap =
-        _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
+    // now read external view and resource assignments if needed
+    if (!useCache || extraReadsRequired) {
+      externalViewMap = _accessor.getChildValuesMap(_keyBuilder.externalViews());
+      resourceAssignmentMap = _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
+      _cache.setAssignmentWritePolicy(true);
+    } else {
+      externalViewMap = Maps.newHashMap();
+      resourceAssignmentMap = Maps.newHashMap();
+      _cache.setAssignmentWritePolicy(false);
+    }
 
-    /**
-     * Map of resource id to resource assignment
-     */
-    Map<String, ResourceAssignment> resourceAssignmentMap =
-        _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
-
-    // read all the resources
+    // populate all the resources
     Set<String> allResources = Sets.newHashSet();
     allResources.addAll(idealStateMap.keySet());
     allResources.addAll(resourceConfigMap.keySet());
@@ -347,45 +393,58 @@ public class ClusterAccessor {
    * @return map of participant id to participant, or empty map
    */
   public Map<ParticipantId, Participant> readParticipants() {
-    if (!isClusterStructureValid()) {
+    return readParticipants(false);
+  }
+
+  /**
+   * Read all participants in the cluster
+   * @param useCache Use the ClusterDataCache associated with this class rather than reading again
+   * @return map of participant id to participant, or empty map
+   */
+  private Map<ParticipantId, Participant> readParticipants(boolean useCache) {
+    if (!useCache && !isClusterStructureValid()) {
       LOG.error("Cluster is not fully set up yet!");
       return Collections.emptyMap();
     }
-
-    /**
-     * map of instance-id to instance-config
-     */
-    Map<String, InstanceConfig> instanceConfigMap =
-        _accessor.getChildValuesMap(_keyBuilder.instanceConfigs());
-
-    /**
-     * map of instance-id to live-instance
-     */
-    Map<String, LiveInstance> liveInstanceMap =
-        _accessor.getChildValuesMap(_keyBuilder.liveInstances());
+    Map<String, InstanceConfig> instanceConfigMap;
+    Map<String, LiveInstance> liveInstanceMap;
+    if (useCache) {
+      instanceConfigMap = _cache.getInstanceConfigMap();
+      liveInstanceMap = _cache.getLiveInstances();
+    } else {
+      instanceConfigMap = _accessor.getChildValuesMap(_keyBuilder.instanceConfigs());
+      liveInstanceMap = _accessor.getChildValuesMap(_keyBuilder.liveInstances());
+    }
 
     /**
      * map of participant-id to map of message-id to message
      */
-    Map<String, Map<String, Message>> messageMap = new HashMap<String, Map<String, Message>>();
-    for (String instanceName : liveInstanceMap.keySet()) {
-      Map<String, Message> instanceMsgMap =
-          _accessor.getChildValuesMap(_keyBuilder.messages(instanceName));
-      messageMap.put(instanceName, instanceMsgMap);
+    Map<String, Map<String, Message>> messageMap = Maps.newHashMap();
+    for (String participantName : liveInstanceMap.keySet()) {
+      Map<String, Message> instanceMsgMap;
+      if (useCache) {
+        instanceMsgMap = _cache.getMessages(participantName);
+      } else {
+        instanceMsgMap = _accessor.getChildValuesMap(_keyBuilder.messages(participantName));
+      }
+      messageMap.put(participantName, instanceMsgMap);
     }
 
     /**
      * map of participant-id to map of resource-id to current-state
      */
-    Map<String, Map<String, CurrentState>> currentStateMap =
-        new HashMap<String, Map<String, CurrentState>>();
+    Map<String, Map<String, CurrentState>> currentStateMap = Maps.newHashMap();
     for (String participantName : liveInstanceMap.keySet()) {
       LiveInstance liveInstance = liveInstanceMap.get(participantName);
       SessionId sessionId = liveInstance.getTypedSessionId();
-      Map<String, CurrentState> instanceCurStateMap =
-          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
-              sessionId.stringify()));
-
+      Map<String, CurrentState> instanceCurStateMap;
+      if (useCache) {
+        instanceCurStateMap = _cache.getCurrentState(participantName, sessionId.stringify());
+      } else {
+        instanceCurStateMap =
+            _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
+                sessionId.stringify()));
+      }
       currentStateMap.put(participantName, instanceCurStateMap);
     }
 
@@ -472,13 +531,42 @@ public class ClusterAccessor {
    * @return map of context id to controller context
    */
   public Map<ContextId, ControllerContext> readControllerContext() {
-    Map<String, ControllerContextHolder> contextHolders =
-        _accessor.getChildValuesMap(_keyBuilder.controllerContexts());
+    return readControllerContext(false);
+  }
+
+  /**
+   * Read the persisted controller contexts
+   * @param useCache Use the ClusterDataCache associated with this class rather than reading again
+   * @return map of context id to controller context
+   */
+  private Map<ContextId, ControllerContext> readControllerContext(boolean useCache) {
+    Map<String, ControllerContextHolder> contextHolders;
+    if (useCache) {
+      contextHolders = _cache.getContextMap();
+    } else {
+      contextHolders = _accessor.getChildValuesMap(_keyBuilder.controllerContexts());
+    }
     Map<ContextId, ControllerContext> contexts = Maps.newHashMap();
     for (String contextName : contextHolders.keySet()) {
       contexts.put(ContextId.from(contextName), contextHolders.get(contextName).getContext());
     }
     return contexts;
+  }
+
+  /**
+   * Get the current cluster stats
+   * @return PersistentStats
+   */
+  public PersistentStats getStats() {
+    return _accessor.getProperty(_keyBuilder.persistantStat());
+  }
+
+  /**
+   * Get the current cluster alerts
+   * @return Alerts
+   */
+  public Alerts getAlerts() {
+    return _accessor.getProperty(_keyBuilder.alerts());
   }
 
   /**
@@ -673,28 +761,28 @@ public class ClusterAccessor {
       return false;
     }
 
+    // Create an IdealState from a RebalancerConfig (if the resource supports it)
+    IdealState idealState =
+        ResourceAccessor.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
+            resource.getBucketSize(), resource.getBatchMessageMode());
+    if (idealState != null) {
+      _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
+    }
+
     // Add resource user config
     if (resource.getUserConfig() != null) {
       ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
       configuration.setType(resource.getType());
       configuration.addNamespacedConfig(resource.getUserConfig());
       PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
-      if (partitionedConfig == null
-          || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      if (idealState == null
+          && (partitionedConfig == null || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED)) {
         // only persist if this is not easily convertible to an ideal state
         configuration
             .addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
                 .toNamespacedConfig());
       }
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
-    }
-
-    // Create an IdealState from a RebalancerConfig (if the resource is partitioned)
-    IdealState idealState =
-        ResourceAccessor.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
-            resource.getBucketSize(), resource.getBatchMessageMode());
-    if (idealState != null) {
-      _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
     }
     return true;
   }

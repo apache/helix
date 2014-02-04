@@ -127,7 +127,7 @@ public class TestNewStages extends ZkUnitTestBase {
           }
         });
     event.addAttribute(AttributeName.RESOURCES.toString(), resourceConfigMap);
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
 
     // Run the stage
     try {

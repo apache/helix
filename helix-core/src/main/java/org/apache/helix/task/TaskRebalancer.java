@@ -19,10 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -54,6 +50,10 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
+
 /**
  * Custom rebalancer implementation for the {@code Task} state model.
  */
@@ -74,6 +74,9 @@ public class TaskRebalancer implements HelixRebalancer {
 
     // Fetch task configuration
     TaskConfig taskCfg = TaskUtil.getTaskCfg(_manager, resourceName);
+    if (taskCfg == null) {
+      return emptyAssignment(resourceId);
+    }
     String workflowResource = taskCfg.getWorkflow();
 
     // Fetch workflow configuration and context
@@ -333,7 +336,6 @@ public class TaskRebalancer implements HelixRebalancer {
       // Remove the set of task partitions that are completed or in one of the error states.
       pSet.removeAll(donePartitions);
     }
-
     if (isTaskComplete(taskCtx, allPartitions)) {
       workflowCtx.setTaskState(taskResource, TaskState.COMPLETED);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {

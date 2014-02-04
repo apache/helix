@@ -440,7 +440,7 @@ public class ClusterStateVerifier {
 
   static BestPossibleStateOutput calcBestPossState(Cluster cluster) throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
 
     ResourceComputationStage rcState = new ResourceComputationStage();
     CurrentStateComputationStage csStage = new CurrentStateComputationStage();

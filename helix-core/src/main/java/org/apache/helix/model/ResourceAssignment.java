@@ -141,7 +141,7 @@ public class ResourceAssignment extends HelixProperty {
    * @param rawMaps the map of partition name to participant name and state
    * @return converted maps
    */
-  public static Map<? extends PartitionId, Map<ParticipantId, State>> replicaMapsFromStringMaps(
+  public static Map<PartitionId, Map<ParticipantId, State>> replicaMapsFromStringMaps(
       Map<String, Map<String, String>> rawMaps) {
     if (rawMaps == null) {
       return Collections.emptyMap();

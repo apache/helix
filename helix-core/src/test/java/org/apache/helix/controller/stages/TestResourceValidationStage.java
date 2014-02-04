@@ -76,7 +76,7 @@ public class TestResourceValidationStage {
     ClusterId clusterId = new ClusterId("sampleClusterId");
     ClusterAccessor clusterAccessor = new MockClusterAccessor(clusterId, accessor);
     Cluster cluster = clusterAccessor.readCluster();
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
     event.addAttribute(AttributeName.IDEAL_STATE_RULES.toString(),
         clusterConfiguration.getIdealStateRules());
 
@@ -113,7 +113,7 @@ public class TestResourceValidationStage {
     ClusterId clusterId = new ClusterId("sampleClusterId");
     ClusterAccessor clusterAccessor = new MockClusterAccessor(clusterId, accessor);
     Cluster cluster = clusterAccessor.readCluster();
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
     Map<String, Map<String, String>> emptyMap = Maps.newHashMap();
     event.addAttribute(AttributeName.IDEAL_STATE_RULES.toString(), emptyMap);
 
@@ -148,7 +148,7 @@ public class TestResourceValidationStage {
     ClusterId clusterId = new ClusterId("sampleClusterId");
     ClusterAccessor clusterAccessor = new MockClusterAccessor(clusterId, accessor);
     Cluster cluster = clusterAccessor.readCluster();
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
     Map<String, Map<String, String>> emptyMap = Maps.newHashMap();
     event.addAttribute(AttributeName.IDEAL_STATE_RULES.toString(), emptyMap);
 

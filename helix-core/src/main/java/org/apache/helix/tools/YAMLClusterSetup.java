@@ -140,6 +140,14 @@ public class YAMLClusterSetup {
         }
         helixAdmin.addResource(cfg.clusterName, resource.name, partitions,
             resource.stateModel.name, resource.rebalancer.get("mode"));
+
+        // batch message mode
+        if (resource.batchMessageMode != null && resource.batchMessageMode) {
+          IdealState idealState = helixAdmin.getResourceIdealState(cfg.clusterName, resource.name);
+          idealState.setBatchMessageMode(true);
+          helixAdmin.setResourceIdealState(cfg.clusterName, resource.name, idealState);
+        }
+
         // user-defined rebalancer
         if (resource.rebalancer.containsKey("class")
             && resource.rebalancer.get("mode").equals(RebalanceMode.USER_DEFINED.toString())) {
@@ -268,6 +276,7 @@ public class YAMLClusterSetup {
       public Map<String, Integer> partitions;
       public StateModelConfig stateModel;
       public ConstraintsConfig constraints;
+      public Boolean batchMessageMode;
 
       public static class StateModelConfig {
         public String name;

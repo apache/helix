@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.alerts.AlertsHolder;
-import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ClusterId;
@@ -14,14 +12,12 @@ import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Transition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
@@ -61,8 +57,6 @@ public class ClusterConfig {
   private final Map<ParticipantId, ParticipantConfig> _participantMap;
   private final Map<ConstraintType, ClusterConstraints> _constraintMap;
   private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
-  private final PersistentStats _stats;
-  private final Alerts _alerts;
   private final UserConfig _userConfig;
   private final boolean _isPaused;
   private final boolean _autoJoin;
@@ -74,8 +68,6 @@ public class ClusterConfig {
    * @param participantMap map of participant id to participant config
    * @param constraintMap map of constraint type to all constraints of that type
    * @param stateModelMap map of state model id to state model definition
-   * @param stats statistics to watch on the cluster
-   * @param alerts alerts that the cluster can trigger
    * @param userConfig user-defined cluster properties
    * @param isPaused true if paused, false if active
    * @param allowAutoJoin true if participants can join automatically, false otherwise
@@ -83,15 +75,13 @@ public class ClusterConfig {
   private ClusterConfig(ClusterId id, Map<ResourceId, ResourceConfig> resourceMap,
       Map<ParticipantId, ParticipantConfig> participantMap,
       Map<ConstraintType, ClusterConstraints> constraintMap,
-      Map<StateModelDefId, StateModelDefinition> stateModelMap, PersistentStats stats,
-      Alerts alerts, UserConfig userConfig, boolean isPaused, boolean allowAutoJoin) {
+      Map<StateModelDefId, StateModelDefinition> stateModelMap, UserConfig userConfig,
+      boolean isPaused, boolean allowAutoJoin) {
     _id = id;
     _resourceMap = ImmutableMap.copyOf(resourceMap);
     _participantMap = ImmutableMap.copyOf(participantMap);
     _constraintMap = ImmutableMap.copyOf(constraintMap);
     _stateModelMap = ImmutableMap.copyOf(stateModelMap);
-    _stats = stats;
-    _alerts = alerts;
     _userConfig = userConfig;
     _isPaused = isPaused;
     _autoJoin = allowAutoJoin;
@@ -237,22 +227,6 @@ public class ClusterConfig {
   }
 
   /**
-   * Get all the statistics persisted on the cluster
-   * @return PersistentStats instance
-   */
-  public PersistentStats getStats() {
-    return _stats;
-  }
-
-  /**
-   * Get all the alerts persisted on the cluster
-   * @return Alerts instance
-   */
-  public Alerts getAlerts() {
-    return _alerts;
-  }
-
-  /**
    * Get user-specified configuration properties of this cluster
    * @return UserConfig properties
    */
@@ -287,8 +261,6 @@ public class ClusterConfig {
 
     private Set<Fields> _updateFields;
     private Map<ConstraintType, Set<ConstraintId>> _removedConstraints;
-    private PersistentStats _removedStats;
-    private Alerts _removedAlerts;
     private Builder _builder;
 
     /**
@@ -302,8 +274,6 @@ public class ClusterConfig {
         Set<ConstraintId> constraints = Sets.newHashSet();
         _removedConstraints.put(type, constraints);
       }
-      _removedStats = new PersistentStats(PersistentStats.nodeName);
-      _removedAlerts = new Alerts(Alerts.nodeName);
       _builder = new Builder(clusterId);
     }
 
@@ -431,57 +401,6 @@ public class ClusterConfig {
     }
 
     /**
-     * Add a statistic specification to the cluster. Existing specifications will not be overwritten
-     * @param stat string specifying the stat specification
-     * @return Delta
-     */
-    public Delta addStat(String stat) {
-      _builder.addStat(stat);
-      return this;
-    }
-
-    /**
-     * Add an alert specification for the cluster. Existing specifications will not be overwritten
-     * @param alert string specifying the alert specification
-     * @return Delta
-     */
-    public Delta addAlert(String alert) {
-      _builder.addAlert(alert);
-      return this;
-    }
-
-    /**
-     * Remove a statistic specification from the cluster
-     * @param stat statistic specification
-     * @return Delta
-     */
-    public Delta removeStat(String stat) {
-      Map<String, Map<String, String>> parsedStat = StatsHolder.parseStat(stat);
-      Map<String, Map<String, String>> currentStats = _removedStats.getMapFields();
-      for (String statName : parsedStat.keySet()) {
-        currentStats.put(statName, parsedStat.get(statName));
-      }
-      return this;
-    }
-
-    /**
-     * Remove an alert specification for the cluster
-     * @param alert alert specification
-     * @return Delta
-     */
-    public Delta removeAlert(String alert) {
-      Map<String, Map<String, String>> currAlertMap = _removedAlerts.getMapFields();
-      if (!currAlertMap.containsKey(alert)) {
-        Map<String, String> parsedAlert = Maps.newHashMap();
-        StringBuilder statsName = new StringBuilder();
-        AlertsHolder.parseAlert(alert, statsName, parsedAlert);
-        removeStat(statsName.toString());
-        currAlertMap.put(alert, parsedAlert);
-      }
-      return this;
-    }
-
-    /**
      * Create a ClusterConfig that is the combination of an existing ClusterConfig and this delta
      * @param orig the original ClusterConfig
      * @return updated ClusterConfig
@@ -494,8 +413,7 @@ public class ClusterConfig {
               .addParticipants(orig.getParticipantMap().values())
               .addStateModelDefinitions(orig.getStateModelMap().values())
               .userConfig(orig.getUserConfig()).pausedStatus(orig.isPaused())
-              .autoJoin(orig.autoJoinAllowed()).addStats(orig.getStats())
-              .addAlerts(orig.getAlerts());
+              .autoJoin(orig.autoJoinAllowed());
       for (Fields field : _updateFields) {
         switch (field) {
         case USER_CONFIG:
@@ -529,29 +447,8 @@ public class ClusterConfig {
         builder.addConstraint(constraints);
       }
 
-      // add stats and alerts
-      builder.addStats(deltaConfig.getStats());
-      builder.addAlerts(deltaConfig.getAlerts());
-
       // get the result
-      ClusterConfig result = builder.build();
-
-      // remove stats
-      PersistentStats stats = result.getStats();
-      for (String removedStat : _removedStats.getMapFields().keySet()) {
-        if (stats.getMapFields().containsKey(removedStat)) {
-          stats.getMapFields().remove(removedStat);
-        }
-      }
-
-      // remove alerts
-      Alerts alerts = result.getAlerts();
-      for (String removedAlert : _removedAlerts.getMapFields().keySet()) {
-        if (alerts.getMapFields().containsKey(removedAlert)) {
-          alerts.getMapFields().remove(removedAlert);
-        }
-      }
-      return result;
+      return builder.build();
     }
   }
 
@@ -565,8 +462,6 @@ public class ClusterConfig {
     private final Map<ConstraintType, ClusterConstraints> _constraintMap;
     private final Map<StateModelDefId, StateModelDefinition> _stateModelMap;
     private UserConfig _userConfig;
-    private PersistentStats _stats;
-    private Alerts _alerts;
     private boolean _isPaused;
     private boolean _autoJoin;
 
@@ -583,8 +478,6 @@ public class ClusterConfig {
       _isPaused = false;
       _autoJoin = false;
       _userConfig = new UserConfig(Scope.cluster(id));
-      _stats = new PersistentStats(PersistentStats.nodeName);
-      _alerts = new Alerts(Alerts.nodeName);
     }
 
     /**
@@ -789,74 +682,6 @@ public class ClusterConfig {
     }
 
     /**
-     * Add a statistic specification to the cluster. Existing specifications will not be overwritten
-     * @param stat String specifying the stat specification
-     * @return Builder
-     */
-    public Builder addStat(String stat) {
-      Map<String, Map<String, String>> parsedStat = StatsHolder.parseStat(stat);
-      Map<String, Map<String, String>> currentStats = _stats.getMapFields();
-      for (String statName : parsedStat.keySet()) {
-        if (!currentStats.containsKey(statName)) {
-          currentStats.put(statName, parsedStat.get(statName));
-        }
-      }
-      return this;
-    }
-
-    /**
-     * Add statistic specifications to the cluster. Existing specifications will not be overwritten
-     * @param stats PersistentStats specifying the stat specification
-     * @return Builder
-     */
-    public Builder addStats(PersistentStats stats) {
-      if (stats == null) {
-        return this;
-      }
-      Map<String, Map<String, String>> parsedStat = stats.getMapFields();
-      Map<String, Map<String, String>> currentStats = _stats.getMapFields();
-      for (String statName : parsedStat.keySet()) {
-        if (!currentStats.containsKey(statName)) {
-          currentStats.put(statName, parsedStat.get(statName));
-        }
-      }
-      return this;
-    }
-
-    /**
-     * Add alert specifications to the cluster. Existing specifications will not be overwritten
-     * @param alert string representing alert specifications
-     * @return Builder
-     */
-    public Builder addAlert(String alert) {
-      Map<String, Map<String, String>> currAlertMap = _alerts.getMapFields();
-      if (!currAlertMap.containsKey(alert)) {
-        Map<String, String> parsedAlert = Maps.newHashMap();
-        StringBuilder statsName = new StringBuilder();
-        AlertsHolder.parseAlert(alert, statsName, parsedAlert);
-        addStat(statsName.toString());
-        currAlertMap.put(alert, parsedAlert);
-      }
-      return this;
-    }
-
-    /**
-     * Add alert specifications to the cluster. Existing specifications will not be overwritten
-     * @param alerts Alerts instance
-     * @return Builder
-     */
-    public Builder addAlerts(Alerts alerts) {
-      if (alerts == null) {
-        return this;
-      }
-      Map<String, Map<String, String>> alertMap = alerts.getMapFields();
-      for (String alert : alertMap.keySet()) {
-        addAlert(alert);
-      }
-      return this;
-    }
-
-    /**
      * Set the paused status of the cluster
      * @param isPaused true if paused, false otherwise
      * @return Builder
@@ -892,7 +717,7 @@ public class ClusterConfig {
      */
     public ClusterConfig build() {
       return new ClusterConfig(_id, _resourceMap, _participantMap, _constraintMap, _stateModelMap,
-          _stats, _alerts, _userConfig, _isPaused, _autoJoin);
+          _userConfig, _isPaused, _autoJoin);
     }
 
     /**

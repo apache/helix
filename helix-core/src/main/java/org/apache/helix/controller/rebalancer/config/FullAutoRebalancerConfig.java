@@ -30,7 +30,12 @@ import org.apache.helix.model.IdealState.RebalanceMode;
  */
 public class FullAutoRebalancerConfig extends PartitionedRebalancerConfig {
   public FullAutoRebalancerConfig() {
-    setRebalanceMode(RebalanceMode.FULL_AUTO);
+    if (getClass().equals(FullAutoRebalancerConfig.class)) {
+      // only mark this as full auto mode if this specifc config is used
+      setRebalanceMode(RebalanceMode.FULL_AUTO);
+    } else {
+      setRebalanceMode(RebalanceMode.USER_DEFINED);
+    }
     setRebalancerRef(RebalancerRef.from(FullAutoRebalancer.class));
   }
 

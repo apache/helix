@@ -48,7 +48,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws StageException {
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
     if (cluster == null) {
       throw new StageException("Missing attributes in event: " + event + ". Requires Cluster");
     }

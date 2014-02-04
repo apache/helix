@@ -22,12 +22,18 @@ package org.apache.helix.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
@@ -35,22 +41,43 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * Reads the data from the cluster using data accessor. This output ClusterData which
  * provides useful methods to search/lookup properties
  */
-@Deprecated
 public class ClusterDataCache {
   Map<String, LiveInstance> _liveInstanceMap;
+  Map<String, LiveInstance> _liveInstanceCacheMap;
   Map<String, IdealState> _idealStateMap;
+  Map<String, IdealState> _idealStateCacheMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
+  Map<String, InstanceConfig> _instanceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
+  Map<String, Map<String, String>> _idealStateRuleMap;
+  Map<String, ResourceConfiguration> _resourceConfigMap;
+  Map<String, ControllerContextHolder> _controllerContextMap;
+  PauseSignal _pause;
+  LiveInstance _leader;
+  ClusterConfiguration _clusterConfig;
+  boolean _writeAssignments;
+
+  // maintain a cache of participant messages across pipeline runs
+  Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
+
+  boolean _init = true;
 
   // Map<String, Map<String, HealthStat>> _healthStatMap;
   // private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
@@ -66,39 +93,111 @@ public class ClusterDataCache {
    * @param accessor
    * @return
    */
-  public boolean refresh(HelixDataAccessor accessor) {
+  public synchronized boolean refresh(HelixDataAccessor accessor) {
+    LOG.info("START: ClusterDataCache.refresh()");
+    long startTime = System.currentTimeMillis();
+
     Builder keyBuilder = accessor.keyBuilder();
-    _idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
-    _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+
+    if (_init) {
+      _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+      _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+    }
+    _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
+    _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
+    _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
 
     for (LiveInstance instance : _liveInstanceMap.values()) {
-      LOG.trace("live instance: " + instance.getParticipantId() + " "
-          + instance.getTypedSessionId());
+      LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-    _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
+    List<PropertyKey> newMessageKeys = Lists.newLinkedList();
+    long purgeSum = 0;
     for (String instanceName : _liveInstanceMap.keySet()) {
-      Map<String, Message> map = accessor.getChildValuesMap(keyBuilder.messages(instanceName));
-      msgMap.put(instanceName, map);
+      // get the cache
+      Map<String, Message> cachedMap = _messageCache.get(instanceName);
+      if (cachedMap == null) {
+        cachedMap = Maps.newHashMap();
+        _messageCache.put(instanceName, cachedMap);
+      }
+      msgMap.put(instanceName, cachedMap);
+
+      // get the current names
+      Set<String> messageNames =
+          Sets.newHashSet(accessor.getChildNames(keyBuilder.messages(instanceName)));
+
+      long purgeStart = System.currentTimeMillis();
+      // clear stale names
+      Iterator<String> cachedNamesIter = cachedMap.keySet().iterator();
+      while (cachedNamesIter.hasNext()) {
+        String messageName = cachedNamesIter.next();
+        if (!messageNames.contains(messageName)) {
+          cachedNamesIter.remove();
+        }
+      }
+      long purgeEnd = System.currentTimeMillis();
+      purgeSum += purgeEnd - purgeStart;
+
+      // get the keys for the new messages
+      for (String messageName : messageNames) {
+        if (!cachedMap.containsKey(messageName)) {
+          newMessageKeys.add(keyBuilder.message(instanceName, messageName));
+        }
+      }
+    }
+
+    // get the new messages
+    if (newMessageKeys.size() > 0) {
+      List<Message> newMessages = accessor.getProperty(newMessageKeys);
+      for (Message message : newMessages) {
+        if (message != null) {
+          Map<String, Message> cachedMap = _messageCache.get(message.getTgtName());
+          cachedMap.put(message.getId(), message);
+        }
+      }
     }
     _messageMap = Collections.unmodifiableMap(msgMap);
+    LOG.debug("Purge took: " + purgeSum);
 
+    List<PropertyKey> currentStateKeys = Lists.newLinkedList();
     Map<String, Map<String, Map<String, CurrentState>>> allCurStateMap =
         new HashMap<String, Map<String, Map<String, CurrentState>>>();
     for (String instanceName : _liveInstanceMap.keySet()) {
       LiveInstance liveInstance = _liveInstanceMap.get(instanceName);
-      String sessionId = liveInstance.getTypedSessionId().stringify();
-      if (!allCurStateMap.containsKey(instanceName)) {
-        allCurStateMap.put(instanceName, new HashMap<String, Map<String, CurrentState>>());
+      String sessionId = liveInstance.getSessionId();
+      List<String> currentStateNames =
+          accessor.getChildNames(keyBuilder.currentStates(instanceName, sessionId));
+      for (String currentStateName : currentStateNames) {
+        currentStateKeys.add(keyBuilder.currentState(instanceName, sessionId, currentStateName));
       }
-      Map<String, Map<String, CurrentState>> curStateMap = allCurStateMap.get(instanceName);
-      Map<String, CurrentState> map =
-          accessor.getChildValuesMap(keyBuilder.currentStates(instanceName, sessionId));
-      curStateMap.put(sessionId, map);
+
+      // ensure an empty current state map for all live instances and sessions
+      Map<String, Map<String, CurrentState>> instanceCurStateMap = allCurStateMap.get(instanceName);
+      if (instanceCurStateMap == null) {
+        instanceCurStateMap = Maps.newHashMap();
+        allCurStateMap.put(instanceName, instanceCurStateMap);
+      }
+      Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(sessionId);
+      if (sessionCurStateMap == null) {
+        sessionCurStateMap = Maps.newHashMap();
+        instanceCurStateMap.put(sessionId, sessionCurStateMap);
+      }
+    }
+    List<CurrentState> currentStates = accessor.getProperty(currentStateKeys);
+    Iterator<PropertyKey> csKeyIter = currentStateKeys.iterator();
+    for (CurrentState currentState : currentStates) {
+      PropertyKey key = csKeyIter.next();
+      String[] params = key.getParams();
+      if (currentState != null && params.length >= 4) {
+        Map<String, Map<String, CurrentState>> instanceCurStateMap = allCurStateMap.get(params[1]);
+        Map<String, CurrentState> sessionCurStateMap = instanceCurStateMap.get(params[2]);
+        sessionCurStateMap.put(params[3], currentState);
+      }
     }
 
     for (String instance : allCurStateMap.keySet()) {
@@ -106,7 +205,60 @@ public class ClusterDataCache {
     }
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
+    // New in 0.7: Read more information for the benefit of user-defined rebalancers
+    _resourceConfigMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
+    _controllerContextMap = accessor.getChildValuesMap(keyBuilder.controllerContexts());
+
+    // Read all single properties together
+    List<HelixProperty> singleProperties =
+        accessor.getProperty(ImmutableList.of(keyBuilder.clusterConfig(),
+            keyBuilder.controllerLeader(), keyBuilder.pause()));
+    _clusterConfig = (ClusterConfiguration) singleProperties.get(0);
+    if (_clusterConfig != null) {
+      _idealStateRuleMap = _clusterConfig.getIdealStateRules();
+    } else {
+      _idealStateRuleMap = Collections.emptyMap();
+    }
+    _leader = (LiveInstance) singleProperties.get(1);
+    _pause = (PauseSignal) singleProperties.get(2);
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("END: ClusterDataCache.refresh(), took " + (endTime - startTime) + " ms");
+
+    if (LOG.isDebugEnabled()) {
+      int numPaths =
+          _liveInstanceMap.size() + _idealStateMap.size() + +_resourceConfigMap.size()
+              + _stateModelDefMap.size() + _instanceConfigMap.size() + _constraintMap.size()
+              + _controllerContextMap.size() + newMessageKeys.size() + currentStateKeys.size();
+      LOG.debug("Paths read: " + numPaths);
+    }
+
+    _init = false;
     return true;
+  }
+
+  /**
+   * Get the live instance associated with the controller leader
+   * @return LiveInstance
+   */
+  public LiveInstance getLeader() {
+    return _leader;
+  }
+
+  /**
+   * Get the pause signal (if any)
+   * @return PauseSignal
+   */
+  public PauseSignal getPauseSignal() {
+    return _pause;
+  }
+
+  /**
+   * Retrieves the configs for all resources
+   * @return
+   */
+  public Map<String, ResourceConfiguration> getResourceConfigs() {
+    return _resourceConfigMap;
   }
 
   /**
@@ -117,12 +269,32 @@ public class ClusterDataCache {
     return _idealStateMap;
   }
 
+  public synchronized void setIdealStates(List<IdealState> idealStates) {
+    Map<String, IdealState> idealStateMap = Maps.newHashMap();
+    for (IdealState idealState : idealStates) {
+      idealStateMap.put(idealState.getId(), idealState);
+    }
+    _idealStateCacheMap = idealStateMap;
+  }
+
+  public Map<String, Map<String, String>> getIdealStateRules() {
+    return _idealStateRuleMap;
+  }
+
   /**
    * Returns the LiveInstances for each of the instances that are curretnly up and running
    * @return
    */
   public Map<String, LiveInstance> getLiveInstances() {
     return _liveInstanceMap;
+  }
+
+  public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
+    Map<String, LiveInstance> liveInstanceMap = Maps.newHashMap();
+    for (LiveInstance liveInstance : liveInstances) {
+      liveInstanceMap.put(liveInstance.getId(), liveInstance);
+    }
+    _liveInstanceCacheMap = liveInstanceMap;
   }
 
   /**
@@ -133,6 +305,10 @@ public class ClusterDataCache {
    * @return
    */
   public Map<String, CurrentState> getCurrentState(String instanceName, String clientSessionId) {
+    if (!_currentStateMap.containsKey(instanceName)
+        || !_currentStateMap.get(instanceName).containsKey(clientSessionId)) {
+      return Collections.emptyMap();
+    }
     return _currentStateMap.get(instanceName).get(clientSessionId);
   }
 
@@ -148,6 +324,14 @@ public class ClusterDataCache {
     } else {
       return Collections.emptyMap();
     }
+  }
+
+  /**
+   * Provides all outstanding messages
+   * @return
+   */
+  public Map<String, Map<String, Message>> getMessageMap() {
+    return _messageMap;
   }
 
   // public HealthStat getGlobalStats()
@@ -187,8 +371,15 @@ public class ClusterDataCache {
    * @return
    */
   public StateModelDefinition getStateModelDef(String stateModelDefRef) {
-
     return _stateModelDefMap.get(stateModelDefRef);
+  }
+
+  /**
+   * Get all state model definitions
+   * @return map of name to state model definition
+   */
+  public Map<String, StateModelDefinition> getStateModelDefMap() {
+    return _stateModelDefMap;
   }
 
   /**
@@ -206,6 +397,14 @@ public class ClusterDataCache {
    */
   public Map<String, InstanceConfig> getInstanceConfigMap() {
     return _instanceConfigMap;
+  }
+
+  public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
+    Map<String, InstanceConfig> instanceConfigMap = Maps.newHashMap();
+    for (InstanceConfig instanceConfig : instanceConfigs) {
+      instanceConfigMap.put(instanceConfig.getId(), instanceConfig);
+    }
+    _instanceConfigCacheMap = instanceConfigMap;
   }
 
   /**
@@ -264,6 +463,55 @@ public class ClusterDataCache {
       return _constraintMap.get(type.toString());
     }
     return null;
+  }
+
+  public Map<String, ClusterConstraints> getConstraintMap() {
+    return _constraintMap;
+  }
+
+  public Map<String, ControllerContextHolder> getContextMap() {
+    return _controllerContextMap;
+  }
+
+  public ClusterConfiguration getClusterConfig() {
+    return _clusterConfig;
+  }
+
+  public void cacheMessages(List<Message> messages) {
+    for (Message message : messages) {
+      String instanceName = message.getTgtName();
+      Map<String, Message> instMsgMap = null;
+      if (_messageCache.containsKey(instanceName)) {
+        instMsgMap = _messageCache.get(instanceName);
+      } else {
+        instMsgMap = Maps.newHashMap();
+        _messageCache.put(instanceName, instMsgMap);
+      }
+      instMsgMap.put(message.getId(), message);
+    }
+  }
+
+  /**
+   * Enable or disable writing resource assignments
+   * @param enable true to enable, false to disable
+   */
+  public void setAssignmentWritePolicy(boolean enable) {
+    _writeAssignments = enable;
+  }
+
+  /**
+   * Check if writing resource assignments is enabled
+   * @return true if enabled, false if disabled
+   */
+  public boolean assignmentWriteEnabled() {
+    return _writeAssignments;
+  }
+
+  /**
+   * Indicate that a full read should be done on the next refresh
+   */
+  public synchronized void requireFullRefresh() {
+    _init = true;
   }
 
   /**

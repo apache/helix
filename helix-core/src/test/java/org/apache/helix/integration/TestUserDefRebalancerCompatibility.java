@@ -79,26 +79,30 @@ public class TestUserDefRebalancerCompatibility extends
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
 
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new TestCustomizedIdealStateRebalancer.ExternalViewBalancedVerifier(
-                _gZkClient, CLUSTER_NAME, db2));
-    Assert.assertTrue(result);
-    Thread.sleep(1000);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
-    Assert.assertEquals(ev.getPartitionSet().size(), 60);
-    for (String partition : ev.getPartitionSet()) {
-      Assert.assertEquals(ev.getStateMap(partition).size(), 1);
+    try {
+      boolean result =
+          ClusterStateVerifier
+              .verifyByZkCallback(new TestCustomizedIdealStateRebalancer.ExternalViewBalancedVerifier(
+                  _gZkClient, CLUSTER_NAME, db2));
+      Assert.assertTrue(result);
+      Thread.sleep(1000);
+      HelixDataAccessor accessor =
+          new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+      Builder keyBuilder = accessor.keyBuilder();
+      ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
+      Assert.assertEquals(ev.getPartitionSet().size(), 60);
+      for (String partition : ev.getPartitionSet()) {
+        Assert.assertEquals(ev.getStateMap(partition).size(), 1);
+      }
+      IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
+      for (PartitionId partition : is.getPartitionIdSet()) {
+        Assert.assertEquals(is.getPreferenceList(partition).size(), 3);
+        Assert.assertEquals(is.getParticipantStateMap(partition).size(), 3);
+      }
+      Assert.assertTrue(testRebalancerCreated);
+      Assert.assertTrue(testRebalancerInvoked);
+    } finally {
+      _setupTool.dropResourceFromCluster(CLUSTER_NAME, db2);
     }
-    IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
-    for (PartitionId partition : is.getPartitionIdSet()) {
-      Assert.assertEquals(is.getPreferenceList(partition).size(), 3);
-      Assert.assertEquals(is.getParticipantStateMap(partition).size(), 3);
-    }
-    Assert.assertTrue(testRebalancerCreated);
-    Assert.assertTrue(testRebalancerInvoked);
   }
 }

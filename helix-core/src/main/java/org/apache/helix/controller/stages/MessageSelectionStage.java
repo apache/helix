@@ -89,7 +89,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
     Map<StateModelDefId, StateModelDefinition> stateModelDefMap = cluster.getStateModelMap();
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
@@ -101,7 +101,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
     if (cluster == null || resourceMap == null || currentStateOutput == null
         || messageGenOutput == null || bestPossibleStateOutput == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE|MESSAGES_ALL");
+          + ". Requires Cluster|RESOURCES|CURRENT_STATE|BEST_POSSIBLE_STATE|MESSAGES_ALL");
     }
 
     MessageOutput output = new MessageOutput();
@@ -112,7 +112,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
           stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
 
       if (stateModelDef == null) {
-        LOG.info("resource: " + resourceId
+        LOG.info("resource: "
+            + resourceId
             + " doesn't have state-model-def; e.g. we add a resource config but not add the resource in ideal-states");
         continue;
       }

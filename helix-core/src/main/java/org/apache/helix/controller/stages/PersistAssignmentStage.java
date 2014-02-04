@@ -19,29 +19,66 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.List;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.accessor.ResourceAccessor;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
 
 /**
  * Persist the ResourceAssignment of each resource that went through rebalancing
  */
 public class PersistAssignmentStage extends AbstractBaseStage {
+  private static final Logger LOG = Logger.getLogger(PersistAssignmentStage.class);
+
   @Override
   public void process(ClusterEvent event) throws Exception {
-    HelixManager helixManager = event.getAttribute("helixmanager");
-    Cluster cluster = event.getAttribute("ClusterDataCache");
-    HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
-    ResourceAccessor resourceAccessor = new ResourceAccessor(cluster.getId(), accessor);
-    BestPossibleStateOutput assignments =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    for (ResourceId resourceId : assignments.getAssignedResources()) {
-      ResourceAssignment assignment = assignments.getResourceAssignment(resourceId);
-      resourceAccessor.setResourceAssignment(resourceId, assignment);
+    LOG.info("START PersistAssignmentStage.process()");
+    long startTime = System.currentTimeMillis();
+
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    if (cache.assignmentWriteEnabled()) {
+      Cluster cluster = event.getAttribute("Cluster");
+      HelixManager helixManager = event.getAttribute("helixmanager");
+      HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+      BestPossibleStateOutput assignments =
+          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+      List<ResourceAssignment> changedAssignments = Lists.newLinkedList();
+      List<PropertyKey> changedKeys = Lists.newLinkedList();
+      for (ResourceId resourceId : assignments.getAssignedResources()) {
+        ResourceAssignment assignment = assignments.getResourceAssignment(resourceId);
+        Resource resource = cluster.getResource(resourceId);
+        boolean toAdd = false;
+        if (resource != null) {
+          ResourceAssignment existAssignment = resource.getResourceAssignment();
+          if (existAssignment == null || !existAssignment.equals(assignment)) {
+            toAdd = true;
+          }
+        } else {
+          toAdd = true;
+        }
+        if (toAdd) {
+          changedAssignments.add(assignment);
+          changedKeys.add(keyBuilder.resourceAssignment(resourceId.toString()));
+        }
+      }
+
+      // update as a batch operation
+      if (changedAssignments.size() > 0) {
+        accessor.setChildren(changedKeys, changedAssignments);
+      }
     }
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("END PersistAssignmentStage.process(), took " + (endTime - startTime) + " ms");
   }
 }

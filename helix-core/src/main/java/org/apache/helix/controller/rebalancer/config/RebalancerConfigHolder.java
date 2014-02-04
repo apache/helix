@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
  * information specific to each rebalancer.
  */
 public final class RebalancerConfigHolder {
-  private enum Fields {
+  public enum Fields {
     SERIALIZER_CLASS,
     REBALANCER_CONFIG,
     REBALANCER_CONFIG_CLASS

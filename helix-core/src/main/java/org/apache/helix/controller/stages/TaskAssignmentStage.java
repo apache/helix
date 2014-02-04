@@ -55,15 +55,16 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     MessageOutput messageOutput = event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
     BestPossibleStateOutput bestPossibleStateOutput =
         event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<ParticipantId, Participant> liveParticipantMap = cluster.getLiveParticipantMap();
 
     if (manager == null || resourceMap == null || messageOutput == null || cluster == null
-        || liveParticipantMap == null) {
+        || cache == null || liveParticipantMap == null) {
       throw new StageException(
           "Missing attributes in event:"
               + event
-              + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE|BEST_POSSIBLE_STATE|DataCache|liveInstanceMap");
+              + ". Requires HelixManager|RESOURCES|MESSAGES_THROTTLE|BEST_POSSIBLE_STATE|Cluster|DataCache|liveInstanceMap");
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
@@ -80,6 +81,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveParticipantMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
+
+    long cacheStart = System.currentTimeMillis();
+    cache.cacheMessages(outputMessages);
+    long cacheEnd = System.currentTimeMillis();
+    logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
 
     long endTime = System.currentTimeMillis();
     logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");

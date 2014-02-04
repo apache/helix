@@ -56,7 +56,12 @@ public final class SemiAutoRebalancerConfig extends PartitionedRebalancerConfig 
    * Instantiate a SemiAutoRebalancerConfig
    */
   public SemiAutoRebalancerConfig() {
-    setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    if (getClass().equals(SemiAutoRebalancerConfig.class)) {
+      // only mark this as semi auto mode if this specifc config is used
+      setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    } else {
+      setRebalanceMode(RebalanceMode.USER_DEFINED);
+    }
     setRebalancerRef(RebalancerRef.from(SemiAutoRebalancer.class));
     _preferenceLists = Maps.newHashMap();
   }

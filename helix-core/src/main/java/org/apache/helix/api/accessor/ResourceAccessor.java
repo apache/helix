@@ -39,6 +39,7 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
@@ -137,14 +138,19 @@ public class ResourceAccessor {
    */
   private boolean setConfiguration(ResourceId resourceId, ResourceConfiguration configuration,
       RebalancerConfig rebalancerConfig) {
-    boolean status =
-        _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+    boolean status = true;
+    if (configuration != null) {
+      status =
+          _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+    }
     // set an ideal state if the resource supports it
     IdealState idealState =
         rebalancerConfigToIdealState(rebalancerConfig, configuration.getBucketSize(),
             configuration.getBatchMessageMode());
     if (idealState != null) {
-      _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
+      status =
+          status
+              && _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
     }
     return status;
   }
@@ -253,7 +259,14 @@ public class ResourceAccessor {
     }
     ResourceId resourceId = resourceConfig.getId();
     ResourceConfiguration config = new ResourceConfiguration(resourceId);
-    config.addNamespacedConfig(resourceConfig.getUserConfig());
+    UserConfig userConfig = resourceConfig.getUserConfig();
+    if (userConfig != null
+        && (!userConfig.getSimpleFields().isEmpty() || !userConfig.getListFields().isEmpty() || !userConfig
+            .getMapFields().isEmpty())) {
+      config.addNamespacedConfig(userConfig);
+    } else {
+      userConfig = null;
+    }
     PartitionedRebalancerConfig partitionedConfig =
         PartitionedRebalancerConfig.from(resourceConfig.getRebalancerConfig());
     if (partitionedConfig == null
@@ -261,9 +274,11 @@ public class ResourceAccessor {
       // only persist if this is not easily convertible to an ideal state
       config.addNamespacedConfig(new RebalancerConfigHolder(resourceConfig.getRebalancerConfig())
           .toNamespacedConfig());
+      config.setBucketSize(resourceConfig.getBucketSize());
+      config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
+    } else if (userConfig == null) {
+      config = null;
     }
-    config.setBucketSize(resourceConfig.getBucketSize());
-    config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
     setConfiguration(resourceId, config, resourceConfig.getRebalancerConfig());
     return true;
   }
@@ -387,9 +402,17 @@ public class ResourceAccessor {
       boolean batchMessageMode) {
     PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
     if (partitionedConfig != null) {
+      if (!PartitionedRebalancerConfig.isBuiltinConfig(partitionedConfig.getClass())) {
+        // don't proceed if this resource cannot be described by an ideal state
+        return null;
+      }
       IdealState idealState = new IdealState(partitionedConfig.getResourceId());
       idealState.setRebalanceMode(partitionedConfig.getRebalanceMode());
-      idealState.setRebalancerRef(partitionedConfig.getRebalancerRef());
+
+      RebalancerRef ref = partitionedConfig.getRebalancerRef();
+      if (ref != null) {
+        idealState.setRebalancerRef(partitionedConfig.getRebalancerRef());
+      }
       String replicas = null;
       if (partitionedConfig.anyLiveParticipant()) {
         replicas = StateModelToken.ANY_LIVEINSTANCE.toString();
@@ -404,13 +427,14 @@ public class ResourceAccessor {
       idealState.setStateModelFactoryId(partitionedConfig.getStateModelFactoryId());
       idealState.setBucketSize(bucketSize);
       idealState.setBatchMessageMode(batchMessageMode);
-      if (partitionedConfig.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+      idealState.setRebalancerConfigClass(config.getClass());
+      if (SemiAutoRebalancerConfig.class.equals(config.getClass())) {
         SemiAutoRebalancerConfig semiAutoConfig =
             BasicRebalancerConfig.convert(config, SemiAutoRebalancerConfig.class);
         for (PartitionId partitionId : semiAutoConfig.getPartitionSet()) {
           idealState.setPreferenceList(partitionId, semiAutoConfig.getPreferenceList(partitionId));
         }
-      } else if (partitionedConfig.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+      } else if (CustomRebalancerConfig.class.equals(config.getClass())) {
         CustomRebalancerConfig customConfig =
             BasicRebalancerConfig.convert(config, CustomRebalancerConfig.class);
         for (PartitionId partitionId : customConfig.getPartitionSet()) {

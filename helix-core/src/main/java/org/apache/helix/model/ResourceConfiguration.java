@@ -112,4 +112,14 @@ public class ResourceConfiguration extends HelixProperty {
     RebalancerConfigHolder config = new RebalancerConfigHolder(this);
     return config.getRebalancerConfig(clazz);
   }
+
+  /**
+   * Check if this resource config has a rebalancer config
+   * @return true if a rebalancer config is attached, false otherwise
+   */
+  public boolean hasRebalancerConfig() {
+    return _record.getSimpleFields().containsKey(
+        RebalancerConfigHolder.class.getSimpleName() + NamespacedConfig.PREFIX_CHAR
+            + RebalancerConfigHolder.Fields.REBALANCER_CONFIG);
+  }
 }

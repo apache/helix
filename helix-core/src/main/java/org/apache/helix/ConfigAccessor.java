@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ConfigScope;
@@ -489,7 +490,13 @@ public class ConfigAccessor {
     List<String> retKeys = null;
 
     if (scope.isFullKey()) {
-      ZNRecord record = zkClient.readData(zkPath);
+      ZNRecord record;
+      try {
+        record = zkClient.readData(zkPath);
+      } catch (ZkNoNodeException e) {
+        LOG.warn(zkPath + " no longer exists");
+        return Collections.emptyList();
+      }
       if (mapKey == null) {
         retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
       } else {

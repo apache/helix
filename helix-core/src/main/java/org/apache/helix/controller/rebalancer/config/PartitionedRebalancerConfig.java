@@ -10,14 +10,20 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.FullAutoRebalancer;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
+import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.TaskRebalancer;
 import org.codehaus.jackson.annotate.JsonIgnore;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -50,6 +56,23 @@ public class PartitionedRebalancerConfig extends BasicRebalancerConfig implement
   private int _replicaCount;
   private int _maxPartitionsPerParticipant;
   private RebalanceMode _rebalanceMode;
+
+  @JsonIgnore
+  private static final Set<Class<? extends RebalancerConfig>> BUILTIN_CONFIG_CLASSES = Sets
+      .newHashSet();
+  @JsonIgnore
+  private static final Set<Class<? extends HelixRebalancer>> BUILTIN_REBALANCER_CLASSES = Sets
+      .newHashSet();
+  static {
+    BUILTIN_CONFIG_CLASSES.add(PartitionedRebalancerConfig.class);
+    BUILTIN_CONFIG_CLASSES.add(FullAutoRebalancerConfig.class);
+    BUILTIN_CONFIG_CLASSES.add(SemiAutoRebalancerConfig.class);
+    BUILTIN_CONFIG_CLASSES.add(CustomRebalancerConfig.class);
+    BUILTIN_REBALANCER_CLASSES.add(FullAutoRebalancer.class);
+    BUILTIN_REBALANCER_CLASSES.add(SemiAutoRebalancer.class);
+    BUILTIN_REBALANCER_CLASSES.add(CustomRebalancer.class);
+    BUILTIN_REBALANCER_CLASSES.add(TaskRebalancer.class);
+  }
 
   /**
    * Instantiate a PartitionedRebalancerConfig
@@ -186,13 +209,42 @@ public class PartitionedRebalancerConfig extends BasicRebalancerConfig implement
   }
 
   /**
+   * Check if the given class is compatible with an {@link IdealState}
+   * @param clazz the PartitionedRebalancerConfig subclass
+   * @return true if IdealState can be used to describe this config, false otherwise
+   */
+  public static boolean isBuiltinConfig(Class<? extends RebalancerConfig> clazz) {
+    return BUILTIN_CONFIG_CLASSES.contains(clazz);
+  }
+
+  /**
+   * Check if the given class is a built-in rebalancer class
+   * @param clazz the HelixRebalancer subclass
+   * @return true if the rebalancer class is built in, false otherwise
+   */
+  public static boolean isBuiltinRebalancer(Class<? extends HelixRebalancer> clazz) {
+    return BUILTIN_REBALANCER_CLASSES.contains(clazz);
+  }
+
+  /**
    * Convert a physically-stored IdealState into a rebalancer config for a partitioned resource
    * @param idealState populated IdealState
    * @return PartitionedRebalancerConfig
    */
   public static PartitionedRebalancerConfig from(IdealState idealState) {
     PartitionedRebalancerConfig config;
-    switch (idealState.getRebalanceMode()) {
+    RebalanceMode mode = idealState.getRebalanceMode();
+    if (mode == RebalanceMode.USER_DEFINED) {
+      Class<? extends RebalancerConfig> configClass = idealState.getRebalancerConfigClass();
+      if (configClass.equals(FullAutoRebalancerConfig.class)) {
+        mode = RebalanceMode.FULL_AUTO;
+      } else if (configClass.equals(SemiAutoRebalancerConfig.class)) {
+        mode = RebalanceMode.SEMI_AUTO;
+      } else if (configClass.equals(CustomRebalancerConfig.class)) {
+        mode = RebalanceMode.CUSTOMIZED;
+      }
+    }
+    switch (mode) {
     case FULL_AUTO:
       FullAutoRebalancerConfig.Builder fullAutoBuilder =
           new FullAutoRebalancerConfig.Builder(idealState.getResourceId());
@@ -252,7 +304,8 @@ public class PartitionedRebalancerConfig extends BasicRebalancerConfig implement
         .maxPartitionsPerParticipant(idealState.getMaxPartitionsPerInstance())
         .participantGroupTag(idealState.getInstanceGroupTag())
         .stateModelDefId(idealState.getStateModelDefId())
-        .stateModelFactoryId(idealState.getStateModelFactoryId());
+        .stateModelFactoryId(idealState.getStateModelFactoryId())
+        .rebalanceMode(idealState.getRebalanceMode());
     RebalancerRef rebalancerRef = idealState.getRebalancerRef();
     if (rebalancerRef != null) {
       builder.rebalancerRef(rebalancerRef);

@@ -47,13 +47,13 @@ import org.apache.helix.model.Message.MessageType;
 public class CurrentStateComputationStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
 
     if (cluster == null || resourceMap == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires DataCache|RESOURCE");
+          + ". Requires Cluster|RESOURCE");
     }
 
     ResourceCurrentState currentStateOutput = new ResourceCurrentState();

@@ -37,12 +37,14 @@ import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.FallbackRebalancer;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
+import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -51,6 +53,9 @@ import com.google.common.collect.Sets;
  */
 public class BestPossibleStateCalcStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(BestPossibleStateCalcStage.class.getName());
+
+  // cache for rebalancer instances
+  private Map<ResourceId, HelixRebalancer> _rebalancerMap = Maps.newHashMap();
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -63,11 +68,11 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
 
     if (currentStateOutput == null || resourceMap == null || cluster == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires CURRENT_STATE|RESOURCES|DataCache");
+          + ". Requires CURRENT_STATE|RESOURCES|Cluster");
     }
 
     BestPossibleStateOutput bestPossibleStateOutput =
@@ -178,25 +183,42 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           stateModelDefs.get(rebalancerConfig.getStateModelDefId());
       ResourceAssignment resourceAssignment = null;
       if (rebalancerConfig != null) {
+        // use a cached rebalancer if possible
+        RebalancerRef ref = rebalancerConfig.getRebalancerRef();
         HelixRebalancer rebalancer = null;
-        if (rebalancerConfig != null && rebalancerConfig.getRebalancerRef() != null) {
-          rebalancer = rebalancerConfig.getRebalancerRef().getRebalancer();
+        if (_rebalancerMap.containsKey(resourceId)) {
+          HelixRebalancer candidateRebalancer = _rebalancerMap.get(resourceId);
+          if (ref != null && candidateRebalancer.getClass().equals(ref.toString())) {
+            rebalancer = candidateRebalancer;
+          }
         }
-        HelixManager manager = event.getAttribute("helixmanager");
-        ControllerContextProvider provider =
-            event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
+
+        // otherwise instantiate a new one
         if (rebalancer == null) {
-          rebalancer = new FallbackRebalancer();
+          if (ref != null) {
+            rebalancer = ref.getRebalancer();
+          }
+          HelixManager manager = event.getAttribute("helixmanager");
+          ControllerContextProvider provider =
+              event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
+          if (rebalancer == null) {
+            rebalancer = new FallbackRebalancer();
+          }
+          rebalancer.init(manager, provider);
+          _rebalancerMap.put(resourceId, rebalancer);
         }
-        rebalancer.init(manager, provider);
         ResourceAssignment currentAssignment = null;
         Resource resourceSnapshot = cluster.getResource(resourceId);
         if (resourceSnapshot != null) {
           currentAssignment = resourceSnapshot.getResourceAssignment();
         }
-        resourceAssignment =
-            rebalancer.computeResourceMapping(rebalancerConfig, currentAssignment, cluster,
-                currentStateOutput);
+        try {
+          resourceAssignment =
+              rebalancer.computeResourceMapping(rebalancerConfig, currentAssignment, cluster,
+                  currentStateOutput);
+        } catch (Exception e) {
+          LOG.error("Rebalancer for resource " + resourceId + " failed.", e);
+        }
       }
       if (resourceAssignment == null) {
         resourceAssignment =

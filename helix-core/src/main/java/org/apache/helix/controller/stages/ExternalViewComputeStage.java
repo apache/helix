@@ -65,11 +65,11 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     HelixManager manager = event.getAttribute("helixmanager");
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
 
     if (manager == null || resourceMap == null || cluster == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires ClusterManager|RESOURCES|DataCache");
+          + ". Requires ClusterManager|RESOURCES|Cluster");
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();

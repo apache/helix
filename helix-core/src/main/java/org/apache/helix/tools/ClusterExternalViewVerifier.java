@@ -36,13 +36,11 @@ import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
-import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
 
@@ -68,7 +66,8 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
   boolean verifyLiveNodes(List<ParticipantId> actualLiveNodes) {
     Collections.sort(actualLiveNodes);
-    List<String> rawActualLiveNodes = Lists.transform(actualLiveNodes, Functions.toStringFunction());
+    List<String> rawActualLiveNodes =
+        Lists.transform(actualLiveNodes, Functions.toStringFunction());
     return _expectSortedLiveNodes.equals(rawActualLiveNodes);
   }
 
@@ -97,7 +96,7 @@ public class ClusterExternalViewVerifier extends ClusterVerifier {
 
   BestPossibleStateOutput calculateBestPossibleState(Cluster cluster) throws Exception {
     ClusterEvent event = new ClusterEvent("event");
-    event.addAttribute("ClusterDataCache", cluster);
+    event.addAttribute("Cluster", cluster);
 
     List<Stage> stages = new ArrayList<Stage>();
     stages.add(new ResourceComputationStage());

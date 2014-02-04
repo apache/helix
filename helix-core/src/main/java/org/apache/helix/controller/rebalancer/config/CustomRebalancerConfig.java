@@ -53,7 +53,12 @@ public class CustomRebalancerConfig extends PartitionedRebalancerConfig {
    * Instantiate a CustomRebalancerConfig
    */
   public CustomRebalancerConfig() {
-    setRebalanceMode(RebalanceMode.CUSTOMIZED);
+    if (getClass().equals(CustomRebalancerConfig.class)) {
+      // only mark this as customized mode if this specifc config is used
+      setRebalanceMode(RebalanceMode.CUSTOMIZED);
+    } else {
+      setRebalanceMode(RebalanceMode.USER_DEFINED);
+    }
     setRebalancerRef(RebalancerRef.from(CustomRebalancer.class));
     _preferenceMaps = Maps.newHashMap();
   }

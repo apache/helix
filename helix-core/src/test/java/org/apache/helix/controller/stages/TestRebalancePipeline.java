@@ -35,22 +35,13 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.controller.pipeline.Pipeline;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.MessageSelectionStage;
-import org.apache.helix.controller.stages.MessageThrottleStage;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
-import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
@@ -174,7 +165,6 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
     clusterAccessor.initClusterStructure();
 
-
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
     controller.syncStart();
@@ -232,6 +222,9 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
 
+    ClusterDataCache cache = new ClusterDataCache();
+    event.addAttribute("ClusterDataCache", cache);
+
     final String resourceName = "testResource_pending";
     String[] resourceGroups = new String[] {
       resourceName
@@ -288,6 +281,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     // message, make sure controller should not send O->DROPPEDN until O->S is done
     HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
     admin.dropResource(clusterName, resourceName);
+    List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates());
+    cache.setIdealStates(idealStates);
 
     runPipeline(event, dataRefresh);
     runPipeline(event, rebalancePipeline);

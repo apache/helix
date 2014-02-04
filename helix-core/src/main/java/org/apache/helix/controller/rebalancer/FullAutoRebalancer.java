@@ -113,8 +113,8 @@ public class FullAutoRebalancer implements HelixRebalancer {
       }
       if (!taggedLiveNodes.isEmpty()) {
         // live nodes exist that have this tag
-        if (LOG.isInfoEnabled()) {
-          LOG.info("found the following participants with tag " + config.getParticipantGroupTag()
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("found the following participants with tag " + config.getParticipantGroupTag()
               + " for " + config.getResourceId() + ": " + taggedLiveNodes);
         }
       } else if (taggedNodes.isEmpty()) {
@@ -132,12 +132,12 @@ public class FullAutoRebalancer implements HelixRebalancer {
 
     // determine which nodes the replicas should live on
     int maxPartition = config.getMaxPartitionsPerParticipant();
-    if (LOG.isInfoEnabled()) {
-      LOG.info("currentMapping: " + currentMapping);
-      LOG.info("stateCountMap: " + stateCountMap);
-      LOG.info("liveNodes: " + liveParticipantList);
-      LOG.info("allNodes: " + allParticipantList);
-      LOG.info("maxPartition: " + maxPartition);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("currentMapping: " + currentMapping);
+      LOG.debug("stateCountMap: " + stateCountMap);
+      LOG.debug("liveNodes: " + liveParticipantList);
+      LOG.debug("allNodes: " + allParticipantList);
+      LOG.debug("maxPartition: " + maxPartition);
     }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     _algorithm =

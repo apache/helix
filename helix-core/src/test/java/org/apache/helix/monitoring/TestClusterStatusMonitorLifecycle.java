@@ -198,8 +198,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
 
     // participant goes away. should be no change in number of beans as config is still present
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered);
 
     HelixDataAccessor accessor = _participants[n - 1].getHelixDataAccessor();
     String firstControllerName =
@@ -215,8 +215,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     Thread.sleep(1000);
 
     // 1 cluster status monitor, 1 resource monitor, 5 instances
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 7);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 7);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 7);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 7);
 
     String instanceName = "localhost0_" + (12918 + 0);
     _participants[0] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
@@ -224,8 +224,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
 
     // participant goes back. should be no change
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 7);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 7);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 7);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 7);
 
     // Add a resource, one more mbean registered
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
@@ -237,14 +237,14 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
         Integer.parseInt(idealState.getReplicas()));
 
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 7);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 8);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 7);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 8);
 
     // remove resource, no change
     setupTool.dropResourceFromCluster(_firstClusterName, "TestDB1");
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 7);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 8);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 7);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 8);
 
   }
 }

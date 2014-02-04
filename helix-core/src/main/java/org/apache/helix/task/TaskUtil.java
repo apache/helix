@@ -19,10 +19,10 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
@@ -36,6 +36,8 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Joiner;
 
 /**
  * Static utility methods.
@@ -67,8 +69,10 @@ public class TaskUtil {
    */
   public static TaskConfig getTaskCfg(HelixManager manager, String taskResource) {
     Map<String, String> taskCfg = getResourceConfigMap(manager, taskResource);
+    if (taskCfg == null) {
+      return null;
+    }
     TaskConfig.Builder b = TaskConfig.Builder.fromMap(taskCfg);
-
     return b.build();
   }
 
@@ -107,8 +111,7 @@ public class TaskUtil {
     ZNRecord r =
         manager.getHelixPropertyStore().get(
             Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName,
-                TaskUtilEnum.PREV_RA_NODE.value()),
-            null, AccessOption.PERSISTENT);
+                TaskUtilEnum.PREV_RA_NODE.value()), null, AccessOption.PERSISTENT);
     return r != null ? new ResourceAssignment(r) : null;
   }
 
@@ -116,24 +119,21 @@ public class TaskUtil {
       ResourceAssignment ra) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName,
-            TaskUtilEnum.PREV_RA_NODE.value()),
-        ra.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.PREV_RA_NODE.value()), ra.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static TaskContext getTaskContext(HelixManager manager, String taskResource) {
     ZNRecord r =
         manager.getHelixPropertyStore().get(
             Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, taskResource,
-                TaskUtilEnum.CONTEXT_NODE.value()),
-            null, AccessOption.PERSISTENT);
+                TaskUtilEnum.CONTEXT_NODE.value()), null, AccessOption.PERSISTENT);
     return r != null ? new TaskContext(r) : null;
   }
 
   public static void setTaskContext(HelixManager manager, String taskResource, TaskContext ctx) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, taskResource,
-            TaskUtilEnum.CONTEXT_NODE.value()),
-        ctx.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.CONTEXT_NODE.value()), ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
@@ -148,8 +148,7 @@ public class TaskUtil {
       WorkflowContext ctx) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource,
-            TaskUtilEnum.CONTEXT_NODE.value()),
-        ctx.getRecord(), AccessOption.PERSISTENT);
+            TaskUtilEnum.CONTEXT_NODE.value()), ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   public static String getNamespacedTaskName(String singleTaskWorkflow) {

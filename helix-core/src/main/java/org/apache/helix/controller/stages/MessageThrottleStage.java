@@ -116,7 +116,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
-    Cluster cluster = event.getAttribute("ClusterDataCache");
+    Cluster cluster = event.getAttribute("Cluster");
     MessageOutput msgSelectionOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     Map<ResourceId, ResourceConfig> resourceMap =
@@ -127,7 +127,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
     if (cluster == null || resourceMap == null || msgSelectionOutput == null
         || bestPossibleStateOutput == null) {
       throw new StageException("Missing attributes in event: " + event
-          + ". Requires ClusterDataCache|RESOURCES|BEST_POSSIBLE_STATE|MESSAGES_SELECTED");
+          + ". Requires Cluster|RESOURCES|BEST_POSSIBLE_STATE|MESSAGES_SELECTED");
     }
 
     MessageOutput output = new MessageOutput();

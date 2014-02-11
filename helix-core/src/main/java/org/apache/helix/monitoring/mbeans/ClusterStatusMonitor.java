@@ -20,7 +20,11 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,29 +36,37 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.Sets;
+
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
   static final String CLUSTER_STATUS_KEY = "ClusterStatus";
   static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
   static final String RESOURCE_STATUS_KEY = "ResourceStatus";
+  static final String PARTICIPANT_STATUS_KEY = "ParticipantStatus";
   static final String CLUSTER_DN_KEY = "cluster";
   static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
 
+  static final String DEFAULT_TAG = "DEFAULT";
+
   private final String _clusterName;
   private final MBeanServer _beanServer;
 
-  private int _numOfLiveInstances = 0;
-  private int _numOfInstances = 0;
-  private int _numOfDisabledInstances = 0;
-  private int _numOfDisabledPartitions = 0;
+  private Set<String> _liveInstances = Collections.emptySet();
+  private Set<String> _instances = Collections.emptySet();
+  private Set<String> _disabledInstances = Collections.emptySet();
+  private Map<String, Set<String>> _disabledPartitions = Collections.emptyMap();
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
       new ConcurrentHashMap<String, ResourceMonitor>();
 
   private final ConcurrentHashMap<String, MessageQueueMonitor> _instanceMsgQueueMbeanMap =
       new ConcurrentHashMap<String, MessageQueueMonitor>();
+
+  private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap =
+      new ConcurrentHashMap<String, InstanceMonitor>();
 
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
@@ -77,22 +89,26 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   @Override
   public long getDownInstanceGauge() {
-    return _numOfInstances - _numOfLiveInstances;
+    return _instances.size() - _liveInstances.size();
   }
 
   @Override
   public long getInstancesGauge() {
-    return _numOfInstances;
+    return _instances.size();
   }
 
   @Override
   public long getDisabledInstancesGauge() {
-    return _numOfDisabledInstances;
+    return _disabledInstances.size();
   }
 
   @Override
   public long getDisabledPartitionsGauge() {
-    return _numOfDisabledPartitions;
+    int numDisabled = 0;
+    for (String instance : _disabledPartitions.keySet()) {
+      numDisabled += _disabledPartitions.get(instance).size();
+    }
+    return numDisabled;
   }
 
   @Override
@@ -146,12 +162,69 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setClusterStatusCounters(int numberLiveInstances, int numberOfInstances,
-      int disabledInstances, int disabledPartitions) {
-    _numOfInstances = numberOfInstances;
-    _numOfLiveInstances = numberLiveInstances;
-    _numOfDisabledInstances = disabledInstances;
-    _numOfDisabledPartitions = disabledPartitions;
+  /**
+   * Update the gauges for all instances in the cluster
+   * @param liveInstanceSet the current set of live instances
+   * @param instanceSet the current set of configured instances (live or other
+   * @param disabledInstanceSet the current set of configured instances that are disabled
+   * @param disabledPartitions a map of instance name to the set of partitions disabled on it
+   * @param tags a map of instance name to the set of tags on it
+   */
+  public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
+      Set<String> disabledInstanceSet, Map<String, Set<String>> disabledPartitions,
+      Map<String, Set<String>> tags) {
+    // Unregister beans for instances that are no longer configured
+    Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());
+    toUnregister.removeAll(instanceSet);
+    try {
+      unregisterInstances(toUnregister);
+    } catch (MalformedObjectNameException e) {
+      LOG.error("Could not unregister instances from MBean server: " + toUnregister, e);
+    }
+
+    // Register beans for instances that are newly configured
+    Set<String> toRegister = Sets.newHashSet(instanceSet);
+    toRegister.removeAll(_instanceMbeanMap.keySet());
+    Set<InstanceMonitor> monitorsToRegister = Sets.newHashSet();
+    for (String instanceName : toRegister) {
+      InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName);
+      bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
+          liveInstanceSet.contains(instanceName), !disabledInstanceSet.contains(instanceName));
+      monitorsToRegister.add(bean);
+    }
+    try {
+      registerInstances(monitorsToRegister);
+    } catch (MalformedObjectNameException e) {
+      LOG.error("Could not register instances with MBean server: " + toRegister, e);
+    }
+
+    // Update all the sets
+    _instances = instanceSet;
+    _liveInstances = liveInstanceSet;
+    _disabledInstances = disabledInstanceSet;
+    _disabledPartitions = disabledPartitions;
+
+    // Update the instance MBeans
+    for (String instanceName : instanceSet) {
+      if (_instanceMbeanMap.containsKey(instanceName)) {
+        // Update the bean
+        InstanceMonitor bean = _instanceMbeanMap.get(instanceName);
+        String oldSensorName = bean.getSensorName();
+        bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
+            liveInstanceSet.contains(instanceName), !disabledInstanceSet.contains(instanceName));
+
+        // If the sensor name changed, re-register the bean so that listeners won't miss it
+        String newSensorName = bean.getSensorName();
+        if (!oldSensorName.equals(newSensorName)) {
+          try {
+            unregisterInstances(Arrays.asList(instanceName));
+            registerInstances(Arrays.asList(bean));
+          } catch (MalformedObjectNameException e) {
+            LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
+          }
+        }
+      }
+    }
   }
 
   public void onExternalViewChange(ExternalView externalView, IdealState idealState) {
@@ -161,14 +234,19 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            String beanName =
-                CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
-            register(bean, getObjectName(beanName));
-            _resourceMbeanMap.put(resourceName, bean);
+            bean.updateExternalView(externalView, idealState);
+            registerResources(Arrays.asList(bean));
           }
         }
       }
-      _resourceMbeanMap.get(resourceName).updateExternalView(externalView, idealState);
+      ResourceMonitor bean = _resourceMbeanMap.get(resourceName);
+      String oldSensorName = bean.getSensorName();
+      bean.updateExternalView(externalView, idealState);
+      String newSensorName = bean.getSensorName();
+      if (!oldSensorName.equals(newSensorName)) {
+        unregisterResources(Arrays.asList(resourceName));
+        registerResources(Arrays.asList(bean));
+      }
     } catch (Exception e) {
       LOG.warn(e);
     }
@@ -205,15 +283,64 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       _instanceMsgQueueMbeanMap.clear();
 
+      unregisterInstances(_instanceMbeanMap.keySet());
+      _instanceMbeanMap.clear();
+
       unregister(getObjectName(CLUSTER_DN_KEY + "=" + _clusterName));
     } catch (Exception e) {
       LOG.error("fail to reset ClusterStatusMonitor", e);
     }
   }
 
+  private synchronized void registerInstances(Collection<InstanceMonitor> instances)
+      throws MalformedObjectNameException {
+    for (InstanceMonitor monitor : instances) {
+      String instanceName = monitor.getInstanceName();
+      String beanName = getInstanceBeanName(instanceName);
+      register(monitor, getObjectName(beanName));
+      _instanceMbeanMap.put(instanceName, monitor);
+    }
+  }
+
+  private synchronized void unregisterInstances(Collection<String> instances)
+      throws MalformedObjectNameException {
+    for (String instanceName : instances) {
+      String beanName = getInstanceBeanName(instanceName);
+      unregister(getObjectName(beanName));
+    }
+    _instanceMbeanMap.keySet().removeAll(instances);
+  }
+
+  private synchronized void registerResources(Collection<ResourceMonitor> resources)
+      throws MalformedObjectNameException {
+    for (ResourceMonitor monitor : resources) {
+      String resourceName = monitor.getResourceName();
+      String beanName = getResourceBeanName(resourceName);
+      register(monitor, getObjectName(beanName));
+      _resourceMbeanMap.put(resourceName, monitor);
+    }
+  }
+
+  private synchronized void unregisterResources(Collection<String> resources)
+      throws MalformedObjectNameException {
+    for (String resourceName : resources) {
+      String beanName = getResourceBeanName(resourceName);
+      unregister(getObjectName(beanName));
+    }
+    _resourceMbeanMap.keySet().removeAll(resources);
+  }
+
+  private String getInstanceBeanName(String instanceName) {
+    return CLUSTER_DN_KEY + "=" + _clusterName + "," + INSTANCE_DN_KEY + "=" + instanceName;
+  }
+
+  private String getResourceBeanName(String resourceName) {
+    return CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
+  }
+
   @Override
   public String getSensorName() {
-    return CLUSTER_STATUS_KEY + "_" + _clusterName;
+    return CLUSTER_STATUS_KEY + "." + _clusterName;
   }
 
 }

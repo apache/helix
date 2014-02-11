@@ -30,10 +30,11 @@ import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
 public class ResourceMonitor implements ResourceMonitorMBean {
-  int _numOfPartitions;
+  private int _numOfPartitions;
   int _numOfPartitionsInExternalView;
   int _numOfErrorPartitions;
   int _externalViewIdealStateDiff;
+  String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
 
   String _resourceName, _clusterName;
@@ -60,7 +61,12 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
   @Override
   public String getSensorName() {
-    return ClusterStatusMonitor.RESOURCE_STATUS_KEY + "_" + _clusterName + "_" + _resourceName;
+    return ClusterStatusMonitor.RESOURCE_STATUS_KEY + "." + _clusterName + "." + _tag + "."
+        + _resourceName;
+  }
+
+  public String getResourceName() {
+    return _resourceName;
   }
 
   public void updateExternalView(ExternalView externalView, IdealState idealState) {
@@ -114,6 +120,12 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
     _numOfPartitionsInExternalView = externalView.getPartitionIdSet().size();
+    String tag = idealState.getInstanceGroupTag();
+    if (tag == null || tag.equals("") || tag.equals("null")) {
+      _tag = ClusterStatusMonitor.DEFAULT_TAG;
+    } else {
+      _tag = tag;
+    }
   }
 
   @Override

@@ -20,13 +20,16 @@ package org.apache.helix.controller.stages;
  */
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ContextId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -36,6 +39,7 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(ReadClusterDataStage.class.getName());
@@ -55,22 +59,32 @@ public class ReadClusterDataStage extends AbstractBaseStage {
 
     Cluster cluster = clusterAccessor.readCluster();
 
+    // Update the cluster status gauges
     ClusterStatusMonitor clusterStatusMonitor =
         (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
     if (clusterStatusMonitor != null) {
-      // TODO fix it
-      // int disabledInstances = 0;
-      // int disabledPartitions = 0;
-      // for (InstanceConfig config : _cache._instanceConfigMap.values()) {
-      // if (config.getInstanceEnabled() == false) {
-      // disabledInstances++;
-      // }
-      // if (config.getDisabledPartitions() != null) {
-      // disabledPartitions += config.getDisabledPartitions().size();
-      // }
-      // }
-      // clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(),
-      // _cache._instanceConfigMap.size(), disabledInstances, disabledPartitions);
+      Set<String> instanceSet = Sets.newHashSet();
+      Set<String> liveInstanceSet = Sets.newHashSet();
+      Set<String> disabledInstanceSet = Sets.newHashSet();
+      Map<String, Set<String>> disabledPartitions = Maps.newHashMap();
+      Map<String, Set<String>> tags = Maps.newHashMap();
+      for (Participant participant : cluster.getParticipantMap().values()) {
+        instanceSet.add(participant.getId().toString());
+        if (participant.isAlive()) {
+          liveInstanceSet.add(participant.getId().toString());
+        }
+        if (!participant.isEnabled()) {
+          disabledInstanceSet.add(participant.getId().toString());
+        }
+        Set<String> partitionNames = Sets.newHashSet();
+        for (PartitionId partitionId : participant.getDisabledPartitionIds()) {
+          partitionNames.add(partitionId.toString());
+        }
+        disabledPartitions.put(participant.getId().toString(), partitionNames);
+        tags.put(participant.getId().toString(), participant.getTags());
+      }
+      clusterStatusMonitor.setClusterInstanceStatus(liveInstanceSet, instanceSet,
+          disabledInstanceSet, disabledPartitions, tags);
     }
 
     event.addAttribute("ClusterDataCache", cluster);

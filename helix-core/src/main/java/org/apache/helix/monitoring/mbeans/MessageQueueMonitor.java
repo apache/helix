@@ -55,6 +55,6 @@ public class MessageQueueMonitor implements MessageQueueMonitorMBean {
 
   @Override
   public String getSensorName() {
-    return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "_" + _clusterName + "_" + _instanceName;
+    return ClusterStatusMonitor.MESSAGE_QUEUE_STATUS_KEY + "." + _clusterName + "." + _instanceName;
   }
 }

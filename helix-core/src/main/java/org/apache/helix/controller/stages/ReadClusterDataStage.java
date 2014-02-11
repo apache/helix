@@ -19,13 +19,20 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
@@ -51,21 +58,33 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
 
+    // Update the cluster status gauges
     ClusterStatusMonitor clusterStatusMonitor =
         (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
     if (clusterStatusMonitor != null) {
-      int disabledInstances = 0;
-      int disabledPartitions = 0;
-      for (InstanceConfig config : _cache._instanceConfigMap.values()) {
-        if (config.getInstanceEnabled() == false) {
-          disabledInstances++;
+      Set<String> instanceSet = Sets.newHashSet();
+      Set<String> liveInstanceSet = Sets.newHashSet();
+      Set<String> disabledInstanceSet = Sets.newHashSet();
+      Map<String, Set<String>> disabledPartitions = Maps.newHashMap();
+      Map<String, Set<String>> tags = Maps.newHashMap();
+      Map<String, LiveInstance> liveInstanceMap = _cache.getLiveInstances();
+      for (Map.Entry<String, InstanceConfig> e : _cache.getInstanceConfigMap().entrySet()) {
+        String instanceName = e.getKey();
+        InstanceConfig config = e.getValue();
+        instanceSet.add(instanceName);
+        if (liveInstanceMap.containsKey(instanceName)) {
+          liveInstanceSet.add(instanceName);
         }
-        if (config.getDisabledPartitions() != null) {
-          disabledPartitions += config.getDisabledPartitions().size();
+        if (!config.getInstanceEnabled()) {
+          disabledInstanceSet.add(instanceName);
         }
+        Set<String> partitionNames = Sets.newHashSet(config.getDisabledPartitions());
+        disabledPartitions.put(instanceName, partitionNames);
+        Set<String> instanceTags = Sets.newHashSet(config.getTags());
+        tags.put(instanceName, instanceTags);
       }
-      clusterStatusMonitor.setClusterStatusCounters(_cache._liveInstanceMap.size(),
-          _cache._instanceConfigMap.size(), disabledInstances, disabledPartitions);
+      clusterStatusMonitor.setClusterInstanceStatus(liveInstanceSet, instanceSet,
+          disabledInstanceSet, disabledPartitions, tags);
     }
 
     event.addAttribute("ClusterDataCache", _cache);

@@ -506,11 +506,10 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
   @Override
   public boolean[] exists(List<String> paths, int options) {
     final int size = paths.size();
-    List<String> serverPaths = prependChroot(paths);
 
     boolean exists[] = new boolean[size];
     for (int i = 0; i < size; i++) {
-      exists[i] = exists(serverPaths.get(i), options);
+      exists[i] = exists(paths.get(i), options);
     }
     return exists;
   }
@@ -656,7 +655,7 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
     List<String> paths = new ArrayList<String>();
     for (String childName : childNames) {
-      String path = parentPath + "/" + childName;
+      String path = parentPath.equals("/") ? "/" + childName : parentPath + "/" + childName;
       paths.add(path);
     }
 

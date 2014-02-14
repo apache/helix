@@ -84,6 +84,9 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
   private final ZkClient _zkClient;
 
   public ZkBaseDataAccessor(ZkClient zkClient) {
+    if (zkClient == null) {
+      throw new NullPointerException("zkclient is null");
+    }
     _zkClient = zkClient;
   }
 

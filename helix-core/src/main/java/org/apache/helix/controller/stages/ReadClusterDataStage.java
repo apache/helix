@@ -29,11 +29,8 @@ import org.apache.log4j.Logger;
 
 public class ReadClusterDataStage extends AbstractBaseStage {
   private static final Logger logger = Logger.getLogger(ReadClusterDataStage.class.getName());
-  ClusterDataCache _cache;
 
-  public ReadClusterDataStage() {
-    _cache = new ClusterDataCache();
-  }
+  private ClusterDataCache _cache = null;
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -44,6 +41,13 @@ public class ReadClusterDataStage extends AbstractBaseStage {
     if (manager == null) {
       throw new StageException("HelixManager attribute value is null");
     }
+
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    if (cache == null && _cache == null) {
+      cache = new ClusterDataCache();
+    }
+    _cache = cache;
+
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
     _cache.refresh(dataAccessor);
 

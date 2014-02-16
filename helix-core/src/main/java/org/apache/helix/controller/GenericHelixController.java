@@ -37,6 +37,7 @@ import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
+import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
@@ -88,7 +89,8 @@ import org.apache.log4j.Logger;
  */
 public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, HealthStateChangeListener {
+    ExternalViewChangeListener, ControllerChangeListener, HealthStateChangeListener,
+    InstanceConfigChangeListener{
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
   private final PipelineRegistry _registry;
@@ -423,6 +425,14 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("eventData", configs);
     _eventQueue.put(event);
     logger.info("END: GenericClusterController.onConfigChange()");
+  }
+
+  @Override
+  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
+      NotificationContext changeContext){
+    logger.info("START: GenericClusterController.onInstanceConfigChange()");
+    onConfigChange(instanceConfigs, changeContext);
+    logger.info("END: GenericClusterController.onInstanceConfigChange()");
   }
 
   @Override

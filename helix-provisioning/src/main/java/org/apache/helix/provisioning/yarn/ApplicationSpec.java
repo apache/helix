@@ -17,7 +17,11 @@ public interface ApplicationSpec {
 
   List<String> getServices();
 
+  URI getAppMasterPackage();
+  
   URI getServicePackage(String serviceName);
+  
+  String getServiceMainClass(String service);
 
   ParticipantConfig getParticipantConfig(String serviceName, ParticipantId participantId);
 

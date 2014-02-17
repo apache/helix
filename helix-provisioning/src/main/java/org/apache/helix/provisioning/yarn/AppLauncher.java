@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,7 +48,10 @@ import org.apache.hadoop.yarn.util.Records;
  * Converts yaml file into ApplicationSpec.
  */
 public class AppLauncher {
+
   private static final Log LOG = LogFactory.getLog(Client.class);
+
+
 
   private ApplicationSpec _applicationSpec;
   private YarnClient yarnClient;
@@ -58,6 +62,10 @@ public class AppLauncher {
 
   private File appMasterArchive;
 
+  private ApplicationId _appId;
+
+  private AppMasterConfig _appMasterConfig;
+
   public AppLauncher(File appMasterArchive, ApplicationSpecFactory applicationSpecFactory,
       File yamlConfigFile) throws Exception {
     _applicationSpecFactory = applicationSpecFactory;
@@ -67,6 +75,7 @@ public class AppLauncher {
 
   private void init() throws Exception {
     _applicationSpec = _applicationSpecFactory.fromYaml(new FileInputStream(_yamlConfigFile));
+    _appMasterConfig = new AppMasterConfig();
     yarnClient = YarnClient.createYarnClient();
     _conf = new YarnConfiguration();
     yarnClient.init(_conf);
@@ -89,44 +98,50 @@ public class AppLauncher {
 
     // set the application name
     ApplicationSubmissionContext appContext = app.getApplicationSubmissionContext();
-    ApplicationId appId = appContext.getApplicationId();
+    _appId = appContext.getApplicationId();
+    _appMasterConfig.setAppId(_appId.getId());
     String appName = _applicationSpec.getAppName();
+    _appMasterConfig.setAppName(appName);
     appContext.setApplicationName(appName);
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
-    // set local resources for the application master
-    // local files or archives as needed
-    // In this scenario, the jar file for the application master is part of the local resources
-    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+
 
     LOG.info("Copy App archive file from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
     FileSystem fs = FileSystem.get(_conf);
 
-    // copy App Master package
-    Path src = new Path(appMasterArchive.getAbsolutePath());
-    String pathSuffix = appName + "/" + appId.getId() + "/" + "appmaster-pkg" + ".tar";
-    Path dst = new Path(fs.getHomeDirectory(), pathSuffix);
-    fs.copyFromLocalFile(false, true, src, dst);
-    FileStatus destStatus = fs.getFileStatus(dst);
-    LocalResource amJarRsrc = setupLocalResource(dst, destStatus);
-    localResources.put("appmaster-pkg", amJarRsrc);
-
-    // copy component packages
+    // get packages for each component packages
+    Map<String, URI> packages = new HashMap<String, URI>();
+    packages.put(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString(), appMasterArchive.toURI());
+    packages.put(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString(), _yamlConfigFile.toURI());
     for (String serviceName : _applicationSpec.getServices()) {
-      src = new Path(_applicationSpec.getServicePackage(serviceName));
-      pathSuffix = appName + "/" + appId.getId() + "/" + serviceName + ".tar";
-      dst = new Path(fs.getHomeDirectory(), pathSuffix);
-      fs.copyFromLocalFile(false, true, src, dst);
-      destStatus = fs.getFileStatus(dst);
-      amJarRsrc = setupLocalResource(dst, destStatus);
-      localResources.put(serviceName + "-pkg", amJarRsrc);
+      packages.put(serviceName, _applicationSpec.getServicePackage(serviceName));
     }
+    Map<String, Path>  hdfsDest = new HashMap<String, Path>();
+    Map<String, String> classpathMap = new HashMap<String, String>();
+    for (String name : packages.keySet()) {
+      URI uri = packages.get(name);
+      Path dst = copyToHDFS(fs, name, uri);
+      hdfsDest.put(name, dst);
+      String classpath = generateClasspathAfterExtraction(name, new File(uri));
+      classpathMap.put(name, classpath);
+      _appMasterConfig.setClasspath(name, classpath);
+    }
+    // set local resources for the application master
+    // local files or archives as needed
+    // In this scenario, the jar file for the application master is part of the local resources
+    Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
+    setupLocalResource(fs, hdfsDest.get(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString()));
+    setupLocalResource(fs, hdfsDest.get(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString()));
+
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
+
+    
 
     // Set the necessary security tokens as needed
     // amContainer.setContainerTokens(containerToken);
@@ -139,25 +154,7 @@ public class AppLauncher {
     // the classpath to "." for the application jar
     StringBuilder classPathEnv =
         new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*");
-    StringBuilder appClassPathEnv = new StringBuilder();
-    // put the jar files under the archive in the classpath
-    try {
-      final InputStream is = new FileInputStream(appMasterArchive);
-      final TarArchiveInputStream debInputStream =
-          (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
-      TarArchiveEntry entry = null;
-      while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null) {
-        if (entry.isFile()) {
-          appClassPathEnv.append(File.pathSeparatorChar);
-          appClassPathEnv.append("./app-pkg/" + entry.getName());
-        }
-      }
-      debInputStream.close();
-
-    } catch (Exception e) {
-      LOG.error("Unable to read archive file:" + appMasterArchive, e);
-    }
-    classPathEnv.append(appClassPathEnv);
+    classPathEnv.append(classpathMap.get(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString()));
     for (String c : _conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
       classPathEnv.append(File.pathSeparatorChar);
@@ -173,16 +170,7 @@ public class AppLauncher {
     System.out.println("classpath" + classPathEnv.toString());
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
-    Map<String, String> env = new HashMap<String, String>();
-    env.put("app_pkg_path", fs.getHomeDirectory() + "/" + appName + "/" + appId.getId()
-        + "/app-pkg.tar");
-    env.put("appName", appName);
-    env.put("appId", "" + appId.getId());
-    env.put("CLASSPATH", classPathEnv.toString());
-    env.put("appClasspath", appClassPathEnv.toString());
-    env.put("containerParticipantMainClass",
-        "org.apache.helix.provisioning.yarn.ParticipantLauncher");
-    amContainer.setEnvironment(env);
+    amContainer.setEnvironment(_appMasterConfig.getEnv());
 
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
@@ -196,7 +184,7 @@ public class AppLauncher {
     // Set class name
     vargs.add(HelixYarnApplicationMasterMain.class.getCanonicalName());
     // Set params for Application Master
-    //vargs.add("--num_containers " + String.valueOf(numContainers));
+    // vargs.add("--num_containers " + String.valueOf(numContainers));
 
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/AppMaster.stderr");
@@ -247,12 +235,12 @@ public class AppLauncher {
 
     // Set the priority for the application master
     Priority pri = Records.newRecord(Priority.class);
-    int amPriority= 0;
+    int amPriority = 0;
     // TODO - what is the range for priority? how to decide?
     pri.setPriority(amPriority);
     appContext.setPriority(pri);
 
-    String amQueue="";
+    String amQueue = "";
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
 
@@ -267,12 +255,59 @@ public class AppLauncher {
     return true;
   }
 
-  private LocalResource setupLocalResource(Path dst, FileStatus destStatus) {
+  /**
+   * Generates the classpath after the archive file gets extracted under 'serviceName' folder
+   * @param serviceName
+   * @param archiveFile
+   * @return
+   */
+  private String generateClasspathAfterExtraction(String serviceName, File archiveFile) {
+    if (!isArchive(archiveFile.getAbsolutePath())) {
+      return "./";
+    }
+    StringBuilder classpath = new StringBuilder();
+    // put the jar files under the archive in the classpath
+    try {
+      final InputStream is = new FileInputStream(archiveFile);
+      final TarArchiveInputStream debInputStream =
+          (TarArchiveInputStream) new ArchiveStreamFactory().createArchiveInputStream("tar", is);
+      TarArchiveEntry entry = null;
+      while ((entry = (TarArchiveEntry) debInputStream.getNextEntry()) != null) {
+        if (entry.isFile()) {
+          classpath.append(File.pathSeparatorChar);
+          classpath.append("./" + serviceName + "/" + entry.getName());
+        }
+      }
+      debInputStream.close();
+
+    } catch (Exception e) {
+      LOG.error("Unable to read archive file:" + archiveFile, e);
+    }
+    return classpath.toString();
+  }
+
+  private Path copyToHDFS(FileSystem fs, String name, URI uri) throws Exception {
+    // will throw exception if the file name is without extension
+    String extension = uri.getPath().substring(uri.getPath().lastIndexOf(".") + 1);
+    String pathSuffix =
+        _applicationSpec.getAppName() + "/" + _appId.getId() + "/" + name + "." + extension;
+    Path dst = new Path(fs.getHomeDirectory(), pathSuffix);
+    Path src = new Path(uri);
+    fs.copyFromLocalFile(false, true, src, dst);
+    return dst;
+  }
+
+  private LocalResource setupLocalResource(FileSystem fs, Path dst) throws Exception {
+    URI uri = dst.toUri();
+    String extension = uri.getPath().substring(uri.getPath().lastIndexOf(".") + 1);
+    FileStatus destStatus = fs.getFileStatus(dst);
     LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    amJarRsrc.setType(LocalResourceType.ARCHIVE);
+    if (isArchive(extension)) {
+      amJarRsrc.setType(LocalResourceType.ARCHIVE);
+    }
     // Set visibility of the resource
     // Setting to most private option
     amJarRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
@@ -285,6 +320,11 @@ public class AppLauncher {
     amJarRsrc.setTimestamp(destStatus.getModificationTime());
     amJarRsrc.setSize(destStatus.getLen());
     return amJarRsrc;
+  }
+
+  private boolean isArchive(String path) {
+    return path.endsWith("tar") || path.endsWith("gz") || path.endsWith("tar.gz")
+        || path.endsWith("zip");
   }
 
   /**
@@ -307,11 +347,12 @@ public class AppLauncher {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    File appMasterArchive = new File (args[0]);
+    File appMasterArchive = new File(args[0]);
     ApplicationSpecFactory applicationSpecFactory =
         (ApplicationSpecFactory) Class.forName(args[1]).newInstance();
     File yamlConfigFile = new File(args[2]);
-    AppLauncher launcher = new AppLauncher(appMasterArchive, applicationSpecFactory, yamlConfigFile);
+    AppLauncher launcher =
+        new AppLauncher(appMasterArchive, applicationSpecFactory, yamlConfigFile);
     launcher.launch();
     launcher.waitUntilDone();
 

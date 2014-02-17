@@ -48,6 +48,18 @@ class DefaultApplicationSpec implements ApplicationSpec {
   public List<TaskConfig> getTaskConfigs() {
     return null;
   }
+
+  @Override
+  public URI getAppMasterPackage() {
+    // TODO Auto-generated method stub
+    return null;
+  }
+
+  @Override
+  public String getServiceMainClass(String service) {
+    // TODO Auto-generated method stub
+    return null;
+  }
 }
 
 public class YamlApplicationSpecFactory {

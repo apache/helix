@@ -24,11 +24,11 @@ import java.util.Collection;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
+import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ResourceId;
 
 public interface TargetProvider {
 
-  public void init(HelixManager helixManager);
 
   /**
    * @param cluster

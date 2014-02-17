@@ -35,11 +35,13 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerProvider;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.ProvisionerRef;
+import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.log4j.Logger;
@@ -62,6 +64,9 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
   private static final Logger LOG = Logger.getLogger(ContainerProvisioningStage.class);
 
   Map<ResourceId, Provisioner> _provisionerMap = new HashMap<ResourceId, Provisioner>();
+  Map<ResourceId, TargetProvider> _targetProviderMap = new HashMap<ResourceId, TargetProvider>();
+  Map<ResourceId, ContainerProvider> _containerProviderMap =
+      new HashMap<ResourceId, ContainerProvider>();
 
   @Override
   public void process(ClusterEvent event) throws Exception {
@@ -85,14 +90,17 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
             provisioner = provisionerRef.getProvisioner();
           }
           if (provisioner != null) {
-            provisioner.init(helixManager);
+            provisioner.init(helixManager, resourceConfig);
+            _containerProviderMap.put(resourceId, provisioner.getContainerProvider());
+            _targetProviderMap.put(resourceId, provisioner.getTargetProvider());
             _provisionerMap.put(resourceId, provisioner);
           } else {
             LOG.error("Resource " + resourceId + " does not have a valid provisioner class!");
             break;
           }
         }
-
+        TargetProvider targetProvider = _targetProviderMap.get(resourceId);
+        ContainerProvider containerProvider = _containerProviderMap.get(resourceId);
         final Cluster cluster = event.getAttribute("ClusterDataCache");
         final Collection<Participant> participants = cluster.getParticipantMap().values();
 
@@ -110,7 +118,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         // TargetProvider should be stateless, given the state of cluster and existing participants
         // it should return the same result
         final TargetProviderResponse response =
-            provisioner.evaluateExistingContainers(cluster, resourceId, participants);
+            targetProvider.evaluateExistingContainers(cluster, resourceId, participants);
 
         // allocate new containers
         for (final ContainerSpec spec : response.getContainersToAcquire()) {
@@ -124,7 +132,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           // create the helix participant and add it to cluster
           helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
 
-          ListenableFuture<ContainerId> future = provisioner.allocateContainer(spec);
+          ListenableFuture<ContainerId> future = containerProvider.allocateContainer(spec);
           FutureCallback<ContainerId> callback = new FutureCallback<ContainerId>() {
             @Override
             public void onSuccess(ContainerId containerId) {
@@ -158,7 +166,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
-          ListenableFuture<Boolean> future = provisioner.startContainer(containerId, participant);
+          ListenableFuture<Boolean> future = containerProvider.startContainer(containerId, participant);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
@@ -188,7 +196,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // remove the participant
-          ListenableFuture<Boolean> future = provisioner.deallocateContainer(containerId);
+          ListenableFuture<Boolean> future = containerProvider.deallocateContainer(containerId);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
@@ -221,7 +229,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // stop the container
-          ListenableFuture<Boolean> future = provisioner.stopContainer(containerId);
+          ListenableFuture<Boolean> future = containerProvider.stopContainer(containerId);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {

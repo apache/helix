@@ -1,5 +1,8 @@
 package org.apache.helix.controller.provisioner;
 
+import org.apache.helix.HelixManager;
+import org.apache.helix.api.config.ResourceConfig;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,6 +22,21 @@ package org.apache.helix.controller.provisioner;
  * under the License.
  */
 
-public interface Provisioner extends ContainerProvider, TargetProvider {
+public interface Provisioner {
+  /**
+   * @param helixManager
+   * @param resourceConfig
+   */
+  void init(HelixManager helixManager, ResourceConfig resourceConfig);
+
+  /**
+   * @return
+   */
+  ContainerProvider getContainerProvider();
+
+  /**
+   * @return
+   */
+  TargetProvider getTargetProvider();
 
 }

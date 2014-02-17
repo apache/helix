@@ -1,6 +1,7 @@
 package org.apache.helix.provisioning.yarn;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -72,23 +73,26 @@ public class HelixYarnApplicationMasterMain {
     server.start();
 
     // start
-    Map<String, String> envs = System.getenv();
-    ContainerId containerId =
-        ConverterUtils.toContainerId(envs.get(Environment.CONTAINER_ID.name()));
+    AppMasterConfig appMasterConfig = new AppMasterConfig();
+    String containerIdStr = appMasterConfig.getContainerId();
+    ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
     ApplicationAttemptId appAttemptID = containerId.getApplicationAttemptId();
 
-    // GenericApplicationMaster genAppMaster = new GenericApplicationMaster(appAttemptID);
+    String configFile = AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString();
+    ApplicationSpecFactory factory =
+        (ApplicationSpecFactory) Class.forName(appMasterConfig.getApplicationSpecProvider())
+            .newInstance();
 
     GenericApplicationMaster genericApplicationMaster = new GenericApplicationMaster(appAttemptID);
     genericApplicationMaster.start();
 
     YarnProvisioner.applicationMaster = genericApplicationMaster;
+    YarnProvisioner.applicationMasterConfig = appMasterConfig;
+    YarnProvisioner.applicationSpec = factory.fromYaml(new FileInputStream(configFile));
+    String zkAddress = appMasterConfig.getZKAddress();
+    String clusterName = appMasterConfig.getAppName();
 
-    String zkAddress = envs.get(Environment.NM_HOST.name()) + ":2181";
-    String clusterName = envs.get("appName");
-    String resourceName = "testResource";
-    int NUM_PARTITIONS = 6;
-    int NUM_REPLICAS = 2;
+    String resourceName = "HelloWorld";
     // CREATE CLUSTER and setup the resources
     // connect
     ZkHelixConnection connection = new ZkHelixConnection(zkAddress);
@@ -97,18 +101,18 @@ public class HelixYarnApplicationMasterMain {
     // create the cluster
     ClusterId clusterId = ClusterId.from(clusterName);
     ClusterAccessor clusterAccessor = connection.createClusterAccessor(clusterId);
-    StateModelDefinition masterSlave =
-        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+    StateModelDefinition statelessService =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForStatelessService());
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
-        masterSlave).build());
+        statelessService).build());
 
     // add the resource with the local provisioner
     ResourceId resourceId = ResourceId.from(resourceName);
     YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
     provisionerConfig.setNumContainers(numContainers);
     RebalancerConfig rebalancerConfig =
-        new FullAutoRebalancerConfig.Builder(resourceId).addPartitions(NUM_PARTITIONS)
-            .replicaCount(NUM_REPLICAS).stateModelDefId(masterSlave.getStateModelDefId()).build();
+        new FullAutoRebalancerConfig.Builder(resourceId).stateModelDefId(
+            statelessService.getStateModelDefId()).build();
     clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(ResourceId.from(resourceName))
         .provisionerConfig(provisionerConfig).rebalancerConfig(rebalancerConfig).build());
 

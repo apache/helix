@@ -42,11 +42,13 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerProvider;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.ProvisionerRef;
+import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
@@ -201,7 +203,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
   /**
    * Provisioner that will start and stop participants locally
    */
-  public static class LocalProvisioner implements Provisioner {
+  public static class LocalProvisioner implements Provisioner, TargetProvider, ContainerProvider {
     private HelixManager _helixManager;
     private ClusterId _clusterId;
     private int _askCount;
@@ -210,7 +212,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     private Map<ContainerId, ParticipantService> _participants;
 
     @Override
-    public void init(HelixManager helixManager) {
+    public void init(HelixManager helixManager, ResourceConfig resourceConfig) {
       // TODO: would be nice to have a HelixConnection instead of a HelixManager
       _helixManager = helixManager;
       _clusterId = ClusterId.from(_helixManager.getClusterName());
@@ -328,6 +330,16 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       response.setContainersToStop(containersToStop);
       response.setContainersToRelease(containersToRelease);
       return response;
+    }
+
+    @Override
+    public ContainerProvider getContainerProvider() {
+      return this;
+    }
+
+    @Override
+    public TargetProvider getTargetProvider() {
+      return this;
     }
   }
 }

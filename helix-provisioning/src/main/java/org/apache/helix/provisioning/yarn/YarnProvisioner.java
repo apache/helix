@@ -44,12 +44,15 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.config.ContainerConfig;
+import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerProvider;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
+import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 
 import com.google.common.collect.Lists;
@@ -59,14 +62,17 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-public class YarnProvisioner implements Provisioner {
+public class YarnProvisioner implements Provisioner, TargetProvider, ContainerProvider {
 
   private static final Log LOG = LogFactory.getLog(YarnProvisioner.class);
   static GenericApplicationMaster applicationMaster;
   static ListeningExecutorService service = MoreExecutors.listeningDecorator(Executors
       .newCachedThreadPool());
+  public static AppMasterConfig applicationMasterConfig;
+  public static ApplicationSpec applicationSpec;
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
   private HelixManager _helixManager;
+  private ResourceConfig _resourceConfig;
 
   @Override
   public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
@@ -123,12 +129,13 @@ public class YarnProvisioner implements Provisioner {
 
     ContainerLaunchContext participantContainer = Records.newRecord(ContainerLaunchContext.class);
 
-    Map<String, String> envs = System.getenv();
-    String appName = envs.get("appName");
-    String appId = envs.get("appId");
-    String appClasspath = envs.get("appClasspath");
-    String containerParticipantMainClass = envs.get("containerParticipantMainClass");
-    String zkAddress = envs.get(Environment.NM_HOST.name()) + ":2181";
+//    Map<String, String> envs = System.getenv();
+    String appName = applicationMasterConfig.getAppName();
+    int appId = applicationMasterConfig.getAppId();
+    String serviceName = _resourceConfig.getId().stringify();
+    String classpath = applicationMasterConfig.getClassPath(serviceName);
+    String mainClass = applicationMasterConfig.getMainClass(serviceName);
+    String zkAddress = applicationMasterConfig.getZKAddress();
 
     // set the localresources needed to launch container
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
@@ -177,7 +184,7 @@ public class YarnProvisioner implements Provisioner {
     StringBuilder classPathEnv =
         new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*");
     classPathEnv.append(File.pathSeparatorChar);
-    classPathEnv.append(appClasspath);
+    classPathEnv.append(classpath);
 
     for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
@@ -186,11 +193,6 @@ public class YarnProvisioner implements Provisioner {
     }
     classPathEnv.append(File.pathSeparatorChar).append("./log4j.properties");
 
-    // add the runtime classpath needed for tests to work
-    if (conf.getBoolean(YarnConfiguration.IS_MINI_YARN_CLUSTER, false)) {
-      classPathEnv.append(':');
-      classPathEnv.append(System.getProperty("java.class.path"));
-    }
     env.put("CLASSPATH", classPathEnv.toString());
 
     participantContainer.setEnvironment(env);
@@ -204,7 +206,7 @@ public class YarnProvisioner implements Provisioner {
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + 1024 + "m");
     // Set class name
-    vargs.add(containerParticipantMainClass);
+    vargs.add(mainClass);
     // Set params for container participant
     vargs.add("--zkAddress " + zkAddress);
     vargs.add("--cluster " + appName);
@@ -244,9 +246,9 @@ public class YarnProvisioner implements Provisioner {
   }
 
   @Override
-  public void init(HelixManager helixManager) {
+  public void init(HelixManager helixManager, ResourceConfig resourceConfig) {
     _helixManager = helixManager;
-
+    _resourceConfig = resourceConfig;
   }
 
   @Override
@@ -330,6 +332,16 @@ public class YarnProvisioner implements Provisioner {
     ContainerRequest request = new ContainerRequest(capability, null, null, pri);
     LOG.info("Requested container ask: " + request.toString());
     return request;
+  }
+
+  @Override
+  public ContainerProvider getContainerProvider() {
+    return this;
+  }
+
+  @Override
+  public TargetProvider getTargetProvider() {
+    return this;
   }
 
 }

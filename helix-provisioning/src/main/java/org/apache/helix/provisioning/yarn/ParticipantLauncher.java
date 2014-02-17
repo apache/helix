@@ -9,9 +9,16 @@ import org.apache.commons.cli.Options;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.manager.zk.AbstractParticipantService;
 import org.apache.helix.manager.zk.ZkHelixConnection;
-
+import org.apache.log4j.Logger;
+/**
+ * 
+ * Main class that invokes the Participant Api
+ */
 public class ParticipantLauncher {
+  private static Logger LOG = Logger.getLogger(ParticipantLauncher.class);
+
   public static void main(String[] args) {
 
     System.out.println("Starting Helix Participant: " + Arrays.toString(args));
@@ -20,6 +27,7 @@ public class ParticipantLauncher {
     opts.addOption("cluster", true, "Cluster name, default app name");
     opts.addOption("participantId", true, "Participant Id");
     opts.addOption("zkAddress", true, "Zookeeper address");
+    opts.addOption("ParticipantClass", true, "ParticipantClass");
     try {
       CommandLine cliParser = new GnuParser().parse(opts, args);
       String zkAddress = cliParser.getOptionValue("zkAddress");
@@ -27,8 +35,13 @@ public class ParticipantLauncher {
       connection.connect();
       ClusterId clusterId = ClusterId.from(cliParser.getOptionValue("cluster"));
       ParticipantId participantId = ParticipantId.from(cliParser.getOptionValue("participantId"));
-      ContainerParticipant containerParticipant =
-          new ContainerParticipant(connection, clusterId, participantId);
+      String participantClass = cliParser.getOptionValue("ParticipantClass");
+      @SuppressWarnings("unchecked")
+      Class<? extends AbstractParticipantService> clazz =
+          (Class<? extends AbstractParticipantService>) Class.forName(participantClass);
+      AbstractParticipantService containerParticipant =
+          clazz.getConstructor(HelixConnection.class, ClusterId.class, ParticipantId.class)
+              .newInstance(connection, clusterId, participantId);
       containerParticipant.startAsync();
       containerParticipant.awaitRunning(60, TimeUnit.SECONDS);
       Thread.currentThread().join();

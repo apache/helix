@@ -1,0 +1,26 @@
+===
+appName: test
+configs:
+    k1: v1
+services:
+  - name: myservice
+    participantClass: org.apache.helix.myApp.SimpleWebserver 
+    minContainers:3
+    maxContainers:3              
+    configs:
+        - participantId: myservice_0         
+          port: 9500
+        - participantId: myservice_1        
+          port: 9501 
+        - participantId: myservice_2         
+          port: 9502
+resources:
+  - name: distributedLock
+    numPartitions: 6
+    numReplicas: 2
+    rebalanceMode: FULL_AUTO
+    stateModel: OnlineOffline
+    tag: myservice 
+    configs: 
+        k1: v1
+                     

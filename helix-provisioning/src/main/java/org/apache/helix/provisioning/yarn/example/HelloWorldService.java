@@ -4,10 +4,10 @@ import org.apache.helix.HelixConnection;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.provisioning.yarn.ContainerParticipant;
+import org.apache.helix.manager.zk.AbstractParticipantService;
 
 
-public class HelloWorldService extends ContainerParticipant {
+public class HelloWorldService extends AbstractParticipantService {
 
 	public HelloWorldService(HelixConnection connection, ClusterId clusterId,
 			ParticipantId participantId) {
@@ -19,5 +19,10 @@ public class HelloWorldService extends ContainerParticipant {
 		HelloWorldStateModelFactory stateModelFactory = new HelloWorldStateModelFactory();
 		getParticipant().getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("OnlineOffline"), stateModelFactory);
 	}
+
+  @Override
+  public void onPreJoinCluster() {
+    //this will be invoked prior to 
+  }
 }
 

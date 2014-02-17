@@ -1,9 +1,12 @@
 package org.apache.helix.provisioning.yarn;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.api.config.ParticipantConfig;
+import org.apache.helix.api.id.ParticipantId;
 import org.yaml.snakeyaml.Yaml;
 
 class DefaultApplicationSpec implements ApplicationSpec {
@@ -22,16 +25,6 @@ class DefaultApplicationSpec implements ApplicationSpec {
 	}
 
 	@Override
-	public int getMinContainers() {
-		return minContainers;
-	}
-
-	@Override
-	public int getMaxContainers() {
-		return maxContainers;
-	}
-
-	@Override
 	public AppConfig getConfig() {
 		return appConfig;
 	}
@@ -41,10 +34,20 @@ class DefaultApplicationSpec implements ApplicationSpec {
 		return services;
 	}
 
-	@Override
-	public ServiceConfig getServiceConfig(String name) {
-		return serviceConfigMap.get(name);
-	}
+  @Override
+  public URI getServicePackage(String serviceName) {
+    return null;
+  }
+
+  @Override
+  public ParticipantConfig getParticipantConfig(String serviceName, ParticipantId participantId) {
+    return null;
+  }
+
+  @Override
+  public List<TaskConfig> getTaskConfigs() {
+    return null;
+  }
 }
 
 public class YamlApplicationSpecFactory {

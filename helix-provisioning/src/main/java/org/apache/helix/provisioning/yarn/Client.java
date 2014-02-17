@@ -137,7 +137,7 @@ public class Client {
   private String appMasterArchive = "";
   // Main class to invoke application master
   private final String appMasterMainClass;
-  
+
   private String appSpecFile = "";
 
   // No. of containers in which helix participants will be started
@@ -157,37 +157,6 @@ public class Client {
 
   // Command line options
   private Options opts;
-
-  /**
-   * @param args Command line arguments
-   */
-  public static void main(String[] args) {
-    boolean result = false;
-    try {
-      Client client = new Client();
-      LOG.info("Initializing Client");
-      try {
-        boolean doRun = client.init(args);
-        if (!doRun) {
-          System.exit(0);
-        }
-      } catch (IllegalArgumentException e) {
-        System.err.println(e.getLocalizedMessage());
-        client.printUsage();
-        System.exit(-1);
-      }
-      result = client.run();
-    } catch (Throwable t) {
-      LOG.fatal("Error running CLient", t);
-      System.exit(1);
-    }
-    if (result) {
-      LOG.info("Application completed successfully");
-      System.exit(0);
-    }
-    LOG.error("Application failed to complete successfully");
-    System.exit(2);
-  }
 
   /**
    */
@@ -270,7 +239,7 @@ public class Client {
     appMasterArchive = cliParser.getOptionValue("archive");
 
     numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers", "4"));
-    
+
     log4jPropFile = cliParser.getOptionValue("log_properties", "");
 
     return true;
@@ -371,7 +340,7 @@ public class Client {
     amJarRsrc.setTimestamp(destStatus.getModificationTime());
     amJarRsrc.setSize(destStatus.getLen());
     localResources.put("app-pkg", amJarRsrc);
-    
+
     Path localAppSpec = new Path(appSpecFile);
     pathSuffix = appName + "/" + appId.getId() + "/app-spec.yaml";
     Path dstAppSpec = new Path(fs.getHomeDirectory(), pathSuffix);
@@ -385,7 +354,6 @@ public class Client {
     appSpecResource.setTimestamp(destStatus.getModificationTime());
     appSpecResource.setSize(destStatus.getLen());
     localResources.put("app-spec", appSpecResource);
-
 
     // Set the log4j properties if needed
     if (!log4jPropFile.isEmpty()) {
@@ -407,7 +375,6 @@ public class Client {
 
     // Set the necessary security tokens as needed
     // amContainer.setContainerTokens(containerToken);
-
 
     // Add AppMaster.jar location to classpath
     // At some point we should not be required to add
@@ -452,12 +419,14 @@ public class Client {
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
-    env.put("app_pkg_path", fs.getHomeDirectory() + "/" + appName + "/" + appId.getId() + "/app-pkg.tar");
+    env.put("app_pkg_path", fs.getHomeDirectory() + "/" + appName + "/" + appId.getId()
+        + "/app-pkg.tar");
     env.put("appName", appName);
     env.put("appId", "" + appId.getId());
     env.put("CLASSPATH", classPathEnv.toString());
     env.put("appClasspath", appClassPathEnv.toString());
-    env.put("containerParticipantMainClass", "org.apache.helix.provisioning.yarn.ParticipantLauncher");
+    env.put("containerParticipantMainClass",
+        "org.apache.helix.provisioning.yarn.ParticipantLauncher");
     amContainer.setEnvironment(env);
 
     // Set the necessary command to execute the application master
@@ -597,11 +566,13 @@ public class Client {
         return false;
       }
 
-      /*if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
-        LOG.info("Reached client specified timeout for application. Killing application");
-        forceKillApplication(appId);
-        return false;
-      }*/
+      /*
+       * if (System.currentTimeMillis() > (clientStartTime + clientTimeout)) {
+       * LOG.info("Reached client specified timeout for application. Killing application");
+       * forceKillApplication(appId);
+       * return false;
+       * }
+       */
     }
 
   }
@@ -619,7 +590,38 @@ public class Client {
 
     // Response can be ignored as it is non-null on success or
     // throws an exception in case of failures
-    //yarnClient.killApplication(appId);
+    // yarnClient.killApplication(appId);
+  }
+
+  /**
+   * @param args Command line arguments
+   */
+  public static void main(String[] args) {
+    boolean result = false;
+    try {
+      Client client = new Client();
+      LOG.info("Initializing Client");
+      try {
+        boolean doRun = client.init(args);
+        if (!doRun) {
+          System.exit(0);
+        }
+      } catch (IllegalArgumentException e) {
+        System.err.println(e.getLocalizedMessage());
+        client.printUsage();
+        System.exit(-1);
+      }
+      result = client.run();
+    } catch (Throwable t) {
+      LOG.fatal("Error running CLient", t);
+      System.exit(1);
+    }
+    if (result) {
+      LOG.info("Application completed successfully");
+      System.exit(0);
+    }
+    LOG.error("Application failed to complete successfully");
+    System.exit(2);
   }
 
 }

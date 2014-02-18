@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -53,10 +54,9 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -69,12 +69,15 @@ import org.apache.helix.model.builder.ResourceAssignmentBuilder;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.Sets;
+
 public class ClusterStateVerifier {
   public static String cluster = "cluster";
   public static String zkServerAddress = "zkSvr";
   public static String help = "help";
   public static String timeout = "timeout";
   public static String period = "period";
+  public static String resources = "resources";
 
   private static Logger LOG = Logger.getLogger(ClusterStateVerifier.class);
 
@@ -136,6 +139,7 @@ public class ClusterStateVerifier {
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
     private final ZkClient zkClient;
+    private final Set<String> resources;
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName) {
       this(zkAddr, clusterName, null);
@@ -143,6 +147,11 @@ public class ClusterStateVerifier {
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
         Map<String, Map<String, String>> errStates) {
+      this(zkAddr, clusterName, errStates, null);
+    }
+
+    public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
+        Map<String, Map<String, String>> errStates, Set<String> resources) {
       if (zkAddr == null || clusterName == null) {
         throw new IllegalArgumentException("requires zkAddr|clusterName");
       }
@@ -150,6 +159,7 @@ public class ClusterStateVerifier {
       this.clusterName = clusterName;
       this.errStates = errStates;
       this.zkClient = ZKClientPool.getZkClient(zkAddr); // null;
+      this.resources = resources;
     }
 
     @Override
@@ -158,7 +168,8 @@ public class ClusterStateVerifier {
         HelixDataAccessor accessor =
             new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, clusterName);
+        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, clusterName,
+            resources);
       } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
@@ -225,6 +236,11 @@ public class ClusterStateVerifier {
 
   static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
       Map<String, Map<String, String>> errStates, String clusterName) {
+    return verifyBestPossAndExtView(accessor, errStates, clusterName, null);
+  }
+
+  static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
+      Map<String, Map<String, String>> errStates, String clusterName, Set<String> resources) {
     try {
       Builder keyBuilder = accessor.keyBuilder();
 
@@ -237,6 +253,12 @@ public class ClusterStateVerifier {
       Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
       if (extViews == null) {
         extViews = Collections.emptyMap();
+      }
+
+      // Filter resources if requested
+      if (resources != null && !resources.isEmpty()) {
+        idealStates.keySet().retainAll(resources);
+        extViews.keySet().retainAll(resources);
       }
 
       // if externalView is not empty and idealState doesn't exist
@@ -624,12 +646,15 @@ public class ClusterStateVerifier {
     long timeoutValue = 0;
     long periodValue = 1000;
 
+    Set<String> resourceSet = null;
     if (args.length > 0) {
       CommandLine cmd = processCommandLineArgs(args);
       zkServer = cmd.getOptionValue(zkServerAddress);
       clusterName = cmd.getOptionValue(cluster);
       String timeoutStr = cmd.getOptionValue(timeout);
       String periodStr = cmd.getOptionValue(period);
+      String resourceStr = cmd.getOptionValue(resources);
+
       if (timeoutStr != null) {
         try {
           timeoutValue = Long.parseLong(timeoutStr);
@@ -647,12 +672,24 @@ public class ClusterStateVerifier {
         }
       }
 
+      // Allow specifying resources explicitly
+      if (resourceStr != null) {
+        String[] resources = resourceStr.split(resourceStr);
+        resourceSet = Sets.newHashSet(resources);
+      }
+
     }
     // return verifyByPolling(new BestPossAndExtViewZkVerifier(zkServer, clusterName),
     // timeoutValue,
     // periodValue);
 
-    return verifyByZkCallback(new BestPossAndExtViewZkVerifier(zkServer, clusterName), timeoutValue);
+    ZkVerifier verifier;
+    if (resourceSet == null) {
+      verifier = new BestPossAndExtViewZkVerifier(zkServer, clusterName);
+    } else {
+      verifier = new BestPossAndExtViewZkVerifier(zkServer, clusterName, null, resourceSet);
+    }
+    return verifyByZkCallback(verifier, timeoutValue);
   }
 
   public static void main(String[] args) {

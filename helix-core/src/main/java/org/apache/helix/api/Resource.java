@@ -42,6 +42,7 @@ import org.apache.helix.model.ResourceAssignment;
  */
 public class Resource {
   private final ResourceConfig _config;
+  private final IdealState _idealState;
   private final ExternalView _externalView;
   private final ResourceAssignment _resourceAssignment;
 
@@ -66,6 +67,7 @@ public class Resource {
     _config =
         new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, provisionerConfig,
             userConfig, bucketSize, batchMessageMode);
+    _idealState = idealState;
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
   }
@@ -207,6 +209,14 @@ public class Resource {
    */
   public ProvisionerConfig getProvisionerConfig() {
     return _config.getProvisionerConfig();
+  }
+
+  /**
+   * Get the resource ideal state
+   * @return IdealState instance
+   */
+  public IdealState getIdealState() {
+    return _idealState;
   }
 
   /**

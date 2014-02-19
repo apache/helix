@@ -85,6 +85,10 @@ under the License.
               <mainClass>org.apache.helix.provisioning.yarn.Client</mainClass>
               <name>yarn-job-launcher</name>
             </program>
+             <program>
+              <mainClass>org.apache.helix.provisioning.yarn.AppLauncher</mainClass>
+              <name>app-launcher</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

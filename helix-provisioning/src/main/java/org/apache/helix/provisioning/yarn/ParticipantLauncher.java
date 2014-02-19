@@ -27,7 +27,7 @@ public class ParticipantLauncher {
     opts.addOption("cluster", true, "Cluster name, default app name");
     opts.addOption("participantId", true, "Participant Id");
     opts.addOption("zkAddress", true, "Zookeeper address");
-    opts.addOption("ParticipantClass", true, "ParticipantClass");
+    opts.addOption("participantClass", true, "Participant service class");
     try {
       CommandLine cliParser = new GnuParser().parse(opts, args);
       String zkAddress = cliParser.getOptionValue("zkAddress");
@@ -35,7 +35,7 @@ public class ParticipantLauncher {
       connection.connect();
       ClusterId clusterId = ClusterId.from(cliParser.getOptionValue("cluster"));
       ParticipantId participantId = ParticipantId.from(cliParser.getOptionValue("participantId"));
-      String participantClass = cliParser.getOptionValue("ParticipantClass");
+      String participantClass = cliParser.getOptionValue("participantClass");
       @SuppressWarnings("unchecked")
       Class<? extends AbstractParticipantService> clazz =
           (Class<? extends AbstractParticipantService>) Class.forName(participantClass);

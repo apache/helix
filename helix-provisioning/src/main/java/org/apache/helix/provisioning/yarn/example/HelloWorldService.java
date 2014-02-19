@@ -17,7 +17,7 @@ public class HelloWorldService extends AbstractParticipantService {
 	@Override
 	public void init() {
 		HelloWorldStateModelFactory stateModelFactory = new HelloWorldStateModelFactory();
-		getParticipant().getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("OnlineOffline"), stateModelFactory);
+		getParticipant().getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("StatelessService"), stateModelFactory);
 	}
 
   @Override

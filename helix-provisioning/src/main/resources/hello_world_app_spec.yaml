@@ -1,0 +1,21 @@
+!!org.apache.helix.provisioning.yarn.example.HelloworldAppSpec
+_appConfig:
+  config: {
+    k1: v1
+  }
+_appMasterPackageUri: null
+_appName: testApp
+_serviceConfigMap:
+  HelloWorld: {
+    k1: v1
+  }
+_serviceMainClassMap: {
+  HelloWorld: org.apache.helix.provisioning.yarn.example.HelloWorldService
+}
+_servicePackageURIMap: {
+  HelloWorld: /Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar
+}
+_services: [
+  HelloWorld]
+_taskConfigs: null
+

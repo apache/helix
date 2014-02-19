@@ -10,4 +10,8 @@ public class AppConfig {
 	public String getValue(String key) {
 		return (config != null ? config.get(key) : null);
 	}
+	
+	public void setValue(String key, String value){
+	  config.put(key, value);
+	}
 }

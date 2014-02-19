@@ -51,8 +51,6 @@ public class AppLauncher {
 
   private static final Log LOG = LogFactory.getLog(Client.class);
 
-
-
   private ApplicationSpec _applicationSpec;
   private YarnClient yarnClient;
   private ApplicationSpecFactory _applicationSpecFactory;
@@ -66,8 +64,8 @@ public class AppLauncher {
 
   private AppMasterConfig _appMasterConfig;
 
-  public AppLauncher(File appMasterArchive, ApplicationSpecFactory applicationSpecFactory,
-      File yamlConfigFile) throws Exception {
+  public AppLauncher(ApplicationSpecFactory applicationSpecFactory, File yamlConfigFile)
+      throws Exception {
     _applicationSpecFactory = applicationSpecFactory;
     _yamlConfigFile = yamlConfigFile;
     init();
@@ -76,6 +74,7 @@ public class AppLauncher {
   private void init() throws Exception {
     _applicationSpec = _applicationSpecFactory.fromYaml(new FileInputStream(_yamlConfigFile));
     _appMasterConfig = new AppMasterConfig();
+    appMasterArchive = new File(_applicationSpec.getAppMasterPackage());
     yarnClient = YarnClient.createYarnClient();
     _conf = new YarnConfiguration();
     yarnClient.init(_conf);
@@ -102,12 +101,12 @@ public class AppLauncher {
     _appMasterConfig.setAppId(_appId.getId());
     String appName = _applicationSpec.getAppName();
     _appMasterConfig.setAppName(appName);
+    _appMasterConfig.setApplicationSpecFactory(_applicationSpecFactory.getClass()
+        .getCanonicalName());
     appContext.setApplicationName(appName);
 
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
-
-
 
     LOG.info("Copy App archive file from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
@@ -116,12 +115,13 @@ public class AppLauncher {
 
     // get packages for each component packages
     Map<String, URI> packages = new HashMap<String, URI>();
-    packages.put(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString(), appMasterArchive.toURI());
+    packages
+        .put(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString(), appMasterArchive.toURI());
     packages.put(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString(), _yamlConfigFile.toURI());
     for (String serviceName : _applicationSpec.getServices()) {
       packages.put(serviceName, _applicationSpec.getServicePackage(serviceName));
     }
-    Map<String, Path>  hdfsDest = new HashMap<String, Path>();
+    Map<String, Path> hdfsDest = new HashMap<String, Path>();
     Map<String, String> classpathMap = new HashMap<String, String>();
     for (String name : packages.keySet()) {
       URI uri = packages.get(name);
@@ -130,18 +130,26 @@ public class AppLauncher {
       String classpath = generateClasspathAfterExtraction(name, new File(uri));
       classpathMap.put(name, classpath);
       _appMasterConfig.setClasspath(name, classpath);
+      String serviceMainClass = _applicationSpec.getServiceMainClass(name);
+      if (serviceMainClass != null) {
+        _appMasterConfig.setMainClass(name, serviceMainClass);
+      }
     }
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
-    setupLocalResource(fs, hdfsDest.get(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString()));
-    setupLocalResource(fs, hdfsDest.get(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString()));
+    LocalResource appMasterPkg =
+        setupLocalResource(fs,
+            hdfsDest.get(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString()));
+    LocalResource appSpecFile =
+        setupLocalResource(fs,
+            hdfsDest.get(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString()));
+    localResources.put(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString(), appMasterPkg);
+    localResources.put(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString(), appSpecFile);
 
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
-
-    
 
     // Set the necessary security tokens as needed
     // amContainer.setContainerTokens(containerToken);
@@ -153,7 +161,8 @@ public class AppLauncher {
     // For now setting all required classpaths including
     // the classpath to "." for the application jar
     StringBuilder classPathEnv =
-        new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*");
+        new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*")
+            .append(File.pathSeparatorChar);
     classPathEnv.append(classpathMap.get(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString()));
     for (String c : _conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
@@ -167,10 +176,13 @@ public class AppLauncher {
       classPathEnv.append(':');
       classPathEnv.append(System.getProperty("java.class.path"));
     }
-    System.out.println("classpath" + classPathEnv.toString());
+    LOG.info("\n\n Setting the classpath for AppMaster:\n\n" + classPathEnv.toString());
     // Set the env variables to be setup in the env where the application master will be run
-    LOG.info("Set the environment for the application master");
-    amContainer.setEnvironment(_appMasterConfig.getEnv());
+    Map<String, String> env = new HashMap<String, String>(_appMasterConfig.getEnv());
+    LOG.info("Set the environment for the application master" + env);
+    env.put("CLASSPATH", classPathEnv.toString());
+
+    amContainer.setEnvironment(env);
 
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
@@ -240,7 +252,7 @@ public class AppLauncher {
     pri.setPriority(amPriority);
     appContext.setPriority(pri);
 
-    String amQueue = "";
+    String amQueue = "default";
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
 
@@ -307,6 +319,8 @@ public class AppLauncher {
     // we don't need the jar file to be untarred for now
     if (isArchive(extension)) {
       amJarRsrc.setType(LocalResourceType.ARCHIVE);
+    } else {
+      amJarRsrc.setType(LocalResourceType.FILE);
     }
     // Set visibility of the resource
     // Setting to most private option
@@ -347,12 +361,10 @@ public class AppLauncher {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    File appMasterArchive = new File(args[0]);
     ApplicationSpecFactory applicationSpecFactory =
-        (ApplicationSpecFactory) Class.forName(args[1]).newInstance();
-    File yamlConfigFile = new File(args[2]);
-    AppLauncher launcher =
-        new AppLauncher(appMasterArchive, applicationSpecFactory, yamlConfigFile);
+        (ApplicationSpecFactory) Class.forName(args[0]).newInstance();
+    File yamlConfigFile = new File(args[1]);
+    AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();
     launcher.waitUntilDone();
 

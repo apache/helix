@@ -133,37 +133,38 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     String appName = applicationMasterConfig.getAppName();
     int appId = applicationMasterConfig.getAppId();
     String serviceName = _resourceConfig.getId().stringify();
-    String classpath = applicationMasterConfig.getClassPath(serviceName);
+    String serviceClasspath = applicationMasterConfig.getClassPath(serviceName);
     String mainClass = applicationMasterConfig.getMainClass(serviceName);
     String zkAddress = applicationMasterConfig.getZKAddress();
 
     // set the localresources needed to launch container
     Map<String, LocalResource> localResources = new HashMap<String, LocalResource>();
 
-    LocalResource amJarRsrc = Records.newRecord(LocalResource.class);
+    LocalResource servicePackageResource = Records.newRecord(LocalResource.class);
     YarnConfiguration conf = new YarnConfiguration();
     FileSystem fs;
     fs = FileSystem.get(conf);
-    String pathSuffix = appName + "/" + appId + "/app-pkg.tar";
+    String pathSuffix = appName + "/" + appId + "/" + serviceName + ".tar";
     Path dst = new Path(fs.getHomeDirectory(), pathSuffix);
     FileStatus destStatus = fs.getFileStatus(dst);
 
     // Set the type of resource - file or archive
     // archives are untarred at destination
     // we don't need the jar file to be untarred for now
-    amJarRsrc.setType(LocalResourceType.ARCHIVE);
+    servicePackageResource.setType(LocalResourceType.ARCHIVE);
     // Set visibility of the resource
     // Setting to most private option
-    amJarRsrc.setVisibility(LocalResourceVisibility.APPLICATION);
+    servicePackageResource.setVisibility(LocalResourceVisibility.APPLICATION);
     // Set the resource to be copied over
-    amJarRsrc.setResource(ConverterUtils.getYarnUrlFromPath(dst));
+    servicePackageResource.setResource(ConverterUtils.getYarnUrlFromPath(dst));
     // Set timestamp and length of file so that the framework
     // can do basic sanity checks for the local resource
     // after it has been copied over to ensure it is the same
     // resource the client intended to use with the application
-    amJarRsrc.setTimestamp(destStatus.getModificationTime());
-    amJarRsrc.setSize(destStatus.getLen());
-    localResources.put("app-pkg", amJarRsrc);
+    servicePackageResource.setTimestamp(destStatus.getModificationTime());
+    servicePackageResource.setSize(destStatus.getLen());
+    LOG.info("Setting local resource:" + servicePackageResource + " for service" + serviceName );
+    localResources.put(serviceName, servicePackageResource);
 
     // Set local resource info into app master container launch context
     participantContainer.setLocalResources(localResources);
@@ -174,7 +175,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     // Set the env variables to be setup in the env where the application master will be run
     LOG.info("Set the environment for the application master");
     Map<String, String> env = new HashMap<String, String>();
-    env.put("app_pkg_path", dst.getName());
+    env.put(serviceName, dst.getName());
     // Add AppMaster.jar location to classpath
     // At some point we should not be required to add
     // the hadoop specific classpaths to the env.
@@ -184,15 +185,14 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     StringBuilder classPathEnv =
         new StringBuilder(Environment.CLASSPATH.$()).append(File.pathSeparatorChar).append("./*");
     classPathEnv.append(File.pathSeparatorChar);
-    classPathEnv.append(classpath);
-
+    classPathEnv.append(serviceClasspath);
     for (String c : conf.getStrings(YarnConfiguration.YARN_APPLICATION_CLASSPATH,
         YarnConfiguration.DEFAULT_YARN_APPLICATION_CLASSPATH)) {
       classPathEnv.append(File.pathSeparatorChar);
       classPathEnv.append(c.trim());
     }
     classPathEnv.append(File.pathSeparatorChar).append("./log4j.properties");
-
+    LOG.info("Setting classpath for service:\n"+ classPathEnv.toString());
     env.put("CLASSPATH", classPathEnv.toString());
 
     participantContainer.setEnvironment(env);
@@ -206,11 +206,13 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + 1024 + "m");
     // Set class name
-    vargs.add(mainClass);
+    vargs.add(ParticipantLauncher.class.getCanonicalName());
     // Set params for container participant
     vargs.add("--zkAddress " + zkAddress);
     vargs.add("--cluster " + appName);
     vargs.add("--participantId " + participant.getId().stringify());
+    vargs.add("--participantClass " + mainClass);;
+    
 
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stderr");

@@ -44,6 +44,11 @@ public class HelixYarnApplicationMasterMain {
   public static Logger LOG = Logger.getLogger(HelixYarnApplicationMasterMain.class);
 
   public static void main(String[] args) throws Exception {
+    Map<String, String> env = System.getenv();
+    LOG.info("Starting app master with the following environment variables");
+    for(String key: env.keySet()){
+      LOG.info(key + "\t\t=" + env.get(key));
+    }
     int numContainers = 1;
 
     Options opts;
@@ -80,7 +85,7 @@ public class HelixYarnApplicationMasterMain {
 
     String configFile = AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString();
     ApplicationSpecFactory factory =
-        (ApplicationSpecFactory) Class.forName(appMasterConfig.getApplicationSpecProvider())
+        (ApplicationSpecFactory) Class.forName(appMasterConfig.getApplicationSpecFactory())
             .newInstance();
 
     GenericApplicationMaster genericApplicationMaster = new GenericApplicationMaster(appAttemptID);
@@ -91,7 +96,7 @@ public class HelixYarnApplicationMasterMain {
     YarnProvisioner.applicationSpec = factory.fromYaml(new FileInputStream(configFile));
     String zkAddress = appMasterConfig.getZKAddress();
     String clusterName = appMasterConfig.getAppName();
-
+    
     String resourceName = "HelloWorld";
     // CREATE CLUSTER and setup the resources
     // connect

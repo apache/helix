@@ -367,7 +367,5 @@ public class AppLauncher {
     AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();
     launcher.waitUntilDone();
-
   }
-
 }

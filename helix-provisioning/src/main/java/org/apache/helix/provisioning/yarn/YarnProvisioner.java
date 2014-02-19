@@ -73,6 +73,9 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
   private HelixManager _helixManager;
   private ResourceConfig _resourceConfig;
+  public YarnProvisioner(){
+    
+  }
 
   @Override
   public ListenableFuture<ContainerId> allocateContainer(ContainerSpec spec) {
@@ -93,7 +96,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
   }
 
   @Override
-  public ListenableFuture<Boolean> deallocateContainer(ContainerId containerId) {
+  public ListenableFuture<Boolean> deallocateContainer(final ContainerId containerId) {
     ListenableFuture<ContainerReleaseResponse> releaseContainer =
         applicationMaster.releaseContainer(allocatedContainersMap.get(containerId));
     return Futures.transform(releaseContainer, new Function<ContainerReleaseResponse, Boolean>() {
@@ -240,11 +243,6 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
         return response != null;
       }
     }, service);
-  }
-
-  @Override
-  public ContainerState getContainerState(ContainerId containerId) {
-    return null;
   }
 
   @Override

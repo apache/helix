@@ -15,21 +15,74 @@ import org.apache.helix.provisioning.yarn.TaskConfig;
 
 public class HelloworldAppSpec implements ApplicationSpec {
 
-  public String _appName;
+  private String _appName;
 
-  public AppConfig _appConfig;
+  private AppConfig _appConfig;
 
-  public List<String> _services;
+  private List<String> _services;
 
-  public String _appMasterPackageUri;
+  private String _appMasterPackageUri;
+  
+  private Map<String, String> _servicePackageURIMap;
 
-  public Map<String, String> _servicePackageURIMap;
+  private Map<String, String> _serviceMainClassMap;
 
-  public Map<String, String> _serviceMainClassMap;
+  private Map<String,Map<String,String>> _serviceConfigMap;
 
-  public Map<String,Map<String,String>> _serviceConfigMap;
+  private List<TaskConfig> _taskConfigs;
 
-  public List<TaskConfig> _taskConfigs;
+  public AppConfig getAppConfig() {
+    return _appConfig;
+  }
+
+  public void setAppConfig(AppConfig appConfig) {
+    _appConfig = appConfig;
+  }
+
+  public String getAppMasterPackageUri() {
+    return _appMasterPackageUri;
+  }
+
+  public void setAppMasterPackageUri(String appMasterPackageUri) {
+    _appMasterPackageUri = appMasterPackageUri;
+  }
+
+  public Map<String, String> getServicePackageURIMap() {
+    return _servicePackageURIMap;
+  }
+
+  public void setServicePackageURIMap(Map<String, String> servicePackageURIMap) {
+    _servicePackageURIMap = servicePackageURIMap;
+  }
+
+  public Map<String, String> getServiceMainClassMap() {
+    return _serviceMainClassMap;
+  }
+
+  public void setServiceMainClassMap(Map<String, String> serviceMainClassMap) {
+    _serviceMainClassMap = serviceMainClassMap;
+  }
+
+  public Map<String, Map<String, String>> getServiceConfigMap() {
+    return _serviceConfigMap;
+  }
+
+  public void setServiceConfigMap(Map<String, Map<String, String>> serviceConfigMap) {
+    _serviceConfigMap = serviceConfigMap;
+  }
+
+  public void setAppName(String appName) {
+    _appName = appName;
+  }
+
+  public void setServices(List<String> services) {
+    _services = services;
+  }
+
+  public void setTaskConfigs(List<TaskConfig> taskConfigs) {
+    _taskConfigs = taskConfigs;
+  }
+
   @Override
   public String getAppName() {
     return _appName;

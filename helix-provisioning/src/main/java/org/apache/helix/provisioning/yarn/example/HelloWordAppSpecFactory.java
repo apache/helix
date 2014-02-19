@@ -17,31 +17,34 @@ public class HelloWordAppSpecFactory implements ApplicationSpecFactory {
   static HelloworldAppSpec data;
 
   static {
-    data = new HelloworldAppSpec();
-    data._appConfig = new AppConfig();
-    data._appConfig.setValue("k1", "v1");
-    data._appName = "testApp";
-    data._appMasterPackageUri =
-        new File("/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/target/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar").toURI().toString();
-    data._serviceConfigMap = new HashMap<String, Map<String, String>>();
-    data._serviceConfigMap.put("HelloWorld", new HashMap<String, String>());
-    data._serviceConfigMap.get("HelloWorld").put("k1", "v1");
-    data._serviceMainClassMap = new HashMap<String, String>();
-    data._serviceMainClassMap.put("HelloWorld", HelloWorldService.class.getCanonicalName());
-    data._servicePackageURIMap = new HashMap<String, String>();
-    data._servicePackageURIMap
+    HelloworldAppSpec data = new HelloworldAppSpec();
+    AppConfig appConfig = new AppConfig();
+    appConfig.setValue("k1", "v1");
+    data.setAppConfig(appConfig);
+    data.setAppName("testApp");
+    data.setAppMasterPackageUri(
+        "/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar");
+    HashMap<String, Map<String, String>> serviceConfigMap = new HashMap<String, Map<String, String>>();
+    serviceConfigMap.put("HelloWorld", new HashMap<String, String>());
+    serviceConfigMap.get("HelloWorld").put("k1", "v1");
+    data.setServiceConfigMap(serviceConfigMap);
+    HashMap<String, String> serviceMainClassMap = new HashMap<String, String>();
+    serviceMainClassMap.put("HelloWorld", HelloWorldService.class.getCanonicalName());
+    data.setServiceMainClassMap(serviceMainClassMap);
+    HashMap<String, String> servicePackageURIMap = new HashMap<String, String>();
+    servicePackageURIMap
         .put(
             "HelloWorld",
-            new File("/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/target/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar").toURI().toString());
-    data._services = Arrays.asList(new String[] {
+            "/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar");
+    data.setServicePackageURIMap(servicePackageURIMap);
+    data.setServices(Arrays.asList(new String[] {
       "HelloWorld"
-    });
-
-  }
+    }));  }
 
   @Override
-  public ApplicationSpec fromYaml(InputStream yamlFile) {
-    return data;
+  public ApplicationSpec fromYaml(InputStream inputstream) {
+    return (ApplicationSpec) new Yaml().load(inputstream);
+    // return data;
   }
 
   public static void main(String[] args) {
@@ -50,26 +53,38 @@ public class HelloWordAppSpecFactory implements ApplicationSpecFactory {
 
     Yaml yaml = new Yaml(options);
     HelloworldAppSpec data = new HelloworldAppSpec();
-    data._appConfig = new AppConfig();
-    data._appConfig.setValue("k1", "v1");
-    data._appName = "testApp";
-    data._appMasterPackageUri =
-        "/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar";
-    data._serviceConfigMap = new HashMap<String, Map<String, String>>();
-    data._serviceConfigMap.put("HelloWorld", new HashMap<String, String>());
-    data._serviceConfigMap.get("HelloWorld").put("k1", "v1");
-    data._serviceMainClassMap = new HashMap<String, String>();
-    data._serviceMainClassMap.put("HelloWorld", HelloWorldService.class.getCanonicalName());
-    data._servicePackageURIMap = new HashMap<String, String>();
-    data._servicePackageURIMap
+    AppConfig appConfig = new AppConfig();
+    appConfig.setValue("k1", "v1");
+    data.setAppConfig(appConfig);
+    data.setAppName("testApp");
+    data.setAppMasterPackageUri(
+        "/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar");
+    HashMap<String, Map<String, String>> serviceConfigMap = new HashMap<String, Map<String, String>>();
+    serviceConfigMap.put("HelloWorld", new HashMap<String, String>());
+    serviceConfigMap.get("HelloWorld").put("k1", "v1");
+    data.setServiceConfigMap(serviceConfigMap);
+    HashMap<String, String> serviceMainClassMap = new HashMap<String, String>();
+    serviceMainClassMap.put("HelloWorld", HelloWorldService.class.getCanonicalName());
+    data.setServiceMainClassMap(serviceMainClassMap);
+    HashMap<String, String> servicePackageURIMap = new HashMap<String, String>();
+    servicePackageURIMap
         .put(
             "HelloWorld",
             "/Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar");
-    data._services = Arrays.asList(new String[] {
+    data.setServicePackageURIMap(servicePackageURIMap);
+    data.setServices(Arrays.asList(new String[] {
       "HelloWorld"
-    });
+    }));
     String dump = yaml.dump(data);
     System.out.println(dump);
-  }
 
+    InputStream resourceAsStream = ClassLoader.getSystemClassLoader().getResourceAsStream("hello_world_app_spec.yaml");
+    HelloworldAppSpec load = yaml.loadAs(resourceAsStream,HelloworldAppSpec.class);
+    String dumpnew = yaml.dump(load);
+    System.out.println(dumpnew.equals(dump));
+    
+    System.out.println("==================================");
+    System.out.println(dumpnew);
+
+  }
 }

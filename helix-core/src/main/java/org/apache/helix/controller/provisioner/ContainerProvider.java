@@ -33,5 +33,4 @@ public interface ContainerProvider {
 
   ListenableFuture<Boolean> stopContainer(ContainerId containerId);
 
-  ContainerState getContainerState(ContainerId containerId);
 }

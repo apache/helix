@@ -270,11 +270,6 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     }
 
     @Override
-    public ContainerState getContainerState(ContainerId containerId) {
-      return _states.get(containerId);
-    }
-
-    @Override
     public TargetProviderResponse evaluateExistingContainers(Cluster cluster,
         ResourceId resourceId, Collection<Participant> participants) {
       TargetProviderResponse response = new TargetProviderResponse();

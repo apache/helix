@@ -35,6 +35,7 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -58,10 +59,12 @@ import com.google.common.collect.Sets;
 
 public class ResourceAccessor {
   private static final Logger LOG = Logger.getLogger(ResourceAccessor.class);
+  private final ClusterId _clusterId;
   private final HelixDataAccessor _accessor;
   private final PropertyKey.Builder _keyBuilder;
 
-  public ResourceAccessor(HelixDataAccessor accessor) {
+  public ResourceAccessor(ClusterId clusterId, HelixDataAccessor accessor) {
+    _clusterId = clusterId;
     _accessor = accessor;
     _keyBuilder = accessor.keyBuilder();
   }
@@ -481,6 +484,6 @@ public class ResourceAccessor {
    * @return ParticipantAccessor
    */
   protected ParticipantAccessor participantAccessor() {
-    return new ParticipantAccessor(_accessor);
+    return new ParticipantAccessor(_clusterId, _accessor);
   }
 }

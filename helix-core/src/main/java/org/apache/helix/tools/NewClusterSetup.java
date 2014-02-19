@@ -256,11 +256,13 @@ public class NewClusterSetup {
   }
 
   ParticipantAccessor participantAccessor(String clusterName) {
-    return new ParticipantAccessor(new ZKHelixDataAccessor(clusterName, _baseAccessor));
+    return new ParticipantAccessor(ClusterId.from(clusterName), new ZKHelixDataAccessor(
+        clusterName, _baseAccessor));
   }
 
   ResourceAccessor resourceAccessor(String clusterName) {
-    return new ResourceAccessor(new ZKHelixDataAccessor(clusterName, _baseAccessor));
+    return new ResourceAccessor(ClusterId.from(clusterName), new ZKHelixDataAccessor(clusterName,
+        _baseAccessor));
   }
 
   void addCluster(String[] optValues) {

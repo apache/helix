@@ -60,11 +60,11 @@ public class AtomicResourceAccessor extends ResourceAccessor {
    */
   public AtomicResourceAccessor(ClusterId clusterId, HelixDataAccessor accessor,
       HelixLockable lockProvider) {
-    super(accessor);
+    super(clusterId, accessor);
     _clusterId = clusterId;
     _accessor = accessor;
     _lockProvider = lockProvider;
-    _resourceAccessor = new ResourceAccessor(accessor);
+    _resourceAccessor = new ResourceAccessor(clusterId, accessor);
   }
 
   @Override

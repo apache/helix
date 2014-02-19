@@ -57,6 +57,7 @@ import org.apache.helix.controller.context.ControllerContextHolder;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
@@ -75,7 +76,6 @@ import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
@@ -720,7 +720,7 @@ public class ClusterAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isClusterStructureValid() {
-    List<String> paths = getRequiredPaths(_keyBuilder);
+    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
@@ -738,7 +738,7 @@ public class ClusterAccessor {
    */
   public void initClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = getRequiredPaths(_keyBuilder);
+    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
       if (!status && LOG.isDebugEnabled()) {
@@ -752,30 +752,8 @@ public class ClusterAccessor {
    */
   private void clearClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = getRequiredPaths(_keyBuilder);
+    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
     baseAccessor.remove(paths, 0);
-  }
-
-  /**
-   * Get all property paths that must be set for a cluster structure to be valid
-   * @param keyBuilder a PropertyKey.Builder for the cluster
-   * @return list of paths as strings
-   */
-  private static List<String> getRequiredPaths(PropertyKey.Builder keyBuilder) {
-    List<String> paths = Lists.newArrayList();
-    paths.add(keyBuilder.clusterConfigs().getPath());
-    paths.add(keyBuilder.instanceConfigs().getPath());
-    paths.add(keyBuilder.propertyStore().getPath());
-    paths.add(keyBuilder.liveInstances().getPath());
-    paths.add(keyBuilder.instances().getPath());
-    paths.add(keyBuilder.externalViews().getPath());
-    paths.add(keyBuilder.controller().getPath());
-    paths.add(keyBuilder.stateModelDefs().getPath());
-    paths.add(keyBuilder.controllerMessages().getPath());
-    paths.add(keyBuilder.controllerTaskErrors().getPath());
-    paths.add(keyBuilder.controllerTaskStatuses().getPath());
-    paths.add(keyBuilder.controllerLeaderHistory().getPath());
-    return paths;
   }
 
   /**
@@ -793,7 +771,7 @@ public class ClusterAccessor {
       return false;
     }
 
-    ParticipantAccessor participantAccessor = new ParticipantAccessor(_accessor);
+    ParticipantAccessor participantAccessor = new ParticipantAccessor(_clusterId, _accessor);
     ParticipantId participantId = participant.getId();
     InstanceConfig existConfig =
         _accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify()));
@@ -832,7 +810,7 @@ public class ClusterAccessor {
    * @return true if participant dropped, false if there was an error
    */
   public boolean dropParticipantFromCluster(ParticipantId participantId) {
-    ParticipantAccessor accessor = new ParticipantAccessor(_accessor);
+    ParticipantAccessor accessor = new ParticipantAccessor(_clusterId, _accessor);
     return accessor.dropParticipant(participantId);
   }
 

@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.TimeUnit;
@@ -42,9 +41,9 @@ import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixAutoController;
-import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixConnectionStateListener;
+import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixController;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -65,7 +64,6 @@ import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -232,12 +230,12 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
 
   @Override
   public ResourceAccessor createResourceAccessor(ClusterId clusterId) {
-    return new ResourceAccessor(createDataAccessor(clusterId));
+    return new ResourceAccessor(clusterId, createDataAccessor(clusterId));
   }
 
   @Override
   public ParticipantAccessor createParticipantAccessor(ClusterId clusterId) {
-    return new ParticipantAccessor(createDataAccessor(clusterId));
+    return new ParticipantAccessor(clusterId, createDataAccessor(clusterId));
   }
 
   @Override
@@ -380,8 +378,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
       ClusterId clusterId, ParticipantId participantId) {
     addListener(role, listener,
         new PropertyKey.Builder(clusterId.stringify()).healthReports(participantId.stringify()),
-        ChangeType.HEALTH,
-        new EventType[] {
+        ChangeType.HEALTH, new EventType[] {
             EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
         });
   }

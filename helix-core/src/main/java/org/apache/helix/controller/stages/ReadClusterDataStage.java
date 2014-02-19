@@ -19,6 +19,8 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -78,7 +80,10 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         if (!config.getInstanceEnabled()) {
           disabledInstanceSet.add(instanceName);
         }
-        Set<String> partitionNames = Sets.newHashSet(config.getDisabledPartitions());
+        List<String> disabledPartitionsList = config.getDisabledPartitions();
+        Set<String> partitionNames =
+            disabledPartitionsList != null ? new HashSet<String>(config.getDisabledPartitions())
+                : new HashSet<String>();
         disabledPartitions.put(instanceName, partitionNames);
         Set<String> instanceTags = Sets.newHashSet(config.getTags());
         tags.put(instanceName, instanceTags);

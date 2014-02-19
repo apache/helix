@@ -60,7 +60,6 @@ import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
@@ -77,6 +76,7 @@ import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
@@ -808,7 +808,7 @@ public class ClusterAccessor {
    * @return true if valid or false otherwise
    */
   public boolean isClusterStructureValid() {
-    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
+    List<String> paths = HelixUtil.getRequiredPathsForCluster(_clusterId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
@@ -826,7 +826,7 @@ public class ClusterAccessor {
    */
   public void initClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
+    List<String> paths = HelixUtil.getRequiredPathsForCluster(_clusterId.toString());
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
       if (!status && LOG.isDebugEnabled()) {
@@ -840,7 +840,7 @@ public class ClusterAccessor {
    */
   private void clearClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    List<String> paths = ZKUtil.getRequiredPathsForCluster(_clusterId.toString());
+    List<String> paths = HelixUtil.getRequiredPathsForCluster(_clusterId.toString());
     baseAccessor.remove(paths, 0);
   }
 
@@ -924,5 +924,21 @@ public class ClusterAccessor {
    */
   public boolean dropStateModelDefinitionFromCluster(StateModelDefId stateModelDefId) {
     return _accessor.removeProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify()));
+  }
+
+  /**
+   * Get the cluster ID this accessor is connected to
+   * @return ClusterId
+   */
+  protected ClusterId clusterId() {
+    return _clusterId;
+  }
+
+  /**
+   * Get the accessor for the properties stored for this cluster
+   * @return HelixDataAccessor
+   */
+  protected HelixDataAccessor dataAccessor() {
+    return _accessor;
   }
 }

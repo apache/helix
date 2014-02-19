@@ -54,7 +54,6 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -66,6 +65,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
@@ -711,27 +711,44 @@ public class ParticipantAccessor {
 
   /**
    * Create empty persistent properties to ensure that there is a valid participant structure
+   * @param participantId the identifier under which to initialize the structure
+   * @return true if the participant structure exists at the end of this call, false otherwise
    */
-  public void initParticipantStructure(ParticipantId participantId) {
+  public boolean initParticipantStructure(ParticipantId participantId) {
+    if (participantId == null) {
+      LOG.error("Participant ID cannot be null when clearing the participant in cluster "
+          + _clusterId + "!");
+      return false;
+    }
     List<String> paths =
-        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     for (String path : paths) {
       boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
-      if (!status && LOG.isDebugEnabled()) {
-        LOG.debug(path + " already exists");
+      if (!status) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(path + " already exists");
+        }
       }
     }
+    return true;
   }
 
   /**
    * Clear properties for the participant
+   * @param participantId the participant for which to clear
+   * @return true if all paths removed, false otherwise
    */
-  void clearParticipantStructure(ParticipantId participantId) {
+  protected boolean clearParticipantStructure(ParticipantId participantId) {
     List<String> paths =
-        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
-    baseAccessor.remove(paths, 0);
+    boolean[] removeResults = baseAccessor.remove(paths, 0);
+    boolean result = true;
+    for (boolean removeResult : removeResults) {
+      result = result && removeResult;
+    }
+    return result;
   }
 
   /**
@@ -740,7 +757,7 @@ public class ParticipantAccessor {
    */
   public boolean isParticipantStructureValid(ParticipantId participantId) {
     List<String> paths =
-        ZKUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
@@ -759,5 +776,21 @@ public class ParticipantAccessor {
    */
   protected ResourceAccessor resourceAccessor() {
     return new ResourceAccessor(_clusterId, _accessor);
+  }
+
+  /**
+   * Get the cluster ID this accessor is connected to
+   * @return ClusterId
+   */
+  protected ClusterId clusterId() {
+    return _clusterId;
+  }
+
+  /**
+   * Get the accessor for the properties stored for this cluster
+   * @return HelixDataAccessor
+   */
+  protected HelixDataAccessor dataAccessor() {
+    return _accessor;
   }
 }

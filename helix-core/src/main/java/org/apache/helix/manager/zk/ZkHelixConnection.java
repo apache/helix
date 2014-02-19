@@ -172,14 +172,16 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
 
   @Override
   public void disconnect() {
-    if (_zkclient == null) {
-      return;
-    }
-
-    LOG.info("Disconnecting connection: " + this);
-
     try {
       _lock.lock();
+      if (_zkclient == null) {
+        return;
+      }
+
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Disconnecting connection: " + this);
+      }
+
       for (final HelixConnectionStateListener listener : _connectionListener) {
         try {
 
@@ -190,7 +192,10 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
       }
       _zkclient.close();
       _zkclient = null;
-      LOG.info("Disconnected connection: " + this);
+
+      if (LOG.isInfoEnabled()) {
+        LOG.info("Disconnected connection: " + this);
+      }
     } catch (Exception e) {
       LOG.error("Exception disconnect", e);
     } finally {

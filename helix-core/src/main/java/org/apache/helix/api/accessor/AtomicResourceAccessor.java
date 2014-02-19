@@ -43,8 +43,6 @@ import org.apache.log4j.Logger;
 public class AtomicResourceAccessor extends ResourceAccessor {
   private static final Logger LOG = Logger.getLogger(AtomicResourceAccessor.class);
 
-  private final ClusterId _clusterId;
-  private final HelixDataAccessor _accessor;
   private final HelixLockable _lockProvider;
 
   /**
@@ -61,15 +59,14 @@ public class AtomicResourceAccessor extends ResourceAccessor {
   public AtomicResourceAccessor(ClusterId clusterId, HelixDataAccessor accessor,
       HelixLockable lockProvider) {
     super(clusterId, accessor);
-    _clusterId = clusterId;
-    _accessor = accessor;
     _lockProvider = lockProvider;
     _resourceAccessor = new ResourceAccessor(clusterId, accessor);
   }
 
   @Override
   public Resource readResource(ResourceId resourceId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -83,7 +80,8 @@ public class AtomicResourceAccessor extends ResourceAccessor {
 
   @Override
   public ResourceConfig updateResource(ResourceId resourceId, ResourceConfig.Delta resourceDelta) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -97,7 +95,8 @@ public class AtomicResourceAccessor extends ResourceAccessor {
 
   @Override
   public boolean setRebalancerConfig(ResourceId resourceId, RebalancerConfig config) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -115,7 +114,8 @@ public class AtomicResourceAccessor extends ResourceAccessor {
       LOG.error("resource config cannot be null");
       return false;
     }
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceConfig.getId()));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceConfig.getId()));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -130,7 +130,8 @@ public class AtomicResourceAccessor extends ResourceAccessor {
   @Override
   public boolean generateDefaultAssignment(ResourceId resourceId, int replicaCount,
       String participantGroupTag) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -145,6 +146,8 @@ public class AtomicResourceAccessor extends ResourceAccessor {
 
   @Override
   protected ParticipantAccessor participantAccessor() {
-    return new AtomicParticipantAccessor(_clusterId, _accessor, _lockProvider);
+    ClusterId clusterId = clusterId();
+    HelixDataAccessor accessor = dataAccessor();
+    return new AtomicParticipantAccessor(clusterId, accessor, _lockProvider);
   }
 }

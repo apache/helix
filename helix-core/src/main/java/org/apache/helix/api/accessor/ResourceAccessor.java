@@ -510,4 +510,20 @@ public class ResourceAccessor {
   protected ParticipantAccessor participantAccessor() {
     return new ParticipantAccessor(_clusterId, _accessor);
   }
+
+  /**
+   * Get the cluster ID this accessor is connected to
+   * @return ClusterId
+   */
+  protected ClusterId clusterId() {
+    return _clusterId;
+  }
+
+  /**
+   * Get the accessor for the properties stored for this cluster
+   * @return HelixDataAccessor
+   */
+  protected HelixDataAccessor dataAccessor() {
+    return _accessor;
+  }
 }

@@ -19,11 +19,14 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.log4j.Logger;
 
 public final class HelixUtil {
@@ -147,6 +150,53 @@ public final class HelixUtil {
 
   public static String getControllerPropertyPath(String clusterName, PropertyType type) {
     return PropertyPathConfig.getPath(type, clusterName);
+  }
+
+  /**
+   * Get the required paths for a valid cluster
+   * @param clusterName the cluster to check
+   * @return List of paths as strings
+   */
+  public static List<String> getRequiredPathsForCluster(String clusterName) {
+    List<String> requiredPaths = new ArrayList<String>();
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.CLUSTER.toString(), clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.RESOURCE.toString()));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig
+        .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
+    return requiredPaths;
+  }
+
+  /**
+   * Get the required paths for a valid instance
+   * @param clusterName the cluster that owns the instance
+   * @param instanceName the instance to check
+   * @return List of paths as strings
+   */
+  public static List<String> getRequiredPathsForInstance(String clusterName, String instanceName) {
+    List<String> requiredPaths = new ArrayList<String>();
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName,
+        instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, clusterName,
+        instanceName));
+    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, instanceName));
+    return requiredPaths;
   }
 
   /**

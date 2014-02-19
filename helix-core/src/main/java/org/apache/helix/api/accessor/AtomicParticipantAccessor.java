@@ -47,8 +47,6 @@ import org.apache.log4j.Logger;
 public class AtomicParticipantAccessor extends ParticipantAccessor {
   private static final Logger LOG = Logger.getLogger(AtomicParticipantAccessor.class);
 
-  private final ClusterId _clusterId;
-  private final HelixDataAccessor _accessor;
   private final HelixLockable _lockProvider;
 
   /**
@@ -65,15 +63,14 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
   public AtomicParticipantAccessor(ClusterId clusterId, HelixDataAccessor accessor,
       HelixLockable lockProvider) {
     super(clusterId, accessor);
-    _clusterId = clusterId;
-    _accessor = accessor;
     _lockProvider = lockProvider;
     _participantAccessor = new ParticipantAccessor(clusterId, accessor);
   }
 
   @Override
   boolean enableParticipant(ParticipantId participantId, boolean isEnabled) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -87,7 +84,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
 
   @Override
   public Participant readParticipant(ParticipantId participantId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -105,8 +103,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
       LOG.error("participant config cannot be null");
       return false;
     }
-    HelixLock lock =
-        _lockProvider.getLock(_clusterId, Scope.participant(participantConfig.getId()));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantConfig.getId()));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -121,7 +119,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
   @Override
   public ParticipantConfig updateParticipant(ParticipantId participantId,
       ParticipantConfig.Delta participantDelta) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -135,7 +134,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
 
   @Override
   boolean dropParticipant(ParticipantId participantId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -150,7 +150,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
   @Override
   public void insertMessagesToParticipant(ParticipantId participantId,
       Map<MessageId, Message> msgMap) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -164,7 +165,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
 
   @Override
   public void updateMessageStatus(ParticipantId participantId, Map<MessageId, Message> msgMap) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -178,7 +180,8 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
 
   @Override
   public void deleteMessagesFromParticipant(ParticipantId participantId, Set<MessageId> msgIdSet) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -191,21 +194,24 @@ public class AtomicParticipantAccessor extends ParticipantAccessor {
   }
 
   @Override
-  public void initParticipantStructure(ParticipantId participantId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+  public boolean initParticipantStructure(ParticipantId participantId) {
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
-        _participantAccessor.initParticipantStructure(participantId);
+        return _participantAccessor.initParticipantStructure(participantId);
       } finally {
         lock.unlock();
       }
     }
-    return;
+    return false;
   }
 
   @Override
   protected ResourceAccessor resourceAccessor() {
-    return new AtomicResourceAccessor(_clusterId, _accessor, _lockProvider);
+    ClusterId clusterId = clusterId();
+    HelixDataAccessor accessor = dataAccessor();
+    return new AtomicResourceAccessor(clusterId, accessor, _lockProvider);
   }
 }

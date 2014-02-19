@@ -56,9 +56,6 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   private static final Logger LOG = Logger.getLogger(AtomicClusterAccessor.class);
 
   private final HelixLockable _lockProvider;
-  private final HelixDataAccessor _accessor;
-  private final PropertyKey.Builder _keyBuilder;
-  private final ClusterId _clusterId;
 
   /**
    * Non-atomic instance to protect against reentrant locking via polymorphism
@@ -75,15 +72,13 @@ public class AtomicClusterAccessor extends ClusterAccessor {
       HelixLockable lockProvider) {
     super(clusterId, accessor);
     _lockProvider = lockProvider;
-    _accessor = accessor;
-    _keyBuilder = accessor.keyBuilder();
-    _clusterId = clusterId;
     _clusterAccessor = new ClusterAccessor(clusterId, accessor);
   }
 
   @Override
   public boolean createCluster(ClusterConfig cluster) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -97,7 +92,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public boolean dropCluster() {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -111,7 +107,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public Cluster readCluster() {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -129,7 +126,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
       LOG.error("Participant config cannot be null");
       return false;
     }
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participant.getId()));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participant.getId()));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -143,7 +141,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public boolean dropParticipantFromCluster(ParticipantId participantId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.participant(participantId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -161,7 +160,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
       LOG.error("Resource config cannot be null");
       return false;
     }
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resource.getId()));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resource.getId()));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -175,7 +175,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public boolean dropResourceFromCluster(ResourceId resourceId) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.resource(resourceId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -189,7 +190,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public ClusterConfig updateCluster(ClusterConfig.Delta clusterDelta) {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {
@@ -208,13 +210,16 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   public Map<ResourceId, Resource> readResources() {
     // read resources individually instead of together to maintain the equality link between ideal
     // state and resource config
+    ClusterId clusterId = clusterId();
+    HelixDataAccessor dataAccessor = dataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
     Map<ResourceId, Resource> resources = Maps.newHashMap();
     Set<String> idealStateNames =
-        Sets.newHashSet(_accessor.getChildNames(_keyBuilder.idealStates()));
+        Sets.newHashSet(dataAccessor.getChildNames(keyBuilder.idealStates()));
     Set<String> resourceConfigNames =
-        Sets.newHashSet(_accessor.getChildNames(_keyBuilder.resourceConfigs()));
+        Sets.newHashSet(dataAccessor.getChildNames(keyBuilder.resourceConfigs()));
     resourceConfigNames.addAll(idealStateNames);
-    ResourceAccessor accessor = new AtomicResourceAccessor(_clusterId, _accessor, _lockProvider);
+    ResourceAccessor accessor = new AtomicResourceAccessor(clusterId, dataAccessor, _lockProvider);
     for (String resourceName : resourceConfigNames) {
       ResourceId resourceId = ResourceId.from(resourceName);
       Resource resource = accessor.readResource(resourceId);
@@ -231,10 +236,13 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   @Override
   public Map<ParticipantId, Participant> readParticipants() {
     // read participants individually to keep configs consistent with current state and messages
+    ClusterId clusterId = clusterId();
+    HelixDataAccessor dataAccessor = dataAccessor();
+    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
     Map<ParticipantId, Participant> participants = Maps.newHashMap();
     ParticipantAccessor accessor =
-        new AtomicParticipantAccessor(_clusterId, _accessor, _lockProvider);
-    List<String> participantNames = _accessor.getChildNames(_keyBuilder.instanceConfigs());
+        new AtomicParticipantAccessor(clusterId, dataAccessor, _lockProvider);
+    List<String> participantNames = dataAccessor.getChildNames(keyBuilder.instanceConfigs());
     for (String participantName : participantNames) {
       ParticipantId participantId = ParticipantId.from(participantName);
       Participant participant = accessor.readParticipant(participantId);
@@ -247,7 +255,8 @@ public class AtomicClusterAccessor extends ClusterAccessor {
 
   @Override
   public void initClusterStructure() {
-    HelixLock lock = _lockProvider.getLock(_clusterId, Scope.cluster(_clusterId));
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
     boolean locked = lock.lock();
     if (locked) {
       try {

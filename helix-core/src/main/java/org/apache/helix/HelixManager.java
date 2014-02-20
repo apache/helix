@@ -39,10 +39,11 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
  *    // ROLE can be participant, spectator or a controller<br/>
+ * manager.addPreConnectCallback(cb);
+ *    // cb is invoked after a connection is established, but before the node of type ROLE has
+ *    // joined the cluster. This is where one can add additional listeners (e.g manager.addSOMEListener(listener);)
  * manager.connect();
- * manager.addSOMEListener();
- * manager.start()
- * After start is invoked the subsequent interactions will be via listener onChange callbacks
+ * After connect is invoked the subsequent interactions will be via listener onChange callbacks
  * There will be 3 scenarios for onChange callback, which can be determined using NotificationContext.type
  * INIT -> will be invoked the first time the listener is added
  * CALLBACK -> will be invoked due to datachange in the property value

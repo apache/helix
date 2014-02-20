@@ -123,7 +123,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         // allocate new containers
         for (final ContainerSpec spec : response.getContainersToAcquire()) {
           // random participant id
-          final ParticipantId participantId = ParticipantId.from(UUID.randomUUID().toString());
+          final ParticipantId participantId = ParticipantId.from(spec.getContainerId().stringify());
           // create a new Participant, attach the container spec
           InstanceConfig instanceConfig = new InstanceConfig(participantId);
           instanceConfig.setContainerSpec(spec);

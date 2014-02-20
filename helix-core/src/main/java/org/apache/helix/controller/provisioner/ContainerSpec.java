@@ -23,23 +23,31 @@ public class ContainerSpec {
   /**
    * Some unique id representing the container.
    */
-  ContainerId containerId;
+  ContainerId _containerId;
   
-  String memory;
+  int _memory;
 
   public ContainerSpec(ContainerId containerId) {
-    this.containerId = containerId;
+    this._containerId = containerId;
   }
 
   public ContainerId getContainerId() {
-    return containerId;
+    return _containerId;
   }
 
   @Override
   public String toString() {
-    return containerId.toString();
+    return _containerId.toString();
+  }
+  
+  public void setMemory(int memory){
+    _memory = memory;
   }
 
+  public int getMemory(){
+    return _memory;
+  }
+  
   public static ContainerSpec from(String serialized) {
     return new ContainerSpec(ContainerId.from(serialized));
   }

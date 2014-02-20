@@ -22,7 +22,6 @@ package org.apache.helix.controller.stages;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -166,12 +165,13 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
-          ListenableFuture<Boolean> future = containerProvider.startContainer(containerId, participant);
+          ListenableFuture<Boolean> future =
+              containerProvider.startContainer(containerId, participant);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
               updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
-                  ContainerState.ACTIVE);
+                  ContainerState.CONNECTED);
             }
 
             @Override
@@ -225,7 +225,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
                   .toString());
           final ContainerId containerId = existingInstance.getContainerId();
           existingInstance.setInstanceEnabled(false);
-          existingInstance.setContainerState(ContainerState.TEARDOWN);
+          existingInstance.setContainerState(ContainerState.HALTING);
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // stop the container
@@ -267,6 +267,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
     InstanceConfig existingInstance =
         helixAdmin.getInstanceConfig(cluster.getId().toString(), participantId.toString());
     existingInstance.setContainerState(state);
+    existingInstance.setInstanceEnabled(state.equals(ContainerState.CONNECTED));
     accessor.updateProperty(keyBuilder.instanceConfig(participantId.toString()), existingInstance);
   }
 

@@ -1,10 +1,6 @@
 package org.apache.helix.provisioning.yarn;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -13,22 +9,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Vector;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.Executors;
 
-import org.apache.commons.compress.archivers.ArchiveStreamFactory;
-import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
-import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataOutputBuffer;
-import org.apache.hadoop.security.Credentials;
-import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.hadoop.security.token.Token;
 import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.Container;
@@ -55,13 +42,13 @@ import org.apache.helix.controller.provisioner.ContainerProvider;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
-import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.model.InstanceConfig;
 
-import com.google.common.collect.Lists;
 import com.google.common.base.Function;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -274,39 +261,57 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
             .getProvisionerConfig();
     int targetNumContainers = provisionerConfig.getNumContainers();
 
+    // Any container that is in a state should be put in this set
     Set<ContainerId> existingContainersIdSet = new HashSet<ContainerId>();
-    
+
+    // Cache halted containers to determine which to restart and which to release
+    Map<ContainerId, Participant> excessHaltedContainers = Maps.newHashMap();
+
+    // Cache participants to ensure that excess participants are stopped
+    Map<ContainerId, Participant> excessActiveContainers = Maps.newHashMap();
 
     for (Participant participant : participants) {
       ContainerConfig containerConfig = participant.getContainerConfig();
       if (containerConfig != null && containerConfig.getState() != null) {
         ContainerState state = containerConfig.getState();
         switch (state) {
-        case ACQUIRED:
-          // acquired containers are ready to start
-          containersToStart.add(participant);
-          break;
-        case ACTIVE:
-          existingContainersIdSet.add(containerConfig.getId());
-          break;
-        case HALTED:
-          // halted containers can be released
-          containersToRelease.add(participant);
-          break;
         case ACQUIRING:
           existingContainersIdSet.add(containerConfig.getId());
           break;
-        case CONNECTING:
+        case ACQUIRED:
+          // acquired containers are ready to start
+          existingContainersIdSet.add(containerConfig.getId());
+          containersToStart.add(participant);
           break;
-        case FAILED:
-          //remove the failed instance
-          _helixManager.getClusterManagmentTool().dropInstance(cluster.getId().toString(), new InstanceConfig(participant.getId()));
+        case CONNECTING:
+          existingContainersIdSet.add(containerConfig.getId());
+          break;
+        case CONNECTED:
+          // active containers can be stopped or kept active
+          existingContainersIdSet.add(containerConfig.getId());
+          excessActiveContainers.put(containerConfig.getId(), participant);
+          break;
+        case DISCONNECTED:
+          // disconnected containers must be stopped
+          existingContainersIdSet.add(containerConfig.getId());
+          containersToStop.add(participant);
+        case HALTING:
+          existingContainersIdSet.add(containerConfig.getId());
+          break;
+        case HALTED:
+          // halted containers can be released or restarted
+          existingContainersIdSet.add(containerConfig.getId());
+          excessHaltedContainers.put(containerConfig.getId(), participant);
+          break;
+        case FINALIZING:
+          existingContainersIdSet.add(containerConfig.getId());
           break;
         case FINALIZED:
           break;
-        case FINALIZING:
-          break;
-        case TEARDOWN:
+        case FAILED:
+          // remove the failed instance
+          _helixManager.getClusterManagmentTool().dropInstance(cluster.getId().toString(),
+              new InstanceConfig(participant.getId()));
           break;
         default:
           break;
@@ -318,18 +323,32 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
         }
       }
     }
-    
+
     for (int i = 0; i < targetNumContainers; i++) {
       ContainerId containerId = ContainerId.from(resourceId + "_container_" + (i));
-      if(!existingContainersIdSet.contains(containerId)){
+      excessActiveContainers.remove(containerId); // don't stop this container if active
+      if (excessHaltedContainers.containsKey(containerId)) {
+        // Halted containers can be restarted if necessary
+        Participant participant = excessHaltedContainers.get(containerId);
+        containersToStart.add(participant);
+        excessHaltedContainers.remove(containerId); // don't release this container
+      } else if (!existingContainersIdSet.contains(containerId)) {
+        // Unallocated containers must be allocated
         ContainerSpec containerSpec = new ContainerSpec(containerId);
         ParticipantId participantId = ParticipantId.from(containerId.stringify());
-        ParticipantConfig participantConfig = applicationSpec.getParticipantConfig(resourceId.stringify(), participantId);
+        ParticipantConfig participantConfig =
+            applicationSpec.getParticipantConfig(resourceId.stringify(), participantId);
         containerSpec.setMemory(participantConfig.getUserConfig().getIntField("memory", 1024));
         containersToAcquire.add(containerSpec);
       }
     }
-    
+
+    // Add all the containers that should be stopped because they fall outside the target range
+    containersToStop.addAll(excessActiveContainers.values());
+
+    // Add halted containers that should not be restarted
+    containersToRelease.addAll(excessHaltedContainers.values());
+
     response.setContainersToAcquire(containersToAcquire);
     response.setContainersToStart(containersToStart);
     response.setContainersToRelease(containersToRelease);

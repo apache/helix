@@ -250,7 +250,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       participantService.startAsync();
       participantService.awaitRunning();
       _participants.put(containerId, participantService);
-      _states.put(containerId, ContainerState.ACTIVE);
+      _states.put(containerId, ContainerState.CONNECTED);
       started++;
       SettableFuture<Boolean> future = SettableFuture.create();
       future.set(true);
@@ -294,7 +294,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
             // acquired containers are ready to start
             containersToStart.add(participant);
             break;
-          case ACTIVE:
+          case CONNECTED:
             // stop at most two active at a time, wait for everything to be up first
             if (stopCount < 2 && _askCount >= MAX_PARTICIPANTS) {
               containersToStop.add(participant);

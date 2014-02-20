@@ -55,9 +55,12 @@ public class ClusterDataCache {
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
   Map<String, LiveInstance> _liveInstanceMap;
+  Map<String, LiveInstance> _liveInstanceCacheMap;
   Map<String, IdealState> _idealStateMap;
+  Map<String, IdealState> _idealStateCacheMap;
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
+  Map<String, InstanceConfig> _instanceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
@@ -89,10 +92,13 @@ public class ClusterDataCache {
     Builder keyBuilder = accessor.keyBuilder();
 
     if (_init) {
-      _idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
-      _liveInstanceMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
-      _instanceConfigMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+      _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
+      _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
     }
+    _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
+    _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
+    _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
 
     if (LOG.isTraceEnabled()) {
       for (LiveInstance instance : _liveInstanceMap.values()) {
@@ -240,7 +246,7 @@ public class ClusterDataCache {
     for (IdealState idealState : idealStates) {
       idealStateMap.put(idealState.getId(), idealState);
     }
-    _idealStateMap = idealStateMap;
+    _idealStateCacheMap = idealStateMap;
   }
 
   public Map<String, Map<String, String>> getIdealStateRules() {
@@ -260,7 +266,7 @@ public class ClusterDataCache {
     for (LiveInstance liveInstance : liveInstances) {
       liveInstanceMap.put(liveInstance.getId(), liveInstance);
     }
-    _liveInstanceMap = liveInstanceMap;
+    _liveInstanceCacheMap = liveInstanceMap;
   }
 
   /**
@@ -369,7 +375,7 @@ public class ClusterDataCache {
     for (InstanceConfig instanceConfig : instanceConfigs) {
       instanceConfigMap.put(instanceConfig.getId(), instanceConfig);
     }
-    _instanceConfigMap = instanceConfigMap;
+    _instanceConfigCacheMap = instanceConfigMap;
   }
 
   /**

@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -59,6 +60,7 @@ import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Joiner;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -226,7 +228,7 @@ public class GenericApplicationMaster {
   }
 
   public ListenableFuture<ContainerAskResponse> acquireContainer(ContainerRequest containerAsk) {
-    amRMClient.addContainerRequest(containerAsk);
+    LOG.info("Requesting container ACQUIRE:" + containerAsk);
     SettableFuture<ContainerAskResponse> future = SettableFuture.create();
     containerRequestMap.put(containerAsk, future);
     amRMClient.addContainerRequest(containerAsk);
@@ -234,7 +236,7 @@ public class GenericApplicationMaster {
   }
 
   public ListenableFuture<ContainerStopResponse> stopContainer(Container container) {
-    nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
+    LOG.info("Requesting container STOP:" + container);
     SettableFuture<ContainerStopResponse> future = SettableFuture.create();
     containerStopMap.put(container.getId(), future);
     nmClientAsync.stopContainerAsync(container.getId(), container.getNodeId());
@@ -242,7 +244,7 @@ public class GenericApplicationMaster {
   }
 
   public ListenableFuture<ContainerReleaseResponse> releaseContainer(Container container) {
-    amRMClient.releaseAssignedContainer(container.getId());
+    LOG.info("Requesting container RELEASE:" + container);
     SettableFuture<ContainerReleaseResponse> future = SettableFuture.create();
     containerReleaseMap.put(container.getId(), future);
     amRMClient.releaseAssignedContainer(container.getId());
@@ -251,6 +253,7 @@ public class GenericApplicationMaster {
 
   public ListenableFuture<ContainerLaunchResponse> launchContainer(Container container,
       ContainerLaunchContext containerLaunchContext) {
+    LOG.info("Requesting container LAUNCH:" + container + " :" + Joiner.on(" ").join(containerLaunchContext.getCommands()));
     SettableFuture<ContainerLaunchResponse> future = SettableFuture.create();
     containerLaunchResponseMap.put(container.getId(), future);
     nmClientAsync.startContainerAsync(container, containerLaunchContext);

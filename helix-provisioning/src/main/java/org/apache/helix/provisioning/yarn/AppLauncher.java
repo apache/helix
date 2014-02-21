@@ -29,16 +29,20 @@ import org.apache.hadoop.yarn.api.ApplicationConstants;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.protocolrecords.GetNewApplicationResponse;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.ApplicationSubmissionContext;
 import org.apache.hadoop.yarn.api.records.ContainerLaunchContext;
+import org.apache.hadoop.yarn.api.records.FinalApplicationStatus;
 import org.apache.hadoop.yarn.api.records.LocalResource;
 import org.apache.hadoop.yarn.api.records.LocalResourceType;
 import org.apache.hadoop.yarn.api.records.LocalResourceVisibility;
 import org.apache.hadoop.yarn.api.records.Priority;
 import org.apache.hadoop.yarn.api.records.Resource;
+import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -345,14 +349,65 @@ public class AppLauncher {
    * @return true if successfully completed, it will print status every X seconds
    */
   public boolean waitUntilDone() {
+    String prevReport = "";
     while (true) {
       try {
+        // Get application report for the appId we are interested in
+        ApplicationReport report = yarnClient.getApplicationReport(_appId);
+
+        String reportMessage = generateReport(report);
+        if (!reportMessage.equals(prevReport)) {
+          LOG.info(reportMessage);
+        }
+        YarnApplicationState state = report.getYarnApplicationState();
+        FinalApplicationStatus dsStatus = report.getFinalApplicationStatus();
+        if (YarnApplicationState.FINISHED == state) {
+          if (FinalApplicationStatus.SUCCEEDED == dsStatus) {
+            LOG.info("Application has completed successfully. Breaking monitoring loop");
+            return true;
+          } else {
+            LOG.info("Application did finished unsuccessfully." + " YarnState=" + state.toString()
+                + ", DSFinalStatus=" + dsStatus.toString() + ". Breaking monitoring loop");
+            return false;
+          }
+        } else if (YarnApplicationState.KILLED == state || YarnApplicationState.FAILED == state) {
+          LOG.info("Application did not finish." + " YarnState=" + state.toString()
+              + ", DSFinalStatus=" + dsStatus.toString() + ". Breaking monitoring loop");
+          return false;
+        }
+        prevReport = reportMessage;
         Thread.sleep(10000);
-      } catch (InterruptedException e) {
+      } catch (Exception e) {
+        LOG.error("Exception while getting info ");
         break;
       }
     }
     return true;
+  }
+
+  /**
+   * TODO: kill the app only in dev mode. In prod, its ok for the app to continue running if the
+   * launcher dies after launching
+   */
+
+  private String generateReport(ApplicationReport report) {
+    return "Got application report from ASM for" + ", appId=" + _appId.getId()
+        + ", clientToAMToken=" + report.getClientToAMToken() + ", appDiagnostics="
+        + report.getDiagnostics() + ", appMasterHost=" + report.getHost() + ", appQueue="
+        + report.getQueue() + ", appMasterRpcPort=" + report.getRpcPort() + ", appStartTime="
+        + report.getStartTime() + ", yarnAppState=" + report.getYarnApplicationState().toString()
+        + ", distributedFinalState=" + report.getFinalApplicationStatus().toString()
+        + ", appTrackingUrl=" + report.getTrackingUrl() + ", appUser=" + report.getUser();
+  }
+
+  protected void cleanup() {
+    LOG.info("Cleaning up");
+    try {
+      ApplicationReport applicationReport = yarnClient.getApplicationReport(_appId);
+      LOG.info("Killing application:"+ _appId + " \n Application report" + generateReport(applicationReport));
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
   }
 
   /**
@@ -364,8 +419,16 @@ public class AppLauncher {
     ApplicationSpecFactory applicationSpecFactory =
         (ApplicationSpecFactory) Class.forName(args[0]).newInstance();
     File yamlConfigFile = new File(args[1]);
-    AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
+    final AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();
+    Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
+
+      @Override
+      public void run() {
+        launcher.cleanup();
+      }
+    }));
     launcher.waitUntilDone();
   }
+
 }

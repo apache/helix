@@ -35,23 +35,36 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
   public void onContainersCompleted(List<ContainerStatus> completedContainers) {
     LOG.info("Got response from RM for container ask, completedCnt=" + completedContainers.size());
     for (ContainerStatus containerStatus : completedContainers) {
-      GenericApplicationMaster.LOG.info("Got container status for containerID=" + containerStatus.getContainerId()
-          + ", state=" + containerStatus.getState() + ", exitStatus="
-          + containerStatus.getExitStatus() + ", diagnostics=" + containerStatus.getDiagnostics());
+      GenericApplicationMaster.LOG.info("Got container status for containerID="
+          + containerStatus.getContainerId() + ", state=" + containerStatus.getState()
+          + ", exitStatus=" + containerStatus.getExitStatus() + ", diagnostics="
+          + containerStatus.getDiagnostics());
 
       // non complete containers should not be here
       assert (containerStatus.getState() == ContainerState.COMPLETE);
-     
+      SettableFuture<ContainerStopResponse> stopResponseFuture =
+          _genericApplicationMaster.containerStopMap.get(containerStatus.getContainerId());
+      if (stopResponseFuture != null) {
+        ContainerStopResponse value = new ContainerStopResponse();
+        stopResponseFuture.set(value);
+      } else {
+        SettableFuture<ContainerReleaseResponse> releaseResponseFuture =
+            _genericApplicationMaster.containerReleaseMap.get(containerStatus.getContainerId());
+        if (releaseResponseFuture != null) {
+          ContainerReleaseResponse value = new ContainerReleaseResponse();
+          releaseResponseFuture.set(value);
+        }
+      }
       // increment counters for completed/failed containers
       int exitStatus = containerStatus.getExitStatus();
       if (0 != exitStatus) {
         // container failed
         if (ContainerExitStatus.ABORTED != exitStatus) {
-      
+
         } else {
           // container was killed by framework, possibly preempted
           // we should re-try as the container was lost for some reason
-      
+
           // we do not need to release the container as it would be done
           // by the RM
         }
@@ -66,7 +79,8 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
 
   @Override
   public void onContainersAllocated(List<Container> allocatedContainers) {
-    GenericApplicationMaster.LOG.info("Got response from RM for container ask, allocatedCnt=" + allocatedContainers.size());
+    GenericApplicationMaster.LOG.info("Got response from RM for container ask, allocatedCnt="
+        + allocatedContainers.size());
     for (Container allocatedContainer : allocatedContainers) {
       GenericApplicationMaster.LOG.info("Allocated new container." + ", containerId="
           + allocatedContainer.getId() + ", containerNode="
@@ -74,15 +88,18 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
           + allocatedContainer.getNodeId().getPort() + ", containerNodeURI="
           + allocatedContainer.getNodeHttpAddress() + ", containerResourceMemory"
           + allocatedContainer.getResource().getMemory());
-      for(ContainerRequest containerRequest: _genericApplicationMaster.containerRequestMap.keySet()){
-        if(containerRequest.getCapability().getMemory() == allocatedContainer.getResource().getMemory()){
-          SettableFuture<ContainerAskResponse> future = _genericApplicationMaster.containerRequestMap.remove(containerRequest);
+      for (ContainerRequest containerRequest : _genericApplicationMaster.containerRequestMap
+          .keySet()) {
+        if (containerRequest.getCapability().getMemory() == allocatedContainer.getResource()
+            .getMemory()) {
+          SettableFuture<ContainerAskResponse> future =
+              _genericApplicationMaster.containerRequestMap.remove(containerRequest);
           ContainerAskResponse response = new ContainerAskResponse();
           response.setContainer(allocatedContainer);
           future.set(response);
           break;
         }
-      }     
+      }
     }
   }
 
@@ -97,7 +114,7 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
   @Override
   public float getProgress() {
     // set progress to deliver to RM on next heartbeat
-    return (System.currentTimeMillis()-startTime) % Integer.MAX_VALUE;
+    return (System.currentTimeMillis() - startTime) % Integer.MAX_VALUE;
   }
 
   @Override

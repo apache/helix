@@ -324,8 +324,8 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
       if (excessHaltedContainers.containsKey(participantId)) {
         // Halted containers can be restarted if necessary
         Participant participant = excessHaltedContainers.get(participantId);
-        containersToStart.add(participant);
-        excessHaltedContainers.remove(participantId); // don't release this container
+        //containersToStart.add(participant);
+        //excessHaltedContainers.remove(participantId); // don't release this container
       } else if (!existingContainersIdSet.contains(participantId)) {
         // Unallocated containers must be allocated
         ContainerSpec containerSpec = new ContainerSpec(participantId);

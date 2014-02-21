@@ -23,13 +23,11 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Set;
 
 import org.apache.commons.cli.ParseException;
 import org.apache.commons.logging.Log;
@@ -61,6 +59,7 @@ import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.collect.Sets;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
@@ -104,6 +103,7 @@ public class GenericApplicationMaster {
       new LinkedHashMap<ContainerId, SettableFuture<ContainerStopResponse>>();
   Map<ContainerId, SettableFuture<ContainerLaunchResponse>> containerLaunchResponseMap =
       new LinkedHashMap<ContainerId, SettableFuture<ContainerLaunchResponse>>();
+  Set<ContainerId> allocatedContainerSet = Sets.newHashSet();
 
   ByteBuffer allTokens;
 
@@ -246,14 +246,21 @@ public class GenericApplicationMaster {
   public ListenableFuture<ContainerReleaseResponse> releaseContainer(Container container) {
     LOG.info("Requesting container RELEASE:" + container);
     SettableFuture<ContainerReleaseResponse> future = SettableFuture.create();
-    containerReleaseMap.put(container.getId(), future);
-    amRMClient.releaseAssignedContainer(container.getId());
+    synchronized (allocatedContainerSet) {
+      if (!allocatedContainerSet.contains(container.getId())) {
+        future.set(new ContainerReleaseResponse());
+      } else {
+        containerReleaseMap.put(container.getId(), future);
+        amRMClient.releaseAssignedContainer(container.getId());
+      }
+    }
     return future;
   }
 
   public ListenableFuture<ContainerLaunchResponse> launchContainer(Container container,
       ContainerLaunchContext containerLaunchContext) {
-    LOG.info("Requesting container LAUNCH:" + container + " :" + Joiner.on(" ").join(containerLaunchContext.getCommands()));
+    LOG.info("Requesting container LAUNCH:" + container + " :"
+        + Joiner.on(" ").join(containerLaunchContext.getCommands()));
     SettableFuture<ContainerLaunchResponse> future = SettableFuture.create();
     containerLaunchResponseMap.put(container.getId(), future);
     nmClientAsync.startContainerAsync(container, containerLaunchContext);

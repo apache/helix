@@ -42,17 +42,21 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
 
       // non complete containers should not be here
       assert (containerStatus.getState() == ContainerState.COMPLETE);
-      SettableFuture<ContainerStopResponse> stopResponseFuture =
-          _genericApplicationMaster.containerStopMap.remove(containerStatus.getContainerId());
-      if (stopResponseFuture != null) {
-        ContainerStopResponse value = new ContainerStopResponse();
-        stopResponseFuture.set(value);
-      } else {
-        SettableFuture<ContainerReleaseResponse> releaseResponseFuture =
-            _genericApplicationMaster.containerReleaseMap.remove(containerStatus.getContainerId());
-        if (releaseResponseFuture != null) {
-          ContainerReleaseResponse value = new ContainerReleaseResponse();
-          releaseResponseFuture.set(value);
+      synchronized (_genericApplicationMaster.allocatedContainerSet) {
+        _genericApplicationMaster.allocatedContainerSet.remove(containerStatus.getContainerId());
+        SettableFuture<ContainerStopResponse> stopResponseFuture =
+            _genericApplicationMaster.containerStopMap.remove(containerStatus.getContainerId());
+        if (stopResponseFuture != null) {
+          ContainerStopResponse value = new ContainerStopResponse();
+          stopResponseFuture.set(value);
+        } else {
+          SettableFuture<ContainerReleaseResponse> releaseResponseFuture =
+              _genericApplicationMaster.containerReleaseMap
+                  .remove(containerStatus.getContainerId());
+          if (releaseResponseFuture != null) {
+            ContainerReleaseResponse value = new ContainerReleaseResponse();
+            releaseResponseFuture.set(value);
+          }
         }
       }
       // increment counters for completed/failed containers
@@ -96,6 +100,7 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
               _genericApplicationMaster.containerRequestMap.remove(containerRequest);
           ContainerAskResponse response = new ContainerAskResponse();
           response.setContainer(allocatedContainer);
+          _genericApplicationMaster.allocatedContainerSet.add(allocatedContainer.getId());
           future.set(response);
           break;
         }

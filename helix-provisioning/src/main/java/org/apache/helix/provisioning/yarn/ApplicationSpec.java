@@ -3,8 +3,6 @@ package org.apache.helix.provisioning.yarn;
 import java.net.URI;
 import java.util.List;
 
-import org.apache.helix.api.config.ParticipantConfig;
-import org.apache.helix.api.id.ParticipantId;
 
 public interface ApplicationSpec {
   /**
@@ -23,7 +21,7 @@ public interface ApplicationSpec {
   
   String getServiceMainClass(String service);
 
-  ParticipantConfig getParticipantConfig(String serviceName, ParticipantId participantId);
+  ServiceConfig getServiceConfig(String serviceName);
 
   List<TaskConfig> getTaskConfigs();
 

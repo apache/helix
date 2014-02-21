@@ -3,11 +3,15 @@ package org.apache.helix.provisioning.yarn;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ServiceConfig {
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.id.ResourceId;
+
+public class ServiceConfig extends UserConfig{
 	public Map<String, String> config = new HashMap<String, String>();
 	
-	public String getValue(String key) {
-		return (config != null ? config.get(key) : null);
-	}
-
+	public ServiceConfig(Scope<ResourceId> scope) {
+	  super(scope);
+  }
+ 
 }

@@ -277,8 +277,8 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       List<ContainerSpec> containersToAcquire = Lists.newArrayList();
       boolean asked = false;
       if (_askCount < MAX_PARTICIPANTS) {
-        containersToAcquire.add(new ContainerSpec(ContainerId.from("container" + _askCount)));
-        containersToAcquire.add(new ContainerSpec(ContainerId.from("container" + (_askCount + 1))));
+        containersToAcquire.add(new ContainerSpec(ParticipantId.from("container" + _askCount)));
+        containersToAcquire.add(new ContainerSpec(ParticipantId.from("container" + (_askCount + 1))));
         asked = true;
       }
       List<Participant> containersToStart = Lists.newArrayList();

@@ -210,8 +210,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     vargs.add("--cluster " + appName);
     vargs.add("--participantId " + participant.getId().stringify());
     vargs.add("--participantClass " + mainClass);
-    ;
-
+    
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stderr");
 
@@ -262,13 +261,13 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     int targetNumContainers = provisionerConfig.getNumContainers();
 
     // Any container that is in a state should be put in this set
-    Set<ContainerId> existingContainersIdSet = new HashSet<ContainerId>();
+    Set<ParticipantId> existingContainersIdSet = new HashSet<ParticipantId>();
 
     // Cache halted containers to determine which to restart and which to release
-    Map<ContainerId, Participant> excessHaltedContainers = Maps.newHashMap();
+    Map<ParticipantId, Participant> excessHaltedContainers = Maps.newHashMap();
 
     // Cache participants to ensure that excess participants are stopped
-    Map<ContainerId, Participant> excessActiveContainers = Maps.newHashMap();
+    Map<ParticipantId, Participant> excessActiveContainers = Maps.newHashMap();
 
     for (Participant participant : participants) {
       ContainerConfig containerConfig = participant.getContainerConfig();
@@ -276,35 +275,35 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
         ContainerState state = containerConfig.getState();
         switch (state) {
         case ACQUIRING:
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           break;
         case ACQUIRED:
           // acquired containers are ready to start
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           containersToStart.add(participant);
           break;
         case CONNECTING:
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           break;
         case CONNECTED:
           // active containers can be stopped or kept active
-          existingContainersIdSet.add(containerConfig.getId());
-          excessActiveContainers.put(containerConfig.getId(), participant);
+          existingContainersIdSet.add(participant.getId());
+          excessActiveContainers.put(participant.getId(), participant);
           break;
         case DISCONNECTED:
           // disconnected containers must be stopped
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           containersToStop.add(participant);
         case HALTING:
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           break;
         case HALTED:
           // halted containers can be released or restarted
-          existingContainersIdSet.add(containerConfig.getId());
-          excessHaltedContainers.put(containerConfig.getId(), participant);
+          existingContainersIdSet.add(participant.getId());
+          excessHaltedContainers.put(participant.getId(), participant);
           break;
         case FINALIZING:
-          existingContainersIdSet.add(containerConfig.getId());
+          existingContainersIdSet.add(participant.getId());
           break;
         case FINALIZED:
           break;
@@ -316,29 +315,21 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
         default:
           break;
         }
-        ContainerId containerId = containerConfig.getId();
-        if (containerId != null) {
-          // _containerParticipants.put(containerId, participant.getId());
-          // _states.put(containerId, state);
-        }
       }
     }
 
     for (int i = 0; i < targetNumContainers; i++) {
-      ContainerId containerId = ContainerId.from(resourceId + "_container_" + (i));
-      excessActiveContainers.remove(containerId); // don't stop this container if active
-      if (excessHaltedContainers.containsKey(containerId)) {
+      ParticipantId participantId = ParticipantId.from(resourceId + "_container_" + (i));
+      excessActiveContainers.remove(participantId); // don't stop this container if active
+      if (excessHaltedContainers.containsKey(participantId)) {
         // Halted containers can be restarted if necessary
-        Participant participant = excessHaltedContainers.get(containerId);
+        Participant participant = excessHaltedContainers.get(participantId);
         containersToStart.add(participant);
-        excessHaltedContainers.remove(containerId); // don't release this container
-      } else if (!existingContainersIdSet.contains(containerId)) {
+        excessHaltedContainers.remove(participantId); // don't release this container
+      } else if (!existingContainersIdSet.contains(participantId)) {
         // Unallocated containers must be allocated
-        ContainerSpec containerSpec = new ContainerSpec(containerId);
-        ParticipantId participantId = ParticipantId.from(containerId.stringify());
-        ParticipantConfig participantConfig =
-            applicationSpec.getParticipantConfig(resourceId.stringify(), participantId);
-        containerSpec.setMemory(participantConfig.getUserConfig().getIntField("memory", 1024));
+        ContainerSpec containerSpec = new ContainerSpec(participantId);
+        containerSpec.setMemory(_resourceConfig.getUserConfig().getIntField("memory", 1024));
         containersToAcquire.add(containerSpec);
       }
     }

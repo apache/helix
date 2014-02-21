@@ -1,5 +1,7 @@
 package org.apache.helix.controller.provisioner;
 
+import org.apache.helix.api.id.ParticipantId;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -27,8 +29,10 @@ public class ContainerSpec {
   
   int _memory;
 
-  public ContainerSpec(ContainerId containerId) {
-    this._containerId = containerId;
+  private ParticipantId _participantId;
+
+  public ContainerSpec(ParticipantId _participantId) {
+    this._participantId = _participantId;
   }
 
   public ContainerId getContainerId() {
@@ -37,7 +41,7 @@ public class ContainerSpec {
 
   @Override
   public String toString() {
-    return _containerId.toString();
+    return _participantId.toString();
   }
   
   public void setMemory(int memory){
@@ -49,6 +53,13 @@ public class ContainerSpec {
   }
   
   public static ContainerSpec from(String serialized) {
-    return new ContainerSpec(ContainerId.from(serialized));
+    //todo 
+    return null;
+    //return new ContainerSpec(ContainerId.from(serialized));
   }
+
+  public ParticipantId getParticipantId() {
+    return _participantId;
+  }
+  
 }

@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixAdmin;
@@ -121,16 +122,17 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
 
         // allocate new containers
         for (final ContainerSpec spec : response.getContainersToAcquire()) {
-          // random participant id
-          final ParticipantId participantId = ParticipantId.from(spec.getContainerId().stringify());
-          // create a new Participant, attach the container spec
-          InstanceConfig instanceConfig = new InstanceConfig(participantId);
-          instanceConfig.setContainerSpec(spec);
-          // create a helix_participant in ACQUIRING state
-          instanceConfig.setContainerState(ContainerState.ACQUIRING);
-          // create the helix participant and add it to cluster
-          helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
-
+          final ParticipantId participantId = spec.getParticipantId();
+          List<String> instancesInCluster = helixAdmin.getInstancesInCluster(cluster.getId().stringify());
+          if (!instancesInCluster.contains(participantId.stringify())) {
+            // create a new Participant, attach the container spec
+            InstanceConfig instanceConfig = new InstanceConfig(participantId);
+            instanceConfig.setContainerSpec(spec);
+            // create a helix_participant in ACQUIRING state
+            instanceConfig.setContainerState(ContainerState.ACQUIRING);
+            // create the helix participant and add it to cluster
+            helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
+          }
           ListenableFuture<ContainerId> future = containerProvider.allocateContainer(spec);
           FutureCallback<ContainerId> callback = new FutureCallback<ContainerId>() {
             @Override
@@ -160,7 +162,6 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
               helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
                   .toString());
           final ContainerId containerId = existingInstance.getContainerId();
-          existingInstance.setContainerId(containerId);
           existingInstance.setContainerState(ContainerState.CONNECTING);
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);

@@ -7,7 +7,8 @@ appMasterPackageUri: 'file:///Users/kgopalak/Documents/projects/incubator-helix/
 appName: testApp
 serviceConfigMap:
   HelloWorld: {
-    k1: v1
+    num_containers: 3,
+    memory: 1024
   }
 serviceMainClassMap: {
   HelloWorld: org.apache.helix.provisioning.yarn.example.HelloWorldService

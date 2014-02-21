@@ -46,7 +46,7 @@ public class HelixYarnApplicationMasterMain {
   public static void main(String[] args) throws Exception {
     Map<String, String> env = System.getenv();
     LOG.info("Starting app master with the following environment variables");
-    for(String key: env.keySet()){
+    for (String key : env.keySet()) {
       LOG.info(key + "\t\t=" + env.get(key));
     }
     int numContainers = 1;
@@ -93,11 +93,11 @@ public class HelixYarnApplicationMasterMain {
 
     YarnProvisioner.applicationMaster = genericApplicationMaster;
     YarnProvisioner.applicationMasterConfig = appMasterConfig;
-    YarnProvisioner.applicationSpec = factory.fromYaml(new FileInputStream(configFile));
+    ApplicationSpec applicationSpec = factory.fromYaml(new FileInputStream(configFile));
+    YarnProvisioner.applicationSpec = applicationSpec;
     String zkAddress = appMasterConfig.getZKAddress();
     String clusterName = appMasterConfig.getAppName();
-    
-    String resourceName = "HelloWorld";
+
     // CREATE CLUSTER and setup the resources
     // connect
     ZkHelixConnection connection = new ZkHelixConnection(zkAddress);
@@ -110,17 +110,27 @@ public class HelixYarnApplicationMasterMain {
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForStatelessService());
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
         statelessService).build());
-
-    // add the resource with the local provisioner
-    ResourceId resourceId = ResourceId.from(resourceName);
-    YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
-    provisionerConfig.setNumContainers(numContainers);
-    RebalancerConfig rebalancerConfig =
-        new FullAutoRebalancerConfig.Builder(resourceId).stateModelDefId(
-            statelessService.getStateModelDefId()).build();
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(ResourceId.from(resourceName))
-        .provisionerConfig(provisionerConfig).rebalancerConfig(rebalancerConfig).build());
-
+    for (String service : applicationSpec.getServices()) {
+      String resourceName = service;
+      // add the resource with the local provisioner
+      ResourceId resourceId = ResourceId.from(resourceName);
+      YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
+      ServiceConfig serviceConfig = applicationSpec.getServiceConfig(resourceName);
+      provisionerConfig.setNumContainers(serviceConfig.getIntField("num_containers", 1));
+      serviceConfig.setSimpleField("service_name", service);
+      FullAutoRebalancerConfig.Builder rebalancerConfigBuilder =
+          new FullAutoRebalancerConfig.Builder(resourceId);
+      RebalancerConfig rebalancerConfig =
+          rebalancerConfigBuilder.stateModelDefId(statelessService.getStateModelDefId())//
+              .build();
+      ResourceConfig.Builder resourceConfigBuilder =
+          new ResourceConfig.Builder(ResourceId.from(resourceName));
+      ResourceConfig resourceConfig = resourceConfigBuilder.provisionerConfig(provisionerConfig) //
+          .rebalancerConfig(rebalancerConfig) //
+          .userConfig(serviceConfig) //
+          .build();
+      clusterAccessor.addResourceToCluster(resourceConfig);
+    }
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);

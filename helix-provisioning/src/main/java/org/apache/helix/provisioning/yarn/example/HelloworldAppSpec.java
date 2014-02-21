@@ -7,27 +7,31 @@ import java.util.Map;
 
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ParticipantConfig;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.ResourceConfig.Builder;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.provisioning.yarn.AppConfig;
 import org.apache.helix.provisioning.yarn.ApplicationSpec;
+import org.apache.helix.provisioning.yarn.ServiceConfig;
 import org.apache.helix.provisioning.yarn.TaskConfig;
 
 public class HelloworldAppSpec implements ApplicationSpec {
 
-  private String _appName;
+  public String _appName;
 
-  private AppConfig _appConfig;
+  public AppConfig _appConfig;
 
-  private List<String> _services;
+  public List<String> _services;
 
   private String _appMasterPackageUri;
-  
+
   private Map<String, String> _servicePackageURIMap;
 
   private Map<String, String> _serviceMainClassMap;
 
-  private Map<String,Map<String,String>> _serviceConfigMap;
+  private Map<String, Map<String, String>> _serviceConfigMap;
 
   private List<TaskConfig> _taskConfigs;
 
@@ -122,13 +126,8 @@ public class HelloworldAppSpec implements ApplicationSpec {
   }
 
   @Override
-  public ParticipantConfig getParticipantConfig(String serviceName, ParticipantId participantId) {
-    ParticipantConfig.Builder builder = new ParticipantConfig.Builder(participantId);
-    Scope<ParticipantId> scope = Scope.participant(participantId);
-    UserConfig userConfig = new UserConfig(scope);
-    Map<String, String> map = _serviceConfigMap.get(serviceName);
-    userConfig.setSimpleFields(map);
-    return builder.addTag(serviceName).userConfig(userConfig ).build();
+  public ServiceConfig getServiceConfig(String serviceName) {
+    return new ServiceConfig(Scope.resource(ResourceId.from(serviceName)));
   }
 
   @Override

@@ -35,6 +35,7 @@ public abstract class AbstractParticipantService extends AbstractService {
   private final ParticipantId _participantId;
   private HelixParticipant _participant;
   private HelixConnection _connection;
+  boolean initialized;
 
   /**
    * Initialize the service.
@@ -50,19 +51,21 @@ public abstract class AbstractParticipantService extends AbstractService {
   }
 
   @Override
-  protected void doStart() {
+  protected final void doStart() {
     _participant = _connection.createParticipant(_clusterId, _participantId);
 
     // add a preconnect callback
     _participant.addPreConnectCallback(new PreConnectCallback() {
       @Override
       public void onPreConnect() {
-        onPreJoinCluster();
+        if (initialized) {
+          onReconnect();
+        } else {
+          init();
+          initialized = true;
+        }
       }
     });
-
-    // register state machine and other initialization
-    init();
 
     // start and notify
     if (!_connection.isConnected()) {
@@ -73,34 +76,67 @@ public abstract class AbstractParticipantService extends AbstractService {
   }
 
   @Override
-  protected void doStop() {
+  protected final void doStop() {
     _participant.stop();
     notifyStopped();
   }
 
   /**
-   * Initialize the participant. For example, here is where you can register a state machine: <br/>
+   * Invoked when connection is re-established to zookeeper. Typical scenario this is invoked is
+   * when there is a long GC pause that causes the node to disconnect from the cluster and
+   * reconnects. NOTE: When the service disconnects all its states are reset to initial state.
+   */
+  protected void onReconnect() {
+    // default implementation does nothing.
+  }
+
+  /**
+   * Initialize the participant. For example, here is where you can
+   * <ul>
+   * <li>Read configuration of the cluster,resource, node</li>
+   * <li>Read configuration of the cluster,resource, node register a state machine: <br/>
    * <br/>
    * <code>
    * HelixParticipant participant = getParticipant();
    * participant.getStateMachineEngine().registerStateModelFactory(stateModelDefId, factory);
    * </code><br/>
    * <br/>
-   * This code is called prior to starting the participant.
+   * </li>
+   * </ul>
+   * This code is called after connecting to zookeeper but before creating the liveinstance.
    */
-  public abstract void init();
-
-  /**
-   * Complete any tasks that require a live Helix connection. This function is called before the
-   * participant declares itself ready to receive state transitions.
-   */
-  public abstract void onPreJoinCluster();
+  protected abstract void init();
 
   /**
    * Get an instantiated participant instance.
    * @return HelixParticipant
    */
-  public HelixParticipant getParticipant() {
+  protected HelixParticipant getParticipant() {
     return _participant;
   }
+
+  /**
+   * @return ClusterId
+   * @see {@link ClusterId}
+   */
+  public ClusterId getClusterId() {
+    return _clusterId;
+  }
+
+  /**
+   * @see {@link ParticipantId}
+   * @return
+   */
+  public ParticipantId getParticipantId() {
+    return _participantId;
+  }
+
+  /**
+   * @see {@link HelixConnection}
+   * @return HelixConnection
+   */
+  public HelixConnection getConnection() {
+    return _connection;
+  }
+
 }

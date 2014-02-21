@@ -8,7 +8,6 @@ import java.util.concurrent.ConcurrentMap;
 import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
-import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
 import org.apache.log4j.Logger;
 
@@ -39,7 +38,7 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
       applicationMaster.nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
     }
     SettableFuture<ContainerStopResponse> settableFuture =
-        applicationMaster.containerStopMap.get(containerId);
+        applicationMaster.containerStopMap.remove(containerId);
     ContainerStopResponse value = new ContainerStopResponse();
     settableFuture.set(value);
     containers.remove(containerId);
@@ -59,7 +58,7 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
       applicationMaster.nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
     }
     SettableFuture<ContainerLaunchResponse> settableFuture =
-        applicationMaster.containerLaunchResponseMap.get(containerId);
+        applicationMaster.containerLaunchResponseMap.remove(containerId);
     ContainerLaunchResponse value = new ContainerLaunchResponse();
     settableFuture.set(value);
   }

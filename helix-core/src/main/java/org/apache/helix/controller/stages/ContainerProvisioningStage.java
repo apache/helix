@@ -155,10 +155,12 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
             // create the helix participant and add it to cluster
             helixAdmin.addInstance(cluster.getId().toString(), instanceConfig);
           }
+          LOG.info("Allocating container for " + participantId);
           ListenableFuture<ContainerId> future = containerProvider.allocateContainer(spec);
           FutureCallback<ContainerId> callback = new FutureCallback<ContainerId>() {
             @Override
             public void onSuccess(ContainerId containerId) {
+              LOG.info("Container " + containerId + " acquired. Marking " + participantId);
               InstanceConfig existingInstance =
                   helixAdmin
                       .getInstanceConfig(cluster.getId().toString(), participantId.toString());
@@ -188,12 +190,14 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // create the helix participant and add it to cluster
+          LOG.info("Starting container " + containerId + " for " + participant.getId());
           ListenableFuture<Boolean> future =
               containerProvider.startContainer(containerId, participant);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
               // Do nothing yet, need to wait for live instance
+              LOG.info("Container " + containerId + " started for " + participant.getId());
             }
 
             @Override
@@ -218,10 +222,12 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // remove the participant
+          LOG.info("Deallocating container " + containerId + " for " + participant.getId());
           ListenableFuture<Boolean> future = containerProvider.deallocateContainer(containerId);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
+              LOG.info("Container " + containerId + " deallocated. Dropping " + participant.getId());
               InstanceConfig existingInstance =
                   helixAdmin.getInstanceConfig(cluster.getId().toString(), participant.getId()
                       .toString());
@@ -251,10 +257,12 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           accessor.updateProperty(keyBuilder.instanceConfig(participant.getId().toString()),
               existingInstance);
           // stop the container
+          LOG.info("Stopping container " + containerId + " for " + participant.getId());
           ListenableFuture<Boolean> future = containerProvider.stopContainer(containerId);
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
+              LOG.info("Container " + containerId + " stopped. Marking " + participant.getId());
               updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
                   ContainerState.HALTED);
             }

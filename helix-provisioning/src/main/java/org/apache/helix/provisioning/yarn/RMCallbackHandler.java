@@ -43,13 +43,13 @@ class RMCallbackHandler implements AMRMClientAsync.CallbackHandler {
       // non complete containers should not be here
       assert (containerStatus.getState() == ContainerState.COMPLETE);
       SettableFuture<ContainerStopResponse> stopResponseFuture =
-          _genericApplicationMaster.containerStopMap.get(containerStatus.getContainerId());
+          _genericApplicationMaster.containerStopMap.remove(containerStatus.getContainerId());
       if (stopResponseFuture != null) {
         ContainerStopResponse value = new ContainerStopResponse();
         stopResponseFuture.set(value);
       } else {
         SettableFuture<ContainerReleaseResponse> releaseResponseFuture =
-            _genericApplicationMaster.containerReleaseMap.get(containerStatus.getContainerId());
+            _genericApplicationMaster.containerReleaseMap.remove(containerStatus.getContainerId());
         if (releaseResponseFuture != null) {
           ContainerReleaseResponse value = new ContainerReleaseResponse();
           releaseResponseFuture.set(value);

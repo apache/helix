@@ -33,7 +33,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.config.ContainerConfig;
-import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
@@ -210,7 +209,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     vargs.add("--cluster " + appName);
     vargs.add("--participantId " + participant.getId().stringify());
     vargs.add("--participantClass " + mainClass);
-    
+
     vargs.add("1>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stdout");
     vargs.add("2>" + ApplicationConstants.LOG_DIR_EXPANSION_VAR + "/ContainerParticipant.stderr");
 
@@ -323,9 +322,9 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
       excessActiveContainers.remove(participantId); // don't stop this container if active
       if (excessHaltedContainers.containsKey(participantId)) {
         // Halted containers can be restarted if necessary
-        Participant participant = excessHaltedContainers.get(participantId);
-        //containersToStart.add(participant);
-        //excessHaltedContainers.remove(participantId); // don't release this container
+        // Participant participant = excessHaltedContainers.get(participantId);
+        // containersToStart.add(participant);
+        // excessHaltedContainers.remove(participantId); // don't release this container
       } else if (!existingContainersIdSet.contains(participantId)) {
         // Unallocated containers must be allocated
         ContainerSpec containerSpec = new ContainerSpec(participantId);

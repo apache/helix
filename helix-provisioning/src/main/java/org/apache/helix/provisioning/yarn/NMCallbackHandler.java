@@ -10,6 +10,7 @@ import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
+import org.apache.log4j.Logger;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.SettableFuture;
@@ -17,6 +18,7 @@ import com.google.common.util.concurrent.SettableFuture;
 @VisibleForTesting
 class NMCallbackHandler implements NMClientAsync.CallbackHandler {
 
+  private Logger LOG = Logger.getLogger(NMCallbackHandler.class);
   private ConcurrentMap<ContainerId, Container> containers =
       new ConcurrentHashMap<ContainerId, Container>();
   private final GenericApplicationMaster applicationMaster;
@@ -31,25 +33,26 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
 
   @Override
   public void onContainerStopped(ContainerId containerId) {
-    if (GenericApplicationMaster.LOG.isDebugEnabled()) {
-      GenericApplicationMaster.LOG.debug("Succeeded to stop Container " + containerId);
+    LOG.info("Succeeded to stop Container " + containerId);
+    Container container = containers.get(containerId);
+    if (container != null) {
+      applicationMaster.nmClientAsync.getContainerStatusAsync(containerId, container.getNodeId());
     }
+    SettableFuture<ContainerStopResponse> settableFuture =
+        applicationMaster.containerStopMap.get(containerId);
+    ContainerStopResponse value = new ContainerStopResponse();
+    settableFuture.set(value);
     containers.remove(containerId);
   }
 
   @Override
   public void onContainerStatusReceived(ContainerId containerId, ContainerStatus containerStatus) {
-    if (GenericApplicationMaster.LOG.isDebugEnabled()) {
-      GenericApplicationMaster.LOG.debug("Container Status: id=" + containerId + ", status="
-          + containerStatus);
-    }
+    LOG.info("Container Status: id=" + containerId + ", status=" + containerStatus);
   }
 
   @Override
   public void onContainerStarted(ContainerId containerId, Map<String, ByteBuffer> allServiceResponse) {
-    if (GenericApplicationMaster.LOG.isDebugEnabled()) {
-      GenericApplicationMaster.LOG.debug("Succeeded to start Container " + containerId);
-    }
+    LOG.debug("Succeeded to start Container " + containerId);
 
     Container container = containers.get(containerId);
     if (container != null) {
@@ -63,18 +66,18 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
 
   @Override
   public void onStartContainerError(ContainerId containerId, Throwable t) {
-    GenericApplicationMaster.LOG.error("Failed to start Container " + containerId);
+    LOG.error("Failed to start Container " + containerId);
     containers.remove(containerId);
   }
 
   @Override
   public void onGetContainerStatusError(ContainerId containerId, Throwable t) {
-    GenericApplicationMaster.LOG.error("Failed to query the status of Container " + containerId);
+    LOG.error("Failed to query the status of Container " + containerId);
   }
 
   @Override
   public void onStopContainerError(ContainerId containerId, Throwable t) {
-    GenericApplicationMaster.LOG.error("Failed to stop Container " + containerId);
+    LOG.error("Failed to stop Container " + containerId);
     containers.remove(containerId);
   }
 }

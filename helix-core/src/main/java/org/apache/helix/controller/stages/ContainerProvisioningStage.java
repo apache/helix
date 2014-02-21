@@ -30,6 +30,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
+import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
@@ -104,7 +105,27 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         final Cluster cluster = event.getAttribute("ClusterDataCache");
         final Collection<Participant> participants = cluster.getParticipantMap().values();
 
-        // TODO: if a process died, we need to mark it as stopped or something
+        // If a process died, we need to mark it as DISCONNECTED or if the process is ready, mark as
+        // CONNECTED
+        Map<ParticipantId, Participant> participantMap = cluster.getParticipantMap();
+        for (ParticipantId participantId : participantMap.keySet()) {
+          Participant participant = participantMap.get(participantId);
+          ContainerConfig config = participant.getContainerConfig();
+          if (config != null) {
+            ContainerState containerState = config.getState();
+            if (!participant.isAlive() && ContainerState.CONNECTED.equals(containerState)) {
+              // Need to mark as disconnected if process died
+              LOG.info("Participant " + participantId + " died, marking as DISCONNECTED");
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participantId,
+                  ContainerState.DISCONNECTED);
+            } else if (participant.isAlive() && ContainerState.CONNECTING.equals(containerState)) {
+              // Need to mark as connected only when the live instance is visible
+              LOG.info("Participant " + participantId + " is ready, marking as CONNECTED");
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participantId,
+                  ContainerState.CONNECTED);
+            }
+          }
+        }
 
         // Participants registered in helix
         // Give those participants to targetprovider
@@ -123,7 +144,8 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
         // allocate new containers
         for (final ContainerSpec spec : response.getContainersToAcquire()) {
           final ParticipantId participantId = spec.getParticipantId();
-          List<String> instancesInCluster = helixAdmin.getInstancesInCluster(cluster.getId().stringify());
+          List<String> instancesInCluster =
+              helixAdmin.getInstancesInCluster(cluster.getId().stringify());
           if (!instancesInCluster.contains(participantId.stringify())) {
             // create a new Participant, attach the container spec
             InstanceConfig instanceConfig = new InstanceConfig(participantId);
@@ -171,8 +193,7 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
-              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
-                  ContainerState.CONNECTED);
+              // Do nothing yet, need to wait for live instance
             }
 
             @Override

@@ -280,8 +280,7 @@ public class ZkHelixParticipant implements HelixParticipant {
         String curStatePath =
             _keyBuilder.currentState(participantName, sessionId, lastCurState.getResourceName())
                 .getPath();
-        _accessor.getBaseDataAccessor().update(
-            curStatePath,
+        _accessor.getBaseDataAccessor().update(curStatePath,
             new CurStateCarryOverUpdater(sessionId, stateModel.getInitialState(), lastCurState),
             AccessOption.PERSISTENT);
       }
@@ -360,6 +359,7 @@ public class ZkHelixParticipant implements HelixParticipant {
         new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
     _stateMachineEngine.registerStateModelFactory(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
+    _messagingService.onConnected();
   }
 
   /**

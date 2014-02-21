@@ -259,33 +259,35 @@ public class DefaultMessagingService implements ClusterMessagingService {
     // we have a chance to process the message that we received with the new
     // added MessageHandlerFactory
     // before the factory is added.
-    sendNopMessage();
+    sendNopMessageInternal();
   }
 
+  @Deprecated
   public void sendNopMessage() {
-    if (_manager.isConnected()) {
-      try {
-        Message nopMsg =
-            new Message(MessageType.NO_OP, MessageId.from(UUID.randomUUID().toString()));
-        nopMsg.setSrcName(_manager.getInstanceName());
+    sendNopMessageInternal();
+  }
 
-        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        Builder keyBuilder = accessor.keyBuilder();
+  private void sendNopMessageInternal() {
+    try {
+      Message nopMsg = new Message(MessageType.NO_OP, MessageId.from(UUID.randomUUID().toString()));
+      nopMsg.setSrcName(_manager.getInstanceName());
 
-        if (_manager.getInstanceType() == InstanceType.CONTROLLER
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          nopMsg.setTgtName("Controller");
-          accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
-        }
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
 
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          nopMsg.setTgtName(_manager.getInstanceName());
-          accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
-        }
-      } catch (Exception e) {
-        _logger.error(e);
+      if (_manager.getInstanceType() == InstanceType.CONTROLLER
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        nopMsg.setTgtName("Controller");
+        accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
       }
+
+      if (_manager.getInstanceType() == InstanceType.PARTICIPANT
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        nopMsg.setTgtName(_manager.getInstanceName());
+        accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
+      }
+    } catch (Exception e) {
+      _logger.error(e);
     }
   }
 

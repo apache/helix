@@ -277,6 +277,7 @@ public class ParticipantManagerHelper {
         new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
     _stateMachineEngine.registerStateModelFactory(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
+    _messagingService.onConnected();
 
   }
 

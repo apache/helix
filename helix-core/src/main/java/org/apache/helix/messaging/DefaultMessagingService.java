@@ -28,8 +28,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -38,9 +36,11 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.log4j.Logger;
 
 public class DefaultMessagingService implements ClusterMessagingService {
@@ -256,32 +256,35 @@ public class DefaultMessagingService implements ClusterMessagingService {
     // we have a chance to process the message that we received with the new
     // added MessageHandlerFactory
     // before the factory is added.
-    sendNopMessage();
+    sendNopMessageInternal();
   }
 
+  @Deprecated
   public void sendNopMessage() {
-    if (_manager.isConnected()) {
-      try {
-        Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
-        nopMsg.setSrcName(_manager.getInstanceName());
+    sendNopMessageInternal();
+  }
 
-        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        Builder keyBuilder = accessor.keyBuilder();
+  private void sendNopMessageInternal() {
+    try {
+      Message nopMsg = new Message(MessageType.NO_OP, UUID.randomUUID().toString());
+      nopMsg.setSrcName(_manager.getInstanceName());
 
-        if (_manager.getInstanceType() == InstanceType.CONTROLLER
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          nopMsg.setTgtName("Controller");
-          accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
-        }
+      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+      Builder keyBuilder = accessor.keyBuilder();
 
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
-          nopMsg.setTgtName(_manager.getInstanceName());
-          accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
-        }
-      } catch (Exception e) {
-        _logger.error(e);
+      if (_manager.getInstanceType() == InstanceType.CONTROLLER
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        nopMsg.setTgtName("Controller");
+        accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
       }
+
+      if (_manager.getInstanceType() == InstanceType.PARTICIPANT
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        nopMsg.setTgtName(_manager.getInstanceName());
+        accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
+      }
+    } catch (Exception e) {
+      _logger.error(e);
     }
   }
 

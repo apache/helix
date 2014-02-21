@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -40,6 +41,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
+import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.log4j.Logger;
@@ -157,10 +159,19 @@ public class TaskDriver {
 
   /** Posts new task to cluster */
   private void scheduleTask(String taskResource, TaskConfig taskConfig) throws Exception {
-    // Set up task resource based on partitions from target resource
-    int numPartitions =
-        _admin.getResourceIdealState(_clusterName, taskConfig.getTargetResource())
-            .getPartitionSet().size();
+    // Set up task resource based on partitions provided, or from target resource
+    int numPartitions;
+    List<Integer> partitions = taskConfig.getTargetPartitions();
+    String targetResource = taskConfig.getTargetResource();
+    if (partitions != null && !partitions.isEmpty()) {
+      numPartitions = partitions.size();
+    } else if (targetResource != null) {
+      numPartitions =
+          _admin.getResourceIdealState(_clusterName, taskConfig.getTargetResource())
+              .getPartitionSet().size();
+    } else {
+      numPartitions = 0;
+    }
     _admin.addResource(_clusterName, taskResource, numPartitions, TaskConstants.STATE_MODEL_NAME);
     _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, taskResource),
         taskConfig.getResourceConfigMap());
@@ -175,7 +186,9 @@ public class TaskDriver {
       builder.add(taskResource + "_" + i);
     }
     IdealState is = builder.build();
-    is.setRebalancerClassName(TaskRebalancer.class.getName());
+    Class<? extends HelixRebalancer> rebalancerClass =
+        (targetResource != null) ? TaskRebalancer.class : IndependentTaskRebalancer.class;
+    is.setRebalancerClassName(rebalancerClass.getName());
     _admin.setResourceIdealState(_clusterName, taskResource, is);
   }
 

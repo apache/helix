@@ -254,10 +254,13 @@ public abstract class AbstractTaskRebalancer implements HelixRebalancer {
           continue;
         }
 
-        TaskPartitionState currState =
-            TaskPartitionState.valueOf(currStateOutput.getCurrentState(
-                ResourceId.from(taskResource), PartitionId.from(pName),
-                ParticipantId.from(instance)).toString());
+        // Current state is either present or dropped
+        State currentState =
+            currStateOutput.getCurrentState(ResourceId.from(taskResource), PartitionId.from(pName),
+                ParticipantId.from(instance));
+        String currentStateStr =
+            currentState != null ? currentState.toString() : TaskPartitionState.DROPPED.toString();
+        TaskPartitionState currState = TaskPartitionState.valueOf(currentStateStr);
 
         // Process any requested state transitions.
         State reqS =

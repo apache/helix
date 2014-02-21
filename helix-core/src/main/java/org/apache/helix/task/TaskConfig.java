@@ -19,9 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,6 +28,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.task.Workflow.WorkflowEnum;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 
 /**
  * Provides a typed interface to task configurations.
@@ -134,7 +135,9 @@ public class TaskConfig {
     cfgMap.put(TaskConfig.COMMAND, _command);
     cfgMap.put(TaskConfig.COMMAND_CONFIG, _commandConfig);
     cfgMap.put(TaskConfig.TARGET_RESOURCE, _targetResource);
-    cfgMap.put(TaskConfig.TARGET_PARTITION_STATES, Joiner.on(",").join(_targetPartitionStates));
+    if (_targetPartitionStates != null) {
+      cfgMap.put(TaskConfig.TARGET_PARTITION_STATES, Joiner.on(",").join(_targetPartitionStates));
+    }
     if (_targetPartitions != null) {
       cfgMap.put(TaskConfig.TARGET_PARTITIONS, Joiner.on(",").join(_targetPartitions));
     }
@@ -252,11 +255,13 @@ public class TaskConfig {
     }
 
     private void validate() {
-      if (_targetResource == null) {
-        throw new IllegalArgumentException(String.format("%s cannot be null", TARGET_RESOURCE));
+      if (_targetResource == null && (_targetPartitions == null || _targetPartitions.isEmpty())) {
+        throw new IllegalArgumentException(String.format(
+            "%s cannot be null without specified partitions", TARGET_RESOURCE));
       }
-      if (_targetPartitionStates != null && _targetPartitionStates.isEmpty()) {
-        throw new IllegalArgumentException(String.format("%s cannot be an empty set",
+      if (_targetResource != null && _targetPartitionStates != null
+          && _targetPartitionStates.isEmpty()) {
+        throw new IllegalArgumentException(String.format("%s cannot be empty",
             TARGET_PARTITION_STATES));
       }
       if (_command == null) {

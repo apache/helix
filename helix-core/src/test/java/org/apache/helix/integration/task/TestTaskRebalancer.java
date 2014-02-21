@@ -19,26 +19,42 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableList;
-
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
-import org.apache.helix.*;
-import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.task.*;
+import org.apache.helix.task.Task;
+import org.apache.helix.task.TaskConfig;
+import org.apache.helix.task.TaskConstants;
+import org.apache.helix.task.TaskContext;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.TaskFactory;
+import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.task.TaskResult;
+import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableList;
 
 public class TestTaskRebalancer extends ZkIntegrationTestBase {
   private static final int n = 5;
@@ -263,6 +279,51 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
       }
     }
     Assert.assertEquals(maxAttempts, 2);
+  }
+
+  @Test
+  public void testIndependentTask() throws Exception {
+    final String taskResource = "independentTask";
+    Map<String, String> config = new TreeMap<String, String>();
+    config.put("TargetPartitions", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19");
+    config.put("Command", "Reindex");
+    config.put("CommandConfig", String.valueOf(200));
+    config.put("TimeoutPerPartition", String.valueOf(10 * 1000));
+    Workflow flow =
+        WorkflowGenerator.generateSingleTaskWorkflowBuilder(taskResource, config).build();
+    _driver.start(flow);
+
+    // Wait for task completion
+    TestUtil.pollForWorkflowState(_manager, taskResource, TaskState.COMPLETED);
+
+    // Ensure all partitions are completed individually
+    TaskContext ctx =
+        TaskUtil.getTaskContext(_manager, TaskUtil.getNamespacedTaskName(taskResource));
+    for (int i = 0; i < NUM_PARTITIONS; i++) {
+      Assert.assertEquals(ctx.getPartitionState(i), TaskPartitionState.COMPLETED);
+      Assert.assertEquals(ctx.getPartitionNumAttempts(i), 1);
+    }
+  }
+
+  @Test
+  public void testIndependentRepeatedWorkflow() throws Exception {
+    final String workflowName = "independentTaskWorkflow";
+    Map<String, String> config = new TreeMap<String, String>();
+    config.put("TargetPartitions", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19");
+    config.put("Command", "Reindex");
+    config.put("CommandConfig", String.valueOf(200));
+    config.put("TimeoutPerPartition", String.valueOf(10 * 1000));
+    Workflow flow =
+        WorkflowGenerator.generateRepeatedTaskWorkflowBuilder(workflowName, config).build();
+    new TaskDriver(_manager).start(flow);
+
+    // Wait until the task completes
+    TestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
+
+    // Assert completion for all tasks within two minutes
+    for (String task : flow.getTaskConfigs().keySet()) {
+      TestUtil.pollForTaskState(_manager, workflowName, task, TaskState.COMPLETED);
+    }
   }
 
   private static class ReindexTask implements Task {

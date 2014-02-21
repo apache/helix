@@ -19,11 +19,11 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import org.apache.helix.task.Workflow;
-
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.helix.task.Workflow;
 
 /**
  * Convenience class for generating various test workflows
@@ -72,12 +72,17 @@ public class WorkflowGenerator {
   }
 
   public static Workflow.Builder generateDefaultRepeatedTaskWorkflowBuilder(String workflowName) {
+    return generateRepeatedTaskWorkflowBuilder(workflowName, DEFAULT_TASK_CONFIG);
+  }
+
+  public static Workflow.Builder generateRepeatedTaskWorkflowBuilder(String workflowName,
+      Map<String, String> config) {
     Workflow.Builder builder = new Workflow.Builder(workflowName);
     builder.addParentChildDependency(TASK_NAME_1, TASK_NAME_2);
 
-    for (String key : DEFAULT_TASK_CONFIG.keySet()) {
-      builder.addConfig(TASK_NAME_1, key, DEFAULT_TASK_CONFIG.get(key));
-      builder.addConfig(TASK_NAME_2, key, DEFAULT_TASK_CONFIG.get(key));
+    for (String key : config.keySet()) {
+      builder.addConfig(TASK_NAME_1, key, config.get(key));
+      builder.addConfig(TASK_NAME_2, key, config.get(key));
     }
 
     return builder;

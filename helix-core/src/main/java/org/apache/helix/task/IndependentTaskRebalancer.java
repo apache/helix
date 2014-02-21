@@ -70,15 +70,15 @@ public class IndependentTaskRebalancer extends AbstractTaskRebalancer {
     states.put(State.from("ONLINE"), 1);
     List<Integer> partitionNums = Lists.newArrayList(partitionSet);
     Collections.sort(partitionNums);
+    final ResourceId resourceId = prevAssignment.getResourceId();
     List<PartitionId> partitions =
         new ArrayList<PartitionId>(Lists.transform(partitionNums,
             new Function<Integer, PartitionId>() {
               @Override
               public PartitionId apply(Integer partitionNum) {
-                return PartitionId.from(partitionNum.toString());
+                return PartitionId.from(resourceId, partitionNum.toString());
               }
             }));
-    ResourceId resourceId = prevAssignment.getResourceId();
     Map<PartitionId, Map<ParticipantId, State>> currentMapping = Maps.newHashMap();
     for (PartitionId partitionId : currStateOutput.getCurrentStateMappedPartitions(resourceId)) {
       currentMapping.put(partitionId, currStateOutput.getCurrentStateMap(resourceId, partitionId));
@@ -97,6 +97,7 @@ public class IndependentTaskRebalancer extends AbstractTaskRebalancer {
     Map<String, SortedSet<Integer>> taskAssignment = Maps.newHashMap();
     for (Map.Entry<String, List<String>> e : preferenceLists.entrySet()) {
       String partitionName = e.getKey();
+      partitionName = String.valueOf(pId(partitionName));
       List<String> preferenceList = e.getValue();
       for (String participantName : preferenceList) {
         if (!taskAssignment.containsKey(participantName)) {

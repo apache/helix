@@ -111,7 +111,7 @@ public abstract class AbstractParticipantService extends AbstractService {
    * Get an instantiated participant instance.
    * @return HelixParticipant
    */
-  protected HelixParticipant getParticipant() {
+  public HelixParticipant getParticipant() {
     return _participant;
   }
 

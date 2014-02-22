@@ -166,6 +166,8 @@ public class ClusterSetup {
 
     addStateModelDef(clusterName, "Task",
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForTaskStateModel()));
+    addStateModelDef(clusterName, "StatelessService", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForStatelessService()));
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {

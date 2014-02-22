@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -45,6 +46,8 @@ import org.apache.helix.controller.provisioner.ProvisionerRef;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -123,6 +126,11 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
               LOG.info("Participant " + participantId + " is ready, marking as CONNECTED");
               updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participantId,
                   ContainerState.CONNECTED);
+            } else if (!participant.isAlive() && ContainerState.HALTING.equals(containerState)) {
+              // Need to mark as connected only when the live instance is visible
+              LOG.info("Participant " + participantId + " is has been killed, marking as HALTED");
+              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participantId,
+                  ContainerState.HALTED);
             }
           }
         }
@@ -262,9 +270,17 @@ public class ContainerProvisioningStage extends AbstractBaseStage {
           FutureCallback<Boolean> callback = new FutureCallback<Boolean>() {
             @Override
             public void onSuccess(Boolean result) {
-              LOG.info("Container " + containerId + " stopped. Marking " + participant.getId());
-              updateContainerState(helixAdmin, accessor, keyBuilder, cluster, participant.getId(),
-                  ContainerState.HALTED);
+              // Don't update the state here, wait for the live instance, but do send a shutdown
+              // message
+              LOG.info("Container " + containerId + " stopped for " + participant.getId());
+              if (participant.isAlive()) {
+                Message message = new Message(MessageType.SHUTDOWN, UUID.randomUUID().toString());
+                message.setTgtName(participant.getId().toString());
+                message.setTgtSessionId("*");
+                message.setMsgId(message.getId());
+                accessor.createProperty(
+                    keyBuilder.message(participant.getId().toString(), message.getId()), message);
+              }
             }
 
             @Override

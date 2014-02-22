@@ -9,6 +9,8 @@ import org.apache.hadoop.yarn.api.records.Container;
 import org.apache.hadoop.yarn.api.records.ContainerId;
 import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.client.api.async.NMClientAsync;
+import org.apache.helix.provisioning.ContainerLaunchResponse;
+import org.apache.helix.provisioning.ContainerStopResponse;
 import org.apache.log4j.Logger;
 
 import com.google.common.annotations.VisibleForTesting;

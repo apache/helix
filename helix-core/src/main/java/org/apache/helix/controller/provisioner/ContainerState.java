@@ -29,5 +29,6 @@ public enum ContainerState {
   HALTED,
   FINALIZING,
   FINALIZED,
-  FAILED
+  FAILED, 
+  UNDEFINED
 }

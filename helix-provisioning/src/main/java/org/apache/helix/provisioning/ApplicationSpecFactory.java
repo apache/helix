@@ -1,4 +1,4 @@
-package org.apache.helix.provisioning.yarn;
+package org.apache.helix.provisioning;
 
 import java.io.InputStream;
 

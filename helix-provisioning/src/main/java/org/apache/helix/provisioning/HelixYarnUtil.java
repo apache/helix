@@ -1,4 +1,4 @@
-package org.apache.helix.provisioning.yarn;
+package org.apache.helix.provisioning;
 
 import org.apache.log4j.Logger;
 

@@ -1,4 +1,4 @@
-package org.apache.helix.provisioning.yarn;
+package org.apache.helix.provisioning;
 
 import java.util.HashMap;
 import java.util.Map;

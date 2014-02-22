@@ -44,6 +44,12 @@ import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.helix.HelixConnection;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.manager.zk.ZkHelixConnection;
+import org.apache.helix.provisioning.ApplicationSpec;
+import org.apache.helix.provisioning.ApplicationSpecFactory;
+import org.apache.helix.provisioning.HelixYarnUtil;
 
 /**
  * Main class to launch the job.
@@ -52,7 +58,7 @@ import org.apache.hadoop.yarn.util.Records;
  */
 public class AppLauncher {
 
-  private static final Log LOG = LogFactory.getLog(Client.class);
+  private static final Log LOG = LogFactory.getLog(AppLauncher.class);
 
   private ApplicationSpec _applicationSpec;
   private YarnClient yarnClient;
@@ -197,7 +203,7 @@ public class AppLauncher {
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + amMemory + "m");
     // Set class name
-    vargs.add(HelixYarnApplicationMasterMain.class.getCanonicalName());
+    vargs.add(AppMasterLauncher.class.getCanonicalName());
     // Set params for Application Master
     // vargs.add("--num_containers " + String.valueOf(numContainers));
 
@@ -375,7 +381,17 @@ public class AppLauncher {
           return false;
         }
         if (YarnApplicationState.RUNNING == state) {
-
+          HelixConnection connection = new ZkHelixConnection(report.getHost() + ":2181");
+          try{
+            connection.connect();
+          }catch(Exception e){
+            LOG.warn("AppMaster started but not yet initialized");
+          }
+          if(connection.isConnected()){
+            AppStatusReportGenerator generator = new AppStatusReportGenerator();
+            String generateReport = generator.generateReport(connection, ClusterId.from(_applicationSpec.getAppName()));
+            LOG.info(generateReport);
+          }
         }
         prevReport = reportMessage;
         Thread.sleep(10000);

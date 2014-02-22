@@ -31,6 +31,10 @@ import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.provisioning.ApplicationSpec;
+import org.apache.helix.provisioning.ApplicationSpecFactory;
+import org.apache.helix.provisioning.HelixYarnUtil;
+import org.apache.helix.provisioning.ServiceConfig;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.log4j.Logger;
 
@@ -43,8 +47,8 @@ import org.apache.log4j.Logger;
  * <li>start helix controller</li>
  * </ul>
  */
-public class HelixYarnApplicationMasterMain {
-  public static Logger LOG = Logger.getLogger(HelixYarnApplicationMasterMain.class);
+public class AppMasterLauncher {
+  public static Logger LOG = Logger.getLogger(AppMasterLauncher.class);
 
   @SuppressWarnings("unchecked")
   public static void main(String[] args) throws Exception{
@@ -53,14 +57,12 @@ public class HelixYarnApplicationMasterMain {
     for (String key : env.keySet()) {
       LOG.info(key + "\t\t=" + env.get(key));
     }
-    int numContainers = 1;
 
     Options opts;
     opts = new Options();
     opts.addOption("num_containers", true, "Number of containers");
     try {
       CommandLine cliParser = new GnuParser().parse(opts, args);
-      numContainers = Integer.parseInt(cliParser.getOptionValue("num_containers"));
     } catch (Exception e) {
       LOG.error("Error parsing input arguments" + Arrays.toString(args), e);
     }
@@ -69,7 +71,6 @@ public class HelixYarnApplicationMasterMain {
     String dataDir = "dataDir";
     String logDir = "logDir";
     IDefaultNameSpace defaultNameSpace = new IDefaultNameSpace() {
-
       @Override
       public void createDefaultNameSpace(ZkClient zkClient) {
 
@@ -85,7 +86,7 @@ public class HelixYarnApplicationMasterMain {
     final ZkServer server = new ZkServer(dataDir, logDir, defaultNameSpace);
     server.start();
 
-    // start
+    // start Generic AppMaster that interacts with Yarn RM
     AppMasterConfig appMasterConfig = new AppMasterConfig();
     String containerIdStr = appMasterConfig.getContainerId();
     ContainerId containerId = ConverterUtils.toContainerId(containerIdStr);
@@ -101,6 +102,8 @@ public class HelixYarnApplicationMasterMain {
       LOG.error("Unable to start application master: ", e);
     }
     ApplicationSpecFactory factory = HelixYarnUtil.createInstance(className);
+    
+    //TODO: Avoid setting static variable.
     YarnProvisioner.applicationMaster = genericApplicationMaster;
     YarnProvisioner.applicationMasterConfig = appMasterConfig;
     ApplicationSpec applicationSpec = factory.fromYaml(new FileInputStream(configFile));
@@ -124,10 +127,14 @@ public class HelixYarnApplicationMasterMain {
       String resourceName = service;
       // add the resource with the local provisioner
       ResourceId resourceId = ResourceId.from(resourceName);
-      YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
+      
       ServiceConfig serviceConfig = applicationSpec.getServiceConfig(resourceName);
-      provisionerConfig.setNumContainers(serviceConfig.getIntField("num_containers", 1));
       serviceConfig.setSimpleField("service_name", service);
+      int numContainers = serviceConfig.getIntField("num_containers", 1);
+      
+      YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
+      provisionerConfig.setNumContainers(numContainers);
+
       FullAutoRebalancerConfig.Builder rebalancerConfigBuilder =
           new FullAutoRebalancerConfig.Builder(resourceId);
       RebalancerConfig rebalancerConfig =

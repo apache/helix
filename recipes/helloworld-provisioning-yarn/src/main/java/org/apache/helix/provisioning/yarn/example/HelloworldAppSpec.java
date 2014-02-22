@@ -12,10 +12,10 @@ import org.apache.helix.api.config.ResourceConfig.Builder;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.provisioning.yarn.AppConfig;
-import org.apache.helix.provisioning.yarn.ApplicationSpec;
-import org.apache.helix.provisioning.yarn.ServiceConfig;
-import org.apache.helix.provisioning.yarn.TaskConfig;
+import org.apache.helix.provisioning.AppConfig;
+import org.apache.helix.provisioning.ApplicationSpec;
+import org.apache.helix.provisioning.ServiceConfig;
+import org.apache.helix.provisioning.TaskConfig;
 
 public class HelloworldAppSpec implements ApplicationSpec {
 

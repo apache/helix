@@ -21,12 +21,12 @@ under the License.
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>org.apache.helix.recipes.provisioning.yarn</groupId>
-    <artifactId>yarn</artifactId>
+    <groupId>org.apache.helix.recipes</groupId>
+    <artifactId>recipes</artifactId>
     <version>0.7.1-incubating-SNAPSHOT</version>
   </parent>
 
-  <artifactId>helloworld</artifactId>
+  <artifactId>helloworld-provisioning-yarn</artifactId>
   <packaging>bundle</packaging>
   <name>Apache Helix :: Recipes :: Provisioning :: YARN :: Hello World</name>
 

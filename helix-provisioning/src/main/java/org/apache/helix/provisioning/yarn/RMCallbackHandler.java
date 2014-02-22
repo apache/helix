@@ -11,6 +11,9 @@ import org.apache.hadoop.yarn.api.records.ContainerStatus;
 import org.apache.hadoop.yarn.api.records.NodeReport;
 import org.apache.hadoop.yarn.client.api.AMRMClient.ContainerRequest;
 import org.apache.hadoop.yarn.client.api.async.AMRMClientAsync;
+import org.apache.helix.provisioning.ContainerAskResponse;
+import org.apache.helix.provisioning.ContainerReleaseResponse;
+import org.apache.helix.provisioning.ContainerStopResponse;
 
 import com.google.common.util.concurrent.SettableFuture;
 

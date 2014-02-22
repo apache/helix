@@ -1,4 +1,4 @@
-package org.apache.helix.provisioning.yarn;
+package org.apache.helix.provisioning;
 
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
@@ -123,7 +123,8 @@ public class ParticipantLauncher {
       _service.stopAsync();
       _service.awaitTerminated();
       _connection.disconnect();
-      System.exit(1);
+      LOG.info("Shutdown complete. Process exiting gracefully");
+      System.exit(0);
       return null;
     }
 

@@ -1,7 +1,8 @@
-package org.apache.helix.provisioning.yarn;
+package org.apache.helix.provisioning;
 
 import java.net.URI;
 import java.util.List;
+
 
 
 public interface ApplicationSpec {

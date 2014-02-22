@@ -44,6 +44,12 @@ import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.provisioning.ApplicationSpec;
+import org.apache.helix.provisioning.ContainerAskResponse;
+import org.apache.helix.provisioning.ContainerLaunchResponse;
+import org.apache.helix.provisioning.ContainerReleaseResponse;
+import org.apache.helix.provisioning.ContainerStopResponse;
+import org.apache.helix.provisioning.ParticipantLauncher;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;

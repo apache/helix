@@ -56,6 +56,10 @@ import org.apache.hadoop.yarn.client.api.async.impl.NMClientAsyncImpl;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.security.AMRMTokenIdentifier;
+import org.apache.helix.provisioning.ContainerAskResponse;
+import org.apache.helix.provisioning.ContainerLaunchResponse;
+import org.apache.helix.provisioning.ContainerReleaseResponse;
+import org.apache.helix.provisioning.ContainerStopResponse;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;

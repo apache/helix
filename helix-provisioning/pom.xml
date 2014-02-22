@@ -36,7 +36,7 @@ under the License.
       org.apache.log4j,
       *
     </osgi.import>
-    <osgi.export>org.apache.helix.provisioning.yarn*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix.provisioning*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>

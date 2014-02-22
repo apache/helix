@@ -42,7 +42,6 @@ import org.apache.hadoop.yarn.api.records.YarnApplicationState;
 import org.apache.hadoop.yarn.client.api.YarnClient;
 import org.apache.hadoop.yarn.client.api.YarnClientApplication;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
 
@@ -375,6 +374,9 @@ public class AppLauncher {
               + ", DSFinalStatus=" + dsStatus.toString() + ". Breaking monitoring loop");
           return false;
         }
+        if (YarnApplicationState.RUNNING == state) {
+
+        }
         prevReport = reportMessage;
         Thread.sleep(10000);
       } catch (Exception e) {
@@ -404,7 +406,8 @@ public class AppLauncher {
     LOG.info("Cleaning up");
     try {
       ApplicationReport applicationReport = yarnClient.getApplicationReport(_appId);
-      LOG.info("Killing application:"+ _appId + " \n Application report" + generateReport(applicationReport));
+      LOG.info("Killing application:" + _appId + " \n Application report"
+          + generateReport(applicationReport));
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -416,8 +419,7 @@ public class AppLauncher {
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    ApplicationSpecFactory applicationSpecFactory =
-        (ApplicationSpecFactory) Class.forName(args[0]).newInstance();
+    ApplicationSpecFactory applicationSpecFactory = HelixYarnUtil.createInstance(args[0]);
     File yamlConfigFile = new File(args[1]);
     final AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();

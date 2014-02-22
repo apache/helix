@@ -2,6 +2,7 @@ package org.apache.helix.provisioning.yarn;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -11,10 +12,12 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
+import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.helix.HelixController;
 import org.apache.helix.api.accessor.ClusterAccessor;
@@ -43,7 +46,8 @@ import org.apache.log4j.Logger;
 public class HelixYarnApplicationMasterMain {
   public static Logger LOG = Logger.getLogger(HelixYarnApplicationMasterMain.class);
 
-  public static void main(String[] args) throws Exception {
+  @SuppressWarnings("unchecked")
+  public static void main(String[] args) throws Exception{
     Map<String, String> env = System.getenv();
     LOG.info("Starting app master with the following environment variables");
     for (String key : env.keySet()) {
@@ -71,8 +75,12 @@ public class HelixYarnApplicationMasterMain {
 
       }
     };
-    FileUtils.deleteDirectory(new File(dataDir));
-    FileUtils.deleteDirectory(new File(logDir));
+    try {
+      FileUtils.deleteDirectory(new File(dataDir));
+      FileUtils.deleteDirectory(new File(logDir));
+    } catch (IOException e) {
+      LOG.error(e);
+    }
 
     final ZkServer server = new ZkServer(dataDir, logDir, defaultNameSpace);
     server.start();
@@ -84,13 +92,15 @@ public class HelixYarnApplicationMasterMain {
     ApplicationAttemptId appAttemptID = containerId.getApplicationAttemptId();
 
     String configFile = AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString();
-    ApplicationSpecFactory factory =
-        (ApplicationSpecFactory) Class.forName(appMasterConfig.getApplicationSpecFactory())
-            .newInstance();
-
+    String className = appMasterConfig.getApplicationSpecFactory();
+   
     GenericApplicationMaster genericApplicationMaster = new GenericApplicationMaster(appAttemptID);
-    genericApplicationMaster.start();
-
+    try {
+      genericApplicationMaster.start();
+    } catch (Exception e) {
+      LOG.error("Unable to start application master: ", e);
+    }
+    ApplicationSpecFactory factory = HelixYarnUtil.createInstance(className);
     YarnProvisioner.applicationMaster = genericApplicationMaster;
     YarnProvisioner.applicationMasterConfig = appMasterConfig;
     ApplicationSpec applicationSpec = factory.fromYaml(new FileInputStream(configFile));

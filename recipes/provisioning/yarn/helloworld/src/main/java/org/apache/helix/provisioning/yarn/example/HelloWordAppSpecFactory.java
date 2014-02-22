@@ -9,6 +9,8 @@ import java.util.Map;
 import org.apache.helix.provisioning.yarn.AppConfig;
 import org.apache.helix.provisioning.yarn.ApplicationSpec;
 import org.apache.helix.provisioning.yarn.ApplicationSpecFactory;
+import org.apache.helix.provisioning.yarn.example.HelloWorldService;
+import org.apache.helix.provisioning.yarn.example.HelloworldAppSpec;
 import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 

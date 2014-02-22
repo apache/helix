@@ -8,6 +8,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.AbstractParticipantService;
+import org.apache.helix.provisioning.yarn.example.HelloWorldStateModelFactory;
 import org.apache.log4j.Logger;
 
 public class HelloWorldService extends AbstractParticipantService {

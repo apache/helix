@@ -3,7 +3,7 @@ appConfig:
   config: {
     k1: v1
   }
-appMasterPackageUri: 'file:///Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/target/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar'
+appMasterPackageUri: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/provisioning/yarn/helloworld/target/helloworld-0.7.1-incubating-SNAPSHOT-pkg.tar'
 appName: testApp
 serviceConfigMap:
   HelloWorld: {
@@ -14,7 +14,7 @@ serviceMainClassMap: {
   HelloWorld: org.apache.helix.provisioning.yarn.example.HelloWorldService
 }
 servicePackageURIMap: {
-  HelloWorld: 'file:///Users/kgopalak/Documents/projects/incubator-helix/helix-provisioning/target/helix-provisioning-0.7.1-incubating-SNAPSHOT-pkg.tar'
+  HelloWorld: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/provisioning/yarn/helloworld/target/helloworld-0.7.1-incubating-SNAPSHOT-pkg.tar'
 }
 services: [
   HelloWorld]

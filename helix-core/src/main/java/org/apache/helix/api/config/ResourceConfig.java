@@ -180,6 +180,7 @@ public class ResourceConfig {
     private enum Fields {
       TYPE,
       REBALANCER_CONFIG,
+      PROVISIONER_CONFIG,
       USER_CONFIG,
       BUCKET_SIZE,
       BATCH_MESSAGE_MODE
@@ -219,6 +220,16 @@ public class ResourceConfig {
       return this;
     }
 
+    /**
+     * Set the provisioner configuration
+     * @param config properties of interest for provisioning
+     * @return Delta
+     */
+    public Delta setProvisionerConfig(ProvisionerConfig config) {
+      _builder.provisionerConfig(config);
+      _updateFields.add(Fields.PROVISIONER_CONFIG);
+      return this;
+    }
     /**
      * Set the user configuration
      * @param userConfig user-specified properties
@@ -271,6 +282,9 @@ public class ResourceConfig {
           break;
         case REBALANCER_CONFIG:
           builder.rebalancerConfig(deltaConfig.getRebalancerConfig());
+          break;
+        case PROVISIONER_CONFIG:
+          builder.provisionerConfig(deltaConfig.getProvisionerConfig());
           break;
         case USER_CONFIG:
           builder.userConfig(deltaConfig.getUserConfig());

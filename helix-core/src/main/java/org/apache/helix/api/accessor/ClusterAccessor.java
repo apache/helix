@@ -728,10 +728,14 @@ public class ClusterAccessor {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
+      int ind =0;
       for (boolean exists : existsResults) {
+        
         if (!exists) {
+          LOG.warn("Path does not exist:"+ paths.get(ind));
           return false;
         }
+        ind = ind + 1;
       }
     }
     return true;

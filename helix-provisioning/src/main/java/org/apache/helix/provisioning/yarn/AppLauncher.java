@@ -13,6 +13,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.GnuParser;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 import org.apache.commons.compress.archivers.ArchiveStreamFactory;
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry;
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream;
@@ -117,7 +121,7 @@ public class AppLauncher {
     // Set up the container launch context for the application master
     ContainerLaunchContext amContainer = Records.newRecord(ContainerLaunchContext.class);
 
-    LOG.info("Copy App archive file from local filesystem and add to local environment");
+    LOG.info("Copy Application archive file from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem
     // Create a local resource to point to the destination jar path
     FileSystem fs = FileSystem.get(_conf);
@@ -185,10 +189,9 @@ public class AppLauncher {
       classPathEnv.append(':');
       classPathEnv.append(System.getProperty("java.class.path"));
     }
-    LOG.info("\n\n Setting the classpath for AppMaster:\n\n" + classPathEnv.toString());
+    LOG.info("\n\n Setting the classpath to launch AppMaster:\n\n" );
     // Set the env variables to be setup in the env where the application master will be run
     Map<String, String> env = new HashMap<String, String>(_appMasterConfig.getEnv());
-    LOG.info("Set the environment for the application master" + env);
     env.put("CLASSPATH", classPathEnv.toString());
 
     amContainer.setEnvironment(env);
@@ -197,7 +200,7 @@ public class AppLauncher {
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
 
     // Set java executable command
-    LOG.info("Setting up app master command");
+    LOG.info("Setting up app master launch command");
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
     int amMemory = 1024;
     // Set Xmx based on am memory size
@@ -265,13 +268,12 @@ public class AppLauncher {
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
 
-    // Submit the application to the applications manager
-    // SubmitApplicationResponse submitResp = applicationsManager.submitApplication(appRequest);
-    // Ignore the response as either a valid response object is returned on success
-    // or an exception thrown to denote some form of a failure
-    LOG.info("Submitting application to ASM");
 
-    yarnClient.submitApplication(appContext);
+    LOG.info("Submitting application to YARN Resource Manager");
+
+    ApplicationId applicationId = yarnClient.submitApplication(appContext);
+
+    LOG.info("Submitted application with applicationId:" + applicationId );
 
     return true;
   }
@@ -355,6 +357,8 @@ public class AppLauncher {
    */
   public boolean waitUntilDone() {
     String prevReport = "";
+    HelixConnection connection = null;
+
     while (true) {
       try {
         // Get application report for the appId we are interested in
@@ -381,15 +385,27 @@ public class AppLauncher {
           return false;
         }
         if (YarnApplicationState.RUNNING == state) {
-          HelixConnection connection = new ZkHelixConnection(report.getHost() + ":2181");
-          try{
-            connection.connect();
-          }catch(Exception e){
-            LOG.warn("AppMaster started but not yet initialized");
+          if (connection == null) {
+            String hostName = null;
+            int ind = report.getHost().indexOf('/');
+            if (ind > -1) {
+              hostName = report.getHost().substring(ind + 1);
+            } else {
+              hostName = report.getHost();
+            }
+            connection = new ZkHelixConnection(hostName + ":2181");
+
+            try {
+              connection.connect();
+            } catch (Exception e) {
+              LOG.warn("AppMaster started but not yet initialized");
+              connection = null;
+            }
           }
-          if(connection.isConnected()){
+          if (connection.isConnected()) {
             AppStatusReportGenerator generator = new AppStatusReportGenerator();
-            String generateReport = generator.generateReport(connection, ClusterId.from(_applicationSpec.getAppName()));
+            ClusterId clusterId = ClusterId.from(_applicationSpec.getAppName());
+            String generateReport = generator.generateReport(connection, clusterId);
             LOG.info(generateReport);
           }
         }
@@ -430,13 +446,24 @@ public class AppLauncher {
   }
 
   /**
-   * will take the input file and AppSpecFactory class name as input
-   * @param args
+   * Launches the application on a YARN cluster. Once launched, it will display (periodically) the status of the containers in the application.
+   * @param args app_spec_provider and app_config_spec
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
-    ApplicationSpecFactory applicationSpecFactory = HelixYarnUtil.createInstance(args[0]);
-    File yamlConfigFile = new File(args[1]);
+
+    Options opts = new Options();
+    opts.addOption(new Option("app_spec_provider",true, "Application Spec Factory Class that will parse the app_config_spec file"));
+    opts.addOption(new Option("app_config_spec",true, "YAML config file that provides the app specifications"));
+    CommandLine cliParser = new GnuParser().parse(opts, args);
+    String appSpecFactoryClass = cliParser.getOptionValue("app_spec_provider");
+    String yamlConfigFileName = cliParser.getOptionValue("app_config_spec");
+
+    ApplicationSpecFactory applicationSpecFactory = HelixYarnUtil.createInstance(appSpecFactoryClass);
+    File yamlConfigFile = new File(yamlConfigFileName);
+    if(!yamlConfigFile.exists()){
+      throw new IllegalArgumentException("YAML app_config_spec file: '"+ yamlConfigFileName + "' does not exist");
+    }
     final AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {

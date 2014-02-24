@@ -17,7 +17,6 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ContainerId;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.manager.zk.ZkHelixConnection;
-import org.apache.helix.model.ExternalView;
 
 public class AppStatusReportGenerator {
   static String TAB = "\t";
@@ -39,26 +38,30 @@ public class AppStatusReportGenerator {
           resource.getExternalView().getStateMap(PartitionId.from(resourceId.stringify() + "_0"));
 
       builder.append(TAB).append("CONTAINER_NAME").append(TAB).append(TAB)
-          .append("CONTAINER_STATE").append(TAB).append("SERVICE_STATE").append(TAB).append("CONTAINER_ID").append(NEWLINE);
+          .append("CONTAINER_STATE").append(TAB).append("SERVICE_STATE").append(TAB)
+          .append("CONTAINER_ID").append(NEWLINE);
       for (Participant participant : participants.values()) {
         // need a better check
         if (!participant.getId().stringify().startsWith(resource.getId().stringify())) {
           continue;
         }
         ContainerConfig containerConfig = participant.getContainerConfig();
-        ContainerState containerState =ContainerState.UNDEFINED;
+        ContainerState containerState = ContainerState.UNDEFINED;
         ContainerId containerId = ContainerId.from("N/A");
 
         if (containerConfig != null) {
           containerId = containerConfig.getId();
           containerState = containerConfig.getState();
         }
-        State participantState = serviceStateMap.get(participant.getId());
+        State participantState = null;
+        if (serviceStateMap != null) {
+          participantState = serviceStateMap.get(participant.getId());
+        }
         if (participantState == null) {
           participantState = State.from("UNKNOWN");
         }
-        builder.append(TAB).append(participant.getId()).append(TAB)
-            .append(containerState).append(TAB).append(participantState).append(TAB).append(TAB).append(containerId);
+        builder.append(TAB).append(participant.getId()).append(TAB).append(containerState)
+            .append(TAB).append(participantState).append(TAB).append(TAB).append(containerId);
         builder.append(NEWLINE);
       }
 
@@ -67,13 +70,17 @@ public class AppStatusReportGenerator {
 
   }
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     AppStatusReportGenerator generator = new AppStatusReportGenerator();
 
     ZkHelixConnection connection = new ZkHelixConnection("localhost:2181");
     connection.connect();
-    String generateReport = generator.generateReport(connection, ClusterId.from("testApp"));
-    System.out.println(generateReport);
-    connection.disconnect();
+    while (true) {
+      String generateReport = generator.generateReport(connection, ClusterId.from("testApp1"));
+      System.out.println(generateReport);
+      Thread.sleep(10000);
+      connection.createClusterManagementTool().addCluster("testApp1");
+    }
+    // connection.disconnect();
   }
 }

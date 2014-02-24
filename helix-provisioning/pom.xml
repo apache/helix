@@ -81,13 +81,13 @@ under the License.
         <artifactId>appassembler-maven-plugin</artifactId>
         <configuration>
           <programs>
-            <program>
-              <mainClass>org.apache.helix.provisioning.yarn.Client</mainClass>
-              <name>yarn-job-launcher</name>
-            </program>
              <program>
               <mainClass>org.apache.helix.provisioning.yarn.AppLauncher</mainClass>
               <name>app-launcher</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.provisioning.tools.UpdateProvisionerConfig</mainClass>
+              <name>update-provisioner-config</name>
             </program>
           </programs>
         </configuration>

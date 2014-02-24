@@ -1,4 +1,4 @@
-package tools;
+package org.apache.helix.provisioning.tools;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.GnuParser;
@@ -60,7 +60,7 @@ public class UpdateProvisionerConfig {
     // update container count per service
     Option updateContainerCountOption =
         OptionBuilder.withLongOpt(updateContainerCount)
-            .withDescription("set the number of containers per service").create();
+            .withDescription("appName serviceName numContainers").create();
     updateContainerCountOption.setArgs(3);
     updateContainerCountOption.setRequired(false);
     updateContainerCountOption.setArgName("appName serviceName numContainers");

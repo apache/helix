@@ -49,6 +49,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ProvisionerConfigHolder;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
@@ -258,6 +259,10 @@ public class ResourceAccessor {
         || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
       // only persist if this is not easily convertible to an ideal state
       config.addNamespacedConfig(new RebalancerConfigHolder(resourceConfig.getRebalancerConfig())
+          .toNamespacedConfig());
+    }
+    if (resourceConfig.getProvisionerConfig() != null) {
+      config.addNamespacedConfig(new ProvisionerConfigHolder(resourceConfig.getProvisionerConfig())
           .toNamespacedConfig());
     }
     config.setBucketSize(resourceConfig.getBucketSize());

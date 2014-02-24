@@ -230,6 +230,7 @@ public class ResourceConfig {
       _updateFields.add(Fields.PROVISIONER_CONFIG);
       return this;
     }
+
     /**
      * Set the user configuration
      * @param userConfig user-specified properties
@@ -273,6 +274,7 @@ public class ResourceConfig {
       Builder builder =
           new Builder(orig.getId()).type(orig.getType())
               .rebalancerConfig(orig.getRebalancerConfig())
+              .provisionerConfig(orig.getProvisionerConfig())
               .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig())
               .bucketSize(orig.getBucketSize()).batchMessageMode(orig.getBatchMessageMode());
       for (Fields field : _updateFields) {

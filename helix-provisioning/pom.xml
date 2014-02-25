@@ -89,6 +89,10 @@ under the License.
               <mainClass>org.apache.helix.provisioning.tools.UpdateProvisionerConfig</mainClass>
               <name>update-provisioner-config</name>
             </program>
+            <program>
+              <mainClass>org.apache.helix.provisioning.tools.ContainerAdmin</mainClass>
+              <name>container-admin</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

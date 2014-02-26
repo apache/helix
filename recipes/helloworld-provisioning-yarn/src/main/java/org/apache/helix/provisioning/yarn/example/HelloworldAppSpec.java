@@ -17,6 +17,8 @@ import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ServiceConfig;
 import org.apache.helix.provisioning.TaskConfig;
 
+import com.google.common.collect.Maps;
+
 public class HelloworldAppSpec implements ApplicationSpec {
 
   public String _appName;
@@ -31,7 +33,7 @@ public class HelloworldAppSpec implements ApplicationSpec {
 
   private Map<String, String> _serviceMainClassMap;
 
-  private Map<String, Map<String, String>> _serviceConfigMap;
+  private Map<String, ServiceConfig> _serviceConfigMap;
 
   private List<TaskConfig> _taskConfigs;
 
@@ -68,11 +70,24 @@ public class HelloworldAppSpec implements ApplicationSpec {
   }
 
   public Map<String, Map<String, String>> getServiceConfigMap() {
-    return _serviceConfigMap;
+    Map<String,Map<String,String>> map = Maps.newHashMap();
+    for(String service:_serviceConfigMap.keySet()){
+      map.put(service, _serviceConfigMap.get(service).getSimpleFields());
+    }
+    return map;
   }
 
-  public void setServiceConfigMap(Map<String, Map<String, String>> serviceConfigMap) {
-    _serviceConfigMap = serviceConfigMap;
+  public void setServiceConfigMap(Map<String, Map<String, Object>> map) {
+    _serviceConfigMap = Maps.newHashMap();
+
+    for(String service:map.keySet()){
+      ServiceConfig serviceConfig = new ServiceConfig(Scope.resource(ResourceId.from(service)));
+      Map<String, Object> simpleFields = map.get(service);
+      for(String key:simpleFields.keySet()){
+        serviceConfig.setSimpleField(key, simpleFields.get(key).toString());
+      }
+      _serviceConfigMap.put(service, serviceConfig);
+    }
   }
 
   public void setAppName(String appName) {
@@ -127,7 +142,7 @@ public class HelloworldAppSpec implements ApplicationSpec {
 
   @Override
   public ServiceConfig getServiceConfig(String serviceName) {
-    return new ServiceConfig(Scope.resource(ResourceId.from(serviceName)));
+    return _serviceConfigMap.get(serviceName);
   }
 
   @Override

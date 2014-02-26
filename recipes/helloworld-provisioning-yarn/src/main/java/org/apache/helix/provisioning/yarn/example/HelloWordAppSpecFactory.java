@@ -30,6 +30,7 @@ public class HelloWordAppSpecFactory implements ApplicationSpecFactory {
     HelloworldAppSpec spec = yaml.loadAs(resourceAsStream, HelloworldAppSpec.class);
     String dump = yaml.dump(spec);
     System.out.println(dump);
+    System.out.println(spec.getServiceConfig("HelloWorld").getStringField("num_containers", "1"));
 
   }
 }

@@ -114,7 +114,9 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     _admin.enableInstance(_clusterName, "localhost_12918", false);
     Thread.sleep(1000);
     _admin.enableCluster(_clusterName, false);
+    Thread.sleep(1000);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
+    Thread.sleep(1000);
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             _clusterName, null, Sets.newHashSet(RESOURCES[1])));

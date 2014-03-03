@@ -29,6 +29,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -103,8 +104,8 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-      stateMachine.registerStateModelFactory("Task", new TaskStateModelFactory(_participants[i],
-          taskFactoryReg));
+      stateMachine.registerStateModelFactory(StateModelDefId.from("Task"),
+          new TaskStateModelFactory(_participants[i], taskFactoryReg));
       _participants[i].syncStart();
     }
 

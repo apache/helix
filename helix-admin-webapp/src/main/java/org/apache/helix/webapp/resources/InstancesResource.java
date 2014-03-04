@@ -27,6 +27,7 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -35,15 +36,14 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.restlet.Context;
-import org.restlet.Request;
-import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
+
+import com.google.common.collect.Lists;
 
 public class InstancesResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(InstancesResource.class);
@@ -53,7 +53,6 @@ public class InstancesResource extends ServerResource {
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
     setNegotiated(false);
   }
-
 
   @Override
   public Representation get() {
@@ -99,10 +98,16 @@ public class InstancesResource extends ServerResource {
       }
     }
 
+    // Wrap raw data into an object, then serialize it
+    List<ZNRecord> recordList = Lists.newArrayList();
+    for (InstanceConfig instanceConfig : instanceConfigsMap.values()) {
+      recordList.add(instanceConfig.getRecord());
+    }
+    ListInstancesWrapper wrapper = new ListInstancesWrapper();
+    wrapper.instanceInfo = recordList;
+    wrapper.tagInfo = tagInstanceLists;
     StringRepresentation representation =
-        new StringRepresentation(
-            ClusterRepresentationUtil.ObjectToJson(instanceConfigsMap.values())
-                + ClusterRepresentationUtil.ObjectToJson(tagInstanceLists),
+        new StringRepresentation(ClusterRepresentationUtil.ObjectToJson(wrapper),
             MediaType.APPLICATION_JSON);
 
     return representation;
@@ -155,5 +160,13 @@ public class InstancesResource extends ServerResource {
       LOG.error("", e);
     }
     return null;
+  }
+
+  /**
+   * A wrapper class for quick serialization of the data presented by this call
+   */
+  public static class ListInstancesWrapper {
+    public List<ZNRecord> instanceInfo;
+    public Map<String, List<String>> tagInfo;
   }
 }

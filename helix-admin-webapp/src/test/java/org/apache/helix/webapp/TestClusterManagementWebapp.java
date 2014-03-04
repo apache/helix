@@ -22,7 +22,6 @@ package org.apache.helix.webapp;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,10 +30,10 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.AdminTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
+import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;
 import org.apache.helix.webapp.resources.JsonParameters;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -100,7 +99,6 @@ public class TestClusterManagementWebapp extends AdminTestBase {
 
     ZNRecord r = new ZNRecord("Test");
     r.merge(zn);
-    StateModelDefinition newStateModel = new StateModelDefinition(r);
 
     httpUrlBase = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/StateModelDefs";
     resourceRef = new Reference(httpUrlBase);
@@ -223,9 +221,10 @@ public class TestClusterManagementWebapp extends AdminTestBase {
 
     ObjectMapper mapper = new ObjectMapper();
 
-    TypeReference<ArrayList<ZNRecord>> typeRef = new TypeReference<ArrayList<ZNRecord>>() {
+    TypeReference<ListInstancesWrapper> typeRef = new TypeReference<ListInstancesWrapper>() {
     };
-    List<ZNRecord> znList = mapper.readValue(new StringReader(sw.toString()), typeRef);
+    ListInstancesWrapper wrapper = mapper.readValue(new StringReader(sw.toString()), typeRef);
+    List<ZNRecord> znList = wrapper.instanceInfo;
     AssertJUnit.assertTrue(znList.get(0).getId().equals(instance1 + "_" + instancePort));
 
     // the case to add more than 1 instances
@@ -264,7 +263,8 @@ public class TestClusterManagementWebapp extends AdminTestBase {
 
     mapper = new ObjectMapper();
 
-    znList = mapper.readValue(new StringReader(sw.toString()), typeRef);
+    wrapper = mapper.readValue(new StringReader(sw.toString()), typeRef);
+    znList = wrapper.instanceInfo;
 
     for (String instance : instances) {
       boolean found = false;

@@ -10,13 +10,13 @@ import org.apache.helix.HelixConnection;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.manager.zk.AbstractParticipantService;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.participant.AbstractParticipantService;
 import org.apache.log4j.Logger;
 
 /**

@@ -1,4 +1,4 @@
-package org.apache.helix.manager.zk;
+package org.apache.helix.participant;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

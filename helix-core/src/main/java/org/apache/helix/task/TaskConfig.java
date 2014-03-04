@@ -62,6 +62,10 @@ public class TaskConfig {
   public static final String MAX_ATTEMPTS_PER_PARTITION = "MaxAttemptsPerPartition";
   /** The number of concurrent tasks that are allowed to run on an instance. */
   public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
+  /** Support overarching tasks that hang around for a while */
+  public static final String LONG_LIVED = "LongLived";
+  /** Support giving tasks a custom name **/
+  public static final String PARTITION_NAME_MAP = "PartitionNameMap";
 
   // // Default property values ////
 
@@ -78,10 +82,12 @@ public class TaskConfig {
   private final long _timeoutPerPartition;
   private final int _numConcurrentTasksPerInstance;
   private final int _maxAttemptsPerPartition;
+  private final boolean _longLived;
 
   private TaskConfig(String workflow, String targetResource, List<Integer> targetPartitions,
       Set<String> targetPartitionStates, String command, String commandConfig,
-      long timeoutPerPartition, int numConcurrentTasksPerInstance, int maxAttemptsPerPartition) {
+      long timeoutPerPartition, int numConcurrentTasksPerInstance, int maxAttemptsPerPartition,
+      boolean longLived) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -91,6 +97,7 @@ public class TaskConfig {
     _timeoutPerPartition = timeoutPerPartition;
     _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
     _maxAttemptsPerPartition = maxAttemptsPerPartition;
+    _longLived = longLived;
   }
 
   public String getWorkflow() {
@@ -129,6 +136,10 @@ public class TaskConfig {
     return _maxAttemptsPerPartition;
   }
 
+  public boolean isLongLived() {
+    return _longLived;
+  }
+
   public Map<String, String> getResourceConfigMap() {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(TaskConfig.WORKFLOW_ID, _workflow);
@@ -143,7 +154,9 @@ public class TaskConfig {
     }
     cfgMap.put(TaskConfig.TIMEOUT_PER_PARTITION, "" + _timeoutPerPartition);
     cfgMap.put(TaskConfig.MAX_ATTEMPTS_PER_PARTITION, "" + _maxAttemptsPerPartition);
-
+    cfgMap.put(TaskConfig.LONG_LIVED + "", String.valueOf(_longLived));
+    cfgMap.put(TaskConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE + "",
+        String.valueOf(_numConcurrentTasksPerInstance));
     return cfgMap;
   }
 
@@ -160,13 +173,14 @@ public class TaskConfig {
     private long _timeoutPerPartition = DEFAULT_TIMEOUT_PER_PARTITION;
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerPartition = DEFAULT_MAX_ATTEMPTS_PER_PARTITION;
+    private boolean _longLived = false;
 
     public TaskConfig build() {
       validate();
 
       return new TaskConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerPartition, _numConcurrentTasksPerInstance,
-          _maxAttemptsPerPartition);
+          _maxAttemptsPerPartition, _longLived);
     }
 
     /**
@@ -205,7 +219,9 @@ public class TaskConfig {
       if (cfg.containsKey(MAX_ATTEMPTS_PER_PARTITION)) {
         b.setMaxAttemptsPerPartition(Integer.parseInt(cfg.get(MAX_ATTEMPTS_PER_PARTITION)));
       }
-
+      if (cfg.containsKey(LONG_LIVED)) {
+        b.setLongLived(Boolean.parseBoolean(cfg.get(LONG_LIVED)));
+      }
       return b;
     }
 
@@ -254,8 +270,13 @@ public class TaskConfig {
       return this;
     }
 
+    public Builder setLongLived(boolean isLongLived) {
+      _longLived = isLongLived;
+      return this;
+    }
+
     private void validate() {
-      if (_targetResource == null && (_targetPartitions == null || _targetPartitions.isEmpty())) {
+      if (_targetResource == null && _targetPartitions == null) {
         throw new IllegalArgumentException(String.format(
             "%s cannot be null without specified partitions", TARGET_RESOURCE));
       }
@@ -288,7 +309,9 @@ public class TaskConfig {
       String[] vals = csv.split(",");
       List<Integer> l = new ArrayList<Integer>();
       for (String v : vals) {
-        l.add(Integer.parseInt(v));
+        if (v != null && !v.isEmpty()) {
+          l.add(Integer.parseInt(v));
+        }
       }
 
       return l;

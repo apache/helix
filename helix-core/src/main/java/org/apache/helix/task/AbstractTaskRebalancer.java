@@ -357,7 +357,9 @@ public abstract class AbstractTaskRebalancer implements HelixRebalancer {
     }
 
     if (isTaskComplete(taskCtx, allPartitions)) {
-      workflowCtx.setTaskState(taskResource, TaskState.COMPLETED);
+      if (!taskCfg.isLongLived()) {
+        workflowCtx.setTaskState(taskResource, TaskState.COMPLETED);
+      }
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.COMPLETED);
         workflowCtx.setFinishTime(System.currentTimeMillis());
@@ -553,6 +555,9 @@ public abstract class AbstractTaskRebalancer implements HelixRebalancer {
   private static List<Integer> getNextPartitions(SortedSet<Integer> candidatePartitions,
       Set<Integer> excluded, int n) {
     List<Integer> result = new ArrayList<Integer>(n);
+    if (candidatePartitions == null || candidatePartitions.isEmpty()) {
+      return result;
+    }
     for (Integer pId : candidatePartitions) {
       if (result.size() >= n) {
         break;

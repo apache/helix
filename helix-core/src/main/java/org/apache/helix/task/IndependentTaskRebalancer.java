@@ -42,6 +42,7 @@ import org.apache.helix.model.ResourceAssignment;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 /**
  * A task rebalancer that evenly assigns tasks to nodes
@@ -63,11 +64,25 @@ public class IndependentTaskRebalancer extends AbstractTaskRebalancer {
   @Override
   public Map<String, SortedSet<Integer>> getTaskAssignment(ResourceCurrentState currStateOutput,
       ResourceAssignment prevAssignment, Iterable<ParticipantId> instanceList, TaskConfig taskCfg,
-      TaskContext taskContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      final TaskContext taskContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, Cluster cluster) {
     // Gather input to the full auto rebalancing algorithm
     LinkedHashMap<State, Integer> states = new LinkedHashMap<State, Integer>();
     states.put(State.from("ONLINE"), 1);
+
+    // Only map partitions whose assignment we care about
+    final Set<TaskPartitionState> honoredStates =
+        Sets.newHashSet(TaskPartitionState.INIT, TaskPartitionState.RUNNING,
+            TaskPartitionState.STOPPED);
+    Set<Integer> filteredPartitionSet = Sets.newHashSet();
+    for (Integer p : partitionSet) {
+      TaskPartitionState state = (taskContext == null) ? null : taskContext.getPartitionState(p);
+      if (state == null || honoredStates.contains(state)) {
+        filteredPartitionSet.add(p);
+      }
+    }
+
+    // Transform from partition id to fully qualified partition name
     List<Integer> partitionNums = Lists.newArrayList(partitionSet);
     Collections.sort(partitionNums);
     final ResourceId resourceId = prevAssignment.getResourceId();
@@ -79,10 +94,21 @@ public class IndependentTaskRebalancer extends AbstractTaskRebalancer {
                 return PartitionId.from(resourceId, partitionNum.toString());
               }
             }));
+
+    // Compute the current assignment
     Map<PartitionId, Map<ParticipantId, State>> currentMapping = Maps.newHashMap();
     for (PartitionId partitionId : currStateOutput.getCurrentStateMappedPartitions(resourceId)) {
-      currentMapping.put(partitionId, currStateOutput.getCurrentStateMap(resourceId, partitionId));
-      currentMapping.put(partitionId, currStateOutput.getPendingStateMap(resourceId, partitionId));
+      if (!filteredPartitionSet.contains(pId(partitionId.toString()))) {
+        // not computing old partitions
+        continue;
+      }
+      Map<ParticipantId, State> allPreviousDecisionMap = Maps.newHashMap();
+      if (prevAssignment != null) {
+        allPreviousDecisionMap.putAll(prevAssignment.getReplicaMap(partitionId));
+      }
+      allPreviousDecisionMap.putAll(currStateOutput.getCurrentStateMap(resourceId, partitionId));
+      allPreviousDecisionMap.putAll(currStateOutput.getPendingStateMap(resourceId, partitionId));
+      currentMapping.put(partitionId, allPreviousDecisionMap);
     }
 
     // Get the assignment keyed on partition

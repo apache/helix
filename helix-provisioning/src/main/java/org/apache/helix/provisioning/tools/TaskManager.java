@@ -35,6 +35,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.manager.zk.HelixConnectionAdaptor;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
@@ -105,7 +106,8 @@ public class TaskManager {
   public void addTaskToQueue(final String taskName, final String queueName) {
     HelixDataAccessor accessor = _connection.createDataAccessor(_clusterId);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    String configPath = keyBuilder.resourceConfig(queueName + "_" + queueName).getPath();
+    final ResourceId resourceId = ResourceId.from(queueName + "_" + queueName);
+    String configPath = keyBuilder.resourceConfig(resourceId.toString()).getPath();
     DataUpdater<ZNRecord> dataUpdater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -120,12 +122,12 @@ public class TaskManager {
           currentId = parts.length;
           currentData.setSimpleField(TaskConfig.TARGET_PARTITIONS, current + "," + currentId);
         }
-        Map<String, String> partitionMap = currentData.getMapField(TaskConfig.PARTITION_NAME_MAP);
+        Map<String, String> partitionMap = currentData.getMapField(TaskConfig.TASK_NAME_MAP);
         if (partitionMap == null) {
           partitionMap = Maps.newHashMap();
-          currentData.setMapField(TaskConfig.PARTITION_NAME_MAP, partitionMap);
+          currentData.setMapField(TaskConfig.TASK_NAME_MAP, partitionMap);
         }
-        partitionMap.put(String.valueOf(currentId), taskName);
+        partitionMap.put(resourceId.toString() + '_' + currentId, taskName);
         return currentData;
       }
     };
@@ -147,6 +149,5 @@ public class TaskManager {
   }
 
   public void shutdownQueue(String queueName) {
-
   }
 }

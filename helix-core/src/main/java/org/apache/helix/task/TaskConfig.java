@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -64,8 +65,8 @@ public class TaskConfig {
   public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
   /** Support overarching tasks that hang around for a while */
   public static final String LONG_LIVED = "LongLived";
-  /** Support giving tasks a custom name **/
-  public static final String PARTITION_NAME_MAP = "PartitionNameMap";
+  /** Support giving mapping partition IDs to specific task names **/
+  public static final String TASK_NAME_MAP = "TaskNameMap";
 
   // // Default property values ////
 
@@ -83,11 +84,12 @@ public class TaskConfig {
   private final int _numConcurrentTasksPerInstance;
   private final int _maxAttemptsPerPartition;
   private final boolean _longLived;
+  private final Map<String, String> _taskNameMap;
 
   private TaskConfig(String workflow, String targetResource, List<Integer> targetPartitions,
       Set<String> targetPartitionStates, String command, String commandConfig,
       long timeoutPerPartition, int numConcurrentTasksPerInstance, int maxAttemptsPerPartition,
-      boolean longLived) {
+      boolean longLived, Map<String, String> taskNameMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -98,6 +100,7 @@ public class TaskConfig {
     _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
     _maxAttemptsPerPartition = maxAttemptsPerPartition;
     _longLived = longLived;
+    _taskNameMap = taskNameMap;
   }
 
   public String getWorkflow() {
@@ -140,6 +143,10 @@ public class TaskConfig {
     return _longLived;
   }
 
+  public Map<String, String> getTaskNameMap() {
+    return _taskNameMap;
+  }
+
   public Map<String, String> getResourceConfigMap() {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(TaskConfig.WORKFLOW_ID, _workflow);
@@ -174,13 +181,14 @@ public class TaskConfig {
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerPartition = DEFAULT_MAX_ATTEMPTS_PER_PARTITION;
     private boolean _longLived = false;
+    private Map<String, String> _taskNameMap = Collections.emptyMap();
 
     public TaskConfig build() {
       validate();
 
       return new TaskConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerPartition, _numConcurrentTasksPerInstance,
-          _maxAttemptsPerPartition, _longLived);
+          _maxAttemptsPerPartition, _longLived, _taskNameMap);
     }
 
     /**
@@ -272,6 +280,11 @@ public class TaskConfig {
 
     public Builder setLongLived(boolean isLongLived) {
       _longLived = isLongLived;
+      return this;
+    }
+
+    public Builder setTaskNameMap(Map<String, String> taskNameMap) {
+      _taskNameMap = taskNameMap;
       return this;
     }
 

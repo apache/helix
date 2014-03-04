@@ -19,12 +19,9 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.AccessOption;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
@@ -34,8 +31,11 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.log4j.Logger;
+
+import com.google.common.base.Joiner;
 
 /**
  * Static utility methods.
@@ -66,16 +66,19 @@ public class TaskUtil {
    *         otherwise.
    */
   public static TaskConfig getTaskCfg(HelixManager manager, String taskResource) {
-    Map<String, String> taskCfg = getResourceConfigMap(manager, taskResource);
+    ResourceConfiguration config = getResourceConfig(manager, taskResource);
+    Map<String, String> taskCfg = config.getRecord().getSimpleFields();
     TaskConfig.Builder b = TaskConfig.Builder.fromMap(taskCfg);
-
+    if (config.getRecord().getMapFields().containsKey(TaskConfig.TASK_NAME_MAP)) {
+      b.setTaskNameMap(config.getRecord().getMapField(TaskConfig.TASK_NAME_MAP));
+    }
     return b.build();
   }
 
   public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflowResource) {
-    Map<String, String> workflowCfg = getResourceConfigMap(manager, workflowResource);
+    ResourceConfiguration config = getResourceConfig(manager, workflowResource);
+    Map<String, String> workflowCfg = config.getRecord().getSimpleFields();
     WorkflowConfig.Builder b = WorkflowConfig.Builder.fromMap(workflowCfg);
-
     return b.build();
   }
 
@@ -155,20 +158,9 @@ public class TaskUtil {
     return workflowResource + "_" + taskName;
   }
 
-  private static Map<String, String> getResourceConfigMap(HelixManager manager, String resource) {
-    HelixConfigScope scope = getResourceConfigScope(manager.getClusterName(), resource);
-    ConfigAccessor configAccessor = manager.getConfigAccessor();
-
-    Map<String, String> taskCfg = new HashMap<String, String>();
-    List<String> cfgKeys = configAccessor.getKeys(scope);
-    if (cfgKeys == null || cfgKeys.isEmpty()) {
-      return null;
-    }
-
-    for (String cfgKey : cfgKeys) {
-      taskCfg.put(cfgKey, configAccessor.get(scope, cfgKey));
-    }
-
-    return taskCfg;
+  private static ResourceConfiguration getResourceConfig(HelixManager manager, String resource) {
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return accessor.getProperty(keyBuilder.resourceConfig(resource));
   }
 }

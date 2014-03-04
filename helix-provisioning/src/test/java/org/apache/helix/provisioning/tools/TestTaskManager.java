@@ -61,10 +61,16 @@ public class TestTaskManager extends ZkUnitTestBase {
         true); // do rebalance
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("myqueue", new TaskFactory() {
+    taskFactoryReg.put("mytask1", new TaskFactory() {
       @Override
       public Task createNewTask(String config) {
-        return new MyTask();
+        return new MyTask(1);
+      }
+    });
+    taskFactoryReg.put("mytask2", new TaskFactory() {
+      @Override
+      public Task createNewTask(String config) {
+        return new MyTask(2);
       }
     });
     MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
@@ -88,7 +94,7 @@ public class TestTaskManager extends ZkUnitTestBase {
     ClusterId clusterId = ClusterId.from(clusterName);
     TaskManager taskManager = new TaskManager(clusterId, connection);
     taskManager.createTaskQueue("myqueue", true);
-    taskManager.addTaskToQueue("mytask", "myqueue");
+    taskManager.addTaskToQueue("mytask1", "myqueue");
     taskManager.addTaskToQueue("mytask2", "myqueue");
 
     controller.syncStop();
@@ -98,13 +104,19 @@ public class TestTaskManager extends ZkUnitTestBase {
   }
 
   public static class MyTask implements Task {
+    private final int _id;
+
+    public MyTask(int id) {
+      _id = id;
+    }
+
     @Override
     public TaskResult run() {
       try {
         Thread.sleep(10000);
       } catch (InterruptedException e) {
       }
-      System.err.println("task complete");
+      System.err.println("task complete for " + _id);
       return new TaskResult(TaskResult.Status.COMPLETED, "");
     }
 

@@ -289,6 +289,7 @@ public class TaskDriver {
   }
 
   /** Constructs option group containing options required by all drivable tasks */
+  @SuppressWarnings("static-access")
   private static OptionGroup contructGenericRequiredOptionGroup() {
     Option zkAddressOption =
         OptionBuilder.isRequired().hasArgs(1).withArgName("zkAddress").withLongOpt(ZK_ADDRESS)
@@ -310,6 +311,7 @@ public class TaskDriver {
   }
 
   /** Constructs option group containing options required by all drivable tasks */
+  @SuppressWarnings("static-access")
   private static OptionGroup constructStartOptionGroup() {
     Option workflowFileOption =
         OptionBuilder.withLongOpt(WORKFLOW_FILE_OPTION).hasArgs(1).withArgName("workflowFile")

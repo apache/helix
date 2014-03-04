@@ -25,6 +25,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
@@ -217,7 +218,16 @@ public class TaskStateModel extends StateModel {
 
   private void startTask(Message msg, String taskPartition) {
     TaskConfig cfg = TaskUtil.getTaskCfg(_manager, msg.getResourceName());
-    TaskFactory taskFactory = _taskFactoryRegistry.get(cfg.getCommand());
+    String command = cfg.getCommand();
+    Map<String, String> taskNameMap = cfg.getTaskNameMap();
+    if (taskNameMap != null && taskNameMap.containsKey(taskPartition)) {
+      // Support a partition-specifc override of tasks to run
+      String taskName = taskNameMap.get(taskPartition);
+      if (_taskFactoryRegistry.containsKey(taskName)) {
+        command = taskName;
+      }
+    }
+    TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(cfg.getCommandConfig());
 
     _taskRunner =

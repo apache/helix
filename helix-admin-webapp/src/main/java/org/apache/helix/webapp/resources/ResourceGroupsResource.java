@@ -21,10 +21,14 @@ package org.apache.helix.webapp.resources;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
@@ -37,6 +41,9 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class ResourceGroupsResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ResourceGroupsResource.class);
@@ -66,14 +73,31 @@ public class ResourceGroupsResource extends ServerResource {
 
   StringRepresentation getHostedEntitiesRepresentation(String clusterName)
       throws JsonGenerationException, JsonMappingException, IOException {
+    // Get all resources
     ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    ;
-    ClusterSetup setupTool = new ClusterSetup(zkClient);
-    List<String> hostedEntities =
-        setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
+    HelixDataAccessor accessor =
+        ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Map<String, IdealState> idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
 
+    // Create the result
     ZNRecord hostedEntitiesRecord = new ZNRecord("ResourceGroups");
-    hostedEntitiesRecord.setListField("ResourceGroups", hostedEntities);
+
+    // Figure out which tags are present on which resources
+    Map<String, String> tagMap = Maps.newHashMap();
+    for (IdealState idealState : idealStateMap.values()) {
+      String tag = idealState.getInstanceGroupTag();
+      if (tag != null) {
+        tagMap.put(idealState.getId(), tag);
+      }
+    }
+
+    // Populate the result
+    List<String> allResources = Lists.newArrayList(idealStateMap.keySet());
+    hostedEntitiesRecord.setListField("ResourceGroups", allResources);
+    if (!tagMap.isEmpty()) {
+      hostedEntitiesRecord.setMapField("ResourceTags", tagMap);
+    }
 
     StringRepresentation representation =
         new StringRepresentation(ClusterRepresentationUtil.ZNRecordToJson(hostedEntitiesRecord),

@@ -21,8 +21,7 @@ under the License.
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="false">
     <packages>
-      <package name="org.apache.helix.webapp"/>
-      <package name="org.apache.helix.tools"/>
+      <package name="org.apache.helix.webapp.*"/>
     </packages>
   </test>
 </suite>

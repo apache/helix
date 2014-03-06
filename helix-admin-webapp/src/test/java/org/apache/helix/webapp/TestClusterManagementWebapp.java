@@ -30,7 +30,6 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
-import org.apache.helix.tools.AdminTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
 import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;

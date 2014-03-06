@@ -25,8 +25,10 @@ import java.io.PrintWriter;
 import java.io.StringReader;
 import java.io.StringWriter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -34,25 +36,26 @@ import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
+import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;
 import org.apache.helix.webapp.resources.JsonParameters;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
-import org.restlet.Client;
 import org.restlet.Component;
 import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
-import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -95,8 +98,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "="
             + ClusterRepresentationUtil.ObjectToJson(jsonParameters), MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
     result.write(sw);
@@ -118,8 +120,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
       entity = entity + "&" + (key + "=" + extraForm.get(key));
     }
     request.setEntity(entity, MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
     result.write(sw);
@@ -132,8 +133,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
   void deleteUrl(String url, boolean hasException) throws IOException {
     Reference resourceRef = new Reference(url);
     Request request = new Request(Method.DELETE, resourceRef);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
     result.write(sw);
@@ -143,8 +143,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
   String getUrl(String url) throws IOException {
     Reference resourceRef = new Reference(url);
     Request request = new Request(Method.GET, resourceRef);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
     result.write(sw);
@@ -1025,5 +1024,89 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     instanceUrl = instancesUrl + "/localhost_1233";
     response = assertSuccessPostOperation(instanceUrl, removeInstanceTagCmd(_tag1), false);
     Assert.assertFalse(response.contains(_tag1));
+  }
+
+  @Test
+  public void testGetResources() throws IOException {
+    final String clusterName = "TestTagAwareness_testGetResources";
+    final String TAG = "tag";
+    final String URL_BASE =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
+
+    _gSetupTool.addCluster(clusterName, true);
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+
+    // Add a tagged resource
+    IdealState taggedResource = new IdealState("taggedResource");
+    taggedResource.setInstanceGroupTag(TAG);
+    taggedResource.setStateModelDefRef("OnlineOffline");
+    admin.addResource(clusterName, taggedResource.getId(), taggedResource);
+
+    // Add an untagged resource
+    IdealState untaggedResource = new IdealState("untaggedResource");
+    untaggedResource.setStateModelDefRef("OnlineOffline");
+    admin.addResource(clusterName, untaggedResource.getId(), untaggedResource);
+
+    // Now make a REST call for all resources
+    Reference resourceRef = new Reference(URL_BASE);
+    Request request = new Request(Method.GET, resourceRef);
+    Response response = _gClient.handle(request);
+    ZNRecord responseRecord =
+        ClusterRepresentationUtil.JsonToObject(ZNRecord.class, response.getEntityAsText());
+
+    // Ensure that the tagged resource has information and the untagged one doesn't
+    Assert.assertNotNull(responseRecord.getMapField("ResourceTags"));
+    Assert
+        .assertEquals(TAG, responseRecord.getMapField("ResourceTags").get(taggedResource.getId()));
+    Assert.assertFalse(responseRecord.getMapField("ResourceTags").containsKey(
+        untaggedResource.getId()));
+  }
+
+  @Test
+  public void testGetInstances() throws IOException {
+    final String clusterName = "TestTagAwareness_testGetResources";
+    final String[] TAGS = {
+        "tag1", "tag2"
+    };
+    final String URL_BASE =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances";
+
+    _gSetupTool.addCluster(clusterName, true);
+    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+
+    // Add 4 participants, each with differint tag characteristics
+    InstanceConfig instance1 = new InstanceConfig("localhost_1");
+    instance1.addTag(TAGS[0]);
+    admin.addInstance(clusterName, instance1);
+    InstanceConfig instance2 = new InstanceConfig("localhost_2");
+    instance2.addTag(TAGS[1]);
+    admin.addInstance(clusterName, instance2);
+    InstanceConfig instance3 = new InstanceConfig("localhost_3");
+    instance3.addTag(TAGS[0]);
+    instance3.addTag(TAGS[1]);
+    admin.addInstance(clusterName, instance3);
+    InstanceConfig instance4 = new InstanceConfig("localhost_4");
+    admin.addInstance(clusterName, instance4);
+
+    // Now make a REST call for all resources
+    Reference resourceRef = new Reference(URL_BASE);
+    Request request = new Request(Method.GET, resourceRef);
+    Response response = _gClient.handle(request);
+    ListInstancesWrapper responseWrapper =
+        ClusterRepresentationUtil.JsonToObject(ListInstancesWrapper.class,
+            response.getEntityAsText());
+    Map<String, List<String>> tagInfo = responseWrapper.tagInfo;
+
+    // Ensure tag ownership is reported correctly
+    Assert.assertTrue(tagInfo.containsKey(TAGS[0]));
+    Assert.assertTrue(tagInfo.containsKey(TAGS[1]));
+    Assert.assertTrue(tagInfo.get(TAGS[0]).contains("localhost_1"));
+    Assert.assertFalse(tagInfo.get(TAGS[0]).contains("localhost_2"));
+    Assert.assertTrue(tagInfo.get(TAGS[0]).contains("localhost_3"));
+    Assert.assertFalse(tagInfo.get(TAGS[0]).contains("localhost_4"));
+    Assert.assertFalse(tagInfo.get(TAGS[1]).contains("localhost_1"));
+    Assert.assertTrue(tagInfo.get(TAGS[1]).contains("localhost_2"));
+    Assert.assertTrue(tagInfo.get(TAGS[1]).contains("localhost_3"));
+    Assert.assertFalse(tagInfo.get(TAGS[1]).contains("localhost_4"));
   }
 }

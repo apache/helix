@@ -42,6 +42,9 @@ import org.testng.annotations.Test;
  * to ensure that the controller can verify its cache. That's what this test is for.
  */
 public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
+  private static final int CHECK_INTERVAL = 50;
+  private static final int CHECK_TIMEOUT = 10000;
+
   @Test
   public void testReelection() throws Exception {
     final int NUM_CONTROLLERS = 2;
@@ -100,6 +103,15 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     // Disable the leader, resulting in a leader election
     HelixDataAccessor accessor = participants[0].getHelixDataAccessor();
     LiveInstance leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
+    int totalWait = 0;
+    while (leader == null && totalWait < CHECK_TIMEOUT) {
+      Thread.sleep(CHECK_INTERVAL);
+      totalWait += CHECK_INTERVAL;
+      leader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
+    }
+    if (totalWait >= CHECK_TIMEOUT) {
+      Assert.fail("No leader was ever elected!");
+    }
     String leaderId = leader.getId();
     String standbyId = (leaderId.equals("controller_0")) ? "controller_1" : "controller_0";
     HelixAdmin admin = setupTool.getClusterManagementTool();

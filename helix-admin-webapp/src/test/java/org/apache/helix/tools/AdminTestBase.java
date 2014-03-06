@@ -25,10 +25,11 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.AdminTestHelper.AdminThread;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
+import org.restlet.Client;
+import org.restlet.data.Protocol;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
@@ -41,6 +42,7 @@ public class AdminTestBase {
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
+  protected static Client _gClient;
 
   static AdminThread _adminThread;
 
@@ -62,6 +64,9 @@ public class AdminTestBase {
     // start admin
     _adminThread = new AdminThread(ZK_ADDR, ADMIN_PORT);
     _adminThread.start();
+
+    // create a client
+    _gClient = new Client(Protocol.HTTP);
 
     // wait for the web service to start
     Thread.sleep(100);

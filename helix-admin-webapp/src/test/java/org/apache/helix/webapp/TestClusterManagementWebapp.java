@@ -44,7 +44,6 @@ import org.restlet.Request;
 import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Method;
-import org.restlet.data.Protocol;
 import org.restlet.data.Reference;
 import org.restlet.representation.Representation;
 import org.testng.Assert;
@@ -85,8 +84,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
             + "/StateModelDefs/MasterSlave";
     Reference resourceRef = new Reference(httpUrlBase);
     Request request = new Request(Method.GET, resourceRef);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
     result.write(sw);
@@ -107,8 +105,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap)
             + "&" + JsonParameters.NEW_STATE_MODEL_DEF + "="
             + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -133,8 +130,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -165,8 +161,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -185,8 +180,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
 
     request = new Request(Method.GET, resourceRef);
 
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -210,8 +204,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -252,8 +245,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -295,8 +287,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -316,8 +307,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     resourceRef = new Reference(httpUrlBase);
     request = new Request(Method.GET, resourceRef);
 
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -341,8 +331,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -362,8 +351,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap),
         MediaType.APPLICATION_ALL);
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -385,8 +373,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     Reference resourceRef = new Reference(httpUrlBase);
     Request request = new Request(Method.GET, resourceRef);
 
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -410,8 +397,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paraMap)
             + "&" + JsonParameters.NEW_IDEAL_STATE + "="
             + ClusterRepresentationUtil.ZNRecordToJson(r), MediaType.APPLICATION_ALL);
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();
@@ -431,16 +417,15 @@ public class TestClusterManagementWebapp extends AdminTestBase {
   // verify get/post configs in different scopes
   void verifyConfigAccessor() throws Exception {
     ObjectMapper mapper = new ObjectMapper();
-    Client client = new Client(Protocol.HTTP);
 
     // set/get cluster scope configs
     String url =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/cluster/"
             + clusterName;
 
-    postConfig(client, url, mapper, ClusterSetup.setConfig, "key1=value1,key2=value2");
+    postConfig(_gClient, url, mapper, ClusterSetup.setConfig, "key1=value1,key2=value2");
 
-    ZNRecord record = get(client, url, mapper);
+    ZNRecord record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
     Assert.assertEquals(record.getSimpleField("key1"), "value1");
     Assert.assertEquals(record.getSimpleField("key2"), "value2");
@@ -451,9 +436,9 @@ public class TestClusterManagementWebapp extends AdminTestBase {
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant/"
             + participantName;
 
-    postConfig(client, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
+    postConfig(_gClient, url, mapper, ClusterSetup.setConfig, "key3=value3,key4=value4");
 
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertTrue(record.getSimpleFields().size() >= 2, "Should at least contains 2 keys");
     Assert.assertEquals(record.getSimpleField("key3"), "value3");
     Assert.assertEquals(record.getSimpleField("key4"), "value4");
@@ -463,9 +448,9 @@ public class TestClusterManagementWebapp extends AdminTestBase {
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
             + "/configs/resource/testResource";
 
-    postConfig(client, url, mapper, ClusterSetup.setConfig, "key5=value5,key6=value6");
+    postConfig(_gClient, url, mapper, ClusterSetup.setConfig, "key5=value5,key6=value6");
 
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
     Assert.assertEquals(record.getSimpleField("key5"), "value5");
     Assert.assertEquals(record.getSimpleField("key6"), "value6");
@@ -475,16 +460,16 @@ public class TestClusterManagementWebapp extends AdminTestBase {
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
             + "/configs/partition/testResource/testPartition";
 
-    postConfig(client, url, mapper, ClusterSetup.setConfig, "key7=value7,key8=value8");
+    postConfig(_gClient, url, mapper, ClusterSetup.setConfig, "key7=value7,key8=value8");
 
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getSimpleFields().size(), 2);
     Assert.assertEquals(record.getSimpleField("key7"), "value7");
     Assert.assertEquals(record.getSimpleField("key8"), "value8");
 
     // list keys
     url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs";
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("scopes"));
     Assert.assertTrue(contains(record.getListField("scopes"), "CLUSTER", "PARTICIPANT", "RESOURCE",
@@ -498,12 +483,12 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     // record);
 
     url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/participant";
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertTrue(record.getListFields().containsKey("PARTICIPANT"));
     Assert.assertTrue(contains(record.getListField("PARTICIPANT"), participantName));
 
     url = "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/configs/resource";
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("RESOURCE"));
     Assert.assertTrue(contains(record.getListField("RESOURCE"), "testResource"));
@@ -511,7 +496,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     url =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName
             + "/configs/partition/testResource";
-    record = get(client, url, mapper);
+    record = get(_gClient, url, mapper);
     Assert.assertEquals(record.getListFields().size(), 1);
     Assert.assertTrue(record.getListFields().containsKey("PARTITION"));
     Assert.assertTrue(contains(record.getListField("PARTITION"), "testPartition"));
@@ -569,8 +554,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paramMap),
         MediaType.APPLICATION_ALL);
-    Client client = new Client(Protocol.HTTP);
-    Response response = client.handle(request);
+    Response response = _gClient.handle(request);
 
     Representation result = response.getEntity();
     StringWriter sw = new StringWriter();
@@ -591,8 +575,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     request.setEntity(
         JsonParameters.JSON_PARAMETERS + "=" + ClusterRepresentationUtil.ObjectToJson(paramMap),
         MediaType.APPLICATION_ALL);
-    client = new Client(Protocol.HTTP);
-    response = client.handle(request);
+    response = _gClient.handle(request);
 
     result = response.getEntity();
     sw = new StringWriter();

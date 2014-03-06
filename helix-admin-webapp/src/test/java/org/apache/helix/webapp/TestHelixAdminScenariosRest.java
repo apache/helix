@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.webapp;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -40,6 +40,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.webapp.RestAdminApplication;
@@ -409,7 +411,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     addResource(clusterName, "db_11", 22);
     addInstancesToCluster(clusterName, "localhost_123", 6, null);
     rebalanceResource(clusterName, "db_11");
-    ZNRecord record = _gSetupTool._admin.getResourceIdealState(clusterName, "db_11").getRecord();
+    ZNRecord record =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
+            .getRecord();
     String x = ObjectToJson(record);
 
     FileWriter fos = new FileWriter("/tmp/temp.log");
@@ -455,7 +459,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
             clusterName));
     Assert.assertTrue(verifyResult);
 
-    ZNRecord record2 = _gSetupTool._admin.getResourceIdealState(clusterName, "db_11").getRecord();
+    ZNRecord record2 =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
+            .getRecord();
     Assert.assertTrue(record2.equals(record));
 
     // clean up

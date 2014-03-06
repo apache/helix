@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.webapp;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,8 +25,9 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.TestHelper;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.tools.AdminTestHelper.AdminThread;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
+import org.apache.helix.webapp.AdminTestHelper.AdminThread;
 import org.apache.log4j.Logger;
 import org.restlet.Client;
 import org.restlet.data.Protocol;

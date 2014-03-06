@@ -89,7 +89,7 @@ import org.apache.log4j.Logger;
 public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
     ExternalViewChangeListener, ControllerChangeListener, HealthStateChangeListener,
-    InstanceConfigChangeListener{
+    InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
   private final PipelineRegistry _registry;
@@ -245,6 +245,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _lastSeenSessions = new AtomicReference<Map<String, LiveInstance>>();
     _eventQueue = new ClusterEventBlockingQueue();
     _eventThread = new ClusterEventProcessor();
+    _eventThread.setDaemon(true);
     _eventThread.start();
     _cache = new ClusterDataCache();
   }
@@ -476,7 +477,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   @Override
   public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
-      NotificationContext changeContext){
+      NotificationContext changeContext) {
     logger.info("START: GenericClusterController.onInstanceConfigChange()");
     onConfigChange(instanceConfigs, changeContext);
     logger.info("END: GenericClusterController.onInstanceConfigChange()");

@@ -41,19 +41,19 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
@@ -359,6 +359,29 @@ public class ZkUnitTestBase {
     msg.getRecord().setSimpleField(Attributes.RESOURCE_NAME.toString(), resourceName);
     msg.setTgtName(tgtName);
     return msg;
+  }
+
+  /**
+   * Poll for the existence (or lack thereof) of a specific Helix property
+   * @param clazz the HelixProeprty subclass
+   * @param accessor connected HelixDataAccessor
+   * @param key the property key to look up
+   * @param shouldExist true if the property should exist, false otherwise
+   * @return the property if found, or null if it does not exist
+   */
+  protected <T extends HelixProperty> T pollForProperty(Class<T> clazz, HelixDataAccessor accessor,
+      PropertyKey key, boolean shouldExist) throws InterruptedException {
+    final int POLL_TIMEOUT = 5000;
+    final int POLL_INTERVAL = 50;
+    T property = accessor.getProperty(key);
+    int timeWaited = 0;
+    while (((shouldExist && property == null) || (!shouldExist && property != null))
+        && timeWaited < POLL_TIMEOUT) {
+      Thread.sleep(POLL_INTERVAL);
+      timeWaited += POLL_INTERVAL;
+      property = accessor.getProperty(key);
+    }
+    return property;
   }
 
   /**

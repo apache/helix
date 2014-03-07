@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
@@ -226,11 +227,13 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // verify leader changes to localhost_12919
-    ZKHelixDataAccessor accessor =
+    HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Assert.assertNotNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
-    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+    Assert.assertNotNull(pollForProperty(LiveInstance.class, accessor,
+        keyBuilder.liveInstance("localhost_12918"), true));
+    LiveInstance leader =
+        pollForProperty(LiveInstance.class, accessor, keyBuilder.controllerLeader(), true);
     Assert.assertNotNull(leader);
     Assert.assertEquals(leader.getId(), "localhost_12919");
 
@@ -245,10 +248,16 @@ public class TestConsecutiveZkSessionExpiry extends ZkUnitTestBase {
                 + handlers.size());
 
     // clean up
+    distributedControllers[0].disconnect();
     distributedControllers[1].disconnect();
-    Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12919")));
-    Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
+    Assert.assertNull(pollForProperty(LiveInstance.class, accessor,
+        keyBuilder.liveInstance("localhost_12918"), false));
+    Assert.assertNull(pollForProperty(LiveInstance.class, accessor,
+        keyBuilder.liveInstance("localhost_12919"), false));
+    Assert.assertNull(pollForProperty(LiveInstance.class, accessor, keyBuilder.controllerLeader(),
+        false));
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
+
 }

@@ -554,7 +554,7 @@ public abstract class AbstractTaskRebalancer implements HelixRebalancer {
 
   private static List<Integer> getNextPartitions(SortedSet<Integer> candidatePartitions,
       Set<Integer> excluded, int n) {
-    List<Integer> result = new ArrayList<Integer>(n);
+    List<Integer> result = new ArrayList<Integer>();
     if (candidatePartitions == null || candidatePartitions.isEmpty()) {
       return result;
     }

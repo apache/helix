@@ -95,7 +95,9 @@ public class TestTaskManager extends ZkUnitTestBase {
     TaskManager taskManager = new TaskManager(clusterId, connection);
     taskManager.createTaskQueue("myqueue", true);
     taskManager.addTaskToQueue("mytask1", "myqueue");
+    Thread.sleep(5000);
     taskManager.addTaskToQueue("mytask2", "myqueue");
+    taskManager.cancelTask("myqueue", "mytask1");
 
     controller.syncStop();
     for (MockParticipantManager participant : participants) {
@@ -105,6 +107,8 @@ public class TestTaskManager extends ZkUnitTestBase {
 
   public static class MyTask implements Task {
     private final int _id;
+    private Thread _t;
+    private TaskResult.Status _status = null;
 
     public MyTask(int id) {
       _id = id;
@@ -112,16 +116,34 @@ public class TestTaskManager extends ZkUnitTestBase {
 
     @Override
     public TaskResult run() {
+      _t = new Thread() {
+        @Override
+        public void run() {
+          try {
+            Thread.sleep(60000);
+            _status = TaskResult.Status.COMPLETED;
+            System.err.println("task complete for " + _id);
+          } catch (InterruptedException e) {
+            _status = TaskResult.Status.CANCELED;
+            System.err.println("task canceled for " + _id);
+            interrupt();
+          }
+        }
+      };
+      _t.start();
       try {
-        Thread.sleep(10000);
+        _t.join();
       } catch (InterruptedException e) {
+        _status = TaskResult.Status.CANCELED;
       }
-      System.err.println("task complete for " + _id);
-      return new TaskResult(TaskResult.Status.COMPLETED, "");
+      return new TaskResult(_status, "");
     }
 
     @Override
     public void cancel() {
+      if (_t != null && _t.isAlive()) {
+        _t.interrupt();
+      }
     }
   }
 }

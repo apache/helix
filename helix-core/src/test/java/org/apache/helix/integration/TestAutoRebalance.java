@@ -26,9 +26,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -36,17 +36,16 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
-  private static final Logger LOG = Logger.getLogger(TestAutoRebalance.class.getName());
   String db2 = TEST_DB + "2";
   String _tag = "SSDSSD";
 
@@ -96,8 +95,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
 
     // start controller
     String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller =
-        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =
@@ -245,14 +243,23 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerC
       HelixDataAccessor accessor =
           new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
       Builder keyBuilder = accessor.keyBuilder();
-      int numberOfPartitions =
-          accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
-              .size();
+      int numberOfPartitions;
+      try {
+        numberOfPartitions =
+            accessor.getProperty(keyBuilder.idealStates(_resourceName)).getRecord().getListFields()
+                .size();
+      } catch (Exception e) {
+        return false;
+      }
       ClusterDataCache cache = new ClusterDataCache();
       cache.refresh(accessor);
+
+      IdealState idealState = cache.getIdealState(_resourceName);
+      if (idealState == null) {
+        return false;
+      }
       String masterValue =
-          cache.getStateModelDef(cache.getIdealState(_resourceName).getStateModelDefRef())
-              .getStatesPriorityList().get(0);
+          cache.getStateModelDef(idealState.getStateModelDefRef()).getStatesPriorityList().get(0);
       int replicas = Integer.parseInt(cache.getIdealState(_resourceName).getReplicas());
       String instanceGroupTag = cache.getIdealState(_resourceName).getInstanceGroupTag();
       int instances = 0;

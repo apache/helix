@@ -20,18 +20,31 @@ package org.apache.helix.integration;
  */
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
 
 public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
   private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
@@ -74,6 +87,113 @@ public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServ
 
     LOG.info("STOP testDisablePartition() at " + new Date(System.currentTimeMillis()));
 
+  }
+
+  @Test
+  public void testDisableFullAuto() throws Exception {
+    final int NUM_PARTITIONS = 8;
+    final int NUM_PARTICIPANTS = 2;
+    final int NUM_REPLICAS = 1;
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+
+    ClusterSetup clusterSetup = new ClusterSetup(ZK_ADDR);
+    clusterSetup.addCluster(clusterName, true);
+
+    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+      String instanceName = "localhost_" + (11420 + i);
+      clusterSetup.addInstanceToCluster(clusterName, instanceName);
+    }
+
+    // Create a known problematic scenario
+    HelixAdmin admin = clusterSetup.getClusterManagementTool();
+    String resourceName = "MailboxDB";
+    IdealState idealState = new IdealState(resourceName + "DR");
+    idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
+    idealState.setStateModelDefRef("LeaderStandby");
+    idealState.setReplicas(String.valueOf(NUM_REPLICAS));
+    idealState.setNumPartitions(NUM_PARTITIONS);
+    for (int i = 0; i < NUM_PARTITIONS; i++) {
+      String partitionName = resourceName + '_' + i;
+      List<String> assignmentList = Lists.newArrayList();
+      if (i < NUM_PARTITIONS / 2) {
+        assignmentList.add("localhost_11420");
+      } else {
+        assignmentList.add("localhost_11421");
+      }
+      Map<String, String> emptyMap = Maps.newHashMap();
+      idealState.getRecord().setListField(partitionName, assignmentList);
+      idealState.getRecord().setMapField(partitionName, emptyMap);
+    }
+    admin.addResource(clusterName, idealState.getResourceName(), idealState);
+
+    // Start everything
+    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+      String instanceName = "localhost_" + (11420 + i);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i].syncStart();
+    }
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_1");
+    controller.syncStart();
+
+    Thread.sleep(1000);
+
+    // Switch to full auto
+    idealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
+    for (int i = 0; i < NUM_PARTITIONS; i++) {
+      List<String> emptyList = Collections.emptyList();
+      idealState.getRecord().setListField(resourceName + '_' + i, emptyList);
+    }
+    admin.setResourceIdealState(clusterName, idealState.getResourceName(), idealState);
+
+    Thread.sleep(1000);
+
+    // Get the external view
+    HelixDataAccessor accessor = controller.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    ExternalView externalView =
+        accessor.getProperty(keyBuilder.externalView(idealState.getResourceName()));
+
+    // Disable the partitions in an order known to cause problems
+    int[] pid = {
+        0, 7
+    };
+    for (int i = 0; i < pid.length; i++) {
+      String partitionName = resourceName + '_' + pid[i];
+      Map<String, String> stateMap = externalView.getStateMap(partitionName);
+      String leader = null;
+      for (String participantName : stateMap.keySet()) {
+        String state = stateMap.get(participantName);
+        if (state.equals("LEADER")) {
+          leader = participantName;
+        }
+      }
+      List<String> partitionNames = Lists.newArrayList(partitionName);
+      admin.enablePartition(false, clusterName, leader, idealState.getResourceName(),
+          partitionNames);
+
+      Thread.sleep(1000);
+    }
+
+    // Ensure that nothing was reassigned and the disabled are offline
+    externalView = accessor.getProperty(keyBuilder.externalView(idealState.getResourceName()));
+    Map<String, String> p0StateMap = externalView.getStateMap(resourceName + "_0");
+    Assert.assertEquals(p0StateMap.size(), 1);
+    String p0Participant = p0StateMap.keySet().iterator().next();
+    Assert.assertEquals(p0StateMap.get(p0Participant), "OFFLINE");
+    Map<String, String> p7StateMap = externalView.getStateMap(resourceName + "_7");
+    Assert.assertEquals(p7StateMap.size(), 1);
+    String p7Participant = p7StateMap.keySet().iterator().next();
+    Assert.assertEquals(p7StateMap.get(p7Participant), "OFFLINE");
+
+    // Cleanup
+    controller.syncStop();
+    for (MockParticipantManager participant : participants) {
+      participant.syncStop();
+    }
   }
 
 }

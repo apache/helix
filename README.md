@@ -17,15 +17,13 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Apache Incubator
+Apache Helix
 ---------------
-Helix is now part of Apache Incubator. 
+Helix is part of the Apache Software Foundation. 
 
-Project page: http://incubator.apache.org/projects/helix.html
+Project page: http://helix.apache.org/
 
-Documentation: http://helix.incubator.apache.org/
-
-Mailing list: http://helix.incubator.apache.org/mail-lists.html
+Mailing list: http://helix.apache.org/mail-lists.html
 
 ### Build
 
@@ -44,13 +42,4 @@ Helix is a generic cluster management framework used for automatic management of
 6. Automatic load balancing and throttling of transitions 
 
 -----
-  
-
-Build Informations
-------------------
-
-To deploy web site to Apache infrastructure: sh ./deploySite.sh -Dusername=uid -Dpassword=pwd (-DskipTests if you don't want to run units tests)
-uid is your asf id, pwd is the password
-
-
-   
+ 

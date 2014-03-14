@@ -34,7 +34,7 @@ Quickdemo
 * Ignore the interrupted exceptions on the console :-).
 
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd recipes/rsync-replicated-file-system/
 mvn clean install package -DskipTests
 cd target/rsync-replicated-file-system-pkg/bin
@@ -42,4 +42,4 @@ cd target/rsync-replicated-file-system-pkg/bin
 
 ```
 
-See [rsync_replicated_file_store](http://helix.incubator.apache.org/recipes/rsync_replicated_file_store.html) for more information
+See [rsync_replicated_file_store](http://helix.apache.org/0.6.2-incubating-docs/recipes/rsync_replicated_file_store.html) for more information

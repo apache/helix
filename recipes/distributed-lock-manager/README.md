@@ -48,8 +48,8 @@ To quickly see this working run the lock-manager-demo script where 12 locks are 
  This version starts multiple threads with in same process to simulate a multi node deployment. Try the long version to get a better idea of how it works.
  
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 mvn clean install package -DskipTests
 cd recipes/distributed-lock-manager/target/distributed-lock-manager-pkg/bin
 chmod +x *

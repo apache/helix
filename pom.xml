@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.3-incubating-SNAPSHOT</version>
+  <version>0.6.3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -37,7 +37,7 @@ under the License.
     Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes.
   </description>
 
-  <url>http://helix.incubator.apache.org</url>
+  <url>http://helix.apache.org</url>
   <developers>
     <developer>
       <id>olamy</id>
@@ -122,9 +122,9 @@ under the License.
   <mailingLists>
     <mailingList>
       <name>Users</name>
-      <post>user@helix.incubator.apache.org</post>
-      <subscribe>user-subscribe@helix.incubator.apache.org</subscribe>
-      <unsubscribe>user-unsubscribe@helix.incubator.apache.org</unsubscribe>
+      <post>user@helix.apache.org</post>
+      <subscribe>user-subscribe@helix.apache.org</subscribe>
+      <unsubscribe>user-unsubscribe@helix.apache.org</unsubscribe>
       <archive>http://mail-archives.apache.org/mod_mbox/helix-user/</archive>
       <otherArchives>
         <otherArchive>http://helix-user.markmail.org</otherArchive>
@@ -132,9 +132,9 @@ under the License.
     </mailingList>
     <mailingList>
       <name>Development</name>
-      <post>dev@helix.incubator.apache.org</post>
-      <subscribe>dev-subscribe@helix.incubator.apache.org</subscribe>
-      <unsubscribe>dev-unsubscribe@helix.incubator.apache.org</unsubscribe>
+      <post>dev@helix.apache.org</post>
+      <subscribe>dev-subscribe@helix.apache.org</subscribe>
+      <unsubscribe>dev-unsubscribe@helix.apache.org</unsubscribe>
       <archive>http://mail-archives.apache.org/mod_mbox/helix-dev/</archive>
       <otherArchives>
         <otherArchive>http://helix-dev.markmail.org</otherArchive>
@@ -142,9 +142,9 @@ under the License.
     </mailingList>
     <mailingList>
       <name>Commits</name>
-      <post>commits@helix.incubator.apache.org</post>
-      <subscribe>commits-subscribe@helix.incubator.apache.org</subscribe>
-      <unsubscribe>commits-unsubscribe@helix.incubator.apache.org</unsubscribe>
+      <post>commits@helix.apache.org</post>
+      <subscribe>commits-subscribe@helix.apache.org</subscribe>
+      <unsubscribe>commits-unsubscribe@helix.apache.org</unsubscribe>
       <archive>http://mail-archives.apache.org/mod_mbox/helix-commits/</archive>
       <otherArchives>
         <otherArchive>http://helix-comits.markmail.org</otherArchive>
@@ -163,11 +163,6 @@ under the License.
         <enabled>false</enabled>
       </snapshots>
     </repository>
-    <repository>
-      <id>Sonatype-public</id>
-      <name>SnakeYAML repository</name>
-      <url>http://oss.sonatype.org/content/groups/public/</url>
-    </repository>
   </repositories>
 
  
@@ -185,9 +180,9 @@ under the License.
   </pluginRepositories>
 
   <scm>
-    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</connection>
-    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/incubator-helix.git</developerConnection>
-    <url>https://git-wip-us.apache.org/repos/asf?p=incubator-helix.git;a=summary</url>
+    <connection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</connection>
+    <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</developerConnection>
+    <url>https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary</url>
     <tag>HEAD</tag>
   </scm>
   <issueManagement>
@@ -223,7 +218,7 @@ under the License.
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
     <!-- for release changelog and download pages -->
-    <currentRelease>0.6.1-incubating</currentRelease>
+    <currentRelease>0.6.2-incubating</currentRelease>
 
     <!-- OSGi Properties -->
     <osgi.import />
@@ -288,11 +283,6 @@ under the License.
         <groupId>org.testng</groupId>
         <artifactId>testng</artifactId>
         <version>6.0.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>1.12</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -415,7 +405,7 @@ under the License.
             <providerImplementations>
               <svn>${svnImpl}</svn>
             </providerImplementations>
-            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/incubator/helix/site-content/</pubScmUrl>
+            <pubScmUrl>scm:svn:https://svn.apache.org/repos/asf/helix/site-content/</pubScmUrl>
             <content>${helix.siteFilePath}</content>
             <checkoutDirectory>${helix.scmPubCheckoutDirectory}</checkoutDirectory>
             <skipDeletedFiles>${scmSkipDeletedFiles}</skipDeletedFiles>

@@ -29,7 +29,7 @@ under the License.
 
   <groupId>org.apache.helix</groupId>
   <artifactId>helix</artifactId>
-  <version>0.6.3</version>
+  <version>0.6.4-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Helix</name>
 
@@ -183,7 +183,7 @@ under the License.
     <connection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</connection>
     <developerConnection>scm:git:https://git-wip-us.apache.org/repos/asf/helix.git</developerConnection>
     <url>https://git-wip-us.apache.org/repos/asf?p=helix.git;a=summary</url>
-    <tag>helix-0.6.3</tag>
+    <tag>HEAD</tag>
   </scm>
   <issueManagement>
     <system>jira</system>

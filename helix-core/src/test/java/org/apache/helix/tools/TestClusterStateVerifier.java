@@ -119,6 +119,11 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             _clusterName, null, Sets.newHashSet(RESOURCES[1])));
     Assert.assertTrue(result);
+    String[] args = {
+        "--zkSvr", ZK_ADDR, "--cluster", _clusterName, "--resources", RESOURCES[1]
+    };
+    result = ClusterStateVerifier.verifyState(args);
+    Assert.assertTrue(result);
 
     // But the full cluster verification should fail
     boolean fullResult = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName).verify();

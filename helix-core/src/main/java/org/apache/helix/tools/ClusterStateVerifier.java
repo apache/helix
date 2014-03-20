@@ -60,6 +60,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -269,7 +270,8 @@ public class ClusterStateVerifier {
       }
 
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cache);
+      BestPossibleStateOutput bestPossOutput =
+          ClusterStateVerifier.calcBestPossState(cache, resources);
       Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
           bestPossOutput.getStateMap();
 
@@ -426,8 +428,12 @@ public class ClusterStateVerifier {
    * @return
    * @throws Exception
    */
-
   static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
+    return calcBestPossState(cache, null);
+  }
+
+  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache, Set<String> resources)
+      throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
     event.addAttribute("ClusterDataCache", cache);
 
@@ -436,6 +442,13 @@ public class ClusterStateVerifier {
     BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
 
     runStage(event, rcState);
+
+    // Filter resources if specified
+    if (resources != null) {
+      Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+      resourceMap.keySet().retainAll(resources);
+    }
+
     runStage(event, csStage);
     runStage(event, bpStage);
 
@@ -597,12 +610,19 @@ public class ClusterStateVerifier {
     sleepIntervalOption.setArgs(1);
     sleepIntervalOption.setArgName("Polling period value (Optional), default=1s");
 
+    Option resourcesOption =
+        OptionBuilder.withLongOpt(resources).withDescription("Specific set of resources to verify")
+            .create();
+    resourcesOption.setArgs(1);
+    resourcesOption.setArgName("Comma-separated resource names, default is all resources");
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
     options.addOption(timeoutOption);
     options.addOption(sleepIntervalOption);
+    options.addOption(resourcesOption);
 
     return options;
   }
@@ -664,7 +684,7 @@ public class ClusterStateVerifier {
 
       // Allow specifying resources explicitly
       if (resourceStr != null) {
-        String[] resources = resourceStr.split(resourceStr);
+        String[] resources = resourceStr.split("[\\s,]");
         resourceSet = Sets.newHashSet(resources);
       }
 

@@ -88,6 +88,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         // if ideal state is deleted, use an empty one
         logger.info("resource:" + resourceName + " does not exist anymore");
         idealState = new IdealState(resourceName);
+        idealState.setStateModelDefRef(resource.getStateModelDefRef());
       }
 
       Rebalancer rebalancer = null;

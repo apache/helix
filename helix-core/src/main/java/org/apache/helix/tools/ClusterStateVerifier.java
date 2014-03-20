@@ -47,6 +47,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
+import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -272,7 +273,8 @@ public class ClusterStateVerifier {
       ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
       Cluster cluster = clusterAccessor.readCluster();
       // calculate best possible state
-      BestPossibleStateOutput bestPossOutput = ClusterStateVerifier.calcBestPossState(cluster);
+      BestPossibleStateOutput bestPossOutput =
+          ClusterStateVerifier.calcBestPossState(cluster, resources);
 
       // set error states
       if (errStates != null) {
@@ -439,6 +441,11 @@ public class ClusterStateVerifier {
    */
 
   static BestPossibleStateOutput calcBestPossState(Cluster cluster) throws Exception {
+    return calcBestPossState(cluster, null);
+  }
+
+  static BestPossibleStateOutput calcBestPossState(Cluster cluster, Set<String> resources)
+      throws Exception {
     ClusterEvent event = new ClusterEvent("sampleEvent");
     event.addAttribute("Cluster", cluster);
 
@@ -447,6 +454,20 @@ public class ClusterStateVerifier {
     BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
 
     runStage(event, rcState);
+
+    // Filter resources if specified
+    if (resources != null) {
+      Map<ResourceId, ResourceConfig> resourceMap =
+          event.getAttribute(AttributeName.RESOURCES.toString());
+      Iterator<ResourceId> it = resourceMap.keySet().iterator();
+      while (it.hasNext()) {
+        ResourceId resourceId = it.next();
+        if (!resources.contains(resourceId.toString())) {
+          it.remove();
+        }
+      }
+    }
+
     runStage(event, csStage);
     runStage(event, bpStage);
 
@@ -607,12 +628,19 @@ public class ClusterStateVerifier {
     sleepIntervalOption.setArgs(1);
     sleepIntervalOption.setArgName("Polling period value (Optional), default=1s");
 
+    Option resourcesOption =
+        OptionBuilder.withLongOpt(resources).withDescription("Specific set of resources to verify")
+            .create();
+    resourcesOption.setArgs(1);
+    resourcesOption.setArgName("Comma-separated resource names, default is all resources");
+
     Options options = new Options();
     options.addOption(helpOption);
     options.addOption(zkServerOption);
     options.addOption(clusterOption);
     options.addOption(timeoutOption);
     options.addOption(sleepIntervalOption);
+    options.addOption(resourcesOption);
 
     return options;
   }
@@ -674,7 +702,7 @@ public class ClusterStateVerifier {
 
       // Allow specifying resources explicitly
       if (resourceStr != null) {
-        String[] resources = resourceStr.split(resourceStr);
+        String[] resources = resourceStr.split("[\\s,]");
         resourceSet = Sets.newHashSet(resources);
       }
 

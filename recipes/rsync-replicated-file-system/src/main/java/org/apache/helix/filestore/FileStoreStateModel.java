@@ -20,9 +20,6 @@ package org.apache.helix.filestore;
  */
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
-
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
@@ -33,6 +30,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.log4j.Logger;
+import org.apache.zookeeper.data.Stat;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "OFFLINE", "MASTER", "SLAVE"
@@ -151,12 +150,12 @@ public class FileStoreStateModel extends StateModel {
     CheckpointFile checkpointFile = new CheckpointFile(checkpointDirPath);
     final ChangeRecord lastRecordProcessed = checkpointFile.findLastRecordProcessed();
     DataUpdater<ZNRecord> updater = new HighWaterMarkUpdater(message, lastRecordProcessed);
-    helixPropertyStore.update("TRANSACTION_ID_METADATA" + "/" + message.getResourceName(), updater,
-        AccessOption.PERSISTENT);
+    helixPropertyStore.update("/TRANSACTION_ID_METADATA" + "/" + message.getResourceName(),
+        updater, AccessOption.PERSISTENT);
     Stat stat = new Stat();
     ;
     ZNRecord znRecord =
-        helixPropertyStore.get("TRANSACTION_ID_METADATA" + "/" + message.getResourceName(), stat,
+        helixPropertyStore.get("/TRANSACTION_ID_METADATA" + "/" + message.getResourceName(), stat,
             AccessOption.PERSISTENT);
     int startGen = Integer.parseInt(znRecord.getSimpleField("currentGen"));
     int startSeq = Integer.parseInt(znRecord.getSimpleField("currentGenStartSeq"));

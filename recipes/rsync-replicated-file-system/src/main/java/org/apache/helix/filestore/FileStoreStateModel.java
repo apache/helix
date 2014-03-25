@@ -151,12 +151,12 @@ public class FileStoreStateModel extends StateModel {
     final ChangeRecord lastRecordProcessed = checkpointFile.findLastRecordProcessed();
     DataUpdater<ZNRecord> updater = new HighWaterMarkUpdater(message, lastRecordProcessed);
     helixPropertyStore.update(
-        "TRANSACTION_ID_METADATA" + "/" + message.getResourceId().stringify(), updater,
+        "/TRANSACTION_ID_METADATA" + "/" + message.getResourceId().stringify(), updater,
         AccessOption.PERSISTENT);
     Stat stat = new Stat();
     ;
     ZNRecord znRecord =
-        helixPropertyStore.get("TRANSACTION_ID_METADATA" + "/"
+        helixPropertyStore.get("/TRANSACTION_ID_METADATA" + "/"
             + message.getResourceId().stringify(), stat, AccessOption.PERSISTENT);
     int startGen = Integer.parseInt(znRecord.getSimpleField("currentGen"));
     int startSeq = Integer.parseInt(znRecord.getSimpleField("currentGenStartSeq"));

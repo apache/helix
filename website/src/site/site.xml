@@ -73,10 +73,10 @@
     </menu>
 
     <menu name="Helix 0.6.3">
-      <item name="Documentation" href="./0.6.3/index.html"/>
-      <item name="Quick Start" href="./0.6.3/Quickstart.html"/>
-      <item name="Tutorial" href="./0.6.3/Tutorial.html"/>
-      <item name="Download" href="./0.6.3/download.html"/>
+      <item name="Documentation" href="./0.6.3-docs/index.html"/>
+      <item name="Quick Start" href="./0.6.3-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.6.3-docs/Tutorial.html"/>
+      <item name="Download" href="./0.6.3-docs/download.html"/>
     </menu>
 
     <menu name="Get Involved">

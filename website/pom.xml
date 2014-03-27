@@ -34,6 +34,7 @@ under the License.
   <modules>
     <module>0.6.1-incubating</module>
     <module>0.6.2-incubating</module>
+    <module>0.6.3</module>
     <module>0.7.0-incubating</module>
     <module>trunk</module>
   </modules>

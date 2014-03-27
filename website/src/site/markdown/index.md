@@ -75,19 +75,15 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 ### News
 
-Apache Helix has two new releases:
+Apache Helix has a new release:
 
-* [0.6.2-incubating](./0.6.2-incubating-docs/index.html) - A release that fixes numerous bugs and improves platform stability.
+* [0.6.3](./0.6.3-docs/index.html) - A release focused on stability improvements and performance.
 
-    [\[Quick Start\]](./0.6.2-incubating-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.2-incubating.html)
-
-* [0.7.0-incubating](./0.7.0-incubating-docs/index.html) (alpha) - A release that includes high-level APIs to logically interact with Participants, Controllers, Resources, and other Helix constructs. __This release is an alpha and APIs are in the process of being finalized__. Feel free to play with it and provide any feedback you have!
-
-    [\[Quick Start\]](./0.7.0-incubating-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.7.0-incubating.html)
+    [\[Quick Start\]](./0.6.3-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.3.html)
 
 ### Download
 
-<a href="./0.6.2-incubating-docs/download.html" class="btn btn-primary btn-small">0.6.2-incubating</a>
+<a href="./0.6.3-docs/download.html" class="btn btn-primary btn-small">0.6.3</a>
 
 <a href="./0.7.0-incubating-docs/download.html" class="btn btn-primary btn-small">0.7.0-incubating (alpha)</a>
 
@@ -97,7 +93,7 @@ Apache Helix has two new releases:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.6.2-incubating</version>
+  <version>0.6.3</version>
 </dependency>
 ```
 
@@ -108,6 +104,6 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.6.2-incubating
+git checkout helix-0.6.3
 mvn install package -DskipTests
 ```

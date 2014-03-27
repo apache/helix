@@ -18,7 +18,3 @@
 #
 
 Redirect /download.html /download.cgi
-Redirect /0.6.1-incubating-docs/download.html /0.6.1-incubating-docs/download.cgi
-Redirect /0.6.2-incubating-docs/download.html /0.6.2-incubating-docs/download.cgi
-Redirect /0.7.0-incubating-docs/download.html /0.7.0-incubating-docs/download.cgi
-Redirect /0.6.3-docs/download.html /0.6.3-docs/download.cgi

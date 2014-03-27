@@ -1,3 +1,6 @@
+#!/bin/sh
+# Just call the standard mirrors.cgi script. It will use download.html
+# as the input template.
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -16,9 +19,4 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-
-Redirect /download.html /download.cgi
-Redirect /0.6.1-incubating-docs/download.html /0.6.1-incubating-docs/download.cgi
-Redirect /0.6.2-incubating-docs/download.html /0.6.2-incubating-docs/download.cgi
-Redirect /0.7.0-incubating-docs/download.html /0.7.0-incubating-docs/download.cgi
-Redirect /0.6.3-docs/download.html /0.6.3-docs/download.cgi
+exec /www/www.apache.org/dyn/mirrors/mirrors.cgi $*

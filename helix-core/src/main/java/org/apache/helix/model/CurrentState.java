@@ -39,6 +39,8 @@ public class CurrentState extends HelixProperty {
   public enum CurrentStateProperty {
     SESSION_ID,
     CURRENT_STATE,
+    REQUESTED_STATE,
+    INFO,
     STATE_MODEL_DEF,
     STATE_MODEL_FACTORY_NAME,
     RESOURCE // ,
@@ -115,6 +117,24 @@ public class CurrentState extends HelixProperty {
     return null;
   }
 
+  public String getInfo(String partitionName) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    Map<String, String> mapField = mapFields.get(partitionName);
+    if (mapField != null) {
+      return mapField.get(CurrentStateProperty.INFO.name());
+    }
+    return null;
+  }
+
+  public String getRequestedState(String partitionName) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    Map<String, String> mapField = mapFields.get(partitionName);
+    if (mapField != null) {
+      return mapField.get(CurrentStateProperty.REQUESTED_STATE.name());
+    }
+    return null;
+  }
+
   /**
    * Set the state model that the resource follows
    * @param stateModelName an identifier of the state model
@@ -142,6 +162,22 @@ public class CurrentState extends HelixProperty {
       mapFields.put(partitionName, new TreeMap<String, String>());
     }
     mapFields.get(partitionName).put(CurrentStateProperty.CURRENT_STATE.toString(), state);
+  }
+
+  public void setInfo(String partitionName, String info) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    if (mapFields.get(partitionName) == null) {
+      mapFields.put(partitionName, new TreeMap<String, String>());
+    }
+    mapFields.get(partitionName).put(CurrentStateProperty.INFO.name(), info);
+  }
+
+  public void setRequestedState(String partitionName, String state) {
+    Map<String, Map<String, String>> mapFields = _record.getMapFields();
+    if (mapFields.get(partitionName) == null) {
+      mapFields.put(partitionName, new TreeMap<String, String>());
+    }
+    mapFields.get(partitionName).put(CurrentStateProperty.REQUESTED_STATE.name(), state);
   }
 
   /**

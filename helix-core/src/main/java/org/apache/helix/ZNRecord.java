@@ -570,20 +570,27 @@ public class ZNRecord {
    */
   public void subtract(ZNRecord value) {
     for (String key : value.getSimpleFields().keySet()) {
-      if (simpleFields.containsKey(key)) {
-        simpleFields.remove(key);
-      }
+      simpleFields.remove(key);
     }
 
     for (String key : value.getListFields().keySet()) {
-      if (listFields.containsKey(key)) {
-        listFields.remove(key);
-      }
+      listFields.remove(key);
     }
 
     for (String key : value.getMapFields().keySet()) {
-      if (mapFields.containsKey(key)) {
+      Map<String, String> map = value.getMapField(key);
+      if (map == null) {
         mapFields.remove(key);
+      } else {
+        Map<String, String> nestedMap = mapFields.get(key);
+        if (nestedMap != null) {
+          for (String mapKey : map.keySet()) {
+            nestedMap.remove(mapKey);
+          }
+          if (nestedMap.size() == 0) {
+            mapFields.remove(key);
+          }
+        }
       }
     }
   }

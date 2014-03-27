@@ -30,6 +30,7 @@ import java.util.TreeSet;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.log4j.Logger;
 
 /**
@@ -205,10 +206,10 @@ public class IdealState extends HelixProperty {
    */
   public Set<String> getPartitionSet() {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
       return _record.getListFields().keySet();
-    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
       return _record.getMapFields().keySet();
     } else {
       logger.error("Invalid ideal state mode:" + getResourceName());
@@ -398,8 +399,7 @@ public class IdealState extends HelixProperty {
       return false;
     }
 
-    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
       String replicaStr = getReplicas();
       if (replicaStr == null) {
         logger.error("invalid ideal-state. missing replicas in auto mode. record was: " + _record);

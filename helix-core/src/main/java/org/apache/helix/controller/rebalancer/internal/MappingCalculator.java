@@ -21,9 +21,9 @@ package org.apache.helix.controller.rebalancer.internal;
 
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceAssignment;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 
 /**
  * Extends Rebalancer functionality by converting an IdealState to a ResourceAssignment.<br/>

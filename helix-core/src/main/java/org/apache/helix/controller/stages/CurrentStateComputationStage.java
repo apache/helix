@@ -118,9 +118,18 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         for (String partitionName : partitionStateMap.keySet()) {
           Partition partition = resource.getPartition(partitionName);
           if (partition != null) {
-            currentStateOutput.setCurrentState(resourceName, partition, instanceName,
-                currentState.getState(partitionName));
-
+            currentStateOutput.setCurrentState(resourceName,
+                                               partition,
+                                               instanceName,
+                                               currentState.getState(partitionName));
+            currentStateOutput.setRequestedState(resourceName,
+                                                 partition,
+                                                 instanceName,
+                                                 currentState.getRequestedState(partitionName));
+            currentStateOutput.setInfo(resourceName,
+                                       partition,
+                                       instanceName,
+                                       currentState.getInfo(partitionName));
           } else {
             // log
           }

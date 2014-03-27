@@ -28,11 +28,11 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ResourceAssignment;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -67,7 +67,7 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment();
+    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);

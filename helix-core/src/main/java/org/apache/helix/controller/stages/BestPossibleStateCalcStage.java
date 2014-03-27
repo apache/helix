@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
+import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
@@ -29,9 +30,9 @@ import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -93,42 +94,60 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
       Rebalancer rebalancer = null;
       MappingCalculator mappingCalculator = null;
-      if (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED
-          && idealState.getRebalancerClassName() != null) {
+      switch (idealState.getRebalanceMode()) {
+      case FULL_AUTO:
+        AutoRebalancer autoRebalancer = new AutoRebalancer();
+        rebalancer = autoRebalancer;
+        mappingCalculator = autoRebalancer;
+        break;
+      case SEMI_AUTO:
+        SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
+        rebalancer = semiAutoRebalancer;
+        mappingCalculator = semiAutoRebalancer;
+        break;
+      case CUSTOMIZED:
+        CustomRebalancer customRebalancer = new CustomRebalancer();
+        rebalancer = customRebalancer;
+        mappingCalculator = customRebalancer;
+        break;
+      case USER_DEFINED:
         String rebalancerClassName = idealState.getRebalancerClassName();
         logger
             .info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
         try {
           rebalancer =
-              (Rebalancer) (HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
-          mappingCalculator = new SemiAutoRebalancer();
+              Rebalancer.class.cast(HelixUtil.loadClass(getClass(), rebalancerClassName)
+                  .newInstance());
         } catch (Exception e) {
           logger.warn("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
         }
-      }
-      if (rebalancer == null) {
-        if (idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
-          rebalancer = new AutoRebalancer();
-          mappingCalculator = new AutoRebalancer();
-        } else if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-          rebalancer = new SemiAutoRebalancer();
-          mappingCalculator = new SemiAutoRebalancer();
-        } else {
-          rebalancer = new CustomRebalancer();
-          mappingCalculator = new CustomRebalancer();
+        if (rebalancer != null) {
+          try {
+            mappingCalculator = MappingCalculator.class.cast(rebalancer);
+          } catch (ClassCastException e) {
+            logger.info("Rebalancer does not have a mapping calculator, defaulting to SEMI_AUTO");
+          }
         }
+        if (mappingCalculator == null) {
+          mappingCalculator = new SemiAutoRebalancer();
+        }
+        break;
+      default:
+        break;
+      }
+      if (rebalancer != null && mappingCalculator != null) {
+        HelixManager manager = event.getAttribute("helixmanager");
+        rebalancer.init(manager);
         idealState =
             rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
-      }
 
-      // Use the internal MappingCalculator interface to compute the final assignment
-      // The next release will support rebalancers that compute the mapping from start to finish
-      if (mappingCalculator != null) {
+        // Use the internal MappingCalculator interface to compute the final assignment
+        // The next release will support rebalancers that compute the mapping from start to finish
         ResourceAssignment partitionStateAssignment =
             mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource,
                 currentStateOutput);
         for (Partition partition : resource.getPartitions()) {
-          Map<String, String> newStateMap = partitionStateAssignment.getInstanceStateMap(partition);
+          Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);
         }
       }

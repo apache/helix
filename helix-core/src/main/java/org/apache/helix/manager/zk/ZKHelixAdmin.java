@@ -33,7 +33,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -57,7 +56,6 @@ import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -1019,14 +1017,14 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (masterStateValue == null) {
       masterStateValue = slaveStateValue;
     }
-    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO) {
+    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO
+        && idealState.getRebalanceMode() != RebalanceMode.USER_DEFINED) {
       ZNRecord newIdealState =
           DefaultIdealStateCalculator.calculateIdealState(instanceNames, partitions, replica,
               keyPrefix, masterStateValue, slaveStateValue);
 
       // for now keep mapField in SEMI_AUTO mode and remove listField in CUSTOMIZED mode
-      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO
-          || idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         idealState.getRecord().setListFields(newIdealState.getListFields());
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }

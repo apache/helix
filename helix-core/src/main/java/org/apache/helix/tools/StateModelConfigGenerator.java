@@ -23,13 +23,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.model.Transition;
 import org.apache.helix.model.StateModelDefinition.StateModelDefinitionProperty;
+import org.apache.helix.model.Transition;
 import org.apache.helix.model.builder.StateTransitionTableBuilder;
+import org.apache.helix.task.TaskPartitionState;
+import org.apache.helix.task.TaskConstants;
+
 
 // TODO refactor to use StateModelDefinition.Builder
 public class StateModelConfigGenerator {
@@ -346,6 +348,96 @@ public class StateModelConfigGenerator {
 
     record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
         stateTransitionPriorityList);
+    return record;
+  }
+
+  public static ZNRecord generateConfigForTaskStateModel()
+  {
+    ZNRecord record = new ZNRecord(TaskConstants.STATE_MODEL_NAME);
+
+    record.setSimpleField(StateModelDefinitionProperty.INITIAL_STATE.toString(), TaskPartitionState.INIT.name());
+    List<String> statePriorityList = new ArrayList<String>();
+    statePriorityList.add(TaskPartitionState.INIT.name());
+    statePriorityList.add(TaskPartitionState.RUNNING.name());
+    statePriorityList.add(TaskPartitionState.STOPPED.name());
+    statePriorityList.add(TaskPartitionState.COMPLETED.name());
+    statePriorityList.add(TaskPartitionState.TIMED_OUT.name());
+    statePriorityList.add(TaskPartitionState.TASK_ERROR.name());
+    statePriorityList.add(TaskPartitionState.DROPPED.name());
+    record.setListField(StateModelDefinitionProperty.STATE_PRIORITY_LIST.toString(), statePriorityList);
+    for (String state : statePriorityList)
+    {
+      String key = state + ".meta";
+      Map<String, String> metadata = new HashMap<String, String>();
+      metadata.put("count", "-1");
+      record.setMapField(key, metadata);
+    }
+
+    List<String> states = new ArrayList<String>();
+    states.add(TaskPartitionState.INIT.name());
+    states.add(TaskPartitionState.RUNNING.name());
+    states.add(TaskPartitionState.STOPPED.name());
+    states.add(TaskPartitionState.COMPLETED.name());
+    states.add(TaskPartitionState.TIMED_OUT.name());
+    states.add(TaskPartitionState.TASK_ERROR.name());
+    states.add(TaskPartitionState.DROPPED.name());
+
+    List<Transition> transitions = new ArrayList<Transition>();
+    transitions.add(new Transition(TaskPartitionState.INIT.name(), TaskPartitionState.RUNNING.name()));
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.STOPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.COMPLETED.name()));
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.TIMED_OUT.name()));
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.TASK_ERROR.name()));
+    transitions.add(new Transition(TaskPartitionState.STOPPED.name(), TaskPartitionState.RUNNING.name()));
+
+    // All states have a transition to DROPPED.
+    transitions.add(new Transition(TaskPartitionState.INIT.name(), TaskPartitionState.DROPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.DROPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.COMPLETED.name(), TaskPartitionState.DROPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.STOPPED.name(), TaskPartitionState.DROPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.TIMED_OUT.name(), TaskPartitionState.DROPPED.name()));
+    transitions.add(new Transition(TaskPartitionState.TASK_ERROR.name(), TaskPartitionState.DROPPED.name()));
+
+    // All states, except DROPPED, have a transition to INIT.
+    transitions.add(new Transition(TaskPartitionState.RUNNING.name(), TaskPartitionState.INIT.name()));
+    transitions.add(new Transition(TaskPartitionState.COMPLETED.name(), TaskPartitionState.INIT.name()));
+    transitions.add(new Transition(TaskPartitionState.STOPPED.name(), TaskPartitionState.INIT.name()));
+    transitions.add(new Transition(TaskPartitionState.TIMED_OUT.name(), TaskPartitionState.INIT.name()));
+    transitions.add(new Transition(TaskPartitionState.TASK_ERROR.name(), TaskPartitionState.INIT.name()));
+
+    StateTransitionTableBuilder builder = new StateTransitionTableBuilder();
+    Map<String, Map<String, String>> next = builder.buildTransitionTable(states, transitions);
+
+    for (String state : statePriorityList)
+    {
+      String key = state + ".next";
+      record.setMapField(key, next.get(state));
+    }
+
+    List<String> stateTransitionPriorityList = new ArrayList<String>();
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.INIT.name(), TaskPartitionState.RUNNING.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.STOPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.COMPLETED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.TIMED_OUT.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.TASK_ERROR.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.STOPPED.name(), TaskPartitionState.RUNNING.name()));
+
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.INIT.name(), TaskPartitionState.DROPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.DROPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.COMPLETED.name(), TaskPartitionState.DROPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.STOPPED.name(), TaskPartitionState.DROPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.TIMED_OUT.name(), TaskPartitionState.DROPPED.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.TASK_ERROR.name(), TaskPartitionState.DROPPED.name()));
+
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.RUNNING.name(), TaskPartitionState.INIT.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.COMPLETED.name(), TaskPartitionState.INIT.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.STOPPED.name(), TaskPartitionState.INIT.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.TIMED_OUT.name(), TaskPartitionState.INIT.name()));
+    stateTransitionPriorityList.add(String.format("%s-%s", TaskPartitionState.TASK_ERROR.name(), TaskPartitionState.INIT.name()));
+
+    record.setListField(StateModelDefinitionProperty.STATE_TRANSITION_PRIORITYLIST.toString(),
+                        stateTransitionPriorityList);
+
     return record;
   }
 }

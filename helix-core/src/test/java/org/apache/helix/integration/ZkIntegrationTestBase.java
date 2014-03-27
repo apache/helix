@@ -77,8 +77,7 @@ public class ZkIntegrationTestBase {
   }
 
   protected String getShortClassName() {
-    String className = this.getClass().getName();
-    return className.substring(className.lastIndexOf('.') + 1);
+    return this.getClass().getSimpleName();
   }
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName) {

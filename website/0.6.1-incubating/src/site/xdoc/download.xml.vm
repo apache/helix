@@ -54,6 +54,7 @@ under the License.
             <tr>
               <th>Artifact</th>
               <th>Signatures</th>
+              <th>Hashes</th>
             </tr>
           </thead>
           <tbody>
@@ -63,6 +64,8 @@ under the License.
               </td>
               <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.asc">asc</a>
+              </td>
+              <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.md5">md5</a>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/src/helix-${releaseName}-src.zip.sha1">sha1</a>
               </td>
@@ -76,6 +79,7 @@ under the License.
             <tr>
               <th>Artifact</th>
               <th>Signatures</th>
+              <th>Hashes</th>
             </tr>
           </thead>
           <tbody>
@@ -85,6 +89,8 @@ under the License.
               </td>
               <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.md5">md5</a>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
@@ -95,6 +101,8 @@ under the License.
               </td>
               <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.md5">md5</a>
                 <a href="http://archive.apache.org/dist/incubator/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
@@ -108,20 +116,21 @@ under the License.
     </section>-->
 
     <section name="Verifying Releases">
-      <p>We strongly recommend you verify the integrity of the downloaded files with both PGP and MD5.</p>
+      <p>It is essential that you verify the integrity of the downloaded file using the PGP signature (<tt>.asc</tt> file) or a hash (<tt>.md5</tt> or <tt>.sha1</tt> file). Please read <a href="http://www.apache.org/info/verification.html">Verifying Apache Software Foundation Releases</a> for more information on why you should verify our releases.</p>
+      <p>The PGP signature can be verified using <a href="http://www.pgpi.org/">PGP</a> or <a href="http://www.gnupg.org/">GPG</a>. First download the <a href="http://www.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the <tt>*.asc</tt> signature files for the relevant distribution. Make sure you get these files from the main distribution site, rather than from a mirror. Then verify the signatures using one of the following sets of commands:
 
-      <p>The PGP signatures can be verified using <a href="http://www.pgpi.org/">PGP</a> or
-      <a href="http://www.gnupg.org/">GPG</a>.
-      First download the <a href="http://archive.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the
-      <tt>*.asc</tt> signature file for the particular distribution. Make sure you get these files from the main
-      distribution directory, rather than from a mirror. Then verify the signatures using one of the following sets of
-      commands:
+        <source>% pgpk -a KEYS
+% pgpv downloaded_file.asc</source>
 
-        <source>$ pgp -ka KEYS
-$ pgp helix-*.zip.asc</source>
+      or<br/>
 
-        <source>$ gpg --import KEYS
-$ gpg --verify helix-*.zip.asc</source>
+        <source>% pgp -ka KEYS
+% pgp downloaded_file.asc</source>
+
+      or<br/>
+
+        <source>% gpg --import KEYS
+% gpg --verify downloaded_file.asc</source>
        </p>
     <p>Alternatively, you can verify the MD5 signature on the files. A Unix/Linux program called
       <code>md5</code> or

@@ -97,6 +97,7 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
         LOG.info(_controllerId + " reqlinquishes leadership of cluster: " + _clusterId);
         _controller.stopTimerTasks();
         _controller.removeListenersFromController(_pipeline);
+        _pipeline.shutdownClusterStatusMonitor(_manager.getClusterName());
 
         /**
          * clear write-through cache

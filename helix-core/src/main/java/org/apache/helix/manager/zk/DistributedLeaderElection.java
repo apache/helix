@@ -95,6 +95,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
             + _manager.getClusterName());
         controllerHelper.stopControllerTimerTasks();
         controllerHelper.removeListenersFromController(_controller);
+        _controller.shutdownClusterStatusMonitor(_manager.getClusterName());
 
         /**
          * clear write-through cache

@@ -19,9 +19,12 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
@@ -30,6 +33,8 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.manager.zk.DistributedLeaderElection;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
@@ -61,8 +66,11 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     final String controllerName = "controller_0";
     HelixManager manager =
         new MockZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER, _gZkClient);
+    GenericHelixController controller0 = new GenericHelixController();
 
-    DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
+    List<HelixTimerTask> timerTasks = Collections.emptyList();
+    DistributedLeaderElection election =
+        new DistributedLeaderElection(manager, controller0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
@@ -76,7 +84,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
 
     manager =
         new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER, _gZkClient);
-    election = new DistClusterControllerElection(ZK_ADDR);
+    GenericHelixController controller1 = new GenericHelixController();
+    election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
@@ -111,8 +120,11 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     HelixManager manager =
         new MockZKHelixManager(clusterName, controllerName, InstanceType.CONTROLLER_PARTICIPANT,
             _gZkClient);
+    GenericHelixController controller0 = new GenericHelixController();
+    List<HelixTimerTask> timerTasks = Collections.emptyList();
 
-    DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
+    DistributedLeaderElection election =
+        new DistributedLeaderElection(manager, controller0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
@@ -129,7 +141,8 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     manager =
         new MockZKHelixManager(clusterName, "controller_1", InstanceType.CONTROLLER_PARTICIPANT,
             _gZkClient);
-    election = new DistClusterControllerElection(ZK_ADDR);
+    GenericHelixController controller1 = new GenericHelixController();
+    election = new DistributedLeaderElection(manager, controller1, timerTasks);
     context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.CALLBACK);
     election.onControllerChange(context);
@@ -160,8 +173,11 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     final String controllerName = "participant_0";
     HelixManager manager =
         new MockZKHelixManager(clusterName, controllerName, InstanceType.PARTICIPANT, _gZkClient);
+    GenericHelixController participant0 = new GenericHelixController();
+    List<HelixTimerTask> timerTasks = Collections.emptyList();
 
-    DistClusterControllerElection election = new DistClusterControllerElection(ZK_ADDR);
+    DistributedLeaderElection election =
+        new DistributedLeaderElection(manager, participant0, timerTasks);
     NotificationContext context = new NotificationContext(manager);
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);

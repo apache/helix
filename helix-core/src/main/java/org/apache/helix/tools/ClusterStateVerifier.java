@@ -257,7 +257,7 @@ public class ClusterStateVerifier {
       }
 
       // Filter resources if requested
-      if (resources != null && !resources.isEmpty()) {
+      if (resources != null) {
         idealStates.keySet().retainAll(resources);
         extViews.keySet().retainAll(resources);
       }

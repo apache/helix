@@ -45,6 +45,7 @@ public class ClusterConstraints extends HelixProperty {
     MESSAGE_TYPE,
     TRANSITION,
     RESOURCE,
+    PARTITION,
     INSTANCE,
     CONSTRAINT_VALUE
   }
@@ -172,6 +173,9 @@ public class ClusterConstraints extends HelixProperty {
       }
       if (msg.getTgtName() != null) {
         attributes.put(ConstraintAttribute.INSTANCE, msg.getTgtName());
+      }
+      if (msg.getPartitionName() != null) {
+        attributes.put(ConstraintAttribute.PARTITION, msg.getPartitionName());
       }
     }
     return attributes;

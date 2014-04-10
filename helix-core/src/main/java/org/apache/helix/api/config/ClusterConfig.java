@@ -189,8 +189,8 @@ public class ClusterConfig {
       matchAttributes.put(ConstraintAttribute.INSTANCE, scope.getScopedId().stringify());
       break;
     case PARTITION:
-        matchAttributes.put(ConstraintAttribute.PARTITION, scope.getScopedId().stringify());
-        break;
+      matchAttributes.put(ConstraintAttribute.PARTITION, scope.getScopedId().stringify());
+      break;
     default:
       LOG.error("Unsupported scope for transition constraints: " + scope);
       return Integer.MAX_VALUE;

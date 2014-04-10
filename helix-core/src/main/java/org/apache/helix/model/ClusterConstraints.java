@@ -216,7 +216,7 @@ public class ClusterConstraints extends HelixProperty {
         attributes.put(ConstraintAttribute.TRANSITION,
             Transition.from(msg.getTypedFromState(), msg.getTypedToState()).toString());
       }
-      if (msg.getResourceId() != null) {
+      if (msg.getPartitionId() != null) {
         attributes.put(ConstraintAttribute.PARTITION, msg.getPartitionId().stringify());
       }
       if (msg.getResourceId() != null) {

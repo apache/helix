@@ -19,10 +19,8 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -50,9 +48,9 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestPartitionLevelMsgThrottle extends ZkIntegrationTestBase {
+public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBase {
 
-  private static Logger LOG = Logger.getLogger(TestPartitionLevelMsgThrottle.class);
+  private static Logger LOG = Logger.getLogger(TestPartitionLevelTransitionConstraint.class);
 
   final Queue<Message> _msgOrderList = new ConcurrentLinkedQueue<Message>();
 

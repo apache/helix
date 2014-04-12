@@ -54,7 +54,7 @@ under the License.
     <dependency org="commons-cli" name="commons-cli" rev="1.2" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-math" name="commons-math" rev="2.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="com.github.sgroschupf" name="zkclient" rev="0.1" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="org.restlet.jse" name="org.restlet" rev="2.1.4" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
+    <dependency org="org.restlet.jse" name="org.restlet" rev="2.2.0" force="true" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
     <dependency org="commons-logging" name="commons-logging-api" rev="1.1" conf="compile->compile(*),master(*);runtime->runtime(*)"/>
 	</dependencies>
 </ivy-module>

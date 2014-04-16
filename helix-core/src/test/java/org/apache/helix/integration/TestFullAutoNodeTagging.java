@@ -28,6 +28,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.TestHelper.Verifier;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -56,6 +57,112 @@ import com.google.common.collect.Sets;
  */
 public class TestFullAutoNodeTagging extends ZkUnitTestBase {
   private static final Logger LOG = Logger.getLogger(TestFullAutoNodeTagging.class);
+
+  @Test
+  public void testUntag() throws Exception {
+    final int NUM_PARTICIPANTS = 2;
+    final int NUM_PARTITIONS = 4;
+    final int NUM_REPLICAS = 1;
+    final String RESOURCE_NAME = "TestResource0";
+    final String TAG = "ASSIGNABLE";
+
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    final String clusterName = className + "_" + methodName;
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    // Set up cluster
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestResource", // resource name prefix
+        1, // resources
+        NUM_PARTITIONS, // partitions per resource
+        NUM_PARTICIPANTS, // number of nodes
+        NUM_REPLICAS, // replicas
+        "OnlineOffline", RebalanceMode.FULL_AUTO, // use FULL_AUTO mode to test node tagging
+        true); // do rebalance
+
+    // Tag the resource
+    final HelixAdmin helixAdmin = new ZKHelixAdmin(_gZkClient);
+    IdealState idealState = helixAdmin.getResourceIdealState(clusterName, RESOURCE_NAME);
+    idealState.setInstanceGroupTag(TAG);
+    helixAdmin.setResourceIdealState(clusterName, RESOURCE_NAME, idealState);
+
+    // Get a data accessor
+    final HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    // Tag the participants
+    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+      final String instanceName = "localhost_" + (12918 + i);
+      helixAdmin.addInstanceTag(clusterName, instanceName, TAG);
+    }
+
+    // Start controller
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    controller.syncStart();
+
+    // Start participants
+    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    for (int i = 0; i < NUM_PARTICIPANTS; i++) {
+      final String instanceName = "localhost_" + (12918 + i);
+
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i].syncStart();
+    }
+
+    // Verify that there are NUM_PARTITIONS partitions in the external view, each having
+    // NUM_REPLICAS replicas, where all assigned replicas are to tagged nodes, and they are all
+    // ONLINE.
+    Verifier v = new Verifier() {
+      @Override
+      public boolean verify() throws Exception {
+        ExternalView externalView =
+            pollForProperty(ExternalView.class, accessor, keyBuilder.externalView(RESOURCE_NAME),
+                true);
+        if (externalView == null) {
+          return false;
+        }
+        Set<String> taggedInstances =
+            Sets.newHashSet(helixAdmin.getInstancesInClusterWithTag(clusterName, TAG));
+        Set<String> partitionSet = externalView.getPartitionSet();
+        if (partitionSet.size() != NUM_PARTITIONS) {
+          return false;
+        }
+        for (String partitionName : partitionSet) {
+          Map<String, String> stateMap = externalView.getStateMap(partitionName);
+          if (stateMap.size() != NUM_REPLICAS) {
+            return false;
+          }
+          for (String participantName : stateMap.keySet()) {
+            if (!taggedInstances.contains(participantName)) {
+              return false;
+            }
+            String state = stateMap.get(participantName);
+            if (!state.equalsIgnoreCase("ONLINE")) {
+              return false;
+            }
+          }
+        }
+        return true;
+      }
+    };
+
+    // Run the verifier for both nodes tagged
+    boolean initialResult = TestHelper.verify(v, 10 * 1000);
+    Assert.assertTrue(initialResult);
+
+    // Untag a node
+    helixAdmin.removeInstanceTag(clusterName, "localhost_12918", TAG);
+
+    // Verify again
+    boolean finalResult = TestHelper.verify(v, 10 * 1000);
+    Assert.assertTrue(finalResult);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
 
   /**
    * Ensure that no assignments happen when there are no tagged nodes, but the resource is tagged

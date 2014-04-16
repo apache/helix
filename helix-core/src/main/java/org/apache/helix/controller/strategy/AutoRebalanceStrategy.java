@@ -418,6 +418,7 @@ public class AutoRebalanceStrategy {
     int count = countStateReplicas();
     for (String partition : currentMapping.keySet()) {
       Map<String, String> nodeStateMap = currentMapping.get(partition);
+      nodeStateMap.keySet().retainAll(_nodeMap.keySet());
       for (String nodeId : nodeStateMap.keySet()) {
         Node node = _nodeMap.get(nodeId);
         boolean skip = false;
@@ -487,6 +488,7 @@ public class AutoRebalanceStrategy {
     int count = countStateReplicas();
     for (String partition : currentMapping.keySet()) {
       Map<String, String> nodeStateMap = currentMapping.get(partition);
+      nodeStateMap.keySet().retainAll(_nodeMap.keySet());
       for (String nodeId : nodeStateMap.keySet()) {
         Node node = _nodeMap.get(nodeId);
         node.currentlyAssigned = node.currentlyAssigned + 1;

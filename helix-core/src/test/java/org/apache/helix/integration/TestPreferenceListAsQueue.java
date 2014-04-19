@@ -122,6 +122,8 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     final int NUM_REPLICAS = 2;
     final int NUM_INSTANCES = 2;
     final String RESOURCE_NAME = "MyResource";
+    Thread.sleep(WAIT_TIME);
+    _instanceList.clear();
 
     // Setup instances
     String[] instanceInfoArray = {

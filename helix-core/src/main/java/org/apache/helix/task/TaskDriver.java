@@ -1,8 +1,27 @@
 package org.apache.helix.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -22,9 +41,12 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.log4j.Logger;
+
+import com.beust.jcommander.internal.Lists;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -132,56 +154,77 @@ public class TaskDriver {
         flow.getResourceConfigMap());
 
     // then schedule tasks
-    for (String task : flow.getTaskConfigs().keySet()) {
-      scheduleTask(task, TaskConfig.Builder.fromMap(flow.getTaskConfigs().get(task)).build());
+    for (String job : flow.getJobConfigs().keySet()) {
+      JobConfig.Builder builder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
+      if (flow.getTaskConfigs() != null && flow.getTaskConfigs().containsKey(job)) {
+        builder.addTaskConfigs(flow.getTaskConfigs().get(job));
+      }
+      scheduleJob(job, builder.build());
     }
   }
 
-  /** Posts new task to cluster */
-  private void scheduleTask(String taskResource, TaskConfig taskConfig) throws Exception {
-    // Set up task resource based on partitions from target resource
+  /** Posts new job to cluster */
+  private void scheduleJob(String jobResource, JobConfig jobConfig) throws Exception {
+    // Set up job resource based on partitions from target resource
+    int numIndependentTasks = jobConfig.getTaskConfigMap().size();
     int numPartitions =
-        _admin.getResourceIdealState(_clusterName, taskConfig.getTargetResource())
-            .getPartitionSet().size();
-    _admin.addResource(_clusterName, taskResource, numPartitions, TaskConstants.STATE_MODEL_NAME);
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, taskResource),
-        taskConfig.getResourceConfigMap());
+        (numIndependentTasks > 0) ? numIndependentTasks : _admin
+            .getResourceIdealState(_clusterName, jobConfig.getTargetResource()).getPartitionSet()
+            .size();
+    _admin.addResource(_clusterName, jobResource, numPartitions, TaskConstants.STATE_MODEL_NAME);
+
+    // Set the job configuration
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    HelixProperty resourceConfig = new HelixProperty(jobResource);
+    resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
+    Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
+    if (taskConfigMap != null) {
+      for (TaskConfig taskConfig : taskConfigMap.values()) {
+        resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
+      }
+    }
+    accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
 
     // Push out new ideal state based on number of target partitions
-    CustomModeISBuilder builder = new CustomModeISBuilder(taskResource);
+    CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
     builder.setRebalancerMode(IdealState.RebalanceMode.USER_DEFINED);
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
     for (int i = 0; i < numPartitions; i++) {
-      builder.add(taskResource + "_" + i);
+      builder.add(jobResource + "_" + i);
     }
     IdealState is = builder.build();
-    is.setRebalancerClassName(TaskRebalancer.class.getName());
-    _admin.setResourceIdealState(_clusterName, taskResource, is);
+    if (taskConfigMap != null && !taskConfigMap.isEmpty()) {
+      is.setRebalancerClassName(GenericTaskRebalancer.class.getName());
+    } else {
+      is.setRebalancerClassName(FixedTargetTaskRebalancer.class.getName());
+    }
+    _admin.setResourceIdealState(_clusterName, jobResource, is);
   }
 
-  /** Public method to resume a task/workflow */
+  /** Public method to resume a job/workflow */
   public void resume(String resource) {
     setTaskTargetState(resource, TargetState.START);
   }
 
-  /** Public method to stop a task/workflow */
+  /** Public method to stop a job/workflow */
   public void stop(String resource) {
     setTaskTargetState(resource, TargetState.STOP);
   }
 
-  /** Public method to delete a task/workflow */
+  /** Public method to delete a job/workflow */
   public void delete(String resource) {
     setTaskTargetState(resource, TargetState.DELETE);
   }
 
   /** Helper function to change target state for a given task */
-  private void setTaskTargetState(String taskResource, TargetState state) {
+  private void setTaskTargetState(String jobResource, TargetState state) {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    HelixProperty p = new HelixProperty(taskResource);
+    HelixProperty p = new HelixProperty(jobResource);
     p.getRecord().setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
-    accessor.updateProperty(accessor.keyBuilder().resourceConfig(taskResource), p);
+    accessor.updateProperty(accessor.keyBuilder().resourceConfig(jobResource), p);
 
     invokeRebalance();
   }
@@ -191,34 +234,24 @@ public class TaskDriver {
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
 
     LOG.info("Workflow " + resource + " consists of the following tasks: "
-        + wCfg.getTaskDag().getAllNodes());
+        + wCfg.getJobDag().getAllNodes());
     LOG.info("Current state of workflow is " + wCtx.getWorkflowState().name());
-    LOG.info("Task states are: ");
+    LOG.info("Job states are: ");
     LOG.info("-------");
-    for (String task : wCfg.getTaskDag().getAllNodes()) {
-      LOG.info("Task " + task + " is " + wCtx.getTaskState(task));
+    for (String job : wCfg.getJobDag().getAllNodes()) {
+      LOG.info("Task " + job + " is " + wCtx.getJobState(job));
 
       // fetch task information
-      TaskContext tCtx = TaskUtil.getTaskContext(_manager, task);
-      TaskConfig tCfg = TaskUtil.getTaskCfg(_manager, task);
+      JobContext jCtx = TaskUtil.getJobContext(_manager, job);
 
       // calculate taskPartitions
-      List<Integer> partitions;
-      if (tCfg.getTargetPartitions() != null) {
-        partitions = tCfg.getTargetPartitions();
-      } else {
-        partitions = new ArrayList<Integer>();
-        for (String pStr : _admin.getResourceIdealState(_clusterName, tCfg.getTargetResource())
-            .getPartitionSet()) {
-          partitions
-              .add(Integer.parseInt(pStr.substring(pStr.lastIndexOf("_") + 1, pStr.length())));
-        }
-      }
+      List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
+      Collections.sort(partitions);
 
       // group partitions by status
       Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
       for (Integer i : partitions) {
-        TaskPartitionState s = tCtx.getPartitionState(i);
+        TaskPartitionState s = jCtx.getPartitionState(i);
         if (!statusCount.containsKey(s)) {
           statusCount.put(s, 0);
         }
@@ -257,23 +290,24 @@ public class TaskDriver {
     return options;
   }
 
-  /** Constructs option group containing options required by all drivable tasks */
+  /** Constructs option group containing options required by all drivable jobs */
+  @SuppressWarnings("static-access")
   private static OptionGroup contructGenericRequiredOptionGroup() {
     Option zkAddressOption =
         OptionBuilder.isRequired().withLongOpt(ZK_ADDRESS)
-            .withDescription("ZK address managing target cluster").create();
+            .withDescription("ZK address managing cluster").create();
     zkAddressOption.setArgs(1);
     zkAddressOption.setArgName("zkAddress");
 
     Option clusterNameOption =
-        OptionBuilder.isRequired().withLongOpt(CLUSTER_NAME_OPTION)
-            .withDescription("Target cluster name").create();
+        OptionBuilder.isRequired().withLongOpt(CLUSTER_NAME_OPTION).withDescription("Cluster name")
+            .create();
     clusterNameOption.setArgs(1);
     clusterNameOption.setArgName("clusterName");
 
     Option taskResourceOption =
         OptionBuilder.isRequired().withLongOpt(RESOURCE_OPTION)
-            .withDescription("Target workflow or task").create();
+            .withDescription("Workflow or job name").create();
     taskResourceOption.setArgs(1);
     taskResourceOption.setArgName("resourceName");
 
@@ -284,8 +318,9 @@ public class TaskDriver {
     return group;
   }
 
-  /** Constructs option group containing options required by all drivable tasks */
+  /** Constructs option group containing options required by all drivable jobs */
   private static OptionGroup constructStartOptionGroup() {
+    @SuppressWarnings("static-access")
     Option workflowFileOption =
         OptionBuilder.withLongOpt(WORKFLOW_FILE_OPTION)
             .withDescription("Local file describing workflow").create();

@@ -19,25 +19,49 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.util.Map;
-
 import org.apache.helix.HelixManager;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 
 /**
- * Factory class for {@link TaskStateModel}.
+ * A wrapper for all information about a task and the job of which it is a part.
  */
-public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
-  private final HelixManager _manager;
-  private final Map<String, TaskFactory> _taskFactoryRegistry;
+public class TaskCallbackContext {
+  private HelixManager _manager;
+  private TaskConfig _taskConfig;
+  private JobConfig _jobConfig;
 
-  public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
+  void setManager(HelixManager manager) {
     _manager = manager;
-    _taskFactoryRegistry = taskFactoryRegistry;
   }
 
-  @Override
-  public TaskStateModel createNewStateModel(String partitionName) {
-    return new TaskStateModel(_manager, _taskFactoryRegistry);
+  void setTaskConfig(TaskConfig taskConfig) {
+    _taskConfig = taskConfig;
+  }
+
+  void setJobConfig(JobConfig jobConfig) {
+    _jobConfig = jobConfig;
+  }
+
+  /**
+   * Get an active Helix connection
+   * @return HelixManager instance
+   */
+  public HelixManager getManager() {
+    return _manager;
+  }
+
+  /**
+   * Get task-specific configuration properties
+   * @return TaskConfig instance
+   */
+  public TaskConfig getTaskConfig() {
+    return _taskConfig;
+  }
+
+  /**
+   * Get job-specific configuration properties
+   * @return JobConfig instance
+   */
+  public JobConfig getJobConfig() {
+    return _jobConfig;
   }
 }

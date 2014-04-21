@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
@@ -41,6 +42,8 @@ import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.beust.jcommander.internal.Lists;
+
 public class TestCustomizedIdealStateRebalancer extends
     ZkStandAloneCMTestBaseWithPropertyServerCheck {
   String db2 = TEST_DB + "2";
@@ -58,8 +61,11 @@ public class TestCustomizedIdealStateRebalancer extends
     public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
         CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
       testRebalancerInvoked = true;
+      List<String> liveNodes = Lists.newArrayList(clusterData.getLiveInstances().keySet());
+      int i = 0;
       for (String partition : currentIdealState.getPartitionSet()) {
-        String instance = currentIdealState.getPreferenceList(partition).get(0);
+        int index = i++ % liveNodes.size();
+        String instance = liveNodes.get(index);
         currentIdealState.getPreferenceList(partition).clear();
         currentIdealState.getPreferenceList(partition).add(instance);
 
@@ -97,8 +103,8 @@ public class TestCustomizedIdealStateRebalancer extends
     }
     IdealState is = accessor.getProperty(keyBuilder.idealStates(db2));
     for (String partition : is.getPartitionSet()) {
-      Assert.assertEquals(is.getPreferenceList(partition).size(), 3);
-      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 3);
+      Assert.assertEquals(is.getPreferenceList(partition).size(), 0);
+      Assert.assertEquals(is.getInstanceStateMap(partition).size(), 0);
     }
     Assert.assertTrue(testRebalancerCreated);
     Assert.assertTrue(testRebalancerInvoked);

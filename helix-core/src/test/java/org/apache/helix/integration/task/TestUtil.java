@@ -30,7 +30,7 @@ import org.testng.Assert;
  */
 public class TestUtil {
   /**
-   * Polls {@link org.apache.helix.task.TaskContext} for given task resource until a timeout is
+   * Polls {@link org.apache.helix.task.JobContext} for given task resource until a timeout is
    * reached.
    * If the task has not reached target state by then, an error is thrown
    * @param workflowResource Resource to poll for completeness
@@ -51,15 +51,15 @@ public class TestUtil {
     Assert.assertEquals(ctx.getWorkflowState(), state);
   }
 
-  public static void pollForTaskState(HelixManager manager, String workflowResource,
-      String taskName, TaskState state) throws InterruptedException {
+  public static void pollForJobState(HelixManager manager, String workflowResource,
+      String jobName, TaskState state) throws InterruptedException {
     // Wait for completion.
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
     do {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
-    } while ((ctx == null || ctx.getTaskState(taskName) == null || ctx.getTaskState(taskName) != state)
+    } while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
         && System.currentTimeMillis() < st + 2 * 60 * 1000 /* 2 mins */);
 
     Assert.assertNotNull(ctx);

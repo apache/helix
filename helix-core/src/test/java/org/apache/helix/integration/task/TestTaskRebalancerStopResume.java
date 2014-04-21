@@ -19,6 +19,7 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,8 +30,9 @@ import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.Task;
-import org.apache.helix.task.TaskConfig;
+import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
@@ -45,13 +47,16 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableMap;
+
 public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   private static final Logger LOG = Logger.getLogger(TestTaskRebalancerStopResume.class);
   private static final int n = 5;
   private static final int START_PORT = 12918;
   private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
+  private static final String TIMEOUT_CONFIG = "Timeout";
   private static final String TGT_DB = "TestDB";
-  private static final String TASK_RESOURCE = "SomeTask";
+  private static final String JOB_RESOURCE = "SomeJob";
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
@@ -82,8 +87,8 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("Reindex", new TaskFactory() {
       @Override
-      public Task createNewTask(String config) {
-        return new ReindexTask(config);
+      public Task createNewTask(TaskCallbackContext context) {
+        return new ReindexTask(context);
       }
     });
 
@@ -136,27 +141,28 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
   @Test
   public void stopAndResume() throws Exception {
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(TASK_RESOURCE,
-            TaskConfig.COMMAND_CONFIG, String.valueOf(100)).build();
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(JOB_RESOURCE,
+            commandConfig).build();
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);
-    TestUtil.pollForWorkflowState(_manager, TASK_RESOURCE, TaskState.IN_PROGRESS);
+    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.IN_PROGRESS);
 
-    LOG.info("Pausing task");
-    _driver.stop(TASK_RESOURCE);
-    TestUtil.pollForWorkflowState(_manager, TASK_RESOURCE, TaskState.STOPPED);
+    LOG.info("Pausing job");
+    _driver.stop(JOB_RESOURCE);
+    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.STOPPED);
 
-    LOG.info("Resuming task");
-    _driver.resume(TASK_RESOURCE);
-    TestUtil.pollForWorkflowState(_manager, TASK_RESOURCE, TaskState.COMPLETED);
+    LOG.info("Resuming job");
+    _driver.resume(JOB_RESOURCE);
+    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.COMPLETED);
   }
 
   @Test
   public void stopAndResumeWorkflow() throws Exception {
     String workflow = "SomeWorkflow";
-    Workflow flow = WorkflowGenerator.generateDefaultRepeatedTaskWorkflowBuilder(workflow).build();
+    Workflow flow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflow).build();
 
     LOG.info("Starting flow " + workflow);
     _driver.start(flow);
@@ -175,8 +181,13 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     private final long _delay;
     private volatile boolean _canceled;
 
-    public ReindexTask(String cfg) {
-      _delay = Long.parseLong(cfg);
+    public ReindexTask(TaskCallbackContext context) {
+      JobConfig jobCfg = context.getJobConfig();
+      Map<String, String> cfg = jobCfg.getJobConfigMap();
+      if (cfg == null) {
+        cfg = Collections.emptyMap();
+      }
+      _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 200L;
     }
 
     @Override

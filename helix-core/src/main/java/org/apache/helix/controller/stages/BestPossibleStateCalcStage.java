@@ -136,19 +136,24 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         break;
       }
       if (rebalancer != null && mappingCalculator != null) {
-        HelixManager manager = event.getAttribute("helixmanager");
-        rebalancer.init(manager);
-        idealState =
-            rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
+        try {
+          HelixManager manager = event.getAttribute("helixmanager");
+          rebalancer.init(manager);
+          idealState =
+              rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
 
-        // Use the internal MappingCalculator interface to compute the final assignment
-        // The next release will support rebalancers that compute the mapping from start to finish
-        ResourceAssignment partitionStateAssignment =
-            mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource,
-                currentStateOutput);
-        for (Partition partition : resource.getPartitions()) {
-          Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
-          output.setState(resourceName, partition, newStateMap);
+          // Use the internal MappingCalculator interface to compute the final assignment
+          // The next release will support rebalancers that compute the mapping from start to finish
+          ResourceAssignment partitionStateAssignment =
+              mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource,
+                  currentStateOutput);
+          for (Partition partition : resource.getPartitions()) {
+            Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
+            output.setState(resourceName, partition, newStateMap);
+          }
+        } catch (Exception e) {
+          logger
+              .error("Error computing assignment for resource " + resourceName + ". Skipping.", e);
         }
       }
     }

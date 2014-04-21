@@ -1,5 +1,24 @@
 package org.apache.helix.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -39,22 +58,22 @@ public class WorkflowContext extends HelixProperty {
     return TaskState.valueOf(s);
   }
 
-  public void setTaskState(String taskResource, TaskState s) {
+  public void setJobState(String jobResource, TaskState s) {
     Map<String, String> states = _record.getMapField(TASK_STATES);
     if (states == null) {
       states = new TreeMap<String, String>();
       _record.setMapField(TASK_STATES, states);
     }
-    states.put(taskResource, s.name());
+    states.put(jobResource, s.name());
   }
 
-  public TaskState getTaskState(String taskResource) {
+  public TaskState getJobState(String jobResource) {
     Map<String, String> states = _record.getMapField(TASK_STATES);
     if (states == null) {
       return null;
     }
 
-    String s = states.get(taskResource);
+    String s = states.get(jobResource);
     if (s == null) {
       return null;
     }

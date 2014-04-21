@@ -22,17 +22,24 @@ package org.apache.helix.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Partition;
+
+import com.google.common.collect.Sets;
 
 public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<Partition, Map<String, String>>> _pendingStateMap;
-  // Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the REQUESTED_STATE
+  // Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the
+  // REQUESTED_STATE
   // field in the CURRENTSTATES node.
   private final Map<String, Map<Partition, Map<String, String>>> _requestedStateMap;
-  // Contains per-resource maps of partition -> (instance, info). This corresponds to the INFO field in the
-  // CURRENTSTATES node. This is information returned by state transition methods on the participants. It may be used
+  // Contains per-resource maps of partition -> (instance, info). This corresponds to the INFO field
+  // in the
+  // CURRENTSTATES node. This is information returned by state transition methods on the
+  // participants. It may be used
   // by the rebalancer.
   private final Map<String, Map<Partition, Map<String, String>>> _infoMap;
   private final Map<String, String> _resourceStateModelMap;
@@ -85,7 +92,8 @@ public class CurrentStateOutput {
     _currentStateMap.get(resourceName).get(partition).put(instanceName, state);
   }
 
-  public void setRequestedState(String resourceName, Partition partition, String instanceName, String state) {
+  public void setRequestedState(String resourceName, Partition partition, String instanceName,
+      String state) {
     if (!_requestedStateMap.containsKey(resourceName)) {
       _requestedStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
     }
@@ -95,14 +103,11 @@ public class CurrentStateOutput {
     _requestedStateMap.get(resourceName).get(partition).put(instanceName, state);
   }
 
-  public void setInfo(String resourceName, Partition partition, String instanceName, String state)
-  {
-    if (!_infoMap.containsKey(resourceName))
-    {
+  public void setInfo(String resourceName, Partition partition, String instanceName, String state) {
+    if (!_infoMap.containsKey(resourceName)) {
       _infoMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
     }
-    if (!_infoMap.get(resourceName).containsKey(partition))
-    {
+    if (!_infoMap.get(resourceName).containsKey(partition)) {
       _infoMap.get(resourceName).put(partition, new HashMap<String, String>());
     }
     _infoMap.get(resourceName).get(partition).put(instanceName, state);
@@ -137,28 +142,22 @@ public class CurrentStateOutput {
     return null;
   }
 
-  public String getRequestedState(String resourceName, Partition partition, String instanceName)
-  {
+  public String getRequestedState(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, String>> map = _requestedStateMap.get(resourceName);
-    if (map != null)
-    {
+    if (map != null) {
       Map<String, String> instanceStateMap = map.get(partition);
-      if (instanceStateMap != null)
-      {
+      if (instanceStateMap != null) {
         return instanceStateMap.get(instanceName);
       }
     }
     return null;
   }
 
-  public String getInfo(String resourceName, Partition partition, String instanceName)
-  {
+  public String getInfo(String resourceName, Partition partition, String instanceName) {
     Map<Partition, Map<String, String>> map = _infoMap.get(resourceName);
-    if (map != null)
-    {
+    if (map != null) {
       Map<String, String> instanceStateMap = map.get(partition);
-      if (instanceStateMap != null)
-      {
+      if (instanceStateMap != null) {
         return instanceStateMap.get(instanceName);
       }
     }
@@ -213,6 +212,24 @@ public class CurrentStateOutput {
       }
     }
     return Collections.emptyMap();
+  }
+
+  /**
+   * Get the partitions mapped in the current state
+   * @param resourceId resource to look up
+   * @return set of mapped partitions, or empty set if there are none
+   */
+  public Set<Partition> getCurrentStateMappedPartitions(String resourceId) {
+    Map<Partition, Map<String, String>> currentStateMap = _currentStateMap.get(resourceId);
+    Map<Partition, Map<String, String>> pendingStateMap = _pendingStateMap.get(resourceId);
+    Set<Partition> partitionSet = Sets.newHashSet();
+    if (currentStateMap != null) {
+      partitionSet.addAll(currentStateMap.keySet());
+    }
+    if (pendingStateMap != null) {
+      partitionSet.addAll(pendingStateMap.keySet());
+    }
+    return partitionSet;
   }
 
   @Override

@@ -1,5 +1,24 @@
 package org.apache.helix.task;
 
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -10,9 +29,9 @@ import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Provides a convenient way to construct, traverse,
- * and validate a task dependency graph
+ * and validate a job dependency graph
  */
-public class TaskDag {
+public class JobDag {
   @JsonProperty("parentsToChildren")
   private Map<String, Set<String>> _parentsToChildren;
 
@@ -22,9 +41,9 @@ public class TaskDag {
   @JsonProperty("allNodes")
   private Set<String> _allNodes;
 
-  public static final TaskDag EMPTY_DAG = new TaskDag();
+  public static final JobDag EMPTY_DAG = new JobDag();
 
-  public TaskDag() {
+  public JobDag() {
     _parentsToChildren = new TreeMap<String, Set<String>>();
     _childrenToParents = new TreeMap<String, Set<String>>();
     _allNodes = new TreeSet<String>();
@@ -79,11 +98,11 @@ public class TaskDag {
     return new ObjectMapper().writeValueAsString(this);
   }
 
-  public static TaskDag fromJson(String json) {
+  public static JobDag fromJson(String json) {
     try {
-      return new ObjectMapper().readValue(json, TaskDag.class);
+      return new ObjectMapper().readValue(json, JobDag.class);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Unable to parse json " + json + " into task dag");
+      throw new IllegalArgumentException("Unable to parse json " + json + " into job dag");
     }
   }
 

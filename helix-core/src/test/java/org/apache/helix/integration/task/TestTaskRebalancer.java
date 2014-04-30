@@ -19,9 +19,9 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -34,10 +34,11 @@ import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.Task;
-import org.apache.helix.task.TaskConfig;
+import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.task.TaskContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskPartitionState;
@@ -56,11 +57,13 @@ import org.testng.annotations.Test;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 
 public class TestTaskRebalancer extends ZkIntegrationTestBase {
   private static final int n = 5;
   private static final int START_PORT = 12918;
   private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
+  private static final String TIMEOUT_CONFIG = "Timeout";
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
@@ -92,8 +95,8 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("Reindex", new TaskFactory() {
       @Override
-      public Task createNewTask(String config) {
-        return new ReindexTask(config);
+      public Task createNewTask(TaskCallbackContext context) {
+        return new ReindexTask(context);
       }
     });
 
@@ -152,29 +155,30 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
   @Test
   public void testExpiry() throws Exception {
-    String taskName = "Expiry";
+    String jobName = "Expiry";
     long expiry = 1000;
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
     Workflow flow =
         WorkflowGenerator
-            .generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(taskName,
-                TaskConfig.COMMAND_CONFIG, String.valueOf(100)).setExpiry(expiry).build();
+            .generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobName, commandConfig)
+            .setExpiry(expiry).build();
 
     _driver.start(flow);
-    TestUtil.pollForWorkflowState(_manager, taskName, TaskState.IN_PROGRESS);
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
 
     // Running workflow should have config and context viewable through accessor
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    PropertyKey workflowCfgKey = accessor.keyBuilder().resourceConfig(taskName);
+    PropertyKey workflowCfgKey = accessor.keyBuilder().resourceConfig(jobName);
     String workflowPropStoreKey =
-        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, taskName);
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobName);
 
     // Ensure context and config exist
     Assert.assertTrue(_manager.getHelixPropertyStore().exists(workflowPropStoreKey,
         AccessOption.PERSISTENT));
     Assert.assertNotSame(accessor.getProperty(workflowCfgKey), null);
 
-    // Wait for task to finish and expire
-    TestUtil.pollForWorkflowState(_manager, taskName, TaskState.COMPLETED);
+    // Wait for job to finish and expire
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
     Thread.sleep(expiry);
     _driver.invokeRebalance();
     Thread.sleep(expiry);
@@ -185,25 +189,26 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertEquals(accessor.getProperty(workflowCfgKey), null);
   }
 
-  private void basic(long taskCompletionTime) throws Exception {
+  private void basic(long jobCompletionTime) throws Exception {
     // We use a different resource name in each test method as a work around for a helix participant
     // bug where it does
     // not clear locally cached state when a resource partition is dropped. Once that is fixed we
     // should change these
     // tests to use the same resource name and implement a beforeMethod that deletes the task
     // resource.
-    final String taskResource = "basic" + taskCompletionTime;
+    final String jobResource = "basic" + jobCompletionTime;
+    Map<String, String> commandConfig =
+        ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(jobCompletionTime));
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(taskResource,
-            TaskConfig.COMMAND_CONFIG, String.valueOf(taskCompletionTime)).build();
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
+            commandConfig).build();
     _driver.start(flow);
 
-    // Wait for task completion
-    TestUtil.pollForWorkflowState(_manager, taskResource, TaskState.COMPLETED);
+    // Wait for job completion
+    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
 
     // Ensure all partitions are completed individually
-    TaskContext ctx =
-        TaskUtil.getTaskContext(_manager, TaskUtil.getNamespacedTaskName(taskResource));
+    JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
     for (int i = 0; i < NUM_PARTITIONS; i++) {
       Assert.assertEquals(ctx.getPartitionState(i), TaskPartitionState.COMPLETED);
       Assert.assertEquals(ctx.getPartitionNumAttempts(i), 1);
@@ -212,29 +217,31 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
   @Test
   public void partitionSet() throws Exception {
-    final String taskResource = "partitionSet";
-    ImmutableList<Integer> targetPartitions = ImmutableList.of(1, 2, 3, 5, 8, 13);
+    final String jobResource = "partitionSet";
+    ImmutableList<String> targetPartitions =
+        ImmutableList.of("TestDB_1", "TestDB_2", "TestDB_3", "TestDB_5", "TestDB_8", "TestDB_13");
 
     // construct and submit our basic workflow
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(taskResource,
-            TaskConfig.COMMAND_CONFIG, String.valueOf(100), TaskConfig.MAX_ATTEMPTS_PER_PARTITION,
-            String.valueOf(1), TaskConfig.TARGET_PARTITIONS, Joiner.on(",").join(targetPartitions))
-            .build();
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
+            commandConfig, JobConfig.MAX_ATTEMPTS_PER_TASK, String.valueOf(1),
+            JobConfig.TARGET_PARTITIONS, Joiner.on(",").join(targetPartitions)).build();
     _driver.start(flow);
 
-    // wait for task completeness/timeout
-    TestUtil.pollForWorkflowState(_manager, taskResource, TaskState.COMPLETED);
+    // wait for job completeness/timeout
+    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
 
     // see if resulting context completed successfully for our partition set
-    String namespacedName = TaskUtil.getNamespacedTaskName(taskResource);
+    String namespacedName = TaskUtil.getNamespacedJobName(jobResource);
 
-    TaskContext ctx = TaskUtil.getTaskContext(_manager, namespacedName);
-    WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_manager, taskResource);
+    JobContext ctx = TaskUtil.getJobContext(_manager, namespacedName);
+    WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_manager, jobResource);
     Assert.assertNotNull(ctx);
     Assert.assertNotNull(workflowContext);
-    Assert.assertEquals(workflowContext.getTaskState(namespacedName), TaskState.COMPLETED);
-    for (int i : targetPartitions) {
+    Assert.assertEquals(workflowContext.getJobState(namespacedName), TaskState.COMPLETED);
+    for (String pName : targetPartitions) {
+      int i = ctx.getPartitionsByTarget().get(pName).get(0);
       Assert.assertEquals(ctx.getPartitionState(i), TaskPartitionState.COMPLETED);
       Assert.assertEquals(ctx.getPartitionNumAttempts(i), 1);
     }
@@ -244,33 +251,32 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
   public void testRepeatedWorkflow() throws Exception {
     String workflowName = "SomeWorkflow";
     Workflow flow =
-        WorkflowGenerator.generateDefaultRepeatedTaskWorkflowBuilder(workflowName).build();
+        WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(workflowName).build();
     new TaskDriver(_manager).start(flow);
 
-    // Wait until the task completes
+    // Wait until the workflow completes
     TestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
 
     // Assert completion for all tasks within two minutes
-    for (String task : flow.getTaskConfigs().keySet()) {
-      TestUtil.pollForTaskState(_manager, workflowName, task, TaskState.COMPLETED);
+    for (String task : flow.getJobConfigs().keySet()) {
+      TestUtil.pollForJobState(_manager, workflowName, task, TaskState.COMPLETED);
     }
   }
 
   @Test
   public void timeouts() throws Exception {
-    final String taskResource = "timeouts";
+    final String jobResource = "timeouts";
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(taskResource,
-            TaskConfig.MAX_ATTEMPTS_PER_PARTITION, String.valueOf(2),
-            TaskConfig.TIMEOUT_PER_PARTITION, String.valueOf(100)).build();
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
+            WorkflowGenerator.DEFAULT_COMMAND_CONFIG, JobConfig.MAX_ATTEMPTS_PER_TASK,
+            String.valueOf(2), JobConfig.TIMEOUT_PER_TASK, String.valueOf(100)).build();
     _driver.start(flow);
 
-    // Wait until the task reports failure.
-    TestUtil.pollForWorkflowState(_manager, taskResource, TaskState.FAILED);
+    // Wait until the job reports failure.
+    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.FAILED);
 
     // Check that all partitions timed out up to maxAttempts
-    TaskContext ctx =
-        TaskUtil.getTaskContext(_manager, TaskUtil.getNamespacedTaskName(taskResource));
+    JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
     int maxAttempts = 0;
     for (int i = 0; i < NUM_PARTITIONS; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
@@ -282,57 +288,17 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertEquals(maxAttempts, 2);
   }
 
-  @Test
-  public void testIndependentTask() throws Exception {
-    final String taskResource = "independentTask";
-    Map<String, String> config = new TreeMap<String, String>();
-    config.put("TargetPartitions", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19");
-    config.put("Command", "Reindex");
-    config.put("CommandConfig", String.valueOf(200));
-    config.put("TimeoutPerPartition", String.valueOf(10 * 1000));
-    Workflow flow =
-        WorkflowGenerator.generateSingleTaskWorkflowBuilder(taskResource, config).build();
-    _driver.start(flow);
-
-    // Wait for task completion
-    TestUtil.pollForWorkflowState(_manager, taskResource, TaskState.COMPLETED);
-
-    // Ensure all partitions are completed individually
-    TaskContext ctx =
-        TaskUtil.getTaskContext(_manager, TaskUtil.getNamespacedTaskName(taskResource));
-    for (int i = 0; i < NUM_PARTITIONS; i++) {
-      Assert.assertEquals(ctx.getPartitionState(i), TaskPartitionState.COMPLETED);
-      Assert.assertEquals(ctx.getPartitionNumAttempts(i), 1);
-    }
-  }
-
-  @Test
-  public void testIndependentRepeatedWorkflow() throws Exception {
-    final String workflowName = "independentTaskWorkflow";
-    Map<String, String> config = new TreeMap<String, String>();
-    config.put("TargetPartitions", "0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19");
-    config.put("Command", "Reindex");
-    config.put("CommandConfig", String.valueOf(200));
-    config.put("TimeoutPerPartition", String.valueOf(10 * 1000));
-    Workflow flow =
-        WorkflowGenerator.generateRepeatedTaskWorkflowBuilder(workflowName, config).build();
-    new TaskDriver(_manager).start(flow);
-
-    // Wait until the task completes
-    TestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
-
-    // Assert completion for all tasks within two minutes
-    for (String task : flow.getTaskConfigs().keySet()) {
-      TestUtil.pollForTaskState(_manager, workflowName, task, TaskState.COMPLETED);
-    }
-  }
-
   private static class ReindexTask implements Task {
     private final long _delay;
     private volatile boolean _canceled;
 
-    public ReindexTask(String cfg) {
-      _delay = Long.parseLong(cfg);
+    public ReindexTask(TaskCallbackContext context) {
+      JobConfig jobCfg = context.getJobConfig();
+      Map<String, String> cfg = jobCfg.getJobConfigMap();
+      if (cfg == null) {
+        cfg = Collections.emptyMap();
+      }
+      _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 200L;
     }
 
     @Override

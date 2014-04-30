@@ -19,45 +19,53 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.helix.task.beans.JobBean;
 import org.apache.helix.task.beans.TaskBean;
 import org.apache.helix.task.beans.WorkflowBean;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
+
 /**
- * Houses a task dag and config set to fully describe a task workflow
+ * Houses a job dag and config set to fully describe a job workflow
  */
 public class Workflow {
   /** Default workflow name, useful constant for single-node workflows */
-  public static enum WorkflowEnum {
-    UNSPECIFIED;
-  }
+  public static final String UNSPECIFIED = "UNSPECIFIED";
 
   /** Workflow name */
-  private final String _name;
+  private String _name;
 
   /** Holds workflow-level configurations */
-  private final WorkflowConfig _workflowConfig;
+  private WorkflowConfig _workflowConfig;
 
-  /** Contains the per-task configurations for all tasks specified in the provided dag */
-  private final Map<String, Map<String, String>> _taskConfigs;
+  /** Contains the per-job configurations for all jobs specified in the provided dag */
+  private Map<String, Map<String, String>> _jobConfigs;
+
+  /** Containers the per-job configurations of all individually-specified tasks */
+  private Map<String, List<TaskConfig>> _taskConfigs;
 
   /** Constructs and validates a workflow against a provided dag and config set */
   private Workflow(String name, WorkflowConfig workflowConfig,
-      Map<String, Map<String, String>> taskConfigs) {
+      Map<String, Map<String, String>> jobConfigs, Map<String, List<TaskConfig>> taskConfigs) {
     _name = name;
     _workflowConfig = workflowConfig;
+    _jobConfigs = jobConfigs;
     _taskConfigs = taskConfigs;
-
     validate();
   }
 
@@ -65,13 +73,17 @@ public class Workflow {
     return _name;
   }
 
-  public Map<String, Map<String, String>> getTaskConfigs() {
+  public Map<String, Map<String, String>> getJobConfigs() {
+    return _jobConfigs;
+  }
+
+  public Map<String, List<TaskConfig>> getTaskConfigs() {
     return _taskConfigs;
   }
 
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.DAG, _workflowConfig.getTaskDag().toJson());
+    cfgMap.put(WorkflowConfig.DAG, _workflowConfig.getJobDag().toJson());
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(_workflowConfig.getExpiry()));
     cfgMap.put(WorkflowConfig.TARGET_STATE, _workflowConfig.getTargetState().name());
 
@@ -97,19 +109,19 @@ public class Workflow {
    * 
    * <pre>
    * name: MyFlow
-   * tasks:
-   *   - name : TaskA
+   * jobs:
+   *   - name : JobA
    *     command : SomeTask
    *     ...
-   *   - name : TaskB
-   *     parents : [TaskA]
+   *   - name : JobB
+   *     parents : [JobA]
    *     command : SomeOtherTask
    *     ...
-   *   - name : TaskC
+   *   - name : JobC
    *     command : AnotherTask
    *     ...
-   *   - name : TaskD
-   *     parents : [TaskB, TaskC]
+   *   - name : JobD
+   *     parents : [JobB, JobC]
    *     command : AnotherTask
    *     ...
    * </pre>
@@ -126,37 +138,44 @@ public class Workflow {
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
     Builder builder = new Builder(wf.name);
 
-    for (TaskBean task : wf.tasks) {
-      if (task.name == null) {
-        throw new IllegalArgumentException("A task must have a name.");
+    for (JobBean job : wf.jobs) {
+      if (job.name == null) {
+        throw new IllegalArgumentException("A job must have a name.");
       }
 
-      if (task.parents != null) {
-        for (String parent : task.parents) {
-          builder.addParentChildDependency(parent, task.name);
+      if (job.parents != null) {
+        for (String parent : job.parents) {
+          builder.addParentChildDependency(parent, job.name);
         }
       }
 
-      builder.addConfig(task.name, TaskConfig.WORKFLOW_ID, wf.name);
-      builder.addConfig(task.name, TaskConfig.COMMAND, task.command);
-      if (task.commandConfig != null) {
-        builder.addConfig(task.name, TaskConfig.COMMAND_CONFIG, task.commandConfig.toString());
+      builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
+      builder.addConfig(job.name, JobConfig.COMMAND, job.command);
+      if (job.jobConfigMap != null) {
+        builder.addConfig(job.name, JobConfig.JOB_CONFIG_MAP, job.jobConfigMap.toString());
       }
-      builder.addConfig(task.name, TaskConfig.TARGET_RESOURCE, task.targetResource);
-      if (task.targetPartitionStates != null) {
-        builder.addConfig(task.name, TaskConfig.TARGET_PARTITION_STATES,
-            Joiner.on(",").join(task.targetPartitionStates));
+      builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
+      if (job.targetPartitionStates != null) {
+        builder.addConfig(job.name, JobConfig.TARGET_PARTITION_STATES,
+            Joiner.on(",").join(job.targetPartitionStates));
       }
-      if (task.targetPartitions != null) {
-        builder.addConfig(task.name, TaskConfig.TARGET_PARTITIONS,
-            Joiner.on(",").join(task.targetPartitions));
+      if (job.targetPartitions != null) {
+        builder.addConfig(job.name, JobConfig.TARGET_PARTITIONS,
+            Joiner.on(",").join(job.targetPartitions));
       }
-      builder.addConfig(task.name, TaskConfig.MAX_ATTEMPTS_PER_PARTITION,
-          String.valueOf(task.maxAttemptsPerPartition));
-      builder.addConfig(task.name, TaskConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE,
-          String.valueOf(task.numConcurrentTasksPerInstance));
-      builder.addConfig(task.name, TaskConfig.TIMEOUT_PER_PARTITION,
-          String.valueOf(task.timeoutPerPartition));
+      builder.addConfig(job.name, JobConfig.MAX_ATTEMPTS_PER_TASK,
+          String.valueOf(job.maxAttemptsPerPartition));
+      builder.addConfig(job.name, JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE,
+          String.valueOf(job.numConcurrentTasksPerInstance));
+      builder.addConfig(job.name, JobConfig.TIMEOUT_PER_TASK,
+          String.valueOf(job.timeoutPerPartition));
+      if (job.tasks != null) {
+        List<TaskConfig> taskConfigs = Lists.newArrayList();
+        for (TaskBean task : job.tasks) {
+          taskConfigs.add(TaskConfig.from(task));
+        }
+        builder.addTaskConfigs(job.name, taskConfigs);
+      }
     }
 
     return builder.build();
@@ -168,47 +187,78 @@ public class Workflow {
    */
   public void validate() {
     // validate dag and configs
-    if (!_taskConfigs.keySet().containsAll(_workflowConfig.getTaskDag().getAllNodes())) {
+    if (!_jobConfigs.keySet().containsAll(_workflowConfig.getJobDag().getAllNodes())) {
       throw new IllegalArgumentException("Nodes specified in DAG missing from config");
-    } else if (!_workflowConfig.getTaskDag().getAllNodes().containsAll(_taskConfigs.keySet())) {
+    } else if (!_workflowConfig.getJobDag().getAllNodes().containsAll(_jobConfigs.keySet())) {
       throw new IllegalArgumentException("Given DAG lacks nodes with supplied configs");
     }
 
-    _workflowConfig.getTaskDag().validate();
+    _workflowConfig.getJobDag().validate();
 
-    for (String node : _taskConfigs.keySet()) {
+    for (String node : _jobConfigs.keySet()) {
       buildConfig(node);
     }
   }
 
-  /** Builds a TaskConfig from config map. Useful for validating configs */
-  private TaskConfig buildConfig(String task) {
-    return TaskConfig.Builder.fromMap(_taskConfigs.get(task)).build();
+  /** Builds a JobConfig from config map. Useful for validating configs */
+  private JobConfig buildConfig(String job) {
+    JobConfig.Builder b = JobConfig.Builder.fromMap(_jobConfigs.get(job));
+    if (_taskConfigs != null && _taskConfigs.containsKey(job)) {
+      b.addTaskConfigs(_taskConfigs.get(job));
+    }
+    return b.build();
   }
 
   /** Build a workflow incrementally from dependencies and single configs, validate at build time */
   public static class Builder {
-    private final String _name;
-    private final TaskDag _dag;
-    private final Map<String, Map<String, String>> _taskConfigs;
+    private String _name;
+    private JobDag _dag;
+    private Map<String, Map<String, String>> _jobConfigs;
+    private Map<String, List<TaskConfig>> _taskConfigs;
     private long _expiry;
 
     public Builder(String name) {
       _name = name;
-      _dag = new TaskDag();
-      _taskConfigs = new TreeMap<String, Map<String, String>>();
+      _dag = new JobDag();
+      _jobConfigs = new TreeMap<String, Map<String, String>>();
+      _taskConfigs = new TreeMap<String, List<TaskConfig>>();
       _expiry = -1;
     }
 
     public Builder addConfig(String node, String key, String val) {
       node = namespacify(node);
       _dag.addNode(node);
-
-      if (!_taskConfigs.containsKey(node)) {
-        _taskConfigs.put(node, new TreeMap<String, String>());
+      if (!_jobConfigs.containsKey(node)) {
+        _jobConfigs.put(node, new TreeMap<String, String>());
       }
-      _taskConfigs.get(node).put(key, val);
+      _jobConfigs.get(node).put(key, val);
+      return this;
+    }
 
+    public Builder addJobConfigMap(String node, Map<String, String> jobConfigMap) {
+      return addConfig(node, JobConfig.JOB_CONFIG_MAP, TaskUtil.serializeJobConfigMap(jobConfigMap));
+    }
+
+    public Builder addJobConfig(String node, JobConfig jobConfig) {
+      for (Map.Entry<String, String> e : jobConfig.getResourceConfigMap().entrySet()) {
+        String key = e.getKey();
+        String val = e.getValue();
+        addConfig(node, key, val);
+      }
+      addTaskConfigs(node, jobConfig.getTaskConfigMap().values());
+      return this;
+    }
+
+    public Builder addTaskConfigs(String node, Collection<TaskConfig> taskConfigs) {
+      node = namespacify(node);
+      _dag.addNode(node);
+      if (!_taskConfigs.containsKey(node)) {
+        _taskConfigs.put(node, new ArrayList<TaskConfig>());
+      }
+      if (!_jobConfigs.containsKey(node)) {
+        _jobConfigs.put(node, new TreeMap<String, String>());
+      }
+      _taskConfigs.get(node).addAll(taskConfigs);
       return this;
     }
 
@@ -226,13 +276,13 @@ public class Workflow {
     }
 
     public String namespacify(String task) {
-      return TaskUtil.getNamespacedTaskName(_name, task);
+      return TaskUtil.getNamespacedJobName(_name, task);
     }
 
     public Workflow build() {
-      for (String task : _taskConfigs.keySet()) {
+      for (String task : _jobConfigs.keySet()) {
         // addConfig(task, TaskConfig.WORKFLOW_ID, _name);
-        _taskConfigs.get(task).put(TaskConfig.WORKFLOW_ID, _name);
+        _jobConfigs.get(task).put(JobConfig.WORKFLOW_ID, _name);
       }
 
       WorkflowConfig.Builder builder = new WorkflowConfig.Builder();
@@ -242,7 +292,8 @@ public class Workflow {
         builder.setExpiry(_expiry);
       }
 
-      return new Workflow(_name, builder.build(), _taskConfigs); // calls validate internally
+      return new Workflow(_name, builder.build(), _jobConfigs, _taskConfigs); // calls validate
+                                                                              // internally
     }
   }
 }

@@ -34,12 +34,7 @@ import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
 
-/**
- * task state model
- */
-@StateModelInfo(states = {
-    "INIT", "RUNNING", "STOPPED", "COMPLETED", "TIMED_OUT", "TASK_ERROR", "DROPPED"
-}, initialState = "INIT")
+@StateModelInfo(states = "{'NOT USED BY HELIX'}", initialState = "INIT")
 public class TaskStateModel extends StateModel {
   private static final Logger LOG = Logger.getLogger(TaskStateModel.class);
   private final HelixManager _manager;
@@ -217,19 +212,37 @@ public class TaskStateModel extends StateModel {
   }
 
   private void startTask(Message msg, String taskPartition) {
-    TaskConfig cfg = TaskUtil.getTaskCfg(_manager, msg.getResourceName());
+    JobConfig cfg = TaskUtil.getJobCfg(_manager, msg.getResourceName());
+    TaskConfig taskConfig = null;
     String command = cfg.getCommand();
-    Map<String, String> taskNameMap = cfg.getTaskNameMap();
-    if (taskNameMap != null && taskNameMap.containsKey(taskPartition)) {
-      // Support a partition-specifc override of tasks to run
-      String taskName = taskNameMap.get(taskPartition);
-      if (_taskFactoryRegistry.containsKey(taskName)) {
-        command = taskName;
+
+    // Get a task-specific command if specified
+    JobContext ctx = TaskUtil.getJobContext(_manager, msg.getResourceName());
+    int pId = Integer.parseInt(taskPartition.substring(taskPartition.lastIndexOf('_') + 1));
+    if (ctx.getTaskIdForPartition(pId) != null) {
+      taskConfig = cfg.getTaskConfig(ctx.getTaskIdForPartition(pId));
+      if (taskConfig != null) {
+        if (taskConfig.getCommand() != null) {
+          command = taskConfig.getCommand();
+        }
       }
     }
-    TaskFactory taskFactory = _taskFactoryRegistry.get(command);
-    Task task = taskFactory.createNewTask(cfg.getCommandConfig());
 
+    // Populate a task callback context
+    TaskCallbackContext callbackContext = new TaskCallbackContext();
+    callbackContext.setManager(_manager);
+    callbackContext.setJobConfig(cfg);
+    callbackContext.setTaskConfig(taskConfig);
+
+    // Create a task instance with this command
+    if (command == null || _taskFactoryRegistry == null
+        || !_taskFactoryRegistry.containsKey(command)) {
+      throw new IllegalStateException("No callback implemented for task " + command);
+    }
+    TaskFactory taskFactory = _taskFactoryRegistry.get(command);
+    Task task = taskFactory.createNewTask(callbackContext);
+
+    // Submit the task for execution
     _taskRunner =
         new TaskRunner(this, task, msg.getResourceName(), taskPartition, msg.getTgtName(),
             _manager, msg.getTgtSessionId());
@@ -244,6 +257,6 @@ public class TaskStateModel extends StateModel {
           _taskRunner.timeout();
         }
       }
-    }, cfg.getTimeoutPerPartition());
+    }, cfg.getTimeoutPerTask());
   }
 }

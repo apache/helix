@@ -20,20 +20,20 @@ package org.apache.helix.task;
  */
 
 /**
- * Enumeration of target states for a task.
+ * Enumeration of target states for a job.
  */
 public enum TargetState {
   /**
-   * Indicates that the rebalancer must start/resume the task.
+   * Indicates that the rebalancer must start/resume the job.
    */
   START,
   /**
-   * Indicates that the rebalancer should stop any running task partitions and cease doing any
+   * Indicates that the rebalancer should stop any running tasks and cease doing any
    * further task assignments.
    */
   STOP,
   /**
-   * Indicates that the rebalancer must delete this task.
+   * Indicates that the rebalancer must delete this job.
    */
   DELETE
 }

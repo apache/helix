@@ -19,35 +19,21 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-
 import java.util.Map;
 import java.util.TreeMap;
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
 
 /**
  * Typed interface to the workflow context information stored by {@link TaskRebalancer} in the Helix
  * property store
  */
 public class WorkflowContext extends HelixProperty {
-
-  enum WorkflowContextEnum {
-    WORKFLOW_STATE("STATE"),
-    START_TIME("START_TIME"),
-    FINISH_TIME("FINISH_TIME"),
-    TASK_STATES("TASK_STATES");
-
-    final String _value;
-
-    private WorkflowContextEnum(String value) {
-      _value = value;
-    }
-
-    public String value() {
-      return _value;
-    }
-  }
-
+  public static final String WORKFLOW_STATE = "STATE";
+  public static final String START_TIME = "START_TIME";
+  public static final String FINISH_TIME = "FINISH_TIME";
+  public static final String TASK_STATES = "TASK_STATES";
   public static final int UNFINISHED = -1;
 
   public WorkflowContext(ZNRecord record) {
@@ -55,18 +41,16 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setWorkflowState(TaskState s) {
-    if (_record.getSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value()) == null) {
-      _record.setSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value(), s.name());
-    } else if (!_record.getSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value()).equals(
-        TaskState.FAILED.name())
-        && !_record.getSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value()).equals(
-            TaskState.COMPLETED.name())) {
-      _record.setSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value(), s.name());
+    if (_record.getSimpleField(WORKFLOW_STATE) == null) {
+      _record.setSimpleField(WORKFLOW_STATE, s.name());
+    } else if (!_record.getSimpleField(WORKFLOW_STATE).equals(TaskState.FAILED.name())
+        && !_record.getSimpleField(WORKFLOW_STATE).equals(TaskState.COMPLETED.name())) {
+      _record.setSimpleField(WORKFLOW_STATE, s.name());
     }
   }
 
   public TaskState getWorkflowState() {
-    String s = _record.getSimpleField(WorkflowContextEnum.WORKFLOW_STATE.value());
+    String s = _record.getSimpleField(WORKFLOW_STATE);
     if (s == null) {
       return null;
     }
@@ -74,22 +58,22 @@ public class WorkflowContext extends HelixProperty {
     return TaskState.valueOf(s);
   }
 
-  public void setTaskState(String taskResource, TaskState s) {
-    Map<String, String> states = _record.getMapField(WorkflowContextEnum.TASK_STATES.value());
+  public void setJobState(String jobResource, TaskState s) {
+    Map<String, String> states = _record.getMapField(TASK_STATES);
     if (states == null) {
       states = new TreeMap<String, String>();
-      _record.setMapField(WorkflowContextEnum.TASK_STATES.value(), states);
+      _record.setMapField(TASK_STATES, states);
     }
-    states.put(taskResource, s.name());
+    states.put(jobResource, s.name());
   }
 
-  public TaskState getTaskState(String taskResource) {
-    Map<String, String> states = _record.getMapField(WorkflowContextEnum.TASK_STATES.value());
+  public TaskState getJobState(String jobResource) {
+    Map<String, String> states = _record.getMapField(TASK_STATES);
     if (states == null) {
       return null;
     }
 
-    String s = states.get(taskResource);
+    String s = states.get(jobResource);
     if (s == null) {
       return null;
     }
@@ -98,11 +82,11 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setStartTime(long t) {
-    _record.setSimpleField(WorkflowContextEnum.START_TIME.value(), String.valueOf(t));
+    _record.setSimpleField(START_TIME, String.valueOf(t));
   }
 
   public long getStartTime() {
-    String tStr = _record.getSimpleField(WorkflowContextEnum.START_TIME.value());
+    String tStr = _record.getSimpleField(START_TIME);
     if (tStr == null) {
       return -1;
     }
@@ -111,11 +95,11 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setFinishTime(long t) {
-    _record.setSimpleField(WorkflowContextEnum.FINISH_TIME.value(), String.valueOf(t));
+    _record.setSimpleField(FINISH_TIME, String.valueOf(t));
   }
 
   public long getFinishTime() {
-    String tStr = _record.getSimpleField(WorkflowContextEnum.FINISH_TIME.value());
+    String tStr = _record.getSimpleField(FINISH_TIME);
     if (tStr == null) {
       return UNFINISHED;
     }

@@ -1,4 +1,4 @@
-package org.apache.helix.task;
+package org.apache.helix.task.beans;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,15 +19,24 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.List;
+import java.util.Map;
+
+import org.apache.helix.task.JobConfig;
 
 /**
- * A factory for {@link Task} objects.
+ * Bean class used for parsing job definitions from YAML.
  */
-public interface TaskFactory {
-  /**
-   * Returns a {@link Task} instance.
-   * @param context Contextual information for the task, including task and job configurations
-   * @return A {@link Task} instance.
-   */
-  Task createNewTask(TaskCallbackContext context);
+public class JobBean {
+  public String name;
+  public List<String> parents;
+  public String targetResource;
+  public List<String> targetPartitionStates;
+  public List<String> targetPartitions;
+  public String command;
+  public Map<String, String> jobConfigMap;
+  public List<TaskBean> tasks;
+  public long timeoutPerPartition = JobConfig.DEFAULT_TIMEOUT_PER_TASK;
+  public int numConcurrentTasksPerInstance = JobConfig.DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
+  public int maxAttemptsPerPartition = JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK;
 }

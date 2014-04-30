@@ -29,7 +29,6 @@ import org.apache.log4j.Logger;
  */
 public class TaskRunner implements Runnable {
   private static final Logger LOG = Logger.getLogger(TaskRunner.class);
-
   private final StateModel _taskStateModel;
   private final HelixManager _manager;
   private final String _taskName;

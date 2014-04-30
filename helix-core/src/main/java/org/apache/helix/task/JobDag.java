@@ -19,32 +19,31 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.ObjectMapper;
-
-import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+import org.codehaus.jackson.map.ObjectMapper;
+
 /**
  * Provides a convenient way to construct, traverse,
- * and validate a task dependency graph
+ * and validate a job dependency graph
  */
-public class TaskDag {
+public class JobDag {
   @JsonProperty("parentsToChildren")
-  private final Map<String, Set<String>> _parentsToChildren;
+  private Map<String, Set<String>> _parentsToChildren;
 
   @JsonProperty("childrenToParents")
-  private final Map<String, Set<String>> _childrenToParents;
+  private Map<String, Set<String>> _childrenToParents;
 
   @JsonProperty("allNodes")
-  private final Set<String> _allNodes;
+  private Set<String> _allNodes;
 
-  public static final TaskDag EMPTY_DAG = new TaskDag();
+  public static final JobDag EMPTY_DAG = new JobDag();
 
-  public TaskDag() {
+  public JobDag() {
     _parentsToChildren = new TreeMap<String, Set<String>>();
     _childrenToParents = new TreeMap<String, Set<String>>();
     _allNodes = new TreeSet<String>();
@@ -83,14 +82,14 @@ public class TaskDag {
 
   public Set<String> getDirectChildren(String node) {
     if (!_parentsToChildren.containsKey(node)) {
-      return Collections.emptySet();
+      return new TreeSet<String>();
     }
     return _parentsToChildren.get(node);
   }
 
   public Set<String> getDirectParents(String node) {
     if (!_childrenToParents.containsKey(node)) {
-      return Collections.emptySet();
+      return new TreeSet<String>();
     }
     return _childrenToParents.get(node);
   }
@@ -99,11 +98,11 @@ public class TaskDag {
     return new ObjectMapper().writeValueAsString(this);
   }
 
-  public static TaskDag fromJson(String json) {
+  public static JobDag fromJson(String json) {
     try {
-      return new ObjectMapper().readValue(json, TaskDag.class);
+      return new ObjectMapper().readValue(json, JobDag.class);
     } catch (Exception e) {
-      throw new IllegalArgumentException("Unable to parse json " + json + " into task dag");
+      throw new IllegalArgumentException("Unable to parse json " + json + " into job dag");
     }
   }
 

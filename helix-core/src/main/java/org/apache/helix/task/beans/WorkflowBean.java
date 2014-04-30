@@ -27,5 +27,5 @@ import java.util.List;
 public class WorkflowBean {
   public String name;
   public String expiry;
-  public List<TaskBean> tasks;
+  public List<JobBean> jobs;
 }

@@ -19,72 +19,95 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.Workflow;
+import org.apache.log4j.Logger;
+import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Convenience class for generating various test workflows
  */
 public class WorkflowGenerator {
-  public static final String DEFAULT_TGT_DB = "TestDB";
-  private static final String TASK_NAME_1 = "SomeTask1";
-  private static final String TASK_NAME_2 = "SomeTask2";
+  private static final Logger LOG = Logger.getLogger(WorkflowGenerator.class);
 
-  private static final Map<String, String> DEFAULT_TASK_CONFIG;
+  public static final String DEFAULT_TGT_DB = "TestDB";
+  public static final String JOB_NAME_1 = "SomeJob1";
+  public static final String JOB_NAME_2 = "SomeJob2";
+
+  public static final Map<String, String> DEFAULT_JOB_CONFIG;
   static {
     Map<String, String> tmpMap = new TreeMap<String, String>();
     tmpMap.put("TargetResource", DEFAULT_TGT_DB);
     tmpMap.put("TargetPartitionStates", "MASTER");
     tmpMap.put("Command", "Reindex");
-    tmpMap.put("CommandConfig", String.valueOf(2000));
     tmpMap.put("TimeoutPerPartition", String.valueOf(10 * 1000));
-    DEFAULT_TASK_CONFIG = Collections.unmodifiableMap(tmpMap);
+    DEFAULT_JOB_CONFIG = Collections.unmodifiableMap(tmpMap);
   }
 
-  public static Workflow.Builder generateDefaultSingleTaskWorkflowBuilderWithExtraConfigs(
-      String taskName, String... cfgs) {
+  public static final Map<String, String> DEFAULT_COMMAND_CONFIG;
+  static {
+    Map<String, String> tmpMap = new TreeMap<String, String>();
+    tmpMap.put("Timeout", String.valueOf(2000));
+    DEFAULT_COMMAND_CONFIG = Collections.unmodifiableMap(tmpMap);
+  }
+
+  public static Workflow.Builder generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(
+      String jobName, Map<String, String> commandConfig, String... cfgs) {
     if (cfgs.length % 2 != 0) {
       throw new IllegalArgumentException(
           "Additional configs should have even number of keys and values");
     }
-    Workflow.Builder bldr = generateDefaultSingleTaskWorkflowBuilder(taskName);
+    Workflow.Builder bldr = generateDefaultSingleJobWorkflowBuilder(jobName);
     for (int i = 0; i < cfgs.length; i += 2) {
-      bldr.addConfig(taskName, cfgs[i], cfgs[i + 1]);
+      bldr.addConfig(jobName, cfgs[i], cfgs[i + 1]);
     }
 
     return bldr;
   }
 
-  public static Workflow.Builder generateDefaultSingleTaskWorkflowBuilder(String taskName) {
-    return generateSingleTaskWorkflowBuilder(taskName, DEFAULT_TASK_CONFIG);
+  public static Workflow.Builder generateDefaultSingleJobWorkflowBuilder(String jobName) {
+    return generateSingleJobWorkflowBuilder(jobName, DEFAULT_COMMAND_CONFIG, DEFAULT_JOB_CONFIG);
   }
 
-  public static Workflow.Builder generateSingleTaskWorkflowBuilder(String taskName,
-      Map<String, String> config) {
-    Workflow.Builder builder = new Workflow.Builder(taskName);
+  public static Workflow.Builder generateSingleJobWorkflowBuilder(String jobName,
+      Map<String, String> commandConfig, Map<String, String> config) {
+    Workflow.Builder builder = new Workflow.Builder(jobName);
     for (String key : config.keySet()) {
-      builder.addConfig(taskName, key, config.get(key));
+      builder.addConfig(jobName, key, config.get(key));
+    }
+    if (commandConfig != null) {
+      ObjectMapper mapper = new ObjectMapper();
+      try {
+        String serializedMap = mapper.writeValueAsString(commandConfig);
+        builder.addConfig(jobName, JobConfig.JOB_CONFIG_MAP, serializedMap);
+      } catch (IOException e) {
+        LOG.error("Error serializing " + commandConfig, e);
+      }
     }
     return builder;
   }
 
-  public static Workflow.Builder generateDefaultRepeatedTaskWorkflowBuilder(String workflowName) {
-    return generateRepeatedTaskWorkflowBuilder(workflowName, DEFAULT_TASK_CONFIG);
-  }
-
-  public static Workflow.Builder generateRepeatedTaskWorkflowBuilder(String workflowName,
-      Map<String, String> config) {
+  public static Workflow.Builder generateDefaultRepeatedJobWorkflowBuilder(String workflowName) {
     Workflow.Builder builder = new Workflow.Builder(workflowName);
-    builder.addParentChildDependency(TASK_NAME_1, TASK_NAME_2);
+    builder.addParentChildDependency(JOB_NAME_1, JOB_NAME_2);
 
-    for (String key : config.keySet()) {
-      builder.addConfig(TASK_NAME_1, key, config.get(key));
-      builder.addConfig(TASK_NAME_2, key, config.get(key));
+    for (String key : DEFAULT_JOB_CONFIG.keySet()) {
+      builder.addConfig(JOB_NAME_1, key, DEFAULT_JOB_CONFIG.get(key));
+      builder.addConfig(JOB_NAME_2, key, DEFAULT_JOB_CONFIG.get(key));
     }
-
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      String serializedMap = mapper.writeValueAsString(DEFAULT_COMMAND_CONFIG);
+      builder.addConfig(JOB_NAME_1, JobConfig.JOB_CONFIG_MAP, serializedMap);
+      builder.addConfig(JOB_NAME_2, JobConfig.JOB_CONFIG_MAP, serializedMap);
+    } catch (IOException e) {
+      LOG.error("Error serializing " + DEFAULT_COMMAND_CONFIG, e);
+    }
     return builder;
   }
 }

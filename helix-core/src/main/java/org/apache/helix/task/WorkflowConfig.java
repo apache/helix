@@ -34,18 +34,18 @@ public class WorkflowConfig {
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
 
   /* Member variables */
-  private final TaskDag _taskDag;
-  private final TargetState _targetState;
-  private final long _expiry;
+  private JobDag _jobDag;
+  private TargetState _targetState;
+  private long _expiry;
 
-  private WorkflowConfig(TaskDag taskDag, TargetState targetState, long expiry) {
-    _taskDag = taskDag;
+  private WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry) {
+    _jobDag = jobDag;
     _targetState = targetState;
     _expiry = expiry;
   }
 
-  public TaskDag getTaskDag() {
-    return _taskDag;
+  public JobDag getJobDag() {
+    return _jobDag;
   }
 
   public TargetState getTargetState() {
@@ -57,7 +57,7 @@ public class WorkflowConfig {
   }
 
   public static class Builder {
-    private TaskDag _taskDag = TaskDag.EMPTY_DAG;
+    private JobDag _taskDag = JobDag.EMPTY_DAG;
     private TargetState _targetState = TargetState.START;
     private long _expiry = DEFAULT_EXPIRY;
 
@@ -71,7 +71,7 @@ public class WorkflowConfig {
       return new WorkflowConfig(_taskDag, _targetState, _expiry);
     }
 
-    public Builder setTaskDag(TaskDag v) {
+    public Builder setTaskDag(JobDag v) {
       _taskDag = v;
       return this;
     }
@@ -93,7 +93,7 @@ public class WorkflowConfig {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
       }
       if (cfg.containsKey(DAG)) {
-        b.setTaskDag(TaskDag.fromJson(cfg.get(DAG)));
+        b.setTaskDag(JobDag.fromJson(cfg.get(DAG)));
       }
       if (cfg.containsKey(TARGET_STATE)) {
         b.setTargetState(TargetState.valueOf(cfg.get(TARGET_STATE)));

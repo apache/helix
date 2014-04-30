@@ -58,6 +58,8 @@ import org.apache.log4j.Logger;
 
 public class HelixStateTransitionHandler extends MessageHandler {
   public static class HelixStateMismatchException extends Exception {
+    private static final long serialVersionUID = -7669959598697794766L;
+
     public HelixStateMismatchException(String info) {
       super(info);
     }

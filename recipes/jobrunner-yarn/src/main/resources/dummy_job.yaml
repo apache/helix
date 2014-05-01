@@ -1,0 +1,18 @@
+name: myJob1234
+jobs:
+    - name: myJob1234
+      command: RunTask
+      jobConfigMap: {
+        k1: "v1",
+        k2: "v2"
+      }
+      tasks:
+        - taskConfigMap: {
+            k3: "v3"
+          }
+        - taskConfigMap: {
+            k4: "v4"
+          }
+        - taskConfigMap: {
+            k5: "v5"
+          }

@@ -3,21 +3,16 @@ package org.apache.helix.provisioning.yarn;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
 import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.GnuParser;
 import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.commons.io.FileUtils;
-import org.apache.hadoop.yarn.api.ApplicationConstants.Environment;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
-import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.helix.HelixController;
 import org.apache.helix.api.accessor.ClusterAccessor;
@@ -26,15 +21,18 @@ import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.manager.zk.HelixConnectionAdaptor;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ApplicationSpecFactory;
 import org.apache.helix.provisioning.HelixYarnUtil;
 import org.apache.helix.provisioning.ServiceConfig;
+import org.apache.helix.provisioning.TaskConfig;
+import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.log4j.Logger;
 
@@ -50,8 +48,7 @@ import org.apache.log4j.Logger;
 public class AppMasterLauncher {
   public static Logger LOG = Logger.getLogger(AppMasterLauncher.class);
 
-  @SuppressWarnings("unchecked")
-  public static void main(String[] args) throws Exception{
+  public static void main(String[] args) throws Exception {
     Map<String, String> env = System.getenv();
     LOG.info("Starting app master with the following environment variables");
     for (String key : env.keySet()) {
@@ -61,11 +58,6 @@ public class AppMasterLauncher {
     Options opts;
     opts = new Options();
     opts.addOption("num_containers", true, "Number of containers");
-    try {
-      CommandLine cliParser = new GnuParser().parse(opts, args);
-    } catch (Exception e) {
-      LOG.error("Error parsing input arguments" + Arrays.toString(args), e);
-    }
 
     // START ZOOKEEPER
     String dataDir = "dataDir";
@@ -94,7 +86,7 @@ public class AppMasterLauncher {
 
     String configFile = AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString();
     String className = appMasterConfig.getApplicationSpecFactory();
-   
+
     GenericApplicationMaster genericApplicationMaster = new GenericApplicationMaster(appAttemptID);
     try {
       genericApplicationMaster.start();
@@ -102,8 +94,8 @@ public class AppMasterLauncher {
       LOG.error("Unable to start application master: ", e);
     }
     ApplicationSpecFactory factory = HelixYarnUtil.createInstance(className);
-    
-    //TODO: Avoid setting static variable.
+
+    // TODO: Avoid setting static variable.
     YarnProvisioner.applicationMaster = genericApplicationMaster;
     YarnProvisioner.applicationMasterConfig = appMasterConfig;
     ApplicationSpec applicationSpec = factory.fromYaml(new FileInputStream(configFile));
@@ -121,17 +113,19 @@ public class AppMasterLauncher {
     ClusterAccessor clusterAccessor = connection.createClusterAccessor(clusterId);
     StateModelDefinition statelessService =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForStatelessService());
-    clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
-        statelessService).build());
+    StateModelDefinition taskStateModel =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForTaskStateModel());
+    clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId)
+        .addStateModelDefinition(statelessService).addStateModelDefinition(taskStateModel).build());
     for (String service : applicationSpec.getServices()) {
       String resourceName = service;
       // add the resource with the local provisioner
       ResourceId resourceId = ResourceId.from(resourceName);
-      
+
       ServiceConfig serviceConfig = applicationSpec.getServiceConfig(resourceName);
       serviceConfig.setSimpleField("service_name", service);
       int numContainers = serviceConfig.getIntField("num_containers", 1);
-      
+
       YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
       provisionerConfig.setNumContainers(numContainers);
 
@@ -152,6 +146,20 @@ public class AppMasterLauncher {
     ControllerId controllerId = ControllerId.from("controller1");
     HelixController controller = connection.createController(clusterId, controllerId);
     controller.start();
+
+    // Start any pre-specified jobs
+    List<TaskConfig> taskConfigs = applicationSpec.getTaskConfigs();
+    if (taskConfigs != null) {
+      for (TaskConfig taskConfig : taskConfigs) {
+        String yamlFile = taskConfig.getValue("yamlFile");
+        if (yamlFile != null) {
+          File file = new File(yamlFile);
+          Workflow workflow = Workflow.parse(file);
+          TaskDriver taskDriver = new TaskDriver(new HelixConnectionAdaptor(controller));
+          taskDriver.start(workflow);
+        }
+      }
+    }
 
     Thread shutdownhook = new Thread(new Runnable() {
       @Override

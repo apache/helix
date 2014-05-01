@@ -37,6 +37,7 @@ under the License.
     <module>task-execution</module>
     <module>service-discovery</module>
     <module>helloworld-provisioning-yarn</module>
+    <module>jobrunner-yarn</module>
   </modules>
 
   <build>

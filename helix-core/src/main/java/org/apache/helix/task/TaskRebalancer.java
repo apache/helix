@@ -227,6 +227,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       // TASK_ERROR, ERROR.
       Set<Integer> donePartitions = new TreeSet<Integer>();
       for (int pId : pSet) {
+        jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
         final String pName = pName(jobResource, pId);
 
         // Check for pending state transitions on this (partition, instance).
@@ -288,6 +289,8 @@ public abstract class TaskRebalancer implements HelixRebalancer {
           } else {
             nextState = TaskPartitionState.STOPPED;
           }
+
+          jobCtx.setPartitionState(pId, currState);
 
           paMap.put(pId, new PartitionAssignment(instance.toString(), nextState.name()));
           assignedPartitions.add(pId);
@@ -378,6 +381,8 @@ public abstract class TaskRebalancer implements HelixRebalancer {
             paMap.put(pId,
                 new PartitionAssignment(instance.toString(), TaskPartitionState.RUNNING.name()));
             excludeSet.add(pId);
+            jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
+            jobCtx.setAssignedParticipant(pId, instance.toString());
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
           }

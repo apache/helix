@@ -1,0 +1,27 @@
+!!org.apache.helix.provisioning.yarn.example.MyTaskAppSpec
+appConfig:
+  config: {
+    k1: v1
+  }
+appMasterPackageUri: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-incubating-SNAPSHOT-pkg.tar'
+appName: testApp
+serviceConfigMap:
+  JobRunner: {
+    num_containers: 3,
+    memory: 1024
+  }
+serviceMainClassMap: {
+  JobRunner: org.apache.helix.provisioning.yarn.example.MyTaskService
+}
+servicePackageURIMap: {
+  JobRunner: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-incubating-SNAPSHOT-pkg.tar'
+}
+services: [
+  JobRunner]
+taskConfigs:
+  - config: {
+      yamlFile: '/Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/src/main/resources/dummy_job.yaml'
+    }
+
+
+

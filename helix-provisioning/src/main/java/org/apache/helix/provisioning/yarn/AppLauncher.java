@@ -2,7 +2,6 @@ package org.apache.helix.provisioning.yarn;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -91,6 +90,10 @@ public class AppLauncher {
     yarnClient = YarnClient.createYarnClient();
     _conf = new YarnConfiguration();
     yarnClient.init(_conf);
+  }
+
+  public ApplicationSpec getApplicationSpec() {
+    return _applicationSpec;
   }
 
   public boolean launch() throws Exception {
@@ -189,7 +192,7 @@ public class AppLauncher {
       classPathEnv.append(':');
       classPathEnv.append(System.getProperty("java.class.path"));
     }
-    LOG.info("\n\n Setting the classpath to launch AppMaster:\n\n" );
+    LOG.info("\n\n Setting the classpath to launch AppMaster:\n\n");
     // Set the env variables to be setup in the env where the application master will be run
     Map<String, String> env = new HashMap<String, String>(_appMasterConfig.getEnv());
     env.put("CLASSPATH", classPathEnv.toString());
@@ -268,12 +271,11 @@ public class AppLauncher {
     // Set the queue to which this application is to be submitted in the RM
     appContext.setQueue(amQueue);
 
-
     LOG.info("Submitting application to YARN Resource Manager");
 
     ApplicationId applicationId = yarnClient.submitApplication(appContext);
 
-    LOG.info("Submitted application with applicationId:" + applicationId );
+    LOG.info("Submitted application with applicationId:" + applicationId);
 
     return true;
   }
@@ -350,6 +352,52 @@ public class AppLauncher {
   private boolean isArchive(String path) {
     return path.endsWith("tar") || path.endsWith("gz") || path.endsWith("tar.gz")
         || path.endsWith("zip");
+  }
+
+  public HelixConnection pollForConnection() {
+    String prevReport = "";
+    HelixConnection connection = null;
+
+    while (true) {
+      try {
+        // Get application report for the appId we are interested in
+        ApplicationReport report = yarnClient.getApplicationReport(_appId);
+
+        String reportMessage = generateReport(report);
+        if (!reportMessage.equals(prevReport)) {
+          LOG.info(reportMessage);
+        }
+        YarnApplicationState state = report.getYarnApplicationState();
+        if (YarnApplicationState.RUNNING == state) {
+          if (connection == null) {
+            String hostName = null;
+            int ind = report.getHost().indexOf('/');
+            if (ind > -1) {
+              hostName = report.getHost().substring(ind + 1);
+            } else {
+              hostName = report.getHost();
+            }
+            connection = new ZkHelixConnection(hostName + ":2181");
+
+            try {
+              connection.connect();
+            } catch (Exception e) {
+              LOG.warn("AppMaster started but not yet initialized");
+              connection = null;
+            }
+          }
+          if (connection.isConnected()) {
+            return connection;
+          }
+        }
+        prevReport = reportMessage;
+        Thread.sleep(10000);
+      } catch (Exception e) {
+        LOG.error("Exception while getting info ");
+        break;
+      }
+    }
+    return null;
   }
 
   /**
@@ -434,7 +482,7 @@ public class AppLauncher {
         + ", appTrackingUrl=" + report.getTrackingUrl() + ", appUser=" + report.getUser();
   }
 
-  protected void cleanup() {
+  public void cleanup() {
     LOG.info("Cleaning up");
     try {
       ApplicationReport applicationReport = yarnClient.getApplicationReport(_appId);
@@ -446,23 +494,28 @@ public class AppLauncher {
   }
 
   /**
-   * Launches the application on a YARN cluster. Once launched, it will display (periodically) the status of the containers in the application.
+   * Launches the application on a YARN cluster. Once launched, it will display (periodically) the
+   * status of the containers in the application.
    * @param args app_spec_provider and app_config_spec
    * @throws Exception
    */
   public static void main(String[] args) throws Exception {
 
     Options opts = new Options();
-    opts.addOption(new Option("app_spec_provider",true, "Application Spec Factory Class that will parse the app_config_spec file"));
-    opts.addOption(new Option("app_config_spec",true, "YAML config file that provides the app specifications"));
+    opts.addOption(new Option("app_spec_provider", true,
+        "Application Spec Factory Class that will parse the app_config_spec file"));
+    opts.addOption(new Option("app_config_spec", true,
+        "YAML config file that provides the app specifications"));
     CommandLine cliParser = new GnuParser().parse(opts, args);
     String appSpecFactoryClass = cliParser.getOptionValue("app_spec_provider");
     String yamlConfigFileName = cliParser.getOptionValue("app_config_spec");
 
-    ApplicationSpecFactory applicationSpecFactory = HelixYarnUtil.createInstance(appSpecFactoryClass);
+    ApplicationSpecFactory applicationSpecFactory =
+        HelixYarnUtil.createInstance(appSpecFactoryClass);
     File yamlConfigFile = new File(yamlConfigFileName);
-    if(!yamlConfigFile.exists()){
-      throw new IllegalArgumentException("YAML app_config_spec file: '"+ yamlConfigFileName + "' does not exist");
+    if (!yamlConfigFile.exists()) {
+      throw new IllegalArgumentException("YAML app_config_spec file: '" + yamlConfigFileName
+          + "' does not exist");
     }
     final AppLauncher launcher = new AppLauncher(applicationSpecFactory, yamlConfigFile);
     launcher.launch();

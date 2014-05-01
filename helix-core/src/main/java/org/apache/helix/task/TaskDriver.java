@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -46,7 +45,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.log4j.Logger;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -233,36 +232,59 @@ public class TaskDriver {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, resource);
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
 
-    LOG.info("Workflow " + resource + " consists of the following tasks: "
+    System.out.println("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
-    LOG.info("Current state of workflow is " + wCtx.getWorkflowState().name());
-    LOG.info("Job states are: ");
-    LOG.info("-------");
+    System.out.println("Current state of workflow is " + wCtx.getWorkflowState().name());
+    System.out.println("Job states are: ");
+    System.out.println("-------");
     for (String job : wCfg.getJobDag().getAllNodes()) {
-      LOG.info("Task " + job + " is " + wCtx.getJobState(job));
+      System.out.println("Job " + job + " is " + wCtx.getJobState(job));
 
       // fetch task information
+      JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);
       JobContext jCtx = TaskUtil.getJobContext(_manager, job);
 
       // calculate taskPartitions
       List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
       Collections.sort(partitions);
 
-      // group partitions by status
-      Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
-      for (Integer i : partitions) {
-        TaskPartitionState s = jCtx.getPartitionState(i);
-        if (!statusCount.containsKey(s)) {
-          statusCount.put(s, 0);
+      // report status
+      for (Integer partition : partitions) {
+        String taskId = jCtx.getTaskIdForPartition(partition);
+        taskId = (taskId != null) ? taskId : jCtx.getTargetForPartition(partition);
+        System.out.println("Task: " + taskId);
+        TaskConfig taskConfig = jCfg.getTaskConfig(taskId);
+        if (taskConfig != null) {
+          System.out.println("Configuration: " + taskConfig.getConfigMap());
         }
-        statusCount.put(s, statusCount.get(s) + 1);
+        TaskPartitionState state = jCtx.getPartitionState(partition);
+        if (state == null) {
+          state = TaskPartitionState.INIT;
+        }
+        System.out.println("State: " + state);
+        String assignedParticipant = jCtx.getAssignedParticipant(partition);
+        if (assignedParticipant != null) {
+          System.out.println("Assigned participant: " + assignedParticipant);
+        }
+        System.out.println("-------");
       }
 
-      for (TaskPartitionState s : statusCount.keySet()) {
-        LOG.info(statusCount.get(s) + "/" + partitions.size() + " in state " + s.name());
-      }
+      // group partitions by status
+      /*
+       * Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
+       * for (Integer i : partitions) {
+       * TaskPartitionState s = jCtx.getPartitionState(i);
+       * if (!statusCount.containsKey(s)) {
+       * statusCount.put(s, 0);
+       * }
+       * statusCount.put(s, statusCount.get(s) + 1);
+       * }
+       * for (TaskPartitionState s : statusCount.keySet()) {
+       * LOG.info(statusCount.get(s) + "/" + partitions.size() + " in state " + s.name());
+       * }
+       */
 
-      LOG.info("-------");
+      System.out.println("-------");
     }
   }
 

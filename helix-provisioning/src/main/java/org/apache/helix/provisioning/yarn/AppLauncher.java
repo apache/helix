@@ -400,6 +400,14 @@ public class AppLauncher {
     return null;
   }
 
+  public ApplicationReport getApplicationReport() {
+    try {
+      return yarnClient.getApplicationReport(_appId);
+    } catch (Exception e) {
+      return null;
+    }
+  }
+
   /**
    * @return true if successfully completed, it will print status every X seconds
    */

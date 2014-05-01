@@ -234,11 +234,16 @@ public class TaskDriver {
 
     System.out.println("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
+    TaskState workflowState = wCtx.getWorkflowState();
+    if (workflowState == null) {
+      workflowState = TaskState.IN_PROGRESS;
+    }
     System.out.println("Current state of workflow is " + wCtx.getWorkflowState().name());
     System.out.println("Job states are: ");
     System.out.println("-------");
     for (String job : wCfg.getJobDag().getAllNodes()) {
       System.out.println("Job " + job + " is " + wCtx.getJobState(job));
+      System.out.println("-------");
 
       // fetch task information
       JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);

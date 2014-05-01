@@ -2,8 +2,6 @@ package org.apache.helix.provisioning.yarn;
 
 import java.util.Map;
 
-import jline.ConsoleReader;
-
 import org.apache.helix.HelixConnection;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;

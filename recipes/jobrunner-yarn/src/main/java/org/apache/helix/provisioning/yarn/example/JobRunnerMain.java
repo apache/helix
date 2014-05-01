@@ -14,6 +14,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRole;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.Participant;
+import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.id.ClusterId;
@@ -114,6 +115,10 @@ public class JobRunnerMain {
           if (containerConfig != null) {
             System.out.println(participant.getId() + "[" + containerConfig.getId() + "]: "
                 + containerConfig.getState());
+          }
+          if (participant.isAlive()) {
+            RunningInstance runningInstance = participant.getRunningInstance();
+            System.out.println("\tProcess: " + runningInstance.getPid());
           }
         }
         System.out.println("----------------");

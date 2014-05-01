@@ -130,6 +130,7 @@ public class ParticipantLauncher {
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
+      LOG.error("Shutdown message error", e);
     }
 
   }

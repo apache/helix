@@ -89,6 +89,10 @@ public class WorkflowConfig {
     public static Builder fromMap(Map<String, String> cfg) {
       Builder b = new Builder();
 
+      if (cfg == null) {
+        return b;
+      }
+
       if (cfg.containsKey(EXPIRY)) {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
       }

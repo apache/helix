@@ -22,7 +22,6 @@ package org.apache.helix;
 import java.util.List;
 
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -34,6 +33,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
+ *
  * <pre>
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
@@ -49,6 +49,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
+ *
  * </blockquote> Default implementations available
  * @see HelixStateMachineEngine HelixStateMachineEngine for participant
  * @see RoutingTableProvider RoutingTableProvider for spectator
@@ -133,14 +134,6 @@ public interface HelixManager {
 
   void addCurrentStateChangeListener(CurrentStateChangeListener listener, String instanceName,
       String sessionId) throws Exception;
-
-  /**
-   * @see HealthStateChangeListener#onHealthChange(String, List, NotificationContext)
-   * @param listener
-   * @param instanceName
-   */
-  void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
-      throws Exception;
 
   /**
    * @see ExternalViewChangeListener#onExternalViewChange(List, NotificationContext)
@@ -233,13 +226,6 @@ public interface HelixManager {
    * @return messaging service
    */
   ClusterMessagingService getMessagingService();
-
-  /**
-   * Participant only component that periodically update participant health
-   * report to cluster manager server.
-   * @return ParticipantHealthReportCollector
-   */
-  ParticipantHealthReportCollector getHealthReportCollector();
 
   /**
    * Get cluster manager instance type

@@ -281,15 +281,4 @@ public class ParticipantManagerHelper {
 
   }
 
-  /**
-   * create zk path for health check info
-   * TODO move it to cluster-setup
-   */
-  public void createHealthCheckPath() {
-    String healthCheckInfoPath = _dataAccessor.keyBuilder().healthReports(_instanceName).getPath();
-    if (!_zkclient.exists(healthCheckInfoPath)) {
-      _zkclient.createPersistent(healthCheckInfoPath, true);
-      LOG.info("Created healthcheck info path " + healthCheckInfoPath);
-    }
-  }
 }

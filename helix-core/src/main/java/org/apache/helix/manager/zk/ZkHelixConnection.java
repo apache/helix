@@ -38,7 +38,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixAutoController;
 import org.apache.helix.HelixConnection;
@@ -375,16 +374,6 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
     addListener(role, listener, new PropertyKey.Builder(clusterId.stringify()).currentStates(
         participantId.stringify(), sessionId.stringify()), ChangeType.CURRENT_STATE,
         new EventType[] {
-            EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
-        });
-  }
-
-  @Override
-  public void addHealthStateChangeListener(HelixRole role, HealthStateChangeListener listener,
-      ClusterId clusterId, ParticipantId participantId) {
-    addListener(role, listener,
-        new PropertyKey.Builder(clusterId.stringify()).healthReports(participantId.stringify()),
-        ChangeType.HEALTH, new EventType[] {
             EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
         });
   }

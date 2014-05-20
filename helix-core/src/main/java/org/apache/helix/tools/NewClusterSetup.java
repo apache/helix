@@ -917,34 +917,6 @@ public class NewClusterSetup {
     accessor.resetParticipants(participantIds);
   }
 
-  void addStat(String[] optValues) {
-    String clusterName = optValues[0];
-    String statName = optValues[1];
-    ClusterAccessor accessor = clusterAccessor(clusterName);
-    accessor.addStat(statName);
-  }
-
-  void dropStat(String[] optValues) {
-    String clusterName = optValues[0];
-    String statName = optValues[1];
-    ClusterAccessor accessor = clusterAccessor(clusterName);
-    accessor.dropStat(statName);
-  }
-
-  void addAlert(String[] optValues) {
-    String clusterName = optValues[0];
-    String alertName = optValues[1];
-    ClusterAccessor accessor = clusterAccessor(clusterName);
-    accessor.addAlert(alertName);
-  }
-
-  void dropAlert(String[] optValues) {
-    String clusterName = optValues[0];
-    String alertName = optValues[1];
-    ClusterAccessor accessor = clusterAccessor(clusterName);
-    accessor.dropAlert(alertName);
-  }
-
   void expandResource(String[] optValues) {
     String clusterName = optValues[0];
     String resourceName = optValues[1];
@@ -1145,18 +1117,6 @@ public class NewClusterSetup {
           break;
         case resetResource:
           setup.resetResource(optValues);
-          break;
-        case addStat:
-          setup.addStat(optValues);
-          break;
-        case addAlert:
-          setup.addAlert(optValues);
-          break;
-        case dropStat:
-          setup.dropStat(optValues);
-          break;
-        case dropAlert:
-          setup.dropAlert(optValues);
           break;
         case getConfig:
           setup.getConfig(optValues);

@@ -106,7 +106,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertEquals("node_1", record.getId());
 
     controller.getMessagingService();
-    controller.getHealthReportCollector();
     controller.getClusterManagmentTool();
 
     controller.handleNewSession();
@@ -247,8 +246,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertTrue(admin.isConnected());
 
     HelixAdmin adminTool = admin.getClusterManagmentTool();
-    // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-    // .forResource("testResource").forPartition("testPartition").build();
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
             .forResource("testResource").forPartition("testPartition").build();

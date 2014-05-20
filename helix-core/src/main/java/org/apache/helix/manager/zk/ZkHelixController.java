@@ -37,8 +37,6 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.Id;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.healthcheck.HealthStatsAggregationTask;
-import org.apache.helix.healthcheck.HealthStatsAggregator;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.LiveInstance;
@@ -74,7 +72,6 @@ public class ZkHelixController implements HelixController {
     _manager = new HelixConnectionAdaptor(this);
     _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
 
-    _timerTasks.add(new HealthStatsAggregationTask(new HealthStatsAggregator(_manager)));
     _timerTasks.add(new StatusDumpTask(clusterId, _manager.getHelixDataAccessor()));
   }
 

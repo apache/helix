@@ -25,7 +25,6 @@ import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.HelixPropertyStore;
@@ -220,15 +219,6 @@ public interface HelixConnection {
    */
   void addCurrentStateChangeListener(HelixRole role, CurrentStateChangeListener listener,
       ClusterId clusterId, ParticipantId participantId, SessionId sessionId);
-
-  /**
-   * add health state change listener
-   * @see HealthStateChangeListener#onHealthChange(String, List, NotificationContext)
-   * @param listener
-   * @param instanceName
-   */
-  void addHealthStateChangeListener(HelixRole role, HealthStateChangeListener listener,
-      ClusterId clusterId, ParticipantId participantId);
 
   /**
    * add external view change listener

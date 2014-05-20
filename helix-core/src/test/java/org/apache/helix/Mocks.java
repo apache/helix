@@ -31,8 +31,6 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.healthcheck.HealthReportProvider;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -188,18 +186,6 @@ public class Mocks {
       // TODO Auto-generated method stub
       return false;
     }
-
-    // @Override
-    // public boolean subscribe(String path, IZkListener listener) {
-    // // TODO Auto-generated method stub
-    // return false;
-    // }
-    //
-    // @Override
-    // public boolean unsubscribe(String path, IZkListener listener) {
-    // // TODO Auto-generated method stub
-    // return false;
-    // }
 
   }
 
@@ -371,12 +357,6 @@ public class Mocks {
     }
 
     @Override
-    public ParticipantHealthReportCollector getHealthReportCollector() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
     public InstanceType getInstanceType() {
       return InstanceType.PARTICIPANT;
     }
@@ -389,13 +369,6 @@ public class Mocks {
     public void setVersion(String version) {
       _properties.getProperties().put("clustermanager.version", version);
       _version = version;
-
-    }
-
-    @Override
-    public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
-        throws Exception {
-      // TODO Auto-generated method stub
 
     }
 
@@ -426,7 +399,6 @@ public class Mocks {
     @Override
     public void stopTimerTasks() {
       // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -437,7 +409,6 @@ public class Mocks {
     @Override
     public void addPreConnectCallback(PreConnectCallback callback) {
       // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -450,20 +421,17 @@ public class Mocks {
     public void addInstanceConfigChangeListener(InstanceConfigChangeListener listener)
         throws Exception {
       // TODO Auto-generated method stub
-
     }
 
     @Override
     public void addConfigChangeListener(ScopedConfigChangeListener listener,
         ConfigScopeProperty scope) throws Exception {
       // TODO Auto-generated method stub
-
     }
 
     @Override
     public void setLiveInstanceInfoProvider(LiveInstanceInfoProvider liveInstanceInfoProvider) {
       // TODO Auto-generated method stub
-
     }
 
     @Override
@@ -475,13 +443,11 @@ public class Mocks {
     @Override
     public void addControllerMessageListener(MessageListener listener) {
       // TODO Auto-generated method stub
-
     }
 
   }
 
-  public static class MockAccessor implements HelixDataAccessor // DataAccessor
-  {
+  public static class MockAccessor implements HelixDataAccessor {
     private final String _clusterName;
     Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
     private final Builder _propertyKeyBuilder;
@@ -498,35 +464,14 @@ public class Mocks {
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
     @Override
-    // public boolean setProperty(PropertyType type, HelixProperty value,
-    // String... keys)
     public boolean setProperty(PropertyKey key, HelixProperty value) {
-      // return setProperty(type, value.getRecord(), keys);
       String path = key.getPath();
       data.put(path, value.getRecord());
       return true;
     }
 
-    // @Override
-    // public boolean setProperty(PropertyType type, ZNRecord value,
-    // String... keys)
-    // {
-    // String path = PropertyPathConfig.getPath(type, _clusterName, keys);
-    // data.put(path, value);
-    // return true;
-    // }
-
-    // @Override
-    // public boolean updateProperty(PropertyType type, HelixProperty value,
-    // String... keys)
-    // {
-    // return updateProperty(type, value.getRecord(), keys);
-    // }
-
     @Override
     public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value) {
-      // String path = PropertyPathConfig.getPath(type, _clusterName,
-      // keys);
       String path = key.getPath();
       PropertyType type = key.getType();
       if (type.updateOnlyOnExists) {
@@ -556,34 +501,15 @@ public class Mocks {
       return true;
     }
 
-    // @Override
-    // public <T extends HelixProperty> T getProperty(Class<T> clazz,
-    // PropertyType type,
-    // String... keys)
-    // {
-    // ZNRecord record = getProperty(type, keys);
-    // if (record == null)
-    // {
-    // return null;
-    // }
-    // return HelixProperty.convertToTypedInstance(clazz, record);
-    // }
-
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends HelixProperty> T getProperty(PropertyKey key)
-    // public ZNRecord getProperty(PropertyType type, String... keys)
-    {
-      // String path = PropertyPathConfig.getPath(type, _clusterName,
-      // keys);
+    public <T extends HelixProperty> T getProperty(PropertyKey key) {
       String path = key.getPath();
       return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), data.get(path));
     }
 
     @Override
-    public boolean removeProperty(PropertyKey key)
-    // public boolean removeProperty(PropertyType type, String... keys)
-    {
+    public boolean removeProperty(PropertyKey key) {
       String path = key.getPath(); // PropertyPathConfig.getPath(type,
       // _clusterName, keys);
       data.remove(path);
@@ -591,12 +517,9 @@ public class Mocks {
     }
 
     @Override
-    public List<String> getChildNames(PropertyKey propertyKey)
-    // public List<String> getChildNames(PropertyType type, String... keys)
-    {
+    public List<String> getChildNames(PropertyKey propertyKey) {
       List<String> child = new ArrayList<String>();
-      String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
-      // _clusterName, keys);
+      String path = propertyKey.getPath();
       for (String key : data.keySet()) {
         if (key.startsWith(path)) {
           String[] keySplit = key.split("\\/");
@@ -609,21 +532,9 @@ public class Mocks {
       return child;
     }
 
-    // @Override
-    // public <T extends HelixProperty> List<T> getChildValues(Class<T>
-    // clazz, PropertyType type,
-    // String... keys)
-    // {
-    // List<ZNRecord> list = getChildValues(type, keys);
-    // return HelixProperty.convertToTypedList(clazz, list);
-    // }
-
     @SuppressWarnings("unchecked")
     @Override
-    public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey)
-    // public List<ZNRecord> getChildValues(PropertyType type, String...
-    // keys)
-    {
+    public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
       List<ZNRecord> childs = new ArrayList<ZNRecord>();
       String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
       // _clusterName, keys);
@@ -646,11 +557,7 @@ public class Mocks {
     }
 
     @Override
-    public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key)
-    // public <T extends HelixProperty> Map<String, T>
-    // getChildValuesMap(Class<T> clazz,
-    // PropertyType type, String... keys)
-    {
+    public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
       List<T> list = getChildValues(key);
       return HelixProperty.convertListToMap(list);
     }
@@ -702,22 +609,6 @@ public class Mocks {
       }
       return list;
     }
-  }
-
-  public static class MockHealthReportProvider extends HealthReportProvider {
-
-    @Override
-    public Map<String, String> getRecentHealthReport() {
-      // TODO Auto-generated method stub
-      return null;
-    }
-
-    @Override
-    public void resetStats() {
-      // TODO Auto-generated method stub
-
-    }
-
   }
 
   public static class MockClusterMessagingService implements ClusterMessagingService {

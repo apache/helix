@@ -26,15 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.alerts.AlertsHolder;
-import org.apache.helix.alerts.StatsHolder;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Controller;
 import org.apache.helix.api.Participant;
@@ -61,7 +56,6 @@ import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConfiguration;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -73,7 +67,6 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
-import org.apache.helix.model.PersistentStats;
 import org.apache.helix.model.ProvisionerConfigHolder;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
@@ -521,14 +514,6 @@ public class ClusterAccessor {
   }
 
   /**
-   * Get the stats persisted on this cluster
-   * @return PersistentStats, or null if none persisted
-   */
-  public PersistentStats readStats() {
-    return _accessor.getProperty(_keyBuilder.persistantStat());
-  }
-
-  /**
    * Read the persisted controller contexts
    * @return map of context id to controller context
    */
@@ -553,152 +538,6 @@ public class ClusterAccessor {
       contexts.put(ContextId.from(contextName), contextHolders.get(contextName).getContext());
     }
     return contexts;
-  }
-
-  /**
-   * Get the current cluster stats
-   * @return PersistentStats
-   */
-  public PersistentStats getStats() {
-    return _accessor.getProperty(_keyBuilder.persistantStat());
-  }
-
-  /**
-   * Get the current cluster alerts
-   * @return Alerts
-   */
-  public Alerts getAlerts() {
-    return _accessor.getProperty(_keyBuilder.alerts());
-  }
-
-  /**
-   * Add a statistic specification to the cluster. Existing stat specifications will not be
-   * overwritten
-   * @param statName string representing a stat specification
-   * @return true if the stat spec was added, false otherwise
-   */
-  public boolean addStat(final String statName) {
-    if (!isClusterStructureValid()) {
-      LOG.error("cluster " + _clusterId + " is not setup yet");
-      return false;
-    }
-
-    String persistentStatsPath = _keyBuilder.persistantStat().getPath();
-    BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
-    return baseAccessor.update(persistentStatsPath, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord statsRec) {
-        if (statsRec == null) {
-          statsRec = new ZNRecord(PersistentStats.nodeName);
-        }
-        Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
-        Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
-        for (String newStat : newStatMap.keySet()) {
-          if (!currStatMap.containsKey(newStat)) {
-            currStatMap.put(newStat, newStatMap.get(newStat));
-          }
-        }
-        statsRec.setMapFields(currStatMap);
-        return statsRec;
-      }
-    }, AccessOption.PERSISTENT);
-  }
-
-  /**
-   * Remove a statistic specification from the cluster
-   * @param statName string representing a statistic specification
-   * @return true if stats removed, false otherwise
-   */
-  public boolean dropStat(final String statName) {
-    if (!isClusterStructureValid()) {
-      LOG.error("cluster " + _clusterId + " is not setup yet");
-      return false;
-    }
-
-    String persistentStatsPath = _keyBuilder.persistantStat().getPath();
-    BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
-    return baseAccessor.update(persistentStatsPath, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord statsRec) {
-        if (statsRec == null) {
-          throw new HelixException("No stats record in ZK, nothing to drop");
-        }
-        Map<String, Map<String, String>> currStatMap = statsRec.getMapFields();
-        Map<String, Map<String, String>> newStatMap = StatsHolder.parseStat(statName);
-        // delete each stat from stat map
-        for (String newStat : newStatMap.keySet()) {
-          if (currStatMap.containsKey(newStat)) {
-            currStatMap.remove(newStat);
-          }
-        }
-        statsRec.setMapFields(currStatMap);
-        return statsRec;
-      }
-    }, AccessOption.PERSISTENT);
-  }
-
-  /**
-   * Add an alert specification to the cluster
-   * @param alertName string representing the alert spec
-   * @return true if added, false otherwise
-   */
-  public boolean addAlert(final String alertName) {
-    if (!isClusterStructureValid()) {
-      LOG.error("cluster " + _clusterId + " is not setup yet");
-      return false;
-    }
-
-    BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
-    String alertsPath = _keyBuilder.alerts().getPath();
-    return baseAccessor.update(alertsPath, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord alertsRec) {
-        if (alertsRec == null) {
-          alertsRec = new ZNRecord(Alerts.nodeName);
-        }
-        Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
-        StringBuilder newStatName = new StringBuilder();
-        Map<String, String> newAlertMap = new HashMap<String, String>();
-
-        // use AlertsHolder to get map of new stats and map for this alert
-        AlertsHolder.parseAlert(alertName, newStatName, newAlertMap);
-
-        // add stat
-        addStat(newStatName.toString());
-
-        // add alert
-        currAlertMap.put(alertName, newAlertMap);
-        alertsRec.setMapFields(currAlertMap);
-        return alertsRec;
-      }
-    }, AccessOption.PERSISTENT);
-  }
-
-  /**
-   * Remove an alert specification from the cluster
-   * @param alertName string representing an alert specification
-   * @return true if removed, false otherwise
-   */
-  public boolean dropAlert(final String alertName) {
-    if (!isClusterStructureValid()) {
-      LOG.error("cluster " + _clusterId + " is not setup yet");
-      return false;
-    }
-
-    String alertsPath = _keyBuilder.alerts().getPath();
-    BaseDataAccessor<ZNRecord> baseAccessor = _accessor.getBaseDataAccessor();
-    return baseAccessor.update(alertsPath, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord alertsRec) {
-        if (alertsRec == null) {
-          throw new HelixException("No alerts record persisted, nothing to drop");
-        }
-        Map<String, Map<String, String>> currAlertMap = alertsRec.getMapFields();
-        currAlertMap.remove(alertName);
-        alertsRec.setMapFields(currAlertMap);
-        return alertsRec;
-      }
-    }, AccessOption.PERSISTENT);
   }
 
   /**

@@ -115,22 +115,6 @@ public final class HelixUtil {
     return getInstancePropertyPath(clusterName, instanceName, PropertyType.STATUSUPDATES);
   }
 
-  public static String getHealthPath(String clusterName, String instanceName) {
-    return PropertyPathConfig.getPath(PropertyType.HEALTHREPORT, clusterName, instanceName);
-  }
-
-  public static String getPersistentStatsPath(String clusterName) {
-    return PropertyPathConfig.getPath(PropertyType.PERSISTENTSTATS, clusterName);
-  }
-
-  public static String getAlertsPath(String clusterName) {
-    return PropertyPathConfig.getPath(PropertyType.ALERTS, clusterName);
-  }
-
-  public static String getAlertStatusPath(String clusterName) {
-    return PropertyPathConfig.getPath(PropertyType.ALERT_STATUS, clusterName);
-  }
-
   public static String getInstanceNameFromPath(String path) {
     // path structure
     // /<cluster_name>/instances/<instance_name>/[currentStates/messages]

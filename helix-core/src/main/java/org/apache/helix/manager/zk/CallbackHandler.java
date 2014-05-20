@@ -41,7 +41,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -59,7 +58,6 @@ import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -209,15 +207,6 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         ControllerChangeListener controllerChangelistener = (ControllerChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, false);
         controllerChangelistener.onControllerChange(changeContext);
-      } else if (_changeType == ChangeType.HEALTH) {
-        HealthStateChangeListener healthStateChangeListener = (HealthStateChangeListener) _listener;
-        subscribeForChanges(changeContext, _path, true, true); // TODO: figure out
-        // settings here
-        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
-
-        List<HealthStat> healthReportList = _accessor.getChildValues(_propertyKey);
-
-        healthStateChangeListener.onHealthChange(instanceName, healthReportList, changeContext);
       }
 
       long end = System.currentTimeMillis();

@@ -33,7 +33,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
@@ -66,7 +65,6 @@ import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -76,23 +74,21 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 /**
- * Cluster Controllers main goal is to keep the cluster state as close as possible to
- * Ideal State. It does this by listening to changes in cluster state and scheduling new
- * tasks to get cluster state to best possible ideal state. Every instance of this class
- * can control can control only one cluster
- * Get all the partitions use IdealState, CurrentState and Messages <br>
+ * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
+ * It does this by listening to changes in cluster state and scheduling new tasks to get cluster
+ * state to best possible ideal state. Every instance of this class can control can control only one
+ * cluster Get all the partitions use IdealState, CurrentState and Messages <br>
  * foreach partition <br>
  * 1. get the (instance,state) from IdealState, CurrentState and PendingMessages <br>
- * 2. compute best possible state (instance,state) pair. This needs previous step data and
- * state model constraints <br>
+ * 2. compute best possible state (instance,state) pair. This needs previous step data and state
+ * model constraints <br>
  * 3. compute the messages/tasks needed to move to 1 to 2 <br>
  * 4. select the messages that can be sent, needs messages and state model constraints <br>
  * 5. send messages
  */
 public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, HealthStateChangeListener,
-    InstanceConfigChangeListener {
+    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
   private final PipelineRegistry _registry;
@@ -109,15 +105,14 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   private final ClusterEventProcessor _eventThread;
 
   /**
-   * The _paused flag is checked by function handleEvent(), while if the flag is set
-   * handleEvent() will be no-op. Other event handling logic keeps the same when the flag
-   * is set.
+   * The _paused flag is checked by function handleEvent(), while if the flag is set handleEvent()
+   * will be no-op. Other event handling logic keeps the same when the flag is set.
    */
   private boolean _paused;
 
   /**
-   * The timer that can periodically run the rebalancing pipeline. The timer will start if there
-   * is one resource group has the config to use the timer.
+   * The timer that can periodically run the rebalancing pipeline. The timer will start if there is
+   * one resource group has the config to use the timer.
    */
   Timer _rebalanceTimer = null;
   int _timerPeriod = Integer.MAX_VALUE;
@@ -128,9 +123,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   private ClusterDataCache _cache;
 
   /**
-   * Default constructor that creates a default pipeline registry. This is sufficient in
-   * most cases, but if there is a some thing specific needed use another constructor
-   * where in you can pass a pipeline registry
+   * Default constructor that creates a default pipeline registry. This is sufficient in most cases,
+   * but if there is a some thing specific needed use another constructor where in you can pass a
+   * pipeline registry
    */
   public GenericHelixController() {
     this(createDefaultRegistry());
@@ -160,9 +155,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   // TODO who should stop this timer
   /**
-   * Starts the rebalancing timer with the specified period. Start the timer if necessary;
-   * If the period is smaller than the current period, cancel the current timer and use
-   * the new period.
+   * Starts the rebalancing timer with the specified period. Start the timer if necessary; If the
+   * period is smaller than the current period, cancel the current timer and use the new period.
    */
   void startRebalancingTimer(int period, HelixManager manager) {
     logger.info("Controller starting timer at period " + period);
@@ -227,7 +221,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       registry.register("resume", dataRefresh, rebalancePipeline, externalViewPipeline);
       registry
           .register("periodicalRebalance", dataRefresh, rebalancePipeline, externalViewPipeline);
-
       return registry;
     }
   }
@@ -245,8 +238,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   /**
-   * lock-always: caller always needs to obtain an external lock before call, calls to
-   * handleEvent() should be serialized
+   * lock-always: caller always needs to obtain an external lock before call, calls to handleEvent()
+   * should be serialized
    * @param event
    */
   protected synchronized void handleEvent(ClusterEvent event) {
@@ -342,16 +335,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("eventData", statesInfo);
     _eventQueue.put(event);
     logger.info("END: GenericClusterController.onStateChange()");
-  }
-
-  @Override
-  public void onHealthChange(String instanceName, List<HealthStat> reports,
-      NotificationContext changeContext) {
-    /**
-     * When there are more participant ( > 20, can be in hundreds), This callback can be
-     * called quite frequently as each participant reports health stat every minute. Thus
-     * we change the health check pipeline to run in a timer callback.
-     */
   }
 
   @Override
@@ -526,9 +509,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   /**
-   * Go through the list of liveinstances in the cluster, and add currentstateChange
-   * listener and Message listeners to them if they are newly added. For current state
-   * change, the observation is tied to the session id of each live instance.
+   * Go through the list of liveinstances in the cluster, and add currentstateChange listener and
+   * Message listeners to them if they are newly added. For current state change, the observation is
+   * tied to the session id of each live instance.
    */
   protected void checkLiveInstancesObservation(List<LiveInstance> liveInstances,
       NotificationContext changeContext) {

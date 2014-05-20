@@ -243,34 +243,6 @@ public interface HelixAdmin {
   void dropResource(String clusterName, String resourceName);
 
   /**
-   * Add a statistics to a cluster
-   * @param clusterName
-   * @param statName
-   */
-  void addStat(String clusterName, String statName);
-
-  /**
-   * Add an alert to a cluster
-   * @param clusterName
-   * @param alertName
-   */
-  void addAlert(String clusterName, String alertName);
-
-  /**
-   * Drop statistics from a cluster
-   * @param clusterName
-   * @param statName
-   */
-  void dropStat(String clusterName, String statName);
-
-  /**
-   * Drop an alert from a cluster
-   * @param clusterName
-   * @param alertName
-   */
-  void dropAlert(String clusterName, String alertName);
-
-  /**
    * Get a list of state model definitions in a cluster
    * @param clusterName
    * @return

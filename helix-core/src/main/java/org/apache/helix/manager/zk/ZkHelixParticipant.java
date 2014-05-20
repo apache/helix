@@ -45,8 +45,6 @@ import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
-import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
@@ -76,7 +74,6 @@ public class ZkHelixParticipant implements HelixParticipant {
   final DefaultMessagingService _messagingService;
   final List<PreConnectCallback> _preConnectCallbacks;
   final List<HelixTimerTask> _timerTasks;
-  final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
 
   /**
    * state-transition message handler factory for helix-participant
@@ -103,10 +100,6 @@ public class ZkHelixParticipant implements HelixParticipant {
     _stateMachineEngine = new HelixStateMachineEngine(manager);
     _preConnectCallbacks = new ArrayList<PreConnectCallback>();
     _timerTasks = new ArrayList<HelixTimerTask>();
-    _participantHealthInfoCollector =
-        new ParticipantHealthReportCollectorImpl(manager, participantId.stringify());
-
-    _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
 
   }
 
@@ -361,17 +354,6 @@ public class ZkHelixParticipant implements HelixParticipant {
     _messagingService.onConnected();
   }
 
-  /**
-   * create zk path for health check info
-   * TODO move it to cluster-setup
-   */
-  private void createHealthCheckPath() {
-    PropertyKey healthCheckInfoKey = _keyBuilder.healthReports(_participantId.stringify());
-    if (_accessor.createProperty(healthCheckInfoKey, null)) {
-      LOG.info("Created healthcheck info path: " + healthCheckInfoKey.getPath());
-    }
-  }
-
   void init() {
     /**
      * from here on, we are dealing with new session
@@ -403,7 +385,6 @@ public class ZkHelixParticipant implements HelixParticipant {
     /**
      * start health check timer task
      */
-    createHealthCheckPath();
     startTimerTasks();
 
     /**

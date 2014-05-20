@@ -25,7 +25,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixAutoController;
 import org.apache.helix.HelixConnection;
@@ -49,7 +48,6 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.SessionId;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -136,13 +134,6 @@ public class HelixConnectionAdaptor implements HelixManager {
   }
 
   @Override
-  public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
-      throws Exception {
-    _connection.addHealthStateChangeListener(_role, listener, _clusterId,
-        ParticipantId.from(instanceName));
-  }
-
-  @Override
   public void addExternalViewChangeListener(ExternalViewChangeListener listener) throws Exception {
     _connection.addExternalViewChangeListener(_role, listener, _clusterId);
   }
@@ -200,11 +191,6 @@ public class HelixConnectionAdaptor implements HelixManager {
   @Override
   public ClusterMessagingService getMessagingService() {
     return _messagingService;
-  }
-
-  @Override
-  public ParticipantHealthReportCollector getHealthReportCollector() {
-    throw new UnsupportedOperationException();
   }
 
   @Override

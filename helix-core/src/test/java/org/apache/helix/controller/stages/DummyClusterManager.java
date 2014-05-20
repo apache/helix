@@ -25,7 +25,6 @@ import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
-import org.apache.helix.HealthStateChangeListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -40,7 +39,6 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -158,12 +156,6 @@ public class DummyClusterManager implements HelixManager {
   }
 
   @Override
-  public ParticipantHealthReportCollector getHealthReportCollector() {
-    // TODO Auto-generated method stub
-    return null;
-  }
-
-  @Override
   public InstanceType getInstanceType() {
     // TODO Auto-generated method stub
     return null;
@@ -173,13 +165,6 @@ public class DummyClusterManager implements HelixManager {
   public String getVersion() {
     // TODO Auto-generated method stub
     return null;
-  }
-
-  @Override
-  public void addHealthStateChangeListener(HealthStateChangeListener listener, String instanceName)
-      throws Exception {
-    // TODO Auto-generated method stub
-
   }
 
   @Override

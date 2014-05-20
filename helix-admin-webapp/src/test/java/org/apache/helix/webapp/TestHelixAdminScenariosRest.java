@@ -44,7 +44,6 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
 import org.apache.helix.webapp.resources.InstancesResource.ListInstancesWrapper;
 import org.apache.helix.webapp.resources.JsonParameters;
@@ -68,6 +67,8 @@ import org.testng.annotations.Test;
  * Simulate all the admin tasks needed by using command line tool
  */
 public class TestHelixAdminScenariosRest extends AdminTestBase {
+  private static final int MAX_RETRIES = 5;
+
   RestAdminApplication _adminApp;
   Component _component;
   String _tag1 = "tag1123";
@@ -94,42 +95,53 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
   static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters,
       boolean hasException) throws IOException {
-    Reference resourceRef = new Reference(url);
-
-    Request request = new Request(Method.POST, resourceRef);
-    request.setEntity(
-        JsonParameters.JSON_PARAMETERS + "="
-            + ClusterRepresentationUtil.ObjectToJson(jsonParameters), MediaType.APPLICATION_ALL);
-    Response response = _gClient.handle(request);
-    Representation result = response.getEntity();
-    StringWriter sw = new StringWriter();
-    result.write(sw);
-
-    Assert.assertTrue(response.getStatus().getCode() == Status.SUCCESS_OK.getCode());
-    Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
-    return sw.toString();
+    return assertSuccessPostOperation(url, jsonParameters, null, hasException);
   }
 
   static String assertSuccessPostOperation(String url, Map<String, String> jsonParameters,
       Map<String, String> extraForm, boolean hasException) throws IOException {
     Reference resourceRef = new Reference(url);
 
-    Request request = new Request(Method.POST, resourceRef);
-    String entity =
-        JsonParameters.JSON_PARAMETERS + "="
-            + ClusterRepresentationUtil.ObjectToJson(jsonParameters);
-    for (String key : extraForm.keySet()) {
-      entity = entity + "&" + (key + "=" + extraForm.get(key));
-    }
-    request.setEntity(entity, MediaType.APPLICATION_ALL);
-    Response response = _gClient.handle(request);
-    Representation result = response.getEntity();
-    StringWriter sw = new StringWriter();
-    result.write(sw);
+    int numRetries = 0;
+    while (numRetries <= MAX_RETRIES) {
+      Request request = new Request(Method.POST, resourceRef);
 
-    Assert.assertTrue(response.getStatus().getCode() == Status.SUCCESS_OK.getCode());
-    Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
-    return sw.toString();
+      if (extraForm != null) {
+        String entity =
+            JsonParameters.JSON_PARAMETERS + "="
+                + ClusterRepresentationUtil.ObjectToJson(jsonParameters);
+        for (String key : extraForm.keySet()) {
+          entity = entity + "&" + (key + "=" + extraForm.get(key));
+        }
+        request.setEntity(entity, MediaType.APPLICATION_ALL);
+      } else {
+        request
+            .setEntity(
+                JsonParameters.JSON_PARAMETERS + "="
+                    + ClusterRepresentationUtil.ObjectToJson(jsonParameters),
+                MediaType.APPLICATION_ALL);
+      }
+
+      Response response = _gClient.handle(request);
+      Representation result = response.getEntity();
+      StringWriter sw = new StringWriter();
+
+      if (result != null) {
+        result.write(sw);
+      }
+
+      int code = response.getStatus().getCode();
+      boolean successCode =
+          code == Status.SUCCESS_NO_CONTENT.getCode() || code == Status.SUCCESS_OK.getCode();
+      if (successCode || numRetries == MAX_RETRIES) {
+        Assert.assertTrue(successCode);
+        Assert.assertTrue(hasException == sw.toString().toLowerCase().contains("exception"));
+        return sw.toString();
+      }
+      numRetries++;
+    }
+    Assert.fail("Request failed after all retries");
+    return null;
   }
 
   void deleteUrl(String url, boolean hasException) throws IOException {

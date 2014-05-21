@@ -37,8 +37,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 @SuppressWarnings("deprecation")
-public class TestUserDefRebalancerCompatibility extends
-    ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestUserDefRebalancerCompatibility extends ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;

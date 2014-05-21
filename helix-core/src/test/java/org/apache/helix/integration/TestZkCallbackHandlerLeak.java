@@ -109,11 +109,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
         // System.out.println("participant watch paths: " + watchPaths);
 
-        // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
-        return watchPaths.size() == 2;
+        // participant should have 1 zk-watcher: 1 for MESSAGE
+        return watchPaths.size() == 1;
       }
     }, 500);
-    Assert.assertTrue(result, "Participant should have 2 zk-watchers.");
+    Assert.assertTrue(result, "Participant should have 1 zk-watcher. MESSAGES->HelixTaskExecutor");
 
     // check HelixManager#_handlers
     // printHandlers(controllerManager);
@@ -122,8 +122,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
     Assert.assertEquals(controllerHandlerNb, 9,
         "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant");
-    Assert.assertEquals(particHandlerNb, 2,
-        "HelixParticipant should have 2 (msg+cur-state) callback handlers");
+    Assert.assertEquals(particHandlerNb, 1,
+        "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
     // expire the session of participant
     System.out.println("Expiring participant session...");
@@ -164,11 +164,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
         // System.out.println("participant watch paths after session expiry: " + watchPaths);
 
-        // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
-        return watchPaths.size() == 2;
+        // participant should have 1 zk-watcher: 1 for MESSAGE
+        return watchPaths.size() == 1;
       }
     }, 500);
-    Assert.assertTrue(result, "Participant should have 2 zk-watchers after session expiry.");
+    Assert.assertTrue(result, "Participant should have 1 zk-watcher after session expiry.");
 
     // check handlers
     // printHandlers(controllerManager);
@@ -249,8 +249,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert.assertEquals(controllerHandlerNb, 9,
         "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was "
             + controllerHandlerNb + ", " + printHandlers(controller));
-    Assert.assertEquals(particHandlerNb, 2,
-        "HelixParticipant should have 2 (msg+cur-state) callback handlers, but was "
+    Assert.assertEquals(particHandlerNb, 1,
+        "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
             + particHandlerNb + ", " + printHandlers(participantManager));
 
     // expire controller
@@ -292,11 +292,11 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         Set<String> watchPaths = watchers.get("0x" + participantManager.getSessionId());
         // System.out.println("participant watch paths after session expiry: " + watchPaths);
 
-        // participant should have 2 zk-watchers: 1 for MESSAGE and 1 for CONTROLLER
-        return watchPaths.size() == 2;
+        // participant should have 1 zk-watcher: 1 for MESSAGE
+        return watchPaths.size() == 1;
       }
     }, 500);
-    Assert.assertTrue(result, "Participant should have 2 zk-watchers after session expiry.");
+    Assert.assertTrue(result, "Participant should have 1 zk-watcher after session expiry.");
 
     // check HelixManager#_handlers
     // printHandlers(controllerManager);
@@ -370,8 +370,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
     // check manager#hanlders
-    Assert.assertEquals(participantToExpire.getHandlers().size(), 3,
-        "Should have 3 handlers: CURRENTSTATE/{sessionId}, CONTROLLER, and MESSAGES");
+    Assert.assertEquals(participantToExpire.getHandlers().size(), 2,
+        "Should have 2 handlers: CURRENTSTATE/{sessionId}, and MESSAGES");
 
     // check zkclient#listeners
     Map<String, Set<IZkDataListener>> dataListeners =
@@ -387,10 +387,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert.assertEquals(dataListeners.get(path).size(), 1, "Should have 1 data-listeners on path: "
         + path);
     Assert
-        .assertEquals(
-            childListeners.size(),
-            3,
-            "Should have 3 paths (CURRENTSTATE/{sessionId}, CONTROLLER, and MESSAGES) each of which has 1 child-listener");
+        .assertEquals(childListeners.size(), 2,
+            "Should have 2 paths (CURRENTSTATE/{sessionId}, and MESSAGES) each of which has 1 child-listener");
     path = keyBuilder.currentStates(participantToExpire.getInstanceName(), oldSessionId).getPath();
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
@@ -398,20 +396,17 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
     path = keyBuilder.controller().getPath();
-    Assert.assertEquals(childListeners.get(path).size(), 1,
-        "Should have 1 child-listener on path: " + path);
+    Assert.assertNull(childListeners.get(path), "Should have no child-listener on path: " + path);
 
     // check zookeeper#watches on client side
     Map<String, List<String>> watchPaths =
         ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
     // System.out.println("localhost_12918 zk-client side watchPaths: " + watchPaths + "\n");
     Assert
-        .assertEquals(
-            watchPaths.get("dataWatches").size(),
-            4,
-            "Should have 4 data-watches: CURRENTSTATE/{sessionId}, CURRENTSTATE/{sessionId}/TestDB, CONTROLLER, MESSAGES");
-    Assert.assertEquals(watchPaths.get("childWatches").size(), 3,
-        "Should have 3 child-watches: CONTROLLER, MESSAGES, and CURRENTSTATE/{sessionId}");
+        .assertEquals(watchPaths.get("dataWatches").size(), 3,
+            "Should have 3 data-watches: CURRENTSTATE/{sessionId}, CURRENTSTATE/{sessionId}/TestDB, MESSAGES");
+    Assert.assertEquals(watchPaths.get("childWatches").size(), 2,
+        "Should have 2 child-watches: MESSAGES, and CURRENTSTATE/{sessionId}");
 
     // expire localhost_12918
     System.out.println("Expire participant: " + participantToExpire.getInstanceName()
@@ -430,8 +425,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert
         .assertEquals(
             participantToExpire.getHandlers().size(),
-            2,
-            "Should have 2 handlers: CONTROLLER and MESSAGES. CURRENTSTATE/{sessionId} handler should be removed by CallbackHandler#handleChildChange()");
+            1,
+            "Should have 1 handlers: MESSAGES. CURRENTSTATE/{sessionId} handler should be removed by CallbackHandler#handleChildChange()");
 
     // check zkclient#listeners
     dataListeners = ZkTestHelper.getZkDataListener(participantToExpire.getZkClient());
@@ -441,8 +436,8 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert
         .assertEquals(
             childListeners.size(),
-            3,
-            "Should have 3 paths (CURRENTSTATE/{oldSessionId}, CONTROLLER, and MESSAGES). "
+            2,
+            "Should have 2 paths (CURRENTSTATE/{oldSessionId}, and MESSAGES). "
                 + "CONTROLLER and MESSAGE has 1 child-listener each. CURRENTSTATE/{oldSessionId} doesn't have listener (ZkClient doesn't remove empty childListener set. probably a ZkClient bug. see ZkClient#unsubscribeChildChange())");
     path = keyBuilder.currentStates(participantToExpire.getInstanceName(), oldSessionId).getPath();
     Assert.assertEquals(childListeners.get(path).size(), 0,
@@ -451,16 +446,16 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
     path = keyBuilder.controller().getPath();
-    Assert.assertEquals(childListeners.get(path).size(), 1,
-        "Should have 1 child-listener on path: " + path);
+    Assert.assertNull(childListeners.get(path),
+        "Should have no child-listener on path: " + path);
 
     // check zookeeper#watches on client side
     watchPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
     // System.out.println("localhost_12918 zk-client side watchPaths: " + watchPaths + "\n");
-    Assert.assertEquals(watchPaths.get("dataWatches").size(), 2,
-        "Should have 2 data-watches: CONTROLLER and MESSAGES");
-    Assert.assertEquals(watchPaths.get("childWatches").size(), 2,
-        "Should have 2 child-watches: CONTROLLER and MESSAGES");
+    Assert.assertEquals(watchPaths.get("dataWatches").size(), 1,
+        "Should have 1 data-watches: MESSAGES");
+    Assert.assertEquals(watchPaths.get("childWatches").size(), 1,
+        "Should have 1 child-watches: MESSAGES");
     Assert
         .assertEquals(watchPaths.get("existWatches").size(), 2,
             "Should have 2 exist-watches: CURRENTSTATE/{oldSessionId} and CURRENTSTATE/{oldSessionId}/TestDB0");
@@ -479,10 +474,10 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     // check zookeeper#watches on client side
     watchPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
     // System.out.println("localhost_12918 zk-client side watchPaths: " + watchPaths + "\n");
-    Assert.assertEquals(watchPaths.get("dataWatches").size(), 2,
-        "Should have 2 data-watches: CONTROLLER and MESSAGES");
-    Assert.assertEquals(watchPaths.get("childWatches").size(), 2,
-        "Should have 2 child-watches: CONTROLLER and MESSAGES");
+    Assert.assertEquals(watchPaths.get("dataWatches").size(), 1,
+        "Should have 1 data-watches: MESSAGES");
+    Assert.assertEquals(watchPaths.get("childWatches").size(), 1,
+        "Should have 1 child-watches: MESSAGES");
     Assert
         .assertEquals(
             watchPaths.get("existWatches").size(),

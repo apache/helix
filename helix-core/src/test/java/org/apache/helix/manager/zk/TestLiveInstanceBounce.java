@@ -19,13 +19,13 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
+import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestLiveInstanceBounce extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase {
   @Test
   public void testInstanceBounce() throws Exception {
     int handlerSize = _controller.getHandlers().size();

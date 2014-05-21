@@ -57,7 +57,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestCustomizedIdealStateRebalancer extends
-    ZkStandAloneCMTestBaseWithPropertyServerCheck {
+    ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;

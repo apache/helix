@@ -353,7 +353,6 @@ public class ZkHelixParticipant implements HelixParticipant {
      */
     _connection.addMessageListener(this, _messagingService.getExecutor(), _clusterId,
         _participantId);
-    _connection.addControllerListener(this, _accessor, _clusterId);
 
     ScheduledTaskStateModelFactory stStateModelFactory =
         new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
@@ -432,7 +431,6 @@ public class ZkHelixParticipant implements HelixParticipant {
      * transition?
      */
     _messagingService.getExecutor().shutdown();
-    _accessor.shutdown();
 
     /**
      * remove live instance ephemeral znode

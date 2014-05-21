@@ -85,8 +85,6 @@ public enum PropertyType {
    */
   boolean isCached;
 
-  boolean usePropertyTransferServer;
-
   private PropertyType(Type type, boolean isPersistent, boolean mergeOnUpdate) {
     this(type, isPersistent, mergeOnUpdate, false);
   }
@@ -114,7 +112,6 @@ public enum PropertyType {
     this.updateOnlyOnExists = updateOnlyOnExists;
     this.createOnlyIfAbsent = createOnlyIfAbsent;
     this.isCached = isCached;
-    this.usePropertyTransferServer = isAsyncWrite;
   }
 
   /**
@@ -204,13 +201,4 @@ public enum PropertyType {
   public boolean isCached() {
     return isCached;
   }
-
-  /**
-   * Check if this property uses a property transfer server
-   * @return true if a property transfer server is used, false otherwise
-   */
-  public boolean usePropertyTransferServer() {
-    return usePropertyTransferServer;
-  }
-
 }

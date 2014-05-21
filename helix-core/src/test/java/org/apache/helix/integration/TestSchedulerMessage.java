@@ -64,7 +64,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
   class MockAsyncCallback extends AsyncCallback {
     Message _message;
@@ -386,7 +386,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
             PropertyType.STATUSUPDATES);
 
     subPaths = _gZkClient.getChildren(instanceStatusPath);
-    Assert.assertTrue(subPaths.size() > 0);
+    Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _gZkClient.getChildren(nextPath);
@@ -409,7 +409,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     subPaths = _gZkClient.getChildren(instanceStatusPath);
-    Assert.assertTrue(subPaths.size() > 0);
+    Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _gZkClient.getChildren(nextPath);

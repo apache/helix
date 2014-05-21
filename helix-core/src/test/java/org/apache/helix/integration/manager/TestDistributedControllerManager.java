@@ -146,8 +146,8 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
     Assert
         .assertEquals(
             handlers.size(),
-            2,
-            "Distributed controller should have 2 handlers (message and data-accessor) after lose leadership, but was "
+            1,
+            "Distributed controller should have 1 handler (message) after lose leadership, but was "
                 + handlers.size());
   }
 

@@ -31,7 +31,6 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.controller.GenericHelixController;
-import org.apache.helix.controller.restlet.ZKPropertyTransferServer;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
@@ -134,15 +133,6 @@ public class ZkHelixLeaderElection implements ControllerChangeListener {
       leader.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
-      if (ZKPropertyTransferServer.getInstance() != null) {
-        String zkPropertyTransferServiceUrl =
-            ZKPropertyTransferServer.getInstance().getWebserviceUrl();
-        if (zkPropertyTransferServiceUrl != null) {
-          leader.setWebserviceUrl(zkPropertyTransferServiceUrl);
-        }
-      } else {
-        LOG.warn("ZKPropertyTransferServer instnace is null");
-      }
       boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
       if (success) {
         return true;

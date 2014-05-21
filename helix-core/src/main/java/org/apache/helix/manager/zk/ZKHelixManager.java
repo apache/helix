@@ -548,8 +548,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       // TODO reset user defined handlers only
       resetHandlers();
 
-      _dataAccessor.shutdown();
-
       if (_leaderElectionHandler != null) {
         _leaderElectionHandler.reset();
       }

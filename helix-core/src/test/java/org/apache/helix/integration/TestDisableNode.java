@@ -25,7 +25,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDisableNode extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestDisableNode extends ZkStandAloneCMTestBase {
 
   @Test()
   public void testDisableNode() throws Exception {

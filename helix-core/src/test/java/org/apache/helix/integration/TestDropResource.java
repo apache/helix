@@ -26,7 +26,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDropResource extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestDropResource extends ZkStandAloneCMTestBase {
   @Test()
   public void testDropResource() throws Exception {
     // add a resource to be dropped

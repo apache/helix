@@ -43,7 +43,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
   private static final Logger LOG = Logger.getLogger(TestAutoRebalancePartitionLimit.class
       .getName());
 

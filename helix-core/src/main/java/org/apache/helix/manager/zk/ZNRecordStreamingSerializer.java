@@ -28,6 +28,7 @@ import java.util.TreeMap;
 
 import org.I0Itec.zkclient.exception.ZkMarshallingError;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.commons.codec.binary.Base64;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
@@ -35,7 +36,6 @@ import org.codehaus.jackson.JsonFactory;
 import org.codehaus.jackson.JsonGenerator;
 import org.codehaus.jackson.JsonParser;
 import org.codehaus.jackson.JsonToken;
-import org.restlet.engine.util.Base64;
 
 import com.google.common.collect.Maps;
 
@@ -141,7 +141,7 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
       if (rawPayload != null && rawPayload.length > 0) {
         // write rawPayload
         g.writeRaw("\n  ");
-        g.writeStringField("rawPayload", Base64.encode(rawPayload, false));
+        g.writeStringField("rawPayload", new String(Base64.encodeBase64(rawPayload), "UTF-8"));
       }
 
       g.writeRaw("\n");
@@ -226,7 +226,7 @@ public class ZNRecordStreamingSerializer implements ZkSerializer {
           }
 
         } else if ("rawPayload".equals(fieldname)) {
-          rawPayload = Base64.decode(jp.getText());
+          rawPayload = Base64.decodeBase64(jp.getText());
         } else {
           throw new IllegalStateException("Unrecognized field '" + fieldname + "'!");
         }

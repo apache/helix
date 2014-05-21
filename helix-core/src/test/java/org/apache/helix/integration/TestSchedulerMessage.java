@@ -62,7 +62,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
   class MockAsyncCallback extends AsyncCallback {
     Message _message;
@@ -189,7 +189,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerMsgUsingQueue() throws Exception {
+  public void testSchedulerMsgUsingQueue() throws Exception {
     Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     Thread.sleep(2000);
@@ -278,7 +278,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerMsg() throws Exception {
+  public void testSchedulerMsg() throws Exception {
     Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
     HelixManager manager = null;
@@ -382,7 +382,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
             PropertyType.STATUSUPDATES);
 
     subPaths = _gZkClient.getChildren(instanceStatusPath);
-    Assert.assertTrue(subPaths.size() > 0);
+    Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _gZkClient.getChildren(nextPath);
@@ -405,7 +405,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
     }
 
     subPaths = _gZkClient.getChildren(instanceStatusPath);
-    Assert.assertTrue(subPaths.size() > 0);
+    Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
       List<String> subsubPaths = _gZkClient.getChildren(nextPath);
@@ -418,7 +418,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerMsg2() throws Exception {
+  public void testSchedulerMsg2() throws Exception {
     _factory._results.clear();
     Thread.sleep(2000);
     HelixManager manager = null;
@@ -510,7 +510,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerZeroMsg() throws Exception {
+  public void testSchedulerZeroMsg() throws Exception {
     TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
@@ -580,7 +580,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerMsg3() throws Exception {
+  public void testSchedulerMsg3() throws Exception {
     _factory._results.clear();
     Thread.sleep(2000);
     HelixManager manager = null;
@@ -702,7 +702,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test()
-  public void TestSchedulerMsg4() throws Exception {
+  public void testSchedulerMsg4() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
@@ -851,7 +851,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
   @Test
-  public void TestSchedulerMsgContraints() throws JsonGenerationException, JsonMappingException,
+  public void testSchedulerMsgContraints() throws JsonGenerationException, JsonMappingException,
       IOException, InterruptedException {
     TestMessagingHandlerFactoryLatch factory = new TestMessagingHandlerFactoryLatch();
     HelixManager manager = null;

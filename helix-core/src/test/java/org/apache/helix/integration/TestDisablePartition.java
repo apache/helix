@@ -46,7 +46,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class TestDisablePartition extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestDisablePartition extends ZkStandAloneCMTestBase {
   private static Logger LOG = Logger.getLogger(TestDisablePartition.class);
 
   @Test()

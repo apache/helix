@@ -19,16 +19,12 @@ package org.apache.helix;
  * under the License.
  */
 
-import static org.apache.helix.PropertyType.ALERTS;
-import static org.apache.helix.PropertyType.ALERT_HISTORY;
-import static org.apache.helix.PropertyType.ALERT_STATUS;
 import static org.apache.helix.PropertyType.CONFIGS;
 import static org.apache.helix.PropertyType.CONTROLLER;
 import static org.apache.helix.PropertyType.CURRENTSTATES;
 import static org.apache.helix.PropertyType.ERRORS;
 import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
 import static org.apache.helix.PropertyType.EXTERNALVIEW;
-import static org.apache.helix.PropertyType.HEALTHREPORT;
 import static org.apache.helix.PropertyType.HISTORY;
 import static org.apache.helix.PropertyType.IDEALSTATES;
 import static org.apache.helix.PropertyType.LEADER;
@@ -36,21 +32,16 @@ import static org.apache.helix.PropertyType.LIVEINSTANCES;
 import static org.apache.helix.PropertyType.MESSAGES;
 import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
 import static org.apache.helix.PropertyType.PAUSE;
-import static org.apache.helix.PropertyType.PERSISTENTSTATS;
 import static org.apache.helix.PropertyType.STATEMODELDEFS;
 import static org.apache.helix.PropertyType.STATUSUPDATES;
 import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 
 import java.util.Arrays;
 
-import org.apache.helix.model.AlertHistory;
-import org.apache.helix.model.AlertStatus;
-import org.apache.helix.model.Alerts;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -574,58 +565,6 @@ public class PropertyKey {
     public PropertyKey pause() {
       return new PropertyKey(PAUSE, PauseSignal.class, _clusterName);
     }
-
-    /**
-     * Get a property key associated with {@link PersistentStats}
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey persistantStat() {
-      return new PropertyKey(PERSISTENTSTATS, PersistentStats.class, _clusterName);
-    }
-
-    /**
-     * Get a property key associated with {@link Alerts}
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey alerts() {
-      return new PropertyKey(ALERTS, Alerts.class, _clusterName);
-    }
-
-    /**
-     * Get a property key associated with {@link AlertStatus}
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey alertStatus() {
-      return new PropertyKey(ALERT_STATUS, AlertStatus.class, _clusterName);
-    }
-
-    /**
-     * Get a property key associated with {@link AlertHistory}
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey alertHistory() {
-      return new PropertyKey(ALERT_HISTORY, AlertHistory.class, _clusterName);
-    }
-
-    /**
-     * Get a property key associated with a {@link HealthStat} for an instance
-     * @param instanceName
-     * @param id identifies the statistics
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey healthReport(String instanceName, String id) {
-      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName, id);
-    }
-
-    /**
-     * Get a property key associated with {@link HealthStat}s for an instance
-     * @param instanceName
-     * @return {@link PropertyKey}
-     */
-    public PropertyKey healthReports(String instanceName) {
-      return new PropertyKey(HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
-    }
-
   }
 
   /**

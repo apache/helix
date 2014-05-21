@@ -36,7 +36,6 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey.Builder;
@@ -108,7 +107,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertEquals("node_1", record.getId());
 
     controller.getMessagingService();
-    controller.getHealthReportCollector();
     controller.getClusterManagmentTool();
 
     controller.handleNewSession();
@@ -249,8 +247,6 @@ public class TestZkClusterManager extends ZkUnitTestBase {
     AssertJUnit.assertTrue(admin.isConnected());
 
     HelixAdmin adminTool = admin.getClusterManagmentTool();
-    // ConfigScope scope = new ConfigScopeBuilder().forCluster(clusterName)
-    // .forResource("testResource").forPartition("testPartition").build();
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
             .forResource("testResource").forPartition("testPartition").build();

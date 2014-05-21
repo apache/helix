@@ -46,7 +46,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.log4j.Logger;
 
-import com.beust.jcommander.internal.Lists;
+import com.google.common.collect.Lists;
 
 /**
  * CLI for scheduling/canceling workflows

@@ -117,12 +117,6 @@ public class ClusterSetup {
   // help
   public static final String help = "help";
 
-  // stats/alerts
-  public static final String addStat = "addStat";
-  public static final String addAlert = "addAlert";
-  public static final String dropStat = "dropStat";
-  public static final String dropAlert = "dropAlert";
-
   // get/set/remove configs
   public static final String getConfig = "getConfig";
   public static final String setConfig = "setConfig";
@@ -848,17 +842,6 @@ public class ClusterSetup {
     listStateModelOption.setRequired(false);
     listStateModelOption.setArgName("clusterName stateModelName");
 
-    Option addStatOption =
-        OptionBuilder.withLongOpt(addStat).withDescription("Add a persistent stat").create();
-    addStatOption.setArgs(2);
-    addStatOption.setRequired(false);
-    addStatOption.setArgName("clusterName statName");
-    Option addAlertOption =
-        OptionBuilder.withLongOpt(addAlert).withDescription("Add an alert").create();
-    addAlertOption.setArgs(2);
-    addAlertOption.setRequired(false);
-    addAlertOption.setArgName("clusterName alertName");
-
     Option addInstanceTagOption =
         OptionBuilder.withLongOpt(addInstanceTag).withDescription("Add a tag to instance").create();
     addInstanceTagOption.setArgs(3);
@@ -870,17 +853,6 @@ public class ClusterSetup {
     removeInstanceTagOption.setArgs(3);
     removeInstanceTagOption.setRequired(false);
     removeInstanceTagOption.setArgName("clusterName instanceName tag");
-
-    Option dropStatOption =
-        OptionBuilder.withLongOpt(dropStat).withDescription("Drop a persistent stat").create();
-    dropStatOption.setArgs(2);
-    dropStatOption.setRequired(false);
-    dropStatOption.setArgName("clusterName statName");
-    Option dropAlertOption =
-        OptionBuilder.withLongOpt(dropAlert).withDescription("Drop an alert").create();
-    dropAlertOption.setArgs(2);
-    dropAlertOption.setRequired(false);
-    dropAlertOption.setArgName("clusterName alertName");
 
     // TODO need deal with resource-names containing ","
     // set/get/remove configs options
@@ -966,10 +938,6 @@ public class ClusterSetup {
     group.addOption(addStateModelDefOption);
     group.addOption(listStateModelsOption);
     group.addOption(listStateModelOption);
-    group.addOption(addStatOption);
-    group.addOption(addAlertOption);
-    group.addOption(dropStatOption);
-    group.addOption(dropAlertOption);
     group.addOption(addResourcePropertyOption);
     group.addOption(removeResourcePropertyOption);
 
@@ -1340,26 +1308,6 @@ public class ClusterSetup {
 
       setupTool.addIdealState(clusterName, resourceName, idealStateFile);
       return 0;
-    } else if (cmd.hasOption(addStat)) {
-      String clusterName = cmd.getOptionValues(addStat)[0];
-      String statName = cmd.getOptionValues(addStat)[1];
-
-      setupTool.getClusterManagementTool().addStat(clusterName, statName);
-    } else if (cmd.hasOption(addAlert)) {
-      String clusterName = cmd.getOptionValues(addAlert)[0];
-      String alertName = cmd.getOptionValues(addAlert)[1];
-
-      setupTool.getClusterManagementTool().addAlert(clusterName, alertName);
-    } else if (cmd.hasOption(dropStat)) {
-      String clusterName = cmd.getOptionValues(dropStat)[0];
-      String statName = cmd.getOptionValues(dropStat)[1];
-
-      setupTool.getClusterManagementTool().dropStat(clusterName, statName);
-    } else if (cmd.hasOption(dropAlert)) {
-      String clusterName = cmd.getOptionValues(dropAlert)[0];
-      String alertName = cmd.getOptionValues(dropAlert)[1];
-
-      setupTool.getClusterManagementTool().dropAlert(clusterName, alertName);
     } else if (cmd.hasOption(dropResource)) {
       String clusterName = cmd.getOptionValues(dropResource)[0];
       String resourceName = cmd.getOptionValues(dropResource)[1];

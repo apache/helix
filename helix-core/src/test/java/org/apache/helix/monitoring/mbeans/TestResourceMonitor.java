@@ -22,21 +22,13 @@ package org.apache.helix.monitoring.mbeans;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
-import org.apache.helix.Mocks;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.monitoring.mbeans.ResourceMonitor;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
-import org.testng.AssertJUnit;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestResourceMonitor {
@@ -45,108 +37,53 @@ public class TestResourceMonitor {
   int _replicas = 3;
   int _partitions = 50;
 
-  class MockHelixManager extends Mocks.MockManager {
-    class MockDataAccessor extends Mocks.MockAccessor {
-      @Override
-      public <T extends HelixProperty> List<T> getChildValues(PropertyKey key) {
-        List<T> result = new ArrayList<T>();
-        PropertyType type = key.getType();
-        Class<? extends HelixProperty> clazz = key.getTypeClass();
-        if (type == PropertyType.EXTERNALVIEW) {
-          HelixProperty typedInstance = HelixProperty.convertToTypedInstance(clazz, _externalView);
-          result.add((T) typedInstance);
-          return result;
-        } else if (type == PropertyType.LIVEINSTANCES) {
-          return (List<T>) HelixProperty.convertToTypedList(clazz, _liveInstances);
-        }
-
-        return result;
-      }
-
-      @Override
-      public <T extends HelixProperty> T getProperty(PropertyKey key) {
-        PropertyType type = key.getType();
-        if (type == PropertyType.EXTERNALVIEW) {
-          return (T) new ExternalView(_externalView);
-        } else if (type == PropertyType.IDEALSTATES) {
-          return (T) new IdealState(_idealState);
-        }
-        return null;
-      }
-    }
-
-    HelixDataAccessor _accessor = new MockDataAccessor();
-    ZNRecord _idealState;
-    ZNRecord _externalView;
-    List<String> _instances;
-    List<ZNRecord> _liveInstances;
-    String _db = "DB";
-
-    public MockHelixManager() {
-      _liveInstances = new ArrayList<ZNRecord>();
-      _instances = new ArrayList<String>();
-      for (int i = 0; i < 5; i++) {
-        String instance = "localhost_" + (12918 + i);
-        _instances.add(instance);
-        ZNRecord metaData = new ZNRecord(instance);
-        metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), UUID.randomUUID()
-            .toString());
-
-      }
-      _idealState =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas,
-              _dbName, "MASTER", "SLAVE");
-      _externalView = new ZNRecord(_idealState);
-    }
-
-    @Override
-    public HelixDataAccessor getHelixDataAccessor() {
-      return _accessor;
-    }
-
-  }
-
   @Test()
-  public void TestReportData() {
-    MockHelixManager manager = new MockHelixManager();
+  public void testReportData() {
+    final int n = 5;
     ResourceMonitor monitor = new ResourceMonitor(_clusterName, _dbName);
 
-    HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = helixDataAccessor.keyBuilder();
-    ExternalView externalView = helixDataAccessor.getProperty(keyBuilder.externalView(_dbName));
-    IdealState idealState = helixDataAccessor.getProperty(keyBuilder.idealStates(_dbName));
-
-    monitor.updateExternalView(externalView, idealState);
-
-    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
-    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
-    monitor.getBeanName();
-
-    int n = 4;
+    List<String> instances = new ArrayList<String>();
     for (int i = 0; i < n; i++) {
+      String instance = "localhost_" + (12918 + i);
+      instances.add(instance);
+    }
+
+    ZNRecord idealStateRecord =
+        DefaultIdealStateCalculator.calculateIdealState(instances, _partitions, _replicas, _dbName,
+            "MASTER", "SLAVE");
+    IdealState idealState = new IdealState(idealStateRecord);
+    ExternalView externalView = new ExternalView(idealStateRecord);
+
+    monitor.updateResource(externalView, idealState);
+
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
+    Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
+    Assert.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
+    Assert.assertEquals(monitor.getPartitionGauge(), _partitions);
+    // monitor.getBeanName();
+
+    final int m = n - 1;
+    for (int i = 0; i < m; i++) {
       Map<String, String> map = externalView.getStateMap(_dbName + "_" + 3 * i);
       String key = map.keySet().toArray()[0].toString();
       map.put(key, "ERROR");
       externalView.setStateMap(_dbName + "_" + 3 * i, map);
     }
 
-    monitor.updateExternalView(externalView, idealState);
-    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
-    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), n);
-    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
-    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
+    monitor.updateResource(externalView, idealState);
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
+    Assert.assertEquals(monitor.getErrorPartitionGauge(), m);
+    Assert.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
+    Assert.assertEquals(monitor.getPartitionGauge(), _partitions);
 
-    n = 5;
     for (int i = 0; i < n; i++) {
       externalView.getRecord().getMapFields().remove(_dbName + "_" + 4 * i);
     }
 
-    monitor.updateExternalView(externalView, idealState);
-    AssertJUnit.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n * (_replicas + 1));
-    AssertJUnit.assertEquals(monitor.getErrorPartitionGauge(), 3);
-    AssertJUnit.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions - n);
-    AssertJUnit.assertEquals(monitor.getPartitionGauge(), _partitions);
+    monitor.updateResource(externalView, idealState);
+    Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n * (_replicas + 1));
+    Assert.assertEquals(monitor.getErrorPartitionGauge(), 3);
+    Assert.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions - n);
+    Assert.assertEquals(monitor.getPartitionGauge(), _partitions);
   }
 }

@@ -33,6 +33,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -60,7 +61,14 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
 
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(event, resourceMap, currentStateOutput);
-    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+
+    ClusterStatusMonitor clusterStatusMonitor =
+        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.setPerInstanceResourceStatus(bestPossibleStateOutput,
+          cache.getInstanceConfigMap(), resourceMap, cache.getStateModelDefMap());
+    }
 
     long endTime = System.currentTimeMillis();
     logger.info("END BestPossibleStateCalcStage.process(). took: " + (endTime - startTime) + " ms");

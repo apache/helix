@@ -22,36 +22,51 @@ package org.apache.helix.controller.stages;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.model.Partition;
 
 public class BestPossibleStateOutput {
-  // resource->partition->instance->state
-  Map<String, Map<Partition, Map<String, String>>> _dataMap;
+  // Map of resource->partition->instance->state
+  Map<String, Map<Partition, Map<String, String>>> _stateMap;
 
   public BestPossibleStateOutput() {
-    _dataMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+    _stateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+  }
+
+  public Set<String> resourceSet() {
+    return _stateMap.keySet();
   }
 
   public void setState(String resourceName, Partition resource,
       Map<String, String> bestInstanceStateMappingForResource) {
-    if (!_dataMap.containsKey(resourceName)) {
-      _dataMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+    if (!_stateMap.containsKey(resourceName)) {
+      _stateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
     }
-    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+    Map<Partition, Map<String, String>> map = _stateMap.get(resourceName);
     map.put(resource, bestInstanceStateMappingForResource);
   }
 
-  public Map<String, String> getInstanceStateMap(String resourceName, Partition resource) {
-    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+  public void setState(String resourceName, Partition partition, String instance, String state) {
+    if (!_stateMap.containsKey(resourceName)) {
+      _stateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+    }
+    if (!_stateMap.get(resourceName).containsKey(partition)) {
+      _stateMap.get(resourceName).put(partition, new HashMap<String, String>());
+    }
+    _stateMap.get(resourceName).get(partition).put(instance, state);
+  }
+
+  public Map<String, String> getInstanceStateMap(String resourceName, Partition partition) {
+    Map<Partition, Map<String, String>> map = _stateMap.get(resourceName);
     if (map != null) {
-      return map.get(resource);
+      return map.get(partition);
     }
     return Collections.emptyMap();
   }
 
   public Map<Partition, Map<String, String>> getResourceMap(String resourceName) {
-    Map<Partition, Map<String, String>> map = _dataMap.get(resourceName);
+    Map<Partition, Map<String, String>> map = _stateMap.get(resourceName);
     if (map != null) {
       return map;
     }
@@ -59,11 +74,11 @@ public class BestPossibleStateOutput {
   }
 
   public Map<String, Map<Partition, Map<String, String>>> getStateMap() {
-    return _dataMap;
+    return _stateMap;
   }
 
   @Override
   public String toString() {
-    return _dataMap.toString();
+    return _stateMap.toString();
   }
 }

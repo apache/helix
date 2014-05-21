@@ -110,7 +110,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         if (clusterStatusMonitor != null
             && !idealState.getStateModelDefRef().equalsIgnoreCase(
                 DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          clusterStatusMonitor.onExternalViewChange(view,
+          clusterStatusMonitor.setResourceStatus(view,
               cache._idealStateMap.get(view.getResourceName()));
         }
       }

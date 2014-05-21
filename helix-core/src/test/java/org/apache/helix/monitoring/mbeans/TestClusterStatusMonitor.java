@@ -19,101 +19,145 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.ArrayList;
+import java.lang.management.ManagementFactory;
 import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
-import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.Mocks;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyType;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.tools.DefaultIdealStateCalculator;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+
+import org.apache.helix.TestHelper;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.tools.StateModelConfigGenerator;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.beust.jcommander.internal.Maps;
+
 public class TestClusterStatusMonitor {
-  List<String> _instances;
-  List<ZNRecord> _liveInstances;
-  String _db = "DB";
-  String _db2 = "TestDB";
-  int _replicas = 3;
-  int _partitions = 50;
-  ZNRecord _externalView, _externalView2;
-
-  class MockDataAccessor extends Mocks.MockAccessor {
-    public MockDataAccessor() {
-      _instances = new ArrayList<String>();
-      for (int i = 0; i < 5; i++) {
-        String instance = "localhost_" + (12918 + i);
-        _instances.add(instance);
-      }
-      ZNRecord externalView =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
-              "MASTER", "SLAVE");
-
-      ZNRecord externalView2 =
-          DefaultIdealStateCalculator.calculateIdealState(_instances, 80, 2, _db2, "MASTER",
-              "SLAVE");
-
-    }
-
-    public ZNRecord getProperty(PropertyType type, String resource) {
-      if (type == PropertyType.IDEALSTATES || type == PropertyType.EXTERNALVIEW) {
-        if (resource.equals(_db)) {
-          return _externalView;
-        } else if (resource.equals(_db2)) {
-          return _externalView2;
-        }
-      }
-      return null;
-    }
-  }
-
-  class MockHelixManager extends Mocks.MockManager {
-    MockDataAccessor _accessor = new MockDataAccessor();
-
-    @Override
-    public HelixDataAccessor getHelixDataAccessor() {
-      return _accessor;
-    }
-
-  }
+  private static final MBeanServerConnection _server = ManagementFactory.getPlatformMBeanServer();
 
   @Test()
-  public void TestReportData() {
-    System.out.println("START TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
-    List<String> _instances;
-    List<ZNRecord> _liveInstances = new ArrayList<ZNRecord>();
-    String _db = "DB";
-    int _replicas = 3;
-    int _partitions = 50;
+  public void testReportData() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    int n = 5;
+    String testDB = "TestDB";
+    String testDB_0 = testDB + "_0";
 
-    _instances = new ArrayList<String>();
-    for (int i = 0; i < 5; i++) {
-      String instance = "localhost_" + (12918 + i);
-      _instances.add(instance);
-      ZNRecord metaData = new ZNRecord(instance);
-      metaData.setSimpleField(LiveInstanceProperty.SESSION_ID.toString(), UUID.randomUUID()
-          .toString());
-      _liveInstances.add(metaData);
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    ClusterStatusMonitor monitor = new ClusterStatusMonitor(clusterName);
+    ObjectName clusterMonitorObjName = monitor.getObjectName(monitor.clusterBeanName());
+    try {
+      _server.getMBeanInfo(clusterMonitorObjName);
+    } catch (Exception e) {
+      Assert.fail("Fail to register ClusterStatusMonitor");
     }
-    ZNRecord externalView =
-        DefaultIdealStateCalculator.calculateIdealState(_instances, _partitions, _replicas, _db,
-            "MASTER", "SLAVE");
 
-    ZNRecord externalView2 =
-        DefaultIdealStateCalculator.calculateIdealState(_instances, 80, 2, "TestDB", "MASTER",
-            "SLAVE");
+    // Test #setPerInstanceResourceStatus()
+    BestPossibleStateOutput bestPossibleStates = new BestPossibleStateOutput();
+    bestPossibleStates.setState(testDB, new Partition(testDB_0), "localhost_12918", "MASTER");
+    bestPossibleStates.setState(testDB, new Partition(testDB_0), "localhost_12919", "SLAVE");
+    bestPossibleStates.setState(testDB, new Partition(testDB_0), "localhost_12920", "SLAVE");
+    bestPossibleStates.setState(testDB, new Partition(testDB_0), "localhost_12921", "OFFLINE");
+    bestPossibleStates.setState(testDB, new Partition(testDB_0), "localhost_12922", "DROPPED");
 
-    List<ZNRecord> externalViews = new ArrayList<ZNRecord>();
-    externalViews.add(externalView);
-    externalViews.add(externalView2);
+    Map<String, InstanceConfig> instanceConfigMap = Maps.newHashMap();
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+      InstanceConfig config = new InstanceConfig(instanceName);
+      instanceConfigMap.put(instanceName, config);
+    }
 
-    ClusterStatusMonitor monitor = new ClusterStatusMonitor("cluster1");
-    MockHelixManager manager = new MockHelixManager();
-    NotificationContext context = new NotificationContext(manager);
-    System.out.println("END TestClusterStatusMonitor at" + new Date(System.currentTimeMillis()));
+    Map<String, Resource> resourceMap = Maps.newHashMap();
+    Resource db = new Resource(testDB);
+    db.setStateModelDefRef("MasterSlave");
+    db.addPartition(testDB_0);
+    resourceMap.put(testDB, db);
+
+    Map<String, StateModelDefinition> stateModelDefMap = Maps.newHashMap();
+    StateModelDefinition msStateModelDef =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
+    stateModelDefMap.put("MasterSlave", msStateModelDef);
+
+    monitor.setPerInstanceResourceStatus(bestPossibleStates, instanceConfigMap, resourceMap,
+        stateModelDefMap);
+
+    // localhost_12918 should have 1 partition because it's MASTER
+    ObjectName objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12918", testDB));
+    Object value = _server.getAttribute(objName, "PartitionGauge");
+    Assert.assertTrue(value instanceof Long);
+    Assert.assertEquals((Long) value, new Long(1));
+    value = _server.getAttribute(objName, "SensorName");
+    Assert.assertTrue(value instanceof String);
+    Assert.assertEquals((String) value, String.format("%s.%s.%s.%s.%s",
+        ClusterStatusMonitor.PARTICIPANT_STATUS_KEY, clusterName, ClusterStatusMonitor.DEFAULT_TAG,
+        "localhost_12918", testDB));
+
+    // localhost_12919 should have 1 partition because it's SLAVE
+    objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12919", testDB));
+    value = _server.getAttribute(objName, "PartitionGauge");
+    Assert.assertTrue(value instanceof Long);
+    Assert.assertEquals((Long) value, new Long(1));
+
+    // localhost_12921 should have 0 partition because it's OFFLINE
+    objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12921", testDB));
+    value = _server.getAttribute(objName, "PartitionGauge");
+    Assert.assertTrue(value instanceof Long);
+    Assert.assertEquals((Long) value, new Long(0));
+
+    // localhost_12922 should have 0 partition because it's DROPPED
+    objName =
+        monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12922", testDB));
+    value = _server.getAttribute(objName, "PartitionGauge");
+    Assert.assertTrue(value instanceof Long);
+    Assert.assertEquals((Long) value, new Long(0));
+
+    // Missing localhost_12918 in best possible ideal-state should remove it from mbean
+    bestPossibleStates.getInstanceStateMap(testDB, new Partition(testDB_0)).remove(
+        "localhost_12918");
+    monitor.setPerInstanceResourceStatus(bestPossibleStates, instanceConfigMap, resourceMap,
+        stateModelDefMap);
+    try {
+      objName =
+          monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12918", testDB));
+      _server.getMBeanInfo(objName);
+      Assert.fail("Fail to unregister PerInstanceResource mbean for localhost_12918");
+
+    } catch (InstanceNotFoundException e) {
+      // OK
+    }
+
+    // Clean up
+    monitor.reset();
+
+    try {
+      objName =
+          monitor.getObjectName(monitor.getPerInstanceResourceBeanName("localhost_12920", testDB));
+      _server.getMBeanInfo(objName);
+      Assert.fail("Fail to unregister PerInstanceResource mbean for localhost_12920");
+
+    } catch (InstanceNotFoundException e) {
+      // OK
+    }
+
+    try {
+      _server.getMBeanInfo(clusterMonitorObjName);
+      Assert.fail("Fail to unregister ClusterStatusMonitor");
+    } catch (InstanceNotFoundException e) {
+      // OK
+    }
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

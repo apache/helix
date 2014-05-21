@@ -54,8 +54,8 @@ public class InstanceMonitor implements InstanceMonitorMBean {
 
   @Override
   public String getSensorName() {
-    return ClusterStatusMonitor.PARTICIPANT_STATUS_KEY + "." + _clusterName + "."
-        + serializedTags() + "." + _participantName;
+    return String.format("%s.%s.%s.%s", ClusterStatusMonitor.PARTICIPANT_STATUS_KEY, _clusterName,
+        serializedTags(), _participantName);
   }
 
   @Override

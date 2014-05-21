@@ -236,7 +236,8 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
           ConstraintBasedAssignment.getPreferenceList(cache, partition, idealState, stateModelDef);
       Map<String, String> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, stateModelDef,
-              preferenceList, currentStateMap, disabledInstancesForPartition);
+              preferenceList, currentStateMap, disabledInstancesForPartition,
+              idealState.isEnabled());
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

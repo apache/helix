@@ -114,6 +114,13 @@ public class ResourceGroupResource extends ServerResource {
         ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool()
             .resetResource(clusterName, Arrays.asList(resourceName));
+      } else if (command.equalsIgnoreCase(ClusterSetup.enableResource)) {
+        jsonParameters.verifyCommand(ClusterSetup.enableResource);
+        boolean enabled = Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
+        ZkClient zkClient =
+            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+        ClusterSetup setupTool = new ClusterSetup(zkClient);
+        setupTool.getClusterManagementTool().enableResource(clusterName, resourceName, enabled);
       } else {
         throw new HelixException("Unsupported command: " + command + ". Should be one of ["
             + ClusterSetup.resetResource + "]");

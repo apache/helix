@@ -77,7 +77,7 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
           idealState.getInstanceStateMap(partition.getPartitionName());
       Map<String, String> bestStateForPartition =
           computeCustomizedBestStateForPartition(cache, stateModelDef, idealStateMap,
-              currentStateMap, disabledInstancesForPartition);
+              currentStateMap, disabledInstancesForPartition, idealState.isEnabled());
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -90,11 +90,13 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
    * @param idealStateMap
    * @param currentStateMap
    * @param disabledInstancesForPartition
+   * @param isResourceEnabled
    * @return
    */
   private Map<String, String> computeCustomizedBestStateForPartition(ClusterDataCache cache,
       StateModelDefinition stateModelDef, Map<String, String> idealStateMap,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition) {
+      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
+      boolean isResourceEnabled) {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
     // if the ideal state is deleted, idealStateMap will be null/empty and
@@ -102,12 +104,12 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
     if (currentStateMap != null) {
       for (String instance : currentStateMap.keySet()) {
         if ((idealStateMap == null || !idealStateMap.containsKey(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
+            && !disabledInstancesForPartition.contains(instance) && isResourceEnabled) {
           // if dropped and not disabled, transit to DROPPED
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.toString()))
-            && disabledInstancesForPartition.contains(instance)) {
+            HelixDefinedState.ERROR.name()))
+            && (!isResourceEnabled || disabledInstancesForPartition.contains(instance))) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
@@ -125,8 +127,9 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
           currentStateMap == null || currentStateMap.get(instance) == null
               || !currentStateMap.get(instance).equals(HelixDefinedState.ERROR.toString());
 
-      if (liveInstancesMap.containsKey(instance) && notInErrorState
-          && !disabledInstancesForPartition.contains(instance)) {
+      boolean enabled = !disabledInstancesForPartition.contains(instance) && isResourceEnabled;
+
+      if (liveInstancesMap.containsKey(instance) && notInErrorState && enabled) {
         instanceStateMap.put(instance, idealStateMap.get(instance));
       }
     }

@@ -35,7 +35,8 @@ import com.google.common.collect.Maps;
 public class TaskConfig {
   private enum TaskConfigFields {
     TASK_ID,
-    TASK_COMMAND
+    TASK_COMMAND,
+    TASK_SUCCESS_OPTIONAL
   }
 
   private static final Logger LOG = Logger.getLogger(TaskConfig.class);
@@ -46,9 +47,12 @@ public class TaskConfig {
    * Instantiate the task config
    * @param command the command to invoke for the task
    * @param configMap configuration to be passed as part of the invocation
+   * @param successOptional true if this task need not pass for the job to succeed, false
+   *          otherwise
    * @param id existing task ID
    */
-  public TaskConfig(String command, Map<String, String> configMap, String id) {
+  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional,
+      String id) {
     if (configMap == null) {
       configMap = Maps.newHashMap();
     }
@@ -56,6 +60,8 @@ public class TaskConfig {
       id = UUID.randomUUID().toString();
     }
     configMap.put(TaskConfigFields.TASK_COMMAND.toString(), command);
+    configMap.put(TaskConfigFields.TASK_SUCCESS_OPTIONAL.toString(),
+        Boolean.toString(successOptional));
     configMap.put(TaskConfigFields.TASK_ID.toString(), id);
     _configMap = configMap;
   }
@@ -64,9 +70,11 @@ public class TaskConfig {
    * Instantiate the task config
    * @param command the command to invoke for the task
    * @param configMap configuration to be passed as part of the invocation
+   * @param successOptional true if this task need not pass for the job to succeed, false
+   *          otherwise
    */
-  public TaskConfig(String command, Map<String, String> configMap) {
-    this(command, configMap, null);
+  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional) {
+    this(command, configMap, successOptional, null);
   }
 
   /**
@@ -83,6 +91,19 @@ public class TaskConfig {
    */
   public String getCommand() {
     return _configMap.get(TaskConfigFields.TASK_COMMAND.toString());
+  }
+
+  /**
+   * Check if this task must succeed for a job to succeed
+   * @return true if success is optional, false otherwise
+   */
+  public boolean isSuccessOptional() {
+    String successOptionalStr = _configMap.get(TaskConfigFields.TASK_SUCCESS_OPTIONAL.toString());
+    if (successOptionalStr == null) {
+      return false;
+    } else {
+      return Boolean.parseBoolean(successOptionalStr);
+    }
   }
 
   /**
@@ -110,7 +131,7 @@ public class TaskConfig {
    * @return instantiated TaskConfig
    */
   public static TaskConfig from(TaskBean bean) {
-    return new TaskConfig(bean.command, bean.taskConfigMap);
+    return new TaskConfig(bean.command, bean.taskConfigMap, bean.successOptional);
   }
 
   /**
@@ -121,6 +142,9 @@ public class TaskConfig {
   public static TaskConfig from(Map<String, String> rawConfigMap) {
     String taskId = rawConfigMap.get(TaskConfigFields.TASK_ID.toString());
     String command = rawConfigMap.get(TaskConfigFields.TASK_COMMAND.toString());
-    return new TaskConfig(command, rawConfigMap, taskId);
+    String successOptionalStr = rawConfigMap.get(TaskConfigFields.TASK_SUCCESS_OPTIONAL.toString());
+    boolean successOptional =
+        (successOptionalStr != null) ? Boolean.valueOf(successOptionalStr) : null;
+    return new TaskConfig(command, rawConfigMap, successOptional, taskId);
   }
 }

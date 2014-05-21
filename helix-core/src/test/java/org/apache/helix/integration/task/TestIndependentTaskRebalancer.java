@@ -40,6 +40,7 @@ import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
+import org.apache.helix.task.TaskResult.Status;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.Workflow;
@@ -50,6 +51,7 @@ import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 import org.testng.collections.Sets;
 
+import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
@@ -130,8 +132,63 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", null);
-    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", null, true);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, true);
+    taskConfigs.add(taskConfig1);
+    taskConfigs.add(taskConfig2);
+    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
+    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
+    Map<String, String> jobConfigMap = Maps.newHashMap();
+    jobConfigMap.put("Timeout", "1000");
+    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    _driver.start(workflowBuilder.build());
+
+    // Ensure the job completes
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+
+    // Ensure that each class was invoked
+    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
+    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
+  }
+
+  @Test
+  public void testThresholdFailure() throws Exception {
+    // Create a job with two different tasks
+    String jobName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
+    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true));
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
+    taskConfigs.add(taskConfig1);
+    taskConfigs.add(taskConfig2);
+    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
+    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
+    workflowBuilder.addConfig(jobName, JobConfig.FAILURE_THRESHOLD, "" + 1);
+    Map<String, String> jobConfigMap = Maps.newHashMap();
+    jobConfigMap.put("Timeout", "1000");
+    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    _driver.start(workflowBuilder.build());
+
+    // Ensure the job completes
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+
+    // Ensure that each class was invoked
+    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
+    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
+  }
+
+  @Test
+  public void testOptionalTaskFailure() throws Exception {
+    // Create a job with two different tasks
+    String jobName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
+    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true));
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, true);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
     workflowBuilder.addTaskConfigs(jobName, taskConfigs);
@@ -151,13 +208,33 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   }
 
   private class TaskOne extends ReindexTask {
+    private final boolean _shouldFail;
+
     public TaskOne(TaskCallbackContext context) {
       super(context);
+
+      // Check whether or not this task should succeed
+      TaskConfig taskConfig = context.getTaskConfig();
+      boolean shouldFail = false;
+      if (taskConfig != null) {
+        Map<String, String> configMap = taskConfig.getConfigMap();
+        if (configMap != null && configMap.containsKey("fail")
+            && Boolean.parseBoolean(configMap.get("fail"))) {
+          shouldFail = true;
+        }
+      }
+      _shouldFail = shouldFail;
     }
 
     @Override
     public TaskResult run() {
       _invokedClasses.add(getClass().getName());
+
+      // Fail the task if it should fail
+      if (_shouldFail) {
+        return new TaskResult(Status.ERROR, null);
+      }
+
       return super.run();
     }
   }

@@ -169,6 +169,8 @@ public class Workflow {
           String.valueOf(job.numConcurrentTasksPerInstance));
       builder.addConfig(job.name, JobConfig.TIMEOUT_PER_TASK,
           String.valueOf(job.timeoutPerPartition));
+      builder
+          .addConfig(job.name, JobConfig.FAILURE_THRESHOLD, String.valueOf(job.failureThreshold));
       if (job.tasks != null) {
         List<TaskConfig> taskConfigs = Lists.newArrayList();
         for (TaskBean task : job.tasks) {

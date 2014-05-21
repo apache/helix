@@ -120,7 +120,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       partitionMapping.addReplicaMap(partitionId, ConstraintBasedAssignment
           .computeAutoBestStateForPartition(upperBounds, cluster.getLiveParticipantMap().keySet(),
               stateModelDef, null, currentStateOutput.getCurrentStateMap(resourceId, partitionId),
-              disabledParticipantsForPartition));
+              disabledParticipantsForPartition, true));
     }
     return partitionMapping;
   }
@@ -163,7 +163,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       Set<ParticipantId> participants = participantStateMap.keySet();
       Map<ParticipantId, State> droppedAndDisabledMap =
           ConstraintBasedAssignment.dropAndDisablePartitions(currentStateMap, participants,
-              disabledParticipants, initialState);
+              disabledParticipants, true, initialState);
 
       // don't map error participants
       for (ParticipantId participantId : errorParticipants) {

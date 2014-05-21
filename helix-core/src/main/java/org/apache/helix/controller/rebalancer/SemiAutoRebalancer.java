@@ -15,6 +15,7 @@ import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -55,6 +56,8 @@ public class SemiAutoRebalancer implements HelixRebalancer {
       ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
     SemiAutoRebalancerConfig config =
         BasicRebalancerConfig.convert(rebalancerConfig, SemiAutoRebalancerConfig.class);
+    IdealState idealState = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+    boolean isEnabled = (idealState != null) ? idealState.isEnabled() : true;
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
@@ -77,7 +80,7 @@ public class SemiAutoRebalancer implements HelixRebalancer {
       Map<ParticipantId, State> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, cluster
               .getLiveParticipantMap().keySet(), stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition);
+              disabledInstancesForPartition, isEnabled);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

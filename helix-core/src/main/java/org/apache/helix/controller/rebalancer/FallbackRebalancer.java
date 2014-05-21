@@ -160,7 +160,7 @@ public class FallbackRebalancer implements HelixRebalancer {
             ConstraintBasedAssignment.computeCustomizedBestStateForPartition(cluster
                 .getLiveParticipantMap().keySet(), stateModelDef, newIdealState
                 .getParticipantStateMap(partitionId), currentState.getCurrentStateMap(resourceId,
-                partitionId), disabledParticipants);
+                partitionId), disabledParticipants, idealState.isEnabled());
         assignment.addReplicaMap(partitionId, replicaMap);
       }
     } else {
@@ -176,7 +176,7 @@ public class FallbackRebalancer implements HelixRebalancer {
             ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, cluster
                 .getLiveParticipantMap().keySet(), stateModelDef, newIdealState
                 .getPreferenceList(partitionId), currentState.getCurrentStateMap(resourceId,
-                partitionId), disabledParticipants);
+                partitionId), disabledParticipants, idealState.isEnabled());
         assignment.addReplicaMap(partitionId, replicaMap);
       }
     }

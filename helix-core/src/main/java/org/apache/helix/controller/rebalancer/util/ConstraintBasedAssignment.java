@@ -117,23 +117,24 @@ public class ConstraintBasedAssignment {
    * @param participants participants selected to serve the partition
    * @param disabledParticipants participants that have been disabled for this partition
    * @param initialState the initial state of the resource state model
+   * @param isEnabled true if resource is enabled, false otherwise
    * @return map of participant id to state of dropped and disabled partitions
    */
   public static Map<ParticipantId, State> dropAndDisablePartitions(
       Map<ParticipantId, State> currentStateMap, Collection<ParticipantId> participants,
-      Set<ParticipantId> disabledParticipants, State initialState) {
+      Set<ParticipantId> disabledParticipants, boolean isEnabled, State initialState) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
     // if the resource is deleted, instancePreferenceList will be empty and
     // we should drop all resources.
     if (currentStateMap != null) {
       for (ParticipantId participantId : currentStateMap.keySet()) {
         if ((participants == null || !participants.contains(participantId))
-            && !disabledParticipants.contains(participantId)) {
+            && !disabledParticipants.contains(participantId) && isEnabled) {
           // if dropped and not disabled, transit to DROPPED
           participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
         } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
             participantId).equals(State.from(HelixDefinedState.ERROR)))
-            && disabledParticipants.contains(participantId)) {
+            && (disabledParticipants.contains(participantId) || !isEnabled)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           participantStateMap.put(participantId, initialState);
         }
@@ -151,16 +152,18 @@ public class ConstraintBasedAssignment {
    * @param currentStateMap
    *          : participant->state for each partition
    * @param disabledParticipantsForPartition
+   * @param isEnabled true if resource is enabled, false if disabled
    * @return
    */
   public static Map<ParticipantId, State> computeAutoBestStateForPartition(
       Map<State, String> upperBounds, Set<ParticipantId> liveParticipantSet,
       StateModelDefinition stateModelDef, List<ParticipantId> participantPreferenceList,
-      Map<ParticipantId, State> currentStateMap, Set<ParticipantId> disabledParticipantsForPartition) {
+      Map<ParticipantId, State> currentStateMap,
+      Set<ParticipantId> disabledParticipantsForPartition, boolean isEnabled) {
     // drop and disable participants if necessary
     Map<ParticipantId, State> participantStateMap =
         dropAndDisablePartitions(currentStateMap, participantPreferenceList,
-            disabledParticipantsForPartition, stateModelDef.getTypedInitialState());
+            disabledParticipantsForPartition, isEnabled, stateModelDef.getTypedInitialState());
 
     // resource is deleted
     if (participantPreferenceList == null) {
@@ -176,7 +179,7 @@ public class ConstraintBasedAssignment {
       if ("N".equals(num)) {
         Set<ParticipantId> liveAndEnabled = new HashSet<ParticipantId>(liveParticipantSet);
         liveAndEnabled.removeAll(disabledParticipantsForPartition);
-        stateCount = liveAndEnabled.size();
+        stateCount = isEnabled ? liveAndEnabled.size() : 0;
       } else if ("R".equals(num)) {
         stateCount = participantPreferenceList.size();
       } else {
@@ -198,7 +201,7 @@ public class ConstraintBasedAssignment {
                       .equals(State.from(HelixDefinedState.ERROR));
 
           if (liveParticipantSet.contains(participantId) && !assigned[i] && notInErrorState
-              && !disabledParticipantsForPartition.contains(participantId)) {
+              && !disabledParticipantsForPartition.contains(participantId) && isEnabled) {
             participantStateMap.put(participantId, state);
             count = count + 1;
             assigned[i] = true;
@@ -268,12 +271,13 @@ public class ConstraintBasedAssignment {
    * @param preferenceMap
    * @param currentStateMap
    * @param disabledParticipantsForPartition
+   * @param isEnabled
    * @return
    */
   public static Map<ParticipantId, State> computeCustomizedBestStateForPartition(
       Set<ParticipantId> liveParticipantSet, StateModelDefinition stateModelDef,
       Map<ParticipantId, State> preferenceMap, Map<ParticipantId, State> currentStateMap,
-      Set<ParticipantId> disabledParticipantsForPartition) {
+      Set<ParticipantId> disabledParticipantsForPartition, boolean isEnabled) {
     Map<ParticipantId, State> participantStateMap = new HashMap<ParticipantId, State>();
 
     // if the resource is deleted, idealStateMap will be null/empty and
@@ -281,12 +285,12 @@ public class ConstraintBasedAssignment {
     if (currentStateMap != null) {
       for (ParticipantId participantId : currentStateMap.keySet()) {
         if ((preferenceMap == null || !preferenceMap.containsKey(participantId))
-            && !disabledParticipantsForPartition.contains(participantId)) {
+            && !disabledParticipantsForPartition.contains(participantId) && isEnabled) {
           // if dropped and not disabled, transit to DROPPED
           participantStateMap.put(participantId, State.from(HelixDefinedState.DROPPED));
         } else if ((currentStateMap.get(participantId) == null || !currentStateMap.get(
             participantId).equals(State.from(HelixDefinedState.ERROR)))
-            && disabledParticipantsForPartition.contains(participantId)) {
+            && (disabledParticipantsForPartition.contains(participantId) || !isEnabled)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           participantStateMap.put(participantId, stateModelDef.getTypedInitialState());
         }
@@ -304,7 +308,7 @@ public class ConstraintBasedAssignment {
               || !currentStateMap.get(participantId).equals(State.from(HelixDefinedState.ERROR));
 
       if (liveParticipantSet.contains(participantId) && notInErrorState
-          && !disabledParticipantsForPartition.contains(participantId)) {
+          && !disabledParticipantsForPartition.contains(participantId) && isEnabled) {
         participantStateMap.put(participantId, preferenceMap.get(participantId));
       }
     }

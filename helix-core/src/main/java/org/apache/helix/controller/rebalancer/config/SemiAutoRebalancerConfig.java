@@ -116,7 +116,7 @@ public final class SemiAutoRebalancerConfig extends PartitionedRebalancerConfig 
         Map<ParticipantId, State> emptyCurrentState = Collections.emptyMap();
         Map<ParticipantId, State> initialMap =
             ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds, participantSet,
-                stateModelDef, preferenceList, emptyCurrentState, disabledParticipants);
+                stateModelDef, preferenceList, emptyCurrentState, disabledParticipants, true);
         currentMapping.put(partitionId, initialMap);
       }
     }

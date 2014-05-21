@@ -177,6 +177,13 @@ public interface HelixAdmin {
   void enableInstance(String clusterName, String instanceName, boolean enabled);
 
   /**
+   * Disable or enable a resource
+   * @param clusterName
+   * @param resourceName
+   */
+  void enableResource(String clusterName, String resourceName, boolean enabled);
+
+  /**
    * Disable or enable a list of partitions on an instance
    * @param enabled
    * @param clusterName

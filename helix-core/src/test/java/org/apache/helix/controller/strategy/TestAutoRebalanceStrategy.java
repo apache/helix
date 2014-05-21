@@ -239,7 +239,7 @@ public class TestAutoRebalanceStrategy {
         Map<ParticipantId, State> assignment =
             ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
                 liveParticipantSet, _stateModelDef, preferenceList, currentStateMap,
-                disabledParticipantsForPartition);
+                disabledParticipantsForPartition, true);
         mapResult.put(partition, IdealState.stringMapFromParticipantStateMap(assignment));
       }
       return mapResult;

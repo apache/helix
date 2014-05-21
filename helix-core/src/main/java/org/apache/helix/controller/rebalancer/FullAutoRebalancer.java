@@ -25,6 +25,7 @@ import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -67,6 +68,8 @@ public class FullAutoRebalancer implements HelixRebalancer {
       ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
     FullAutoRebalancerConfig config =
         BasicRebalancerConfig.convert(rebalancerConfig, FullAutoRebalancerConfig.class);
+    IdealState idealState = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+    boolean isEnabled = (idealState != null) ? idealState.isEnabled() : true;
     StateModelDefinition stateModelDef =
         cluster.getStateModelMap().get(config.getStateModelDefId());
     // Compute a preference list based on the current ideal state
@@ -176,7 +179,7 @@ public class FullAutoRebalancer implements HelixRebalancer {
           ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
               liveParticipants.keySet(), stateModelDef, preferenceList,
               currentState.getCurrentStateMap(config.getResourceId(), partition),
-              disabledParticipantsForPartition);
+              disabledParticipantsForPartition, isEnabled);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

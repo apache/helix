@@ -51,7 +51,7 @@ import org.apache.log4j.Logger;
  *  .invoke(_callback)
  *  .on(ChangeType.LIVE_INSTANCE, ChangeType.IdealState)
  *  .usingLeaderStandbyModel("someUniqueId")
- *  .run()
+ *  .start()
  * </code>
  */
 public class HelixCustomCodeRunner {
@@ -106,6 +106,15 @@ public class HelixCustomCodeRunner {
   }
 
   /**
+   * Get resource name for the custom-code runner
+   * Used for retrieving the external view for the custom-code runner resource
+   * @return resource name for the custom-code runner
+   */
+  public String getResourceName() {
+    return _resourceName;
+  }
+
+  /**
    * This method will be invoked when there is a change in any subscribed
    * notificationTypes
    * @throws Exception
@@ -127,8 +136,9 @@ public class HelixCustomCodeRunner {
       // manually add ideal state for participant leader using LeaderStandby
       // model
 
-      zkClient = new ZkClient(_zkAddr, ZkClient.DEFAULT_CONNECTION_TIMEOUT);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
+      zkClient =
+          new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
+              ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
       HelixDataAccessor accessor =
           new ZKHelixDataAccessor(_manager.getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
               zkClient));

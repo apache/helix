@@ -42,6 +42,7 @@ import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
@@ -69,6 +70,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
     Cluster cluster = event.getAttribute("Cluster");
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     if (currentStateOutput == null || resourceMap == null || cluster == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -78,6 +80,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     BestPossibleStateOutput bestPossibleStateOutput =
         compute(cluster, event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
+
+    ClusterStatusMonitor clusterStatusMonitor =
+        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.setPerInstanceResourceStatus(bestPossibleStateOutput,
+          cache.getInstanceConfigMap(), resourceMap, cache.getStateModelDefMap());
+    }
 
     long endTime = System.currentTimeMillis();
     if (LOG.isInfoEnabled()) {

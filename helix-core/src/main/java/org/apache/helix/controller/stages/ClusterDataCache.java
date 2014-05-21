@@ -79,12 +79,6 @@ public class ClusterDataCache {
 
   boolean _init = true;
 
-  // Map<String, Map<String, HealthStat>> _healthStatMap;
-  // private HealthStat _globalStats; // DON'T THINK I WILL USE THIS ANYMORE
-  // private PersistentStats _persistentStats;
-  // private Alerts _alerts;
-  // private AlertStatus _alertStatus;
-
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
   /**
@@ -334,37 +328,6 @@ public class ClusterDataCache {
     return _messageMap;
   }
 
-  // public HealthStat getGlobalStats()
-  // {
-  // return _globalStats;
-  // }
-  //
-  // public PersistentStats getPersistentStats()
-  // {
-  // return _persistentStats;
-  // }
-  //
-  // public Alerts getAlerts()
-  // {
-  // return _alerts;
-  // }
-  //
-  // public AlertStatus getAlertStatus()
-  // {
-  // return _alertStatus;
-  // }
-  //
-  // public Map<String, HealthStat> getHealthStats(String instanceName)
-  // {
-  // Map<String, HealthStat> map = _healthStatMap.get(instanceName);
-  // if (map != null)
-  // {
-  // return map;
-  // } else
-  // {
-  // return Collections.emptyMap();
-  // }
-  // }
   /**
    * Provides the state model definition for a given state model
    * @param stateModelDefRef
@@ -375,8 +338,13 @@ public class ClusterDataCache {
   }
 
   /**
+<<<<<<< HEAD
    * Get all state model definitions
    * @return map of name to state model definition
+=======
+   * Provides all state model definitions
+   * @return state model definition map
+>>>>>>> 8d5c27c... [HELIX-444] add per-participant partition count gauges to helix, rb=21419
    */
   public Map<String, StateModelDefinition> getStateModelDefMap() {
     return _stateModelDefMap;

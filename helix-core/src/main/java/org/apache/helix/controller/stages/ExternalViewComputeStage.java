@@ -35,7 +35,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.config.SchedulerTaskConfig;
@@ -46,6 +45,7 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -66,10 +66,11 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     Map<ResourceId, ResourceConfig> resourceMap =
         event.getAttribute(AttributeName.RESOURCES.toString());
     Cluster cluster = event.getAttribute("Cluster");
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
-    if (manager == null || resourceMap == null || cluster == null) {
+    if (manager == null || resourceMap == null || cluster == null || cache == null) {
       throw new StageException("Missing attributes in event:" + event
-          + ". Requires ClusterManager|RESOURCES|Cluster");
+          + ". Requires ClusterManager|RESOURCES|Cluster|ClusterDataCache");
     }
 
     HelixDataAccessor dataAccessor = manager.getHelixDataAccessor();
@@ -118,15 +119,13 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       // Update cluster status monitor mbean
       ClusterStatusMonitor clusterStatusMonitor =
           (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-      Resource currentResource = cluster.getResourceMap().get(view.getResourceId());
-      if (clusterStatusMonitor != null && currentResource != null) {
-        IdealState idealState = currentResource.getIdealState();
-        if (idealState != null) {
-          StateModelDefId stateModelDefId = idealState.getStateModelDefId();
-          if (stateModelDefId != null
-              && !stateModelDefId.equals(StateModelDefId.SchedulerTaskQueue)) {
-            clusterStatusMonitor.onExternalViewChange(view, idealState);
-          }
+      IdealState idealState = cache._idealStateMap.get(view.getResourceName());
+      if (idealState != null) {
+        if (clusterStatusMonitor != null
+            && !idealState.getStateModelDefRef().equalsIgnoreCase(
+                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+          clusterStatusMonitor.setResourceStatus(view,
+              cache._idealStateMap.get(view.getResourceName()));
         }
       }
 

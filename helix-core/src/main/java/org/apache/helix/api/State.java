@@ -47,9 +47,11 @@ public class State {
   @Override
   public boolean equals(Object that) {
     if (that instanceof State) {
-      return this.toString().equals(((State) that).toString());
+      return this.toString().equalsIgnoreCase(((State) that).toString());
     } else if (that instanceof String) {
-      return _state.equals(that);
+      return _state.equalsIgnoreCase(that.toString());
+    } else if (that instanceof HelixDefinedState) {
+      return _state.equalsIgnoreCase(that.toString());
     }
     return false;
   }

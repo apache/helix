@@ -23,6 +23,7 @@ import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -32,8 +33,18 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.api.State;
+import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Sets;
@@ -41,15 +52,15 @@ import com.google.common.collect.Sets;
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private static final Logger LOG = Logger.getLogger(ClusterStatusMonitor.class);
 
-  static final String CLUSTER_STATUS_KEY = "ClusterStatus";
+  public static final String CLUSTER_STATUS_KEY = "ClusterStatus";
   static final String MESSAGE_QUEUE_STATUS_KEY = "MessageQueueStatus";
   static final String RESOURCE_STATUS_KEY = "ResourceStatus";
-  static final String PARTICIPANT_STATUS_KEY = "ParticipantStatus";
+  public static final String PARTICIPANT_STATUS_KEY = "ParticipantStatus";
   static final String CLUSTER_DN_KEY = "cluster";
   static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
 
-  static final String DEFAULT_TAG = "DEFAULT";
+  public static final String DEFAULT_TAG = "DEFAULT";
 
   private final String _clusterName;
   private final MBeanServer _beanServer;
@@ -68,20 +79,27 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap =
       new ConcurrentHashMap<String, InstanceMonitor>();
 
+  /**
+   * PerInstanceResource bean map: beanName->bean
+   */
+  private final Map<PerInstanceResourceMonitor.BeanName, PerInstanceResourceMonitor> _perInstanceResourceMap =
+      new ConcurrentHashMap<PerInstanceResourceMonitor.BeanName, PerInstanceResourceMonitor>();
+
   public ClusterStatusMonitor(String clusterName) {
     _clusterName = clusterName;
     _beanServer = ManagementFactory.getPlatformMBeanServer();
     try {
-      register(this, getObjectName(CLUSTER_DN_KEY + "=" + _clusterName));
+      register(this, getObjectName(clusterBeanName()));
     } catch (Exception e) {
-      LOG.error("Register self failed.", e);
+      LOG.error("Fail to regiter ClusterStatusMonitor", e);
     }
   }
 
   public ObjectName getObjectName(String name) throws MalformedObjectNameException {
-    return new ObjectName(CLUSTER_STATUS_KEY + ": " + name);
+    return new ObjectName(String.format("%s: %s", CLUSTER_STATUS_KEY, name));
   }
 
+  // TODO remove getBeanName()?
   // Used by other external JMX consumers like ingraph
   public String getBeanName() {
     return CLUSTER_STATUS_KEY + " " + _clusterName;
@@ -144,10 +162,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
 
     try {
-      LOG.info("Registering " + name.toString());
+      LOG.info("Register MBean: " + name);
       _beanServer.registerMBean(bean, name);
     } catch (Exception e) {
-      LOG.warn("Could not register MBean" + name, e);
+      LOG.warn("Could not register MBean: " + name, e);
     }
   }
 
@@ -158,7 +176,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         _beanServer.unregisterMBean(name);
       }
     } catch (Exception e) {
-      LOG.warn("Could not unregister MBean" + name, e);
+      LOG.warn("Could not unregister MBean: " + name, e);
     }
   }
 
@@ -227,28 +245,98 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void onExternalViewChange(ExternalView externalView, IdealState idealState) {
+  /**
+   * Update gauges for resource at instance level
+   * @param bestPossibleStates
+   * @param resourceMap
+   * @param stateModelDefMap
+   */
+  public void setPerInstanceResourceStatus(BestPossibleStateOutput bestPossibleStates,
+      Map<String, InstanceConfig> instanceConfigMap, Map<ResourceId, ResourceConfig> resourceMap,
+      Map<String, StateModelDefinition> stateModelDefMap) {
+
+    // Convert to perInstanceResource beanName->partition->state
+    Map<PerInstanceResourceMonitor.BeanName, Map<PartitionId, State>> beanMap =
+        new HashMap<PerInstanceResourceMonitor.BeanName, Map<PartitionId, State>>();
+    for (ResourceId resource : bestPossibleStates.getAssignedResources()) {
+      ResourceAssignment assignment = bestPossibleStates.getResourceAssignment(resource);
+      for (PartitionId partition : assignment.getMappedPartitionIds()) {
+        Map<ParticipantId, State> instanceStateMap = assignment.getReplicaMap(partition);
+        for (ParticipantId instance : instanceStateMap.keySet()) {
+          State state = instanceStateMap.get(instance);
+          PerInstanceResourceMonitor.BeanName beanName =
+              new PerInstanceResourceMonitor.BeanName(instance.toString(), resource.toString());
+          if (!beanMap.containsKey(beanName)) {
+            beanMap.put(beanName, new HashMap<PartitionId, State>());
+          }
+          beanMap.get(beanName).put(partition, state);
+        }
+      }
+    }
+    // Unregister beans for per-instance resources that no longer exist
+    Set<PerInstanceResourceMonitor.BeanName> toUnregister =
+        Sets.newHashSet(_perInstanceResourceMap.keySet());
+    toUnregister.removeAll(beanMap.keySet());
+    try {
+      unregisterPerInstanceResources(toUnregister);
+    } catch (MalformedObjectNameException e) {
+      LOG.error("Fail to unregister per-instance resource from MBean server: " + toUnregister, e);
+    }
+    // Register beans for per-instance resources that are newly configured
+    Set<PerInstanceResourceMonitor.BeanName> toRegister = Sets.newHashSet(beanMap.keySet());
+    toRegister.removeAll(_perInstanceResourceMap.keySet());
+    Set<PerInstanceResourceMonitor> monitorsToRegister = Sets.newHashSet();
+    for (PerInstanceResourceMonitor.BeanName beanName : toRegister) {
+      PerInstanceResourceMonitor bean =
+          new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(),
+              beanName.resourceName());
+      StateModelDefId stateModelDefId =
+          resourceMap.get(ResourceId.from(beanName.resourceName())).getRebalancerConfig()
+              .getStateModelDefId();
+      InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
+      bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
+          stateModelDefMap.get(stateModelDefId.toString()));
+      monitorsToRegister.add(bean);
+    }
+    try {
+      registerPerInstanceResources(monitorsToRegister);
+    } catch (MalformedObjectNameException e) {
+      LOG.error("Fail to register per-instance resource with MBean server: " + toRegister, e);
+    }
+    // Update existing beans
+    for (PerInstanceResourceMonitor.BeanName beanName : _perInstanceResourceMap.keySet()) {
+      PerInstanceResourceMonitor bean = _perInstanceResourceMap.get(beanName);
+      StateModelDefId stateModelDefId =
+          resourceMap.get(ResourceId.from(beanName.resourceName())).getRebalancerConfig()
+              .getStateModelDefId();
+      InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
+      bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
+          stateModelDefMap.get(stateModelDefId.toString()));
+    }
+  }
+
+  public void setResourceStatus(ExternalView externalView, IdealState idealState) {
     try {
       String resourceName = externalView.getId();
       if (!_resourceMbeanMap.containsKey(resourceName)) {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            bean.updateExternalView(externalView, idealState);
+            bean.updateResource(externalView, idealState);
             registerResources(Arrays.asList(bean));
           }
         }
       }
       ResourceMonitor bean = _resourceMbeanMap.get(resourceName);
       String oldSensorName = bean.getSensorName();
-      bean.updateExternalView(externalView, idealState);
+      bean.updateResource(externalView, idealState);
       String newSensorName = bean.getSensorName();
       if (!oldSensorName.equals(newSensorName)) {
         unregisterResources(Arrays.asList(resourceName));
         registerResources(Arrays.asList(bean));
       }
     } catch (Exception e) {
-      LOG.warn(e);
+      LOG.error("Fail to set resource status, resource: " + idealState.getResourceName(), e);
     }
   }
 
@@ -264,18 +352,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       _instanceMsgQueueMbeanMap.get(instanceName).addMessageQueueSize(msgQueueSize);
     } catch (Exception e) {
-      LOG.warn("fail to add message queue size to mbean", e);
+      LOG.error("Fail to add message queue size to mbean, instance: " + instanceName, e);
     }
   }
 
   public void reset() {
-    LOG.info("Resetting ClusterStatusMonitor");
+    LOG.info("Reset ClusterStatusMonitor");
     try {
-      for (String resourceName : _resourceMbeanMap.keySet()) {
-        String beanName =
-            CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
-        unregister(getObjectName(beanName));
-      }
+      unregisterResources(_resourceMbeanMap.keySet());
+
       _resourceMbeanMap.clear();
 
       for (MessageQueueMonitor bean : _instanceMsgQueueMbeanMap.values()) {
@@ -286,9 +371,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       unregisterInstances(_instanceMbeanMap.keySet());
       _instanceMbeanMap.clear();
 
-      unregister(getObjectName(CLUSTER_DN_KEY + "=" + _clusterName));
+      unregisterPerInstanceResources(_perInstanceResourceMap.keySet());
+      unregister(getObjectName(clusterBeanName()));
     } catch (Exception e) {
-      LOG.error("fail to reset ClusterStatusMonitor", e);
+      LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }
   }
 
@@ -330,12 +416,60 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _resourceMbeanMap.keySet().removeAll(resources);
   }
 
-  private String getInstanceBeanName(String instanceName) {
-    return CLUSTER_DN_KEY + "=" + _clusterName + "," + INSTANCE_DN_KEY + "=" + instanceName;
+  private synchronized void registerPerInstanceResources(
+      Collection<PerInstanceResourceMonitor> monitors) throws MalformedObjectNameException {
+    for (PerInstanceResourceMonitor monitor : monitors) {
+      String instanceName = monitor.getInstanceName();
+      String resourceName = monitor.getResourceName();
+      String beanName = getPerInstanceResourceBeanName(instanceName, resourceName);
+      register(monitor, getObjectName(beanName));
+      _perInstanceResourceMap.put(new PerInstanceResourceMonitor.BeanName(instanceName,
+          resourceName), monitor);
+    }
   }
 
+  private synchronized void unregisterPerInstanceResources(
+      Collection<PerInstanceResourceMonitor.BeanName> beanNames)
+      throws MalformedObjectNameException {
+    for (PerInstanceResourceMonitor.BeanName beanName : beanNames) {
+      unregister(getObjectName(getPerInstanceResourceBeanName(beanName.instanceName(),
+          beanName.resourceName())));
+    }
+    _perInstanceResourceMap.keySet().removeAll(beanNames);
+  }
+
+  public String clusterBeanName() {
+    return String.format("%s=%s", CLUSTER_DN_KEY, _clusterName);
+  }
+
+  /**
+   * Build instance bean name
+   * @param instanceName
+   * @return instance bean name
+   */
+  private String getInstanceBeanName(String instanceName) {
+    return String.format("%s,%s=%s", clusterBeanName(), INSTANCE_DN_KEY, instanceName);
+  }
+
+  /**
+   * Build resource bean name
+   * @param resourceName
+   * @return resource bean name
+   */
   private String getResourceBeanName(String resourceName) {
-    return CLUSTER_DN_KEY + "=" + _clusterName + "," + RESOURCE_DN_KEY + "=" + resourceName;
+    return String.format("%s,%s=%s", clusterBeanName(), RESOURCE_DN_KEY, resourceName);
+  }
+
+  /**
+   * Build per-instance resource bean name:
+   * "cluster={clusterName},instanceName={instanceName},resourceName={resourceName}"
+   * @param instanceName
+   * @param resourceName
+   * @return per-instance resource bean name
+   */
+  public String getPerInstanceResourceBeanName(String instanceName, String resourceName) {
+    return String.format("%s,%s", clusterBeanName(), new PerInstanceResourceMonitor.BeanName(
+        instanceName, resourceName).toString());
   }
 
   @Override

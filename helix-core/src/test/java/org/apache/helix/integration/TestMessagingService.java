@@ -36,7 +36,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestMessagingService extends ZkStandAloneCMTestBase {
   public static class TestMessagingHandlerFactory implements MessageHandlerFactory {
     public static HashSet<String> _processedMsgIds = new HashSet<String>();
 
@@ -166,8 +166,6 @@ public class TestMessagingService extends ZkStandAloneCMTestBaseWithPropertyServ
               .get("ReplyMessage"));
       if (message.getRecord().getMapField(Message.Attributes.MESSAGE_RESULT.toString())
           .get("ReplyMessage") == null) {
-        int x = 0;
-        x++;
       }
       _replyedMessageContents.add(message.getRecord()
           .getMapField(Message.Attributes.MESSAGE_RESULT.toString()).get("ReplyMessage"));

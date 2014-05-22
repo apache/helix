@@ -19,12 +19,12 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.integration.ZkStandAloneCMTestBaseWithPropertyServerCheck;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 
-public class TestZkStateChangeListener extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
   // TODO this test has been covered by TestZkFlapping. check if still needed
   // @Test
   public void testDisconnectHistory() throws Exception {

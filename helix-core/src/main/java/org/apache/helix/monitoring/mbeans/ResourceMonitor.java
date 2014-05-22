@@ -27,14 +27,15 @@ import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
 public class ResourceMonitor implements ResourceMonitorMBean {
-  private int _numOfPartitions;
-  int _numOfPartitionsInExternalView;
-  int _numOfErrorPartitions;
-  int _externalViewIdealStateDiff;
-  String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
 
-  String _resourceName, _clusterName;
+  private int _numOfPartitions;
+  private int _numOfPartitionsInExternalView;
+  private int _numOfErrorPartitions;
+  private int _externalViewIdealStateDiff;
+  private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
+  private String _resourceName;
+  private String _clusterName;
 
   public ResourceMonitor(String clusterName, String resourceName) {
     _clusterName = clusterName;
@@ -58,15 +59,15 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
   @Override
   public String getSensorName() {
-    return ClusterStatusMonitor.RESOURCE_STATUS_KEY + "." + _clusterName + "." + _tag + "."
-        + _resourceName;
+    return String.format("%s.%s.%s.%s", ClusterStatusMonitor.RESOURCE_STATUS_KEY, _clusterName,
+        _tag, _resourceName);
   }
 
   public String getResourceName() {
     return _resourceName;
   }
 
-  public void updateExternalView(ExternalView externalView, IdealState idealState) {
+  public void updateResource(ExternalView externalView, IdealState idealState) {
     if (externalView == null) {
       LOG.warn("external view is null");
       return;
@@ -91,7 +92,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     }
 
     // TODO fix this; IdealState shall have either map fields (CUSTOM mode)
-    // or list fields (AUDO mode)
+    // or list fields (AUTO mode)
     for (String partitionName : idealState.getRecord().getMapFields().keySet()) {
       Map<String, String> idealRecord = idealState.getInstanceStateMap(partitionName);
       Map<String, String> externalViewRecord = externalView.getStateMap(partitionName);

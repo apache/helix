@@ -86,6 +86,11 @@ public class ResourceComputationStage extends AbstractBaseStage {
           String resourceName = currentState.getResourceName();
           Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
 
+          if (resourceStateMap.keySet().isEmpty()) {
+            // don't include empty current state for dropped resource
+            continue;
+          }
+
           // don't overwrite ideal state settings
           if (!resourceMap.containsKey(resourceName)) {
             addResource(resourceName, resourceMap);

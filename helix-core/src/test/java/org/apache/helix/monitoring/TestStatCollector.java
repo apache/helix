@@ -23,10 +23,8 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
 public class TestStatCollector {
-  @Test(groups = {
-    "unitTest"
-  })
-  public void TestCollectData() {
+  @Test()
+  public void testCollectData() {
     StatCollector collector = new StatCollector();
 
     int nPoints = 100;

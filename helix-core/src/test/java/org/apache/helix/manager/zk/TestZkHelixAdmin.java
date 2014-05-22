@@ -34,6 +34,7 @@ import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
@@ -56,7 +57,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       _gZkClient.deleteRecursive(rootPath);
     }
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient));
     tool.addCluster(clusterName, true);
@@ -199,7 +200,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
@@ -235,7 +236,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     tool.addCluster(clusterName, true);
     Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
 
@@ -286,6 +287,31 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     item = constraints.getConstraintItem("constraint1");
     Assert.assertNull(item, "message-constraint for constraint1 should NOT exist");
 
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testDisableResource() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient), "Cluster should be setup");
+    String resourceName = "TestDB";
+    admin.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForMasterSlave()));
+    admin.addResource(clusterName, resourceName, 4, "MasterSlave");
+    admin.enableResource(clusterName, resourceName, false);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
+    Assert.assertFalse(idealState.isEnabled());
+    admin.enableResource(clusterName, resourceName, true);
+    idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
+    Assert.assertTrue(idealState.isEnabled());
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 }

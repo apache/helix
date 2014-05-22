@@ -230,7 +230,7 @@ public class TestAutoRebalanceStrategy {
         Set<String> disabled = Collections.emptySet();
         Map<String, String> assignment =
             ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, _stateModelDef,
-                preferenceList, currentStateMap, disabled);
+                preferenceList, currentStateMap, disabled, true);
         mapResult.put(partition, assignment);
       }
       return mapResult;

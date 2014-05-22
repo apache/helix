@@ -45,7 +45,7 @@ import org.testng.annotations.Test;
 import com.beust.jcommander.internal.Lists;
 
 public class TestCustomizedIdealStateRebalancer extends
-    ZkStandAloneCMTestBaseWithPropertyServerCheck {
+    ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;

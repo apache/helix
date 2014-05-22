@@ -19,36 +19,35 @@ package org.apache.helix.monitoring;
  * under the License.
  */
 
-import java.io.StringWriter;
-import java.util.Date;
 import java.util.List;
 import java.util.TimerTask;
 
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.SerializationConfig;
+
+import com.google.common.collect.Lists;
 
 public class ZKPathDataDumpTask extends TimerTask {
-  static Logger logger = Logger.getLogger(ZKPathDataDumpTask.class);
+  static Logger LOG = Logger.getLogger(ZKPathDataDumpTask.class);
 
   private final int _thresholdNoChangeInMs;
   private final HelixManager _manager;
-  private final ZkClient _zkClient;
+  private final ZNRecordSerializer _jsonSerializer;
 
-  public ZKPathDataDumpTask(HelixManager manager, ZkClient zkClient, int thresholdNoChangeInMs) {
+  public ZKPathDataDumpTask(HelixManager manager, int thresholdNoChangeInMs) {
+    LOG.info("Init ZKPathDataDumpTask for cluster: " + manager.getClusterName()
+        + ", thresholdNoChangeInMs: " + thresholdNoChangeInMs);
+
     _manager = manager;
-    _zkClient = zkClient;
-    logger.info("Scanning cluster statusUpdate " + manager.getClusterName()
-        + " thresholdNoChangeInMs: " + thresholdNoChangeInMs);
+    _jsonSerializer = new ZNRecordSerializer();
     _thresholdNoChangeInMs = thresholdNoChangeInMs;
   }
 
@@ -59,88 +58,96 @@ public class ZKPathDataDumpTask extends TimerTask {
     // We need to think if we should create per-instance log files that contains
     // per-instance statusUpdates
     // and errors
-    logger.info("Scanning status updates ...");
-    try {
-      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
+    LOG.info("Scan statusUpdates and errors for cluster: " + _manager.getClusterName()
+        + ", by controller: " + _manager);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
+    BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
 
-      List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
-      for (String instanceName : instances) {
-        scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instanceName,
-            PropertyType.STATUSUPDATES), _thresholdNoChangeInMs);
-        scanPath(HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instanceName,
-            PropertyType.ERRORS), _thresholdNoChangeInMs * 3);
-      }
-      scanPath(HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
-          PropertyType.STATUSUPDATES_CONTROLLER), _thresholdNoChangeInMs);
+    List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
+    for (String instance : instances) {
+      // dump participant status updates
+      String statusUpdatePath =
+          HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
+              PropertyType.STATUSUPDATES);
+      dump(baseAccessor, statusUpdatePath, _thresholdNoChangeInMs);
 
-      scanPath(HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
-          PropertyType.ERRORS_CONTROLLER), _thresholdNoChangeInMs * 3);
-    } catch (Exception e) {
-      logger.error(e);
+      // dump participant errors
+      String errorPath =
+          HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
+              PropertyType.ERRORS);
+      dump(baseAccessor, errorPath, _thresholdNoChangeInMs * 3);
     }
+    // dump controller status updates
+    String controllerStatusUpdatePath =
+        HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
+            PropertyType.STATUSUPDATES_CONTROLLER);
+    dump(baseAccessor, controllerStatusUpdatePath, _thresholdNoChangeInMs);
+
+    // dump controller errors
+    String controllerErrorPath =
+        HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
+            PropertyType.ERRORS_CONTROLLER);
+    dump(baseAccessor, controllerErrorPath, _thresholdNoChangeInMs);
   }
 
-  void scanPath(String path, int thresholdNoChangeInMs) {
-    logger.info("Scanning path " + path);
-    List<String> subPaths = _zkClient.getChildren(path);
-    for (String subPath : subPaths) {
-      try {
-        String nextPath = path + "/" + subPath;
-        List<String> subSubPaths = _zkClient.getChildren(nextPath);
-        for (String subsubPath : subSubPaths) {
-          try {
-            checkAndDump(nextPath + "/" + subsubPath, thresholdNoChangeInMs);
-          } catch (Exception e) {
-            logger.error(e);
-          }
-        }
-      } catch (Exception e) {
-        logger.error(e);
+  /**
+   * Find paths of all leaf nodes under an ancestor path (exclusive)
+   * @param accessor
+   * @param ancestorPath
+   * @return a list of paths
+   */
+  static List<String> scanPath(BaseDataAccessor<ZNRecord> accessor, String ancestorPath) {
+    List<String> queue = Lists.newLinkedList();
+    queue.add(ancestorPath);
+
+    // BFS
+    List<String> leafPaths = Lists.newArrayList();
+    while (!queue.isEmpty()) {
+      String path = queue.remove(0);
+      List<String> childNames = accessor.getChildNames(path, 0);
+      if (childNames == null) {
+        // path doesn't exist
+        continue;
+      }
+      if (childNames.isEmpty() && !path.equals(ancestorPath)) {
+        // leaf node, excluding ancestorPath
+        leafPaths.add(path);
+      }
+      for (String childName : childNames) {
+        String subPath = String.format("%s/%s", path, childName);
+        queue.add(subPath);
       }
     }
+    return leafPaths;
   }
 
-  void checkAndDump(String path, int thresholdNoChangeInMs) {
-    List<String> subPaths = _zkClient.getChildren(path);
-    if (subPaths.size() == 0) {
-      subPaths.add("");
+  void dump(BaseDataAccessor<ZNRecord> accessor, String ancestorPath, int threshold) {
+    List<String> leafPaths = scanPath(accessor, ancestorPath);
+    if (leafPaths.isEmpty()) {
+      return;
     }
-    for (String subPath : subPaths) {
-      String fullPath = subPath.length() > 0 ? path + "/" + subPath : path;
-      Stat pathStat = _zkClient.getStat(fullPath);
 
-      long lastModifiedTimeInMs = pathStat.getMtime();
-      long nowInMs = new Date().getTime();
-      // logger.info(nowInMs + " " + lastModifiedTimeInMs + " " + fullPath);
-
-      // Check the last modified time
-      if (nowInMs > lastModifiedTimeInMs) {
-        long timeDiff = nowInMs - lastModifiedTimeInMs;
-        if (timeDiff > thresholdNoChangeInMs) {
-          logger.info("Dumping status update path " + fullPath + " " + timeDiff + "MS has passed");
-          _zkClient.setZkSerializer(new ZNRecordSerializer());
-          ZNRecord record = _zkClient.readData(fullPath);
-
-          // dump the node content into log file
-          ObjectMapper mapper = new ObjectMapper();
-          SerializationConfig serializationConfig = mapper.getSerializationConfig();
-          serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
-
-          StringWriter sw = new StringWriter();
-          try {
-            mapper.writeValue(sw, record);
-            logger.info(sw.toString());
-          } catch (Exception e) {
-            logger
-                .warn(
-                    "Exception during serialization in ZKPathDataDumpTask.checkAndDump. This can mostly be ignored",
-                    e);
-          }
-          // Delete the leaf data
-          _zkClient.deleteRecursive(fullPath);
-        }
+    Stat[] stats = accessor.getStats(leafPaths, 0);
+    List<String> dumpPaths = Lists.newArrayList();
+    long now = System.currentTimeMillis();
+    for (int i = 0; i < stats.length; i++) {
+      Stat stat = stats[i];
+      if ((now - stat.getMtime()) > threshold) {
+        dumpPaths.add(leafPaths.get(i));
       }
     }
+
+    // dump
+    LOG.info("Dump statusUpdates and errors records for pahts: " + dumpPaths);
+    List<ZNRecord> dumpRecords = accessor.get(dumpPaths, null, 0);
+    for (ZNRecord record : dumpRecords) {
+      if (record != null) {
+        LOG.info(new String(_jsonSerializer.serialize(record)));
+      }
+    }
+
+    // clean up
+    accessor.remove(dumpPaths, 0);
   }
 }

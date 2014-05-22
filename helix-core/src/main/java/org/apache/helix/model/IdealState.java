@@ -51,7 +51,8 @@ public class IdealState extends HelixProperty {
     REBALANCE_TIMER_PERIOD,
     MAX_PARTITIONS_PER_INSTANCE,
     INSTANCE_GROUP_TAG,
-    REBALANCER_CLASS_NAME
+    REBALANCER_CLASS_NAME,
+    HELIX_ENABLED
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -504,5 +505,22 @@ public class IdealState extends HelixProperty {
       }
     }
     return rebalanceMode;
+  }
+
+  /**
+   * Get if the resource is enabled or not
+   * By default, it's enabled
+   * @return true if enabled; false otherwise
+   */
+  public boolean isEnabled() {
+    return _record.getBooleanField(IdealStateProperty.HELIX_ENABLED.name(), true);
+  }
+
+  /**
+   * Enable/Disable the resource
+   * @param enabled
+   */
+  public void enable(boolean enabled) {
+    _record.setSimpleField(IdealStateProperty.HELIX_ENABLED.name(), Boolean.toString(enabled));
   }
 }

@@ -1,3 +1,5 @@
+package org.apache.helix.monitoring.mbeans;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +18,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import org.apache.helix.monitoring.SensorNameProvider;
+
 /**
- * Restlet server for Helix controller
- * 
+ * A bean that describes the resource on each instance
  */
-package org.apache.helix.controller.restlet;
+public interface PerInstanceResourceMonitorMBean extends SensorNameProvider {
+  /**
+   * Get the number of partitions of the resource in best possible ideal state
+   * for the instance
+   * @return number of partitions
+   */
+  long getPartitionGauge();
+}

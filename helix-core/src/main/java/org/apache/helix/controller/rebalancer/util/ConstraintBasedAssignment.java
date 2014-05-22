@@ -43,9 +43,9 @@ import org.apache.log4j.Logger;
 public class ConstraintBasedAssignment {
   private static Logger logger = Logger.getLogger(ConstraintBasedAssignment.class);
 
-  public static List<String> getPreferenceList(ClusterDataCache cache, Partition resource,
+  public static List<String> getPreferenceList(ClusterDataCache cache, Partition partition,
       IdealState idealState, StateModelDefinition stateModelDef) {
-    List<String> listField = idealState.getPreferenceList(resource.getPartitionName());
+    List<String> listField = idealState.getPreferenceList(partition.getPartitionName());
 
     if (listField != null && listField.size() == 1
         && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0))) {
@@ -66,11 +66,13 @@ public class ConstraintBasedAssignment {
    * @param currentStateMap
    *          : instance->state for each partition
    * @param disabledInstancesForPartition
+   * @param isResourceEnabled
    * @return
    */
   public static Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
       StateModelDefinition stateModelDef, List<String> instancePreferenceList,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition) {
+      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
+      boolean isResourceEnabled) {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
     // if the ideal state is deleted, instancePreferenceList will be empty and
@@ -78,12 +80,12 @@ public class ConstraintBasedAssignment {
     if (currentStateMap != null) {
       for (String instance : currentStateMap.keySet()) {
         if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
+            && !disabledInstancesForPartition.contains(instance) && isResourceEnabled) {
           // if dropped and not disabled, transit to DROPPED
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.toString()))
-            && disabledInstancesForPartition.contains(instance)) {
+            HelixDefinedState.ERROR.name()))
+            && (disabledInstancesForPartition.contains(instance) || !isResourceEnabled)) {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
           instanceStateMap.put(instance, stateModelDef.getInitialState());
         }
@@ -106,7 +108,7 @@ public class ConstraintBasedAssignment {
       if ("N".equals(num)) {
         Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
         liveAndEnabled.removeAll(disabledInstancesForPartition);
-        stateCount = liveAndEnabled.size();
+        stateCount = isResourceEnabled ? liveAndEnabled.size() : 0;
       } else if ("R".equals(num)) {
         stateCount = instancePreferenceList.size();
       } else {
@@ -125,8 +127,10 @@ public class ConstraintBasedAssignment {
               currentStateMap == null || currentStateMap.get(instanceName) == null
                   || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
 
+          boolean enabled =
+              !disabledInstancesForPartition.contains(instanceName) && isResourceEnabled;
           if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && !disabledInstancesForPartition.contains(instanceName)) {
+              && enabled) {
             instanceStateMap.put(instanceName, state);
             count = count + 1;
             assigned[i] = true;

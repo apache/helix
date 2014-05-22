@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
@@ -32,7 +33,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.mock.participant.MockJobIntf;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
@@ -62,30 +62,20 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
 
   }
 
-  class MockJob implements MockJobIntf {
-    @Override
-    public void doPreConnectJob(HelixManager manager) {
-      try {
-        // delay the start of the 1st participant
-        // so there will be a leadership transfer from localhost_12919 to 12918
-        if (manager.getInstanceName().equals("localhost_12918")) {
-          Thread.sleep(2000);
-        }
-
-        HelixCustomCodeRunner customCodeRunner = new HelixCustomCodeRunner(manager, ZK_ADDR);
-        customCodeRunner.invoke(_callback).on(ChangeType.LIVE_INSTANCE)
-            .usingLeaderStandbyModel("TestParticLeader").start();
-      } catch (Exception e) {
-        LOG.error("Exception do pre-connect job", e);
+  private void registerCustomCodeRunner(HelixManager manager) {
+    try {
+      // delay the start of the 1st participant
+      // so there will be a leadership transfer from localhost_12919 to 12918
+      if (manager.getInstanceName().equals("localhost_12918")) {
+        Thread.sleep(2000);
       }
+
+      HelixCustomCodeRunner customCodeRunner = new HelixCustomCodeRunner(manager, ZK_ADDR);
+      customCodeRunner.invoke(_callback).on(ChangeType.LIVE_INSTANCE)
+          .usingLeaderStandbyModel("TestParticLeader").start();
+    } catch (Exception e) {
+      LOG.error("Exception do pre-connect job", e);
     }
-
-    @Override
-    public void doPostConnectJob(HelixManager manager) {
-      // TODO Auto-generated method stub
-
-    }
-
   }
 
   @Test
@@ -109,10 +99,9 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     for (int i = 0; i < _nodeNb; i++) {
       String instanceName = "localhost_" + (_startPort + i);
 
-      MockJob job = new MockJob();
       participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
 
-      job.doPreConnectJob(participants[i]);
+      registerCustomCodeRunner(participants[i]);
       participants[i].syncStart();
     }
     boolean result =
@@ -125,9 +114,7 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     _callback._isCallbackInvoked = false;
 
     // add a new live instance
-    // ZkClient zkClient = new ZkClient(ZK_ADDR);
-    // zkClient.setZkSerializer(new ZNRecordSerializer());
-    ZKHelixDataAccessor accessor =
+    HelixDataAccessor accessor =
         new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 

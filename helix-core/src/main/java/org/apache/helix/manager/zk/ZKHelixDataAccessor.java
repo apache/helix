@@ -18,6 +18,7 @@ package org.apache.helix.manager.zk;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -28,13 +29,11 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.GroupCommit;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
@@ -42,20 +41,15 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.controller.restlet.ZNRecordUpdate;
-import org.apache.helix.controller.restlet.ZNRecordUpdate.OpCode;
-import org.apache.helix.controller.restlet.ZkPropertyTransferClient;
-import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
-public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeListener {
+public class ZKHelixDataAccessor implements HelixDataAccessor {
   private static Logger LOG = Logger.getLogger(ZKHelixDataAccessor.class);
   private final BaseDataAccessor<ZNRecord> _baseDataAccessor;
   final InstanceType _instanceType;
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
-  ZkPropertyTransferClient _zkPropertyTransferClient = null;
   private final GroupCommit _groupCommit = new GroupCommit();
   String _zkPropertyTransferSvcUrl = null;
 
@@ -99,14 +93,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
 
     String path = key.getPath();
     int options = constructOptions(type);
-
-    if (type.usePropertyTransferServer()) {
-      if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferClient != null) {
-        ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.SET, value.getRecord());
-        _zkPropertyTransferClient.enqueueZNRecordUpdate(update, _zkPropertyTransferSvcUrl);
-        return true;
-      }
-    }
 
     boolean success = false;
     switch (type) {
@@ -152,22 +138,14 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
     boolean success = false;
     switch (type) {
     case CURRENTSTATES:
-      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord());
+      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
+      break;
+    case STATUSUPDATES:
+      if (LOG.isTraceEnabled()) {
+        LOG.trace("Update status. path: " + key.getPath() + ", record: " + value.getRecord());
+      }
       break;
     default:
-      if (type.usePropertyTransferServer()) {
-        if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferClient != null) {
-          ZNRecordUpdate update = new ZNRecordUpdate(path, OpCode.UPDATE, value.getRecord());
-          _zkPropertyTransferClient.enqueueZNRecordUpdate(update, _zkPropertyTransferSvcUrl);
-
-          return true;
-        } else {
-          if (LOG.isTraceEnabled()) {
-            LOG.trace("getPropertyTransferUrl is null, skip updating the value");
-          }
-          return true;
-        }
-      }
       success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
       break;
     }
@@ -482,40 +460,5 @@ public class ZKHelixDataAccessor implements HelixDataAccessor, ControllerChangeL
   public <T extends HelixProperty> boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
     return _baseDataAccessor.updateChildren(paths, updaters, options);
-  }
-
-  public void shutdown() {
-    if (_zkPropertyTransferClient != null) {
-      _zkPropertyTransferClient.shutdown();
-    }
-  }
-
-  @Override
-  public void onControllerChange(NotificationContext changeContext) {
-    LOG.info("Controller has changed");
-    refreshZkPropertyTransferUrl();
-    if (_zkPropertyTransferClient == null) {
-      if (_zkPropertyTransferSvcUrl != null && _zkPropertyTransferSvcUrl.length() > 0) {
-        LOG.info("Creating ZkPropertyTransferClient as we get url " + _zkPropertyTransferSvcUrl);
-        _zkPropertyTransferClient =
-            new ZkPropertyTransferClient(ZkPropertyTransferClient.DEFAULT_MAX_CONCURRENTTASKS);
-      }
-    }
-  }
-
-  void refreshZkPropertyTransferUrl() {
-    try {
-      LiveInstance leader = getProperty(keyBuilder().controllerLeader());
-      if (leader != null) {
-        _zkPropertyTransferSvcUrl = leader.getWebserviceUrl();
-        LOG.info("_zkPropertyTransferSvcUrl : " + _zkPropertyTransferSvcUrl + " Controller "
-            + leader.getInstanceName());
-      } else {
-        _zkPropertyTransferSvcUrl = null;
-      }
-    } catch (Exception e) {
-      // LOG.error("", e);
-      _zkPropertyTransferSvcUrl = null;
-    }
   }
 }

@@ -45,7 +45,7 @@ import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestAutoRebalance extends ZkStandAloneCMTestBaseWithPropertyServerCheck {
+public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
   String _tag = "SSDSSD";
 

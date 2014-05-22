@@ -165,6 +165,10 @@ public class JsonParameters {
       if (!_parameterMap.containsKey(ENABLED)) {
         throw new HelixException("Missing Json parameters: '" + ENABLED + "'");
       }
+    } else if (command.equalsIgnoreCase(ClusterSetup.enableResource)) {
+      if (!_parameterMap.containsKey(ENABLED)) {
+        throw new HelixException("Missing Json parameters: '" + ENABLED + "'");
+      }
     } else if (command.equalsIgnoreCase(ClusterSetup.enablePartition)) {
       if (!_parameterMap.containsKey(ENABLED)) {
         throw new HelixException("Missing Json parameters: '" + ENABLED + "'");

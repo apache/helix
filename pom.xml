@@ -370,9 +370,9 @@ under the License.
         <version>6.0.1</version>
       </dependency>
       <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>1.12</version>
+        <groupId>org.mockito</groupId>
+        <artifactId>mockito-all</artifactId>
+        <version>1.9.5</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

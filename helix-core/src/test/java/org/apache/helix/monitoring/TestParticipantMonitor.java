@@ -93,10 +93,8 @@ public class TestParticipantMonitor {
     }
   }
 
-  @Test(groups = {
-    "unitTest"
-  })
-  public void TestReportData() throws InstanceNotFoundException, MalformedObjectNameException,
+  @Test()
+  public void testReportData() throws InstanceNotFoundException, MalformedObjectNameException,
       NullPointerException, IOException, InterruptedException {
     System.out.println("START TestParticipantMonitor");
     ParticipantMonitor monitor = new ParticipantMonitor();

@@ -53,10 +53,6 @@ public class GroupCommit {
 
   private final Queue[] _queues = new Queue[100];
 
-  // potential memory leak if we add resource and remove resource
-  // TODO: move the cache logic to data accessor
-  // private final Map<String, ZNRecord> _cache = new ConcurrentHashMap<String, ZNRecord>();
-
   /**
    * Set up a group committer and its associated queues
    */
@@ -81,6 +77,11 @@ public class GroupCommit {
    */
   public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key,
       ZNRecord record) {
+    return commit(accessor, options, key, record, false);
+  }
+
+  public boolean commit(BaseDataAccessor<ZNRecord> accessor, int options, String key,
+      ZNRecord record, boolean removeIfEmpty) {
     Queue queue = getQueue(key);
     Entry entry = new Entry(key, record);
 
@@ -98,7 +99,6 @@ public class GroupCommit {
           processed.add(first);
 
           String mergedKey = first._key;
-          // ZNRecord merged = _cache.get(mergedKey);
           ZNRecord merged = null;
 
           try {
@@ -113,24 +113,7 @@ public class GroupCommit {
            * value in ZK; use it as initial value if exists
            */
           if (merged == null) {
-            // ZNRecord valueOnZk = null;
-            // try
-            // {
-            // valueOnZk = accessor.get(mergedKey, null, 0);
-            // }
-            // catch(Exception e)
-            // {
-            // LOG.info(e);
-            // }
-            // if(valueOnZk != null)
-            // {
-            // merged = valueOnZk;
-            // merged.merge(first._record);
-            // }
-            // else // Zk path has null data. use the first record as initial record.
-            {
-              merged = new ZNRecord(first._record);
-            }
+            merged = new ZNRecord(first._record);
           } else {
             merged.merge(first._record);
           }
@@ -145,9 +128,11 @@ public class GroupCommit {
             it.remove();
           }
           // System.out.println("size:"+ processed.size());
-          accessor.set(mergedKey, merged, options);
-          // accessor.set(mergedKey, merged, BaseDataAccessor.Option.PERSISTENT);
-          // _cache.put(mergedKey, merged);
+          if (removeIfEmpty && merged.getMapFields().isEmpty()) {
+            accessor.remove(mergedKey, options);
+          } else {
+            accessor.set(mergedKey, merged, options);
+          }
         } finally {
           queue._running.set(null);
           for (Entry e : processed) {
@@ -162,7 +147,9 @@ public class GroupCommit {
           try {
             entry.wait(10);
           } catch (InterruptedException e) {
-            e.printStackTrace();
+            LOG.error("Interrupted while committing change, key: " + key + ", record: " + record, e);
+            // Restore interrupt status
+            Thread.currentThread().interrupt();
             return false;
           }
         }

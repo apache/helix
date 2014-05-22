@@ -138,7 +138,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     boolean success = false;
     switch (type) {
     case CURRENTSTATES:
-      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord());
+      success = _groupCommit.commit(_baseDataAccessor, options, path, value.getRecord(), true);
       break;
     case STATUSUPDATES:
       if (LOG.isTraceEnabled()) {

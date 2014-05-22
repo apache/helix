@@ -48,12 +48,12 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class ExternalViewComputeStage extends AbstractBaseStage {
-  private static Logger log = Logger.getLogger(ExternalViewComputeStage.class);
+  private static Logger LOG = Logger.getLogger(ExternalViewComputeStage.class);
 
   @Override
   public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
-    log.info("START ExternalViewComputeStage.process()");
+    LOG.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
@@ -144,12 +144,13 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     // remove dead external-views
     for (String resourceName : curExtViews.keySet()) {
       if (!resourceMap.keySet().contains(resourceName)) {
+        LOG.info("Remove externalView for resource: " + resourceName);
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
       }
     }
 
     long endTime = System.currentTimeMillis();
-    log.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
+    LOG.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,
@@ -171,7 +172,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       for (String taskState : ev.getStateMap(taskPartitionName).values()) {
         if (taskState.equalsIgnoreCase(HelixDefinedState.ERROR.toString())
             || taskState.equalsIgnoreCase("COMPLETED")) {
-          log.info(taskPartitionName + " finished as " + taskState);
+          LOG.info(taskPartitionName + " finished as " + taskState);
           finishedTasks.getListFields().put(taskPartitionName, emptyList);
           finishedTasks.getMapFields().put(taskPartitionName, emptyMap);
 
@@ -181,7 +182,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
                 taskQueueIdealState.getRecord().getMapField(taskPartitionName)
                     .get(DefaultSchedulerMessageHandlerFactory.CONTROLLER_MSG_ID);
             if (controllerMsgId != null) {
-              log.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
+              LOG.info(taskPartitionName + " finished with controllerMsg " + controllerMsgId);
               if (!controllerMsgUpdates.containsKey(controllerMsgId)) {
                 controllerMsgUpdates.put(controllerMsgId, new HashMap<String, String>());
               }

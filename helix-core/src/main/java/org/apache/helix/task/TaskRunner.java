@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.task.TaskResult.Status;
 import org.apache.log4j.Logger;
 
 /**
@@ -64,7 +65,12 @@ public class TaskRunner implements Runnable {
   public void run() {
     try {
       signalStarted();
-      _result = _task.run();
+      try {
+        _result = _task.run();
+      } catch (Throwable t) {
+        LOG.error("Problem running the task", t);
+        _result = new TaskResult(Status.ERROR, null);
+      }
 
       switch (_result.getStatus()) {
       case COMPLETED:
@@ -96,8 +102,10 @@ public class TaskRunner implements Runnable {
    * Signals the task to cancel itself.
    */
   public void timeout() {
-    _timeout = true;
-    cancel();
+    if (!_done) {
+      _timeout = true;
+      cancel();
+    }
   }
 
   /**

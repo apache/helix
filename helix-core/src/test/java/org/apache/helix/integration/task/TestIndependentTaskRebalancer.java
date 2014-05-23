@@ -63,6 +63,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   private final MockParticipantManager[] _participants = new MockParticipantManager[n];
   private ClusterControllerManager _controller;
   private Set<String> _invokedClasses = Sets.newHashSet();
+  private Map<String, Integer> _runCounts = Maps.newHashMap();
 
   private HelixManager _manager;
   private TaskDriver _driver;
@@ -82,24 +83,25 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
       setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
-    // Set task callbacks
-    Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("TaskOne", new TaskFactory() {
-      @Override
-      public Task createNewTask(TaskCallbackContext context) {
-        return new TaskOne(context);
-      }
-    });
-    taskFactoryReg.put("TaskTwo", new TaskFactory() {
-      @Override
-      public Task createNewTask(TaskCallbackContext context) {
-        return new TaskTwo(context);
-      }
-    });
-
     // start dummy participants
     for (int i = 0; i < n; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      final String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+
+      // Set task callbacks
+      Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
+      taskFactoryReg.put("TaskOne", new TaskFactory() {
+        @Override
+        public Task createNewTask(TaskCallbackContext context) {
+          return new TaskOne(context, instanceName);
+        }
+      });
+      taskFactoryReg.put("TaskTwo", new TaskFactory() {
+        @Override
+        public Task createNewTask(TaskCallbackContext context) {
+          return new TaskTwo(context, instanceName);
+        }
+      });
+
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
@@ -125,6 +127,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   @BeforeMethod
   public void beforeMethod() {
     _invokedClasses.clear();
+    _runCounts.clear();
   }
 
   @Test
@@ -208,10 +211,46 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
+  @Test
+  public void testReassignment() throws Exception {
+    final int NUM_INSTANCES = 2;
+    String jobName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
+    Map<String, String> taskConfigMap =
+        Maps.newHashMap(ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_'
+            + START_PORT));
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
+    taskConfigs.add(taskConfig1);
+    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
+    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
+    workflowBuilder.addConfig(jobName, JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, ""
+        + (NUM_INSTANCES - 1)); // this ensures that every instance gets one chance
+    Map<String, String> jobConfigMap = Maps.newHashMap();
+    jobConfigMap.put("Timeout", "1000");
+    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    _driver.start(workflowBuilder.build());
+
+    // Ensure the job completes
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+
+    // Ensure that the class was invoked
+    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
+
+    // Ensure that this was tried on two different instances, the first of which exhausted the
+    // attempts number, and the other passes on the first try
+    Assert.assertEquals(_runCounts.size(), NUM_INSTANCES);
+    Assert.assertTrue(_runCounts.values().contains(
+        JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK / NUM_INSTANCES));
+    Assert.assertTrue(_runCounts.values().contains(1));
+  }
+
   private class TaskOne extends ReindexTask {
     private final boolean _shouldFail;
+    private final String _instanceName;
 
-    public TaskOne(TaskCallbackContext context) {
+    public TaskOne(TaskCallbackContext context, String instanceName) {
       super(context);
 
       // Check whether or not this task should succeed
@@ -221,15 +260,25 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
         Map<String, String> configMap = taskConfig.getConfigMap();
         if (configMap != null && configMap.containsKey("fail")
             && Boolean.parseBoolean(configMap.get("fail"))) {
-          shouldFail = true;
+          // if a specific instance is specified, only fail for that one
+          shouldFail =
+              !configMap.containsKey("failInstance")
+                  || configMap.get("failInstance").equals(instanceName);
         }
       }
       _shouldFail = shouldFail;
+
+      // Initialize the count for this instance if not already done
+      if (!_runCounts.containsKey(instanceName)) {
+        _runCounts.put(instanceName, 0);
+      }
+      _instanceName = instanceName;
     }
 
     @Override
     public TaskResult run() {
       _invokedClasses.add(getClass().getName());
+      _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
 
       // Fail the task if it should fail
       if (_shouldFail) {
@@ -241,8 +290,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   }
 
   private class TaskTwo extends TaskOne {
-    public TaskTwo(TaskCallbackContext context) {
-      super(context);
+    public TaskTwo(TaskCallbackContext context, String instanceName) {
+      super(context, instanceName);
     }
   }
 }

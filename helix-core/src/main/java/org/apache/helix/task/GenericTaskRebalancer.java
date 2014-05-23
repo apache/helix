@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -41,6 +42,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.base.Function;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
@@ -50,6 +53,9 @@ import com.google.common.collect.Sets;
  * assignment to target partitions and states of another resource
  */
 public class GenericTaskRebalancer extends TaskRebalancer {
+  /** Reassignment policy for this algorithm */
+  private RetryPolicy _retryPolicy = new DefaultRetryReassigner();
+
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Cluster cache) {
@@ -68,7 +74,7 @@ public class GenericTaskRebalancer extends TaskRebalancer {
   @Override
   public Map<ParticipantId, SortedSet<Integer>> getTaskAssignment(
       ResourceCurrentState currStateOutput, ResourceAssignment prevAssignment,
-      Iterable<ParticipantId> instanceList, JobConfig jobCfg, final JobContext jobContext,
+      Collection<ParticipantId> instances, JobConfig jobCfg, final JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
       Cluster cache) {
     // Gather input to the full auto rebalancing algorithm
@@ -121,7 +127,7 @@ public class GenericTaskRebalancer extends TaskRebalancer {
         new AutoRebalanceStrategy(resourceId, partitions, states, Integer.MAX_VALUE,
             new AutoRebalanceStrategy.DefaultPlacementScheme());
     List<ParticipantId> allNodes =
-        Lists.newArrayList(getEligibleInstances(jobCfg, currStateOutput, instanceList, cache));
+        Lists.newArrayList(getEligibleInstances(jobCfg, currStateOutput, instances, cache));
     Collections.sort(allNodes);
     ZNRecord record = strategy.typedComputePartitionAssignment(allNodes, currentMapping, allNodes);
     Map<String, List<String>> preferenceLists = record.getListFields();
@@ -140,6 +146,9 @@ public class GenericTaskRebalancer extends TaskRebalancer {
         taskAssignment.get(participantId).add(Integer.valueOf(partitionName));
       }
     }
+
+    // Finally, adjust the assignment if tasks have been failing
+    taskAssignment = _retryPolicy.reassign(jobCfg, jobContext, allNodes, taskAssignment);
     return taskAssignment;
   }
 
@@ -147,14 +156,14 @@ public class GenericTaskRebalancer extends TaskRebalancer {
    * Filter a list of instances based on targeted resource policies
    * @param jobCfg the job configuration
    * @param currStateOutput the current state of all instances in the cluster
-   * @param instanceList valid instances
+   * @param instances valid instances
    * @param cache current snapshot of the cluster
    * @return a set of instances that can be assigned to
    */
   private Set<ParticipantId> getEligibleInstances(JobConfig jobCfg,
-      ResourceCurrentState currStateOutput, Iterable<ParticipantId> instanceList, Cluster cache) {
+      ResourceCurrentState currStateOutput, Iterable<ParticipantId> instances, Cluster cache) {
     // No target resource means any instance is available
-    Set<ParticipantId> allInstances = Sets.newHashSet(instanceList);
+    Set<ParticipantId> allInstances = Sets.newHashSet(instances);
     String targetResource = jobCfg.getTargetResource();
     if (targetResource == null) {
       return allInstances;
@@ -192,5 +201,77 @@ public class GenericTaskRebalancer extends TaskRebalancer {
     }
     allInstances.retainAll(eligibleInstances);
     return allInstances;
+  }
+
+  public interface RetryPolicy {
+    /**
+     * Adjust the assignment to allow for reassignment if a task keeps failing where it's currently
+     * assigned
+     * @param jobCfg the job configuration
+     * @param jobCtx the job context
+     * @param instances instances that can serve tasks
+     * @param origAssignment the unmodified assignment
+     * @return the adjusted assignment
+     */
+    Map<ParticipantId, SortedSet<Integer>> reassign(JobConfig jobCfg, JobContext jobCtx,
+        Collection<ParticipantId> instances, Map<ParticipantId, SortedSet<Integer>> origAssignment);
+  }
+
+  private static class DefaultRetryReassigner implements RetryPolicy {
+    @Override
+    public Map<ParticipantId, SortedSet<Integer>> reassign(JobConfig jobCfg, JobContext jobCtx,
+        Collection<ParticipantId> instances, Map<ParticipantId, SortedSet<Integer>> origAssignment) {
+      // Compute an increasing integer ID for each instance
+      BiMap<ParticipantId, Integer> instanceMap = HashBiMap.create(instances.size());
+      int instanceIndex = 0;
+      for (ParticipantId instance : instances) {
+        instanceMap.put(instance, instanceIndex++);
+      }
+
+      // Move partitions
+      Map<ParticipantId, SortedSet<Integer>> newAssignment = Maps.newHashMap();
+      for (Map.Entry<ParticipantId, SortedSet<Integer>> e : origAssignment.entrySet()) {
+        ParticipantId instance = e.getKey();
+        SortedSet<Integer> partitions = e.getValue();
+        Integer instanceId = instanceMap.get(instance);
+        if (instanceId != null) {
+          for (int p : partitions) {
+            // Determine for each partition if there have been failures with the current assignment
+            // strategy, and if so, force a shift in assignment for that partition only
+            int shiftValue = getNumInstancesToShift(jobCfg, jobCtx, instances, p);
+            int newInstanceId = (instanceId + shiftValue) % instances.size();
+            ParticipantId newInstance = instanceMap.inverse().get(newInstanceId);
+            if (newInstance == null) {
+              newInstance = instance;
+            }
+            if (!newAssignment.containsKey(newInstance)) {
+              newAssignment.put(newInstance, new TreeSet<Integer>());
+            }
+            newAssignment.get(newInstance).add(p);
+          }
+        } else {
+          // In case something goes wrong, just keep the previous assignment
+          newAssignment.put(instance, partitions);
+        }
+      }
+      return newAssignment;
+    }
+
+    /**
+     * In case tasks fail, we may not want to schedule them in the same place. This method allows us
+     * to compute a shifting value so that we can systematically choose other instances to try
+     * @param jobCfg the job configuration
+     * @param jobCtx the job context
+     * @param instances instances that can be chosen
+     * @param p the partition to look up
+     * @return the shifting value
+     */
+    private int getNumInstancesToShift(JobConfig jobCfg, JobContext jobCtx,
+        Collection<ParticipantId> instances, int p) {
+      int numAttempts = jobCtx.getPartitionNumAttempts(p);
+      int maxNumAttempts = jobCfg.getMaxAttemptsPerTask();
+      int numInstances = Math.min(instances.size(), jobCfg.getMaxForcedReassignmentsPerTask() + 1);
+      return numAttempts / (maxNumAttempts / numInstances);
+    }
   }
 }

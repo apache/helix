@@ -20,6 +20,7 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,7 +76,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
    * Compute an assignment of tasks to instances
    * @param currStateOutput the current state of the instances
    * @param prevAssignment the previous task partition assignment
-   * @param instanceList the instances
+   * @param instances the instances
    * @param jobCfg the task configuration
    * @param taskCtx the task context
    * @param workflowCfg the workflow configuration
@@ -86,7 +87,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
    */
   public abstract Map<ParticipantId, SortedSet<Integer>> getTaskAssignment(
       ResourceCurrentState currStateOutput, ResourceAssignment prevAssignment,
-      Iterable<ParticipantId> instanceList, JobConfig jobCfg, JobContext jobContext,
+      Collection<ParticipantId> instanceList, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
       Cluster cache);
 
@@ -192,7 +193,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
 
   private ResourceAssignment computeResourceMapping(String jobResource,
       WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevAssignment,
-      Iterable<ParticipantId> liveInstances, ResourceCurrentState currStateOutput,
+      Collection<ParticipantId> liveInstances, ResourceCurrentState currStateOutput,
       WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
       Cluster cache) {
     TargetState jobTgtState = workflowConfig.getTargetState();
@@ -381,6 +382,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       // This includes all completed, failed, already assigned partitions.
       Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
       addCompletedPartitions(excludeSet, jobCtx, allPartitions);
+      excludeSet.addAll(skippedPartitions);
       // Get instance->[partition, ...] mappings for the target resource.
       Map<ParticipantId, SortedSet<Integer>> tgtPartitionAssignments =
           getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,

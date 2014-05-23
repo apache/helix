@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +52,7 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
 
   @Override
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
-      ResourceAssignment prevAssignment, Iterable<String> instanceList, JobConfig jobCfg,
+      ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
       Set<Integer> partitionSet, ClusterDataCache cache) {
     IdealState tgtIs = getTgtIdealState(jobCfg, cache);
@@ -59,7 +60,7 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
       return Collections.emptyMap();
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
-    return getTgtPartitionAssignment(currStateOutput, instanceList, tgtIs, tgtStates, partitionSet,
+    return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet,
         jobContext);
   }
 
@@ -114,7 +115,7 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
   /**
    * Get partition assignments for the target resource, but only for the partitions of interest.
    * @param currStateOutput The current state of the instances in the cluster.
-   * @param instanceList The set of instances.
+   * @param instances The instances.
    * @param tgtIs The ideal state of the target resource.
    * @param tgtStates Only partitions in this set of states will be considered. If null, partitions
    *          do not need to
@@ -123,10 +124,10 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
    * @return A map of instance vs set of partition ids assigned to that instance.
    */
   private static Map<String, SortedSet<Integer>> getTgtPartitionAssignment(
-      CurrentStateOutput currStateOutput, Iterable<String> instanceList, IdealState tgtIs,
+      CurrentStateOutput currStateOutput, Iterable<String> instances, IdealState tgtIs,
       Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx) {
     Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
-    for (String instance : instanceList) {
+    for (String instance : instances) {
       result.put(instance, new TreeSet<Integer>());
     }
 
@@ -138,7 +139,7 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
       }
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
-        for (String instance : instanceList) {
+        for (String instance : instances) {
           String s =
               currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName),
                   instance);

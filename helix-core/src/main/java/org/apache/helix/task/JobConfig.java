@@ -61,6 +61,8 @@ public class JobConfig {
   public static final String TIMEOUT_PER_TASK = "TimeoutPerPartition";
   /** The maximum number of times the task rebalancer may attempt to execute a task. */
   public static final String MAX_ATTEMPTS_PER_TASK = "MaxAttemptsPerTask";
+  /** The maximum number of times Helix will intentionally move a failing task */
+  public static final String MAX_FORCED_REASSIGNMENTS_PER_TASK = "MaxForcedReassignmentsPerTask";
   /** The number of concurrent tasks that are allowed to run on an instance. */
   public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
   /** The number of tasks within the job that are allowed to fail. */
@@ -75,6 +77,7 @@ public class JobConfig {
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
   public static final int DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE = 1;
   public static final int DEFAULT_FAILURE_THRESHOLD = 0;
+  public static final int DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK = 0;
 
   private final String _workflow;
   private final String _targetResource;
@@ -85,13 +88,14 @@ public class JobConfig {
   private final long _timeoutPerTask;
   private final int _numConcurrentTasksPerInstance;
   private final int _maxAttemptsPerTask;
+  private final int _maxForcedReassignmentsPerTask;
   private final int _failureThreshold;
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
-      int failureThreshold, Map<String, TaskConfig> taskConfigMap) {
+      int maxForcedReassignmentsPerTask, int failureThreshold, Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -101,6 +105,7 @@ public class JobConfig {
     _timeoutPerTask = timeoutPerTask;
     _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
     _maxAttemptsPerTask = maxAttemptsPerTask;
+    _maxForcedReassignmentsPerTask = maxForcedReassignmentsPerTask;
     _failureThreshold = failureThreshold;
     if (taskConfigMap != null) {
       _taskConfigMap = taskConfigMap;
@@ -145,6 +150,10 @@ public class JobConfig {
     return _maxAttemptsPerTask;
   }
 
+  public int getMaxForcedReassignmentsPerTask() {
+    return _maxForcedReassignmentsPerTask;
+  }
+
   public int getFailureThreshold() {
     return _failureThreshold;
   }
@@ -180,6 +189,7 @@ public class JobConfig {
     }
     cfgMap.put(JobConfig.TIMEOUT_PER_TASK, "" + _timeoutPerTask);
     cfgMap.put(JobConfig.MAX_ATTEMPTS_PER_TASK, "" + _maxAttemptsPerTask);
+    cfgMap.put(JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, "" + _maxForcedReassignmentsPerTask);
     cfgMap.put(JobConfig.FAILURE_THRESHOLD, "" + _failureThreshold);
     return cfgMap;
   }
@@ -198,6 +208,7 @@ public class JobConfig {
     private long _timeoutPerTask = DEFAULT_TIMEOUT_PER_TASK;
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerTask = DEFAULT_MAX_ATTEMPTS_PER_TASK;
+    private int _maxForcedReassignmentsPerTask = DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK;
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
 
     public JobConfig build() {
@@ -205,7 +216,7 @@ public class JobConfig {
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
-          _maxAttemptsPerTask, _failureThreshold, _taskConfigMap);
+          _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _taskConfigMap);
     }
 
     /**
@@ -245,6 +256,10 @@ public class JobConfig {
       }
       if (cfg.containsKey(MAX_ATTEMPTS_PER_TASK)) {
         b.setMaxAttemptsPerTask(Integer.parseInt(cfg.get(MAX_ATTEMPTS_PER_TASK)));
+      }
+      if (cfg.containsKey(MAX_FORCED_REASSIGNMENTS_PER_TASK)) {
+        b.setMaxForcedReassignmentsPerTask(Integer.parseInt(cfg
+            .get(MAX_FORCED_REASSIGNMENTS_PER_TASK)));
       }
       if (cfg.containsKey(FAILURE_THRESHOLD)) {
         b.setFailureThreshold(Integer.parseInt(cfg.get(FAILURE_THRESHOLD)));
@@ -297,6 +312,11 @@ public class JobConfig {
       return this;
     }
 
+    public Builder setMaxForcedReassignmentsPerTask(int v) {
+      _maxForcedReassignmentsPerTask = v;
+      return this;
+    }
+
     public Builder setFailureThreshold(int v) {
       _failureThreshold = v;
       return this;
@@ -339,6 +359,10 @@ public class JobConfig {
       if (_maxAttemptsPerTask < 1) {
         throw new IllegalArgumentException(String.format("%s has invalid value %s",
             MAX_ATTEMPTS_PER_TASK, _maxAttemptsPerTask));
+      }
+      if (_maxForcedReassignmentsPerTask < 0) {
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            MAX_FORCED_REASSIGNMENTS_PER_TASK, _maxForcedReassignmentsPerTask));
       }
       if (_failureThreshold < 0) {
         throw new IllegalArgumentException(String.format("%s has invalid value %s",

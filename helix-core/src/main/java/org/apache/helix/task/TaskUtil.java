@@ -34,6 +34,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.log4j.Logger;
@@ -178,6 +179,17 @@ public class TaskUtil {
       LOG.error("Error deserializing " + commandConfig, e);
     }
     return Collections.emptyMap();
+  }
+
+  /**
+   * Trigger a controller pipeline execution for a given resource.
+   * @param manager Helix connection
+   * @param resource the name of the resource changed to triggering the execution
+   */
+  public static void invokeRebalance(HelixManager manager, String resource) {
+    // The pipeline is idempotent, so touching an ideal state is enough to trigger a pipeline run
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    accessor.updateProperty(accessor.keyBuilder().idealStates(resource), new IdealState(resource));
   }
 
   private static Map<String, String> getResourceConfigMap(HelixManager manager, String resource) {

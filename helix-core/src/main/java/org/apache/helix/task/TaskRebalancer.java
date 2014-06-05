@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,6 +30,9 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -46,6 +50,8 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 
@@ -54,6 +60,13 @@ import com.google.common.collect.Sets;
  */
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
+
+  /** Management of already-scheduled workflows across jobs */
+  private static final BiMap<String, Date> SCHEDULED_WORKFLOWS = HashBiMap.create();
+  private static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors
+      .newSingleThreadScheduledExecutor();
+
+  /** For connection management */
   private HelixManager _manager;
 
   /**
@@ -104,6 +117,12 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // Fetch workflow configuration and context
     WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
+
+    // Check for readiness, and stop processing if it's not ready
+    boolean isReady = scheduleIfNotReady(workflowCfg, workflowResource, resourceName);
+    if (!isReady) {
+      return emptyAssignment(resourceName);
+    }
 
     // Initialize workflow context if needed
     if (workflowCtx == null) {
@@ -404,6 +423,43 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   }
 
   /**
+   * Check if a workflow is ready to schedule, and schedule a rebalance if it is not
+   * @param workflowCfg the workflow to check
+   * @param workflowResource the Helix resource associated with the workflow
+   * @param jobResource a job from the workflow
+   * @return true if ready, false if not ready
+   */
+  private boolean scheduleIfNotReady(WorkflowConfig workflowCfg, String workflowResource,
+      String jobResource) {
+    // Ignore non-scheduled workflows
+    if (workflowCfg == null || workflowCfg.getScheduleConfig() == null) {
+      return true;
+    }
+
+    // Figure out when this should be run, and if it's ready, then just run it
+    ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
+    Date startTime = scheduleConfig.getStartTime();
+    long delay = startTime.getTime() - new Date().getTime();
+    if (delay <= 0) {
+      SCHEDULED_WORKFLOWS.remove(workflowResource);
+      SCHEDULED_WORKFLOWS.inverse().remove(startTime);
+      return true;
+    }
+
+    // No need to schedule the same runnable at the same time
+    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
+        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+      return false;
+    }
+
+    // For workflows not yet scheduled, schedule them and record it
+    RebalanceInvoker rebalanceInvoker = new RebalanceInvoker(_manager, jobResource);
+    SCHEDULED_WORKFLOWS.put(workflowResource, startTime);
+    SCHEDULED_EXECUTOR.schedule(rebalanceInvoker, delay, TimeUnit.MILLISECONDS);
+    return false;
+  }
+
+  /**
    * Checks if the job has completed.
    * @param ctx The rebalancer context.
    * @param allPartitions The set of partitions to check.
@@ -648,5 +704,23 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // All of the heavy lifting is in the ResourceAssignment computation,
     // so this part can just be a no-op.
     return currentIdealState;
+  }
+
+  /**
+   * The simplest possible runnable that will trigger a run of the controller pipeline
+   */
+  private static class RebalanceInvoker implements Runnable {
+    private final HelixManager _manager;
+    private final String _resource;
+
+    public RebalanceInvoker(HelixManager manager, String resource) {
+      _manager = manager;
+      _resource = resource;
+    }
+
+    @Override
+    public void run() {
+      TaskUtil.invokeRebalance(_manager, _resource);
+    }
   }
 }

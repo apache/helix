@@ -27,6 +27,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,11 +83,30 @@ public class Workflow {
     return _taskConfigs;
   }
 
+  public WorkflowConfig getWorkflowConfig() {
+    return _workflowConfig;
+  }
+
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.DAG, _workflowConfig.getJobDag().toJson());
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(_workflowConfig.getExpiry()));
     cfgMap.put(WorkflowConfig.TARGET_STATE, _workflowConfig.getTargetState().name());
+
+    // Populate schedule if present
+    ScheduleConfig scheduleConfig = _workflowConfig.getScheduleConfig();
+    if (scheduleConfig != null) {
+      Date startTime = scheduleConfig.getStartTime();
+      if (startTime != null) {
+        String formattedTime = WorkflowConfig.DEFAULT_DATE_FORMAT.format(startTime);
+        cfgMap.put(WorkflowConfig.START_TIME, formattedTime);
+      }
+      if (scheduleConfig.isRecurring()) {
+        cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, scheduleConfig.getRecurrenceUnit().toString());
+        cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, scheduleConfig.getRecurrenceInterval()
+            .toString());
+      }
+    }
 
     return cfgMap;
   }
@@ -198,6 +218,10 @@ public class Workflow {
       }
     }
 
+    if (wf.schedule != null) {
+      builder.setScheduleConfig(ScheduleConfig.from(wf.schedule));
+    }
+
     return builder.build();
   }
 
@@ -235,6 +259,7 @@ public class Workflow {
     private JobDag _dag;
     private Map<String, Map<String, String>> _jobConfigs;
     private Map<String, List<TaskConfig>> _taskConfigs;
+    private ScheduleConfig _scheduleConfig;
     private long _expiry;
 
     public Builder(String name) {
@@ -291,6 +316,11 @@ public class Workflow {
       return this;
     }
 
+    public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
+      _scheduleConfig = scheduleConfig;
+      return this;
+    }
+
     public Builder setExpiry(long expiry) {
       _expiry = expiry;
       return this;
@@ -309,6 +339,9 @@ public class Workflow {
       WorkflowConfig.Builder builder = new WorkflowConfig.Builder();
       builder.setTaskDag(_dag);
       builder.setTargetState(TargetState.START);
+      if (_scheduleConfig != null) {
+        builder.setScheduleConfig(_scheduleConfig);
+      }
       if (_expiry > 0) {
         builder.setExpiry(_expiry);
       }

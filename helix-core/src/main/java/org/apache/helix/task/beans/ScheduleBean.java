@@ -19,14 +19,14 @@ package org.apache.helix.task.beans;
  * under the License.
  */
 
-import java.util.List;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 
 /**
- * Bean class used for parsing workflow definitions from YAML.
+ * A bean representing how a workflow can be scheduled in Helix
  */
-public class WorkflowBean {
-  public String name;
-  public String expiry;
-  public List<JobBean> jobs;
-  public ScheduleBean schedule;
+public class ScheduleBean {
+  public Date startTime;
+  public Long recurInterval;
+  public TimeUnit recurUnit;
 }

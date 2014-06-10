@@ -62,6 +62,37 @@ import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
 public class HelixTaskExecutor implements MessageListener, TaskExecutor {
+  /**
+   * Put together all registration information about a message handler factory
+   */
+  class MsgHandlerFactoryRegistryItem {
+    private final MessageHandlerFactory _factory;
+    private final int _threadPoolSize;
+
+    public MsgHandlerFactoryRegistryItem(MessageHandlerFactory factory, int threadPoolSize) {
+      if (factory == null) {
+        throw new NullPointerException("Message handler factory is null");
+      }
+
+      if (threadPoolSize <= 0) {
+        throw new IllegalArgumentException("Illegal thread pool size: " + threadPoolSize);
+      }
+
+      _factory = factory;
+      _threadPoolSize = threadPoolSize;
+    }
+
+    int threadPoolSize() {
+      return _threadPoolSize;
+    }
+
+    MessageHandlerFactory factory() {
+      return _factory;
+    }
+  }
+
+  private static Logger LOG = Logger.getLogger(HelixTaskExecutor.class);
+
   // TODO: we need to further design how to throttle this.
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
@@ -73,21 +104,24 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private final ParticipantMonitor _monitor;
   public static final String MAX_THREADS = "maxThreads";
 
-  final ConcurrentHashMap<String, MessageHandlerFactory> _handlerFactoryMap =
-      new ConcurrentHashMap<String, MessageHandlerFactory>();
+  /**
+   * Map of MsgType->MsgHandlerFactoryRegistryItem
+   */
+  final ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem> _hdlrFtyRegistry;
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
 
-  private static Logger LOG = Logger.getLogger(HelixTaskExecutor.class);
-
-  Map<String, Integer> _resourceThreadpoolSizeMap = new ConcurrentHashMap<String, Integer>();
+  final Map<String, Integer> _resourceThreadpoolSizeMap;
 
   // timer for schedule timeout tasks
   final Timer _timer;
 
   public HelixTaskExecutor() {
     _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
+
+    _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
+    _resourceThreadpoolSizeMap = new ConcurrentHashMap<String, Integer>();
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
@@ -111,18 +145,24 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           + factory.getMessageType());
     }
 
-    MessageHandlerFactory prevFactory = _handlerFactoryMap.putIfAbsent(type, factory);
-    if (prevFactory == null) {
-      if (!_executorMap.contains(type)) {
-        _executorMap.put(type, Executors.newFixedThreadPool(threadpoolSize));
-      } else {
-        LOG.error("Skip to create new thread pool for type: " + type);
+    MsgHandlerFactoryRegistryItem newItem =
+        new MsgHandlerFactoryRegistryItem(factory, threadpoolSize);
+    MsgHandlerFactoryRegistryItem prevItem = _hdlrFtyRegistry.putIfAbsent(type, newItem);
+    if (prevItem == null) {
+      ExecutorService newPool = Executors.newFixedThreadPool(threadpoolSize);
+      ExecutorService prevExecutor = _executorMap.putIfAbsent(type, newPool);
+      if (prevExecutor != null) {
+        LOG.warn("Skip creating a new thread pool for type: " + type + ", already existing pool: "
+            + prevExecutor + ", isShutdown: " + prevExecutor.isShutdown());
+        newPool = null;
       }
       LOG.info("Registered message handler factory for type: " + type + ", poolSize: "
           + threadpoolSize + ", factory: " + factory + ", pool: " + _executorMap.get(type));
     } else {
-      LOG.warn("Fail to register message handler factory for type: " + type + ", poolSize: "
-          + threadpoolSize + ", factory: " + factory);
+      LOG.info("Skip register message handler factory for type: " + type + ", poolSize: "
+          + threadpoolSize + ", factory: " + factory + ", already existing factory: "
+          + prevItem.factory());
+      newItem = null;
     }
   }
 
@@ -165,7 +205,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
    * Find the executor service for the message. A message can have a per-statemodelfactory
    * executor service, or per-message type executor service.
-   **/
+   */
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
@@ -380,29 +420,39 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
    * @param type
    */
   void unregisterMessageHandlerFactory(String type) {
+    MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.remove(type);
     ExecutorService pool = _executorMap.remove(type);
-    MessageHandlerFactory handlerFty = _handlerFactoryMap.remove(type);
 
-    LOG.info("Unregistering message handler factory for type: " + type + ", factory: " + handlerFty
-        + ", pool: " + pool);
+    LOG.info("Unregistering message handler factory for type: " + type + ", factory: "
+        + item.factory() + ", pool: " + pool);
 
     if (pool != null) {
       shutdownAndAwaitTermination(pool);
     }
 
     // reset state-model
-    if (handlerFty != null) {
-      handlerFty.reset();
+    if (item != null) {
+      item.factory().reset();
     }
 
-    LOG.info("Unregistered message handler factory for type: " + type + ", factory: " + handlerFty
-        + ", pool: " + pool);
+    LOG.info("Unregistered message handler factory for type: " + type + ", factory: "
+        + item.factory() + ", pool: " + pool);
   }
 
   void reset() {
     LOG.info("Reset HelixTaskExecutor");
-    for (String msgType : _executorMap.keySet()) {
-      unregisterMessageHandlerFactory(msgType);
+    for (String msgType : _hdlrFtyRegistry.keySet()) {
+      // don't un-register factories, just shutdown all executors
+      ExecutorService pool = _executorMap.remove(msgType);
+      if (pool != null) {
+        LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
+        shutdownAndAwaitTermination(pool);
+      }
+
+      MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
+      if (item.factory() != null) {
+        item.factory().reset();
+      }
     }
 
     // Log all tasks that fail to terminate
@@ -411,18 +461,40 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       LOG.warn("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage());
     }
     _taskMap.clear();
+  }
 
+  void init() {
+    LOG.info("Init HelixTaskExecutor");
+
+    // Re-init all existing factories
+    for (String msgType : _hdlrFtyRegistry.keySet()) {
+      MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
+      ExecutorService newPool = Executors.newFixedThreadPool(item.threadPoolSize());
+      ExecutorService prevPool = _executorMap.putIfAbsent(msgType, newPool);
+      if (prevPool != null) {
+        // Will happen if we register and call init
+        LOG.info("Skip init a new thread pool for type: " + msgType + ", already existing pool: "
+            + prevPool + ", isShutdown: " + prevPool.isShutdown());
+        newPool = null;
+      }
+    }
   }
 
   @Override
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
+
     // If FINALIZE notification comes, reset all handler factories
     // and terminate all the thread pools
     // TODO: see if we should have a separate notification call for resetting
     if (changeContext.getType() == Type.FINALIZE) {
       reset();
       return;
+    }
+
+    if (changeContext.getType() == Type.INIT) {
+      init();
+      // continue to process messages
     }
 
     if (messages == null || messages.size() == 0) {
@@ -568,7 +640,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public MessageHandler createMessageHandler(Message message, NotificationContext changeContext) {
     String msgType = message.getMsgType().toString();
 
-    MessageHandlerFactory handlerFactory = _handlerFactoryMap.get(msgType);
+    MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
+    MessageHandlerFactory handlerFactory = item.factory();
 
     // Fail to find a MessageHandlerFactory for the message
     // we will keep the message and the message will be handled when

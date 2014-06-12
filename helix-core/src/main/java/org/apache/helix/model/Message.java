@@ -626,16 +626,6 @@ public class Message extends HelixProperty {
     return partitionNames;
   }
 
-  // public AtomicInteger getGroupMsgCountDown()
-  // {
-  // return _groupMsgCountDown;
-  // }
-  //
-  // public void setGroupMsgCountDown(AtomicInteger countDown)
-  // {
-  // _groupMsgCountDown = countDown;
-  // }
-
   /**
    * Check if this message is targetted for a controller
    * @return true if this is a controller message, false otherwise

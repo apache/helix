@@ -221,6 +221,7 @@ public class Workflow {
     if (wf.schedule != null) {
       builder.setScheduleConfig(ScheduleConfig.from(wf.schedule));
     }
+    builder.setExpiry(wf.expiry);
 
     return builder.build();
   }
@@ -267,7 +268,7 @@ public class Workflow {
       _dag = new JobDag();
       _jobConfigs = new TreeMap<String, Map<String, String>>();
       _taskConfigs = new TreeMap<String, List<TaskConfig>>();
-      _expiry = -1;
+      _expiry = WorkflowConfig.DEFAULT_EXPIRY;
     }
 
     public Builder addConfig(String job, String key, String val) {
@@ -345,7 +346,6 @@ public class Workflow {
       if (_expiry > 0) {
         builder.setExpiry(_expiry);
       }
-
       return new Workflow(_name, builder.build(), _jobConfigs, _taskConfigs); // calls validate
                                                                               // internally
     }

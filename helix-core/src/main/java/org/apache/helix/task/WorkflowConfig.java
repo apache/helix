@@ -19,20 +19,14 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.Map;
 import java.util.TimeZone;
-
-import org.apache.log4j.Logger;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
  */
 public class WorkflowConfig {
-  private static final Logger LOG = Logger.getLogger(WorkflowConfig.class);
-
   /* Config fields */
   public static final String DAG = "Dag";
   public static final String TARGET_STATE = "TargetState";
@@ -50,10 +44,10 @@ public class WorkflowConfig {
   }
 
   /* Member variables */
-  private JobDag _jobDag;
-  private TargetState _targetState;
-  private long _expiry;
-  private ScheduleConfig _scheduleConfig;
+  private final JobDag _jobDag;
+  private final TargetState _targetState;
+  private final long _expiry;
+  private final ScheduleConfig _scheduleConfig;
 
   private WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry,
       ScheduleConfig scheduleConfig) {
@@ -85,10 +79,6 @@ public class WorkflowConfig {
     private long _expiry = DEFAULT_EXPIRY;
     private ScheduleConfig _scheduleConfig;
 
-    public Builder() {
-      // Nothing to do
-    }
-
     public WorkflowConfig build() {
       validate();
 
@@ -117,11 +107,9 @@ public class WorkflowConfig {
 
     public static Builder fromMap(Map<String, String> cfg) {
       Builder b = new Builder();
-
       if (cfg == null) {
         return b;
       }
-
       if (cfg.containsKey(EXPIRY)) {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
       }
@@ -133,22 +121,9 @@ public class WorkflowConfig {
       }
 
       // Parse schedule-specific configs, if they exist
-      Date startTime = null;
-      if (cfg.containsKey(START_TIME)) {
-        try {
-          startTime = DEFAULT_DATE_FORMAT.parse(cfg.get(START_TIME));
-        } catch (ParseException e) {
-          LOG.error("Unparseable date " + cfg.get(START_TIME), e);
-        }
-      }
-      if (cfg.containsKey(RECURRENCE_UNIT) && cfg.containsKey(RECURRENCE_INTERVAL)) {
-        /*
-         * b.setScheduleConfig(ScheduleConfig.recurringFromDate(startTime,
-         * TimeUnit.valueOf(cfg.get(RECURRENCE_UNIT)),
-         * Long.parseLong(cfg.get(RECURRENCE_INTERVAL))));
-         */
-      } else if (startTime != null) {
-        b.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(startTime));
+      ScheduleConfig scheduleConfig = TaskUtil.parseScheduleFromConfigMap(cfg);
+      if (scheduleConfig != null) {
+        b.setScheduleConfig(scheduleConfig);
       }
       return b;
     }

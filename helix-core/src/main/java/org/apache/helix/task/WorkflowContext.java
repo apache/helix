@@ -34,6 +34,7 @@ public class WorkflowContext extends HelixProperty {
   public static final String START_TIME = "START_TIME";
   public static final String FINISH_TIME = "FINISH_TIME";
   public static final String TASK_STATES = "TASK_STATES";
+  public static final String LAST_SCHEDULED_WORKFLOW = "LAST_SCHEDULED_WORKFLOW";
   public static final int UNFINISHED = -1;
 
   public WorkflowContext(ZNRecord record) {
@@ -105,5 +106,13 @@ public class WorkflowContext extends HelixProperty {
     }
 
     return Long.parseLong(tStr);
+  }
+
+  public void setLastScheduledSingleWorkflow(String wf) {
+    _record.setSimpleField(LAST_SCHEDULED_WORKFLOW, wf);
+  }
+
+  public String getLastScheduledSingleWorkflow() {
+    return _record.getSimpleField(LAST_SCHEDULED_WORKFLOW);
   }
 }

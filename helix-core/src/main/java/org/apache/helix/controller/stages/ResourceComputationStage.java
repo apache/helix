@@ -55,14 +55,17 @@ public class ResourceComputationStage extends AbstractBaseStage {
       for (IdealState idealState : idealStates.values()) {
         Set<String> partitionSet = idealState.getPartitionSet();
         String resourceName = idealState.getResourceName();
-
-        for (String partition : partitionSet) {
-          addPartition(partition, resourceName, resourceMap);
-          Resource resource = resourceMap.get(resourceName);
+        if (!resourceMap.containsKey(resourceName)) {
+          Resource resource = new Resource(resourceName);
+          resourceMap.put(resourceName, resource);
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
           resource.setBatchMessageMode(idealState.getBatchMessageMode());
+        }
+
+        for (String partition : partitionSet) {
+          addPartition(partition, resourceName, resourceMap);
         }
       }
     }

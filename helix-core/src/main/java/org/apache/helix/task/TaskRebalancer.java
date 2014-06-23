@@ -36,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
@@ -53,6 +54,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
@@ -61,12 +63,12 @@ import com.google.common.collect.Sets;
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
 
-  /** Management of already-scheduled workflows across jobs */
+  // Management of already-scheduled workflows across jobs
   private static final BiMap<String, Date> SCHEDULED_WORKFLOWS = HashBiMap.create();
   private static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors
       .newSingleThreadScheduledExecutor();
 
-  /** For connection management */
+  // For connection management
   private HelixManager _manager;
 
   /**
@@ -118,12 +120,6 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
 
-    // Check for readiness, and stop processing if it's not ready
-    boolean isReady = scheduleIfNotReady(workflowCfg, workflowResource, resourceName);
-    if (!isReady) {
-      return emptyAssignment(resourceName);
-    }
-
     // Initialize workflow context if needed
     if (workflowCtx == null) {
       workflowCtx = new WorkflowContext(new ZNRecord("WorkflowContext"));
@@ -134,7 +130,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     for (String parent : workflowCfg.getJobDag().getDirectParents(resourceName)) {
       if (workflowCtx.getJobState(parent) == null
           || !workflowCtx.getJobState(parent).equals(TaskState.COMPLETED)) {
-        return emptyAssignment(resourceName);
+        return emptyAssignment(resourceName, currStateOutput);
       }
     }
 
@@ -142,7 +138,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       cleanup(_manager, resourceName, workflowCfg, workflowResource);
-      return emptyAssignment(resourceName);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // Check if this workflow has been finished past its expiry.
@@ -150,7 +146,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         && workflowCtx.getFinishTime() + workflowCfg.getExpiry() <= System.currentTimeMillis()) {
       markForDeletion(_manager, workflowResource);
       cleanup(_manager, resourceName, workflowCfg, workflowResource);
-      return emptyAssignment(resourceName);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // Fetch any existing context information from the property store.
@@ -163,9 +159,17 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // The job is already in a final state (completed/failed).
     if (workflowCtx.getJobState(resourceName) == TaskState.FAILED
         || workflowCtx.getJobState(resourceName) == TaskState.COMPLETED) {
-      return emptyAssignment(resourceName);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
+    // Check for readiness, and stop processing if it's not ready
+    boolean isReady =
+        scheduleIfNotReady(workflowCfg, workflowCtx, workflowResource, resourceName, clusterData);
+    if (!isReady) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
+
+    // Grab the old assignment, or an empty one if it doesn't exist
     ResourceAssignment prevAssignment = TaskUtil.getPrevResourceAssignment(_manager, resourceName);
     if (prevAssignment == null) {
       prevAssignment = new ResourceAssignment(resourceName);
@@ -342,8 +346,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
             if (!successOptional) {
               workflowCtx.setJobState(jobResource, TaskState.FAILED);
               workflowCtx.setWorkflowState(TaskState.FAILED);
+              workflowCtx.setFinishTime(System.currentTimeMillis());
               addAllPartitions(allPartitions, partitionsToDropFromIs);
-              return emptyAssignment(jobResource);
+              return emptyAssignment(jobResource, currStateOutput);
             } else {
               skippedPartitions.add(pId);
               partitionsToDropFromIs.add(pId);
@@ -425,12 +430,14 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   /**
    * Check if a workflow is ready to schedule, and schedule a rebalance if it is not
    * @param workflowCfg the workflow to check
+   * @param workflowCtx the current workflow context
    * @param workflowResource the Helix resource associated with the workflow
    * @param jobResource a job from the workflow
+   * @param cache the current snapshot of the cluster
    * @return true if ready, false if not ready
    */
-  private boolean scheduleIfNotReady(WorkflowConfig workflowCfg, String workflowResource,
-      String jobResource) {
+  private boolean scheduleIfNotReady(WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      String workflowResource, String jobResource, ClusterDataCache cache) {
     // Ignore non-scheduled workflows
     if (workflowCfg == null || workflowCfg.getScheduleConfig() == null) {
       return true;
@@ -439,11 +446,66 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // Figure out when this should be run, and if it's ready, then just run it
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     Date startTime = scheduleConfig.getStartTime();
-    long delay = startTime.getTime() - new Date().getTime();
-    if (delay <= 0) {
-      SCHEDULED_WORKFLOWS.remove(workflowResource);
-      SCHEDULED_WORKFLOWS.inverse().remove(startTime);
-      return true;
+    long currentTime = new Date().getTime();
+    long delayFromStart = startTime.getTime() - currentTime;
+
+    if (delayFromStart <= 0) {
+      // Remove any timers that are past-time for this workflow
+      Date scheduledTime = SCHEDULED_WORKFLOWS.get(workflowResource);
+      if (scheduledTime != null && currentTime > scheduledTime.getTime()) {
+        SCHEDULED_WORKFLOWS.remove(workflowResource);
+      }
+
+      // Recurring workflows are just templates that spawn new workflows
+      if (scheduleConfig.isRecurring()) {
+        // Skip scheduling this workflow if it's not in a start state
+        if (!workflowCfg.getTargetState().equals(TargetState.START)) {
+          return false;
+        }
+
+        // Skip scheduling this workflow again if the previous run (if any) is still active
+        String lastScheduled = workflowCtx.getLastScheduledSingleWorkflow();
+        if (lastScheduled != null) {
+          WorkflowContext lastWorkflowCtx = TaskUtil.getWorkflowContext(_manager, lastScheduled);
+          if (lastWorkflowCtx == null
+              || lastWorkflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
+            return false;
+          }
+        }
+
+        // Figure out how many jumps are needed, thus the time to schedule the next workflow
+        // The negative of the delay is the amount of time past the start time
+        long period =
+            scheduleConfig.getRecurrenceUnit().toMillis(scheduleConfig.getRecurrenceInterval());
+        long offsetMultiplier = (-delayFromStart) / period;
+        long timeToSchedule = period * offsetMultiplier + startTime.getTime();
+
+        // Now clone the workflow if this clone has not yet been created
+        String newWorkflowName =
+            workflowResource + "_" + TaskConstants.SCHEDULED + "_" + offsetMultiplier;
+        if (lastScheduled == null || !lastScheduled.equals(newWorkflowName)) {
+          Workflow clonedWf =
+              TaskUtil.cloneWorkflow(_manager, workflowResource, newWorkflowName, new Date(
+                  timeToSchedule));
+          TaskDriver driver = new TaskDriver(_manager);
+          try {
+            // Start the cloned workflow
+            driver.start(clonedWf);
+          } catch (Exception e) {
+            LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
+          }
+          // Persist workflow start regardless of success to avoid retrying and failing
+          workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
+          TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
+        }
+
+        // Change the time to trigger the pipeline to that of the next run
+        startTime = new Date(timeToSchedule + period);
+        delayFromStart = startTime.getTime() - System.currentTimeMillis();
+      } else {
+        // This is a one-time workflow and is ready
+        return true;
+      }
     }
 
     // No need to schedule the same runnable at the same time
@@ -452,11 +514,22 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       return false;
     }
 
+    scheduleRebalance(workflowResource, jobResource, startTime, delayFromStart);
+    return false;
+  }
+
+  private void scheduleRebalance(String workflowResource, String jobResource, Date startTime,
+      long delayFromStart) {
+    // No need to schedule the same runnable at the same time
+    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
+        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+      return;
+    }
+
     // For workflows not yet scheduled, schedule them and record it
     RebalanceInvoker rebalanceInvoker = new RebalanceInvoker(_manager, jobResource);
     SCHEDULED_WORKFLOWS.put(workflowResource, startTime);
-    SCHEDULED_EXECUTOR.schedule(rebalanceInvoker, delay, TimeUnit.MILLISECONDS);
-    return false;
+    SCHEDULED_EXECUTOR.schedule(rebalanceInvoker, delayFromStart, TimeUnit.MILLISECONDS);
   }
 
   /**
@@ -602,8 +675,18 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
   }
 
-  private static ResourceAssignment emptyAssignment(String name) {
-    return new ResourceAssignment(name);
+  private static ResourceAssignment emptyAssignment(String name, CurrentStateOutput currStateOutput) {
+    ResourceAssignment assignment = new ResourceAssignment(name);
+    Set<Partition> partitions = currStateOutput.getCurrentStateMappedPartitions(name);
+    for (Partition partition : partitions) {
+      Map<String, String> currentStateMap = currStateOutput.getCurrentStateMap(name, partition);
+      Map<String, String> replicaMap = Maps.newHashMap();
+      for (String instanceName : currentStateMap.keySet()) {
+        replicaMap.put(instanceName, HelixDefinedState.DROPPED.toString());
+      }
+      assignment.addReplicaMap(partition, replicaMap);
+    }
+    return assignment;
   }
 
   private static void addCompletedPartitions(Set<Integer> set, JobContext ctx,

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -35,6 +36,7 @@ import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.helix.AccessOption;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -42,6 +44,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.log4j.Logger;
@@ -221,11 +224,38 @@ public class TaskDriver {
 
   /** Helper function to change target state for a given task */
   private void setTaskTargetState(String jobResource, TargetState state) {
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    HelixProperty p = new HelixProperty(jobResource);
-    p.getRecord().setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
-    accessor.updateProperty(accessor.keyBuilder().resourceConfig(jobResource), p);
+    setSingleTaskTargetState(jobResource, state);
 
+    // For recurring schedules, child workflows must also be handled
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    List<String> resources = accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+    for (String resource : resources) {
+      String prefix = resource + "_" + TaskConstants.SCHEDULED;
+      if (resource.startsWith(prefix)) {
+        setSingleTaskTargetState(resource, state);
+      }
+    }
+  }
+
+  /** Helper function to change target state for a given task */
+  private void setSingleTaskTargetState(String jobResource, final TargetState state) {
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        // Only update target state for non-completed workflows
+        String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
+        if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
+          currentData.setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
+        }
+        return currentData;
+      }
+    };
+    List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
+    updaters.add(updater);
+    List<String> paths = Lists.newArrayList();
+    paths.add(accessor.keyBuilder().resourceConfig(jobResource).getPath());
+    accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     invokeRebalance();
   }
 

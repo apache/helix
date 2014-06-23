@@ -87,12 +87,6 @@ public class ScheduleConfig {
    * @return true if valid, false if invalid
    */
   public boolean isValid() {
-    // For now, disallow recurring workflows
-    if (isRecurring()) {
-      LOG.error("Recurring workflows are not currently supported.");
-      return false;
-    }
-
     // All schedules must have a start time even if they are recurring
     if (_startTime == null) {
       LOG.error("All schedules must have a start time!");
@@ -141,25 +135,28 @@ public class ScheduleConfig {
     return new ScheduleConfig(startTime, null, null);
   }
 
-  /*
+  /**
    * Create a schedule for a recurring workflow that should start immediately
    * @param recurUnit the unit of the recurrence interval
    * @param recurInterval the magnitude of the recurrence interval
    * @return instantiated ScheduleConfig
-   * public static ScheduleConfig recurringFromNow(TimeUnit recurUnit, long recurInterval) {
-   * return new ScheduleConfig(new Date(), recurUnit, recurInterval);
-   * }
    */
+  public static ScheduleConfig recurringFromNow(TimeUnit recurUnit, long recurInterval) {
+    return new ScheduleConfig(new Date(), recurUnit, recurInterval);
+  }
 
-  /*
+  /**
    * Create a schedule for a recurring workflow that should start at a specific time
-   * @param startTime the time to start the workflow the first time
+   * @param startTime the time to start the workflow the first time, or null if now
    * @param recurUnit the unit of the recurrence interval
    * @param recurInterval the magnitude of the recurrence interval
    * @return instantiated ScheduleConfig
-   * public static ScheduleConfig recurringFromDate(Date startTime, TimeUnit recurUnit,
-   * long recurInterval) {
-   * return new ScheduleConfig(startTime, recurUnit, recurInterval);
-   * }
    */
+  public static ScheduleConfig recurringFromDate(Date startTime, TimeUnit recurUnit,
+      long recurInterval) {
+    if (startTime == null) {
+      startTime = new Date();
+    }
+    return new ScheduleConfig(startTime, recurUnit, recurInterval);
+  }
 }

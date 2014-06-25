@@ -20,11 +20,14 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Sets;
 
 public class ResourceMonitor implements ResourceMonitorMBean {
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
@@ -32,6 +35,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   private int _numOfPartitions;
   private int _numOfPartitionsInExternalView;
   private int _numOfErrorPartitions;
+  private int _numNonTopStatePartitions;
   private int _externalViewIdealStateDiff;
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private String _resourceName;
@@ -53,6 +57,11 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   }
 
   @Override
+  public long getMissingTopStatePartitionGauge() {
+    return _numNonTopStatePartitions;
+  }
+
+  @Override
   public long getDifferenceWithIdealStateGauge() {
     return _externalViewIdealStateDiff;
   }
@@ -67,7 +76,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     return _resourceName;
   }
 
-  public void updateResource(ExternalView externalView, IdealState idealState) {
+  public void updateResource(ExternalView externalView, IdealState idealState, String topState) {
     if (externalView == null) {
       LOG.warn("external view is null");
       return;
@@ -77,6 +86,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     if (idealState == null) {
       LOG.warn("ideal state is null for " + resourceName);
       _numOfErrorPartitions = 0;
+      _numNonTopStatePartitions = 0;
       _externalViewIdealStateDiff = 0;
       _numOfPartitionsInExternalView = 0;
       return;
@@ -86,6 +96,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
     int numOfErrorPartitions = 0;
     int numOfDiff = 0;
+    Set<String> topStatePartitions = Sets.newHashSet();
 
     if (_numOfPartitions == 0) {
       _numOfPartitions = idealState.getRecord().getMapFields().size();
@@ -112,11 +123,15 @@ public class ResourceMonitor implements ResourceMonitorMBean {
         if (externalViewRecord.get(host).equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           numOfErrorPartitions++;
         }
+        if (topState != null && externalViewRecord.get(host).equalsIgnoreCase(topState)) {
+          topStatePartitions.add(partitionName);
+        }
       }
     }
     _numOfErrorPartitions = numOfErrorPartitions;
     _externalViewIdealStateDiff = numOfDiff;
     _numOfPartitionsInExternalView = externalView.getPartitionSet().size();
+    _numNonTopStatePartitions = _numOfPartitions - topStatePartitions.size();
     String tag = idealState.getInstanceGroupTag();
     if (tag == null || tag.equals("") || tag.equals("null")) {
       _tag = ClusterStatusMonitor.DEFAULT_TAG;

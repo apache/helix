@@ -6,6 +6,8 @@ target/
 /recipes/rabbitmq-consumer-group/target/
 .idea
 *.iml
+*.ipr
+*.iws
 .settings/
 out/
 .DS_Store

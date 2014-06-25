@@ -193,6 +193,10 @@ under the License.
               <name>zk-dumper</name>
             </program>
             <program>
+              <mainClass>org.apache.helix.tools.ZkCopy</mainClass>
+              <name>zkcopy</name>
+            </program>
+            <program>
               <mainClass>org.apache.helix.tools.ZKLogFormatter</mainClass>
               <name>zk-log-parser</name>
             </program>

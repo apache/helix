@@ -46,7 +46,7 @@
 
 
     <!-- for some sample stuff to browse -->
-    <!--dependency>
+    <dependency>
       <groupId>io.hawt.example.services</groupId>
       <artifactId>example-infinispan</artifactId>
       <version>${project.version}</version>
@@ -55,7 +55,7 @@
       <groupId>io.hawt.example.services</groupId>
       <artifactId>example-dozer-models</artifactId>
       <version>${project.version}</version>
-    </dependency-->
+    </dependency>
 <!--
     <dependency>
       <groupId>io.hawt</groupId>
@@ -64,7 +64,7 @@
     </dependency>
 -->
 
-    <!--dependency>
+    <dependency>
       <groupId>org.apache.camel</groupId>
       <artifactId>camel-jms</artifactId>
       <version>${camel-version}</version>
@@ -98,7 +98,7 @@
       <groupId>org.springframework</groupId>
       <artifactId>spring-web</artifactId>
       <version>${spring-version}</version>
-    </dependency-->
+    </dependency>
 
 <!--
     <dependency>

@@ -1,0 +1,36 @@
+<!doctype html>
+<html ng-app>
+	<head>
+		<title>Helix Dashboard</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+    	<script src="helix.js"></script>
+	</head>
+
+	<body>
+		<div ng-controller="Hello">	
+			<p><B>Helix Clusters</B></p>
+			Select Cluster : <select data-ng-options="o for o in clusters.listFields.clusters" data-ng-model="clusters.listFields.clusters[0]"></select>
+			<p>Add New Cluster : <input type="text" ng-model="name">
+			<!--<span ng-bind="name"></span> -->
+			<button ng-click="addC">Add Cluster</button></p>
+				<table border="1">
+				<thead>
+					<tr>
+					  <td><B>Cluster</B></td>
+					  <td><B>Action</B></td>
+					  
+					</tr>
+				</thead>
+					<tbody>
+						<tr ng-repeat='item in clusters.listFields.clusters'>
+						<td>{{item}}</td>
+						<td>information|remove|active</td>
+						</tr>
+					</tbody>
+				</table>
+
+			<p><button ng-click="addR">Add Resource</button><button ng-click="addI">Add Instance</button><button ng-click="addS">Add State Model Definition</button></p>
+			<p><button ng-click="addCons">Add Constraints</button><button ng-click="addconfigs">Configs</button>
+		</div>
+	</body>
+</html>

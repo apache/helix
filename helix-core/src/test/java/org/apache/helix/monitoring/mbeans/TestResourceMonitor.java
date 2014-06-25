@@ -121,7 +121,7 @@ public class TestResourceMonitor {
     IdealState idealState = new IdealState(idealStateRecord);
     ExternalView externalView = new ExternalView(idealStateRecord);
 
-    monitor.updateResource(externalView, idealState);
+    monitor.updateResource(externalView, idealState, "MASTER");
 
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 0);
@@ -137,7 +137,7 @@ public class TestResourceMonitor {
       externalView.setStateMap(_dbName + "_" + 3 * i, map);
     }
 
-    monitor.updateResource(externalView, idealState);
+    monitor.updateResource(externalView, idealState, "MASTER");
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), 0);
     Assert.assertEquals(monitor.getErrorPartitionGauge(), m);
     Assert.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions);
@@ -147,7 +147,7 @@ public class TestResourceMonitor {
       externalView.getRecord().getMapFields().remove(_dbName + "_" + 4 * i);
     }
 
-    monitor.updateResource(externalView, idealState);
+    monitor.updateResource(externalView, idealState, "MASTER");
     Assert.assertEquals(monitor.getDifferenceWithIdealStateGauge(), n * (_replicas + 1));
     Assert.assertEquals(monitor.getErrorPartitionGauge(), 3);
     Assert.assertEquals(monitor.getExternalViewPartitionGauge(), _partitions - n);

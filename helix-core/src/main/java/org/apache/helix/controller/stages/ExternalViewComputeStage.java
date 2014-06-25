@@ -50,6 +50,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
@@ -124,8 +125,10 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         if (clusterStatusMonitor != null
             && !idealState.getStateModelDefRef().equalsIgnoreCase(
                 DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+          StateModelDefinition stateModelDef =
+              cache.getStateModelDef(idealState.getStateModelDefRef());
           clusterStatusMonitor.setResourceStatus(view,
-              cache._idealStateMap.get(view.getResourceName()));
+              cache._idealStateMap.get(view.getResourceName()), stateModelDef);
         }
       }
 

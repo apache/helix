@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -307,21 +308,29 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setResourceStatus(ExternalView externalView, IdealState idealState) {
+  public void setResourceStatus(ExternalView externalView, IdealState idealState,
+      StateModelDefinition stateModelDef) {
+    String topState = null;
+    if (stateModelDef != null) {
+      List<String> priorityList = stateModelDef.getStatesPriorityList();
+      if (!priorityList.isEmpty()) {
+        topState = priorityList.get(0);
+      }
+    }
     try {
       String resourceName = externalView.getId();
       if (!_resourceMbeanMap.containsKey(resourceName)) {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            bean.updateResource(externalView, idealState);
+            bean.updateResource(externalView, idealState, topState);
             registerResources(Arrays.asList(bean));
           }
         }
       }
       ResourceMonitor bean = _resourceMbeanMap.get(resourceName);
       String oldSensorName = bean.getSensorName();
-      bean.updateResource(externalView, idealState);
+      bean.updateResource(externalView, idealState, topState);
       String newSensorName = bean.getSensorName();
       if (!oldSensorName.equals(newSensorName)) {
         unregisterResources(Arrays.asList(resourceName));

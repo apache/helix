@@ -1,0 +1,36 @@
+<!doctype html>
+<html ng-app>
+	<head>
+		<title>Helix Dashboard</title>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.min.js"></script>
+    	<script src="helix.js"></script>
+	</head>
+
+	<body>
+		<div ng-controller="Hello">	
+			<p><B>Helix Resource Group</B></p>
+			
+			<p>Add New Resource : <input type="text" ng-model="resource_name" placeholder="Resource name">
+			Select Cluster : <select data-ng-options="o for o in clusters.listFields.clusters" data-ng-model="clusters.listFields.clusters[0]"></select>
+			<!--<span ng-bind="name"></span> -->
+			<button ng-click="addC">Add To Cluster</button></p>
+				<table border="1">
+				<thead>
+					<tr>
+					  <td><B>Resource</B></td>
+					  <td><B>Action</B></td>
+					  
+					</tr>
+				</thead>
+					<tbody>
+						<tr ng-repeat='item in clusters.listFields.clusters'>
+						<td>{{item}}</td>
+						<td>information|config|ideal state|external view|reset|delete</td>
+						</tr>
+					</tbody>
+				</table>
+
+
+		</div>
+	</body>
+</html>

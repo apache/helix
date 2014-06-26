@@ -150,10 +150,6 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
   public void afterClass() {
     System.out.println("Cleaning up...");
     for (int i = 0; i < 5; i++) {
-      boolean result =
-          ClusterStateVerifier
-              .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                  _controllerClusterName));
       _controllers[i].syncStop();
     }
 
@@ -202,10 +198,10 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
 
     // 1 participant goes away
     // No change in instance/resource mbean
-    // Unregister 1 per-instance resource mbean
+    // Unregister 1 per-instance resource mbean and message queue mbean
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 1);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 2);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered);
 
     HelixDataAccessor accessor = _participants[n - 1].getHelixDataAccessor();
     String firstControllerName =
@@ -223,8 +219,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // 1 cluster status monitor, 1 resource monitor, 5 instances
     // Unregister 1+4+1 per-instance resource mbean
     // Register 4 per-instance resource mbean
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 13);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 11);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 16);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 12);
 
     String instanceName = "localhost0_" + (12918 + 0);
     _participants[0] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
@@ -234,8 +230,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // No change in instance/resource mbean
     // Register 1 per-instance resource mbean
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 13);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 12);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 16);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 14);
 
     // Add a resource
     // Register 1 resource mbean
@@ -249,16 +245,16 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
         Integer.parseInt(idealState.getReplicas()));
 
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 13);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 18);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 16);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 20);
 
     // Remove a resource
     // No change in instance/resource mbean
     // Unregister 5 per-instance resource mbean
     setupTool.dropResourceFromCluster(_firstClusterName, "TestDB1");
     Thread.sleep(1000);
-    Assert.assertTrue(nMbeansUnregistered == listener._nMbeansUnregistered - 18);
-    Assert.assertTrue(nMbeansRegistered == listener._nMbeansRegistered - 18);
+    Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 21);
+    Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 20);
 
   }
 }

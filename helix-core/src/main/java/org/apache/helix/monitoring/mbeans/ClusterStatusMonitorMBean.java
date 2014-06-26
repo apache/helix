@@ -32,15 +32,13 @@ public interface ClusterStatusMonitorMBean extends SensorNameProvider {
 
   /**
    * The max message queue size across all instances including controller
-   * will report to ingraph
    * @return
    */
   public long getMaxMessageQueueSizeGauge();
 
   /**
-   * Get all message queue sizes as a string
-   * will NOT report to ingraph
+   * The sum of all message queue sizes for instances in this cluster
    * @return
    */
-  public String getMessageQueueSizes();
+  public long getInstanceMessageQueueBacklog();
 }

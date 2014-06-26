@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.concurrent.ConcurrentHashMap;
 
 import javax.management.MBeanServer;
@@ -43,6 +42,7 @@ import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
@@ -55,6 +55,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   static final String CLUSTER_DN_KEY = "cluster";
   static final String RESOURCE_DN_KEY = "resourceName";
   static final String INSTANCE_DN_KEY = "instanceName";
+  static final String MESSAGE_QUEUE_DN_KEY = "messageQueue";
 
   public static final String DEFAULT_TAG = "DEFAULT";
 
@@ -65,12 +66,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
   private Map<String, Set<String>> _disabledPartitions = Collections.emptyMap();
+  private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
       new ConcurrentHashMap<String, ResourceMonitor>();
-
-  private final ConcurrentHashMap<String, MessageQueueMonitor> _instanceMsgQueueMbeanMap =
-      new ConcurrentHashMap<String, MessageQueueMonitor>();
 
   private final ConcurrentHashMap<String, InstanceMonitor> _instanceMbeanMap =
       new ConcurrentHashMap<String, InstanceMonitor>();
@@ -128,24 +127,21 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   @Override
   public long getMaxMessageQueueSizeGauge() {
     long maxQueueSize = 0;
-    for (MessageQueueMonitor msgQueue : _instanceMsgQueueMbeanMap.values()) {
-      if (msgQueue.getMaxMessageQueueSize() > maxQueueSize) {
-        maxQueueSize = (long) msgQueue.getMaxMessageQueueSize();
+    for (Long queueSize : _instanceMsgQueueSizes.values()) {
+      if (queueSize > maxQueueSize) {
+        maxQueueSize = queueSize;
       }
     }
-
     return maxQueueSize;
   }
 
   @Override
-  public String getMessageQueueSizes() {
-    Map<String, Long> msgQueueSizes = new TreeMap<String, Long>();
-    for (String instance : _instanceMsgQueueMbeanMap.keySet()) {
-      MessageQueueMonitor msgQueue = _instanceMsgQueueMbeanMap.get(instance);
-      msgQueueSizes.put(instance, new Long((long) msgQueue.getMaxMessageQueueSize()));
+  public long getInstanceMessageQueueBacklog() {
+    long sum = 0;
+    for (Long queueSize : _instanceMsgQueueSizes.values()) {
+      sum += queueSize;
     }
-
-    return msgQueueSizes.toString();
+    return sum;
   }
 
   private void register(Object bean, ObjectName name) {
@@ -341,20 +337,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void addMessageQueueSize(String instanceName, int msgQueueSize) {
-    try {
-      if (!_instanceMsgQueueMbeanMap.containsKey(instanceName)) {
-        synchronized (this) {
-          if (!_instanceMsgQueueMbeanMap.containsKey(instanceName)) {
-            MessageQueueMonitor bean = new MessageQueueMonitor(_clusterName, instanceName);
-            _instanceMsgQueueMbeanMap.put(instanceName, bean);
-          }
-        }
-      }
-      _instanceMsgQueueMbeanMap.get(instanceName).addMessageQueueSize(msgQueueSize);
-    } catch (Exception e) {
-      LOG.error("Fail to add message queue size to mbean, instance: " + instanceName, e);
-    }
+  public void addMessageQueueSize(String instanceName, long msgQueueSize) {
+    _instanceMsgQueueSizes.put(instanceName, msgQueueSize);
   }
 
   public void reset() {
@@ -364,10 +348,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
       _resourceMbeanMap.clear();
 
-      for (MessageQueueMonitor bean : _instanceMsgQueueMbeanMap.values()) {
-        bean.reset();
-      }
-      _instanceMsgQueueMbeanMap.clear();
+      _instanceMsgQueueSizes.clear();
 
       unregisterInstances(_instanceMbeanMap.keySet());
       _instanceMbeanMap.clear();

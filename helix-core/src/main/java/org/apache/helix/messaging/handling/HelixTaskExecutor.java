@@ -42,17 +42,18 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantMonitor;
+import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
@@ -99,6 +100,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private final StatusUpdateUtil _statusUpdateUtil;
   private final ParticipantMonitor _monitor;
   public static final String MAX_THREADS = "maxThreads";
+
+  private MessageQueueMonitor _messageQueueMonitor;
 
   /**
    * Map of MsgType->MsgHandlerFactoryRegistryItem
@@ -437,6 +440,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   void reset() {
     LOG.info("Reset HelixTaskExecutor");
+
+    if (_messageQueueMonitor != null) {
+      _messageQueueMonitor.reset();
+    }
+
     for (String msgType : _hdlrFtyRegistry.keySet()) {
       // don't un-register factories, just shutdown all executors
       ExecutorService pool = _executorMap.remove(msgType);
@@ -462,6 +470,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   void init() {
     LOG.info("Init HelixTaskExecutor");
 
+    if (_messageQueueMonitor != null) {
+      _messageQueueMonitor.init();
+    }
+
     // Re-init all existing factories
     for (String msgType : _hdlrFtyRegistry.keySet()) {
       MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
@@ -479,6 +491,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   @Override
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
+
+    HelixManager manager = changeContext.getManager();
+    if (_messageQueueMonitor == null) {
+      _messageQueueMonitor =
+          new MessageQueueMonitor(manager.getClusterName(), manager.getInstanceName());
+    }
 
     // If FINALIZE notification comes, reset all handler factories
     // and terminate all the thread pools
@@ -501,7 +519,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
 
-    HelixManager manager = changeContext.getManager();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 

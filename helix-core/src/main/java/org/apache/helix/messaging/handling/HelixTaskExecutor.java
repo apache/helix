@@ -516,6 +516,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       return;
     }
 
+    // Update message count
+    _messageQueueMonitor.setMessageQueueBacklog(messages.size());
+
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
 

@@ -37,7 +37,7 @@ under the License.
       org.apache.log4j,
       *
     </osgi.import>
-    <osgi.export>org.apache.helix.rabbitmq*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix.recipes.rabbitmq*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
@@ -88,4 +88,32 @@ under the License.
       <version>0.1</version>
     </dependency>
   </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>appassembler-maven-plugin</artifactId>
+        <configuration>
+          <programs>
+            <program>
+              <mainClass>org.apache.helix.recipes.rabbitmq.SetupConsumerCluster</mainClass>
+              <name>setup-cluster</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.recipes.rabbitmq.StartClusterManager</mainClass>
+              <name>start-cluster-manager</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.recipes.rabbitmq.Consumer</mainClass>
+              <name>start-consumer</name>
+            </program>
+            <program>
+              <mainClass>org.apache.helix.recipes.rabbitmq.Emitter</mainClass>
+              <name>send-message</name>
+            </program>
+          </programs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

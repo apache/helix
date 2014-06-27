@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <parent>
+  <!--parent>
 	  <groupId>io.hawt</groupId>
 	  <artifactId>project</artifactId>
     <version>1.5-SNAPSHOT</version>
-  </parent>
-
+  </parent-->
+  <!-- parent will be added as this module completed full then properties and repositories will move to master parent pom.xml-->
+  <!--parent>
+    <groupId>org.apache.helix</groupId>
+    <artifactId>helix</artifactId>
+    <version>0.7.1-incubating-SNAPSHOT</version>
+  </parent-->
+  <groupId>io.hawt</groupId>
+  <version>1.5-SNAPSHOT</version>
+  
   <modelVersion>4.0.0</modelVersion>
   <artifactId>sample</artifactId>
   <packaging>war</packaging>
@@ -131,6 +139,52 @@
     </dependency>
   </dependencies>
 
+  <profiles>
+    <!-- dealing with tools.jar for hawtio-local-jvm-mbean -->
+    <profile>
+      <id>default-profile</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+        <file>
+          <exists>${java.home}/../lib/tools.jar</exists>
+        </file>
+      </activation>
+      <properties>
+        <toolsjar>${java.home}/../lib/tools.jar</toolsjar>
+      </properties>
+    </profile>
+    <profile>
+      <id>mac-jdk6-profile</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <file>
+          <exists>${java.home}/../Classes/classes.jar</exists>
+        </file>
+      </activation>
+      <properties>
+        <toolsjar>${java.home}/../Classes/classes.jar</toolsjar>
+      </properties>
+    </profile>
+  </profiles>
+  <properties>
+	<!-- versions -->
+	<spring-version>3.2.8.RELEASE</spring-version>    
+    <war-plugin-version>2.1.1</war-plugin-version>
+	<jetty-version>7.6.9.v20130131</jetty-version>
+    <jetty-plugin-groupId>org.mortbay.jetty</jetty-plugin-groupId>
+    <jetty-plugin-version>7.6.9.v20130131</jetty-plugin-version>
+    <jetty-webapp-artifactId>jetty-webapp</jetty-webapp-artifactId>
+	<camel-version>2.13.0</camel-version>
+	<perfectus-number>379</perfectus-number>
+    <perfectus-previous-number>355</perfectus-previous-number>
+    <perfectus-build>610${perfectus-number}</perfectus-build>
+	<activemq-version>5.9.0.redhat-${perfectus-build}</activemq-version>
+    <activemq-leveldb-artifactid>activemq-leveldb-store</activemq-leveldb-artifactid>
+	<jolokia-version>1.2.1</jolokia-version>
+  </properties>
+
+
+	
   <repositories>
     <repository>
       <id>oss-sonatype-snapshots</id>
@@ -143,7 +197,81 @@
         <enabled>true</enabled>
       </snapshots>
     </repository>
+    <repository>
+      <id>repo2.maven.org</id>
+      <name>Central Maven Repository</name>
+      <url>repo2.maven.org/maven2</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+      <id>public.jboss.org</id>
+      <name>JBoss Public Repository</name>
+      <url>http://repository.jboss.org/nexus/content/groups/public</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+    <repository>
+        <id>jboss-fs-public-repository-group</id>
+        <name>JBoss FS Public Repository Group</name>
+        <url>https://repo.fusesource.com/nexus/content/groups/public</url>
+        <layout>default</layout>
+        <releases>
+            <enabled>true</enabled>
+            <updatePolicy>never</updatePolicy>
+        </releases>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+    </repository>
+    <repository>
+        <id>jboss.ea</id>
+        <name>JBoss Community Early Access Release Repository</name>
+        <url>https://repo.fusesource.com/nexus/content/groups/ea</url>
+        <snapshots>
+            <enabled>false</enabled>
+        </snapshots>
+        <releases>
+            <enabled>true</enabled>
+        </releases>
+    </repository>
+<!--
+    <repository>
+        <id>fusesource.m2-snapshot</id>
+        <name>FuseSource Community Snapshot Repository</name>
+        <url>https://repo.fusesource.com/nexus/content/groups/public-snapshots</url>
+        <snapshots>
+            <enabled>true</enabled>
+        </snapshots>
+        <releases>
+            <enabled>false</enabled>
+        </releases>
+    </repository>
+-->
+
+    <!-- for blueprint-web-version snapshots -->
+    <repository>
+      <id>apache.snapshots</id>
+      <name>Apache Development Snapshot Repository</name>
+      <url>https://repository.apache.org/content/repositories/snapshots</url>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+
   </repositories>
+  
   <build>
     <plugins>
       <plugin>

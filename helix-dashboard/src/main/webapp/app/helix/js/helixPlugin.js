@@ -83,7 +83,9 @@ var Helix = (function(Helix) {
 
 	//helix customized UI colors can be go in helix.css
     Core.addCSS(Helix.contextPath + "plugin/css/helix.css");
-
+	//since parent is not added bootstrap willl be loading as customized css	
+	Core.addCSS(Helix.contextPath + "plugin/css/bootstrap.css");
+	
     // tell the app to use the full layout, also could use layoutTree
     viewRegistry["helix_plugin"] = layoutFull;
 

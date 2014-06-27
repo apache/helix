@@ -50,6 +50,7 @@ import org.apache.helix.webapp.resources.StateModelResource;
 import org.apache.helix.webapp.resources.StateModelsResource;
 import org.apache.helix.webapp.resources.StatusUpdateResource;
 import org.apache.helix.webapp.resources.StatusUpdatesResource;
+import org.apache.helix.webapp.resources.WorkflowsResource;
 import org.apache.helix.webapp.resources.ZkChildResource;
 import org.apache.helix.webapp.resources.ZkPathResource;
 import org.restlet.Application;
@@ -90,6 +91,7 @@ public class RestAdminApplication extends Application {
     router.attach("/clusters/{clusterName}/resourceGroups", ResourceGroupsResource.class);
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}",
         ResourceGroupResource.class);
+    router.attach("/clusters/{clusterName}/workflows", WorkflowsResource.class);
     router.attach("/clusters/{clusterName}/instances", InstancesResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}", InstanceResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}/currentState/{resourceName}",

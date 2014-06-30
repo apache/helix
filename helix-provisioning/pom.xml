@@ -29,7 +29,7 @@ under the License.
   <name>Apache Helix :: HelixProvisioning</name>
 
   <properties>
-    <hadoop.version>2.2.0</hadoop.version>
+    <hadoop.version>2.3.0</hadoop.version>
     <osgi.import>
       org.apache.helix*,
       org.apache.commons.cli;version="[1.2,2)",

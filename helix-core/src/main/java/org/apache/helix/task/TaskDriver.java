@@ -129,6 +129,7 @@ public class TaskDriver {
         break;
       case list:
         driver.list(resource);
+        break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }

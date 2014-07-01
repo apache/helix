@@ -21,9 +21,11 @@ package org.apache.helix.tools;
 
 import java.util.Date;
 
+import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -63,5 +65,49 @@ public class TestZkCopy extends ZkUnitTestBase {
     }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testSkipCopyExistZnode() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String testName = className + "_" + methodName;
+
+    System.out.println("START " + testName + " at " + new Date(System.currentTimeMillis()));
+    String srcClusterName = testName + "_src";
+    String dstClusterName = testName + "_dst";
+    int n = 5;
+
+    TestHelper.setupCluster(srcClusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        32, // partitions per resource
+        n, // number of nodes
+        2, // replicas
+        "MasterSlave", true); // do rebalance
+
+    TestHelper.setupEmptyCluster(_gZkClient, dstClusterName);
+
+    String fromPath = String.format("/%s/INSTANCES", srcClusterName);
+    String toPath = String.format("/%s/INSTANCES", dstClusterName);
+    ZkCopy.main(new String[] {
+        "--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath
+    });
+
+    fromPath = String.format("/%s/CONFIGS/PARTICIPANT", srcClusterName);
+    toPath = String.format("/%s/CONFIGS/PARTICIPANT", dstClusterName);
+    ZkCopy.main(new String[] {
+        "--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath
+    });
+
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+      boolean ret =
+          ZKUtil
+              .isInstanceSetup(_gZkClient, dstClusterName, instanceName, InstanceType.PARTICIPANT);
+      Assert.assertTrue(ret);
+    }
+    System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

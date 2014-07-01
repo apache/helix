@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -119,12 +120,18 @@ public class ZkCopy {
       String fromPath = concatenate(srcPath, path);
       Object data = srcClient.readDataAndStat(fromPath, stat, false);
       if (stat.getEphemeralOwner() != 0) {
-        logger.info("Skip copying ephemeral znode: " + fromPath);
+        logger.warn("Skip copying ephemeral znode: " + fromPath);
         continue;
       }
       String toPath = concatenate(dstPath, path);
-      System.out.println("Copy " + fromPath + " to " + toPath);
-      dstClient.createPersistent(toPath, data);
+      try {
+        dstClient.createPersistent(toPath, data);
+        System.out.println("Copy " + fromPath + " to " + toPath);
+
+      } catch (ZkNodeExistsException e) {
+        logger.warn("Skip copying znode: " + fromPath + ", " + toPath + " already exists");
+      }
+
       List<String> children = srcClient.getChildren(fromPath);
       if (children != null && children.size() > 0) {
         for (String child : children) {

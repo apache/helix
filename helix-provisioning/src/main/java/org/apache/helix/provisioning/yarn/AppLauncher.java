@@ -53,6 +53,7 @@ import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ApplicationSpecFactory;
 import org.apache.helix.provisioning.HelixYarnUtil;
+import org.apache.helix.provisioning.TaskConfig;
 
 /**
  * Main class to launch the job.
@@ -151,6 +152,19 @@ public class AppLauncher {
         _appMasterConfig.setMainClass(name, serviceMainClass);
       }
     }
+
+    // Get YAML files describing all workflows to immediately start
+    Map<String, URI> workflowFiles = new HashMap<String, URI>();
+    List<TaskConfig> taskConfigs = _applicationSpec.getTaskConfigs();
+    if (taskConfigs != null) {
+      for (TaskConfig taskConfig : taskConfigs) {
+        URI configUri = taskConfig.getYamlURI();
+        if (taskConfig.name != null && configUri != null) {
+          workflowFiles.put(taskConfig.name, taskConfig.getYamlURI());
+        }
+      }
+    }
+
     // set local resources for the application master
     // local files or archives as needed
     // In this scenario, the jar file for the application master is part of the local resources
@@ -163,6 +177,13 @@ public class AppLauncher {
             hdfsDest.get(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString()));
     localResources.put(AppMasterConfig.AppEnvironment.APP_MASTER_PKG.toString(), appMasterPkg);
     localResources.put(AppMasterConfig.AppEnvironment.APP_SPEC_FILE.toString(), appSpecFile);
+    for (String name : workflowFiles.keySet()) {
+      URI uri = workflowFiles.get(name);
+      Path dst = copyToHDFS(fs, name, uri);
+      LocalResource taskLocalResource = setupLocalResource(fs, dst);
+      localResources.put(AppMasterConfig.AppEnvironment.TASK_CONFIG_FILE.toString() + "_" + name,
+          taskLocalResource);
+    }
 
     // Set local resource info into app master container launch context
     amContainer.setLocalResources(localResources);
@@ -393,7 +414,7 @@ public class AppLauncher {
         prevReport = reportMessage;
         Thread.sleep(10000);
       } catch (Exception e) {
-        LOG.error("Exception while getting info ");
+        LOG.error("Exception while getting info ", e);
         break;
       }
     }

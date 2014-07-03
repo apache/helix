@@ -19,7 +19,8 @@ public class AppMasterConfig {
     APP_SPEC_FILE("APP_SPEC_FILE"),
     APP_NAME("APP_NAME"),
     APP_ID("APP_ID"),
-    APP_SPEC_FACTORY("APP_SPEC_FACTORY");
+    APP_SPEC_FACTORY("APP_SPEC_FACTORY"),
+    TASK_CONFIG_FILE("TASK_CONFIG_FILE");
     String _name;
 
     private AppEnvironment(String name) {
@@ -37,8 +38,8 @@ public class AppMasterConfig {
 
   private String get(String key) {
     String value = (_envs.containsKey(key)) ? _envs.get(key) : System.getenv().get(key);
-    LOG.info("Returning value:"+ value +" for key:'"+ key + "'");
-    
+    LOG.info("Returning value:" + value + " for key:'" + key + "'");
+
     return value;
   }
 
@@ -83,6 +84,14 @@ public class AppMasterConfig {
     _envs.put(serviceName + "_classpath", classpath);
   }
 
+  public void setTaskConfigFile(String configName, String path) {
+    _envs.put(AppEnvironment.TASK_CONFIG_FILE.toString() + "_" + configName, path);
+  }
+
+  public String getTaskConfigFile(String configName) {
+    return get(AppEnvironment.TASK_CONFIG_FILE.toString() + "_" + configName);
+  }
+
   public String getApplicationSpecConfigFile() {
     return get(AppEnvironment.APP_SPEC_FILE.toString());
   }
@@ -97,6 +106,6 @@ public class AppMasterConfig {
   }
 
   public void setMainClass(String serviceName, String serviceMainClass) {
-    _envs.put(serviceName + "_mainClass", serviceMainClass);    
+    _envs.put(serviceName + "_mainClass", serviceMainClass);
   }
 }

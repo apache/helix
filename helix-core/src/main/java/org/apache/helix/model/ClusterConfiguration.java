@@ -25,11 +25,14 @@ import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.log4j.Logger;
 
 /**
  * Persisted configuration properties for a cluster
  */
 public class ClusterConfiguration extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(ClusterConfiguration.class);
+
   /**
    * Instantiate for an id
    * @param id cluster id
@@ -76,21 +79,25 @@ public class ClusterConfiguration extends HelixProperty {
    */
   public UserConfig getUserConfig() {
     UserConfig userConfig = UserConfig.from(this);
-    for (String simpleField : _record.getSimpleFields().keySet()) {
-      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "")
-          && !simpleField.equals(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN)) {
-        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+    try {
+      for (String simpleField : _record.getSimpleFields().keySet()) {
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "")
+            && !simpleField.equals(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN)) {
+          userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+        }
       }
-    }
-    for (String listField : _record.getListFields().keySet()) {
-      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
-        userConfig.setListField(listField, _record.getListField(listField));
+      for (String listField : _record.getListFields().keySet()) {
+        if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+          userConfig.setListField(listField, _record.getListField(listField));
+        }
       }
-    }
-    for (String mapField : _record.getMapFields().keySet()) {
-      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
-        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      for (String mapField : _record.getMapFields().keySet()) {
+        if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+          userConfig.setMapField(mapField, _record.getMapField(mapField));
+        }
       }
+    } catch (NoSuchMethodError e) {
+      LOG.error("Could not parse ClusterConfiguration", e);
     }
     return userConfig;
   }

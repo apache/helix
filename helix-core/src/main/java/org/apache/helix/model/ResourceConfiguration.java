@@ -9,6 +9,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
@@ -36,6 +37,8 @@ import com.google.common.base.Optional;
  * Persisted configuration properties for a resource
  */
 public class ResourceConfiguration extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(ResourceConfiguration.class);
+
   public enum Fields {
     TYPE
   }
@@ -86,21 +89,25 @@ public class ResourceConfiguration extends HelixProperty {
    */
   public UserConfig getUserConfig() {
     UserConfig userConfig = UserConfig.from(this);
-    for (String simpleField : _record.getSimpleFields().keySet()) {
-      Optional<Fields> enumField = Enums.getIfPresent(Fields.class, simpleField);
-      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+    try {
+      for (String simpleField : _record.getSimpleFields().keySet()) {
+        Optional<Fields> enumField = Enums.getIfPresent(Fields.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+        }
       }
-    }
-    for (String listField : _record.getListFields().keySet()) {
-      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
-        userConfig.setListField(listField, _record.getListField(listField));
+      for (String listField : _record.getListFields().keySet()) {
+        if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+          userConfig.setListField(listField, _record.getListField(listField));
+        }
       }
-    }
-    for (String mapField : _record.getMapFields().keySet()) {
-      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
-        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      for (String mapField : _record.getMapFields().keySet()) {
+        if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "")) {
+          userConfig.setMapField(mapField, _record.getMapField(mapField));
+        }
       }
+    } catch (NoSuchMethodError e) {
+      LOG.error("Could not parse ResourceConfiguration", e);
     }
     return userConfig;
   }

@@ -3,6 +3,8 @@ package org.apache.helix.provisioning.yarn;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -11,8 +13,12 @@ import org.I0Itec.zkclient.ZkClient;
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.commons.cli.Options;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.yarn.api.records.ApplicationAttemptId;
+import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ContainerId;
+import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.helix.HelixController;
 import org.apache.helix.api.accessor.ClusterAccessor;
@@ -150,11 +156,16 @@ public class AppMasterLauncher {
     // Start any pre-specified jobs
     List<TaskConfig> taskConfigs = applicationSpec.getTaskConfigs();
     if (taskConfigs != null) {
+      YarnConfiguration conf = new YarnConfiguration();
+      FileSystem fs;
+      fs = FileSystem.get(conf);
       for (TaskConfig taskConfig : taskConfigs) {
-        String yamlFile = taskConfig.getValue("yamlFile");
-        if (yamlFile != null) {
-          File file = new File(yamlFile);
-          Workflow workflow = Workflow.parse(file);
+        URI yamlUri = taskConfig.getYamlURI();
+        if (yamlUri != null && taskConfig.name != null) {
+          InputStream is =
+              readFromHDFS(fs, taskConfig.name, yamlUri, applicationSpec,
+                  appAttemptID.getApplicationId());
+          Workflow workflow = Workflow.parse(is);
           TaskDriver taskDriver = new TaskDriver(new HelixConnectionAdaptor(controller));
           taskDriver.start(workflow);
         }
@@ -170,5 +181,14 @@ public class AppMasterLauncher {
     Runtime.getRuntime().addShutdownHook(shutdownhook);
     Thread.sleep(10000);
 
+  }
+
+  private static InputStream readFromHDFS(FileSystem fs, String name, URI uri,
+      ApplicationSpec appSpec, ApplicationId appId) throws Exception {
+    // will throw exception if the file name is without extension
+    String extension = uri.getPath().substring(uri.getPath().lastIndexOf(".") + 1);
+    String pathSuffix = appSpec.getAppName() + "/" + appId.getId() + "/" + name + "." + extension;
+    Path dst = new Path(fs.getHomeDirectory(), pathSuffix);
+    return fs.open(dst).getWrappedStream();
   }
 }

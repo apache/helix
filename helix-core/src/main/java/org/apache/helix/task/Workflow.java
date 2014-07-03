@@ -22,6 +22,7 @@ package org.apache.helix.task;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.InputStream;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -132,10 +133,25 @@ public class Workflow {
     return parse(new StringReader(yaml));
   }
 
+  /**
+   * Read a workflow from an open input stream
+   * @param inputStream the stream
+   * @return Workflow
+   */
+  public static Workflow parse(InputStream inputStream) {
+    Yaml yaml = new Yaml(new Constructor(WorkflowBean.class));
+    WorkflowBean wf = (WorkflowBean) yaml.load(inputStream);
+    return parse(wf);
+  }
+
   /** Helper function to parse workflow from a generic {@link Reader} */
   private static Workflow parse(Reader reader) throws Exception {
     Yaml yaml = new Yaml(new Constructor(WorkflowBean.class));
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
+    return parse(wf);
+  }
+
+  private static Workflow parse(WorkflowBean wf) {
     Builder builder = new Builder(wf.name);
 
     for (JobBean job : wf.jobs) {

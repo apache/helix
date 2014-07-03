@@ -19,9 +19,5 @@ servicePackageURIMap: {
 services: [
   JobRunner]
 taskConfigs:
-  - config: {
-      yamlFile: '/Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/src/main/resources/dummy_job.yaml'
-    }
-
-
-
+  - name: JobRunnerWorkflow
+    yamlFile: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/src/main/resources/dummy_job.yaml'

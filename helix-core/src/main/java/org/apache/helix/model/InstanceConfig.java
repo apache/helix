@@ -34,6 +34,7 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.provisioner.ContainerId;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
@@ -42,6 +43,8 @@ import com.google.common.base.Optional;
  * Instance configurations
  */
 public class InstanceConfig extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(InstanceConfig.class);
+
   /**
    * Configurable characteristics of an instance
    */
@@ -279,26 +282,30 @@ public class InstanceConfig extends HelixProperty {
    */
   public UserConfig getUserConfig() {
     UserConfig userConfig = UserConfig.from(this);
-    for (String simpleField : _record.getSimpleFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
-      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+    try {
+      for (String simpleField : _record.getSimpleFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+        }
       }
-    }
-    for (String listField : _record.getListFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, listField);
-      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setListField(listField, _record.getListField(listField));
+      for (String listField : _record.getListFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, listField);
+        if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setListField(listField, _record.getListField(listField));
+        }
       }
-    }
-    for (String mapField : _record.getMapFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, mapField);
-      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      for (String mapField : _record.getMapFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, mapField);
+        if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setMapField(mapField, _record.getMapField(mapField));
+        }
       }
+    } catch (NoSuchMethodError e) {
+      LOG.error("Could not parse InstanceConfig", e);
     }
     return userConfig;
   }

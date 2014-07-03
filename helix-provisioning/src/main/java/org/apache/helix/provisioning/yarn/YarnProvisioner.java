@@ -200,6 +200,11 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
 
     participantContainer.setEnvironment(env);
 
+    if (applicationMaster.allTokens != null) {
+      LOG.info("Setting tokens: " + applicationMaster.allTokens);
+      participantContainer.setTokens(applicationMaster.allTokens);
+    }
+
     // Set the necessary command to execute the application master
     Vector<CharSequence> vargs = new Vector<CharSequence>(30);
 

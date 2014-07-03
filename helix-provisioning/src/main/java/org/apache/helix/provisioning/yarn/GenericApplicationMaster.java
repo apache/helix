@@ -190,12 +190,14 @@ public class GenericApplicationMaster {
     LOG.info("Starting ApplicationMaster");
 
     Credentials credentials = UserGroupInformation.getCurrentUser().getCredentials();
+    LOG.info("Credentials: " + credentials);
     DataOutputBuffer dob = new DataOutputBuffer();
     credentials.writeTokenStorageToStream(dob);
     // Now remove the AM->RM token so that containers cannot access it.
     Iterator<Token<?>> iter = credentials.getAllTokens().iterator();
     while (iter.hasNext()) {
       Token<?> token = iter.next();
+      LOG.info("Processing token: " + token);
       if (token.getKind().equals(AMRMTokenIdentifier.KIND_NAME)) {
         iter.remove();
       }

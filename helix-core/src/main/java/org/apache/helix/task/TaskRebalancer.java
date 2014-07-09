@@ -213,6 +213,9 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     // Used to keep track of tasks that have already been assigned to instances.
     Set<Integer> assignedPartitions = new HashSet<Integer>();
 
+    // Used to keep track of tasks that have failed, but whose failure is acceptable
+    Set<Integer> skippedPartitions = new HashSet<Integer>();
+
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
@@ -227,7 +230,6 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       // TASK_ERROR, ERROR.
       Set<Integer> donePartitions = new TreeSet<Integer>();
       for (int pId : pSet) {
-        jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
         final String pName = pName(jobResource, pId);
 
         // Check for pending state transitions on this (partition, instance).
@@ -236,8 +238,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
                 instance);
         if (pendingState != null) {
           // There is a pending state transition for this (partition, instance). Just copy forward
-          // the state
-          // assignment from the previous ideal state.
+          // the state assignment from the previous ideal state.
           Map<ParticipantId, State> stateMap =
               prevAssignment.getReplicaMap(PartitionId.from(pName));
           if (stateMap != null) {
@@ -290,8 +291,6 @@ public abstract class TaskRebalancer implements HelixRebalancer {
             nextState = TaskPartitionState.STOPPED;
           }
 
-          jobCtx.setPartitionState(pId, currState);
-
           paMap.put(pId, new PartitionAssignment(instance.toString(), nextState.name()));
           assignedPartitions.add(pId);
           LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
@@ -318,13 +317,34 @@ public abstract class TaskRebalancer implements HelixRebalancer {
               pName, currState));
           markPartitionError(jobCtx, pId, currState);
           // The error policy is to fail the task as soon a single partition fails for a specified
-          // maximum number of
-          // attempts.
+          // maximum number of attempts.
           if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()) {
-            workflowCtx.setJobState(jobResource, TaskState.FAILED);
-            workflowCtx.setWorkflowState(TaskState.FAILED);
-            addAllPartitions(allPartitions, partitionsToDropFromIs);
-            return emptyAssignment(jobResource);
+            // If the user does not require this task to succeed in order for the job to succeed,
+            // then we don't have to fail the job right now
+            boolean successOptional = false;
+            String taskId = jobCtx.getTaskIdForPartition(pId);
+            if (taskId != null) {
+              TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+              if (taskConfig != null) {
+                successOptional = taskConfig.isSuccessOptional();
+              }
+            }
+
+            // Similarly, if we have some leeway for how many tasks we can fail, then we don't have
+            // to fail the job immediately
+            if (skippedPartitions.size() < jobCfg.getFailureThreshold()) {
+              successOptional = true;
+            }
+
+            if (!successOptional) {
+              workflowCtx.setJobState(jobResource, TaskState.FAILED);
+              workflowCtx.setWorkflowState(TaskState.FAILED);
+              addAllPartitions(allPartitions, partitionsToDropFromIs);
+              return emptyAssignment(jobResource);
+            } else {
+              skippedPartitions.add(pId);
+              partitionsToDropFromIs.add(pId);
+            }
           }
         }
           break;
@@ -346,7 +366,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       pSet.removeAll(donePartitions);
     }
 
-    if (isJobComplete(jobCtx, allPartitions)) {
+    if (isJobComplete(jobCtx, allPartitions, skippedPartitions)) {
       workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.COMPLETED);
@@ -381,7 +401,6 @@ public abstract class TaskRebalancer implements HelixRebalancer {
             paMap.put(pId,
                 new PartitionAssignment(instance.toString(), TaskPartitionState.RUNNING.name()));
             excludeSet.add(pId);
-            jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
             jobCtx.setAssignedParticipant(pId, instance.toString());
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
@@ -397,7 +416,6 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       ra.addReplicaMap(PartitionId.from(pName(jobResource, e.getKey())),
           ImmutableMap.of(ParticipantId.from(pa._instance), State.from(pa._state)));
     }
-
     return ra;
   }
 
@@ -405,14 +423,16 @@ public abstract class TaskRebalancer implements HelixRebalancer {
    * Checks if the job has completed.
    * @param ctx The rebalancer context.
    * @param allPartitions The set of partitions to check.
+   * @param skippedPartitions partitions that failed, but whose failure is acceptable
    * @return true if all task partitions have been marked with status
    *         {@link TaskPartitionState#COMPLETED} in the rebalancer
    *         context, false otherwise.
    */
-  private static boolean isJobComplete(JobContext ctx, Set<Integer> allPartitions) {
+  private static boolean isJobComplete(JobContext ctx, Set<Integer> allPartitions,
+      Set<Integer> skippedPartitions) {
     for (Integer pId : allPartitions) {
       TaskPartitionState state = ctx.getPartitionState(pId);
-      if (state != TaskPartitionState.COMPLETED) {
+      if (!skippedPartitions.contains(pId) && state != TaskPartitionState.COMPLETED) {
         return false;
       }
     }

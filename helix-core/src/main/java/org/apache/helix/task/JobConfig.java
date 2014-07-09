@@ -63,6 +63,8 @@ public class JobConfig {
   public static final String MAX_ATTEMPTS_PER_TASK = "MaxAttemptsPerTask";
   /** The number of concurrent tasks that are allowed to run on an instance. */
   public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
+  /** The number of tasks within the job that are allowed to fail. */
+  public static final String FAILURE_THRESHOLD = "FailureThreshold";
 
   /** The individual task configurations, if any **/
   public static final String TASK_CONFIGS = "TaskConfigs";
@@ -72,6 +74,7 @@ public class JobConfig {
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
   public static final int DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE = 1;
+  public static final int DEFAULT_FAILURE_THRESHOLD = 0;
 
   private final String _workflow;
   private final String _targetResource;
@@ -82,12 +85,13 @@ public class JobConfig {
   private final long _timeoutPerTask;
   private final int _numConcurrentTasksPerInstance;
   private final int _maxAttemptsPerTask;
+  private final int _failureThreshold;
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
-      Map<String, TaskConfig> taskConfigMap) {
+      int failureThreshold, Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -97,6 +101,7 @@ public class JobConfig {
     _timeoutPerTask = timeoutPerTask;
     _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
     _maxAttemptsPerTask = maxAttemptsPerTask;
+    _failureThreshold = failureThreshold;
     if (taskConfigMap != null) {
       _taskConfigMap = taskConfigMap;
     } else {
@@ -140,6 +145,10 @@ public class JobConfig {
     return _maxAttemptsPerTask;
   }
 
+  public int getFailureThreshold() {
+    return _failureThreshold;
+  }
+
   public Map<String, TaskConfig> getTaskConfigMap() {
     return _taskConfigMap;
   }
@@ -171,6 +180,7 @@ public class JobConfig {
     }
     cfgMap.put(JobConfig.TIMEOUT_PER_TASK, "" + _timeoutPerTask);
     cfgMap.put(JobConfig.MAX_ATTEMPTS_PER_TASK, "" + _maxAttemptsPerTask);
+    cfgMap.put(JobConfig.FAILURE_THRESHOLD, "" + _failureThreshold);
     return cfgMap;
   }
 
@@ -188,13 +198,14 @@ public class JobConfig {
     private long _timeoutPerTask = DEFAULT_TIMEOUT_PER_TASK;
     private int _numConcurrentTasksPerInstance = DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE;
     private int _maxAttemptsPerTask = DEFAULT_MAX_ATTEMPTS_PER_TASK;
+    private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
 
     public JobConfig build() {
       validate();
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
-          _maxAttemptsPerTask, _taskConfigMap);
+          _maxAttemptsPerTask, _failureThreshold, _taskConfigMap);
     }
 
     /**
@@ -234,6 +245,9 @@ public class JobConfig {
       }
       if (cfg.containsKey(MAX_ATTEMPTS_PER_TASK)) {
         b.setMaxAttemptsPerTask(Integer.parseInt(cfg.get(MAX_ATTEMPTS_PER_TASK)));
+      }
+      if (cfg.containsKey(FAILURE_THRESHOLD)) {
+        b.setFailureThreshold(Integer.parseInt(cfg.get(FAILURE_THRESHOLD)));
       }
       return b;
     }
@@ -283,6 +297,11 @@ public class JobConfig {
       return this;
     }
 
+    public Builder setFailureThreshold(int v) {
+      _failureThreshold = v;
+      return this;
+    }
+
     public Builder addTaskConfigs(List<TaskConfig> taskConfigs) {
       if (taskConfigs != null) {
         for (TaskConfig taskConfig : taskConfigs) {
@@ -320,6 +339,10 @@ public class JobConfig {
       if (_maxAttemptsPerTask < 1) {
         throw new IllegalArgumentException(String.format("%s has invalid value %s",
             MAX_ATTEMPTS_PER_TASK, _maxAttemptsPerTask));
+      }
+      if (_failureThreshold < 0) {
+        throw new IllegalArgumentException(String.format("%s has invalid value %s",
+            FAILURE_THRESHOLD, _failureThreshold));
       }
       if (_workflow == null) {
         throw new IllegalArgumentException(String.format("%s cannot be null", WORKFLOW_ID));

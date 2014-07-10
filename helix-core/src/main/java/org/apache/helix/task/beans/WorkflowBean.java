@@ -21,11 +21,14 @@ package org.apache.helix.task.beans;
 
 import java.util.List;
 
+import org.apache.helix.task.WorkflowConfig;
+
 /**
  * Bean class used for parsing workflow definitions from YAML.
  */
 public class WorkflowBean {
   public String name;
-  public String expiry;
-  public List<TaskBean> tasks;
+  public List<JobBean> jobs;
+  public ScheduleBean schedule;
+  public long expiry = WorkflowConfig.DEFAULT_EXPIRY;
 }

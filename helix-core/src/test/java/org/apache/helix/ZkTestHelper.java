@@ -174,7 +174,8 @@ public class ZkTestHelper {
     while (dupZookeeper.getState() != States.CONNECTED) {
       Thread.sleep(10);
     }
-    Assert.assertEquals(dupZookeeper.getState(), States.CONNECTED, "Fail to connect to zk using current session info");
+    Assert.assertEquals(dupZookeeper.getState(), States.CONNECTED,
+        "Fail to connect to zk using current session info");
     dupZookeeper.close();
 
     // make sure session expiry really happens
@@ -186,7 +187,8 @@ public class ZkTestHelper {
 
     String newSessionId = Long.toHexString(curZookeeper.getSessionId());
     LOG.info("After session expiry. sessionId: " + newSessionId + ", zk: " + curZookeeper);
-    Assert.assertNotSame(newSessionId, oldSessionId, "Fail to expire current session, zk: " + curZookeeper);
+    Assert.assertNotSame(newSessionId, oldSessionId, "Fail to expire current session, zk: "
+        + curZookeeper);
   }
 
   /**

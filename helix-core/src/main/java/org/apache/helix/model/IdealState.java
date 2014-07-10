@@ -64,6 +64,8 @@ import com.google.common.collect.Sets;
  * The ideal states of all partitions in a resource
  */
 public class IdealState extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(IdealState.class);
+
   /**
    * Properties that are persisted and are queryable for an ideal state
    */
@@ -823,12 +825,16 @@ public class IdealState extends HelixProperty {
    * @param userConfig the user config to update
    */
   public void updateUserConfig(UserConfig userConfig) {
-    for (String simpleField : _record.getSimpleFields().keySet()) {
-      Optional<IdealStateProperty> enumField =
-          Enums.getIfPresent(IdealStateProperty.class, simpleField);
-      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+    try {
+      for (String simpleField : _record.getSimpleFields().keySet()) {
+        Optional<IdealStateProperty> enumField =
+            Enums.getIfPresent(IdealStateProperty.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+        }
       }
+    } catch (NoSuchMethodError e) {
+      LOG.error("Could not update user config", e);
     }
   }
 

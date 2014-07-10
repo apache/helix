@@ -1,0 +1,42 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+appName: test
+configs:
+    k1: v1
+services:
+  - name: myservice
+    participantClass: org.apache.helix.myApp.SimpleWebserver
+    minContainers:3
+    maxContainers:3
+    configs:
+        - participantId: myservice_0
+          port: 9500
+        - participantId: myservice_1
+          port: 9501
+        - participantId: myservice_2
+          port: 9502
+resources:
+  - name: distributedLock
+    numPartitions: 6
+    numReplicas: 2
+    rebalanceMode: FULL_AUTO
+    stateModel: OnlineOffline
+    tag: myservice
+    configs:
+        k1: v1

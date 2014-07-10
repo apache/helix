@@ -388,8 +388,7 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
   private void setupCluster(String clusterName, String grandClusterName, final int n,
       MockParticipantManager[] participants, ClusterDistributedController[] controllers)
-      throws Exception,
-      InterruptedException {
+      throws Exception, InterruptedException {
     // add cluster
     String command = "-zkSvr " + ZK_ADDR + " -addCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));

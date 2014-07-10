@@ -115,8 +115,8 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     // register "TestDB1_Factory" state model factory
     // Logger.getRootLogger().setLevel(Level.INFO);
     for (int i = 0; i < n; i++) {
-      participants[i].getStateMachineEngine()
-          .registerStateModelFactory("MasterSlave", new MockMSModelFactory(), "TestDB1_Factory");
+      participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
+          new MockMSModelFactory(), "TestDB1_Factory");
     }
 
     result =

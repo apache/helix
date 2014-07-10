@@ -65,7 +65,7 @@ public class TestZkHelixAutoController extends ZkUnitTestBase {
       int port = 12918 + i;
       ControllerId controllerId = ControllerId.from("localhost_" + port);
       controllers[i] = connection.createAutoController(clusterId, controllerId);
-      controllers[i].startAsync();
+      controllers[i].start();
     }
 
     // check live-instance znode for localhost_12918/12919 exists
@@ -84,7 +84,7 @@ public class TestZkHelixAutoController extends ZkUnitTestBase {
     Assert.assertEquals(leader.getInstanceName(), controllers[0].getControllerId().stringify());
 
     // stop controller localhost_12918
-    controllers[0].stopAsync();
+    controllers[0].stop();
 
     // check live-instance znode for localhost_12918 is gone
     String instanceName = controllers[0].getControllerId().stringify();

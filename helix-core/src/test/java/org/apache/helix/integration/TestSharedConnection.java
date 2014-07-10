@@ -85,13 +85,13 @@ public class TestSharedConnection extends ZkUnitTestBase {
               ParticipantId.from("localhost_" + (12918 + i)));
       participants[i].getStateMachineEngine().registerStateModelFactory(
           StateModelDefId.from("OnlineOffline"), new TestHelixConnection.MockStateModelFactory());
-      participants[i].startAsync();
+      participants[i].start();
     }
 
     // Start the controller
     HelixController controller =
         connection.createController(ClusterId.from(clusterName), ControllerId.from("controller"));
-    controller.startAsync();
+    controller.start();
     Thread.sleep(500);
 
     // Verify balanced cluster
@@ -130,9 +130,9 @@ public class TestSharedConnection extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // Clean up
-    controller.stopAsync();
+    controller.stop();
     for (HelixParticipant participant : participants) {
-      participant.stopAsync();
+      participant.stop();
     }
     admin.dropCluster(clusterName);
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -173,7 +173,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
       controllers[i] =
           connection.createController(ClusterId.from(clusterName),
               ControllerId.from("controller_" + i));
-      controllers[i].startAsync();
+      controllers[i].start();
     }
     Thread.sleep(1000);
 
@@ -190,7 +190,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
 
     // Clean up
     for (HelixController controller : controllers) {
-      controller.stopAsync();
+      controller.stop();
     }
     HelixAdmin admin = connection.createClusterManagementTool();
     admin.dropCluster(clusterName);

@@ -93,8 +93,8 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
 
       _participants[i].getMessagingService().registerMessageHandlerFactory("TestMsg",
           new TestMessagingHandlerFactory());
-      _participants[i].getMessagingService()
-          .registerMessageHandlerFactory("TestMsg2", new TestMessagingHandlerFactory2());
+      _participants[i].getMessagingService().registerMessageHandlerFactory("TestMsg2",
+          new TestMessagingHandlerFactory2());
 
     }
 
@@ -102,8 +102,7 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
       instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
 
       DefaultMessagingService svc =
-          (DefaultMessagingService) (_participants[i]
-              .getMessagingService());
+          (DefaultMessagingService) (_participants[i].getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
       ThreadPoolExecutor executor =
           (ThreadPoolExecutor) (helixExecutor._executorMap.get("TestMsg"));

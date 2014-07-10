@@ -7,6 +7,7 @@ import org.apache.helix.api.Partition;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 
 import com.google.common.collect.Sets;
@@ -47,6 +48,7 @@ public class ResourceConfig {
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
   private final SchedulerTaskConfig _schedulerTaskConfig;
+  private final ProvisionerConfig _provisionerConfig;
   private final UserConfig _userConfig;
   private final int _bucketSize;
   private final boolean _batchMessageMode;
@@ -58,17 +60,20 @@ public class ResourceConfig {
    * @param partitionMap map of partition identifiers to partition objects
    * @param schedulerTaskConfig configuration for scheduler tasks associated with the resource
    * @param rebalancerConfig configuration for rebalancing the resource
+   * @param provisionerConfig configuration for provisioning for the resource
    * @param userConfig user-defined resource properties
    * @param bucketSize bucket size for this resource
    * @param batchMessageMode whether or not batch messaging is allowed
    */
   public ResourceConfig(ResourceId id, ResourceType resourceType,
       SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig,
-      UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
+      ProvisionerConfig provisionerConfig, UserConfig userConfig, int bucketSize,
+      boolean batchMessageMode) {
     _id = id;
     _resourceType = resourceType;
     _schedulerTaskConfig = schedulerTaskConfig;
     _rebalancerConfig = rebalancerConfig;
+    _provisionerConfig = provisionerConfig;
     _userConfig = userConfig;
     _bucketSize = bucketSize;
     _batchMessageMode = batchMessageMode;
@@ -132,6 +137,14 @@ public class ResourceConfig {
   }
 
   /**
+   * Get the properties configuring the provisioner
+   * @return ProvisionerConfig properties
+   */
+  public ProvisionerConfig getProvisionerConfig() {
+    return _provisionerConfig;
+  }
+
+  /**
    * Get user-specified configuration properties of this resource
    * @return UserConfig properties
    */
@@ -167,6 +180,7 @@ public class ResourceConfig {
     private enum Fields {
       TYPE,
       REBALANCER_CONFIG,
+      PROVISIONER_CONFIG,
       USER_CONFIG,
       BUCKET_SIZE,
       BATCH_MESSAGE_MODE
@@ -203,6 +217,17 @@ public class ResourceConfig {
     public Delta setRebalancerConfig(RebalancerConfig config) {
       _builder.rebalancerConfig(config);
       _updateFields.add(Fields.REBALANCER_CONFIG);
+      return this;
+    }
+
+    /**
+     * Set the provisioner configuration
+     * @param config properties of interest for provisioning
+     * @return Delta
+     */
+    public Delta setProvisionerConfig(ProvisionerConfig config) {
+      _builder.provisionerConfig(config);
+      _updateFields.add(Fields.PROVISIONER_CONFIG);
       return this;
     }
 
@@ -249,6 +274,7 @@ public class ResourceConfig {
       Builder builder =
           new Builder(orig.getId()).type(orig.getType())
               .rebalancerConfig(orig.getRebalancerConfig())
+              .provisionerConfig(orig.getProvisionerConfig())
               .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig())
               .bucketSize(orig.getBucketSize()).batchMessageMode(orig.getBatchMessageMode());
       for (Fields field : _updateFields) {
@@ -258,6 +284,9 @@ public class ResourceConfig {
           break;
         case REBALANCER_CONFIG:
           builder.rebalancerConfig(deltaConfig.getRebalancerConfig());
+          break;
+        case PROVISIONER_CONFIG:
+          builder.provisionerConfig(deltaConfig.getProvisionerConfig());
           break;
         case USER_CONFIG:
           builder.userConfig(deltaConfig.getUserConfig());
@@ -282,6 +311,7 @@ public class ResourceConfig {
     private ResourceType _type;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
+    private ProvisionerConfig _provisionerConfig;
     private UserConfig _userConfig;
     private int _bucketSize;
     private boolean _batchMessageMode;
@@ -338,6 +368,15 @@ public class ResourceConfig {
     }
 
     /**
+     * @param schedulerTaskConfig
+     * @return
+     */
+    public Builder provisionerConfig(ProvisionerConfig provisionerConfig) {
+      _provisionerConfig = provisionerConfig;
+      return this;
+    }
+
+    /**
      * Set the bucket size
      * @param bucketSize the size to use
      * @return Builder
@@ -362,8 +401,8 @@ public class ResourceConfig {
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig, _userConfig,
-          _bucketSize, _batchMessageMode);
+      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig,
+          _provisionerConfig, _userConfig, _bucketSize, _batchMessageMode);
     }
   }
 }

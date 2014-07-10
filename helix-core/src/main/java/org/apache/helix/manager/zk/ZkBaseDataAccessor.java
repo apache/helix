@@ -641,7 +641,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
 
       if (failOnNoParentNode) {
         List<AccessResult> createParentResults =
-            doCreate(parentPaths, null, Arrays.copyOf(needCreate, needCreate.length), AccessOption.PERSISTENT);
+            doCreate(parentPaths, null, Arrays.copyOf(needCreate, needCreate.length),
+                AccessOption.PERSISTENT);
         for (int i = 0; i < createParentResults.size(); i++) {
           if (!needCreate[i]) {
             continue;
@@ -730,8 +731,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
     final int size = paths.size();
     if (records != null && records.size() != size) {
       throw new IllegalArgumentException(
-          "paths and records should be of same size, but paths size: " + size
-              + ", records size: " + records.size());
+          "paths and records should be of same size, but paths size: " + size + ", records size: "
+              + records.size());
     }
 
     CreateMode mode = AccessOption.getMode(options);

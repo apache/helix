@@ -197,6 +197,7 @@ under the License.
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
     <module>helix-agent</module>
+    <module>helix-provisioning</module>
     <module>helix-examples</module>
     <module>recipes</module>
     <module>website</module>
@@ -339,6 +340,11 @@ under the License.
       <dependency>
         <groupId>org.apache.helix</groupId>
         <artifactId>helix-core</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.helix</groupId>
+        <artifactId>helix-provisioning</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>

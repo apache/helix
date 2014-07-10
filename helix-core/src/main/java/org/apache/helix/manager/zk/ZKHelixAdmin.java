@@ -164,7 +164,7 @@ public class ZKHelixAdmin implements HelixAdmin {
         PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
     if (!_zkClient.exists(instanceConfigPath)) {
-      throw new HelixException("instance" + instanceName + " does not exist in cluster "
+      throw new HelixException("instance " + instanceName + " does not exist in cluster "
           + clusterName);
     }
 
@@ -917,7 +917,8 @@ public class ZKHelixAdmin implements HelixAdmin {
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceId().stringify()), idealState);
+    accessor
+        .setProperty(keyBuilder.idealStates(idealState.getResourceId().stringify()), idealState);
   }
 
   @Override

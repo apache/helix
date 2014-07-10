@@ -19,7 +19,9 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.text.SimpleDateFormat;
 import java.util.Map;
+import java.util.TimeZone;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
@@ -29,23 +31,34 @@ public class WorkflowConfig {
   public static final String DAG = "Dag";
   public static final String TARGET_STATE = "TargetState";
   public static final String EXPIRY = "Expiry";
+  public static final String START_TIME = "StartTime";
+  public static final String RECURRENCE_UNIT = "RecurrenceUnit";
+  public static final String RECURRENCE_INTERVAL = "RecurrenceInterval";
 
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
-
-  /* Member variables */
-  private final TaskDag _taskDag;
-  private final TargetState _targetState;
-  private final long _expiry;
-
-  private WorkflowConfig(TaskDag taskDag, TargetState targetState, long expiry) {
-    _taskDag = taskDag;
-    _targetState = targetState;
-    _expiry = expiry;
+  public static final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat(
+      "MM-dd-yyyy HH:mm:ss");
+  static {
+    DEFAULT_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
   }
 
-  public TaskDag getTaskDag() {
-    return _taskDag;
+  /* Member variables */
+  private final JobDag _jobDag;
+  private final TargetState _targetState;
+  private final long _expiry;
+  private final ScheduleConfig _scheduleConfig;
+
+  private WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry,
+      ScheduleConfig scheduleConfig) {
+    _jobDag = jobDag;
+    _targetState = targetState;
+    _expiry = expiry;
+    _scheduleConfig = scheduleConfig;
+  }
+
+  public JobDag getJobDag() {
+    return _jobDag;
   }
 
   public TargetState getTargetState() {
@@ -56,22 +69,23 @@ public class WorkflowConfig {
     return _expiry;
   }
 
+  public ScheduleConfig getScheduleConfig() {
+    return _scheduleConfig;
+  }
+
   public static class Builder {
-    private TaskDag _taskDag = TaskDag.EMPTY_DAG;
+    private JobDag _taskDag = JobDag.EMPTY_DAG;
     private TargetState _targetState = TargetState.START;
     private long _expiry = DEFAULT_EXPIRY;
-
-    public Builder() {
-      // Nothing to do
-    }
+    private ScheduleConfig _scheduleConfig;
 
     public WorkflowConfig build() {
       validate();
 
-      return new WorkflowConfig(_taskDag, _targetState, _expiry);
+      return new WorkflowConfig(_taskDag, _targetState, _expiry, _scheduleConfig);
     }
 
-    public Builder setTaskDag(TaskDag v) {
+    public Builder setTaskDag(JobDag v) {
       _taskDag = v;
       return this;
     }
@@ -86,19 +100,31 @@ public class WorkflowConfig {
       return this;
     }
 
+    public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
+      _scheduleConfig = scheduleConfig;
+      return this;
+    }
+
     public static Builder fromMap(Map<String, String> cfg) {
       Builder b = new Builder();
-
+      if (cfg == null) {
+        return b;
+      }
       if (cfg.containsKey(EXPIRY)) {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
       }
       if (cfg.containsKey(DAG)) {
-        b.setTaskDag(TaskDag.fromJson(cfg.get(DAG)));
+        b.setTaskDag(JobDag.fromJson(cfg.get(DAG)));
       }
       if (cfg.containsKey(TARGET_STATE)) {
         b.setTargetState(TargetState.valueOf(cfg.get(TARGET_STATE)));
       }
 
+      // Parse schedule-specific configs, if they exist
+      ScheduleConfig scheduleConfig = TaskUtil.parseScheduleFromConfigMap(cfg);
+      if (scheduleConfig != null) {
+        b.setScheduleConfig(scheduleConfig);
+      }
       return b;
     }
 
@@ -106,6 +132,10 @@ public class WorkflowConfig {
       if (_expiry < 0) {
         throw new IllegalArgumentException(
             String.format("%s has invalid value %s", EXPIRY, _expiry));
+      } else if (_scheduleConfig != null && !_scheduleConfig.isValid()) {
+        throw new IllegalArgumentException(
+            "Scheduler configuration is invalid. The configuration must have a start time if it is "
+                + "one-time, and it must have a positive interval magnitude if it is recurring");
       }
     }
   }

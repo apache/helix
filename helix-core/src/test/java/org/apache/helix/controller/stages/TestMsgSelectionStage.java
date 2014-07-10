@@ -65,11 +65,11 @@ public class TestMsgSelectionStage {
     liveInstances.put(ParticipantId.from("localhost_0"),
         new Participant(ParticipantId.from("localhost_0"), "localhost", 0, true,
             disabledPartitions, tags, runningInstance0, currentStateMap, messageMap,
-            new UserConfig(Scope.participant(ParticipantId.from("localhost_0")))));
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_0"))), null));
     liveInstances.put(ParticipantId.from("localhost_1"),
         new Participant(ParticipantId.from("localhost_1"), "localhost", 1, true,
             disabledPartitions, tags, runningInstance1, currentStateMap, messageMap,
-            new UserConfig(Scope.participant(ParticipantId.from("localhost_1")))));
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_1"))), null));
 
     Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
     currentStates.put(ParticipantId.from("localhost_0"), State.from("SLAVE"));
@@ -119,11 +119,11 @@ public class TestMsgSelectionStage {
     liveInstances.put(ParticipantId.from("localhost_0"),
         new Participant(ParticipantId.from("localhost_0"), "localhost", 0, true,
             disabledPartitions, tags, runningInstance0, currentStateMap, messageMap,
-            new UserConfig(Scope.participant(ParticipantId.from("localhost_0")))));
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_0"))), null));
     liveInstances.put(ParticipantId.from("localhost_1"),
         new Participant(ParticipantId.from("localhost_1"), "localhost", 1, true,
             disabledPartitions, tags, runningInstance1, currentStateMap, messageMap,
-            new UserConfig(Scope.participant(ParticipantId.from("localhost_1")))));
+            new UserConfig(Scope.participant(ParticipantId.from("localhost_1"))), null));
 
     Map<ParticipantId, State> currentStates = new HashMap<ParticipantId, State>();
     currentStates.put(ParticipantId.from("localhost_0"), State.from("SLAVE"));

@@ -515,8 +515,8 @@ public class AutoRebalanceStrategy {
     int count = countStateReplicas();
     for (PartitionId partition : currentMapping.keySet()) {
       Map<ParticipantId, State> nodeStateMap = currentMapping.get(partition);
+      nodeStateMap.keySet().retainAll(_nodeMap.keySet());
       for (ParticipantId nodeId : nodeStateMap.keySet()) {
-        nodeStateMap.keySet().retainAll(_nodeMap.keySet());
         Node node = _nodeMap.get(nodeId);
         boolean skip = false;
         for (Replica replica : node.preferred) {
@@ -585,8 +585,8 @@ public class AutoRebalanceStrategy {
     int count = countStateReplicas();
     for (PartitionId partition : currentMapping.keySet()) {
       Map<ParticipantId, State> nodeStateMap = currentMapping.get(partition);
+      nodeStateMap.keySet().retainAll(_nodeMap.keySet());
       for (ParticipantId nodeId : nodeStateMap.keySet()) {
-        nodeStateMap.keySet().retainAll(_nodeMap.keySet());
         Node node = _nodeMap.get(nodeId);
         node.currentlyAssigned = node.currentlyAssigned + 1;
         // check if its in one of the preferred position

@@ -166,6 +166,8 @@ public class ClusterSetup {
 
     addStateModelDef(clusterName, "Task",
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForTaskStateModel()));
+    addStateModelDef(clusterName, "StatelessService", new StateModelDefinition(
+        StateModelConfigGenerator.generateConfigForStatelessService()));
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {
@@ -312,8 +314,8 @@ public class ClusterSetup {
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates) {
       swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
-      accessor.setProperty(
-          accessor.keyBuilder().idealStates(idealState.getResourceId().stringify()), idealState);
+      accessor.setProperty(accessor.keyBuilder()
+          .idealStates(idealState.getResourceId().stringify()), idealState);
     }
   }
 

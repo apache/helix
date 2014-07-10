@@ -59,7 +59,8 @@ public class ZkHelixController implements HelixController {
   final HelixManager _manager;
   final ZkHelixLeaderElection _leaderElection;
 
-  public ZkHelixController(ZkHelixConnection connection, ClusterId clusterId, ControllerId controllerId) {
+  public ZkHelixController(ZkHelixConnection connection, ClusterId clusterId,
+      ControllerId controllerId) {
     _connection = connection;
     _clusterId = clusterId;
     _controllerId = controllerId;
@@ -95,13 +96,13 @@ public class ZkHelixController implements HelixController {
   }
 
   @Override
-  public void startAsync() {
+  public void start() {
     _connection.addConnectionStateListener(this);
     onConnected();
   }
 
   @Override
-  public void stopAsync() {
+  public void stop() {
     _connection.removeConnectionStateListener(this);
     onDisconnecting();
   }
@@ -200,8 +201,7 @@ public class ZkHelixController implements HelixController {
       /**
        * setup controller message listener and register message handlers
        */
-      _connection.addControllerMessageListener(this, _messagingService.getExecutor(),
-          _clusterId);
+      _connection.addControllerMessageListener(this, _messagingService.getExecutor(), _clusterId);
       MessageHandlerFactory defaultControllerMsgHandlerFactory =
           new DefaultControllerMessageHandlerFactory();
       _messagingService.getExecutor().registerMessageHandlerFactory(
@@ -224,8 +224,7 @@ public class ZkHelixController implements HelixController {
       _connection.addIdealStateChangeListener(this, pipeline, _clusterId);
       _connection.addControllerListener(this, pipeline, _clusterId);
     } catch (ZkInterruptedException e) {
-      LOG.warn("zk connection is interrupted during addListenersToController()"
-          + e);
+      LOG.warn("zk connection is interrupted during addListenersToController()" + e);
     } catch (Exception e) {
       LOG.error("Error addListenersToController", e);
     }

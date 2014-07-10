@@ -483,12 +483,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
         List<List<String>> pathsCreatedList =
             new ArrayList<List<String>>(Collections.<List<String>> nCopies(size, null));
 
-        List<ZkBaseDataAccessor<T>.AccessResult> results = _baseAccessor.doUpdate(serverPaths, updaters, options);
+        List<ZkBaseDataAccessor<T>.AccessResult> results =
+            _baseAccessor.doUpdate(serverPaths, updaters, options);
 
         for (int i = 0; i < size; i++) {
           ZkBaseDataAccessor<T>.AccessResult result = results.get(i);
           success[i] = (result._retCode == RetCode.OK);
-            updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
+          updateCache(cache, pathsCreatedList.get(i), success[i], serverPaths.get(i),
               result._resultValue, results.get(i)._stat);
         }
         return success;

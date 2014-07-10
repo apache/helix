@@ -55,6 +55,7 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
@@ -73,6 +74,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.PersistentStats;
+import org.apache.helix.model.ProvisionerConfigHolder;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
@@ -782,6 +784,11 @@ public class ClusterAccessor {
             .addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
                 .toNamespacedConfig());
       }
+      ProvisionerConfig provisionerConfig = resource.getProvisionerConfig();
+      if (provisionerConfig != null) {
+        configuration.addNamespacedConfig(new ProvisionerConfigHolder(provisionerConfig)
+            .toNamespacedConfig());
+      }
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
     return true;
@@ -812,10 +819,14 @@ public class ClusterAccessor {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
+      int ind = 0;
       for (boolean exists : existsResults) {
+
         if (!exists) {
+          LOG.warn("Path does not exist:" + paths.get(ind));
           return false;
         }
+        ind = ind + 1;
       }
     }
     return true;

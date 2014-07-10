@@ -57,8 +57,7 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     Criteria recipientCriteria = new Criteria();
     recipientCriteria.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria.setSessionSpecific(false);
-    _participants[0].getMessagingService().send(recipientCriteria,
-        errorMessage1);
+    _participants[0].getMessagingService().send(recipientCriteria, errorMessage1);
 
     Message errorMessage2 =
         new Message(MessageType.PARTICIPANT_ERROR_REPORT, MessageId.from(UUID.randomUUID()
@@ -72,8 +71,7 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     Criteria recipientCriteria2 = new Criteria();
     recipientCriteria2.setRecipientInstanceType(InstanceType.CONTROLLER);
     recipientCriteria2.setSessionSpecific(false);
-    _participants[1].getMessagingService().send(recipientCriteria2,
-        errorMessage2);
+    _participants[1].getMessagingService().send(recipientCriteria2, errorMessage2);
 
     try {
       Thread.sleep(1500);
@@ -87,8 +85,7 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     Assert.assertTrue(result);
     Builder kb = _participants[1].getHelixDataAccessor().keyBuilder();
     ExternalView externalView =
-        _participants[1].getHelixDataAccessor().getProperty(
-            kb.externalView("TestDB"));
+        _participants[1].getHelixDataAccessor().getProperty(kb.externalView("TestDB"));
 
     for (String partitionName : externalView.getRecord().getMapFields().keySet()) {
       for (String hostName : externalView.getRecord().getMapField(partitionName).keySet()) {

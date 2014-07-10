@@ -31,6 +31,10 @@ import org.apache.helix.api.config.NamespacedConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerSpec;
+import org.apache.helix.controller.provisioner.ContainerState;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Enums;
 import com.google.common.base.Optional;
@@ -39,6 +43,8 @@ import com.google.common.base.Optional;
  * Instance configurations
  */
 public class InstanceConfig extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(InstanceConfig.class);
+
   /**
    * Configurable characteristics of an instance
    */
@@ -47,7 +53,10 @@ public class InstanceConfig extends HelixProperty {
     HELIX_PORT,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
-    TAG_LIST
+    TAG_LIST,
+    CONTAINER_SPEC,
+    CONTAINER_STATE,
+    CONTAINER_ID
   }
 
   /**
@@ -273,28 +282,63 @@ public class InstanceConfig extends HelixProperty {
    */
   public UserConfig getUserConfig() {
     UserConfig userConfig = UserConfig.from(this);
-    for (String simpleField : _record.getSimpleFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
-      if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+    try {
+      for (String simpleField : _record.getSimpleFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
+        }
       }
-    }
-    for (String listField : _record.getListFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, listField);
-      if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setListField(listField, _record.getListField(listField));
+      for (String listField : _record.getListFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, listField);
+        if (!listField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setListField(listField, _record.getListField(listField));
+        }
       }
-    }
-    for (String mapField : _record.getMapFields().keySet()) {
-      Optional<InstanceConfigProperty> enumField =
-          Enums.getIfPresent(InstanceConfigProperty.class, mapField);
-      if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
-        userConfig.setMapField(mapField, _record.getMapField(mapField));
+      for (String mapField : _record.getMapFields().keySet()) {
+        Optional<InstanceConfigProperty> enumField =
+            Enums.getIfPresent(InstanceConfigProperty.class, mapField);
+        if (!mapField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+          userConfig.setMapField(mapField, _record.getMapField(mapField));
+        }
       }
+    } catch (NoSuchMethodError e) {
+      LOG.error("Could not parse InstanceConfig", e);
     }
     return userConfig;
+  }
+
+  public void setContainerSpec(ContainerSpec spec) {
+    if (spec != null) {
+      _record.setSimpleField(InstanceConfigProperty.CONTAINER_SPEC.toString(), spec.toString());
+    }
+  }
+
+  public ContainerSpec getContainerSpec() {
+    return ContainerSpec.from(_record.getSimpleField(InstanceConfigProperty.CONTAINER_SPEC
+        .toString()));
+  }
+
+  public void setContainerState(ContainerState state) {
+    _record.setEnumField(InstanceConfigProperty.CONTAINER_STATE.toString(), state);
+  }
+
+  public ContainerState getContainerState() {
+    return _record.getEnumField(InstanceConfigProperty.CONTAINER_STATE.toString(),
+        ContainerState.class, null);
+  }
+
+  public void setContainerId(ContainerId containerId) {
+    if (containerId != null) {
+      _record
+          .setSimpleField(InstanceConfigProperty.CONTAINER_ID.toString(), containerId.toString());
+    }
+  }
+
+  public ContainerId getContainerId() {
+    return ContainerId.from(_record.getSimpleField(InstanceConfigProperty.CONTAINER_ID.toString()));
   }
 
   @Override

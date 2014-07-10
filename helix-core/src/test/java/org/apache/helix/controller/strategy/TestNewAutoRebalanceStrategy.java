@@ -246,7 +246,7 @@ public class TestNewAutoRebalanceStrategy {
           Participant participant =
               new Participant(participantId, "hostname", 0, true, disabledPartitionIdSet, tags,
                   null, currentStateMap, messageMap, new UserConfig(
-                      Scope.participant(participantId)));
+                      Scope.participant(participantId)), null);
           liveParticipantMap.put(participantId, participant);
         }
         List<ParticipantId> participantPreferenceList =

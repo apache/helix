@@ -19,14 +19,15 @@ package org.apache.helix.task;
  * under the License.
  */
 
+
 /**
  * A factory for {@link Task} objects.
  */
 public interface TaskFactory {
   /**
    * Returns a {@link Task} instance.
-   * @param config Configuration information for the task.
+   * @param context Contextual information for the task, including task and job configurations
    * @return A {@link Task} instance.
    */
-  Task createNewTask(String config);
+  Task createNewTask(TaskCallbackContext context);
 }

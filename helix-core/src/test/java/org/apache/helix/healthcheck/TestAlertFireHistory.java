@@ -420,4 +420,3 @@ public class TestAlertFireHistory extends ZkStandAloneCMTestBaseWithPropertyServ
   }
 
 }
-

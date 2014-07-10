@@ -68,8 +68,7 @@ public class ControllerContextProvider {
    * @return a typed ControllerContext, or null if no context with given id is available for this
    *         type
    */
-  public <T extends ControllerContext> T getContext(ContextId contextId,
-      Class<T> contextClass) {
+  public <T extends ControllerContext> T getContext(ContextId contextId, Class<T> contextClass) {
     try {
       if (_pendingContexts.containsKey(contextId)) {
         return contextClass.cast(_pendingContexts.get(contextId));
@@ -98,8 +97,7 @@ public class ControllerContextProvider {
    * @param overwriteAllowed true if existing objects can be overwritten, false otherwise
    * @return true if saved, false if an object with that id exists and overwrite is not allowed
    */
-  public boolean putContext(ContextId contextId, ControllerContext context,
-      boolean overwriteAllowed) {
+  public boolean putContext(ContextId contextId, ControllerContext context, boolean overwriteAllowed) {
     // avoid persisting null contexts
     if (context == null) {
       LOG.error("Cannot save a null context, id: " + contextId);

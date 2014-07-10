@@ -99,7 +99,8 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(),
+          e);
     }
 
   }
@@ -109,8 +110,8 @@ public class DefaultParticipantErrorMessageHandlerFactory implements MessageHand
     String type = message.getMsgType();
 
     if (!type.equals(getMessageType())) {
-      throw new HelixException("Unexpected msg type for message " + message.getMessageId() + " type:"
-          + message.getMsgType());
+      throw new HelixException("Unexpected msg type for message " + message.getMessageId()
+          + " type:" + message.getMsgType());
     }
 
     return new DefaultParticipantErrorMessageHandler(message, context, _manager);

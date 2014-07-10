@@ -216,6 +216,10 @@ under the License.
               <mainClass>org.apache.helix.tools.ZkGrep</mainClass>
               <name>zkgrep</name>
             </program>
+            <program>
+              <mainClass>org.apache.helix.task.TaskDriver</mainClass>
+              <name>task-driver</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

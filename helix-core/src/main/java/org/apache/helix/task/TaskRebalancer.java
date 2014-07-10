@@ -20,6 +20,8 @@ package org.apache.helix.task;
  */
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -28,22 +30,24 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
-import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
-import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.IdealState;
@@ -51,33 +55,77 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**
  * Custom rebalancer implementation for the {@code Task} state model.
  */
-public class TaskRebalancer implements HelixRebalancer {
+public abstract class TaskRebalancer implements HelixRebalancer {
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
+
+  // Management of already-scheduled workflows across jobs
+  private static final BiMap<String, Date> SCHEDULED_WORKFLOWS = HashBiMap.create();
+  private static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors
+      .newSingleThreadScheduledExecutor();
+
+  // For connection management
   private HelixManager _manager;
 
+  /**
+   * Get all the partitions that should be created by this task
+   * @param jobCfg the task configuration
+   * @param jobCtx the task context
+   * @param workflowCfg the workflow configuration
+   * @param workflowCtx the workflow context
+   * @param cache cluster snapshot
+   * @return set of partition numbers
+   */
+  public abstract Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Cluster cache);
+
+  /**
+   * Compute an assignment of tasks to instances
+   * @param currStateOutput the current state of the instances
+   * @param prevAssignment the previous task partition assignment
+   * @param instances the instances
+   * @param jobCfg the task configuration
+   * @param taskCtx the task context
+   * @param workflowCfg the workflow configuration
+   * @param workflowCtx the workflow context
+   * @param partitionSet the partitions to assign
+   * @param cache cluster snapshot
+   * @return map of instances to set of partition numbers
+   */
+  public abstract Map<ParticipantId, SortedSet<Integer>> getTaskAssignment(
+      ResourceCurrentState currStateOutput, ResourceAssignment prevAssignment,
+      Collection<ParticipantId> instanceList, JobConfig jobCfg, JobContext jobContext,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
+      Cluster cache);
+
   @Override
-  public void init(HelixManager helixManager, ControllerContextProvider contextProvider) {
-    _manager = helixManager;
+  public void init(HelixManager manager, ControllerContextProvider contextProvider) {
+    _manager = manager;
   }
 
   @Override
   public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment helixPrevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-    final ResourceId resourceId = rebalancerConfig.getResourceId();
-    final String resourceName = resourceId.stringify();
+      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
+    IdealState taskIs = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+    return computeBestPossiblePartitionState(cluster, taskIs,
+        cluster.getResource(rebalancerConfig.getResourceId()), currentState);
+  }
 
-    // Fetch task configuration
-    TaskConfig taskCfg = TaskUtil.getTaskCfg(_manager, resourceName);
-    if (taskCfg == null) {
-      return emptyAssignment(resourceId);
-    }
-    String workflowResource = taskCfg.getWorkflow();
+  public ResourceAssignment computeBestPossiblePartitionState(Cluster clusterData,
+      IdealState taskIs, Resource resource, ResourceCurrentState currStateOutput) {
+    final String resourceName = resource.getId().toString();
+
+    // Fetch job configuration
+    JobConfig jobCfg = TaskUtil.getJobCfg(_manager, resourceName);
+    String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
     WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
@@ -90,10 +138,10 @@ public class TaskRebalancer implements HelixRebalancer {
     }
 
     // Check parent dependencies
-    for (String parent : workflowCfg.getTaskDag().getDirectParents(resourceName)) {
-      if (workflowCtx.getTaskState(parent) == null
-          || !workflowCtx.getTaskState(parent).equals(TaskState.COMPLETED)) {
-        return emptyAssignment(resourceId);
+    for (String parent : workflowCfg.getJobDag().getDirectParents(resourceName)) {
+      if (workflowCtx.getJobState(parent) == null
+          || !workflowCtx.getJobState(parent).equals(TaskState.COMPLETED)) {
+        return emptyAssignment(resourceName, currStateOutput);
       }
     }
 
@@ -101,7 +149,7 @@ public class TaskRebalancer implements HelixRebalancer {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       cleanup(_manager, resourceName, workflowCfg, workflowResource);
-      return emptyAssignment(resourceId);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // Check if this workflow has been finished past its expiry.
@@ -109,25 +157,33 @@ public class TaskRebalancer implements HelixRebalancer {
         && workflowCtx.getFinishTime() + workflowCfg.getExpiry() <= System.currentTimeMillis()) {
       markForDeletion(_manager, workflowResource);
       cleanup(_manager, resourceName, workflowCfg, workflowResource);
-      return emptyAssignment(resourceId);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // Fetch any existing context information from the property store.
-    TaskContext taskCtx = TaskUtil.getTaskContext(_manager, resourceName);
-    if (taskCtx == null) {
-      taskCtx = new TaskContext(new ZNRecord("TaskContext"));
-      taskCtx.setStartTime(System.currentTimeMillis());
+    JobContext jobCtx = TaskUtil.getJobContext(_manager, resourceName);
+    if (jobCtx == null) {
+      jobCtx = new JobContext(new ZNRecord("TaskContext"));
+      jobCtx.setStartTime(System.currentTimeMillis());
     }
 
-    // The task is already in a final state (completed/failed).
-    if (workflowCtx.getTaskState(resourceName) == TaskState.FAILED
-        || workflowCtx.getTaskState(resourceName) == TaskState.COMPLETED) {
-      return emptyAssignment(resourceId);
+    // The job is already in a final state (completed/failed).
+    if (workflowCtx.getJobState(resourceName) == TaskState.FAILED
+        || workflowCtx.getJobState(resourceName) == TaskState.COMPLETED) {
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
+    // Check for readiness, and stop processing if it's not ready
+    boolean isReady =
+        scheduleIfNotReady(workflowCfg, workflowCtx, workflowResource, resourceName, clusterData);
+    if (!isReady) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
+
+    // Grab the old assignment, or an empty one if it doesn't exist
     ResourceAssignment prevAssignment = TaskUtil.getPrevResourceAssignment(_manager, resourceName);
     if (prevAssignment == null) {
-      prevAssignment = new ResourceAssignment(resourceId);
+      prevAssignment = new ResourceAssignment(ResourceId.from(resourceName));
     }
 
     // Will contain the list of partitions that must be explicitly dropped from the ideal state that
@@ -136,133 +192,116 @@ public class TaskRebalancer implements HelixRebalancer {
     // HELIX-230.
     Set<Integer> partitionsToDrop = new TreeSet<Integer>();
 
-    ResourceId tgtResourceId = ResourceId.from(taskCfg.getTargetResource());
-    RebalancerConfig tgtResourceRebalancerCfg =
-        cluster.getResource(tgtResourceId).getRebalancerConfig();
-
-    Set<ParticipantId> liveInstances = cluster.getLiveParticipantMap().keySet();
-
-    IdealState tgtResourceIs =
-        ResourceAccessor.rebalancerConfigToIdealState(tgtResourceRebalancerCfg, cluster
-            .getResource(resourceId).getBucketSize(), cluster.getResource(resourceId)
-            .getBatchMessageMode());
     ResourceAssignment newAssignment =
-        computeResourceMapping(resourceName, workflowCfg, taskCfg, prevAssignment, tgtResourceIs,
-            liveInstances, currentState, workflowCtx, taskCtx, partitionsToDrop);
+        computeResourceMapping(resourceName, workflowCfg, jobCfg, prevAssignment, clusterData
+            .getLiveParticipantMap().keySet(), currStateOutput, workflowCtx, jobCtx,
+            partitionsToDrop, clusterData);
 
-    PartitionedRebalancerConfig userConfig =
-        BasicRebalancerConfig.convert(rebalancerConfig, PartitionedRebalancerConfig.class);
     if (!partitionsToDrop.isEmpty()) {
       for (Integer pId : partitionsToDrop) {
-        userConfig.getPartitionMap().remove(PartitionId.from(pName(resourceName, pId)));
+        taskIs.getRecord().getMapFields().remove(pName(resourceName, pId));
       }
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       PropertyKey propertyKey = accessor.keyBuilder().idealStates(resourceName);
-
-      IdealState taskIs =
-          ResourceAccessor.rebalancerConfigToIdealState(rebalancerConfig,
-              cluster.getResource(resourceId).getBucketSize(), cluster.getResource(resourceId)
-                  .getBatchMessageMode());
       accessor.setProperty(propertyKey, taskIs);
     }
 
     // Update rebalancer context, previous ideal state.
-    TaskUtil.setTaskContext(_manager, resourceName, taskCtx);
+    TaskUtil.setJobContext(_manager, resourceName, jobCtx);
     TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
     TaskUtil.setPrevResourceAssignment(_manager, resourceName, newAssignment);
 
     return newAssignment;
   }
 
-  private static ResourceAssignment computeResourceMapping(String taskResource,
-      WorkflowConfig workflowConfig, TaskConfig taskCfg, ResourceAssignment prevAssignment,
-      IdealState tgtResourceIs, Iterable<ParticipantId> liveInstances,
-      ResourceCurrentState currStateOutput, WorkflowContext workflowCtx, TaskContext taskCtx,
-      Set<Integer> partitionsToDropFromIs) {
-
-    TargetState taskTgtState = workflowConfig.getTargetState();
+  private ResourceAssignment computeResourceMapping(String jobResource,
+      WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevAssignment,
+      Collection<ParticipantId> liveInstances, ResourceCurrentState currStateOutput,
+      WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
+      Cluster cache) {
+    TargetState jobTgtState = workflowConfig.getTargetState();
 
     // Update running status in workflow context
-    if (taskTgtState == TargetState.STOP) {
-      workflowCtx.setTaskState(taskResource, TaskState.STOPPED);
-      // Workflow has been stopped if all tasks are stopped
+    if (jobTgtState == TargetState.STOP) {
+      workflowCtx.setJobState(jobResource, TaskState.STOPPED);
+      // Workflow has been stopped if all jobs are stopped
       if (isWorkflowStopped(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
       }
     } else {
-      workflowCtx.setTaskState(taskResource, TaskState.IN_PROGRESS);
+      workflowCtx.setJobState(jobResource, TaskState.IN_PROGRESS);
       // Workflow is in progress if any task is in progress
       workflowCtx.setWorkflowState(TaskState.IN_PROGRESS);
     }
 
-    // Used to keep track of task partitions that have already been assigned to instances.
+    // Used to keep track of tasks that have already been assigned to instances.
     Set<Integer> assignedPartitions = new HashSet<Integer>();
+
+    // Used to keep track of tasks that have failed, but whose failure is acceptable
+    Set<Integer> skippedPartitions = new HashSet<Integer>();
 
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
-    // Process all the current assignments of task partitions.
-    Set<Integer> allPartitions = getAllTaskPartitions(tgtResourceIs, taskCfg);
-    Map<String, SortedSet<Integer>> taskAssignments =
+    // Process all the current assignments of tasks.
+    Set<Integer> allPartitions =
+        getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache);
+    Map<ParticipantId, SortedSet<Integer>> taskAssignments =
         getTaskPartitionAssignments(liveInstances, prevAssignment, allPartitions);
-    for (String instance : taskAssignments.keySet()) {
+    for (ParticipantId instance : taskAssignments.keySet()) {
       Set<Integer> pSet = taskAssignments.get(instance);
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
       // TASK_ERROR, ERROR.
       Set<Integer> donePartitions = new TreeSet<Integer>();
       for (int pId : pSet) {
-        final String pName = pName(taskResource, pId);
+        final String pName = pName(jobResource, pId);
 
         // Check for pending state transitions on this (partition, instance).
-        State s =
-            currStateOutput.getPendingState(ResourceId.from(taskResource), PartitionId.from(pName),
-                ParticipantId.from(instance));
-        String pendingState = (s == null ? null : s.toString());
+        State pendingState =
+            currStateOutput.getPendingState(ResourceId.from(jobResource), PartitionId.from(pName),
+                instance);
         if (pendingState != null) {
           // There is a pending state transition for this (partition, instance). Just copy forward
           // the state assignment from the previous ideal state.
           Map<ParticipantId, State> stateMap =
               prevAssignment.getReplicaMap(PartitionId.from(pName));
           if (stateMap != null) {
-            State prevState = stateMap.get(ParticipantId.from(instance));
-            paMap.put(pId, new PartitionAssignment(instance, prevState.toString()));
+            State prevState = stateMap.get(instance);
+            paMap.put(pId, new PartitionAssignment(instance.toString(), prevState.toString()));
             assignedPartitions.add(pId);
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(String
-                  .format(
-                      "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
-                      pName, instance, prevState));
-            }
+            LOG.debug(String
+                .format(
+                    "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
+                    pName, instance, prevState));
           }
 
           continue;
         }
 
+        State currHelixState =
+            currStateOutput.getCurrentState(ResourceId.from(jobResource), PartitionId.from(pName),
+                instance);
         TaskPartitionState currState =
-            TaskPartitionState.valueOf(currStateOutput.getCurrentState(
-                ResourceId.from(taskResource), PartitionId.from(pName),
-                ParticipantId.from(instance)).toString());
+            (currHelixState != null) ? TaskPartitionState.valueOf(currHelixState.toString()) : null;
 
         // Process any requested state transitions.
-        State reqS =
-            currStateOutput.getRequestedState(ResourceId.from(taskResource),
-                PartitionId.from(pName), ParticipantId.from(instance));
-        String requestedStateStr = (reqS == null ? null : reqS.toString());
-        if (requestedStateStr != null && !requestedStateStr.isEmpty()) {
-          TaskPartitionState requestedState = TaskPartitionState.valueOf(requestedStateStr);
+        State requestedStateStr =
+            currStateOutput.getRequestedState(ResourceId.from(jobResource),
+                PartitionId.from(pName), instance);
+        if (requestedStateStr != null && !requestedStateStr.toString().isEmpty()) {
+          TaskPartitionState requestedState =
+              TaskPartitionState.valueOf(requestedStateStr.toString());
           if (requestedState.equals(currState)) {
             LOG.warn(String.format(
                 "Requested state %s is the same as the current state for instance %s.",
                 requestedState, instance));
           }
 
-          paMap.put(pId, new PartitionAssignment(instance, requestedState.name()));
+          paMap.put(pId, new PartitionAssignment(instance.toString(), requestedState.name()));
           assignedPartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Instance %s requested a state transition to %s for partition %s.", instance,
-                requestedState, pName));
-          }
+          LOG.debug(String.format(
+              "Instance %s requested a state transition to %s for partition %s.", instance,
+              requestedState, pName));
           continue;
         }
 
@@ -270,50 +309,67 @@ public class TaskRebalancer implements HelixRebalancer {
         case RUNNING:
         case STOPPED: {
           TaskPartitionState nextState;
-          if (taskTgtState == TargetState.START) {
+          if (jobTgtState == TargetState.START) {
             nextState = TaskPartitionState.RUNNING;
           } else {
             nextState = TaskPartitionState.STOPPED;
           }
 
-          paMap.put(pId, new PartitionAssignment(instance, nextState.name()));
+          paMap.put(pId, new PartitionAssignment(instance.toString(), nextState.name()));
           assignedPartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
-                nextState, instance));
-          }
+          LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
+              nextState, instance));
         }
           break;
         case COMPLETED: {
           // The task has completed on this partition. Mark as such in the context object.
           donePartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String
-                .format(
-                    "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
-                    pName, currState));
-          }
+          LOG.debug(String
+              .format(
+                  "Task partition %s has completed with state %s. Marking as such in rebalancer context.",
+                  pName, currState));
           partitionsToDropFromIs.add(pId);
-          markPartitionCompleted(taskCtx, pId);
+          markPartitionCompleted(jobCtx, pId);
         }
           break;
         case TIMED_OUT:
         case TASK_ERROR:
         case ERROR: {
           donePartitions.add(pId); // The task may be rescheduled on a different instance.
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has error state %s. Marking as such in rebalancer context.",
-                pName, currState));
-          }
-          markPartitionError(taskCtx, pId, currState);
+          LOG.debug(String.format(
+              "Task partition %s has error state %s. Marking as such in rebalancer context.",
+              pName, currState));
+          markPartitionError(jobCtx, pId, currState);
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts.
-          if (taskCtx.getPartitionNumAttempts(pId) >= taskCfg.getMaxAttemptsPerPartition()) {
-            workflowCtx.setTaskState(taskResource, TaskState.FAILED);
-            workflowCtx.setWorkflowState(TaskState.FAILED);
-            addAllPartitions(tgtResourceIs.getPartitionSet(), partitionsToDropFromIs);
-            return emptyAssignment(ResourceId.from(taskResource));
+          if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()) {
+            // If the user does not require this task to succeed in order for the job to succeed,
+            // then we don't have to fail the job right now
+            boolean successOptional = false;
+            String taskId = jobCtx.getTaskIdForPartition(pId);
+            if (taskId != null) {
+              TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
+              if (taskConfig != null) {
+                successOptional = taskConfig.isSuccessOptional();
+              }
+            }
+
+            // Similarly, if we have some leeway for how many tasks we can fail, then we don't have
+            // to fail the job immediately
+            if (skippedPartitions.size() < jobCfg.getFailureThreshold()) {
+              successOptional = true;
+            }
+
+            if (!successOptional) {
+              workflowCtx.setJobState(jobResource, TaskState.FAILED);
+              workflowCtx.setWorkflowState(TaskState.FAILED);
+              workflowCtx.setFinishTime(System.currentTimeMillis());
+              addAllPartitions(allPartitions, partitionsToDropFromIs);
+              return emptyAssignment(jobResource, currStateOutput);
+            } else {
+              skippedPartitions.add(pId);
+              partitionsToDropFromIs.add(pId);
+            }
           }
         }
           break;
@@ -321,11 +377,9 @@ public class TaskRebalancer implements HelixRebalancer {
         case DROPPED: {
           // currState in [INIT, DROPPED]. Do nothing, the partition is eligible to be reassigned.
           donePartitions.add(pId);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format(
-                "Task partition %s has state %s. It will be dropped from the current ideal state.",
-                pName, currState));
-          }
+          LOG.debug(String.format(
+              "Task partition %s has state %s. It will be dropped from the current ideal state.",
+              pName, currState));
         }
           break;
         default:
@@ -336,8 +390,9 @@ public class TaskRebalancer implements HelixRebalancer {
       // Remove the set of task partitions that are completed or in one of the error states.
       pSet.removeAll(donePartitions);
     }
-    if (isTaskComplete(taskCtx, allPartitions)) {
-      workflowCtx.setTaskState(taskResource, TaskState.COMPLETED);
+
+    if (isJobComplete(jobCtx, allPartitions, skippedPartitions)) {
+      workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.COMPLETED);
         workflowCtx.setFinishTime(System.currentTimeMillis());
@@ -345,60 +400,170 @@ public class TaskRebalancer implements HelixRebalancer {
     }
 
     // Make additional task assignments if needed.
-    if (taskTgtState == TargetState.START) {
+    if (jobTgtState == TargetState.START) {
       // Contains the set of task partitions that must be excluded from consideration when making
       // any new assignments.
       // This includes all completed, failed, already assigned partitions.
       Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
-      addCompletedPartitions(excludeSet, taskCtx, allPartitions);
+      addCompletedPartitions(excludeSet, jobCtx, allPartitions);
+      excludeSet.addAll(skippedPartitions);
       // Get instance->[partition, ...] mappings for the target resource.
-      Map<String, SortedSet<Integer>> tgtPartitionAssignments =
-          getTgtPartitionAssignment(currStateOutput, liveInstances, tgtResourceIs,
-              taskCfg.getTargetPartitionStates(), allPartitions);
-      for (Map.Entry<String, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
-        String instance = entry.getKey();
+      Map<ParticipantId, SortedSet<Integer>> tgtPartitionAssignments =
+          getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,
+              workflowConfig, workflowCtx, allPartitions, cache);
+      for (Map.Entry<ParticipantId, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
+        ParticipantId instance = entry.getKey();
+        if (!tgtPartitionAssignments.containsKey(instance)) {
+          continue;
+        }
         // Contains the set of task partitions currently assigned to the instance.
         Set<Integer> pSet = entry.getValue();
-        int numToAssign = taskCfg.getNumConcurrentTasksPerInstance() - pSet.size();
+        int numToAssign = jobCfg.getNumConcurrentTasksPerInstance() - pSet.size();
         if (numToAssign > 0) {
           List<Integer> nextPartitions =
               getNextPartitions(tgtPartitionAssignments.get(instance), excludeSet, numToAssign);
           for (Integer pId : nextPartitions) {
-            String pName = pName(taskResource, pId);
-            paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.RUNNING.name()));
+            String pName = pName(jobResource, pId);
+            paMap.put(pId,
+                new PartitionAssignment(instance.toString(), TaskPartitionState.RUNNING.name()));
             excludeSet.add(pId);
-            if (LOG.isDebugEnabled()) {
-              LOG.debug(String.format("Setting task partition %s state to %s on instance %s.",
-                  pName, TaskPartitionState.RUNNING, instance));
-            }
+            jobCtx.setAssignedParticipant(pId, instance.toString());
+            LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
+                TaskPartitionState.RUNNING, instance));
           }
         }
       }
     }
 
     // Construct a ResourceAssignment object from the map of partition assignments.
-    ResourceAssignment ra = new ResourceAssignment(ResourceId.from(taskResource));
+    ResourceAssignment ra = new ResourceAssignment(ResourceId.from(jobResource));
     for (Map.Entry<Integer, PartitionAssignment> e : paMap.entrySet()) {
       PartitionAssignment pa = e.getValue();
-      ra.addReplicaMap(PartitionId.from(pName(taskResource, e.getKey())),
+      ra.addReplicaMap(PartitionId.from(pName(jobResource, e.getKey())),
           ImmutableMap.of(ParticipantId.from(pa._instance), State.from(pa._state)));
     }
-
     return ra;
   }
 
   /**
-   * Checks if the task has completed.
+   * Check if a workflow is ready to schedule, and schedule a rebalance if it is not
+   * @param workflowCfg the workflow to check
+   * @param workflowCtx the current workflow context
+   * @param workflowResource the Helix resource associated with the workflow
+   * @param jobResource a job from the workflow
+   * @param cache the current snapshot of the cluster
+   * @return true if ready, false if not ready
+   */
+  private boolean scheduleIfNotReady(WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      String workflowResource, String jobResource, Cluster cache) {
+    // Ignore non-scheduled workflows
+    if (workflowCfg == null || workflowCfg.getScheduleConfig() == null) {
+      return true;
+    }
+
+    // Figure out when this should be run, and if it's ready, then just run it
+    ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
+    Date startTime = scheduleConfig.getStartTime();
+    long currentTime = new Date().getTime();
+    long delayFromStart = startTime.getTime() - currentTime;
+
+    if (delayFromStart <= 0) {
+      // Remove any timers that are past-time for this workflow
+      Date scheduledTime = SCHEDULED_WORKFLOWS.get(workflowResource);
+      if (scheduledTime != null && currentTime > scheduledTime.getTime()) {
+        SCHEDULED_WORKFLOWS.remove(workflowResource);
+      }
+
+      // Recurring workflows are just templates that spawn new workflows
+      if (scheduleConfig.isRecurring()) {
+        // Skip scheduling this workflow if it's not in a start state
+        if (!workflowCfg.getTargetState().equals(TargetState.START)) {
+          return false;
+        }
+
+        // Skip scheduling this workflow again if the previous run (if any) is still active
+        String lastScheduled = workflowCtx.getLastScheduledSingleWorkflow();
+        if (lastScheduled != null) {
+          WorkflowContext lastWorkflowCtx = TaskUtil.getWorkflowContext(_manager, lastScheduled);
+          if (lastWorkflowCtx == null
+              || lastWorkflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
+            return false;
+          }
+        }
+
+        // Figure out how many jumps are needed, thus the time to schedule the next workflow
+        // The negative of the delay is the amount of time past the start time
+        long period =
+            scheduleConfig.getRecurrenceUnit().toMillis(scheduleConfig.getRecurrenceInterval());
+        long offsetMultiplier = (-delayFromStart) / period;
+        long timeToSchedule = period * offsetMultiplier + startTime.getTime();
+
+        // Now clone the workflow if this clone has not yet been created
+        String newWorkflowName =
+            workflowResource + "_" + TaskConstants.SCHEDULED + "_" + offsetMultiplier;
+        if (lastScheduled == null || !lastScheduled.equals(newWorkflowName)) {
+          Workflow clonedWf =
+              TaskUtil.cloneWorkflow(_manager, workflowResource, newWorkflowName, new Date(
+                  timeToSchedule));
+          TaskDriver driver = new TaskDriver(_manager);
+          try {
+            // Start the cloned workflow
+            driver.start(clonedWf);
+          } catch (Exception e) {
+            LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
+          }
+          // Persist workflow start regardless of success to avoid retrying and failing
+          workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
+          TaskUtil.setWorkflowContext(_manager, workflowResource, workflowCtx);
+        }
+
+        // Change the time to trigger the pipeline to that of the next run
+        startTime = new Date(timeToSchedule + period);
+        delayFromStart = startTime.getTime() - System.currentTimeMillis();
+      } else {
+        // This is a one-time workflow and is ready
+        return true;
+      }
+    }
+
+    // No need to schedule the same runnable at the same time
+    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
+        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+      return false;
+    }
+
+    scheduleRebalance(workflowResource, jobResource, startTime, delayFromStart);
+    return false;
+  }
+
+  private void scheduleRebalance(String workflowResource, String jobResource, Date startTime,
+      long delayFromStart) {
+    // No need to schedule the same runnable at the same time
+    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
+        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+      return;
+    }
+
+    // For workflows not yet scheduled, schedule them and record it
+    RebalanceInvoker rebalanceInvoker = new RebalanceInvoker(_manager, jobResource);
+    SCHEDULED_WORKFLOWS.put(workflowResource, startTime);
+    SCHEDULED_EXECUTOR.schedule(rebalanceInvoker, delayFromStart, TimeUnit.MILLISECONDS);
+  }
+
+  /**
+   * Checks if the job has completed.
    * @param ctx The rebalancer context.
    * @param allPartitions The set of partitions to check.
+   * @param skippedPartitions partitions that failed, but whose failure is acceptable
    * @return true if all task partitions have been marked with status
    *         {@link TaskPartitionState#COMPLETED} in the rebalancer
    *         context, false otherwise.
    */
-  private static boolean isTaskComplete(TaskContext ctx, Set<Integer> allPartitions) {
+  private static boolean isJobComplete(JobContext ctx, Set<Integer> allPartitions,
+      Set<Integer> skippedPartitions) {
     for (Integer pId : allPartitions) {
       TaskPartitionState state = ctx.getPartitionState(pId);
-      if (state != TaskPartitionState.COMPLETED) {
+      if (!skippedPartitions.contains(pId) && state != TaskPartitionState.COMPLETED) {
         return false;
       }
     }
@@ -407,13 +572,13 @@ public class TaskRebalancer implements HelixRebalancer {
 
   /**
    * Checks if the workflow has completed.
-   * @param ctx Workflow context containing task states
-   * @param cfg Workflow config containing set of tasks
+   * @param ctx Workflow context containing job states
+   * @param cfg Workflow config containing set of jobs
    * @return returns true if all tasks are {@link TaskState#COMPLETED}, false otherwise.
    */
   private static boolean isWorkflowComplete(WorkflowContext ctx, WorkflowConfig cfg) {
-    for (String task : cfg.getTaskDag().getAllNodes()) {
-      if (ctx.getTaskState(task) != TaskState.COMPLETED) {
+    for (String job : cfg.getJobDag().getAllNodes()) {
+      if (ctx.getJobState(job) != TaskState.COMPLETED) {
         return false;
       }
     }
@@ -427,8 +592,8 @@ public class TaskRebalancer implements HelixRebalancer {
    * @return returns true if all tasks are {@link TaskState#STOPPED}, false otherwise.
    */
   private static boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
-    for (String task : cfg.getTaskDag().getAllNodes()) {
-      if (ctx.getTaskState(task) != TaskState.STOPPED && ctx.getTaskState(task) != null) {
+    for (String job : cfg.getJobDag().getAllNodes()) {
+      if (ctx.getJobState(job) != TaskState.STOPPED && ctx.getJobState(job) != null) {
         return false;
       }
     }
@@ -442,8 +607,8 @@ public class TaskRebalancer implements HelixRebalancer {
   }
 
   /**
-   * Cleans up all Helix state associated with this task, wiping workflow-level information if this
-   * is the last remaining task in its workflow.
+   * Cleans up all Helix state associated with this job, wiping workflow-level information if this
+   * is the last remaining job in its workflow.
    */
   private static void cleanup(HelixManager mgr, String resourceName, WorkflowConfig cfg,
       String workflowResource) {
@@ -476,17 +641,17 @@ public class TaskRebalancer implements HelixRebalancer {
     LOG.info(String.format("Successfully cleaned up task resource %s.", resourceName));
 
     boolean lastInWorkflow = true;
-    for (String task : cfg.getTaskDag().getAllNodes()) {
-      // check if property store information or resource configs exist for this task
-      if (mgr.getHelixPropertyStore().exists(getRebalancerPropStoreKey(task),
+    for (String job : cfg.getJobDag().getAllNodes()) {
+      // check if property store information or resource configs exist for this job
+      if (mgr.getHelixPropertyStore().exists(getRebalancerPropStoreKey(job),
           AccessOption.PERSISTENT)
-          || accessor.getProperty(getConfigPropertyKey(accessor, task)) != null
-          || accessor.getProperty(getISPropertyKey(accessor, task)) != null) {
+          || accessor.getProperty(getConfigPropertyKey(accessor, job)) != null
+          || accessor.getProperty(getISPropertyKey(accessor, job)) != null) {
         lastInWorkflow = false;
       }
     }
 
-    // clean up task-level info if this was the last in workflow
+    // clean up job-level info if this was the last in workflow
     if (lastInWorkflow) {
       // delete workflow config
       PropertyKey workflowCfgKey = getConfigPropertyKey(accessor, workflowResource);
@@ -522,17 +687,30 @@ public class TaskRebalancer implements HelixRebalancer {
     return accessor.keyBuilder().resourceConfig(resource);
   }
 
-  private static void addAllPartitions(Set<String> pNames, Set<Integer> pIds) {
-    for (String pName : pNames) {
-      pIds.add(pId(pName));
+  private static void addAllPartitions(Set<Integer> toAdd, Set<Integer> destination) {
+    for (Integer pId : toAdd) {
+      destination.add(pId);
     }
   }
 
-  private static ResourceAssignment emptyAssignment(ResourceId resourceId) {
-    return new ResourceAssignment(resourceId);
+  private static ResourceAssignment emptyAssignment(String name,
+      ResourceCurrentState currStateOutput) {
+    ResourceId resourceId = ResourceId.from(name);
+    ResourceAssignment assignment = new ResourceAssignment(resourceId);
+    Set<PartitionId> partitions = currStateOutput.getCurrentStateMappedPartitions(resourceId);
+    for (PartitionId partition : partitions) {
+      Map<ParticipantId, State> currentStateMap =
+          currStateOutput.getCurrentStateMap(resourceId, partition);
+      Map<ParticipantId, State> replicaMap = Maps.newHashMap();
+      for (ParticipantId participantId : currentStateMap.keySet()) {
+        replicaMap.put(participantId, State.from(HelixDefinedState.DROPPED));
+      }
+      assignment.addReplicaMap(partition, replicaMap);
+    }
+    return assignment;
   }
 
-  private static void addCompletedPartitions(Set<Integer> set, TaskContext ctx,
+  private static void addCompletedPartitions(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds) {
     for (Integer pId : pIds) {
       TaskPartitionState state = ctx.getPartitionState(pId);
@@ -542,30 +720,9 @@ public class TaskRebalancer implements HelixRebalancer {
     }
   }
 
-  /**
-   * Returns the set of all partition ids for a task.
-   * <p/>
-   * If a set of partition ids was explicitly specified in the config, that is used. Otherwise, we
-   * use the list of all partition ids from the target resource.
-   */
-  private static Set<Integer> getAllTaskPartitions(IdealState tgtResourceIs, TaskConfig taskCfg) {
-    Set<Integer> taskPartitions = new HashSet<Integer>();
-    if (taskCfg.getTargetPartitions() != null) {
-      for (Integer pId : taskCfg.getTargetPartitions()) {
-        taskPartitions.add(pId);
-      }
-    } else {
-      for (String pName : tgtResourceIs.getPartitionSet()) {
-        taskPartitions.add(pId(pName));
-      }
-    }
-
-    return taskPartitions;
-  }
-
   private static List<Integer> getNextPartitions(SortedSet<Integer> candidatePartitions,
       Set<Integer> excluded, int n) {
-    List<Integer> result = new ArrayList<Integer>(n);
+    List<Integer> result = new ArrayList<Integer>();
     for (Integer pId : candidatePartitions) {
       if (result.size() >= n) {
         break;
@@ -579,71 +736,35 @@ public class TaskRebalancer implements HelixRebalancer {
     return result;
   }
 
-  private static void markPartitionCompleted(TaskContext ctx, int pId) {
+  private static void markPartitionCompleted(JobContext ctx, int pId) {
     ctx.setPartitionState(pId, TaskPartitionState.COMPLETED);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
     ctx.incrementNumAttempts(pId);
   }
 
-  private static void markPartitionError(TaskContext ctx, int pId, TaskPartitionState state) {
+  private static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state) {
     ctx.setPartitionState(pId, state);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
     ctx.incrementNumAttempts(pId);
   }
 
   /**
-   * Get partition assignments for the target resource, but only for the partitions of interest.
-   * @param currStateOutput The current state of the instances in the cluster.
-   * @param instanceList The set of instances.
-   * @param tgtIs The ideal state of the target resource.
-   * @param tgtStates Only partitions in this set of states will be considered. If null, partitions
-   *          do not need to
-   *          be in any specific state to be considered.
-   * @param includeSet The set of partitions to consider.
-   * @return A map of instance vs set of partition ids assigned to that instance.
-   */
-  private static Map<String, SortedSet<Integer>> getTgtPartitionAssignment(
-      ResourceCurrentState currStateOutput, Iterable<ParticipantId> instanceList, IdealState tgtIs,
-      Set<String> tgtStates, Set<Integer> includeSet) {
-    Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
-    for (ParticipantId instance : instanceList) {
-      result.put(instance.stringify(), new TreeSet<Integer>());
-    }
-
-    for (String pName : tgtIs.getPartitionSet()) {
-      int pId = pId(pName);
-      if (includeSet.contains(pId)) {
-        for (ParticipantId instance : instanceList) {
-          State s =
-              currStateOutput.getCurrentState(ResourceId.from(tgtIs.getResourceName()),
-                  PartitionId.from(pName), instance);
-          String state = (s == null ? null : s.toString());
-          if (tgtStates == null || tgtStates.contains(state)) {
-            result.get(instance).add(pId);
-          }
-        }
-      }
-    }
-
-    return result;
-  }
-
-  /**
    * Return the assignment of task partitions per instance.
    */
-  private static Map<String, SortedSet<Integer>> getTaskPartitionAssignments(
+  private static Map<ParticipantId, SortedSet<Integer>> getTaskPartitionAssignments(
       Iterable<ParticipantId> instanceList, ResourceAssignment assignment, Set<Integer> includeSet) {
-    Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
+    Map<ParticipantId, SortedSet<Integer>> result =
+        new HashMap<ParticipantId, SortedSet<Integer>>();
     for (ParticipantId instance : instanceList) {
-      result.put(instance.stringify(), new TreeSet<Integer>());
+      result.put(instance, new TreeSet<Integer>());
     }
 
-    for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
-      int pId = pId(partitionId.stringify());
+    for (PartitionId partition : assignment.getMappedPartitionIds()) {
+      int pId = pId(partition.toString());
       if (includeSet.contains(pId)) {
-        Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partitionId);
+        Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partition);
         for (ParticipantId instance : replicaMap.keySet()) {
-          SortedSet<Integer> pList = result.get(instance.stringify());
+          SortedSet<Integer> pList = result.get(instance);
           if (pList != null) {
             pList.add(pId);
           }
@@ -657,14 +778,14 @@ public class TaskRebalancer implements HelixRebalancer {
   /**
    * Computes the partition name given the resource name and partition id.
    */
-  private static String pName(String resource, int pId) {
+  protected static String pName(String resource, int pId) {
     return resource + "_" + pId;
   }
 
   /**
    * Extracts the partition id from the given partition name.
    */
-  private static int pId(String pName) {
+  protected static int pId(String pName) {
     String[] tokens = pName.split("_");
     return Integer.valueOf(tokens[tokens.length - 1]);
   }
@@ -679,6 +800,24 @@ public class TaskRebalancer implements HelixRebalancer {
     private PartitionAssignment(String instance, String state) {
       _instance = instance;
       _state = state;
+    }
+  }
+
+  /**
+   * The simplest possible runnable that will trigger a run of the controller pipeline
+   */
+  private static class RebalanceInvoker implements Runnable {
+    private final HelixManager _manager;
+    private final String _resource;
+
+    public RebalanceInvoker(HelixManager manager, String resource) {
+      _manager = manager;
+      _resource = resource;
+    }
+
+    @Override
+    public void run() {
+      TaskUtil.invokeRebalance(_manager, _resource);
     }
   }
 }

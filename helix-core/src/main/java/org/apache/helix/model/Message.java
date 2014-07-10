@@ -60,7 +60,8 @@ public class Message extends HelixProperty {
     CONTROLLER_MSG,
     TASK_REPLY,
     NO_OP,
-    PARTICIPANT_ERROR_REPORT
+    PARTICIPANT_ERROR_REPORT,
+    SHUTDOWN
   };
 
   /**

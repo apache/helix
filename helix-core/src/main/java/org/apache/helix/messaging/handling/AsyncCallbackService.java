@@ -47,8 +47,8 @@ public class AsyncCallbackService implements MessageHandlerFactory {
   void verifyMessage(Message message) {
     if (!message.getMsgType().toString().equalsIgnoreCase(MessageType.TASK_REPLY.toString())) {
       String errorMsg =
-          "Unexpected msg type for message " + message.getMessageId() + " type:" + message.getMsgType()
-              + " Expected : " + MessageType.TASK_REPLY;
+          "Unexpected msg type for message " + message.getMessageId() + " type:"
+              + message.getMsgType() + " Expected : " + MessageType.TASK_REPLY;
       _logger.error(errorMsg);
       throw new HelixException(errorMsg);
     }
@@ -68,7 +68,8 @@ public class AsyncCallbackService implements MessageHandlerFactory {
       _logger.error(errorMsg);
       throw new HelixException(errorMsg);
     }
-    _logger.info("Verified reply message " + message.getMessageId() + " correlation:" + correlationId);
+    _logger.info("Verified reply message " + message.getMessageId() + " correlation:"
+        + correlationId);
   }
 
   @Override
@@ -118,7 +119,8 @@ public class AsyncCallbackService implements MessageHandlerFactory {
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(),
+          e);
     }
   }
 }

@@ -39,6 +39,7 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
@@ -50,6 +51,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ProvisionerConfigHolder;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.model.StateModelDefinition;
@@ -279,6 +281,12 @@ public class ResourceAccessor {
     } else if (userConfig == null) {
       config = null;
     }
+    if (resourceConfig.getProvisionerConfig() != null) {
+      config.addNamespacedConfig(new ProvisionerConfigHolder(resourceConfig.getProvisionerConfig())
+          .toNamespacedConfig());
+    }
+    config.setBucketSize(resourceConfig.getBucketSize());
+    config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
     setConfiguration(resourceId, config, resourceConfig.getRebalancerConfig());
     return true;
   }
@@ -467,6 +475,7 @@ public class ResourceAccessor {
       ResourceConfiguration resourceConfiguration, IdealState idealState,
       ExternalView externalView, ResourceAssignment resourceAssignment) {
     UserConfig userConfig;
+    ProvisionerConfig provisionerConfig = null;
     RebalancerConfig rebalancerConfig = null;
     ResourceType type = ResourceType.DATA;
     if (resourceConfiguration != null) {
@@ -499,8 +508,11 @@ public class ResourceAccessor {
     if (rebalancerConfig == null) {
       rebalancerConfig = new PartitionedRebalancerConfig();
     }
+    if (resourceConfiguration != null) {
+      provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
+    }
     return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
-        rebalancerConfig, userConfig, bucketSize, batchMessageMode);
+        rebalancerConfig, provisionerConfig, userConfig, bucketSize, batchMessageMode);
   }
 
   /**

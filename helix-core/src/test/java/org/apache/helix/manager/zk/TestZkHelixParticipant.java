@@ -69,9 +69,9 @@ public class TestZkHelixParticipant extends ZkUnitTestBase {
 
       participants[i] = connection.createParticipant(clusterId, participantId);
       participants[i].getStateMachineEngine().registerStateModelFactory(
-        StateModelDefId.from("MasterSlave"), new TestHelixConnection.MockStateModelFactory());
+          StateModelDefId.from("MasterSlave"), new TestHelixConnection.MockStateModelFactory());
 
-      participants[i].startAsync();
+      participants[i].start();
     }
 
     // check live-instance znode for localhost_12918/12919 exist
@@ -80,11 +80,12 @@ public class TestZkHelixParticipant extends ZkUnitTestBase {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < n; i++) {
-      Assert.assertNotNull(accessor.getProperty(keyBuilder.liveInstance(participants[i].getParticipantId().stringify())));
+      Assert.assertNotNull(accessor.getProperty(keyBuilder.liveInstance(participants[i]
+          .getParticipantId().stringify())));
     }
 
     // stop participant localhost_12918
-    participants[0].stopAsync();
+    participants[0].stop();
 
     // check live-instance znode for localhost_12918 is gone
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(participants[0]

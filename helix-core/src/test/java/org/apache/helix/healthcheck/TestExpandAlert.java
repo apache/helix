@@ -138,8 +138,7 @@ public class TestExpandAlert extends ZkIntegrationTestBase {
     {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].setTransition(new ExpandAlertTransition());
       participants[i].syncStart();
     }

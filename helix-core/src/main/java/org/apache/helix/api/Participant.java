@@ -22,6 +22,7 @@ package org.apache.helix.api;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.MessageId;
@@ -38,6 +39,8 @@ import com.google.common.collect.ImmutableMap;
  */
 public class Participant {
   private final ParticipantConfig _config;
+  
+  private final ContainerConfig _containerConfig;
 
   private final RunningInstance _runningInstance;
 
@@ -58,10 +61,11 @@ public class Participant {
   public Participant(ParticipantId id, String hostName, int port, boolean isEnabled,
       Set<PartitionId> disabledPartitionIdSet, Set<String> tags, RunningInstance runningInstance,
       Map<ResourceId, CurrentState> currentStateMap, Map<MessageId, Message> messageMap,
-      UserConfig userConfig) {
+      UserConfig userConfig, ContainerConfig containerConfig) {
     _config =
         new ParticipantConfig(id, hostName, port, isEnabled, disabledPartitionIdSet, tags,
             userConfig);
+    _containerConfig = containerConfig;
     _runningInstance = runningInstance;
     _currentStateMap = ImmutableMap.copyOf(currentStateMap);
     _messageMap = ImmutableMap.copyOf(messageMap);
@@ -170,5 +174,13 @@ public class Participant {
    */
   public ParticipantConfig getConfig() {
     return _config;
+  }
+
+  /**
+   * Get the container config (if any)
+   * @return ContainerConfig for the container associated with this participant
+   */
+  public ContainerConfig getContainerConfig() {
+    return _containerConfig;
   }
 }

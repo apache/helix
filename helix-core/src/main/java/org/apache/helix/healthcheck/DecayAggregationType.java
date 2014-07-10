@@ -52,7 +52,6 @@ public class DecayAggregationType implements AggregationType {
     // come up with decay coeff for old value. More time passed, the more it
     // decays
     double oldDecayCoeff = Math.pow((1 - _decayFactor), minutesOld);
-    return String
-        .valueOf((oldDecayCoeff * existingVal + (1 - oldDecayCoeff) * incomingVal));
+    return String.valueOf((oldDecayCoeff * existingVal + (1 - oldDecayCoeff) * incomingVal));
   }
 }

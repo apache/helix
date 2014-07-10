@@ -36,8 +36,8 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
     String type = message.getMsgType();
 
     if (!type.equals(getMessageType())) {
-      throw new HelixException("Unexpected msg type for message " + message.getMessageId() + " type:"
-          + message.getMsgType());
+      throw new HelixException("Unexpected msg type for message " + message.getMessageId()
+          + " type:" + message.getMsgType());
     }
 
     return new DefaultControllerMessageHandler(message, context);
@@ -74,7 +74,8 @@ public class DefaultControllerMessageHandlerFactory implements MessageHandlerFac
 
     @Override
     public void onError(Exception e, ErrorCode code, ErrorType type) {
-      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(), e);
+      _logger.error("Message handling pipeline get an exception. MsgId:" + _message.getMessageId(),
+          e);
     }
   }
 }

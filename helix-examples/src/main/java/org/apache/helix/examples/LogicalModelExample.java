@@ -118,31 +118,31 @@ public class LogicalModelExample {
     // start the controller
     ControllerId controllerId = ControllerId.from("exampleController");
     HelixController helixController = connection.createController(clusterId, controllerId);
-    helixController.startAsync();
+    helixController.start();
 
     // start the specified participant
     HelixParticipant helixParticipant =
         connection.createParticipant(clusterId, participant.getId());
     helixParticipant.getStateMachineEngine().registerStateModelFactory(
         lockUnlock.getStateModelDefId(), new LockUnlockFactory());
-    helixParticipant.startAsync();
+    helixParticipant.start();
 
     // start another participant via auto join
     HelixParticipant autoJoinParticipant =
         connection.createParticipant(clusterId, ParticipantId.from("localhost_12120"));
     autoJoinParticipant.getStateMachineEngine().registerStateModelFactory(
         lockUnlock.getStateModelDefId(), new LockUnlockFactory());
-    autoJoinParticipant.startAsync();
+    autoJoinParticipant.start();
 
     Thread.sleep(5000);
     printExternalView(connection, clusterId, resource.getId());
 
     // stop the participants
-    helixParticipant.stopAsync();
-    autoJoinParticipant.stopAsync();
+    helixParticipant.stop();
+    autoJoinParticipant.stop();
 
     // stop the controller
-    helixController.stopAsync();
+    helixController.stop();
 
     // drop the cluster
     dropCluster(clusterId, connection);

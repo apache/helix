@@ -312,6 +312,24 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  /**
+   * Indicate that a resource has been dropped, thus making it OK to drop its metrics
+   * @param resourceName the resource that has been dropped
+   */
+  public void unregisterResource(String resourceName) {
+    if (_resourceMbeanMap.containsKey(resourceName)) {
+      synchronized (this) {
+        if (_resourceMbeanMap.containsKey(resourceName)) {
+          try {
+            unregisterResources(Arrays.asList(resourceName));
+          } catch (MalformedObjectNameException e) {
+            LOG.error("Could not unregister beans for " + resourceName, e);
+          }
+        }
+      }
+    }
+  }
+
   public void setResourceStatus(ExternalView externalView, IdealState idealState,
       StateModelDefinition stateModelDef) {
     String topState = null;

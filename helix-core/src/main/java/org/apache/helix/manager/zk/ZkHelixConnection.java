@@ -68,7 +68,7 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.store.HelixPropertyStore;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.store.zk.AutoFallbackPropertyStore;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -251,8 +251,9 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   @Override
   public HelixPropertyStore<ZNRecord> createPropertyStore(ClusterId clusterId) {
     PropertyKey key = new PropertyKey.Builder(clusterId.stringify()).propertyStore();
-    return new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient),
-        key.getPath(), null);
+    String fallbackPath = String.format("/%s/%s", clusterId.toString(), "HELIX_PROPERTYSTORE");
+    return new AutoFallbackPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient),
+        key.getPath(), fallbackPath);
   }
 
   @Override

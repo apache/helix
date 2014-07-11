@@ -116,6 +116,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
           clusterStatusMonitor.setResourceStatus(view,
               cache._idealStateMap.get(view.getResourceName()), stateModelDef);
         }
+      } else {
+        // Drop the metrics for the dropped resource
+        clusterStatusMonitor.unregisterResource(view.getResourceName());
       }
 
       // compare the new external view with current one, set only on different

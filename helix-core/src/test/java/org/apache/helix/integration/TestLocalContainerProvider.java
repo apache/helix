@@ -59,6 +59,7 @@ import org.apache.helix.controller.serializer.StringSerializer;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -70,13 +71,15 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
 public class TestLocalContainerProvider extends ZkUnitTestBase {
-  private static final int MAX_PARTICIPANTS = 10;
+  private static final Logger LOG = Logger.getLogger(TestLocalContainerProvider.class);
+
+  private static final int MAX_PARTICIPANTS = 4;
   static String clusterName = null;
   static String resourceName = null;
-  static int allocated = 0;
-  static int started = 0;
-  static int stopped = 0;
-  static int deallocated = 0;
+  static volatile int allocated = 0;
+  static volatile int started = 0;
+  static volatile int stopped = 0;
+  static volatile int deallocated = 0;
   static HelixConnection connection = null;
   static CountDownLatch latch = new CountDownLatch(MAX_PARTICIPANTS);
 
@@ -122,7 +125,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     HelixController controller = connection.createController(clusterId, controllerId);
     controller.start();
 
-    latch.await(10000, TimeUnit.MILLISECONDS);
+    latch.await(30000, TimeUnit.MILLISECONDS);
 
     // clean up
     controller.stop();
@@ -232,6 +235,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       _states.put(containerId, ContainerState.ACQUIRED);
       _containerParticipants.put(containerId, spec.getParticipantId());
       allocated++;
+      LOG.info(String.format("ALLOC: %d %d %d %d", allocated, started, stopped, deallocated));
       SettableFuture<ContainerId> future = SettableFuture.create();
       future.set(containerId);
       return future;
@@ -242,6 +246,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       // deallocation is a no-op
       _states.put(containerId, ContainerState.FINALIZED);
       deallocated++;
+      LOG.info(String.format("DEALLOC: %d %d %d %d", allocated, started, stopped, deallocated));
       latch.countDown();
       SettableFuture<Boolean> future = SettableFuture.create();
       future.set(true);
@@ -257,6 +262,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       _participants.put(containerId, participantService);
       _states.put(containerId, ContainerState.CONNECTED);
       started++;
+      LOG.info(String.format("START: %d %d %d %d", allocated, started, stopped, deallocated));
       SettableFuture<Boolean> future = SettableFuture.create();
       future.set(true);
       return future;
@@ -269,6 +275,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       participant.awaitTerminated();
       _states.put(containerId, ContainerState.HALTED);
       stopped++;
+      LOG.info(String.format("STOP: %d %d %d %d", allocated, started, stopped, deallocated));
       SettableFuture<Boolean> future = SettableFuture.create();
       future.set(true);
       return future;
@@ -278,13 +285,11 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     public TargetProviderResponse evaluateExistingContainers(Cluster cluster,
         ResourceId resourceId, Collection<Participant> participants) {
       TargetProviderResponse response = new TargetProviderResponse();
-      // ask for two containers at a time
+      // ask for one container at a time
       List<ContainerSpec> containersToAcquire = Lists.newArrayList();
       boolean asked = false;
       if (_askCount < MAX_PARTICIPANTS) {
         containersToAcquire.add(new ContainerSpec(ParticipantId.from("container" + _askCount)));
-        containersToAcquire
-            .add(new ContainerSpec(ParticipantId.from("container" + (_askCount + 1))));
         asked = true;
       }
       List<Participant> containersToStart = Lists.newArrayList();
@@ -301,8 +306,8 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
             containersToStart.add(participant);
             break;
           case CONNECTED:
-            // stop at most two active at a time, wait for everything to be up first
-            if (stopCount < 2 && _askCount >= MAX_PARTICIPANTS) {
+            // stop at most one active at a time, wait for everything to be up first
+            if (stopCount < 1 && _askCount >= MAX_PARTICIPANTS) {
               containersToStop.add(participant);
               stopCount++;
             }
@@ -323,7 +328,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
       }
       // update acquire request count
       if (asked) {
-        _askCount += 2;
+        _askCount++;
       }
       // set the response
       response.setContainersToAcquire(containersToAcquire);

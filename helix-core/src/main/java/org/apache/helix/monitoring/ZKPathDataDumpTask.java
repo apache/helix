@@ -25,9 +25,9 @@ import java.util.TimerTask;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -38,17 +38,24 @@ import com.google.common.collect.Lists;
 public class ZKPathDataDumpTask extends TimerTask {
   static Logger LOG = Logger.getLogger(ZKPathDataDumpTask.class);
 
-  private final int _thresholdNoChangeInMs;
+  private final long _thresholdNoChangeMsForStatusUpdates;
+  private final long _thresholdNoChangeMsForErrors;
+  private final int _maxLeafCount;
   private final HelixManager _manager;
   private final ZNRecordSerializer _jsonSerializer;
 
-  public ZKPathDataDumpTask(HelixManager manager, int thresholdNoChangeInMs) {
+  public ZKPathDataDumpTask(HelixManager manager, long thresholdNoChangeMsForStatusUpdates,
+      long thresholdNoChangeMsForErrors, int maxLeafCount) {
     LOG.info("Init ZKPathDataDumpTask for cluster: " + manager.getClusterName()
-        + ", thresholdNoChangeInMs: " + thresholdNoChangeInMs);
+        + ", thresholdNoChangeMsForStatusUpdates: " + thresholdNoChangeMsForStatusUpdates
+        + ", thresholdNoChangeMsForErrors: " + thresholdNoChangeMsForErrors + ", maxLeafCount: "
+        + maxLeafCount);
 
     _manager = manager;
     _jsonSerializer = new ZNRecordSerializer();
-    _thresholdNoChangeInMs = thresholdNoChangeInMs;
+    _thresholdNoChangeMsForStatusUpdates = thresholdNoChangeMsForStatusUpdates;
+    _thresholdNoChangeMsForErrors = thresholdNoChangeMsForErrors;
+    _maxLeafCount = maxLeafCount;
   }
 
   @Override
@@ -70,25 +77,26 @@ public class ZKPathDataDumpTask extends TimerTask {
       String statusUpdatePath =
           HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
               PropertyType.STATUSUPDATES);
-      dump(baseAccessor, statusUpdatePath, _thresholdNoChangeInMs);
+      dump(baseAccessor, statusUpdatePath, _thresholdNoChangeMsForStatusUpdates, _maxLeafCount);
 
       // dump participant errors
       String errorPath =
           HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
               PropertyType.ERRORS);
-      dump(baseAccessor, errorPath, _thresholdNoChangeInMs * 3);
+      dump(baseAccessor, errorPath, _thresholdNoChangeMsForErrors, _maxLeafCount);
     }
     // dump controller status updates
     String controllerStatusUpdatePath =
         HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
             PropertyType.STATUSUPDATES_CONTROLLER);
-    dump(baseAccessor, controllerStatusUpdatePath, _thresholdNoChangeInMs);
+    dump(baseAccessor, controllerStatusUpdatePath, _thresholdNoChangeMsForStatusUpdates,
+        _maxLeafCount);
 
     // dump controller errors
     String controllerErrorPath =
         HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
             PropertyType.ERRORS_CONTROLLER);
-    dump(baseAccessor, controllerErrorPath, _thresholdNoChangeInMs);
+    dump(baseAccessor, controllerErrorPath, _thresholdNoChangeMsForErrors, _maxLeafCount);
   }
 
   /**
@@ -122,7 +130,8 @@ public class ZKPathDataDumpTask extends TimerTask {
     return leafPaths;
   }
 
-  void dump(BaseDataAccessor<ZNRecord> accessor, String ancestorPath, int threshold) {
+  void dump(BaseDataAccessor<ZNRecord> accessor, String ancestorPath, long threshold,
+      int maxLeafCount) {
     List<String> leafPaths = scanPath(accessor, ancestorPath);
     if (leafPaths.isEmpty()) {
       return;
@@ -133,7 +142,7 @@ public class ZKPathDataDumpTask extends TimerTask {
     long now = System.currentTimeMillis();
     for (int i = 0; i < stats.length; i++) {
       Stat stat = stats[i];
-      if ((now - stat.getMtime()) > threshold) {
+      if ((stats.length > maxLeafCount) || ((now - stat.getMtime()) > threshold)) {
         dumpPaths.add(leafPaths.get(i));
       }
     }

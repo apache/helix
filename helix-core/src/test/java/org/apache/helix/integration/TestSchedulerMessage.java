@@ -397,7 +397,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       }
     }
     Thread.sleep(3000);
-    ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, 0);
+    ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, 0L, 0L, Integer.MAX_VALUE);
     dumpTask.run();
 
     subPaths = _gZkClient.getChildren(controllerStatusPath);

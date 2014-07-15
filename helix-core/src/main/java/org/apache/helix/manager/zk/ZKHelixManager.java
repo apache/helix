@@ -139,13 +139,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     public void start() {
       long initialDelay = 0;
       long period = 15 * 60 * 1000;
-      int timeThresholdNoChange = 15 * 60 * 1000;
+      long timeThresholdNoChangeForStatusUpdates = 15 * 60 * 1000; // 15 minutes
+      long timeThresholdNoChangeForErrors = 24 * 60 * 60 * 1000; // 1 day
+      int maximumNumberOfLeafNodesAllowed = 10000;
 
       if (_timer == null) {
         LOG.info("Start StatusDumpTask");
         _timer = new Timer("StatusDumpTimerTask", true);
-        _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(helixController, timeThresholdNoChange),
-            initialDelay, period);
+        _timer.scheduleAtFixedRate(new ZKPathDataDumpTask(helixController,
+            timeThresholdNoChangeForStatusUpdates, timeThresholdNoChangeForErrors,
+            maximumNumberOfLeafNodesAllowed), initialDelay, period);
       }
     }
 

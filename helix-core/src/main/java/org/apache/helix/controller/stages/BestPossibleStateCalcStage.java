@@ -89,7 +89,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
             cache.getInstanceConfigMap(), resourceMap, cache.getStateModelDefMap());
       }
     } catch (Exception e) {
-      logger.error("Could not update cluster status metrics!", e);
+      LOG.error("Could not update cluster status metrics!", e);
     }
 
     long endTime = System.currentTimeMillis();

@@ -162,6 +162,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     // remove dead external-views
     for (String resourceName : curExtViews.keySet()) {
       if (!resourceMap.containsKey(ResourceId.from(resourceName))) {
+        LOG.info("Remove externalView for resource: " + resourceName);
         dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
       }
     }

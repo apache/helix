@@ -81,11 +81,15 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         compute(cluster, event, resourceMap, currentStateOutput);
     event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.toString(), bestPossibleStateOutput);
 
-    ClusterStatusMonitor clusterStatusMonitor =
-        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-    if (clusterStatusMonitor != null) {
-      clusterStatusMonitor.setPerInstanceResourceStatus(bestPossibleStateOutput,
-          cache.getInstanceConfigMap(), resourceMap, cache.getStateModelDefMap());
+    try {
+      ClusterStatusMonitor clusterStatusMonitor =
+          (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+      if (clusterStatusMonitor != null) {
+        clusterStatusMonitor.setPerInstanceResourceStatus(bestPossibleStateOutput,
+            cache.getInstanceConfigMap(), resourceMap, cache.getStateModelDefMap());
+      }
+    } catch (Exception e) {
+      LOG.error("Could not update cluster status metrics!", e);
     }
 
     long endTime = System.currentTimeMillis();

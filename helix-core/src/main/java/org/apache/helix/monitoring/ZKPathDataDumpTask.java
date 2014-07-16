@@ -76,7 +76,7 @@ public class ZKPathDataDumpTask extends TimerTask {
       String errorPath =
           HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
               PropertyType.ERRORS);
-      dump(baseAccessor, errorPath, _thresholdNoChangeInMs * 3);
+      dump(baseAccessor, errorPath, _thresholdNoChangeInMs * 96);
     }
     // dump controller status updates
     String controllerStatusUpdatePath =

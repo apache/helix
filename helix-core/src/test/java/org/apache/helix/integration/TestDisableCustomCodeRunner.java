@@ -24,9 +24,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
@@ -72,6 +72,10 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     public boolean isCallbackTypeInvoked() {
       return _callbackInvokeMap.containsKey(NotificationContext.Type.CALLBACK);
     }
+
+    public boolean isFinalizeTypeInvoked() {
+      return _callbackInvokeMap.containsKey(NotificationContext.Type.FINALIZE);
+    }
   }
 
   @Test
@@ -100,8 +104,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
         new HashMap<String, MockParticipantManager>();
     Map<String, HelixCustomCodeRunner> customCodeRunners =
         new HashMap<String, HelixCustomCodeRunner>();
-    Map<String, DummyCallback> callbacks =
-        new HashMap<String, DummyCallback>();
+    Map<String, DummyCallback> callbacks = new HashMap<String, DummyCallback>();
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
@@ -113,15 +116,14 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       callbacks.put(instanceName, new DummyCallback());
 
       customCodeRunners.get(instanceName).invoke(callbacks.get(instanceName))
-          .on(ChangeType.LIVE_INSTANCE)
-          .usingLeaderStandbyModel("TestParticLeader").start();
+          .on(ChangeType.LIVE_INSTANCE).usingLeaderStandbyModel("TestParticLeader").start();
       participants.get(instanceName).syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
             .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+                clusterName));
     Assert.assertTrue(result);
 
     // Make sure callback is registered
@@ -191,9 +193,16 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     accessor.setProperty(keyBuilder.liveInstance("fakeInstance"), fakeInstance);
     Thread.sleep(1000);
 
-    for (DummyCallback callback : callbacks.values()) {
+    for (Map.Entry<String, DummyCallback> e : callbacks.entrySet()) {
+      String instance = e.getKey();
+      DummyCallback callback = e.getValue();
       Assert.assertFalse(callback.isInitTypeInvoked());
       Assert.assertFalse(callback.isCallbackTypeInvoked());
+
+      // Ensure that we were told that a leader stopped being the leader
+      if (instance.equals(leader)) {
+        Assert.assertTrue(callback.isFinalizeTypeInvoked());
+      }
     }
 
     // Remove fake instance

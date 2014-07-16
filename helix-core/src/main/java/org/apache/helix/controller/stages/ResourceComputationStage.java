@@ -95,6 +95,11 @@ public class ResourceComputationStage extends AbstractBaseStage {
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
       for (ResourceId resourceId : liveParticipant.getCurrentStateMap().keySet()) {
         CurrentState currentState = liveParticipant.getCurrentStateMap().get(resourceId);
+        Map<String, String> resourceStateMap = currentState.getPartitionStateMap();
+        if (resourceStateMap.isEmpty()) {
+          // skip empty current state for dropped resource
+          continue;
+        }
 
         if (currentState.getStateModelDefRef() == null) {
           LOG.error("state model def is null." + "resource:" + currentState.getResourceId()

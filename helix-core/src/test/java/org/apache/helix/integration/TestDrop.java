@@ -25,16 +25,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.HelixDefinedState;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.ErrTransition;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -46,6 +49,79 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestDrop extends ZkIntegrationTestBase {
+
+  /**
+   * Assert externalView and currentState for each participant are empty
+   * @param clusterName
+   * @param db
+   * @param participants
+   */
+  private void assertEmptyCSandEV(String clusterName, String db, MockParticipantManager[] participants) {
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Assert.assertNull(accessor.getProperty(keyBuilder.externalView(db)));
+
+    for (MockParticipantManager participant : participants) {
+      String instanceName = participant.getInstanceName();
+      String sessionId = participant.getSessionId();
+      Assert.assertNull(accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, db)));
+    }
+  }
+
+  @Test
+  public void testBasic() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    final int n = 5;
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+
+    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+        "localhost", // participant name prefix
+        "TestDB", // resource name prefix
+        1, // resources
+        8, // partitions per resource
+        n, // number of nodes
+        3, // replicas
+        "MasterSlave", true); // do rebalance
+
+    // start controller
+    ClusterControllerManager controller =
+        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    controller.syncStart();
+
+    // start participants
+    for (int i = 0; i < n; i++) {
+      String instanceName = "localhost_" + (12918 + i);
+
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i].syncStart();
+    }
+
+    boolean result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                clusterName));
+    Assert.assertTrue(result);
+
+    // Drop TestDB0
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.dropResource(clusterName, "TestDB0");
+
+    result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+                clusterName));
+    Assert.assertTrue(result);
+
+    assertEmptyCSandEV(clusterName, "TestDB0", participants);
+
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
   @Test
   public void testDropResourceWithErrorPartitionSemiAuto() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -108,6 +184,8 @@ public class TestDrop extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
+
+    assertEmptyCSandEV(className, "TestDB0", participants);
 
     // clean up
     controller.syncStop();
@@ -183,12 +261,38 @@ public class TestDrop extends ZkIntegrationTestBase {
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig("localhost_12918"));
     List<String> disabledPartitions = config.getDisabledPartitions();
     // System.out.println("disabledPartitions: " + disabledPartitions);
     Assert.assertEquals(disabledPartitions.size(), 1, "TestDB0_4 should be disabled");
     Assert.assertEquals(disabledPartitions.get(0), "TestDB0_4");
+
+    // ExteranlView should have TestDB0_4->localhost_12918_>ERROR
+    ExternalView ev = accessor.getProperty(keyBuilder.externalView("TestDB0"));
+    Set<String> partitions = ev.getPartitionSet();
+    Assert.assertEquals(partitions.size(), 1, "Should have TestDB0_4->localhost_12918->ERROR");
+    String errPartition = partitions.iterator().next();
+    Assert.assertEquals(errPartition, "TestDB0_4");
+    Map<String, String> stateMap = ev.getStateMap(errPartition);
+    Assert.assertEquals(stateMap.size(), 1);
+    Assert.assertEquals(stateMap.keySet().iterator().next(), "localhost_12918");
+    Assert.assertEquals(stateMap.get("localhost_12918"), HelixDefinedState.ERROR.name());
+
+    // localhost_12918 should have TestDB0_4 in ERROR state
+    CurrentState cs = accessor.getProperty(keyBuilder.currentState(participants[0].getInstanceName(),
+        participants[0].getSessionId(), "TestDB0"));
+    Map<String, String> partitionStateMap = cs.getPartitionStateMap();
+    Assert.assertEquals(partitionStateMap.size(), 1);
+    Assert.assertEquals(partitionStateMap.keySet().iterator().next(), "TestDB0_4");
+    Assert.assertEquals(partitionStateMap.get("TestDB0_4"), HelixDefinedState.ERROR.name());
+
+    // all other participants should have cleaned up empty current state
+    for (int i = 1; i < n; i++) {
+      String instanceName = participants[i].getInstanceName();
+      String sessionId = participants[i].getSessionId();
+      Assert.assertNull(accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, "TestDB0")));
+    }
 
     // clean up
     controller.syncStop();
@@ -232,8 +336,8 @@ public class TestDrop extends ZkIntegrationTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuiler = accessor.keyBuilder();
-    accessor.setProperty(keyBuiler.idealStates("TestDB0"), isBuilder.build());
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), isBuilder.build());
 
     // start controller
     ClusterControllerManager controller =
@@ -274,6 +378,8 @@ public class TestDrop extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result, "Should be empty exeternal-view");
+
+    assertEmptyCSandEV(clusterName, "TestDB0", participants);
 
     // clean up
     controller.syncStop();
@@ -337,7 +443,7 @@ public class TestDrop extends ZkIntegrationTestBase {
     Assert.assertTrue(result);
 
     // drop schemata resource group
-    System.out.println("Dropping schemata resource group...");
+    // System.out.println("Dropping schemata resource group...");
     command = "--zkSvr " + ZK_ADDR + " --dropResource " + clusterName + " schemata";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
@@ -345,13 +451,7 @@ public class TestDrop extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(result);
 
-    // make sure schemata external view is empty
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    Builder keyBuilder = accessor.keyBuilder();
-    ExternalView extView = accessor.getProperty(keyBuilder.externalView("schemata"));
-    Assert.assertEquals(extView.getPartitionSet().size(), 0,
-        "schemata externalView should be empty but was \"" + extView + "\"");
+    assertEmptyCSandEV(clusterName, "schemata", participants);
 
     // clean up
     controller.syncStop();

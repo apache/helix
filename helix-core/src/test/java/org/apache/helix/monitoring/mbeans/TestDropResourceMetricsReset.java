@@ -19,10 +19,14 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
+import java.io.IOException;
 import java.util.Date;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
+import javax.management.InstanceNotFoundException;
 import javax.management.MBeanServerConnection;
+import javax.management.MBeanServerNotification;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -36,7 +40,8 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestDropResourceMetricsReset extends ZkUnitTestBase {
-  private static final MBeanServerConnection SERVER = ManagementFactory.getPlatformMBeanServer();
+  private final CountDownLatch _registerLatch = new CountDownLatch(1);
+  private final CountDownLatch _unregisterLatch = new CountDownLatch(1);
 
   @Test
   public void testBasic() throws Exception {
@@ -49,6 +54,9 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    ParticipantMonitorListener listener =
+        new ParticipantMonitorListener("ClusterStatus", clusterName, RESOURCE_NAME);
 
     // Set up cluster
     TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
@@ -74,18 +82,18 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
     controller.syncStart();
 
     // Verify that the bean was created
-    Thread.sleep(1000);
-    ObjectName objectName = getObjectName(RESOURCE_NAME, clusterName);
-    Assert.assertTrue(SERVER.isRegistered(objectName));
+    boolean noTimeout = _registerLatch.await(30000, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(noTimeout);
 
     // Drop the resource
     setupTool.dropResourceFromCluster(clusterName, RESOURCE_NAME);
 
     // Verify that the bean was removed
-    Thread.sleep(1000);
-    Assert.assertFalse(SERVER.isRegistered(objectName));
+    noTimeout = _unregisterLatch.await(30000, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(noTimeout);
 
     // Clean up
+    listener.disconnect();
     controller.syncStop();
     for (MockParticipantManager participant : participants) {
       participant.syncStop();
@@ -102,5 +110,32 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
             resourceName);
     return new ObjectName(String.format("%s: %s", ClusterStatusMonitor.CLUSTER_STATUS_KEY,
         resourceBeanName));
+  }
+
+  private class ParticipantMonitorListener extends ClusterMBeanObserver {
+    private final ObjectName _objectName;
+
+    public ParticipantMonitorListener(String domain, String cluster, String resource)
+        throws InstanceNotFoundException, IOException, MalformedObjectNameException,
+        NullPointerException {
+      super(domain);
+      _objectName = getObjectName(resource, cluster);
+    }
+
+    @Override
+    public void onMBeanRegistered(MBeanServerConnection server,
+        MBeanServerNotification mbsNotification) {
+      if (mbsNotification.getMBeanName().equals(_objectName)) {
+        _registerLatch.countDown();
+      }
+    }
+
+    @Override
+    public void onMBeanUnRegistered(MBeanServerConnection server,
+        MBeanServerNotification mbsNotification) {
+      if (mbsNotification.getMBeanName().equals(_objectName)) {
+        _unregisterLatch.countDown();
+      }
+    }
   }
 }

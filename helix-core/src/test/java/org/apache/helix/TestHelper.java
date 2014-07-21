@@ -20,9 +20,7 @@ package org.apache.helix;
  */
 
 import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,18 +71,6 @@ import org.testng.Assert;
 
 public class TestHelper {
   private static final Logger LOG = Logger.getLogger(TestHelper.class);
-
-  /**
-   * Returns a unused random port.
-   */
-  public static int getRandomPort() throws IOException {
-    ServerSocket sock = new ServerSocket();
-    sock.bind(null);
-    int port = sock.getLocalPort();
-    sock.close();
-
-    return port;
-  }
 
   static public ZkServer startZkServer(final String zkAddress) throws Exception {
     List<String> empty = Collections.emptyList();

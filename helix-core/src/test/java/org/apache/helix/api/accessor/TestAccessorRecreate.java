@@ -5,7 +5,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Scope;
@@ -16,6 +15,7 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -39,7 +39,7 @@ import org.testng.annotations.Test;
  * under the License.
  */
 
-public class TestAccessorRecreate extends ZkUnitTestBase {
+public class TestAccessorRecreate extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestAccessorRecreate.class);
 
   /**
@@ -53,13 +53,12 @@ public class TestAccessorRecreate extends ZkUnitTestBase {
     final ClusterId clusterId = ClusterId.from("TestAccessorRecreate!testCluster");
 
     // connect
-    boolean connected = _gZkClient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
+    boolean connected = _zkclient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
     if (!connected) {
       LOG.warn("Connection not established");
       return;
     }
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor helixAccessor = new ZKHelixDataAccessor(clusterId.stringify(), baseAccessor);
+    HelixDataAccessor helixAccessor = new ZKHelixDataAccessor(clusterId.stringify(), _baseAccessor);
     ClusterAccessor accessor = new ClusterAccessor(clusterId, helixAccessor);
 
     // create a cluster
@@ -100,12 +99,12 @@ public class TestAccessorRecreate extends ZkUnitTestBase {
     final ParticipantId participantId = ParticipantId.from("testParticipant");
 
     // connect
-    boolean connected = _gZkClient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
+    boolean connected = _zkclient.waitUntilConnected(30000, TimeUnit.MILLISECONDS);
     if (!connected) {
       LOG.warn("Connection not established");
       return;
     }
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
     HelixDataAccessor helixAccessor = new ZKHelixDataAccessor(clusterId.stringify(), baseAccessor);
     ClusterAccessor accessor = new ClusterAccessor(clusterId, helixAccessor);
 

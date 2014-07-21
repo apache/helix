@@ -33,14 +33,15 @@ import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRenamePartition extends ZkIntegrationTestBase {
+public class TestRenamePartition extends ZkTestBase {
   // map from clusterName to participants
   final Map<String, MockParticipantManager[]> _participantMap =
       new ConcurrentHashMap<String, MockParticipantManager[]>();
@@ -51,10 +52,10 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
   @Test()
   public void testRenamePartitionAutoIS() throws Exception {
-    String clusterName = "CLUSTER_" + getShortClassName() + "_auto";
+    String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant start port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -67,7 +68,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     // rename partition name TestDB0_0 tp TestDB0_100
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -78,7 +79,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     stop(clusterName);
@@ -88,10 +89,10 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
   @Test()
   public void testRenamePartitionCustomIS() throws Exception {
 
-    String clusterName = "CLUSTER_" + getShortClassName() + "_custom";
+    String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant start port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -113,7 +114,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
     idealState.setStateModelDefId(StateModelDefId.from("MasterSlave"));
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
@@ -126,7 +127,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     stop(clusterName);
@@ -138,20 +139,20 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     _participantMap.put(clusterName, participants);

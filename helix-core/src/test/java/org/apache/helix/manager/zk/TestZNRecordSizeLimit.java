@@ -26,27 +26,25 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZNRecordSizeLimit extends ZkUnitTestBase {
+public class TestZNRecordSizeLimit extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestZNRecordSizeLimit.class);
 
   @Test
   public void testZNRecordSizeLimitUseZNRecordSerializer() {
-    String className = getShortClassName();
+    String className = TestUtil.getTestName();
     System.out.println("START testZNRecordSizeLimitUseZNRecordSerializer at "
         + new Date(System.currentTimeMillis()));
 
-    ZNRecordSerializer serializer = new ZNRecordSerializer();
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
-    zkClient.setZkSerializer(serializer);
     String root = className;
     byte[] buf = new byte[1024];
     for (int i = 0; i < 1024; i++) {
@@ -54,7 +52,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
     String bufStr = new String(buf);
 
-    // test zkClient
+    // test zkclient
     // legal-sized data gets written to zk
     // write a znode of size less than 1m
     final ZNRecord smallRecord = new ZNRecord("normalsize");
@@ -64,10 +62,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
 
     String path1 = "/" + root + "/test1";
-    zkClient.createPersistent(path1, true);
-    zkClient.writeData(path1, smallRecord);
+    _zkclient.createPersistent(path1, true);
+    _zkclient.writeData(path1, smallRecord);
 
-    ZNRecord record = zkClient.readData(path1);
+    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    ZNRecord record = _zkclient.readData(path1);
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data doesn't create any data on zk
@@ -78,38 +77,38 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       largeRecord.setSimpleField(i + "", bufStr);
     }
     String path2 = "/" + root + "/test2";
-    zkClient.createPersistent(path2, true);
+    _zkclient.createPersistent(path2, true);
     try {
-      zkClient.writeData(path2, largeRecord);
+      _zkclient.writeData(path2, largeRecord);
       Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
       // OK
     }
-    record = zkClient.readData(path2);
+    record = _zkclient.readData(path2);
     Assert.assertNull(record);
 
     // oversized write doesn't overwrite existing data on zk
-    record = zkClient.readData(path1);
+    record = _zkclient.readData(path1);
     try {
-      zkClient.writeData(path1, largeRecord);
+      _zkclient.writeData(path1, largeRecord);
       Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
       // OK
     }
-    ZNRecord recordNew = zkClient.readData(path1);
+    ZNRecord recordNew = _zkclient.readData(path1);
     byte[] arr = serializer.serialize(record);
     byte[] arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
 
     // test ZkDataAccessor
-    ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
+    ZKHelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.addCluster(className, true);
     InstanceConfig instanceConfig = new InstanceConfig("localhost_12918");
     admin.addInstance(className, instanceConfig);
 
     // oversized data should not create any new data on zk
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
 
     IdealState idealState = new IdealState("currentState");
@@ -163,13 +162,11 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
 
   @Test
   public void testZNRecordSizeLimitUseZNRecordStreamingSerializer() {
-    String className = getShortClassName();
+    String className = TestUtil.getTestName();
     System.out.println("START testZNRecordSizeLimitUseZNRecordStreamingSerializer at "
         + new Date(System.currentTimeMillis()));
 
     ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
-    zkClient.setZkSerializer(serializer);
     String root = className;
     byte[] buf = new byte[1024];
     for (int i = 0; i < 1024; i++) {
@@ -177,7 +174,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
     String bufStr = new String(buf);
 
-    // test zkClient
+    // test zkclient
     // legal-sized data gets written to zk
     // write a znode of size less than 1m
     final ZNRecord smallRecord = new ZNRecord("normalsize");
@@ -187,10 +184,10 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     }
 
     String path1 = "/" + root + "/test1";
-    zkClient.createPersistent(path1, true);
-    zkClient.writeData(path1, smallRecord);
+    _zkclient.createPersistent(path1, true);
+    _zkclient.writeData(path1, smallRecord);
 
-    ZNRecord record = zkClient.readData(path1);
+    ZNRecord record = _zkclient.readData(path1);
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
 
     // oversized data doesn't create any data on zk
@@ -201,38 +198,38 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
       largeRecord.setSimpleField(i + "", bufStr);
     }
     String path2 = "/" + root + "/test2";
-    zkClient.createPersistent(path2, true);
+    _zkclient.createPersistent(path2, true);
     try {
-      zkClient.writeData(path2, largeRecord);
+      _zkclient.writeData(path2, largeRecord);
       Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
       // OK
     }
-    record = zkClient.readData(path2);
+    record = _zkclient.readData(path2);
     Assert.assertNull(record);
 
     // oversized write doesn't overwrite existing data on zk
-    record = zkClient.readData(path1);
+    record = _zkclient.readData(path1);
     try {
-      zkClient.writeData(path1, largeRecord);
+      _zkclient.writeData(path1, largeRecord);
       Assert.fail("Should fail because data size is larger than 1M");
     } catch (HelixException e) {
       // OK
     }
-    ZNRecord recordNew = zkClient.readData(path1);
+    ZNRecord recordNew = _zkclient.readData(path1);
     byte[] arr = serializer.serialize(record);
     byte[] arrNew = serializer.serialize(recordNew);
     Assert.assertTrue(Arrays.equals(arr, arrNew));
 
     // test ZkDataAccessor
-    ZKHelixAdmin admin = new ZKHelixAdmin(zkClient);
+    ZKHelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.addCluster(className, true);
     InstanceConfig instanceConfig = new InstanceConfig("localhost_12918");
     admin.addInstance(className, instanceConfig);
 
     // oversized data should not create any new data on zk
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+        new ZKHelixDataAccessor(className, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // ZNRecord statusUpdates = new ZNRecord("statusUpdates");

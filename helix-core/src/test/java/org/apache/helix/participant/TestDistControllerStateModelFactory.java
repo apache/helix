@@ -19,18 +19,14 @@ package org.apache.helix.participant;
  * under the License.
  */
 
-import org.apache.helix.ZkUnitTestBase;
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModelFactory {
-  final String zkAddr = ZkUnitTestBase.ZK_ADDR;
 
-  @Test(groups = {
-    "unitTest"
-  })
+  @Test()
   public void testDistControllerStateModelFactory() {
     DistClusterControllerStateModelFactory factory =
-        new DistClusterControllerStateModelFactory(zkAddr);
+        new DistClusterControllerStateModelFactory("localhost:2181");
     DistClusterControllerStateModel stateModel = factory.createNewStateModel("key");
     stateModel.onBecomeStandbyFromOffline(null, null);
   }

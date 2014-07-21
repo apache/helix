@@ -28,12 +28,12 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
@@ -43,7 +43,7 @@ import org.testng.annotations.Test;
 /**
  * test drop resource should remove state-models
  */
-public class TestStateModelLeak extends ZkUnitTestBase {
+public class TestStateModelLeak extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestStateModelLeak.class);
 
   /**
@@ -60,7 +60,7 @@ public class TestStateModelLeak extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -71,19 +71,19 @@ public class TestStateModelLeak extends ZkUnitTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -99,11 +99,11 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     checkStateModelMap(fty, expectStateModelMap);
 
     // drop resource
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.dropResource(clusterName, "TestDB0");
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -134,7 +134,7 @@ public class TestStateModelLeak extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -145,14 +145,14 @@ public class TestStateModelLeak extends ZkUnitTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       if (i == 0) {
         Map<String, Set<String>> errTransitionMap = new HashMap<String, Set<String>>();
         Set<String> partitions = new HashSet<String>();
@@ -168,7 +168,7 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     errStates.put("TestDB0", new HashMap<String, String>());
     errStates.get("TestDB0").put("TestDB0_0", "localhost_12918");
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName, errStates));
     Assert.assertTrue(result);
 
@@ -184,11 +184,11 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     checkStateModelMap(fty, expectStateModelMap);
 
     // drop resource
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.dropResource(clusterName, "TestDB0");
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

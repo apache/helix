@@ -42,9 +42,9 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
-    // StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, CLUSTER_NAME, instance2);
+    // StartCMResult result = TestHelper.startDummyProcess(zkaddr, CLUSTER_NAME, instance2);
     MockParticipantManager newParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
+        new MockParticipantManager(_zkaddr, CLUSTER_NAME, instance2);
     newParticipant.syncStart();
 
     Thread.sleep(500);
@@ -56,7 +56,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
 
     manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
 
-    newParticipant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instance2);
+    newParticipant = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instance2);
     newParticipant.syncStart();
 
     Thread.sleep(500);

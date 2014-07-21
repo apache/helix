@@ -25,10 +25,11 @@ import java.util.List;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestListenerCallback extends ZkUnitTestBase {
+public class TestListenerCallback extends ZkTestBase {
   class TestListener implements InstanceConfigChangeListener, ScopedConfigChangeListener {
     boolean _instanceConfigChanged = false;
     boolean _configChanged = false;
@@ -58,7 +59,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -69,7 +70,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
 
     HelixManager manager =
         HelixManagerFactory.getZKHelixManager(clusterName, "localhost", InstanceType.SPECTATOR,
-            ZK_ADDR);
+            _zkaddr);
 
     manager.connect();
 

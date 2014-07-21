@@ -30,15 +30,14 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.StatusUpdate;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZKPathDataDumpTask extends ZkUnitTestBase {
+public class TestZKPathDataDumpTask extends ZkTestBase {
 
   @Test
   public void test() throws Exception {
@@ -49,7 +48,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -59,7 +58,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
 
@@ -122,7 +121,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -132,7 +131,7 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     BaseDataAccessor<ZNRecord> baseAccessor = accessor.getBaseDataAccessor();
 

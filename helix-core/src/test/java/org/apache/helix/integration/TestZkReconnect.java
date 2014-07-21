@@ -40,6 +40,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.testutil.ZkTestUtil;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -53,7 +54,7 @@ public class TestZkReconnect {
   @Test
   public void testZKReconnect() throws Exception {
     final AtomicReference<ZkServer> zkServerRef = new AtomicReference<ZkServer>();
-    final int zkPort = TestHelper.getRandomPort();
+    final int zkPort = ZkTestUtil.availableTcpPort();
     final String zkAddr = String.format("localhost:%d", zkPort);
     ZkServer zkServer = TestHelper.startZkServer(zkAddr);
     zkServerRef.set(zkServer);

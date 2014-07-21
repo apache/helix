@@ -31,15 +31,15 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDropResourceMetricsReset extends ZkUnitTestBase {
+public class TestDropResourceMetricsReset extends ZkTestBase {
   private final CountDownLatch _registerLatch = new CountDownLatch(1);
   private final CountDownLatch _unregisterLatch = new CountDownLatch(1);
 
@@ -59,7 +59,7 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
         new ParticipantMonitorListener("ClusterStatus", clusterName, RESOURCE_NAME);
 
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -70,15 +70,15 @@ public class TestDropResourceMetricsReset extends ZkUnitTestBase {
         true); // do rebalance
 
     // Start participants and controller
-    ClusterSetup setupTool = new ClusterSetup(_gZkClient);
+    ClusterSetup setupTool = new ClusterSetup(_zkclient);
     MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       participants[i] =
-          new MockParticipantManager(ZK_ADDR, clusterName, "localhost_" + (12918 + i));
+          new MockParticipantManager(_zkaddr, clusterName, "localhost_" + (12918 + i));
       participants[i].syncStart();
     }
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // Verify that the bean was created

@@ -4,10 +4,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.lock.HelixLock;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -33,19 +33,19 @@ import org.testng.annotations.Test;
 /**
  * Tests that the Zookeeper-based Helix lock can acquire, block, and release as appropriate
  */
-public class TestZKHelixLock extends ZkUnitTestBase {
+public class TestZKHelixLock extends ZkTestBase {
   @Test
   public void basicTest() throws InterruptedException {
     final long TIMEOUT = 30000;
     final long RETRY_INTERVAL = 100;
-    _gZkClient.waitUntilConnected(TIMEOUT, TimeUnit.MILLISECONDS);
+    _zkclient.waitUntilConnected(TIMEOUT, TimeUnit.MILLISECONDS);
     final AtomicBoolean t1Locked = new AtomicBoolean(false);
     final AtomicBoolean t1Done = new AtomicBoolean(false);
     final AtomicInteger field1 = new AtomicInteger(0);
     final AtomicInteger field2 = new AtomicInteger(1);
     final ClusterId clusterId = ClusterId.from("testCluster");
-    final HelixLock lock1 = new ZKHelixLock(clusterId, Scope.cluster(clusterId), _gZkClient);
-    final HelixLock lock2 = new ZKHelixLock(clusterId, Scope.cluster(clusterId), _gZkClient);
+    final HelixLock lock1 = new ZKHelixLock(clusterId, Scope.cluster(clusterId), _zkclient);
+    final HelixLock lock2 = new ZKHelixLock(clusterId, Scope.cluster(clusterId), _zkclient);
 
     // thread 1: get a lock, set fields to 1
     Thread t1 = new Thread() {

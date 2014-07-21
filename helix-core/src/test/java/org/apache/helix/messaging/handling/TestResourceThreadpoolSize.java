@@ -46,7 +46,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     long taskcount = 0;

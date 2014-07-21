@@ -30,13 +30,14 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 /**
  * test zookeeper basis
  */
-public class TestZkBasis extends ZkUnitTestBase {
+public class TestZkBasis extends ZkTestBase {
   class ZkListener implements IZkDataListener, IZkChildListener {
     String _parentPath = null;
     String _dataDeletePath = null;
@@ -83,7 +84,7 @@ public class TestZkBasis extends ZkUnitTestBase {
     String testName = className + "_" + methodName;
 
     final ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        new ZkClient(_zkaddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     // make sure "/testName/test" doesn't exist
     final String path = "/" + testName + "/test";
@@ -128,7 +129,7 @@ public class TestZkBasis extends ZkUnitTestBase {
     String testName = className + "_" + methodName;
 
     final ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        new ZkClient(_zkaddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     // make sure "/testName/test" doesn't exist
     final String path = "/" + testName + "/test";

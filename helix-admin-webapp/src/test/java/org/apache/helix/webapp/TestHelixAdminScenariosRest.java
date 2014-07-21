@@ -223,9 +223,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     response = assertSuccessPostOperation(url, addClusterCmd("clusterTest"), true);
 
     // delete cluster without resource and instance
-    Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _gZkClient));
-    Assert.assertTrue(ZKUtil.isClusterSetup("clusterTest", _gZkClient));
-    Assert.assertTrue(ZKUtil.isClusterSetup("\\ClusterTest", _gZkClient));
+    Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _zkclient));
+    Assert.assertTrue(ZKUtil.isClusterSetup("clusterTest", _zkclient));
+    Assert.assertTrue(ZKUtil.isClusterSetup("\\ClusterTest", _zkclient));
 
     String clusterUrl = getClusterUrl("\\ClusterTest");
     deleteUrl(clusterUrl, false);
@@ -246,9 +246,9 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     clusterUrl = getClusterUrl("clusterTestOK");
     deleteUrl(clusterUrl, false);
 
-    Assert.assertFalse(_gZkClient.exists("/clusterTest"));
-    Assert.assertFalse(_gZkClient.exists("/clusterTest1"));
-    Assert.assertFalse(_gZkClient.exists("/clusterTestOK"));
+    Assert.assertFalse(_zkclient.exists("/clusterTest"));
+    Assert.assertFalse(_zkclient.exists("/clusterTest1"));
+    Assert.assertFalse(_zkclient.exists("/clusterTestOK"));
 
     response = assertSuccessPostOperation(url, addClusterCmd("clusterTest1"), false);
     response = getUrl(clustersUrl);
@@ -299,13 +299,13 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // drop resource now
     String resourceUrl = getResourceUrl(clusterName, "db_11");
     deleteUrl(resourceUrl, false);
-    Assert.assertFalse(_gZkClient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
+    Assert.assertFalse(_zkclient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
 
     response =
         assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_11", "MasterSlave", 44), false);
     Assert.assertTrue(response.contains("db_11"));
 
-    Assert.assertTrue(_gZkClient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
+    Assert.assertTrue(_zkclient.exists("/" + clusterName + "/IDEALSTATES/db_11"));
 
     response =
         assertSuccessPostOperation(reourcesUrl, addResourceCmd("db_33", "MasterSlave", 44), false);
@@ -348,7 +348,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -357,7 +357,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
       ClusterDistributedController distController =
-          new ClusterDistributedController(ZK_ADDR, controllerClusterName, controllerName);
+          new ClusterDistributedController(_zkaddr, controllerClusterName, controllerName);
       distController.syncStart();
       distControllers.put(controllerName, distController);
     }
@@ -367,27 +367,27 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // activate cluster
     assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, true), false);
     boolean verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             controllerClusterName));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
     // deactivate cluster
     assertSuccessPostOperation(clusterUrl, activateClusterCmd(controllerClusterName, false), false);
     Thread.sleep(6000);
-    Assert.assertFalse(_gZkClient.exists("/" + controllerClusterName + "/IDEALSTATES/"
+    Assert.assertFalse(_zkclient.exists("/" + controllerClusterName + "/IDEALSTATES/"
         + clusterName));
 
     HelixDataAccessor accessor = participants.get("localhost_1231").getHelixDataAccessor();
     String path = accessor.keyBuilder().controllerLeader().getPath();
-    Assert.assertFalse(_gZkClient.exists(path));
+    Assert.assertFalse(_zkclient.exists(path));
 
     deleteUrl(clusterUrl, true);
-    Assert.assertTrue(_gZkClient.exists("/" + clusterName));
+    Assert.assertTrue(_zkclient.exists("/" + clusterName));
 
     // leader node should be gone
     for (MockParticipantManager participant : participants.values()) {
@@ -395,7 +395,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     }
     deleteUrl(clusterUrl, false);
 
-    Assert.assertFalse(_gZkClient.exists("/" + clusterName));
+    Assert.assertFalse(_zkclient.exists("/" + clusterName));
 
     // clean up
     for (ClusterDistributedController controller : distControllers.values()) {
@@ -424,7 +424,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     addInstancesToCluster(clusterName, "localhost_123", 6, null);
     rebalanceResource(clusterName, "db_11");
     ZNRecord record =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
+        _setupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
             .getRecord();
     String x = ObjectToJson(record);
 
@@ -434,7 +434,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     pw.close();
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
@@ -443,12 +443,12 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
     boolean verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
@@ -456,7 +456,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     deleteUrl(resourceUrl, false);
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
     addResource(clusterName, "db_11", 22);
@@ -467,12 +467,12 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     assertSuccessPostOperation(idealStateUrl, addIdealStateCmd(), extraform, false);
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
     ZNRecord record2 =
-        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
+        _setupTool.getClusterManagementTool().getResourceIdealState(clusterName, "db_11")
             .getRecord();
     Assert.assertTrue(record2.equals(record));
 
@@ -510,7 +510,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     rebalanceResource(clusterName, "db_11");
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
@@ -519,13 +519,13 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
 
     boolean verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
@@ -544,18 +544,18 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 3; i <= 6; i++) {
       String instanceName = "localhost_123" + i + "1";
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
 
     verifyResult =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
@@ -588,7 +588,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     rebalanceResource(clusterName, "db_11");
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
@@ -597,7 +597,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -616,7 +616,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertTrue(response.contains("db_11_11"));
 
     boolean verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
@@ -631,7 +631,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertFalse(response.contains("db_11_11"));
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
 
@@ -674,7 +674,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     rebalanceResource(clusterName, "db_11");
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_9900");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
@@ -683,7 +683,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -721,16 +721,16 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     accessor = participants.get("localhost_1231").getHelixDataAccessor();
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
-    Assert.assertFalse(_gZkClient.exists(path));
+    Assert.assertFalse(_zkclient.exists(path));
 
     MockParticipantManager newParticipant =
-        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12320");
+        new MockParticipantManager(_zkaddr, clusterName, "localhost_12320");
     newParticipant.syncStart();
     participants.put("localhost_12320", newParticipant);
 
     boolean verifyResult =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(verifyResult);
 
     // clean up
@@ -763,7 +763,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+          new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -772,7 +772,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
       ClusterDistributedController distController =
-          new ClusterDistributedController(ZK_ADDR, controllerClusterName, controllerName);
+          new ClusterDistributedController(_zkaddr, controllerClusterName, controllerName);
       distController.syncStart();
       distControllers.put(controllerName, distController);
     }
@@ -811,11 +811,11 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     boolean verifyResult =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(verifyResult);
 
     verifyResult =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(verifyResult);
     Thread.sleep(1000);
@@ -1051,8 +1051,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     final String URL_BASE =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/resourceGroups";
 
-    _gSetupTool.addCluster(clusterName, true);
-    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+    _setupTool.addCluster(clusterName, true);
+    HelixAdmin admin = _setupTool.getClusterManagementTool();
 
     // Add a tagged resource
     IdealState taggedResource = new IdealState("taggedResource");
@@ -1089,8 +1089,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     final String URL_BASE =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/instances";
 
-    _gSetupTool.addCluster(clusterName, true);
-    HelixAdmin admin = _gSetupTool.getClusterManagementTool();
+    _setupTool.addCluster(clusterName, true);
+    HelixAdmin admin = _setupTool.getClusterManagementTool();
 
     // Add 4 participants, each with differint tag characteristics
     InstanceConfig instance1 = new InstanceConfig("localhost_1");

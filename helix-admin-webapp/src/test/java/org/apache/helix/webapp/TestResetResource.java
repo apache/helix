@@ -44,7 +44,7 @@ public class TestResetResource extends AdminTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -54,7 +54,7 @@ public class TestResetResource extends AdminTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    ClusterControllerManager controller = new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>() {
@@ -71,10 +71,10 @@ public class TestResetResource extends AdminTestBase {
 
       if (i == 0) {
         participants[i] =
-            new MockParticipantManager(ZK_ADDR, clusterName, instanceName); 
+            new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -86,7 +86,7 @@ public class TestResetResource extends AdminTestBase {
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName, errStateMap)));
     Assert.assertTrue(result, "Cluster verification fails");
 
@@ -103,7 +103,7 @@ public class TestResetResource extends AdminTestBase {
 
     result =
         ClusterStateVerifier
-            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName)));
     Assert.assertTrue(result, "Cluster verification fails");
 

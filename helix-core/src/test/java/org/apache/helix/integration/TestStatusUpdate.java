@@ -25,9 +25,6 @@ import java.util.Set;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.testng.Assert;
@@ -38,10 +35,8 @@ public class TestStatusUpdate extends ZkStandAloneCMTestBase {
   // this test
   // @Test
   public void testParticipantStatusUpdates() throws Exception {
-    ZkClient zkClient = new ZkClient(ZkIntegrationTestBase.ZK_ADDR);
-    zkClient.setZkSerializer(new ZNRecordSerializer());
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor(zkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
 
     List<ExternalView> extViews = accessor.getChildValues(keyBuilder.externalViews());

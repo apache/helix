@@ -29,7 +29,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -38,11 +37,12 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDisableResource extends ZkUnitTestBase {
+public class TestDisableResource extends ZkTestBase {
   private static final int N = 2;
   private static final int PARTITION_NUM = 1;
 
@@ -54,7 +54,7 @@ public class TestDisableResource extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -64,7 +64,7 @@ public class TestDisableResource extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
@@ -72,13 +72,13 @@ public class TestDisableResource extends ZkUnitTestBase {
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
@@ -90,7 +90,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     enableResource(clusterName, true);
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // Clean up
@@ -109,7 +109,7 @@ public class TestDisableResource extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -119,7 +119,7 @@ public class TestDisableResource extends ZkUnitTestBase {
         "MasterSlave", RebalanceMode.FULL_AUTO, true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
@@ -127,13 +127,13 @@ public class TestDisableResource extends ZkUnitTestBase {
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
@@ -145,7 +145,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     enableResource(clusterName, true);
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // Clean up
@@ -165,7 +165,7 @@ public class TestDisableResource extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -175,8 +175,7 @@ public class TestDisableResource extends ZkUnitTestBase {
         "MasterSlave", RebalanceMode.CUSTOMIZED, true); // do rebalance
 
     // set up custom ideal-state
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setPartitionState("TestDB0_0", "localhost_12918", "SLAVE");
@@ -184,7 +183,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
@@ -192,13 +191,13 @@ public class TestDisableResource extends ZkUnitTestBase {
     for (int i = 0; i < N; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
@@ -210,7 +209,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     enableResource(clusterName, true);
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // Clean up
@@ -223,7 +222,7 @@ public class TestDisableResource extends ZkUnitTestBase {
   }
 
   private void enableResource(String clusterName, boolean enabled) {
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.enableResource(clusterName, "TestDB0", enabled);
   }
 
@@ -233,8 +232,7 @@ public class TestDisableResource extends ZkUnitTestBase {
    * @throws Exception
    */
   private void checkExternalView(String clusterName) throws Exception {
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     // verify that states of TestDB0 are all OFFLINE
     boolean result = TestHelper.verify(new TestHelper.Verifier() {

@@ -21,29 +21,29 @@ package org.apache.helix.participant;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.DistClusterControllerStateModel;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestDistControllerStateModel extends ZkUnitTestBase {
+public class TestDistControllerStateModel extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestDistControllerStateModel.class);
 
-  final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+  final String clusterName = "TestDistControllerStateModel";
   DistClusterControllerStateModel stateModel = null;
 
   @BeforeMethod()
   public void beforeMethod() {
-    stateModel = new DistClusterControllerStateModel(ZK_ADDR);
-    if (_gZkClient.exists("/" + clusterName)) {
-      _gZkClient.deleteRecursive("/" + clusterName);
+    stateModel = new DistClusterControllerStateModel(_zkaddr);
+    if (_zkclient.exists("/" + clusterName)) {
+      _zkclient.deleteRecursive("/" + clusterName);
     }
-    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
   }
 
   @Test()

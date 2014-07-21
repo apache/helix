@@ -28,7 +28,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.id.ClusterId;
@@ -39,25 +38,28 @@ import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
+import org.apache.helix.testutil.HelixTestUtil;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRebalancePipeline extends ZkUnitTestBase {
-  final String _className = getShortClassName();
+public class TestRebalancePipeline extends ZkTestBase {
+  private static Logger LOG = Logger.getLogger(TestMessageThrottleStage.class);
 
   @Test
   public void testDuplicateMsg() {
-    String clusterName = "CLUSTER_" + _className + "_dup";
+
+    String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
@@ -69,16 +71,16 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     };
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    HelixTestUtil.setupIdealState(_baseAccessor, clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
-    setupInstances(clusterName, new int[] {
+    HelixTestUtil.setupInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-    setupLiveInstances(clusterName, new int[] {
+    HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-    setupStateModel(clusterName);
+    HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
 
     ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
     clusterAccessor.initClusterStructure();
@@ -103,8 +105,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", "session_1",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -120,8 +122,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_1",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -134,31 +136,29 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
   @Test
   public void testMsgTriggeredRebalance() throws Exception {
-    String clusterName = "CLUSTER_" + _className + "_msgTrigger";
+    String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    HelixManager manager = new DummyClusterManager(clusterName, accessor);
-    ClusterEvent event = new ClusterEvent("testEvent");
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
       resourceName
     };
 
-    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    HelixTestUtil.setupIdealState(_baseAccessor, clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
-    setupStateModel(clusterName);
-    setupInstances(clusterName, new int[] {
+    HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
+    HelixTestUtil.setupInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-    setupLiveInstances(clusterName, new int[] {
+    HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
 
@@ -166,7 +166,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     clusterAccessor.initClusterStructure();
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // round1: controller sends O->S to both node0 and node1
@@ -213,11 +213,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
   @Test
   public void testChangeIdealStateWithPendingMsg() {
-    String clusterName = "CLUSTER_" + _className + "_pending";
+    String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -231,16 +231,16 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     };
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    HelixTestUtil.setupIdealState(_baseAccessor, clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
-    setupInstances(clusterName, new int[] {
+    HelixTestUtil.setupInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-    setupLiveInstances(clusterName, new int[] {
+    HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-    setupStateModel(clusterName);
+    HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
 
     ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
     clusterAccessor.initClusterStructure();
@@ -265,8 +265,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", "session_1",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -279,13 +279,13 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // round2: drop resource, but keep the
     // message, make sure controller should not send O->DROPPEDN until O->S is done
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.dropResource(clusterName, resourceName);
     List<IdealState> idealStates = accessor.getChildValues(accessor.keyBuilder().idealStates());
     cache.setIdealStates(idealStates);
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -303,8 +303,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     List<String> msgIds = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     accessor.removeProperty(keyBuilder.message("localhost_0", msgIds.get(0)));
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -322,12 +322,12 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
   @Test
   public void testMasterXfer() {
-    String clusterName = "CLUSTER_" + _className + "_xfer";
+    String clusterName = TestUtil.getTestName();
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -338,16 +338,16 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     };
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
-    setupIdealState(clusterName, new int[] {
+    HelixTestUtil.setupIdealState(_baseAccessor, clusterName, new int[] {
         0, 1
     }, resourceGroups, 1, 2);
-    setupInstances(clusterName, new int[] {
+    HelixTestUtil.setupInstances(_baseAccessor, clusterName, new int[] {
       1
     });
-    setupLiveInstances(clusterName, new int[] {
+    HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
       1
     });
-    setupStateModel(clusterName);
+    HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
 
     ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
     clusterAccessor.initClusterStructure();
@@ -370,8 +370,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     setCurrentState(clusterName, "localhost_1", resourceName, resourceName + "_0", "session_1",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     MessageOutput msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     List<Message> messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -384,17 +384,17 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
     // round2: updates node0 currentState to SLAVE but keep the
     // message, make sure controller should not send S->M until removal is done
-    setupInstances(clusterName, new int[] {
+    HelixTestUtil.setupInstances(_baseAccessor, clusterName, new int[] {
       0
     });
-    setupLiveInstances(clusterName, new int[] {
+    HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
       0
     });
     setCurrentState(clusterName, "localhost_0", resourceName, resourceName + "_0", "session_0",
         "SLAVE");
 
-    runPipeline(event, dataRefresh);
-    runPipeline(event, rebalancePipeline);
+    HelixTestUtil.runPipeline(event, dataRefresh);
+    HelixTestUtil.runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
     messages =
         msgSelOutput.getMessages(ResourceId.from(resourceName),
@@ -405,10 +405,10 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
 
   }
 
-  protected void setCurrentState(String clusterName, String instance, String resourceGroupName,
+  private void setCurrentState(String clusterName, String instance, String resourceGroupName,
       String resourceKey, String sessionId, String state) {
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
 
     CurrentState curState = new CurrentState(resourceGroupName);
@@ -418,18 +418,4 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName), curState);
   }
 
-  @Override
-  protected void setupInstances(String clusterName, int[] instances) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    for (int i = 0; i < instances.length; i++) {
-      String instance = "localhost_" + instances[i];
-      InstanceConfig instanceConfig = new InstanceConfig(instance);
-      instanceConfig.setHostName("localhost");
-      instanceConfig.setPort("" + instances[i]);
-      instanceConfig.setInstanceEnabled(true);
-      accessor.setProperty(keyBuilder.instanceConfig(instance), instanceConfig);
-    }
-  }
 }

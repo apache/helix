@@ -24,22 +24,20 @@ import java.util.Date;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestBatchMessageWrapper extends ZkUnitTestBase {
+public class TestBatchMessageWrapper extends ZkTestBase {
   class MockBatchMsgWrapper extends BatchMessageWrapper {
     int _startCount = 0;
     int _endCount = 0;
@@ -73,7 +71,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // startPort
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // startPort
         "localhost", // participantNamePrefix
         "TestDB", // resourceNamePrefix
         1, // resourceNb
@@ -84,14 +82,14 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
 
     // enable batch-message
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -101,7 +99,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
       ftys[i] = new TestMockMSModelFactory();
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", ftys[i]);
       participants[i].syncStart();
 
@@ -110,7 +108,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
       do {
         Thread.sleep(100);
         result =
-            ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
       } while (result == false);
 

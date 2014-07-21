@@ -30,15 +30,15 @@ import java.util.TreeMap;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.store.HelixPropertyListener;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkHelixPropertyStore extends ZkUnitTestBase {
-  final String _root = "/" + getShortClassName();
+public class TestZkHelixPropertyStore extends ZkTestBase {
+  final String _root = "/TestZkHelixPropertyStore";
   final int bufSize = 128;
   final int mapNr = 10;
   final int firstLevelNr = 10;
@@ -83,7 +83,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient), subRoot,
             subscribedPaths);
 
     // test set
@@ -117,7 +117,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
   public void testSetInvalidPath() {
     String subRoot = _root + "/" + "setInvalidPath";
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient), subRoot,
             null);
     try {
       store.set("abc/xyz", new ZNRecord("testInvalid"), AccessOption.PERSISTENT);
@@ -139,7 +139,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient), subRoot,
             subscribedPaths);
 
     // change nodes via property store interface
@@ -200,7 +200,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     String subRoot = _root + "/" + "zkCallback";
     List<String> subscribedPaths = Arrays.asList(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient), subRoot,
             subscribedPaths);
 
     // change nodes via property store interface
@@ -210,7 +210,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     // test create callbacks
     listener.reset();
-    setNodes(_gZkClient, subRoot, 'a', true);
+    setNodes(_zkclient, subRoot, 'a', true);
     int expectCreateNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
     Thread.sleep(500);
 
@@ -221,7 +221,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     // test change callbacks
     listener.reset();
-    setNodes(_gZkClient, subRoot, 'b', true);
+    setNodes(_zkclient, subRoot, 'b', true);
     int expectChangeNodes = firstLevelNr * secondLevelNr;
     for (int i = 0; i < 10; i++) {
       if (listener._changeKeys.size() >= expectChangeNodes)
@@ -237,7 +237,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     // test delete callbacks
     listener.reset();
     int expectDeleteNodes = 1 + firstLevelNr + firstLevelNr * secondLevelNr;
-    _gZkClient.deleteRecursive(subRoot);
+    _zkclient.deleteRecursive(subRoot);
     Thread.sleep(1000);
 
     System.out.println("createKey#:" + listener._createKeys.size() + ", changeKey#:"
@@ -258,7 +258,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
     List<String> subscribedPaths = new ArrayList<String>();
     subscribedPaths.add(subRoot);
     ZkHelixPropertyStore<ZNRecord> store =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_gZkClient), subRoot,
+        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient), subRoot,
             subscribedPaths);
 
     store.set("/child0", new ZNRecord("child0"), AccessOption.PERSISTENT);
@@ -269,8 +269,8 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
 
     String child0Path = subRoot + "/child0";
     for (int i = 0; i < 2; i++) {
-      _gZkClient.delete(child0Path);
-      _gZkClient.createPersistent(child0Path, new ZNRecord("child0-new-" + i));
+      _zkclient.delete(child0Path);
+      _zkclient.createPersistent(child0Path, new ZNRecord("child0-new-" + i));
     }
 
     Thread.sleep(500); // should wait for zk callback to add "/child0" into cache
@@ -279,7 +279,7 @@ public class TestZkHelixPropertyStore extends ZkUnitTestBase {
         .assertEquals(record.getId(), "child0-new-1", "Cache shoulde be updated to latest create");
     // System.out.println("2:get:" + record);
 
-    _gZkClient.delete(child0Path);
+    _zkclient.delete(child0Path);
     Thread.sleep(500); // should wait for zk callback to remove "/child0" from cache
     try {
       record = store.get("/child0", null, AccessOption.THROW_EXCEPTION_IFNOTEXIST);

@@ -40,7 +40,7 @@ public class TestBasicSpectator extends ZkStandAloneCMTestBase implements
   @Test
   public void TestSpectator() throws Exception {
     HelixManager relayHelixManager =
-        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, null, InstanceType.SPECTATOR, ZK_ADDR);
+        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, null, InstanceType.SPECTATOR, _zkaddr);
 
     relayHelixManager.connect();
     relayHelixManager.addExternalViewChangeListener(this);
@@ -50,7 +50,7 @@ public class TestBasicSpectator extends ZkStandAloneCMTestBase implements
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     Assert.assertTrue(_externalViewChanges.containsKey("NextDB"));

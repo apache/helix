@@ -30,18 +30,18 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkSessionExpiry extends ZkUnitTestBase {
+public class TestZkSessionExpiry extends ZkTestBase {
   final static String DUMMY_MSG_TYPE = "DUMMY";
 
   static class DummyMessageHandler extends MessageHandler {
@@ -101,7 +101,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -111,7 +111,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -120,7 +120,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].getMessagingService().registerMessageHandlerFactory(DUMMY_MSG_TYPE,
           new DummyMessageHandlerFactory(handledMsgSet));
       participants[i].syncStart();
@@ -128,7 +128,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
@@ -139,7 +139,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
     ZkTestHelper.expireSession(participants[0].getZkClient());
     result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 

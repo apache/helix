@@ -373,11 +373,11 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     String controllerStatusPath =
         HelixUtil.getControllerPropertyPath(manager.getClusterName(),
             PropertyType.STATUSUPDATES_CONTROLLER);
-    List<String> subPaths = _gZkClient.getChildren(controllerStatusPath);
+    List<String> subPaths = _zkclient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
-      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
+      List<String> subsubPaths = _zkclient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
     }
 
@@ -385,38 +385,38 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
         HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
             PropertyType.STATUSUPDATES);
 
-    subPaths = _gZkClient.getChildren(instanceStatusPath);
+    subPaths = _zkclient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
-      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
+      List<String> subsubPaths = _zkclient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
       for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
-        Assert.assertTrue(_gZkClient.getChildren(nextnextPath).size() > 0);
+        Assert.assertTrue(_zkclient.getChildren(nextnextPath).size() > 0);
       }
     }
     Thread.sleep(3000);
     ZKPathDataDumpTask dumpTask = new ZKPathDataDumpTask(manager, 0L, 0L, Integer.MAX_VALUE);
     dumpTask.run();
 
-    subPaths = _gZkClient.getChildren(controllerStatusPath);
+    subPaths = _zkclient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
       String nextPath = controllerStatusPath + "/" + subPath;
-      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
+      List<String> subsubPaths = _zkclient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() == 0);
     }
 
-    subPaths = _gZkClient.getChildren(instanceStatusPath);
+    subPaths = _zkclient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {
       String nextPath = instanceStatusPath + "/" + subPath;
-      List<String> subsubPaths = _gZkClient.getChildren(nextPath);
+      List<String> subsubPaths = _zkclient.getChildren(nextPath);
       Assert.assertTrue(subsubPaths.size() > 0);
       for (String subsubPath : subsubPaths) {
         String nextnextPath = nextPath + "/" + subsubPath;
-        Assert.assertTrue(_gZkClient.getChildren(nextnextPath).size() == 0);
+        Assert.assertTrue(_zkclient.getChildren(nextnextPath).size() == 0);
       }
     }
   }

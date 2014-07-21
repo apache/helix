@@ -24,19 +24,20 @@ import java.util.Map;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.testutil.HelixTestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import com.google.common.collect.Maps;
 
-public class TestInvalidResourceRebalance extends ZkUnitTestBase {
+public class TestInvalidResourceRebalance extends ZkTestBase {
   /**
    * Ensure that the Helix controller doesn't attempt to rebalance resources with invalid ideal
    * states
@@ -54,7 +55,7 @@ public class TestInvalidResourceRebalance extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -66,7 +67,7 @@ public class TestInvalidResourceRebalance extends ZkUnitTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // add the ideal state spec (prevents non-CUSTOMIZED MasterSlave ideal states)
@@ -83,13 +84,14 @@ public class TestInvalidResourceRebalance extends ZkUnitTestBase {
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     Thread.sleep(1000);
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new EmptyZkVerifier(clusterName, RESOURCE_NAME));
+        ClusterStateVerifier.verifyByZkCallback(new HelixTestUtil.EmptyZkVerifier(clusterName,
+            RESOURCE_NAME, _zkclient));
     Assert.assertTrue(result, "External view and current state must be empty");
 
     // cleanup

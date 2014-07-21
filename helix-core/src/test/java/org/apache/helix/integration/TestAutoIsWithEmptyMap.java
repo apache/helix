@@ -31,12 +31,13 @@ import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
+public class TestAutoIsWithEmptyMap extends ZkTestBase {
   @Test
   public void testAutoIsWithEmptyMap() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -44,7 +45,7 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -55,7 +56,7 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
 
     // calculate and set custom ideal state
     String idealPath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
-    ZNRecord curIdealState = _gZkClient.readData(idealPath);
+    ZNRecord curIdealState = _zkclient.readData(idealPath);
 
     List<String> instanceNames = new ArrayList<String>(5);
     for (int i = 0; i < 5; i++) {
@@ -71,11 +72,11 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
     curIdealState.setSimpleField(IdealState.IdealStateProperty.REPLICAS.toString(), "3");
 
     curIdealState.setListFields(idealState.getListFields());
-    _gZkClient.writeData(idealPath, curIdealState);
+    _zkclient.writeData(idealPath, curIdealState);
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -83,12 +84,12 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

@@ -26,15 +26,14 @@ import org.apache.helix.HelixController;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkHelixController extends ZkUnitTestBase {
+public class TestZkHelixController extends ZkTestBase {
 
   @Test
   public void testOnConnectedAndDisconnecting() throws Exception {
@@ -46,7 +45,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -56,7 +55,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     // create connection
-    HelixConnection connection = new ZkHelixConnection(ZK_ADDR);
+    HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // start controller
@@ -101,7 +100,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -111,7 +110,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     // create connection
-    HelixConnection connection = new ZkHelixConnection(ZK_ADDR);
+    HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // start controller
@@ -124,7 +123,7 @@ public class TestZkHelixController extends ZkUnitTestBase {
 
     // check live-instance znode for localhost_12918 exists
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
     Assert.assertNotNull(leader);

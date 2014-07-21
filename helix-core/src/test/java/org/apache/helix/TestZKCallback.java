@@ -40,14 +40,15 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZKCallback extends ZkUnitTestBase {
-  private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+public class TestZKCallback extends ZkTestBase {
+  private final String clusterName = "TestZKCallback";
 
   ZkClient _zkClient;
 
@@ -114,10 +115,9 @@ public class TestZKCallback extends ZkUnitTestBase {
 
   @Test()
   public void testInvocation() throws Exception {
-
     HelixManager testHelixManager =
         HelixManagerFactory.getZKHelixManager(clusterName, "localhost_8900",
-            InstanceType.PARTICIPANT, ZK_ADDR);
+            InstanceType.PARTICIPANT, _zkaddr);
     testHelixManager.connect();
 
     TestZKCallback test = new TestZKCallback();
@@ -209,30 +209,30 @@ public class TestZKCallback extends ZkUnitTestBase {
 
   @BeforeClass()
   public void beforeClass() throws IOException, Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient = new ZkClient(_zkaddr);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName)) {
       _zkClient.deleteRecursive("/" + clusterName);
     }
 
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addCluster "
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addCluster "
         + clusterName));
     // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR +
+    // .processCommandLineArgs(createArgs("-zkSvr " + zkaddr +
     // " -addCluster relay-cluster-12345"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addResource "
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addResource "
         + clusterName + " db-12345 120 MasterSlave"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addNode " + clusterName
         + " localhost:8900"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addNode " + clusterName
         + " localhost:8901"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addNode " + clusterName
         + " localhost:8902"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addNode " + clusterName
         + " localhost:8903"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -addNode " + clusterName
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -addNode " + clusterName
         + " localhost:8904"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " -rebalance "
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " -rebalance "
         + clusterName + " db-12345 3"));
   }
 

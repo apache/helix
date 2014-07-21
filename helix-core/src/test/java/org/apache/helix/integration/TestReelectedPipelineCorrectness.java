@@ -24,12 +24,12 @@ import java.util.Date;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -41,7 +41,7 @@ import org.testng.annotations.Test;
  * when the change. However, if a controller loses leadership and subsequently regains it, we need
  * to ensure that the controller can verify its cache. That's what this test is for.
  */
-public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
+public class TestReelectedPipelineCorrectness extends ZkTestBase {
   private static final int CHECK_INTERVAL = 50;
   private static final int CHECK_TIMEOUT = 10000;
 
@@ -57,10 +57,8 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -71,17 +69,17 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
 
     // configure distributed controllers
     String controllerCluster = clusterName + "_controllers";
-    setupTool.addCluster(controllerCluster, true);
+    _setupTool.addCluster(controllerCluster, true);
     for (int i = 0; i < NUM_CONTROLLERS; i++) {
-      setupTool.addInstanceToCluster(controllerCluster, "controller_" + i);
+      _setupTool.addInstanceToCluster(controllerCluster, "controller_" + i);
     }
-    setupTool.activateCluster(clusterName, controllerCluster, true);
+    _setupTool.activateCluster(clusterName, controllerCluster, true);
 
     // start participants
     MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -89,14 +87,14 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     ClusterDistributedController[] controllers = new ClusterDistributedController[NUM_CONTROLLERS];
     for (int i = 0; i < NUM_CONTROLLERS; i++) {
       controllers[i] =
-          new ClusterDistributedController(ZK_ADDR, controllerCluster, "controller_" + i);
+          new ClusterDistributedController(_zkaddr, controllerCluster, "controller_" + i);
       controllers[i].syncStart();
     }
     Thread.sleep(1000);
 
     // Ensure a balanced cluster
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -114,7 +112,7 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     }
     String leaderId = leader.getId();
     String standbyId = (leaderId.equals("controller_0")) ? "controller_1" : "controller_0";
-    HelixAdmin admin = setupTool.getClusterManagementTool();
+    HelixAdmin admin = _setupTool.getClusterManagementTool();
     admin.enableInstance(controllerCluster, leaderId, false);
 
     // Stop a participant to make sure that the leader election worked
@@ -122,7 +120,7 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     participants[0].syncStop();
     Thread.sleep(500);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -146,7 +144,7 @@ public class TestReelectedPipelineCorrectness extends ZkUnitTestBase {
     // Now check that both the ideal state and the live instances are adhered to by the rebalance
     Thread.sleep(500);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

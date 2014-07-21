@@ -30,6 +30,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -37,7 +38,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
+public class TestEnablePartitionDuringDisable extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestEnablePartitionDuringDisable.class);
 
   static {
@@ -63,7 +64,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
 
           try {
             String command =
-                "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
+                "--zkSvr " + _zkaddr + " --enablePartition true " + clusterName
                     + " localhost_12919 TestDB0 TestDB0_0";
 
             ClusterSetup.processCommandLineArgs(command.split("\\s+"));
@@ -89,7 +90,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -99,7 +100,7 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -109,22 +110,22 @@ public class TestEnablePartitionDuringDisable extends ZkIntegrationTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (instanceName.equals("localhost_12919")) {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(transition);
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // disable partitions
     String command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition false " + clusterName
+        "--zkSvr " + _zkaddr + " --enablePartition false " + clusterName
             + " localhost_12919 TestDB0 TestDB0_0";
 
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));

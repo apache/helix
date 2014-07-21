@@ -30,20 +30,20 @@ public class TestDisableNode extends ZkStandAloneCMTestBase {
   @Test()
   public void testDisableNode() throws Exception {
     String command =
-        "-zkSvr " + ZK_ADDR + " -enableInstance " + CLUSTER_NAME + " " + PARTICIPANT_PREFIX
-            + "_12918" + " TestDB TestDB_0 false";
+        "-zkSvr " + _zkaddr + " -enableInstance " + CLUSTER_NAME + " " + "localhost_12918"
+            + " TestDB TestDB_0 false";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
-    tool.enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_12918", true);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkclient);
+    tool.enableInstance(CLUSTER_NAME, "localhost_12918", true);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
   }

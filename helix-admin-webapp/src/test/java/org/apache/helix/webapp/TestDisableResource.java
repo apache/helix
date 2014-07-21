@@ -23,13 +23,10 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.resources.JsonParameters;
@@ -47,7 +44,7 @@ public class TestDisableResource extends AdminTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -66,8 +63,7 @@ public class TestDisableResource extends AdminTestBase {
     paramMap.put(JsonParameters.ENABLED, Boolean.toString(false));
     TestHelixAdminScenariosRest.assertSuccessPostOperation(instanceUrl, paramMap, false);
 
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     Assert.assertFalse(idealState.isEnabled());

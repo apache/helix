@@ -23,19 +23,17 @@ import java.util.Date;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDistributedClusterController extends ZkIntegrationTestBase {
+public class TestDistributedClusterController extends ZkTestBase {
 
   @Test
   public void testDistributedClusterController() throws Exception {
@@ -53,7 +51,7 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
       String clusterName = clusterNamePrefix + "0_" + i;
       String participantName = "localhost" + i;
       String resourceName = "TestDB" + i;
-      TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+      TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
           participantName, // participant name prefix
           resourceName, // resource name prefix
           1, // resources
@@ -65,7 +63,7 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
 
     // setup controller cluster
     final String controllerClusterName = "CONTROLLER_" + clusterNamePrefix;
-    TestHelper.setupCluster("CONTROLLER_" + clusterNamePrefix, ZK_ADDR, 0, // controller
+    TestHelper.setupCluster("CONTROLLER_" + clusterNamePrefix, _zkaddr, 0, // controller
                                                                            // port
         "controller", // participant name prefix
         clusterNamePrefix, // resource name prefix
@@ -79,13 +77,13 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
     ClusterDistributedController[] controllers = new ClusterDistributedController[n];
     for (int i = 0; i < n; i++) {
       controllers[i] =
-          new ClusterDistributedController(ZK_ADDR, controllerClusterName, "controller_" + i);
+          new ClusterDistributedController(_zkaddr, controllerClusterName, "controller_" + i);
       controllers[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(
-            new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, controllerClusterName),
+            new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr, controllerClusterName),
             30000);
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
@@ -94,18 +92,17 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
     final String firstClusterName = clusterNamePrefix + "0_0";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost0_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, firstClusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, firstClusterName, instanceName);
       participants[i].syncStart();
     }
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             firstClusterName));
     Assert.assertTrue(result, "first cluster NOT in ideal state");
 
     // stop current leader in controller cluster
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(controllerClusterName, baseAccessor);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(controllerClusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
     String leaderName = leader.getId();
@@ -117,12 +114,12 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
     final String secondClusterName = clusterNamePrefix + "0_1";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost1_" + (12918 + i);
-      participants2[i] = new MockParticipantManager(ZK_ADDR, secondClusterName, instanceName);
+      participants2[i] = new MockParticipantManager(_zkaddr, secondClusterName, instanceName);
       participants2[i].syncStart();
     }
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             secondClusterName));
     Assert.assertTrue(result, "second cluster NOT in ideal state");
 
@@ -132,7 +129,7 @@ public class TestDistributedClusterController extends ZkIntegrationTestBase {
     for (int i = 0; i < 5; i++) {
       result =
           ClusterStateVerifier
-              .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+              .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                   controllerClusterName));
       controllers[i].syncStop();
     }

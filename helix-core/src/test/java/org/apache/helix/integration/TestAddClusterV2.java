@@ -21,8 +21,13 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -31,17 +36,16 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestAddClusterV2 extends ZkIntegrationTestBase {
+public class TestAddClusterV2 extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestAddClusterV2.class);
 
   protected static final int CLUSTER_NR = 10;
   protected static final int NODE_NR = 5;
   protected static final int START_PORT = 12918;
   protected static final String STATE_MODEL = "MasterSlave";
-  protected ClusterSetup _setupTool = null;
 
-  protected final String CLASS_NAME = getShortClassName();
-  protected final String CONTROLLER_CLUSTER = CONTROLLER_CLUSTER_PREFIX + "_" + CLASS_NAME;
+  protected final String CLASS_NAME = "TestAddClusterV2";
+  protected final String CONTROLLER_CLUSTER = "super_" + CLASS_NAME;
 
   protected static final String TEST_DB = "TestDB";
 
@@ -53,58 +57,69 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CONTROLLER_CLUSTER;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
 
     for (int i = 0; i < CLUSTER_NR; i++) {
-      namespace = "/" + CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
-      if (_gZkClient.exists(namespace)) {
-        _gZkClient.deleteRecursive(namespace);
+      namespace = "/" + CLASS_NAME + "_" + i;
+      if (_zkclient.exists(namespace)) {
+        _zkclient.deleteRecursive(namespace);
       }
     }
 
-    _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup CONTROLLER_CLUSTER
     _setupTool.addCluster(CONTROLLER_CLUSTER, true);
     for (int i = 0; i < NODE_NR; i++) {
-      String controllerName = CONTROLLER_PREFIX + "_" + i;
+      String controllerName = "controller_" + i;
       _setupTool.addInstanceToCluster(CONTROLLER_CLUSTER, controllerName);
     }
 
     // setup cluster of clusters
     for (int i = 0; i < CLUSTER_NR; i++) {
-      String clusterName = CLUSTER_PREFIX + "_" + CLASS_NAME + "_" + i;
+      String clusterName = CLASS_NAME + "_" + i;
       _setupTool.addCluster(clusterName, true);
       _setupTool.activateCluster(clusterName, CONTROLLER_CLUSTER, true);
     }
 
-    final String firstCluster = CLUSTER_PREFIX + "_" + CLASS_NAME + "_0";
-    setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, PARTICIPANT_PREFIX, START_PORT,
+    final String firstCluster = CLASS_NAME + "_0";
+    setupStorageCluster(_setupTool, firstCluster, TEST_DB, 20, "localhost", START_PORT,
         "MasterSlave", 3, true);
 
     // start dummy participants for the first cluster
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, firstCluster, instanceName);
+      String instanceName = "localhost_" + (START_PORT + i);
+      _participants[i] = new MockParticipantManager(_zkaddr, firstCluster, instanceName);
       _participants[i].syncStart();
     }
 
     // start distributed cluster controllers
     for (int i = 0; i < NODE_NR; i++) {
-      String controllerName = CONTROLLER_PREFIX + "_" + i;
+      String controllerName = "controller_" + i;
       _distControllers[i] =
-          new ClusterDistributedController(ZK_ADDR, CONTROLLER_CLUSTER, controllerName);
+          new ClusterDistributedController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
       _distControllers[i].syncStart();
     }
 
     verifyClusters();
   }
 
-  @Test
-  public void Test() {
+  private String getCurrentLeader(String clusterName) {
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
+    LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
+    if (leader == null) {
+      return null;
+    }
+    return leader.getInstanceName();
+  }
+
+  @Test
+  public void test() {
+    // placeholder for running beforeClass() and afterClass()
   }
 
   @AfterClass
@@ -117,7 +132,7 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
      * 2) disconnect all controllers
      * 3) disconnect leader/disconnect participant
      */
-    String leader = getCurrentLeader(_gZkClient, CONTROLLER_CLUSTER);
+    String leader = getCurrentLeader(CONTROLLER_CLUSTER);
     int leaderIdx = -1;
     for (int i = 0; i < NODE_NR; i++) {
       if (!_distControllers[i].getInstanceName().equals(leader)) {
@@ -144,12 +159,12 @@ public class TestAddClusterV2 extends ZkIntegrationTestBase {
   protected void verifyClusters() {
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CONTROLLER_CLUSTER));
+            _zkaddr, CONTROLLER_CLUSTER));
     Assert.assertTrue(result);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_PREFIX + "_" + CLASS_NAME + "_0"));
+            _zkaddr, CLASS_NAME + "_0"));
     Assert.assertTrue(result);
   }
 

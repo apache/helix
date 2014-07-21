@@ -31,18 +31,18 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
+public class TestZkCallbackHandlerLeak extends ZkTestBase {
 
   @Test
   public void testCbHandlerLeakOnParticipantSessionExpiry() throws Exception {
@@ -54,7 +54,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -64,7 +64,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     final ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -72,13 +72,13 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
     final MockParticipantManager participantManagerToExpire = participants[1];
@@ -88,7 +88,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         // Set<String> watchPaths = watchers.get("0x" + controllerManager.getSessionId());
         Set<String> watchPaths = watchers.get("0x" + controller.getSessionId());
         // System.out.println("controller watch paths: " + watchPaths);
@@ -105,7 +105,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
         // System.out.println("participant watch paths: " + watchPaths);
 
@@ -136,7 +136,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // check controller zk-watchers
@@ -144,7 +144,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         Set<String> watchPaths = watchers.get("0x" + controller.getSessionId());
         // System.out.println("controller watch paths after session expiry: " + watchPaths);
 
@@ -160,7 +160,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         Set<String> watchPaths = watchers.get("0x" + participantManagerToExpire.getSessionId());
         // System.out.println("participant watch paths after session expiry: " + watchPaths);
 
@@ -199,7 +199,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -209,7 +209,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     final ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -217,13 +217,13 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
     // final ZkHelixTestManager controllerManager = controller.getManager();
@@ -264,7 +264,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // check controller zk-watchers
@@ -272,7 +272,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         Set<String> watchPaths = watchers.get("0x" + controller.getSessionId());
         // System.out.println("controller watch paths after session expiry: " + watchPaths);
 
@@ -288,7 +288,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
 
       @Override
       public boolean verify() throws Exception {
-        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(ZK_ADDR);
+        Map<String, Set<String>> watchers = ZkTestHelper.getListenersBySession(_zkaddr);
         Set<String> watchPaths = watchers.get("0x" + participantManager.getSessionId());
         // System.out.println("participant watch paths after session expiry: " + watchPaths);
 
@@ -324,7 +324,7 @@ public class TestZkCallbackHandlerLeak extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final int n = 3;
-    final String zkAddr = ZK_ADDR;
+    final String zkAddr = _zkaddr;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     TestHelper.setupCluster(clusterName, zkAddr, 12918, "localhost", "TestDB", 1, // resource

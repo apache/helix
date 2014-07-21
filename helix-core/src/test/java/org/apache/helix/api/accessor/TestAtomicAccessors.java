@@ -5,7 +5,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ClusterConfig;
@@ -18,6 +17,7 @@ import org.apache.helix.lock.zk.ZKHelixLock;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -43,16 +43,15 @@ import org.testng.annotations.Test;
 /**
  * Test that the atomic accessors behave atomically in response to interwoven updates.
  */
-public class TestAtomicAccessors extends ZkUnitTestBase {
+public class TestAtomicAccessors extends ZkTestBase {
   private static final long TIMEOUT = 30000L;
   private static final long EXTRA_WAIT = 10000L;
 
   @Test
   public void testClusterUpdates() {
     final ClusterId clusterId = ClusterId.from("TestAtomicAccessors!testCluster");
-    final BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     final HelixDataAccessor helixAccessor =
-        new ZKHelixDataAccessor(clusterId.stringify(), baseAccessor);
+        new ZKHelixDataAccessor(clusterId.stringify(), _baseAccessor);
     final LockProvider lockProvider = new LockProvider();
     final StateModelDefId stateModelDefId = StateModelDefId.from("FakeModel");
     final State state = State.from("fake");
@@ -134,7 +133,7 @@ public class TestAtomicAccessors extends ZkUnitTestBase {
 
     @Override
     public synchronized HelixLock getLock(ClusterId clusterId, Scope<?> scope) {
-      return new MyLock(clusterId, scope, _gZkClient);
+      return new MyLock(clusterId, scope, _zkclient);
     }
 
     /**

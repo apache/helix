@@ -62,17 +62,16 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
-    _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
 
     for (int i = 0; i < NODE_NR; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      String storageNodeName = "localhost_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
@@ -84,7 +83,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     idealState.getRecord().setSimpleField(stateTransition, "300");
 
     String command =
-        "-zkSvr " + ZK_ADDR + " -addResourceProperty " + CLUSTER_NAME + " " + TEST_DB + " "
+        "-zkSvr " + _zkaddr + " -addResourceProperty " + CLUSTER_NAME + " " + TEST_DB + " "
             + stateTransition + " 200";
     ClusterSetup.processCommandLineArgs(command.split(" "));
   }
@@ -177,7 +176,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      String instanceName = "localhost_" + (START_PORT + i);
       SleepStateModelFactory factory = new SleepStateModelFactory(1000);
       factories.put(instanceName, factory);
       for (PartitionId p : idealState.getPartitionIdSet()) {
@@ -186,17 +185,17 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
         }
       }
 
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", factory);
       _participants[i].syncStart();
     }
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    String controllerName = "controller_0";
+    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
     HelixDataAccessor accessor = _participants[0].getHelixDataAccessor();
 

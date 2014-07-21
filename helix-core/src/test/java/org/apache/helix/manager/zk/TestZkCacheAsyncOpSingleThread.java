@@ -31,11 +31,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
+public class TestZkCacheAsyncOpSingleThread extends ZkTestBase {
   @Test
   public void testHappyPathExtOpZkCacheBaseDataAccessor() throws Exception {
     String className = TestHelper.getTestClassName();
@@ -44,7 +44,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init external base data accessor
-    ZkClient extZkclient = new ZkClient(ZK_ADDR);
+    ZkClient extZkclient = new ZkClient(_zkaddr);
     extZkclient.setZkSerializer(new ZNRecordSerializer());
     ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(extZkclient);
 
@@ -53,7 +53,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
     String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -63,7 +63,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // TestHelper.printCache(accessor._zkCache);
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using external base accessor
@@ -88,7 +88,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // verify wtCache
     for (int i = 0; i < 10; i++) {
       // TestHelper.printCache(accessor._zkCache);
-      ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+      ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
       if (ret == true)
         break;
       Thread.sleep(100);
@@ -122,7 +122,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // set 10 external views by external accessor
@@ -146,7 +146,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // remove 10 external views by external accessor
@@ -167,7 +167,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // clean up
@@ -188,7 +188,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
         PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
     String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -198,7 +198,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // TestHelper.printCache(accessor._zkCache._cache);
     boolean ret =
-        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+        TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // create 10 current states using this accessor
@@ -221,7 +221,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, false);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, false);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
     // update each current state 10 times by this accessor
@@ -248,8 +248,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // TestHelper.printCache(accessor._zkCache._cache);
     ret =
         TestHelper.verifyZkCache(zkCacheInitPaths, zkCacheInitPaths, accessor._zkCache._cache,
-            _gZkClient, true);
-    // ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor, _gZkClient, true);
+            _zkclient, true);
+    // ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor, zkclient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 
@@ -274,7 +274,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(zkCacheInitPaths, accessor._zkCache._cache, _zkclient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
 

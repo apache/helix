@@ -31,15 +31,15 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkFlapping extends ZkUnitTestBase {
+public class TestZkFlapping extends ZkTestBase {
 
   @Test
   public void testZkSessionExpiry() throws Exception {
@@ -49,7 +49,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        new ZkClient(_zkaddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
 
     String path = String.format("/%s", clusterName);
@@ -71,13 +71,13 @@ public class TestZkFlapping extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        new ZkClient(_zkaddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     String path = String.format("/%s", clusterName);
     client.createEphemeral(path);
 
     client.close();
-    Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
+    Assert.assertFalse(_zkclient.exists(path), "Ephemeral node: " + path
         + " should be removed after ZkClient#close()");
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -91,7 +91,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
 
     final CountDownLatch waitCallback = new CountDownLatch(1);
     final ZkClient client =
-        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        new ZkClient(_zkaddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
             ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
     String path = String.format("/%s", clusterName);
     client.createEphemeral(path);
@@ -110,7 +110,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
 
     client.writeData(path, new ZNRecord("test"));
     waitCallback.await();
-    Assert.assertFalse(_gZkClient.exists(path), "Ephemeral node: " + path
+    Assert.assertFalse(_zkclient.exists(path), "Ephemeral node: " + path
         + " should be removed after ZkClient#close() in its own event-thread");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -138,12 +138,12 @@ public class TestZkFlapping extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -154,7 +154,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
 
     final String instanceName = "localhost_12918";
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        new MockParticipantManager(_zkaddr, clusterName, instanceName);
     participant.syncStart();
 
     final ZkClient client = participant.getZkClient();
@@ -218,12 +218,12 @@ public class TestZkFlapping extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -233,7 +233,7 @@ public class TestZkFlapping extends ZkUnitTestBase {
         "MasterSlave", false);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     final ZkClient client = controller.getZkClient();

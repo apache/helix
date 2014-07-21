@@ -28,12 +28,13 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.ErrTransition;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestResetInstance extends ZkIntegrationTestBase {
+public class TestResetInstance extends ZkTestBase {
 
   @Test
   public void testResetInstance() throws Exception {
@@ -44,7 +45,7 @@ public class TestResetInstance extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -55,7 +56,7 @@ public class TestResetInstance extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>() {
@@ -71,10 +72,10 @@ public class TestResetInstance extends ZkIntegrationTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -86,18 +87,18 @@ public class TestResetInstance extends ZkIntegrationTestBase {
     errStateMap.get("TestDB0").put("TestDB0_8", "localhost_12918");
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName, errStateMap)));
     Assert.assertTrue(result, "Cluster verification fails");
 
     // reset node "localhost_12918"
     participants[0].setTransition(null);
-    String command = "--zkSvr " + ZK_ADDR + " --resetInstance " + clusterName + " localhost_12918";
+    String command = "--zkSvr " + _zkaddr + " --resetInstance " + clusterName + " localhost_12918";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     result =
         ClusterStateVerifier
-            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback((new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName)));
     Assert.assertTrue(result, "Cluster verification fails");
 

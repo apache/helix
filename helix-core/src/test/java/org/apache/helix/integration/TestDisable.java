@@ -33,13 +33,14 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDisable extends ZkIntegrationTestBase {
+public class TestDisable extends ZkTestBase {
 
   @Test
   public void testDisableNodeCustomIS() throws Exception {
@@ -54,7 +55,7 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -64,7 +65,7 @@ public class TestDisable extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     // set ideal state to customized mode
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -73,28 +74,28 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // disable localhost_12918
     String command =
-        "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " false";
+        "--zkSvr " + _zkaddr + " --enableInstance " + clusterName + " " + disableNode + " false";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -103,20 +104,20 @@ public class TestDisable extends ZkIntegrationTestBase {
     Map<String, String> expectInstanceStateMap = new HashMap<String, String>();
     expectInstanceStateMap.put(disableNode, "OFFLINE");
     expectStateMap.put(".*", expectInstanceStateMap);
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "==");
     Assert.assertTrue(result, disableNode + " should be in OFFLINE");
 
     // re-enable localhost_12918
     command =
-        "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " true";
+        "--zkSvr " + _zkaddr + " --enableInstance " + clusterName + " " + disableNode + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // make sure localhost_12918 is NOT in OFFLINE state
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "!=");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "!=");
     Assert.assertTrue(result, disableNode + " should NOT be in OFFLINE");
 
     // clean up
@@ -142,7 +143,7 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -153,28 +154,28 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // disable localhost_12919
     String command =
-        "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " false";
+        "--zkSvr " + _zkaddr + " --enableInstance " + clusterName + " " + disableNode + " false";
     ClusterSetup.processCommandLineArgs(command.split(" "));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -183,20 +184,20 @@ public class TestDisable extends ZkIntegrationTestBase {
     Map<String, String> expectInstanceStateMap = new HashMap<String, String>();
     expectInstanceStateMap.put(disableNode, "OFFLINE");
     expectStateMap.put(".*", expectInstanceStateMap);
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "==");
     Assert.assertTrue(result, disableNode + " should be in OFFLINE");
 
     // re-enable localhost_12919
     command =
-        "--zkSvr " + ZK_ADDR + " --enableInstance " + clusterName + " " + disableNode + " true";
+        "--zkSvr " + _zkaddr + " --enableInstance " + clusterName + " " + disableNode + " true";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // make sure localhost_12919 is NOT in OFFLINE state
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "!=");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "!=");
     Assert.assertTrue(result, disableNode + " should NOT be in OFFLINE");
 
     // clean up
@@ -221,7 +222,7 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -231,7 +232,7 @@ public class TestDisable extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     // set ideal state to customized mode
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
@@ -240,30 +241,30 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // disable [TestDB0_0, TestDB0_5] on localhost_12919
     String command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition false " + clusterName
+        "--zkSvr " + _zkaddr + " --enablePartition false " + clusterName
             + " localhost_12919 TestDB0 TestDB0_0 TestDB0_5";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -273,22 +274,22 @@ public class TestDisable extends ZkIntegrationTestBase {
     expectInstanceStateMap.put("localhost_12919", "OFFLINE");
     expectStateMap.put("TestDB0_0", expectInstanceStateMap);
     expectStateMap.put("TestDB0_5", expectInstanceStateMap);
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "==");
     Assert.assertTrue(result, "localhost_12919"
         + " should be in OFFLINE for [TestDB0_0, TestDB0_5]");
 
     // re-enable localhost_12919 for [TestDB0_0, TestDB0_5]
     command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
+        "--zkSvr " + _zkaddr + " --enablePartition true " + clusterName
             + " localhost_12919 TestDB0 TestDB0_0 TestDB0_5";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // make sure localhost_12919 is NOT in OFFLINE state for [TestDB0_0, TestDB0_5]
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "!=");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "!=");
     Assert.assertTrue(result, "localhost_12919" + " should NOT be in OFFLINE");
 
     // clean up
@@ -313,7 +314,7 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -324,30 +325,30 @@ public class TestDisable extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // disable [TestDB0_0, TestDB0_5] on localhost_12919
     String command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition false " + clusterName
+        "--zkSvr " + _zkaddr + " --enablePartition false " + clusterName
             + " localhost_12919 TestDB0 TestDB0_0 TestDB0_5";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -357,22 +358,22 @@ public class TestDisable extends ZkIntegrationTestBase {
     expectInstanceStateMap.put("localhost_12919", "OFFLINE");
     expectStateMap.put("TestDB0_0", expectInstanceStateMap);
     expectStateMap.put("TestDB0_5", expectInstanceStateMap);
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "==");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "==");
     Assert.assertTrue(result, "localhost_12919"
         + " should be in OFFLINE for [TestDB0_0, TestDB0_5]");
 
     // re-enable localhost_12919 for [TestDB0_0, TestDB0_5]
     command =
-        "--zkSvr " + ZK_ADDR + " --enablePartition true " + clusterName
+        "--zkSvr " + _zkaddr + " --enablePartition true " + clusterName
             + " localhost_12919 TestDB0 TestDB0_0 TestDB0_5";
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // make sure localhost_12919 is NOT in OFFLINE state for [TestDB0_0, TestDB0_5]
-    result = ZkTestHelper.verifyState(_gZkClient, clusterName, "TestDB0", expectStateMap, "!=");
+    result = ZkTestHelper.verifyState(_zkclient, clusterName, "TestDB0", expectStateMap, "!=");
     Assert.assertTrue(result, "localhost_12919" + " should NOT be in OFFLINE");
 
     // clean up

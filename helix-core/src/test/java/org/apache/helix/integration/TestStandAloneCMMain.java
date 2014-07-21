@@ -25,10 +25,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -44,7 +42,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
     ClusterControllerManager newController = null;
     for (int i = 1; i <= 2; i++) {
       String controllerName = "controller_" + i;
-      newController = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+      newController = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
       newController.syncStart();
     }
 
@@ -52,7 +50,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
     _controller.syncStop();
 
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     final PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     final String newControllerName = newController.getInstanceName();
     TestHelper.verify(new Verifier() {
@@ -70,7 +68,7 @@ public class TestStandAloneCMMain extends ZkStandAloneCMTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     logger.info("STOP testStandAloneCMMain() at " + new Date(System.currentTimeMillis()));

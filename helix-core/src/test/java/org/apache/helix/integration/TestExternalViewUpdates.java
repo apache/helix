@@ -25,10 +25,10 @@ import java.util.List;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
@@ -36,15 +36,15 @@ import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestExternalViewUpdates extends ZkIntegrationTestBase {
+public class TestExternalViewUpdates extends ZkTestBase {
   @Test
   public void testExternalViewUpdates() throws Exception {
     System.out.println("START testExternalViewUpdates at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = getShortClassName();
+    String clusterName = TestUtil.getTestName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
     int resourceNb = 10;
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         resourceNb, // resources
@@ -54,32 +54,31 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(result);
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // need to verify that each ExternalView's version number is 2
     Builder keyBuilder = new Builder(clusterName);
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     String parentPath = keyBuilder.externalViews().getPath();
-    List<String> childNames = accessor.getChildNames(parentPath, 0);
+    List<String> childNames = _baseAccessor.getChildNames(parentPath, 0);
 
     List<String> paths = new ArrayList<String>();
     for (String name : childNames) {
@@ -88,7 +87,7 @@ public class TestExternalViewUpdates extends ZkIntegrationTestBase {
 
     // Stat[] stats = accessor.getStats(paths);
     for (String path : paths) {
-      Stat stat = accessor.getStat(path, 0);
+      Stat stat = _baseAccessor.getStat(path, 0);
       Assert.assertTrue(stat.getVersion() <= 2, "ExternalView should be updated at most 2 times");
     }
 

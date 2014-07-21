@@ -28,13 +28,13 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
+public class TestAutoFallbackPropertyStore extends ZkTestBase {
 
   class MyDataUpdater implements DataUpdater<ZNRecord> {
     final String _id;
@@ -63,7 +63,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -108,7 +108,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0 under both fallbackRoot and root
     for (int i = 0; i < 1; i++) {
@@ -154,7 +154,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -208,7 +208,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under both fallbackRoot and new root
     for (int i = 0; i < 10; i++) {
@@ -282,7 +282,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -322,7 +322,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -371,7 +371,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0 under fallbackRoot
     for (int i = 0; i < 1; i++) {
@@ -416,7 +416,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -474,7 +474,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     AutoFallbackPropertyStore<ZNRecord> store =
         new AutoFallbackPropertyStore<ZNRecord>(baseAccessor, root, fallbackRoot);
@@ -509,7 +509,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under fallbackRoot
     for (int i = 0; i < 10; i++) {
@@ -584,7 +584,7 @@ public class TestAutoFallbackPropertyStore extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String root = String.format("/%s/%s", clusterName, PropertyType.PROPERTYSTORE.name());
     String fallbackRoot = String.format("/%s/%s", clusterName, "HELIX_PROPERTYSTORE");
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     // create 0-9 under fallbackRoot and 10-19 under root
     for (int i = 0; i < 20; i++) {

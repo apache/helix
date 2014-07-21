@@ -59,10 +59,10 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
-    _setupTool = new ClusterSetup(_gZkClient);
+    _setupTool = new ClusterSetup(_zkclient);
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
@@ -70,26 +70,26 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 100, "OnlineOffline",
         RebalanceMode.FULL_AUTO + "", 0, 25);
     for (int i = 0; i < NODE_NR; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      String storageNodeName = "localhost_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 1);
 
     // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    String controllerName = "controller_0";
+    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     HelixManager manager = _controller; // _startCMResultMap.get(controllerName)._manager;
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      String instanceName = "localhost_" + (START_PORT + i);
+      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
       Thread.sleep(2000);
       boolean result =
-          ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+          ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
               CLUSTER_NAME, TEST_DB));
       Assert.assertTrue(result);
       ExternalView ev =
@@ -103,7 +103,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
             CLUSTER_NAME, TEST_DB));
 
     Assert.assertTrue(result);
@@ -117,7 +117,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     // verifyBalanceExternalView();
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
             CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     final HelixDataAccessor accessor = manager.getHelixDataAccessor();
@@ -129,7 +129,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     // verifyBalanceExternalView();
     result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
             CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -143,18 +143,18 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     // add 2 nodes
     for (int i = 0; i < 2; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (1000 + i);
+      String storageNodeName = "localhost_" + (1000 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
       String newInstanceName = storageNodeName.replace(':', '_');
       MockParticipantManager participant =
-          new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, newInstanceName);
+          new MockParticipantManager(_zkaddr, CLUSTER_NAME, newInstanceName);
       participant.syncStart();
     }
 
     // Thread.sleep(1000);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
             CLUSTER_NAME, TEST_DB));
     Assert.assertTrue(result);
   }
@@ -204,19 +204,18 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
   }
 
-  public static class ExternalViewBalancedVerifier implements ZkVerifier {
-    String _clusterName;
+  public static class ExternalViewBalancedVerifier extends ZkVerifier {
     String _resourceName;
 
     public ExternalViewBalancedVerifier(ZkClient client, String clusterName, String resourceName) {
-      _clusterName = clusterName;
+      super(clusterName, client);
       _resourceName = resourceName;
     }
 
     @Override
     public boolean verify() {
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+          new ZKHelixDataAccessor(getClusterName(), _baseAccessor);
       Builder keyBuilder = accessor.keyBuilder();
       IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
       int numberOfPartitions = idealState.getRecord().getListFields().size();
@@ -230,16 +229,6 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       return verifyBalanceExternalView(accessor.getProperty(keyBuilder.externalView(_resourceName))
           .getRecord(), numberOfPartitions, masterValue.toString(), replicas,
           liveInstanceMap.size(), idealState.getMaxPartitionsPerInstance());
-    }
-
-    @Override
-    public ZkClient getZkClient() {
-      return _gZkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
     }
   }
 }

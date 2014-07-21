@@ -28,12 +28,13 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestNullReplica extends ZkIntegrationTestBase {
+public class TestNullReplica extends ZkTestBase {
 
   @Test
   public void testNullReplica() throws Exception {
@@ -46,7 +47,7 @@ public class TestNullReplica extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -57,24 +58,24 @@ public class TestNullReplica extends ZkIntegrationTestBase {
     // set replica in ideal state to null
     String idealStatePath =
         PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
-    ZNRecord idealState = _gZkClient.readData(idealStatePath);
+    ZNRecord idealState = _zkclient.readData(idealStatePath);
     idealState.getSimpleFields().remove(IdealState.IdealStateProperty.REPLICAS.toString());
-    _gZkClient.writeData(idealStatePath, idealState);
+    _zkclient.writeData(idealStatePath, idealState);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

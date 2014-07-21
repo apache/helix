@@ -21,31 +21,28 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
+public class TestEntropyFreeNodeBounce extends ZkTestBase {
   @Test
   public void testBounceAll() throws Exception {
     // pick numbers that don't divide evenly
@@ -62,7 +59,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -82,13 +79,12 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
 
     // Start the controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // get an admin and accessor
-    HelixAdmin helixAdmin = new ZKHelixAdmin(_gZkClient);
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixAdmin helixAdmin = new ZKHelixAdmin(_zkclient);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     // do the test
@@ -96,7 +92,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
       Thread.sleep(1000);
       // ensure that the external view coalesces
       boolean result =
-          ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+          ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
               clusterName));
       Assert.assertTrue(result);
       ExternalView stableExternalView =
@@ -129,7 +125,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
 
   private HelixManager createParticipant(String clusterName, String instanceName) {
     HelixManager participant =
-        new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+        new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, _zkaddr);
     participant.getStateMachineEngine().registerStateModelFactory(
         StateModelDefId.from("OnlineOffline"), new TestHelixConnection.MockStateModelFactory());
     return participant;
@@ -138,16 +134,14 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
   /**
    * Simple verifier: just check that the external view matches a reference
    */
-  private static class MatchingExternalViewVerifier implements ZkVerifier {
+  private static class MatchingExternalViewVerifier extends ZkVerifier {
     private final HelixDataAccessor _accessor;
     private final ExternalView _reference;
-    private final String _clusterName;
 
     public MatchingExternalViewVerifier(ExternalView reference, String clusterName) {
-      BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-      _accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+      super(clusterName, _zkclient);
+      _accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
       _reference = reference;
-      _clusterName = clusterName;
     }
 
     @Override
@@ -156,16 +150,5 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
           _accessor.getProperty(_accessor.keyBuilder().externalView(_reference.getResourceName()));
       return _reference.equals(externalView);
     }
-
-    @Override
-    public ZkClient getZkClient() {
-      return _gZkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
-    }
-
   }
 }

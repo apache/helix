@@ -26,6 +26,8 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockBootstrapModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -33,15 +35,15 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestNonOfflineInitState extends ZkIntegrationTestBase {
+public class TestNonOfflineInitState extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestNonOfflineInitState.class);
 
   @Test
   public void testNonOfflineInitState() throws Exception {
     System.out.println("START testNonOfflineInitState at " + new Date(System.currentTimeMillis()));
-    String clusterName = getShortClassName();
+    String clusterName = TestUtil.getTestName();
 
-    setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -51,7 +53,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
         "Bootstrap", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -59,7 +61,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
 
       // add a state model with non-OFFLINE initial state
       StateMachineEngine stateMach = participants[i].getStateMachineEngine();
@@ -70,7 +72,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -86,26 +88,25 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
   private static void setupCluster(String clusterName, String ZkAddr, int startPort,
       String participantNamePrefix, String resourceNamePrefix, int resourceNb, int partitionNb,
       int nodesNb, int replica, String stateModelDef, boolean doRebalance) throws Exception {
-    if (_gZkClient.exists("/" + clusterName)) {
+    if (_zkclient.exists("/" + clusterName)) {
       LOG.warn("Cluster already exists:" + clusterName + ". Deleting it");
-      _gZkClient.deleteRecursive("/" + clusterName);
+      _zkclient.deleteRecursive("/" + clusterName);
     }
 
-    ClusterSetup setupTool = new ClusterSetup(ZkAddr);
-    setupTool.addCluster(clusterName, true);
-    setupTool.addStateModelDef(clusterName, "Bootstrap",
+    _setupTool.addCluster(clusterName, true);
+    _setupTool.addStateModelDef(clusterName, "Bootstrap",
         TestHelper.generateStateModelDefForBootstrap());
 
     for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;
-      setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
+      _setupTool.addInstanceToCluster(clusterName, participantNamePrefix + "_" + port);
     }
 
     for (int i = 0; i < resourceNb; i++) {
       String dbName = resourceNamePrefix + i;
-      setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
+      _setupTool.addResourceToCluster(clusterName, dbName, partitionNb, stateModelDef);
       if (doRebalance) {
-        setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
+        _setupTool.rebalanceStorageCluster(clusterName, dbName, replica);
       }
     }
   }

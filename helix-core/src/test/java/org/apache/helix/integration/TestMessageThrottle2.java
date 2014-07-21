@@ -45,7 +45,6 @@ import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -59,6 +58,7 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
@@ -66,7 +66,7 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 // test case from Ming Fang
-public class TestMessageThrottle2 extends ZkIntegrationTestBase {
+public class TestMessageThrottle2 extends ZkTestBase {
   final static String clusterName = "TestMessageThrottle2";
   final static String resourceName = "MyResource";
 
@@ -85,7 +85,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
     // wait for node2 becoming MASTER
     final Builder keyBuilder = new Builder(clusterName);
     final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     TestHelper.verify(new TestHelper.Verifier() {
 
       @Override
@@ -109,7 +109,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
     });
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -119,9 +119,9 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
   void startController() throws Exception {
     // start helixController
     System.out.println(String.format("Starting Controller{Cluster:%s, Port:%s, Zookeeper:%s}",
-        clusterName, 12000, ZK_ADDR));
+        clusterName, 12000, _zkaddr));
     HelixManager helixController =
-        HelixControllerMain.startHelixController(ZK_ADDR, clusterName, "localhost_" + 12000,
+        HelixControllerMain.startHelixController(_zkaddr, clusterName, "localhost_" + 12000,
             HelixControllerMain.STANDALONE);
 
     StatusPrinter statusPrinter = new StatusPrinter();
@@ -129,7 +129,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
   }
 
   void startAdmin() throws Exception {
-    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    HelixAdmin admin = new ZKHelixAdmin(_zkaddr);
 
     // create cluster
     System.out.println("Creating cluster: " + clusterName);
@@ -245,7 +245,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
 
     public void start() throws Exception {
       helixManager =
-          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, ZK_ADDR);
+          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, _zkaddr);
       {
         // hack to set sessionTimeout
         Field sessionTimeout = ZKHelixManager.class.getDeclaredField("_sessionTimeout");
@@ -357,7 +357,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
 
     private static void addInstanceConfig(String instanceName) {
       // add node to cluster if not already added
-      ZKHelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+      ZKHelixAdmin admin = new ZKHelixAdmin(_zkaddr);
 
       InstanceConfig instanceConfig = null;
       try {

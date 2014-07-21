@@ -30,7 +30,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TestTaskRebalancerStopResume.ReindexTask;
@@ -49,7 +48,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
@@ -60,10 +59,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
+public class TestIndependentTaskRebalancer extends ZkTestBase {
   private static final int n = 5;
   private static final int START_PORT = 12918;
-  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
+  private final String CLUSTER_NAME = "TestIndependentTaskRebalancer";
   private final MockParticipantManager[] _participants = new MockParticipantManager[n];
   private ClusterControllerManager _controller;
   private Set<String> _invokedClasses = Sets.newHashSet();
@@ -75,21 +74,20 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
 
     // Setup cluster and instances
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    setupTool.addCluster(CLUSTER_NAME, true);
+    _setupTool.addCluster(CLUSTER_NAME, true);
     for (int i = 0; i < n; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      String storageNodeName = "localhost_" + (START_PORT + i);
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     // start dummy participants
     for (int i = 0; i < n; i++) {
-      final String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      final String instanceName = "localhost_" + (START_PORT + i);
 
       // Set task callbacks
       Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
@@ -106,7 +104,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
         }
       });
 
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -116,14 +114,14 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     }
 
     // Start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    String controllerName = "controller_0";
+    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     // Start an admin connection
     _manager =
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR,
-            ZK_ADDR);
+            _zkaddr);
     _manager.connect();
     _driver = new TaskDriver(_manager);
   }
@@ -222,7 +220,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
     Map<String, String> taskConfigMap =
-        Maps.newHashMap(ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_'
+        Maps.newHashMap(ImmutableMap.of("fail", "" + true, "failInstance", "localhost_"
             + START_PORT));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);

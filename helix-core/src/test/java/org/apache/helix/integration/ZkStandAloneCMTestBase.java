@@ -23,7 +23,7 @@ import java.util.Date;
 
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
@@ -37,7 +37,7 @@ import org.testng.annotations.BeforeClass;
  * start 5 dummy participants verify the current states at end
  */
 
-public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
+public class ZkStandAloneCMTestBase extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(ZkStandAloneCMTestBase.class);
 
   protected static final int NODE_NR = 5;
@@ -46,9 +46,8 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
   protected static final String TEST_DB = "TestDB";
   protected static final int _PARTITIONS = 20;
 
-  protected ClusterSetup _setupTool = null;
-  protected final String CLASS_NAME = getShortClassName();
-  protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
+  protected final String CLASS_NAME = this.getClass().getSimpleName();
+  protected final String CLUSTER_NAME = CLASS_NAME;
 
   protected MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
   protected ClusterControllerManager _controller;
@@ -61,38 +60,37 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
-    _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
     _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
     for (int i = 0; i < NODE_NR; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      String storageNodeName = "localhost_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, _replica);
 
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      String instanceName = "localhost_" + (START_PORT + i);
+      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
     }
 
     // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    String controllerName = "controller_0";
+    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, CLUSTER_NAME));
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             CLUSTER_NAME));
     Assert.assertTrue(result);
   }

@@ -21,56 +21,44 @@ package org.apache.helix.webapp;
 
 import java.util.logging.Level;
 
-import org.I0Itec.zkclient.ZkServer;
-import org.apache.helix.TestHelper;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.util.ZKClientPool;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.webapp.AdminTestHelper.AdminThread;
 import org.apache.log4j.Logger;
 import org.restlet.Client;
 import org.restlet.data.Protocol;
-import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
-public class AdminTestBase {
+public class AdminTestBase extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(AdminTestBase.class);
-  public static final String ZK_ADDR = "localhost:2187";
   protected final static int ADMIN_PORT = 2202;
 
-  protected static ZkServer _zkServer;
-  protected static ZkClient _gZkClient;
-  protected static ClusterSetup _gSetupTool;
   protected static Client _gClient;
 
   static AdminThread _adminThread;
 
   @BeforeSuite
-  public void beforeSuite() throws Exception {
+  public void beforeSuite() {
     // TODO: use logging.properties file to config java.util.logging.Logger levels
     java.util.logging.Logger topJavaLogger = java.util.logging.Logger.getLogger("");
     topJavaLogger.setLevel(Level.WARNING);
 
     // start zk
-    _zkServer = TestHelper.startZkServer(ZK_ADDR);
-    AssertJUnit.assertTrue(_zkServer != null);
-    ZKClientPool.reset();
-
-    _gZkClient = new ZkClient(ZK_ADDR);
-    _gZkClient.setZkSerializer(new ZNRecordSerializer());
-    _gSetupTool = new ClusterSetup(ZK_ADDR);
+    super.beforeSuite();
 
     // start admin
-    _adminThread = new AdminThread(ZK_ADDR, ADMIN_PORT);
+    _adminThread = new AdminThread(_zkaddr, ADMIN_PORT);
     _adminThread.start();
 
     // create a client
     _gClient = new Client(Protocol.HTTP);
 
     // wait for the web service to start
-    Thread.sleep(100);
+    try {
+      Thread.sleep(100);
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted", e);
+    }
   }
 
   @AfterSuite
@@ -81,10 +69,7 @@ public class AdminTestBase {
     _adminThread.stop();
 
     // stop zk
-    ZKClientPool.reset();
-    _gZkClient.close();
-
-    TestHelper.stopZkServer(_zkServer);
+    super.afterSuite();
     // System.out.println("END AdminTestBase.afterSuite() at " + new
     // Date(System.currentTimeMillis()));
   }

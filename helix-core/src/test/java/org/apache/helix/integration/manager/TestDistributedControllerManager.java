@@ -26,22 +26,20 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDistributedControllerManager extends ZkIntegrationTestBase {
+public class TestDistributedControllerManager extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestDistributedControllerManager.class);
 
   @Test
@@ -54,7 +52,7 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -68,14 +66,14 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
       int port = 12918 + i;
       distributedControllers[i] =
           new ZKHelixManager(clusterName, "localhost_" + port, InstanceType.CONTROLLER_PARTICIPANT,
-              ZK_ADDR);
+              _zkaddr);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -85,12 +83,12 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
     // verify leader changes to localhost_12919
     Thread.sleep(100);
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     LiveInstance leader = accessor.getProperty(keyBuilder.controllerLeader());
@@ -125,12 +123,12 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // verify leader changes to localhost_12919
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNotNull(accessor.getProperty(keyBuilder.liveInstance(expireController
         .getInstanceName())));
@@ -143,12 +141,9 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
         + TestHelper.printHandlers(expireController));
 
     List<CallbackHandler> handlers = expireController.getHandlers();
-    Assert
-        .assertEquals(
-            handlers.size(),
-            1,
-            "Distributed controller should have 1 handler (message) after lose leadership, but was "
-                + handlers.size());
+    Assert.assertEquals(handlers.size(), 1,
+        "Distributed controller should have 1 handler (message) after lose leadership, but was "
+            + handlers.size());
   }
 
   @Test
@@ -161,7 +156,7 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -175,14 +170,14 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
       distributedControllers[i] =
-          new ClusterDistributedController(ZK_ADDR, clusterName, contrllerName);
+          new ClusterDistributedController(_zkaddr, clusterName, contrllerName);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -193,8 +188,7 @@ public class TestDistributedControllerManager extends ZkIntegrationTestBase {
     expireController(distributedControllers[1], distributedControllers[0]);
 
     // clean up
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < n; i++) {

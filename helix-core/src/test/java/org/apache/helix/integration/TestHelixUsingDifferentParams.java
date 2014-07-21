@@ -21,15 +21,18 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
-public class TestHelixUsingDifferentParams extends ZkIntegrationTestBase {
+public class TestHelixUsingDifferentParams extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestHelixUsingDifferentParams.class);
 
   @Test()
   public void testCMUsingDifferentParams() throws Exception {
-    System.out.println("START " + getShortClassName() + " at "
+    String testName = TestUtil.getTestName();
+    System.out.println("START " + testName + " at "
         + new Date(System.currentTimeMillis()));
 
     int numResourceArray[] = new int[] {
@@ -56,15 +59,15 @@ public class TestHelixUsingDifferentParams extends ZkIntegrationTestBase {
             System.out.println("START " + uniqClusterName + " at "
                 + new Date(System.currentTimeMillis()));
 
-            TestDriver.setupCluster(uniqClusterName, ZK_ADDR, numResources,
+            TestDriver.setupCluster(uniqClusterName, _zkaddr, numResources,
                 numPartitionsPerResource, numInstance, replica);
 
             for (int i = 0; i < numInstance; i++) {
-              TestDriver.startDummyParticipant(uniqClusterName, i);
+              TestDriver.startDummyParticipant(_zkaddr, uniqClusterName, i);
             }
 
-            TestDriver.startController(uniqClusterName);
-            TestDriver.verifyCluster(uniqClusterName, 1000, 50 * 1000);
+            TestDriver.startController(_zkaddr, uniqClusterName);
+            TestDriver.verifyCluster(_zkaddr, uniqClusterName, 1000, 50 * 1000);
             TestDriver.stopCluster(uniqClusterName);
 
             System.out.println("END " + uniqClusterName + " at "
@@ -75,6 +78,6 @@ public class TestHelixUsingDifferentParams extends ZkIntegrationTestBase {
     }
 
     System.out
-        .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+        .println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
 }

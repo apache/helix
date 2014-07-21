@@ -26,12 +26,12 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
+public class TestZkManagerWithAutoFallbackStore extends ZkTestBase {
   @Test
   public void testBasic() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -42,7 +42,7 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -56,7 +56,7 @@ public class TestZkManagerWithAutoFallbackStore extends ZkUnitTestBase {
     for (int i = 0; i < 1; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 

@@ -21,20 +21,20 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
+public class TestZkManagerFlappingDetection extends ZkTestBase {
   @Test
   public void testDisconnectHistory() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -44,7 +44,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     String instanceName = "localhost_" + (12918 + 0);
-    MockParticipantManager manager = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+    MockParticipantManager manager = new MockParticipantManager(_zkaddr, clusterName, instanceName);
 
     manager.connect();
     ZkClient zkClient = manager.getZkClient();
@@ -85,7 +85,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
   // String methodName = TestHelper.getTestMethodName();
   // final String clusterName = className + "_" + methodName + UUID.randomUUID();
   //
-  // TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+  // TestHelper.setupCluster(clusterName, zkaddr, 12918, // participant port
   // "localhost", // participant name prefix
   // "TestDB", // resource name prefix
   // 1, // resources
@@ -97,7 +97,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
   // // flapping time window to 5 sec
   // System.setProperty("helixmanager.flappingTimeWindow", "15000");
   // System.setProperty("helixmanager.maxDisconnectThreshold", "7");
-  // ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, instanceName, type, ZK_ADDR);
+  // ZkHelixTestManager manager2 = new ZkHelixTestManager(clusterName, instanceName, type, zkaddr);
   // manager2.connect();
   // ZkClient zkClient = manager2.getZkClient();
   // for (int i = 0; i < 3; i++) {
@@ -127,7 +127,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -139,7 +139,7 @@ public class TestZkManagerFlappingDetection extends ZkIntegrationTestBase {
     // flapping time window to 5 sec
     System.setProperty("helixmanager.flappingTimeWindow", "5000");
     System.setProperty("helixmanager.maxDisconnectThreshold", "3");
-    ClusterControllerManager manager2 = new ClusterControllerManager(ZK_ADDR, clusterName, null);
+    ClusterControllerManager manager2 = new ClusterControllerManager(_zkaddr, clusterName, null);
     manager2.connect();
     Thread.sleep(100);
     ZkClient zkClient = manager2.getZkClient();

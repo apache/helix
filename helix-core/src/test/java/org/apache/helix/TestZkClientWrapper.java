@@ -23,6 +23,7 @@ import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -34,14 +35,14 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZkClientWrapper extends ZkUnitTestBase {
+public class TestZkClientWrapper extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestZkClientWrapper.class);
 
   ZkClient _zkClient;
 
   @BeforeClass
   public void beforeClass() {
-    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient = new ZkClient(_zkaddr);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 

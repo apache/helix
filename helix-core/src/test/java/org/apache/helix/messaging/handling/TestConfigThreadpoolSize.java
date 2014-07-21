@@ -76,7 +76,7 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
 
   @Test
   public void TestThreadPoolSizeConfig() {
-    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
+    String instanceName = "localhost_" + (START_PORT + 0);
     HelixManager manager = _participants[0];
 
     ConfigAccessor accessor = manager.getConfigAccessor();
@@ -89,7 +89,7 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     accessor.set(scope, "TestMsg." + HelixTaskExecutor.MAX_THREADS, "" + 8);
 
     for (int i = 0; i < NODE_NR; i++) {
-      instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      instanceName = "localhost_" + (START_PORT + i);
 
       _participants[i].getMessagingService().registerMessageHandlerFactory("TestMsg",
           new TestMessagingHandlerFactory());
@@ -99,7 +99,7 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     }
 
     for (int i = 0; i < NODE_NR; i++) {
-      instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      instanceName = "localhost_" + (START_PORT + i);
 
       DefaultMessagingService svc =
           (DefaultMessagingService) (_participants[i].getMessagingService());

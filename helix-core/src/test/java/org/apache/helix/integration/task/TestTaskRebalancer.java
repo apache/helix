@@ -30,7 +30,6 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
@@ -48,7 +47,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -59,14 +58,14 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-public class TestTaskRebalancer extends ZkIntegrationTestBase {
+public class TestTaskRebalancer extends ZkTestBase {
   private static final int n = 5;
   private static final int START_PORT = 12918;
   private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   private static final String TIMEOUT_CONFIG = "Timeout";
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
-  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
+  private final String CLUSTER_NAME = "TestTaskRebalancer";
   private final MockParticipantManager[] _participants = new MockParticipantManager[n];
   private ClusterControllerManager _controller;
 
@@ -76,21 +75,20 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
   @BeforeClass
   public void beforeClass() throws Exception {
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
 
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    setupTool.addCluster(CLUSTER_NAME, true);
+    _setupTool.addCluster(CLUSTER_NAME, true);
     for (int i = 0; i < n; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      String storageNodeName = "localhost_" + (START_PORT + i);
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     // Set up target db
-    setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_PARTITIONS,
+    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_PARTITIONS,
         MASTER_SLAVE_STATE_MODEL);
-    setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("Reindex", new TaskFactory() {
@@ -102,8 +100,8 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
     // start dummy participants
     for (int i = 0; i < n; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      String instanceName = "localhost_" + (START_PORT + i);
+      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -113,20 +111,20 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     }
 
     // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    String controllerName = "controller_0";
+    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     // create cluster manager
     _manager =
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR,
-            ZK_ADDR);
+            _zkaddr);
     _manager.connect();
     _driver = new TaskDriver(_manager);
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 CLUSTER_NAME));
     Assert.assertTrue(result);
   }

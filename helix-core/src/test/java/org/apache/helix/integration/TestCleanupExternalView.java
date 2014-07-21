@@ -23,16 +23,14 @@ import java.util.Date;
 
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -41,7 +39,7 @@ import org.testng.annotations.Test;
  * Test clean external-view - if current-state is remove externally, controller should remove the
  * orphan external-view
  */
-public class TestCleanupExternalView extends ZkUnitTestBase {
+public class TestCleanupExternalView extends ZkTestBase {
   @Test
   public void test() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -52,7 +50,7 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -62,7 +60,7 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -70,18 +68,18 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
     // disable controller
-    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    ZKHelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.enableCluster(clusterName, false);
     // wait all pending zk-events being processed, otherwise remove current-state will cause
     // controller send O->S message
@@ -94,7 +92,7 @@ public class TestCleanupExternalView extends ZkUnitTestBase {
     // delete current-state manually, controller shall remove external-view when cluster is enabled
     // again
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     // System.out.println("remove current-state");

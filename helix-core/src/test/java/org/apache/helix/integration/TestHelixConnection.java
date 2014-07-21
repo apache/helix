@@ -30,7 +30,6 @@ import org.apache.helix.HelixParticipant;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ClusterConfig;
@@ -52,11 +51,12 @@ import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHelixConnection extends ZkUnitTestBase {
+public class TestHelixConnection extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestHelixConnection.class.getName());
 
   @StateModelInfo(initialState = "OFFLINE", states = {
@@ -96,7 +96,6 @@ public class TestHelixConnection extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    String zkAddr = ZK_ADDR;
     ClusterId clusterId = ClusterId.from(clusterName);
     ControllerId controllerId = ControllerId.from("controller");
     final ParticipantId participantId = ParticipantId.from("participant1");
@@ -109,7 +108,7 @@ public class TestHelixConnection extends ZkUnitTestBase {
     StateModelDefId stateModelDefId = StateModelDefId.from("MasterSlave");
 
     // create connection
-    HelixConnection connection = new ZkHelixConnection(zkAddr);
+    HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // setup cluster

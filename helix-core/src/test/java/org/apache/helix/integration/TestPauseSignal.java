@@ -31,13 +31,14 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestPauseSignal extends ZkIntegrationTestBase {
+public class TestPauseSignal extends ZkTestBase {
   @Test()
   public void testPauseSignal() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -49,7 +50,7 @@ public class TestPauseSignal extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -60,29 +61,29 @@ public class TestPauseSignal extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // pause the cluster and make sure pause is persistent
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient zkClient = new ZkClient(_zkaddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     final HelixDataAccessor tmpAccessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-    String cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " false";
+    String cmd = "-zkSvr " + _zkaddr + " -enableCluster " + clusterName + " false";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
 
     tmpAccessor.setProperty(tmpAccessor.keyBuilder().pause(), new PauseSignal("pause"));
@@ -92,23 +93,19 @@ public class TestPauseSignal extends ZkIntegrationTestBase {
     Thread.sleep(1000);
 
     // add a new resource group
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
-    setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
+    _setupTool.addResourceToCluster(clusterName, "TestDB1", 10, "MasterSlave");
+    _setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     // make sure TestDB1 external view is empty
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 1000, clusterName, "TestDB1",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+            "localhost_12921", "localhost_12922"), _zkaddr);
 
     // resume controller
-    final HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-
-    cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " true";
+    cmd = "-zkSvr " + _zkaddr + " -enableCluster " + clusterName + " true";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

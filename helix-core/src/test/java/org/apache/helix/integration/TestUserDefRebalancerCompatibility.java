@@ -22,13 +22,11 @@ package org.apache.helix.integration;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -82,11 +80,11 @@ public class TestUserDefRebalancerCompatibility extends ZkStandAloneCMTestBase {
       boolean result =
           ClusterStateVerifier
               .verifyByZkCallback(new TestCustomizedIdealStateRebalancer.ExternalViewBalancedVerifier(
-                  _gZkClient, CLUSTER_NAME, db2));
+                  _zkclient, CLUSTER_NAME, db2));
       Assert.assertTrue(result);
       Thread.sleep(1000);
       HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+          new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
       Builder keyBuilder = accessor.keyBuilder();
       ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
       Assert.assertEquals(ev.getPartitionSet().size(), 60);

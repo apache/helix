@@ -27,21 +27,24 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCarryOverBadCurState extends ZkIntegrationTestBase {
+public class TestCarryOverBadCurState extends ZkTestBase {
   @Test
   public void testCarryOverBadCurState() throws Exception {
     System.out.println("START testCarryOverBadCurState at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = getShortClassName();
+    String testName = TestUtil.getTestName();
+    String clusterName = testName;
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -55,28 +58,28 @@ public class TestCarryOverBadCurState extends ZkIntegrationTestBase {
     String path =
         PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_12918",
             "session_0", "TestDB0");
-    _gZkClient.createPersistent(path, true);
-    _gZkClient.writeData(path, badCurState);
+    _zkclient.createPersistent(path, true);
+    _zkclient.writeData(path, badCurState);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(result);
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

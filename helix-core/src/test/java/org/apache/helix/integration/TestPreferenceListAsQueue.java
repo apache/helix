@@ -33,7 +33,6 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.IdealState;
@@ -44,6 +43,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -52,7 +52,7 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.Lists;
 
-public class TestPreferenceListAsQueue extends ZkUnitTestBase {
+public class TestPreferenceListAsQueue extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestPreferenceListAsQueue.class);
   private static final int TRANSITION_TIME = 500;
   private static final int WAIT_TIME = TRANSITION_TIME + (TRANSITION_TIME / 2);
@@ -61,20 +61,18 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
   private List<String> _instanceList;
   private String _clusterName;
   private String _stateModel;
-  private ClusterSetup _clusterSetup;
   private HelixAdmin _admin;
 
   @BeforeMethod
   public void beforeMethod() {
     _instanceList = Lists.newLinkedList();
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
-    _admin = _clusterSetup.getClusterManagementTool();
+    _admin = _setupTool.getClusterManagementTool();
 
     // Create cluster
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     _clusterName = className + "_" + methodName;
-    _clusterSetup.addCluster(_clusterName, true);
+    _setupTool.addCluster(_clusterName, true);
   }
 
   /**
@@ -87,7 +85,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     _stateModel = "OnlineOfflineReprioritized";
 
     // Add a state model with the transition to ONLINE deprioritized
-    _clusterSetup.addStateModelDef(_clusterName, _stateModel,
+    _setupTool.addStateModelDef(_clusterName, _stateModel,
         createReprioritizedStateModelDef(_stateModel));
 
     // Add a constraint of one transition per partition
@@ -112,7 +110,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     _stateModel = "OnlineOfflineBounded";
 
     // Add a state model with the parallelism implicit
-    _clusterSetup.addStateModelDef(_clusterName, _stateModel,
+    _setupTool.addStateModelDef(_clusterName, _stateModel,
         createEnforcedParallelismStateModelDef(_stateModel, PARALLELISM));
     runTest();
   }
@@ -129,10 +127,10 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     String[] instanceInfoArray = {
         "localhost_1", "localhost_2"
     };
-    _clusterSetup.addInstancesToCluster(_clusterName, instanceInfoArray);
+    _setupTool.addInstancesToCluster(_clusterName, instanceInfoArray);
 
     // Add resource
-    _clusterSetup.addResourceToCluster(_clusterName, RESOURCE_NAME, NUM_PARTITIONS, _stateModel,
+    _setupTool.addResourceToCluster(_clusterName, RESOURCE_NAME, NUM_PARTITIONS, _stateModel,
         RebalanceMode.SEMI_AUTO.toString());
 
     // Update resource with empty preference lists
@@ -154,7 +152,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
     for (int i = 0; i < NUM_INSTANCES; i++) {
       participants[i] =
           HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
-              InstanceType.PARTICIPANT, ZK_ADDR);
+              InstanceType.PARTICIPANT, _zkaddr);
       participants[i].getStateMachineEngine().registerStateModelFactory(_stateModel,
           new PrefListTaskOnlineOfflineStateModelFactory());
       participants[i].connect();
@@ -162,7 +160,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
 
     // Start the controller
     HelixManager controller =
-        HelixManagerFactory.getZKHelixManager(_clusterName, null, InstanceType.CONTROLLER, ZK_ADDR);
+        HelixManagerFactory.getZKHelixManager(_clusterName, null, InstanceType.CONTROLLER, _zkaddr);
     controller.connect();
 
     // This resource only has 1 partition

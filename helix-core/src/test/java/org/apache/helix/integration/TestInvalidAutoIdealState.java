@@ -27,7 +27,6 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -37,18 +36,18 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
-import org.testng.annotations.Test;
 
 // Helix-50: integration test for generate message based on state priority
-public class TestInvalidAutoIdealState extends ZkUnitTestBase {
+public class TestInvalidAutoIdealState extends ZkTestBase {
   // TODO Disable this test, need refactor it for testing message generation based on state priority
   // @Test
   void testInvalidReplica2() throws Exception {
-    HelixAdmin admin = new ZKHelixAdmin(ZK_ADDR);
+    HelixAdmin admin = new ZKHelixAdmin(_zkaddr);
 
     // create cluster
     String className = TestHelper.getTestClassName();
@@ -96,16 +95,16 @@ public class TestInvalidAutoIdealState extends ZkUnitTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

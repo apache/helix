@@ -27,15 +27,15 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestResetClusterMetrics extends ZkUnitTestBase {
+public class TestResetClusterMetrics extends ZkTestBase {
   /**
    * Ensure cluster status lifecycle is tied to controller leader status
    */
@@ -46,24 +46,24 @@ public class TestResetClusterMetrics extends ZkUnitTestBase {
     String clusterName = className + "_" + methodName;
 
     // Set up a cluster with one of everything
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "Resource", 1, 1, 1, 1,
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "Resource", 1, 1, 1, 1,
         "OnlineOffline", RebalanceMode.FULL_AUTO, true);
 
     // Add a participant
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
+        new MockParticipantManager(_zkaddr, clusterName, "localhost_12918");
     participant.syncStart();
 
     // Add a controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // Make sure everything gets assigned
     Thread.sleep(1000);
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 

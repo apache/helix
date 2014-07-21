@@ -28,12 +28,14 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestRestartParticipant extends ZkIntegrationTestBase {
+public class TestRestartParticipant extends ZkTestBase {
   public class KillOtherTransition extends MockTransition {
     final AtomicReference<MockParticipantManager> _other;
 
@@ -57,10 +59,10 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
     // Logger.getRootLogger().setLevel(Level.INFO);
     System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
 
-    String clusterName = getShortClassName();
+    String clusterName = TestUtil.getTestName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -70,7 +72,7 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -78,29 +80,29 @@ public class TestRestartParticipant extends ZkIntegrationTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 4) {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new KillOtherTransition(participants[0]));
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
 
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // restart
     Thread.sleep(500);
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, participants[0].getClusterName(),
+        new MockParticipantManager(_zkaddr, participants[0].getClusterName(),
             participants[0].getInstanceName());
     System.err.println("Restart " + participant.getInstanceName());
     participant.syncStart();
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

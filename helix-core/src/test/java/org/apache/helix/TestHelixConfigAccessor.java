@@ -27,10 +27,11 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHelixConfigAccessor extends ZkUnitTestBase {
+public class TestHelixConfigAccessor extends ZkTestBase {
 
   @Test
   public void testBasic() throws Exception {
@@ -40,10 +41,10 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
 
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkclient);
     HelixConfigScope clusterScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
 
@@ -185,9 +186,9 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    ZKHelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    ZKHelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.addCluster(clusterName, true);
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkclient);
     HelixConfigScope participantScope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
             .forParticipant("localhost_12918").build();

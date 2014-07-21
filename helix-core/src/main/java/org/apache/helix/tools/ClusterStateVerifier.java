@@ -86,10 +86,30 @@ public class ClusterStateVerifier {
     boolean verify();
   }
 
-  public interface ZkVerifier extends Verifier {
-    ZkClient getZkClient();
+  public static abstract class ZkVerifier implements Verifier {
+    private final String _clusterName;
+    private final ZkClient _zkclient;
 
-    String getClusterName();
+    public ZkVerifier(String clusterName, ZkClient zkclient) {
+      if (zkclient == null || clusterName == null) {
+        throw new IllegalArgumentException("zkclient/clusterName can't be null");
+      }
+
+      _clusterName = clusterName;
+      _zkclient = zkclient;
+    }
+
+    public ZkVerifier(String clusterName, String zkAddr) {
+      this(clusterName, ZKClientPool.getZkClient(zkAddr));
+    }
+
+    public ZkClient getZkClient() {
+      return _zkclient;
+    }
+
+    public String getClusterName() {
+      return _clusterName;
+    }
   }
 
   static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener {
@@ -135,11 +155,9 @@ public class ClusterStateVerifier {
   /**
    * verifier that verifies best possible state and external view
    */
-  public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
+  public static class BestPossAndExtViewZkVerifier extends ZkVerifier {
     private final String zkAddr;
-    private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
-    private final ZkClient zkClient;
     private final Set<String> resources;
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName) {
@@ -153,13 +171,9 @@ public class ClusterStateVerifier {
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
         Map<String, Map<String, String>> errStates, Set<String> resources) {
-      if (zkAddr == null || clusterName == null) {
-        throw new IllegalArgumentException("requires zkAddr|clusterName");
-      }
+      super(clusterName, zkAddr);
       this.zkAddr = zkAddr;
-      this.clusterName = clusterName;
       this.errStates = errStates;
-      this.zkClient = ZKClientPool.getZkClient(zkAddr); // null;
       this.resources = resources;
     }
 
@@ -167,9 +181,9 @@ public class ClusterStateVerifier {
     public boolean verify() {
       try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(getZkClient()));
 
-        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, clusterName,
+        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, getClusterName(),
             resources);
       } catch (Exception e) {
         LOG.error("exception in verification", e);
@@ -178,43 +192,25 @@ public class ClusterStateVerifier {
     }
 
     @Override
-    public ZkClient getZkClient() {
-      return zkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return clusterName;
-    }
-
-    @Override
     public String toString() {
       String verifierName = getClass().getName();
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-      return verifierName + "(" + clusterName + "@" + zkAddr + ")";
+      return verifierName + "(" + getClusterName() + "@" + zkAddr + ")";
     }
   }
 
-  public static class MasterNbInExtViewVerifier implements ZkVerifier {
-    private final String zkAddr;
-    private final String clusterName;
-    private final ZkClient zkClient;
+  public static class MasterNbInExtViewVerifier extends ZkVerifier {
 
     public MasterNbInExtViewVerifier(String zkAddr, String clusterName) {
-      if (zkAddr == null || clusterName == null) {
-        throw new IllegalArgumentException("requires zkAddr|clusterName");
-      }
-      this.zkAddr = zkAddr;
-      this.clusterName = clusterName;
-      this.zkClient = ZKClientPool.getZkClient(zkAddr);
+      super(clusterName, zkAddr);
     }
 
     @Override
     public boolean verify() {
       try {
         ZKHelixDataAccessor accessor =
-            new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(getZkClient()));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       } catch (Exception e) {
@@ -222,17 +218,6 @@ public class ClusterStateVerifier {
       }
       return false;
     }
-
-    @Override
-    public ZkClient getZkClient() {
-      return zkClient;
-    }
-
-    @Override
-    public String getClusterName() {
-      return clusterName;
-    }
-
   }
 
   static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,

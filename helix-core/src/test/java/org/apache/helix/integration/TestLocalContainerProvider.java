@@ -31,7 +31,6 @@ import org.apache.helix.HelixController;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixParticipant;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.accessor.ClusterAccessor;
@@ -58,6 +57,7 @@ import org.apache.helix.controller.serializer.DefaultStringSerializer;
 import org.apache.helix.controller.serializer.StringSerializer;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonProperty;
@@ -70,7 +70,7 @@ import com.google.common.util.concurrent.AbstractService;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
 
-public class TestLocalContainerProvider extends ZkUnitTestBase {
+public class TestLocalContainerProvider extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestLocalContainerProvider.class);
 
   private static final int MAX_PARTICIPANTS = 4;
@@ -100,7 +100,7 @@ public class TestLocalContainerProvider extends ZkUnitTestBase {
     deallocated = 0;
 
     // connect
-    connection = new ZkHelixConnection(ZK_ADDR);
+    connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // create the cluster

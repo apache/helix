@@ -115,12 +115,12 @@ public class TestCustomizedIdealStateRebalancer extends
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 3);
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
+        ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_zkclient,
             CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     Thread.sleep(1000);
     HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionSet().size(), 60);
@@ -141,14 +141,11 @@ public class TestCustomizedIdealStateRebalancer extends
     Assert.assertNotNull(holder.getContext());
   }
 
-  public static class ExternalViewBalancedVerifier implements ZkVerifier {
-    ZkClient _client;
-    String _clusterName;
+  public static class ExternalViewBalancedVerifier extends ZkVerifier {
     String _resourceName;
 
     public ExternalViewBalancedVerifier(ZkClient client, String clusterName, String resourceName) {
-      _client = client;
-      _clusterName = clusterName;
+      super(clusterName, client);
       _resourceName = resourceName;
     }
 
@@ -156,7 +153,7 @@ public class TestCustomizedIdealStateRebalancer extends
     public boolean verify() {
       try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_client));
+            new ZKHelixDataAccessor(getClusterName(), _baseAccessor);
         Builder keyBuilder = accessor.keyBuilder();
         IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
         int numberOfPartitions = idealState.getRecord().getListFields().size();
@@ -185,16 +182,6 @@ public class TestCustomizedIdealStateRebalancer extends
       } catch (Exception e) {
         return false;
       }
-    }
-
-    @Override
-    public ZkClient getZkClient() {
-      return _client;
-    }
-
-    @Override
-    public String getClusterName() {
-      return _clusterName;
     }
 
   }

@@ -22,15 +22,12 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
-import org.testng.annotations.AfterClass;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestCustomIdealState extends ZkIntegrationTestBase {
+public class TestCustomIdealState extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestCustomIdealState.class);
 
   @Test
@@ -46,16 +43,16 @@ public class TestCustomIdealState extends ZkIntegrationTestBase {
             + numInstance + "_r" + replica + "_basic";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
+    TestDriver.setupClusterWithoutRebalance(uniqClusterName, _zkaddr, numResources,
         numPartitionsPerResource, numInstance, replica);
 
     for (int i = 0; i < numInstance; i++) {
-      TestDriver.startDummyParticipant(uniqClusterName, i);
+      TestDriver.startDummyParticipant(_zkaddr, uniqClusterName, i);
     }
-    TestDriver.startController(uniqClusterName);
+    TestDriver.startController(_zkaddr, uniqClusterName);
 
-    TestDriver.setIdealState(uniqClusterName, 2000, 50);
-    TestDriver.verifyCluster(uniqClusterName, 3000, 50 * 1000);
+    TestDriver.setIdealState(_zkaddr, uniqClusterName, 2000, 50);
+    TestDriver.verifyCluster(_zkaddr, uniqClusterName, 3000, 50 * 1000);
 
     TestDriver.stopCluster(uniqClusterName);
 
@@ -74,25 +71,25 @@ public class TestCustomIdealState extends ZkIntegrationTestBase {
             + numInstance + "_r" + replica + "_nonalive";
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
+    TestDriver.setupClusterWithoutRebalance(uniqClusterName, _zkaddr, numResources,
         numPartitionsPerResource, numInstance, replica);
 
     for (int i = 0; i < numInstance / 2; i++) {
-      TestDriver.startDummyParticipant(uniqClusterName, i);
+      TestDriver.startDummyParticipant(_zkaddr, uniqClusterName, i);
     }
 
-    TestDriver.startController(uniqClusterName);
-    TestDriver.setIdealState(uniqClusterName, 0, 100);
+    TestDriver.startController(_zkaddr, uniqClusterName);
+    TestDriver.setIdealState(_zkaddr, uniqClusterName, 0, 100);
 
     // wait some time for customized ideal state being populated
     Thread.sleep(1000);
 
     // start the rest of participants after ideal state is set
     for (int i = numInstance / 2; i < numInstance; i++) {
-      TestDriver.startDummyParticipant(uniqClusterName, i);
+      TestDriver.startDummyParticipant(_zkaddr, uniqClusterName, i);
     }
 
-    TestDriver.verifyCluster(uniqClusterName, 4000, 50 * 1000);
+    TestDriver.verifyCluster(_zkaddr, uniqClusterName, 4000, 50 * 1000);
 
     TestDriver.stopCluster(uniqClusterName);
 
@@ -112,23 +109,22 @@ public class TestCustomIdealState extends ZkIntegrationTestBase {
             + numInstance + "_r" + replica + "_drop";
 
     System.out.println("START " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));
-    TestDriver.setupClusterWithoutRebalance(uniqClusterName, ZK_ADDR, numResources,
+    TestDriver.setupClusterWithoutRebalance(uniqClusterName, _zkaddr, numResources,
         numPartitionsPerResource, numInstance, replica);
 
     for (int i = 0; i < numInstance; i++) {
-      TestDriver.startDummyParticipant(uniqClusterName, i);
+      TestDriver.startDummyParticipant(_zkaddr, uniqClusterName, i);
     }
-    TestDriver.startController(uniqClusterName);
-    TestDriver.setIdealState(uniqClusterName, 2000, 50);
-    TestDriver.verifyCluster(uniqClusterName, 3000, 50 * 1000);
+    TestDriver.startController(_zkaddr, uniqClusterName);
+    TestDriver.setIdealState(_zkaddr, uniqClusterName, 2000, 50);
+    TestDriver.verifyCluster(_zkaddr, uniqClusterName, 3000, 50 * 1000);
 
     // drop resource group
-    ClusterSetup setup = new ClusterSetup(ZK_ADDR);
-    setup.dropResourceFromCluster(uniqClusterName, "TestDB0");
+    _setupTool.dropResourceFromCluster(uniqClusterName, "TestDB0");
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, uniqClusterName,
         "TestDB0", TestHelper.<String> setOf("localhost_12918", "localhost_12919",
-            "localhost_12920", "localhost_12921", "localhost_12922"), ZK_ADDR);
+            "localhost_12920", "localhost_12921", "localhost_12922"), _zkaddr);
 
     TestDriver.stopCluster(uniqClusterName);
     System.out.println("STOP " + uniqClusterName + " at " + new Date(System.currentTimeMillis()));

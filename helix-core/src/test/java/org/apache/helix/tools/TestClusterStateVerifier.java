@@ -23,11 +23,11 @@ import java.util.Arrays;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
@@ -36,7 +36,7 @@ import org.testng.annotations.Test;
 
 import com.google.common.collect.Sets;
 
-public class TestClusterStateVerifier extends ZkUnitTestBase {
+public class TestClusterStateVerifier extends ZkTestBase {
   final String[] RESOURCES = {
       "resource0", "resource1"
   };
@@ -54,12 +54,11 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     _clusterName = className + "_" + methodName;
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    _admin = setupTool.getClusterManagementTool();
-    setupTool.addCluster(_clusterName, true);
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS, "OnlineOffline",
+    _admin = _setupTool.getClusterManagementTool();
+    _setupTool.addCluster(_clusterName, true);
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS, "OnlineOffline",
         RebalanceMode.SEMI_AUTO.toString());
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS, "OnlineOffline",
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS, "OnlineOffline",
         RebalanceMode.SEMI_AUTO.toString());
 
     // Configure and start the participants
@@ -68,8 +67,8 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
       String host = "localhost";
       int port = 12918 + i;
       String id = host + '_' + port;
-      setupTool.addInstanceToCluster(_clusterName, id);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, id);
+      _setupTool.addInstanceToCluster(_clusterName, id);
+      _participants[i] = new MockParticipantManager(_zkaddr, _clusterName, id);
       _participants[i].syncStart();
     }
 
@@ -83,7 +82,7 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     }
 
     // Start the controller
-    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller_0");
+    _controller = new ClusterControllerManager(_zkaddr, _clusterName, "controller_0");
     _controller.syncStart();
     Thread.sleep(1000);
   }
@@ -103,7 +102,7 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     // Just ensure that the entire cluster passes
     // ensure that the external view coalesces
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             _clusterName));
     Assert.assertTrue(result);
   }
@@ -118,17 +117,17 @@ public class TestClusterStateVerifier extends ZkUnitTestBase {
     _admin.enableInstance(_clusterName, "localhost_12918", true);
     Thread.sleep(1000);
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             _clusterName, null, Sets.newHashSet(RESOURCES[1])));
     Assert.assertTrue(result);
     String[] args = {
-        "--zkSvr", ZK_ADDR, "--cluster", _clusterName, "--resources", RESOURCES[1]
+        "--zkSvr", _zkaddr, "--cluster", _clusterName, "--resources", RESOURCES[1]
     };
     result = ClusterStateVerifier.verifyState(args);
     Assert.assertTrue(result);
 
     // But the full cluster verification should fail
-    boolean fullResult = new BestPossAndExtViewZkVerifier(ZK_ADDR, _clusterName).verify();
+    boolean fullResult = new BestPossAndExtViewZkVerifier(_zkaddr, _clusterName).verify();
     Assert.assertFalse(fullResult);
     _admin.enableCluster(_clusterName, true);
   }

@@ -564,7 +564,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     // verify pause znode exists
     String pausePath = PropertyPathConfig.getPath(PropertyType.PAUSE, clusterName);
     System.out.println("pausePath: " + pausePath);
-    boolean exists = _gZkClient.exists(pausePath);
+    boolean exists = _zkclient.exists(pausePath);
     Assert.assertTrue(exists, pausePath + " should exist");
 
     // Then enable it
@@ -583,7 +583,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     System.out.println(sw.toString());
 
     // verify pause znode doesn't exist
-    exists = _gZkClient.exists(pausePath);
+    exists = _zkclient.exists(pausePath);
     Assert.assertFalse(exists, pausePath + " should be removed");
 
     System.out.println("END: verifyEnableCluster()");

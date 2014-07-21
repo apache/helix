@@ -37,13 +37,14 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestBatchMessage extends ZkIntegrationTestBase {
+public class TestBatchMessage extends ZkTestBase {
   class TestZkChildListener implements IZkChildListener {
     int _maxNbOfChilds = 0;
 
@@ -67,7 +68,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -78,7 +79,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // enable batch message
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
@@ -86,10 +87,10 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
-    _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
+    _zkclient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -97,12 +98,12 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
     Assert.assertTrue(listener._maxNbOfChilds <= 2,
@@ -129,7 +130,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -139,7 +140,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -147,12 +148,12 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -163,7 +164,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // enable batch message
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
@@ -171,18 +172,18 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // registry a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
-    _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
+    _zkclient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 
     // restart all participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
     Assert.assertTrue(listener._maxNbOfChilds <= 2,
@@ -209,7 +210,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, // resource#
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "TestDB", 1, // resource#
         6, // partition#
         n, // nodes#
         3, // replicas#
@@ -217,7 +218,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // enable batch message
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
@@ -227,7 +228,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     final String partitionToFail = "TestDB0_4";
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     for (int i = 0; i < n; i++) {
@@ -236,10 +237,10 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
       if (instanceName.equals(hostToFail)) {
         Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
         errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -249,14 +250,14 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     errStates.get("TestDB0").put(partitionToFail, hostToFail);
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+            _zkaddr, clusterName, errStates));
     Assert.assertTrue(result);
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
     errorStateMap.put(partitionToFail, TestHelper.setOf(hostToFail));
 
     // verify "TestDB0_4", "localhost_12919" is in ERROR state
-    TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
+    TestHelper.verifyState(clusterName, _zkaddr, errorStateMap, "ERROR");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -272,7 +273,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -284,26 +285,26 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     // enable batch message
     // --addResourceProperty <clusterName resourceName propertyName propertyValue>
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--addResourceProperty", clusterName, "TestDB0",
+        "--zkSvr", _zkaddr, "--addResourceProperty", clusterName, "TestDB0",
         HelixPropertyAttribute.BATCH_MESSAGE_MODE.toString(), "true"
     });
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
 
     // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
-    _gZkClient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
+    _zkclient.subscribeChildChanges(keyBuilder.messages("localhost_12918").getPath(), listener);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // pause controller
     // --enableCluster <clusterName true/false>
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"
+        "--zkSvr", _zkaddr, "--enableCluster", clusterName, "false"
     });
 
     // start participants
@@ -311,7 +312,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -323,11 +324,11 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     // resume controller
     // --enableCluster <clusterName true/false>
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
+        "--zkSvr", _zkaddr, "--enableCluster", clusterName, "true"
     });
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
     Assert.assertTrue(listener._maxNbOfChilds > 16,

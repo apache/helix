@@ -29,6 +29,8 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestCommand.CommandType;
 import org.apache.helix.tools.TestExecutor;
@@ -42,9 +44,9 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZnodeModify extends ZkUnitTestBase {
+public class TestZnodeModify extends ZkTestBase {
   private static Logger logger = Logger.getLogger(TestZnodeModify.class);
-  private final String PREFIX = "/" + getShortClassName();
+  private final String PREFIX = "/TestZnodeModify";
 
   @Test()
   public void testBasic() throws Exception {
@@ -85,7 +87,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     command = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 0, record), arg);
     commandList.add(command);
 
-    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, _zkaddr);
     for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
     }
@@ -132,7 +134,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     command = new TestCommand(CommandType.VERIFY, new TestTrigger(3100, 0, recordNew), arg);
     commandList.add(command);
 
-    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, _zkaddr);
 
     boolean result = results.remove(command1).booleanValue();
     AssertJUnit.assertFalse(result);
@@ -175,7 +177,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     command1 = new TestCommand(CommandType.VERIFY, new TestTrigger(1000, 500, recordNew), arg1);
     commandList.add(command1);
 
-    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, _zkaddr);
     for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertFalse(entry.getValue());
     }
@@ -210,7 +212,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
       public void run() {
         try {
           Thread.sleep(3000);
-          final ZkClient zkClient = new ZkClient(ZK_ADDR);
+          final ZkClient zkClient = new ZkClient(_zkaddr);
           zkClient.setZkSerializer(new ZNRecordSerializer());
           zkClient.createPersistent(pathChild1, true);
           zkClient.writeData(pathChild1, record);
@@ -220,7 +222,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
       }
     }.start();
 
-    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, ZK_ADDR);
+    Map<TestCommand, Boolean> results = TestExecutor.executeTest(commandList, _zkaddr);
     for (Map.Entry<TestCommand, Boolean> entry : results.entrySet()) {
       Assert.assertTrue(entry.getValue());
       // System.out.println(entry.getValue() + ":" + entry.getKey());
@@ -232,10 +234,10 @@ public class TestZnodeModify extends ZkUnitTestBase {
 
   @BeforeClass()
   public void beforeClass() {
-    System.out.println("START " + getShortClassName() + " at "
+    System.out.println("START " + TestUtil.getTestName() + " at "
         + new Date(System.currentTimeMillis()));
 
-    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient = new ZkClient(_zkaddr);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists(PREFIX)) {
       _zkClient.deleteRecursive(PREFIX);
@@ -248,7 +250,7 @@ public class TestZnodeModify extends ZkUnitTestBase {
     _zkClient.close();
 
     System.out
-        .println("END " + getShortClassName() + " at " + new Date(System.currentTimeMillis()));
+        .println("END " + TestUtil.getTestName() + " at " + new Date(System.currentTimeMillis()));
 
   }
 

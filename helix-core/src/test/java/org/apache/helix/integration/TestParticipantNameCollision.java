@@ -39,7 +39,7 @@ public class TestParticipantNameCollision extends ZkStandAloneCMTestBase {
       try {
         // the call fails on getClusterManagerForParticipant()
         // no threads start
-        newParticipant = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+        newParticipant = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
         newParticipant.syncStart();
       } catch (Exception e) {
         e.printStackTrace();

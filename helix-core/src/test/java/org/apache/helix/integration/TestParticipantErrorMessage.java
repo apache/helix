@@ -80,7 +80,7 @@ public class TestParticipantErrorMessage extends ZkStandAloneCMTestBase {
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             CLUSTER_NAME));
     Assert.assertTrue(result);
     Builder kb = _participants[1].getHelixDataAccessor().keyBuilder();

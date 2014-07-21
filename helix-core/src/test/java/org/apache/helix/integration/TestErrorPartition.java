@@ -30,24 +30,26 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.mock.participant.ErrTransition;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestErrorPartition extends ZkIntegrationTestBase {
+public class TestErrorPartition extends ZkTestBase {
   @Test()
   public void testErrorPartition() throws Exception {
-    String clusterName = getShortClassName();
+    String clusterName = TestUtil.getTestName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
     System.out.println("START testErrorPartition() at " + new Date(System.currentTimeMillis()));
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkclient);
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, "localhost", "TestDB", 1, 10, 5, 3,
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "TestDB", 1, 10, 5, 3,
         "MasterSlave", true);
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     for (int i = 0; i < 5; i++) {
@@ -59,10 +61,10 @@ public class TestErrorPartition extends ZkIntegrationTestBase {
             put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
           }
         };
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -72,7 +74,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase {
     errStates.get("TestDB0").put("TestDB0_4", "localhost_12918");
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+            _zkaddr, clusterName, errStates));
     Assert.assertTrue(result);
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>() {
@@ -82,7 +84,7 @@ public class TestErrorPartition extends ZkIntegrationTestBase {
     };
 
     // verify "TestDB0_0", "localhost_12918" is in ERROR state
-    TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
+    TestHelper.verifyState(clusterName, _zkaddr, errorStateMap, "ERROR");
 
     // disable a partition on a node with error state
     tool.enablePartition(false, clusterName, "localhost_12918", "TestDB0",
@@ -90,17 +92,17 @@ public class TestErrorPartition extends ZkIntegrationTestBase {
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+            _zkaddr, clusterName, errStates));
     Assert.assertTrue(result);
 
-    TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
+    TestHelper.verifyState(clusterName, _zkaddr, errorStateMap, "ERROR");
 
     // disable a node with error state
     tool.enableInstance(clusterName, "localhost_12918", false);
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName, errStates));
+            _zkaddr, clusterName, errStates));
     Assert.assertTrue(result);
 
     // make sure after restart stale ERROR state is gone
@@ -111,14 +113,14 @@ public class TestErrorPartition extends ZkIntegrationTestBase {
     participants[0].syncStop();
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
-    participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
+    participants[0] = new MockParticipantManager(_zkaddr, clusterName, "localhost_12918");
     new Thread(participants[0]).start();
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, clusterName));
+            _zkaddr, clusterName));
     Assert.assertTrue(result);
 
     // clean up

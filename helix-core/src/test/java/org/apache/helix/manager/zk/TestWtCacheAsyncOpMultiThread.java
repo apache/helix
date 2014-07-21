@@ -32,11 +32,11 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
+public class TestWtCacheAsyncOpMultiThread extends ZkTestBase {
   class TestCreateZkCacheBaseDataAccessor implements Callable<Boolean> {
     final ZkCacheBaseDataAccessor<ZNRecord> _accessor;
     final String _clusterName;
@@ -201,7 +201,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
         PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
     String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     baseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -210,7 +210,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
         new ZkCacheBaseDataAccessor<ZNRecord>(baseAccessor, null, cachePaths, null);
 
     // TestHelper.printCache(accessor._wtCache);
-    boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
+    boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _zkclient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     // create 10 current states using 2 threads
@@ -222,7 +222,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
     // verify wtCache
     // TestHelper.printCache(accessor._wtCache);
-    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
+    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _zkclient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     // update 10 current states 10 times using 2 threads
@@ -234,7 +234,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
     // verify wtCache
     // TestHelper.printCache(accessor._wtCache);
-    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
+    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _zkclient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     // set 10 external views using 2 threads
@@ -246,7 +246,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
     // verify wtCache
     // TestHelper.printCache(accessor._wtCache);
-    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _gZkClient, false);
+    ret = TestHelper.verifyZkCache(cachePaths, accessor._wtCache._cache, _zkclient, false);
     Assert.assertTrue(ret, "wtCache doesn't match data on Zk");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

@@ -32,7 +32,6 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -42,11 +41,12 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
 import org.apache.helix.participant.HelixCustomCodeRunner;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
+public class TestDisableCustomCodeRunner extends ZkTestBase {
 
   private static final int N = 2;
   private static final int PARTITION_NUM = 1;
@@ -86,7 +86,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -96,7 +96,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
@@ -109,10 +109,10 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       participants
-          .put(instanceName, new MockParticipantManager(ZK_ADDR, clusterName, instanceName));
+          .put(instanceName, new MockParticipantManager(_zkaddr, clusterName, instanceName));
 
       customCodeRunners.put(instanceName, new HelixCustomCodeRunner(participants.get(instanceName),
-          ZK_ADDR));
+          _zkaddr));
       callbacks.put(instanceName, new DummyCallback());
 
       customCodeRunners.get(instanceName).invoke(callbacks.get(instanceName))
@@ -122,12 +122,12 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
     // Make sure callback is registered
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
     final HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     final String customCodeRunnerResource =
@@ -154,7 +154,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     }
 
     // Disable custom-code runner resource
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.enableResource(clusterName, customCodeRunnerResource, false);
 
     // Verify that states of custom-code runner are all OFFLINE
@@ -212,7 +212,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     admin.enableResource(clusterName, customCodeRunnerResource, true);
     result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 

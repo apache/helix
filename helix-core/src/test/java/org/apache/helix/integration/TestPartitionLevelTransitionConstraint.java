@@ -43,12 +43,13 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBase {
+public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
 
   private static Logger LOG = Logger.getLogger(TestPartitionLevelTransitionConstraint.class);
 
@@ -106,7 +107,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -116,8 +117,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
         "MasterSlave", false); // do not rebalance
 
     // setup semi-auto ideal-state
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     StateModelDefinition stateModelDef = defineStateModel();
     accessor.setProperty(accessor.keyBuilder().stateModelDef("Bootstrap"), stateModelDef);
     IdealState idealState = accessor.getProperty(accessor.keyBuilder().idealStates("TestDB0"));
@@ -135,39 +135,39 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
         .addConstraintAttribute(ConstraintAttribute.PARTITION.toString(), ".*")
         .addConstraintAttribute(ConstraintAttribute.CONSTRAINT_VALUE.toString(), "1");
 
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1",
         constraintItemBuilder.build());
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start 1st participant
     MockParticipantManager[] participants = new MockParticipantManager[n];
     String instanceName1 = "localhost_12918";
 
-    participants[0] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName1);
+    participants[0] = new MockParticipantManager(_zkaddr, clusterName, instanceName1);
     participants[0].getStateMachineEngine().registerStateModelFactory("Bootstrap",
         new BootstrapStateModelFactory());
     participants[0].syncStart();
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 
     // start 2nd participant which will be the master for Test0_0
     String instanceName2 = "localhost_12919";
-    participants[1] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName2);
+    participants[1] = new MockParticipantManager(_zkaddr, clusterName, instanceName2);
     participants[1].getStateMachineEngine().registerStateModelFactory("Bootstrap",
         new BootstrapStateModelFactory());
     participants[1].syncStart();
 
     result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
 

@@ -34,12 +34,12 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.store.HelixPropertyListener;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
+public class TestZkCacheSyncOpSingleThread extends ZkTestBase {
   class TestListener implements HelixPropertyListener {
     ConcurrentLinkedQueue<String> _deletePathQueue = new ConcurrentLinkedQueue<String>();
     ConcurrentLinkedQueue<String> _createPathQueue = new ConcurrentLinkedQueue<String>();
@@ -78,7 +78,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init external base data accessor
-    ZkClient zkclient = new ZkClient(ZK_ADDR);
+    ZkClient zkclient = new ZkClient(_zkaddr);
     zkclient.setZkSerializer(new ZNRecordSerializer());
     ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(zkclient);
 
@@ -87,7 +87,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
         PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
     String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(zkclient);
 
     extBaseAccessor.create(curStatePath, null, AccessOption.PERSISTENT);
 
@@ -113,7 +113,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
+    boolean ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, zkclient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
     System.out.println("createCnt: " + listener._createPathQueue.size());
@@ -146,7 +146,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, zkclient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
     System.out.println("changeCnt: " + listener._changePathQueue.size());
@@ -172,7 +172,7 @@ public class TestZkCacheSyncOpSingleThread extends ZkUnitTestBase {
 
     // verify cache
     // TestHelper.printCache(accessor._zkCache._cache);
-    ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, _gZkClient, true);
+    ret = TestHelper.verifyZkCache(cachePaths, accessor._zkCache._cache, zkclient, true);
     // System.out.println("ret: " + ret);
     Assert.assertTrue(ret, "zkCache doesn't match data on Zk");
     System.out.println("deleteCnt: " + listener._deletePathQueue.size());

@@ -26,7 +26,6 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
@@ -46,6 +45,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
@@ -56,7 +56,7 @@ import org.testng.annotations.Test;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
-public class TestNewStages extends ZkUnitTestBase {
+public class TestNewStages extends ZkTestBase {
   final int n = 2;
   final int p = 8;
   final int r = 2;
@@ -214,7 +214,7 @@ public class TestNewStages extends ZkUnitTestBase {
 
     System.out.println("START " + _clusterId + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -223,24 +223,24 @@ public class TestNewStages extends ZkUnitTestBase {
         r, // replicas
         "MasterSlave", true); // do rebalance
 
-    _controller = new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    _controller = new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     _controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      _participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      _participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       _participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     _dataAccessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
   }
 
   @AfterClass

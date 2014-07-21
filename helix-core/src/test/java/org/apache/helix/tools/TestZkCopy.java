@@ -24,12 +24,12 @@ import java.util.Date;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkCopy extends ZkUnitTestBase {
+public class TestZkCopy extends ZkTestBase {
 
   @Test
   public void test() throws Exception {
@@ -39,27 +39,27 @@ public class TestZkCopy extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     String fromPath = "/" + clusterName + "/from";
-    _gZkClient.createPersistent(fromPath, true);
+    _zkclient.createPersistent(fromPath, true);
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
         String path = String.format("%s/%d/%d", fromPath, i, j);
-        _gZkClient.createPersistent(path, true);
-        _gZkClient.writeData(path, new ZNRecord(String.format("%d/%d", i, j)));
+        _zkclient.createPersistent(path, true);
+        _zkclient.writeData(path, new ZNRecord(String.format("%d/%d", i, j)));
       }
     }
 
     // Copy
     String toPath = "/" + clusterName + "/to";
-    ZkCopy.main(new String[]{"--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath});
+    ZkCopy.main(new String[]{"--src", "zk://" + _zkaddr + fromPath, "--dst", "zk://" + _zkaddr + toPath});
 
     // Verify
-    Assert.assertTrue(_gZkClient.exists(toPath));
-    Assert.assertNull(_gZkClient.readData(toPath));
+    Assert.assertTrue(_zkclient.exists(toPath));
+    Assert.assertNull(_zkclient.readData(toPath));
     for (int i = 0; i < 5; i++) {
       for (int j = 0; j < 5; j++) {
         String path = String.format("%s/%d/%d", toPath, i, j);
-        Assert.assertTrue(_gZkClient.exists(path));
-        ZNRecord record = _gZkClient.readData(path);
+        Assert.assertTrue(_zkclient.exists(path));
+        ZNRecord record = _zkclient.readData(path);
         Assert.assertEquals(String.format("%d/%d", i, j), record.getId());
       }
     }
@@ -78,7 +78,7 @@ public class TestZkCopy extends ZkUnitTestBase {
     String dstClusterName = testName + "_dst";
     int n = 5;
 
-    TestHelper.setupCluster(srcClusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(srcClusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -87,25 +87,25 @@ public class TestZkCopy extends ZkUnitTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    TestHelper.setupEmptyCluster(_gZkClient, dstClusterName);
+    TestHelper.setupEmptyCluster(_zkclient, dstClusterName);
 
     String fromPath = String.format("/%s/INSTANCES", srcClusterName);
     String toPath = String.format("/%s/INSTANCES", dstClusterName);
     ZkCopy.main(new String[] {
-        "--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath
+        "--src", "zk://" + _zkaddr + fromPath, "--dst", "zk://" + _zkaddr + toPath
     });
 
     fromPath = String.format("/%s/CONFIGS/PARTICIPANT", srcClusterName);
     toPath = String.format("/%s/CONFIGS/PARTICIPANT", dstClusterName);
     ZkCopy.main(new String[] {
-        "--src", "zk://" + ZK_ADDR + fromPath, "--dst", "zk://" + ZK_ADDR + toPath
+        "--src", "zk://" + _zkaddr + fromPath, "--dst", "zk://" + _zkaddr + toPath
     });
 
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
       boolean ret =
           ZKUtil
-              .isInstanceSetup(_gZkClient, dstClusterName, instanceName, InstanceType.PARTICIPANT);
+              .isInstanceSetup(_zkclient, dstClusterName, instanceName, InstanceType.PARTICIPANT);
       Assert.assertTrue(ret);
     }
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));

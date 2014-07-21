@@ -35,15 +35,15 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
+    String command = "-zkSvr " + _zkaddr + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+            "localhost_12921", "localhost_12922"), _zkaddr);
   }
 
   @Test()
@@ -54,7 +54,7 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
 
     boolean verifyResult =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(verifyResult);
 
     String hostToKill = "localhost_12920";
@@ -62,18 +62,18 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
     _participants[2].syncStop();
     Thread.sleep(1000);
 
-    String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
+    String command = "-zkSvr " + _zkaddr + " -dropResource " + CLUSTER_NAME + " " + "MyDB2";
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919",
-        /* "localhost_12920", */"localhost_12921", "localhost_12922"), ZK_ADDR);
+        /* "localhost_12920", */"localhost_12921", "localhost_12922"), _zkaddr);
 
-    _participants[2] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, hostToKill);
+    _participants[2] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, hostToKill);
     _participants[2].syncStart();
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
         TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+            "localhost_12921", "localhost_12922"), _zkaddr);
   }
 }

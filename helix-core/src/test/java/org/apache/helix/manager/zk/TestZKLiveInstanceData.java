@@ -34,22 +34,22 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZKLiveInstanceData extends ZkUnitTestBase {
-  private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+public class TestZKLiveInstanceData extends ZkTestBase {
+  private final String clusterName = "TestZKLiveInstanceData";
 
   @Test
   public void testDataChange() throws Exception {
     // Create an admin and add LiveInstanceChange listener to it
     HelixManager adminManager =
         HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR,
-            ZK_ADDR);
+            _zkaddr);
     adminManager.connect();
     final BlockingQueue<List<LiveInstance>> changeList =
         new LinkedBlockingQueue<List<LiveInstance>>();
@@ -71,7 +71,7 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
     // Join as participant, should trigger a live instance change event
     HelixManager manager =
         HelixManagerFactory.getZKHelixManager(clusterName, "localhost_54321",
-            InstanceType.PARTICIPANT, ZK_ADDR);
+            InstanceType.PARTICIPANT, _zkaddr);
     manager.connect();
     instances = changeList.poll(1, TimeUnit.SECONDS);
     Assert.assertNotNull(instances, "Expecting a list of live instance");
@@ -108,7 +108,7 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
   public void beforeClass() throws Exception {
     ZkClient zkClient = null;
     try {
-      zkClient = new ZkClient(ZK_ADDR);
+      zkClient = new ZkClient(_zkaddr);
       zkClient.setZkSerializer(new ZNRecordSerializer());
       if (zkClient.exists("/" + clusterName)) {
         zkClient.deleteRecursive("/" + clusterName);
@@ -119,10 +119,10 @@ public class TestZKLiveInstanceData extends ZkUnitTestBase {
       }
     }
 
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addCluster", clusterName));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", _zkaddr, "-addCluster", clusterName));
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", _zkaddr, "-addNode", clusterName,
         "localhost:54321"));
-    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", ZK_ADDR, "-addNode", clusterName,
+    ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", _zkaddr, "-addNode", clusterName,
         "localhost:54322"));
   }
 

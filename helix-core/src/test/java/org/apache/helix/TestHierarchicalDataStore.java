@@ -23,25 +23,25 @@ import java.io.FileFilter;
 
 import org.apache.helix.controller.HierarchicalDataHolder;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
-public class TestHierarchicalDataStore extends ZkUnitTestBase {
-  protected static ZkClient _zkClientString = null;
+public class TestHierarchicalDataStore extends ZkTestBase {
 
-  @Test(groups = {
-    "unitTest"
-  })
+  ZkClient client;
+
+  @Test
   public void testHierarchicalDataStore() {
-    _zkClientString = new ZkClient(ZK_ADDR, 1000, 3000);
+    client = new ZkClient(_zkaddr, 1000, 3000);
 
     String path = "/tmp/testHierarchicalDataStore";
     FileFilter filter = null;
     // _zkClient.setZkSerializer(new ZNRecordSerializer());
 
-    _zkClientString.deleteRecursive(path);
+    client.deleteRecursive(path);
     HierarchicalDataHolder<ZNRecord> dataHolder =
-        new HierarchicalDataHolder<ZNRecord>(_zkClientString, path, filter);
+        new HierarchicalDataHolder<ZNRecord>(client, path, filter);
     dataHolder.print();
     AssertJUnit.assertFalse(dataHolder.refreshData());
 
@@ -67,15 +67,16 @@ public class TestHierarchicalDataStore extends ZkUnitTestBase {
     set(path + "/child1", "new child 1 data");
     AssertJUnit.assertTrue(dataHolder.refreshData());
     dataHolder.print();
+    client.close();
   }
 
   private void set(String path, String data) {
-    _zkClientString.writeData(path, data);
+    client.writeData(path, data);
   }
 
   private void add(String path, String data) {
-    _zkClientString.createPersistent(path, true);
-    _zkClientString.writeData(path, data);
+    client.createPersistent(path, true);
+    client.writeData(path, data);
   }
 
 }

@@ -49,7 +49,7 @@ public class TestExpandCluster extends ZkStandAloneCMTestBase {
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, DB3);
 
     for (int i = 0; i < 5; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (27960 + i);
+      String storageNodeName = "localhost_" + (27960 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
     String command = "-zkSvr localhost:2183 -expandCluster " + CLUSTER_NAME;

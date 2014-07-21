@@ -34,21 +34,20 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestParticipantManager extends ZkIntegrationTestBase {
+public class TestParticipantManager extends ZkTestBase {
 
   private static Logger LOG = Logger.getLogger(TestParticipantManager.class);
 
@@ -62,7 +61,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -72,17 +71,17 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     HelixManager participant =
-        new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, ZK_ADDR);
+        new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, _zkaddr);
     participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
         new MockMSModelFactory());
     participant.connect();
 
     HelixManager controller =
-        new ZKHelixManager(clusterName, "controller_0", InstanceType.CONTROLLER, ZK_ADDR);
+        new ZKHelixManager(clusterName, "controller_0", InstanceType.CONTROLLER, _zkaddr);
     controller.connect();
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -92,7 +91,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // verify all live-instances and leader nodes are gone
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12918")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
@@ -113,7 +112,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -124,18 +123,18 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
     String oldSessionId = participants[0].getSessionId();
@@ -147,7 +146,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     TimeUnit.MILLISECONDS.sleep(100);
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
     String newSessionId = participants[0].getSessionId();
@@ -200,7 +199,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -211,13 +210,13 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // start controller
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].setTransition(new SessionExpiryTransition(startCountdown, endCountdown));
       participants[i].syncStart();
     }
@@ -229,7 +228,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     ZkTestHelper.expireSession(participants[0].getZkClient());
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -240,7 +239,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
     String errPath =
         PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, "localhost_12918",
             oldSessionId, "TestDB0", "TestDB0_0");
-    ZNRecord error = _gZkClient.readData(errPath);
+    ZNRecord error = _zkclient.readData(errPath);
     Assert
         .assertNotNull(
             error,

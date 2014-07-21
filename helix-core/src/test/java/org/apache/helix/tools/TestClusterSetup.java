@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -32,7 +31,7 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -40,7 +39,11 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.testutil.ZkTestBase;
+import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -48,15 +51,12 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestClusterSetup extends ZkUnitTestBase {
+public class TestClusterSetup extends ZkTestBase {
   protected static final String CLUSTER_NAME = "TestClusterSetup";
   protected static final String TEST_DB = "TestDB";
   protected static final String INSTANCE_PREFIX = "instance_";
   protected static final String STATE_MODEL = "MasterSlave";
   protected static final String TEST_NODE = "testnode_1";
-
-  ZkClient _zkClient;
-  ClusterSetup _clusterSetup;
 
   private static String[] createArgs(String str) {
     String[] split = str.split("[ ]+");
@@ -68,23 +68,61 @@ public class TestClusterSetup extends ZkUnitTestBase {
   public void beforeClass() throws IOException, Exception {
     System.out.println("START TestClusterSetup.beforeClass() "
         + new Date(System.currentTimeMillis()));
-
-    _zkClient = new ZkClient(ZK_ADDR);
-    _zkClient.setZkSerializer(new ZNRecordSerializer());
   }
 
   @AfterClass()
   public void afterClass() {
-    _zkClient.close();
     System.out.println("END TestClusterSetup.afterClass() " + new Date(System.currentTimeMillis()));
   }
 
   @BeforeMethod()
   public void setup() {
 
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
-    _clusterSetup.addCluster(CLUSTER_NAME, true);
+    _zkclient.deleteRecursive("/" + CLUSTER_NAME);
+    _setupTool.addCluster(CLUSTER_NAME, true);
+  }
+
+  private void verifyEnabled(ZkClient zkClient, String clusterName, String instance,
+      boolean wantEnabled) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instance));
+    AssertJUnit.assertEquals(wantEnabled, config.getInstanceEnabled());
+  }
+
+  private void verifyInstance(ZkClient zkClient, String clusterName, String instance,
+      boolean wantExists) {
+    // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
+    String instanceConfigsPath =
+        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+            ConfigScopeProperty.PARTICIPANT.toString());
+    String instanceConfigPath = instanceConfigsPath + "/" + instance;
+    String instancePath = HelixUtil.getInstancePath(clusterName, instance);
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
+  }
+
+  private void verifyResource(ZkClient zkClient, String clusterName, String resource,
+      boolean wantExists) {
+    String resourcePath = HelixUtil.getIdealStatePath(clusterName) + "/" + resource;
+    AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
+  }
+
+  private void verifyReplication(ZkClient zkClient, String clusterName, String resource, int repl) {
+    ZKHelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resource));
+    for (PartitionId partitionId : idealState.getPartitionIdSet()) {
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+        AssertJUnit.assertEquals(repl, idealState.getPreferenceList(partitionId).size());
+      } else if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+        AssertJUnit.assertEquals(repl, idealState.getParticipantStateMap(partitionId).size());
+      }
+    }
   }
 
   @Test
@@ -117,19 +155,19 @@ public class TestClusterSetup extends ZkUnitTestBase {
     }
     String nextInstanceAddress = INSTANCE_PREFIX + 3;
 
-    _clusterSetup.addInstancesToCluster(CLUSTER_NAME, instanceAddresses);
+    _setupTool.addInstancesToCluster(CLUSTER_NAME, instanceAddresses);
 
     // verify instances
     for (String instance : instanceAddresses) {
-      verifyInstance(_zkClient, CLUSTER_NAME, instance, true);
+      verifyInstance(_zkclient, CLUSTER_NAME, instance, true);
     }
 
-    _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_zkClient, CLUSTER_NAME, nextInstanceAddress, true);
+    _setupTool.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
+    verifyInstance(_zkclient, CLUSTER_NAME, nextInstanceAddress, true);
     // re-add
     boolean caughtException = false;
     try {
-      _clusterSetup.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
+      _setupTool.addInstanceToCluster(CLUSTER_NAME, nextInstanceAddress);
     } catch (HelixException e) {
       caughtException = true;
     }
@@ -149,32 +187,32 @@ public class TestClusterSetup extends ZkUnitTestBase {
     boolean caughtException = false;
     // drop without disabling
     try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+      _setupTool.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
     } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
 
     // disable
-    _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, nextInstanceAddress,
+    _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nextInstanceAddress,
         false);
-    verifyEnabled(_zkClient, CLUSTER_NAME, nextInstanceAddress, false);
+    verifyEnabled(_zkclient, CLUSTER_NAME, nextInstanceAddress, false);
 
     // drop
-    _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
-    verifyInstance(_zkClient, CLUSTER_NAME, nextInstanceAddress, false);
+    _setupTool.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+    verifyInstance(_zkclient, CLUSTER_NAME, nextInstanceAddress, false);
 
     // re-drop
     caughtException = false;
     try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
+      _setupTool.dropInstanceFromCluster(CLUSTER_NAME, nextInstanceAddress);
     } catch (HelixException e) {
       caughtException = true;
     }
     AssertJUnit.assertTrue(caughtException);
     /*
-     * //drop a set _clusterSetup.getClusterManagementTool().enableInstances(CLUSTER_NAME,
-     * instanceAddresses, false); _clusterSetup.dropInstancesFromCluster(CLUSTER_NAME,
+     * //drop a set setupTool.getClusterManagementTool().enableInstances(CLUSTER_NAME,
+     * instanceAddresses, false); setupTool.dropInstancesFromCluster(CLUSTER_NAME,
      * instanceAddresses);
      */
 
@@ -182,7 +220,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String badFormatInstance = "badinstance";
     caughtException = false;
     try {
-      _clusterSetup.getClusterManagementTool().enableInstance(CLUSTER_NAME, badFormatInstance,
+      _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, badFormatInstance,
           false);
     } catch (HelixException e) {
       caughtException = true;
@@ -191,7 +229,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     caughtException = false;
     try {
-      _clusterSetup.dropInstanceFromCluster(CLUSTER_NAME, badFormatInstance);
+      _setupTool.dropInstanceFromCluster(CLUSTER_NAME, badFormatInstance);
     } catch (HelixException e) {
       caughtException = true;
     }
@@ -201,27 +239,27 @@ public class TestClusterSetup extends ZkUnitTestBase {
   @Test()
   public void testAddResource() throws Exception {
     try {
-      _clusterSetup.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
+      _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, 16, STATE_MODEL);
     } catch (Exception e) {
     }
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
+    verifyResource(_zkclient, CLUSTER_NAME, TEST_DB, true);
   }
 
   @Test()
   public void testRemoveResource() throws Exception {
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
-    _clusterSetup.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, false);
+    _setupTool.setupTestCluster(CLUSTER_NAME);
+    verifyResource(_zkclient, CLUSTER_NAME, TEST_DB, true);
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, TEST_DB);
+    verifyResource(_zkclient, CLUSTER_NAME, TEST_DB, false);
   }
 
   @Test()
   public void testRebalanceCluster() throws Exception {
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
+    _setupTool.setupTestCluster(CLUSTER_NAME);
     // testAddInstancesToCluster();
     testAddResource();
-    _clusterSetup.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
-    verifyReplication(_zkClient, CLUSTER_NAME, TEST_DB, 4);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 4);
+    verifyReplication(_zkclient, CLUSTER_NAME, TEST_DB, 4);
   }
 
   /*
@@ -233,64 +271,62 @@ public class TestClusterSetup extends ZkUnitTestBase {
   @Test()
   public void testParseCommandLinesArgs() throws Exception {
     // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+ " help"));
+    // .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+ " help"));
 
     // wipe ZK
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
+    _zkclient.deleteRecursive("/" + CLUSTER_NAME);
 
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addCluster "
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --addCluster "
         + CLUSTER_NAME));
 
     // wipe again
-    _zkClient.deleteRecursive("/" + CLUSTER_NAME);
-    _clusterSetup = new ClusterSetup(ZK_ADDR);
+    _zkclient.deleteRecursive("/" + CLUSTER_NAME);
 
-    _clusterSetup.setupTestCluster(CLUSTER_NAME);
+    _setupTool.setupTestCluster(CLUSTER_NAME);
 
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addNode "
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --addNode "
         + CLUSTER_NAME + " " + TEST_NODE));
-    verifyInstance(_zkClient, CLUSTER_NAME, TEST_NODE, true);
+    verifyInstance(_zkclient, CLUSTER_NAME, TEST_NODE, true);
     try {
-      ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --addResource "
+      ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --addResource "
           + CLUSTER_NAME + " " + TEST_DB + " 4 " + STATE_MODEL));
     } catch (Exception e) {
 
     }
-    verifyResource(_zkClient, CLUSTER_NAME, TEST_DB, true);
+    verifyResource(_zkclient, CLUSTER_NAME, TEST_DB, true);
     // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --addNode node-1"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
+    // .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --addNode node-1"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --enableInstance "
         + CLUSTER_NAME + " " + TEST_NODE + " true"));
-    verifyEnabled(_zkClient, CLUSTER_NAME, TEST_NODE, true);
+    verifyEnabled(_zkclient, CLUSTER_NAME, TEST_NODE, true);
 
     // TODO: verify list commands
     /*
      * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listClusterInfo "
+     * .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --listClusterInfo "
      * +CLUSTER_NAME)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listClusters"));
+     * .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --listClusters"));
      * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listInstanceInfo "
+     * .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --listInstanceInfo "
      * +CLUSTER_NAME+" "+instanceColonToUnderscoreFormat(TEST_NODE))); ClusterSetup
      * .processCommandLineArgs
-     * (createArgs("-zkSvr "+ZK_ADDR+" --listInstances "+CLUSTER_NAME)); ClusterSetup
+     * (createArgs("-zkSvr "+zkaddr+" --listInstances "+CLUSTER_NAME)); ClusterSetup
      * .processCommandLineArgs
-     * (createArgs("-zkSvr "+ZK_ADDR+" --listResourceInfo "+CLUSTER_NAME +" "+TEST_DB));
+     * (createArgs("-zkSvr "+zkaddr+" --listResourceInfo "+CLUSTER_NAME +" "+TEST_DB));
      * ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listResources "
+     * .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --listResources "
      * +CLUSTER_NAME)); ClusterSetup
-     * .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --listStateModel "
+     * .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --listStateModel "
      * +CLUSTER_NAME+" "+STATE_MODEL)); ClusterSetup
      * .processCommandLineArgs(createArgs("-zkSvr "
-     * +ZK_ADDR+" --listStateModels "+CLUSTER_NAME));
+     * +zkaddr+" --listStateModels "+CLUSTER_NAME));
      */
     // ClusterSetup
-    // .processCommandLineArgs(createArgs("-zkSvr "+ZK_ADDR+" --rebalance "+CLUSTER_NAME+" "+TEST_DB+" 1"));
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --enableInstance "
+    // .processCommandLineArgs(createArgs("-zkSvr "+zkaddr+" --rebalance "+CLUSTER_NAME+" "+TEST_DB+" 1"));
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --enableInstance "
         + CLUSTER_NAME + " " + TEST_NODE + " false"));
-    verifyEnabled(_zkClient, CLUSTER_NAME, TEST_NODE, false);
-    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + ZK_ADDR + " --dropNode "
+    verifyEnabled(_zkclient, CLUSTER_NAME, TEST_NODE, false);
+    ClusterSetup.processCommandLineArgs(createArgs("-zkSvr " + _zkaddr + " --dropNode "
         + CLUSTER_NAME + " " + TEST_NODE));
   }
 
@@ -302,30 +338,30 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    _clusterSetup.addCluster(clusterName, true);
-    _clusterSetup.addInstanceToCluster(clusterName, "localhost_0");
+    _setupTool.addCluster(clusterName, true);
+    _setupTool.addInstanceToCluster(clusterName, "localhost_0");
 
     // test set/get/remove instance configs
     String scopeArgs = clusterName + ",localhost_0";
     String keyValueMap = "key1=value1,key2=value2";
     String keys = "key1,key2";
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--setConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
+        "--zkSvr", _zkaddr, "--setConfig", ConfigScopeProperty.PARTICIPANT.toString(), scopeArgs,
         keyValueMap
     });
 
     // getConfig returns json-formatted key-value pairs
-    String valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    String valuesStr = _setupTool.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
     ZNRecordSerializer serializer = new ZNRecordSerializer();
     ZNRecord record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
     Assert.assertEquals(record.getSimpleField("key1"), "value1");
     Assert.assertEquals(record.getSimpleField("key2"), "value2");
 
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(),
+        "--zkSvr", _zkaddr, "--removeConfig", ConfigScopeProperty.PARTICIPANT.toString(),
         scopeArgs, keys
     });
-    valuesStr = _clusterSetup.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
+    valuesStr = _setupTool.getConfig(ConfigScopeProperty.PARTICIPANT, scopeArgs, keys);
     record = (ZNRecord) serializer.deserialize(valuesStr.getBytes());
     Assert.assertNull(record.getSimpleField("key1"));
     Assert.assertNull(record.getSimpleField("key2"));
@@ -342,7 +378,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -353,19 +389,19 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // pause cluster
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "false"
+        "--zkSvr", _zkaddr, "--enableCluster", clusterName, "false"
     });
 
     Builder keyBuilder = new Builder(clusterName);
-    boolean exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    boolean exists = _zkclient.exists(keyBuilder.pause().getPath());
     Assert.assertTrue(exists, "pause node under controller should be created");
 
     // resume cluster
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
+        "--zkSvr", _zkaddr, "--enableCluster", clusterName, "true"
     });
 
-    exists = _gZkClient.exists(keyBuilder.pause().getPath());
+    exists = _zkclient.exists(keyBuilder.pause().getPath());
     Assert.assertFalse(exists, "pause node under controller should be removed");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -381,7 +417,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -392,7 +428,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // add fake liveInstance
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = new Builder(clusterName);
     LiveInstance liveInstance = new LiveInstance("localhost_12918");
     liveInstance.setSessionId("session_0");
@@ -402,7 +438,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // drop without stop the process, should throw exception
     try {
       ClusterSetup.processCommandLineArgs(new String[] {
-          "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
+          "--zkSvr", _zkaddr, "--dropNode", clusterName, "localhost:12918"
       });
       Assert.fail("Should throw exception since localhost_12918 is still in LIVEINSTANCES/");
     } catch (Exception e) {
@@ -413,7 +449,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     // drop without disable, should throw exception
     try {
       ClusterSetup.processCommandLineArgs(new String[] {
-          "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
+          "--zkSvr", _zkaddr, "--dropNode", clusterName, "localhost:12918"
       });
       Assert.fail("Should throw exception since localhost_12918 is enabled");
     } catch (Exception e) {
@@ -423,15 +459,15 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     // drop it
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableInstance", clusterName, "localhost_12918", "false"
+        "--zkSvr", _zkaddr, "--enableInstance", clusterName, "localhost_12918", "false"
     });
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--dropNode", clusterName, "localhost:12918"
+        "--zkSvr", _zkaddr, "--dropNode", clusterName, "localhost:12918"
     });
 
     Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig("localhost_12918")),
         "Instance config should be dropped");
-    Assert.assertFalse(_gZkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
+    Assert.assertFalse(_zkclient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
         clusterName, "localhost_12918")), "Instance/host should be dropped");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -444,7 +480,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -454,16 +490,15 @@ public class TestClusterSetup extends ZkUnitTestBase {
         "MasterSlave", true); // do rebalance
     // disable "TestDB0" resource
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "false"
+        "--zkSvr", _zkaddr, "--enableResource", clusterName, "TestDB0", "false"
     });
-    BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     Assert.assertFalse(idealState.isEnabled());
     // enable "TestDB0" resource
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--enableResource", clusterName, "TestDB0", "true"
+        "--zkSvr", _zkaddr, "--enableResource", clusterName, "TestDB0", "true"
     });
     idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     Assert.assertTrue(idealState.isEnabled());

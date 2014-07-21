@@ -27,23 +27,23 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZKUtil extends ZkUnitTestBase {
+public class TestZKUtil extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestZKUtil.class);
 
-  String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
+  String clusterName = "TestZKUtil";
   ZkClient _zkClient;
 
   @BeforeClass()
   public void beforeClass() throws IOException, Exception {
-    _zkClient = new ZkClient(ZK_ADDR);
+    _zkClient = new ZkClient(_zkaddr);
     _zkClient.setZkSerializer(new ZNRecordSerializer());
     if (_zkClient.exists("/" + clusterName)) {
       _zkClient.deleteRecursive("/" + clusterName);

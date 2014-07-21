@@ -28,25 +28,29 @@ import java.util.TreeMap;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.api.State;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.testutil.HelixTestUtil;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestConstraint extends ZkUnitTestBase {
+public class TestConstraint extends ZkTestBase {
 
   @Test
   public void testMsgConstraint() {
-    String className = getShortClassName();
+    String className = TestUtil.getTestName();
     System.out.println("START testMsgConstraint() at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_" + className + "_msg";
-    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
     ZNRecord record = new ZNRecord("testMsgConstraint");
 
     // constraint0:
@@ -105,7 +109,7 @@ public class TestConstraint extends ZkUnitTestBase {
     ConstraintItem constraint5 = new ConstraintItem(record.getMapField("constraint5"));
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
@@ -119,7 +123,7 @@ public class TestConstraint extends ZkUnitTestBase {
 
     // message1
     Message msg1 =
-        createMessage(MessageType.STATE_TRANSITION, MessageId.from("msgId-001"), "OFFLINE",
+        HelixTestUtil.newMessage(MessageType.STATE_TRANSITION, MessageId.from("msgId-001"), "OFFLINE",
             "SLAVE", "TestDB", "localhost_12918");
 
     Map<ConstraintAttribute, String> msgAttr = ClusterConstraints.toConstraintAttributes(msg1);
@@ -134,7 +138,7 @@ public class TestConstraint extends ZkUnitTestBase {
 
     // message2
     Message msg2 =
-        createMessage(MessageType.STATE_TRANSITION, MessageId.from("msgId-002"), "OFFLINE",
+        HelixTestUtil.newMessage(MessageType.STATE_TRANSITION, MessageId.from("msgId-002"), "OFFLINE",
             "SLAVE", "TestDB", "localhost_12919");
 
     msgAttr = ClusterConstraints.toConstraintAttributes(msg2);
@@ -152,11 +156,11 @@ public class TestConstraint extends ZkUnitTestBase {
 
   @Test
   public void testStateConstraint() {
-    String className = getShortClassName();
+    String className = TestUtil.getTestName();
     System.out.println("START testStateConstraint() at " + new Date(System.currentTimeMillis()));
 
     String clusterName = "CLUSTER_" + className + "_state";
-    TestHelper.setupEmptyCluster(_gZkClient, clusterName);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
     ZNRecord record = new ZNRecord("testStateConstraint");
 
     // constraint0:
@@ -183,7 +187,7 @@ public class TestConstraint extends ZkUnitTestBase {
     ConstraintItem constraint2 = new ConstraintItem(record.getMapField("constraint2"));
 
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkclient));
     Builder keyBuilder = accessor.keyBuilder();
 
     accessor.setProperty(keyBuilder.constraint(ConstraintType.STATE_CONSTRAINT.toString()),

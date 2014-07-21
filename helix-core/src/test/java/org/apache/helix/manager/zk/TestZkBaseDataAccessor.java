@@ -25,20 +25,19 @@ import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.AccessResult;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkBaseDataAccessor extends ZkUnitTestBase {
+public class TestZkBaseDataAccessor extends ZkTestBase {
 
   @Test
   public void testSyncSet() {
@@ -50,11 +49,10 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
-    boolean success = accessor.set(path, record, AccessOption.PERSISTENT);
+    boolean success = _baseAccessor.set(path, record, AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    ZNRecord getRecord = _gZkClient.readData(path);
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
 
@@ -72,46 +70,45 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    BaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
     // set persistent
-    boolean success = accessor.set(path, record, 0, AccessOption.PERSISTENT);
+    boolean success = _baseAccessor.set(path, record, 0, AccessOption.PERSISTENT);
     Assert.assertFalse(success, "Should fail since version not match");
     try {
-      _gZkClient.readData(path, false);
+      _zkclient.readData(path, false);
       Assert.fail("Should get no node exception");
     } catch (Exception e) {
       // OK
     }
 
-    success = accessor.set(path, record, -1, AccessOption.PERSISTENT);
+    success = _baseAccessor.set(path, record, -1, AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    ZNRecord getRecord = _gZkClient.readData(path);
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
 
     // set ephemeral
     path = String.format("/%s/%s", testName, "msg_1");
     record = new ZNRecord("msg_1");
-    success = accessor.set(path, record, 0, AccessOption.EPHEMERAL);
+    success = _baseAccessor.set(path, record, 0, AccessOption.EPHEMERAL);
     Assert.assertFalse(success);
     try {
-      _gZkClient.readData(path, false);
+      _zkclient.readData(path, false);
       Assert.fail("Should get no node exception");
     } catch (Exception e) {
       // OK
     }
 
-    success = accessor.set(path, record, -1, AccessOption.EPHEMERAL);
+    success = _baseAccessor.set(path, record, -1, AccessOption.EPHEMERAL);
     Assert.assertTrue(success);
-    getRecord = _gZkClient.readData(path);
+    getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_1");
 
     record.setSimpleField("key0", "value0");
-    success = accessor.set(path, record, 0, AccessOption.PERSISTENT);
+    success = _baseAccessor.set(path, record, 0, AccessOption.PERSISTENT);
     Assert.assertTrue(success, "Should pass. AccessOption.PERSISTENT is ignored");
-    getRecord = _gZkClient.readData(path);
+    getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
     Assert.assertNotNull(getRecord.getSimpleField("key0"));
@@ -130,7 +127,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s/%s", testName, "msg_0", "submsg_0");
     ZNRecord record = new ZNRecord("submsg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     AccessResult result = accessor.doSet(path, record, -1, AccessOption.PERSISTENT);
     Assert.assertEquals(result._retCode, RetCode.OK);
@@ -139,9 +136,9 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
     Assert.assertTrue(result._pathCreated.contains(String.format("/%s/%s", testName, "msg_0")));
     Assert.assertTrue(result._pathCreated.contains(path));
 
-    Assert.assertTrue(_gZkClient.exists(String.format("/%s", testName)));
-    Assert.assertTrue(_gZkClient.exists(String.format("/%s/%s", testName, "msg_0")));
-    ZNRecord getRecord = _gZkClient.readData(path);
+    Assert.assertTrue(_zkclient.exists(String.format("/%s", testName)));
+    Assert.assertTrue(_zkclient.exists(String.format("/%s/%s", testName, "msg_0")));
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "submsg_0");
 
@@ -158,18 +155,18 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     boolean success = accessor.create(path, record, AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    ZNRecord getRecord = _gZkClient.readData(path);
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
 
     record.setSimpleField("key0", "value0");
     success = accessor.create(path, record, AccessOption.PERSISTENT);
     Assert.assertFalse(success, "Should fail since node already exists");
-    getRecord = _gZkClient.readData(path);
+    getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 0);
 
@@ -186,18 +183,18 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     boolean success = accessor.update(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    ZNRecord getRecord = _gZkClient.readData(path);
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
 
     record.setSimpleField("key0", "value0");
     success = accessor.update(path, new ZNRecordUpdater(record), AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    getRecord = _gZkClient.readData(path);
+    getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
     Assert.assertNotNull(getRecord.getSimpleField("key0"));
@@ -212,7 +209,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
       }
     }, AccessOption.PERSISTENT);
     Assert.assertFalse(success);
-    getRecord = _gZkClient.readData(path);
+    getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getSimpleFields().size(), 1);
 
@@ -229,20 +226,20 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     boolean success = accessor.remove(path, 0);
     Assert.assertFalse(success);
 
     success = accessor.create(path, record, AccessOption.PERSISTENT);
     Assert.assertTrue(success);
-    ZNRecord getRecord = _gZkClient.readData(path);
+    ZNRecord getRecord = _zkclient.readData(path);
     Assert.assertNotNull(getRecord);
     Assert.assertEquals(getRecord.getId(), "msg_0");
 
     success = accessor.remove(path, 0);
     Assert.assertTrue(success);
-    Assert.assertFalse(_gZkClient.exists(path));
+    Assert.assertFalse(_zkclient.exists(path));
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -257,7 +254,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     Stat stat = new Stat();
     ZNRecord getRecord = accessor.get(path, stat, 0);
@@ -316,7 +313,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     boolean success = accessor.exists(path, 0);
     Assert.assertFalse(success);
@@ -341,7 +338,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
 
     String path = String.format("/%s/%s", testName, "msg_0");
     ZNRecord record = new ZNRecord("msg_0");
-    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
+    ZkBaseDataAccessor<ZNRecord> accessor = new ZkBaseDataAccessor<ZNRecord>(_zkclient);
 
     Stat stat = accessor.getStat(path, 0);
     Assert.assertNull(stat);
@@ -364,7 +361,7 @@ public class TestZkBaseDataAccessor extends ZkUnitTestBase {
         + new Date(System.currentTimeMillis()));
 
     String root = "TestZkBaseDataAccessor_asyn";
-    ZkClient zkClient = new ZkClient(ZK_ADDR);
+    ZkClient zkClient = new ZkClient(_zkaddr);
     zkClient.setZkSerializer(new ZNRecordSerializer());
     zkClient.deleteRecursive("/" + root);
 

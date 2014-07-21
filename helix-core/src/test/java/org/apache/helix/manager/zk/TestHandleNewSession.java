@@ -23,12 +23,12 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestHandleNewSession extends ZkIntegrationTestBase {
+public class TestHandleNewSession extends ZkTestBase {
   @Test
   public void testHandleNewSession() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -38,7 +38,7 @@ public class TestHandleNewSession extends ZkIntegrationTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -48,7 +48,7 @@ public class TestHandleNewSession extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
 
     MockParticipantManager participant =
-        new MockParticipantManager(ZK_ADDR, clusterName, "localhost_12918");
+        new MockParticipantManager(_zkaddr, clusterName, "localhost_12918");
     participant.syncStart();
 
     // Logger.getRootLogger().setLevel(Level.INFO);

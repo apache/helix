@@ -29,11 +29,11 @@ import javax.management.MalformedObjectNameException;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterDistributedController;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -43,7 +43,7 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
+public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestClusterStatusMonitorLifecycle.class);
 
   MockParticipantManager[] _participants;
@@ -69,7 +69,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
       String clusterName = _clusterNamePrefix + "0_" + i;
       String participantName = "localhost" + i;
       String resourceName = "TestDB" + i;
-      TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+      TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
           participantName, // participant name prefix
           resourceName, // resource name prefix
           1, // resources
@@ -81,7 +81,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
 
     // setup controller cluster
     _controllerClusterName = "CONTROLLER_" + _clusterNamePrefix;
-    TestHelper.setupCluster("CONTROLLER_" + _clusterNamePrefix, ZK_ADDR, 0, // controller
+    TestHelper.setupCluster("CONTROLLER_" + _clusterNamePrefix, _zkaddr, 0, // controller
                                                                             // port
         "controller", // participant name prefix
         _clusterNamePrefix, // resource name prefix
@@ -95,13 +95,13 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     _controllers = new ClusterDistributedController[n + n];
     for (int i = 0; i < n; i++) {
       _controllers[i] =
-          new ClusterDistributedController(ZK_ADDR, _controllerClusterName, "controller_" + i);
+          new ClusterDistributedController(_zkaddr, _controllerClusterName, "controller_" + i);
       _controllers[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(
-            new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, _controllerClusterName),
+            new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr, _controllerClusterName),
             30000);
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
@@ -110,38 +110,37 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     _firstClusterName = _clusterNamePrefix + "0_0";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost0_" + (12918 + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
+      _participants[i] = new MockParticipantManager(_zkaddr, _firstClusterName, instanceName);
       _participants[i].syncStart();
     }
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             _firstClusterName));
     Assert.assertTrue(result, "first cluster NOT in ideal state");
 
     // add more controllers to controller cluster
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     for (int i = 0; i < n; i++) {
       String controller = "controller_" + (n + i);
-      setupTool.addInstanceToCluster(_controllerClusterName, controller);
+      _setupTool.addInstanceToCluster(_controllerClusterName, controller);
     }
-    setupTool.rebalanceStorageCluster(_controllerClusterName, _clusterNamePrefix + "0", 6);
+    _setupTool.rebalanceStorageCluster(_controllerClusterName, _clusterNamePrefix + "0", 6);
     for (int i = n; i < 2 * n; i++) {
       _controllers[i] =
-          new ClusterDistributedController(ZK_ADDR, _controllerClusterName, "controller_" + i);
+          new ClusterDistributedController(_zkaddr, _controllerClusterName, "controller_" + i);
       _controllers[i].syncStart();
     }
 
     // verify controller cluster
     result =
         ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
+            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 _controllerClusterName));
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // verify first cluster
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             _firstClusterName));
     Assert.assertTrue(result, "first cluster NOT in ideal state");
   }
@@ -223,7 +222,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 12);
 
     String instanceName = "localhost0_" + (12918 + 0);
-    _participants[0] = new MockParticipantManager(ZK_ADDR, _firstClusterName, instanceName);
+    _participants[0] = new MockParticipantManager(_zkaddr, _firstClusterName, instanceName);
     _participants[0].syncStart();
 
     // 1 participant comes back
@@ -236,12 +235,11 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // Add a resource
     // Register 1 resource mbean
     // Register 5 per-instance resource mbean
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     IdealState idealState = accessor.getProperty(accessor.keyBuilder().idealStates("TestDB00"));
 
-    setupTool.addResourceToCluster(_firstClusterName, "TestDB1", idealState.getNumPartitions(),
+    _setupTool.addResourceToCluster(_firstClusterName, "TestDB1", idealState.getNumPartitions(),
         "MasterSlave");
-    setupTool.rebalanceResource(_firstClusterName, "TestDB1",
+    _setupTool.rebalanceResource(_firstClusterName, "TestDB1",
         Integer.parseInt(idealState.getReplicas()));
 
     Thread.sleep(1000);
@@ -251,7 +249,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     // Remove a resource
     // No change in instance/resource mbean
     // Unregister 5 per-instance resource mbean
-    setupTool.dropResourceFromCluster(_firstClusterName, "TestDB1");
+    _setupTool.dropResourceFromCluster(_firstClusterName, "TestDB1");
     Thread.sleep(1000);
     Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 22);
     Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 20);

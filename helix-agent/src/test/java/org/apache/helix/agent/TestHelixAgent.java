@@ -28,11 +28,11 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -42,7 +42,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestHelixAgent extends ZkUnitTestBase {
+public class TestHelixAgent extends ZkTestBase {
   private final static Logger LOG = Logger.getLogger(TestHelixAgent.class);
 
   final String workingDir = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_SCRIPT_DIR;
@@ -83,7 +83,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
     String methodName = TestHelper.getTestMethodName();
     final String clusterName = className + "_" + methodName;
     final int n = 1;
-    final String zkAddr = ZK_ADDR;
+    final String zkAddr = _zkaddr;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
@@ -99,7 +99,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
     // set cluster config
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
+    ConfigAccessor configAccessor = new ConfigAccessor(_zkclient);
 
     // String pidFile = ScriptTestHelper.getPrefix() + ScriptTestHelper.INTEGRATION_LOG_DIR +
     // "/default/foo_{PARTITION_NAME}_pid.txt";
@@ -175,7 +175,7 @@ public class TestHelixAgent extends ZkUnitTestBase {
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -190,10 +190,10 @@ public class TestHelixAgent extends ZkUnitTestBase {
 
     // drop resource will trigger M->S and S->O transitions
     ClusterSetup.processCommandLineArgs(new String[] {
-        "--zkSvr", ZK_ADDR, "--dropResource", clusterName, "TestDB0"
+        "--zkSvr", _zkaddr, "--dropResource", clusterName, "TestDB0"
     });
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

@@ -39,10 +39,9 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
+    if (_zkclient.exists(namespace)) {
+      _zkclient.deleteRecursive(namespace);
     }
-    _setupTool = new ClusterSetup(ZK_ADDR);
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
@@ -70,13 +69,13 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     setupCluster();
     String controllerMsgPath =
         HelixUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
-    _gZkClient.deleteRecursive(controllerMsgPath);
+    _zkclient.deleteRecursive(controllerMsgPath);
     HelixManager manager = null;
 
     try {
       manager =
           HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
-              InstanceType.PARTICIPANT, ZK_ADDR);
+              InstanceType.PARTICIPANT, _zkaddr);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     } catch (HelixException e) {
@@ -90,7 +89,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     try {
       manager =
           HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "localhost_" + (START_PORT + 3),
-              InstanceType.PARTICIPANT, ZK_ADDR);
+              InstanceType.PARTICIPANT, _zkaddr);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     } catch (HelixException e) {
@@ -103,12 +102,12 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
 
     setupCluster();
     String stateModelPath = HelixUtil.getStateModelDefinitionPath(CLUSTER_NAME);
-    _gZkClient.deleteRecursive(stateModelPath);
+    _zkclient.deleteRecursive(stateModelPath);
 
     try {
       manager =
           HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
-              InstanceType.PARTICIPANT, ZK_ADDR);
+              InstanceType.PARTICIPANT, _zkaddr);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     } catch (HelixException e) {
@@ -122,12 +121,12 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     String instanceStatusUpdatePath =
         HelixUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
             PropertyType.STATUSUPDATES);
-    _gZkClient.deleteRecursive(instanceStatusUpdatePath);
+    _zkclient.deleteRecursive(instanceStatusUpdatePath);
 
     try {
       manager =
           HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
-              InstanceType.PARTICIPANT, ZK_ADDR);
+              InstanceType.PARTICIPANT, _zkaddr);
       manager.connect();
       Assert.fail("Should fail on connect() since cluster structure is not set up");
     } catch (HelixException e) {

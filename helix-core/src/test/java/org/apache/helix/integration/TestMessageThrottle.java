@@ -37,23 +37,25 @@ import org.apache.helix.model.Message;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
+import org.apache.helix.testutil.TestUtil;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestMessageThrottle extends ZkIntegrationTestBase {
+public class TestMessageThrottle extends ZkTestBase {
   @Test()
   public void testMessageThrottle() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
 
-    String clusterName = getShortClassName();
+    String clusterName = TestUtil.getTestName();
     MockParticipantManager[] participants = new MockParticipantManager[5];
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant start
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant start
                                                          // port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
@@ -65,7 +67,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
 
     // setup message constraint
     // "MESSAGE_TYPE=STATE_TRANSITION,TRANSITION=OFFLINE-SLAVE,INSTANCE=.*,CONSTRAINT_VALUE=1";
-    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     ConstraintItemBuilder builder = new ConstraintItemBuilder();
     builder.addConstraintAttribute("MESSAGE_TYPE", "STATE_TRANSITION")
         .addConstraintAttribute("INSTANCE", ".*").addConstraintAttribute("CONSTRAINT_VALUE", "1");
@@ -79,7 +81,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
         builder.build());
 
     final ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     // make sure we never see more than 1 state transition message for each participant
     final AtomicBoolean success = new AtomicBoolean(true);
@@ -87,7 +89,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
       String instanceName = "localhost_" + (12918 + i);
       String msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName);
 
-      _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener() {
+      _zkclient.subscribeChildChanges(msgPath, new IZkChildListener() {
 
         @Override
         public void handleChildChange(String parentPath, List<String> currentChilds)
@@ -114,24 +116,24 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
     }
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
         ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, clusterName));
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(_zkaddr, clusterName));
     Assert.assertTrue(result);
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

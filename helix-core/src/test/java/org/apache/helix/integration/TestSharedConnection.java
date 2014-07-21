@@ -27,7 +27,6 @@ import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixController;
 import org.apache.helix.HelixParticipant;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
@@ -39,6 +38,7 @@ import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.manager.zk.ZkHelixLeaderElection;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
@@ -47,7 +47,7 @@ import org.testng.annotations.Test;
 /**
  * Ensure that the external view is able to update properly when participants share a connection.
  */
-public class TestSharedConnection extends ZkUnitTestBase {
+public class TestSharedConnection extends ZkTestBase {
   /**
    * Ensure that the external view is able to update properly when participants share a connection.
    */
@@ -64,7 +64,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -74,7 +74,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
         "OnlineOffline", RebalanceMode.CUSTOMIZED, true); // do rebalance
 
     // Connect
-    HelixConnection connection = new ZkHelixConnection(ZK_ADDR);
+    HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // Start some participants
@@ -96,7 +96,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
 
     // Verify balanced cluster
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -112,7 +112,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
 
     // Verify balanced cluster
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -125,7 +125,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
 
     // Verify balanced cluster
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
@@ -154,7 +154,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // Set up cluster
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -164,7 +164,7 @@ public class TestSharedConnection extends ZkUnitTestBase {
         "OnlineOffline", RebalanceMode.CUSTOMIZED, true); // do rebalance
 
     // Connect
-    HelixConnection connection = new ZkHelixConnection(ZK_ADDR);
+    HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
     // Create a couple controllers

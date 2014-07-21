@@ -24,22 +24,21 @@ import java.util.List;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
+import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase {
+public class TestAddStateModelFactoryAfterConnect extends ZkTestBase {
   @Test
   public void testBasic() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -52,7 +51,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
 
     MockParticipantManager[] participants = new MockParticipantManager[n];
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
+    TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
         "TestDB", // resource name prefix
         1, // resources
@@ -62,33 +61,31 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
         "MasterSlave", true); // do rebalance
 
     ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 
     // add a new idealState without registering message handling factory
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    setupTool.addResourceToCluster(clusterName, "TestDB1", 16, "MasterSlave");
+    _setupTool.addResourceToCluster(clusterName, "TestDB1", 16, "MasterSlave");
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB1"));
     idealState.setStateModelFactoryId(StateModelFactoryId.from("TestDB1_Factory"));
     accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
-    setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
+    _setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     // assert that we have received OFFLINE->SLAVE messages for all partitions
     int totalMsgs = 0;
@@ -120,7 +117,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     }
 
     result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(_zkaddr,
             clusterName));
     Assert.assertTrue(result);
 

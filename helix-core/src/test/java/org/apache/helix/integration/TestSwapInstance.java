@@ -46,16 +46,16 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
     idealStateOld2.merge(is2.getRecord());
 
-    String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
-    ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    String instanceName = "localhost_" + (START_PORT + 0);
+    ZKHelixAdmin tool = new ZKHelixAdmin(_zkclient);
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
-    String instanceName2 = PARTICIPANT_PREFIX + "_" + (START_PORT + 444);
+    String instanceName2 = "localhost_" + (START_PORT + 444);
     _setupTool.addInstanceToCluster(CLUSTER_NAME, instanceName2);
 
     boolean exception = false;
@@ -78,12 +78,12 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     }
     Assert.assertFalse(exception);
     MockParticipantManager newParticipant =
-        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName2);
+        new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName2);
     newParticipant.syncStart();
 
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
-            ZK_ADDR, CLUSTER_NAME));
+            _zkaddr, CLUSTER_NAME));
     Assert.assertTrue(result);
 
     is1 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("TestDB"));

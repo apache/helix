@@ -168,8 +168,8 @@ public class TestNewStages extends ZkTestBase {
             .getRebalancerConfig()
             .getRebalancerRef()
             .getRebalancer()
-            .computeResourceMapping(resource.getRebalancerConfig(), null, cluster,
-                currentStateOutput);
+            .computeResourceMapping(resource.getIdealState(), resource.getRebalancerConfig(), null,
+                cluster, currentStateOutput);
     verifySemiAutoRebalance(resource, semiAutoResult);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));

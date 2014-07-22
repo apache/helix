@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.Partition;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.MessageId;
@@ -36,6 +35,7 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 
@@ -78,11 +78,11 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         if (resource == null) {
           continue;
         }
+        IdealState idealState = resource.getIdealState();
 
         if (!message.getBatchMessageMode()) {
           PartitionId partitionId = message.getPartitionId();
-          Partition partition = resource.getSubUnit(partitionId);
-          if (partition != null) {
+          if (idealState.getPartitionIdSet().contains(partitionId)) {
             currentStateOutput.setPendingState(resourceId, partitionId, participantId,
                 message.getTypedToState());
           } else {
@@ -92,8 +92,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           List<PartitionId> partitionNames = message.getPartitionIds();
           if (!partitionNames.isEmpty()) {
             for (PartitionId partitionId : partitionNames) {
-              Partition partition = resource.getSubUnit(partitionId);
-              if (partition != null) {
+              if (idealState.getPartitionIdSet().contains(partitionId)) {
                 currentStateOutput.setPendingState(resourceId, partitionId, participantId,
                     message.getTypedToState());
               } else {

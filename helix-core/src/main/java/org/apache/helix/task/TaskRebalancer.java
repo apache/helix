@@ -112,9 +112,9 @@ public abstract class TaskRebalancer implements HelixRebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-    IdealState taskIs = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+  public ResourceAssignment computeResourceMapping(IdealState taskIs,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState) {
     return computeBestPossiblePartitionState(cluster, taskIs,
         cluster.getResource(rebalancerConfig.getResourceId()), currentState);
   }

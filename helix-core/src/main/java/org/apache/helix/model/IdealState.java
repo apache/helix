@@ -478,6 +478,9 @@ public class IdealState extends HelixProperty {
    * @param preferenceList a list of participants that can serve replicas of the partition
    */
   public void setPreferenceList(PartitionId partitionId, List<ParticipantId> preferenceList) {
+    if (preferenceList == null) {
+      preferenceList = Collections.emptyList();
+    }
     List<String> rawPreferenceList = new ArrayList<String>();
     for (ParticipantId participantId : preferenceList) {
       rawPreferenceList.add(participantId.stringify());

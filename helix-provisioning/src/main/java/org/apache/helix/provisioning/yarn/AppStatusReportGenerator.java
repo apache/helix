@@ -22,6 +22,7 @@ package org.apache.helix.provisioning.yarn;
 import java.util.Map;
 
 import org.apache.helix.HelixConnection;
+import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
@@ -45,9 +46,10 @@ public class AppStatusReportGenerator {
     }
     StringBuilder builder = new StringBuilder();
     ClusterAccessor clusterAccessor = connection.createClusterAccessor(clusterId);
-    Map<ParticipantId, Participant> participants = clusterAccessor.readParticipants();
+    Cluster cluster = clusterAccessor.readCluster();
+    Map<ParticipantId, Participant> participants = cluster.getParticipantMap();
     builder.append("AppName").append(TAB).append(clusterId).append(NEWLINE);
-    Map<ResourceId, Resource> resources = clusterAccessor.readResources();
+    Map<ResourceId, Resource> resources = cluster.getResourceMap();
     for (ResourceId resourceId : resources.keySet()) {
       builder.append("SERVICE").append(TAB).append(resourceId).append(NEWLINE);
       Resource resource = resources.get(resourceId);

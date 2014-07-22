@@ -42,7 +42,6 @@ import org.apache.helix.model.ResourceAssignment;
  */
 public class Resource {
   private final ResourceConfig _config;
-  private final IdealState _idealState;
   private final ExternalView _externalView;
   private final ResourceAssignment _resourceAssignment;
 
@@ -65,9 +64,8 @@ public class Resource {
       UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
     SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
     _config =
-        new ResourceConfig(id, type, schedulerTaskConfig, rebalancerConfig, provisionerConfig,
-            userConfig, bucketSize, batchMessageMode);
-    _idealState = idealState;
+        new ResourceConfig(id, type, idealState, schedulerTaskConfig, rebalancerConfig,
+            provisionerConfig, userConfig, bucketSize, batchMessageMode);
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
   }
@@ -112,23 +110,6 @@ public class Resource {
     // System.out.println("transitionTimeoutMap: " + transitionTimeoutMap);
     // System.out.println("innerMsgMap: " + innerMsgMap);
     return new SchedulerTaskConfig(transitionTimeoutMap, innerMsgMap);
-  }
-
-  /**
-   * Get the subunits of the resource
-   * @return map of subunit id to partition or empty map if none
-   */
-  public Map<? extends PartitionId, ? extends Partition> getSubUnitMap() {
-    return _config.getSubUnitMap();
-  }
-
-  /**
-   * Get a subunit that the resource contains
-   * @param subUnitId the subunit id to look up
-   * @return Partition or null if none is present with the given id
-   */
-  public Partition getSubUnit(PartitionId subUnitId) {
-    return _config.getSubUnit(subUnitId);
   }
 
   /**
@@ -216,7 +197,7 @@ public class Resource {
    * @return IdealState instance
    */
   public IdealState getIdealState() {
-    return _idealState;
+    return _config.getIdealState();
   }
 
   /**

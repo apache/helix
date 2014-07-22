@@ -40,7 +40,6 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.accessor.ParticipantAccessor;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
@@ -70,7 +69,6 @@ public class ZkHelixParticipant implements HelixParticipant {
   final PropertyKey.Builder _keyBuilder;
   final ConfigAccessor _configAccessor;
   final ClusterAccessor _clusterAccessor;
-  final ParticipantAccessor _participantAccessor;
   final DefaultMessagingService _messagingService;
   final List<PreConnectCallback> _preConnectCallbacks;
   final List<HelixTimerTask> _timerTasks;
@@ -89,7 +87,6 @@ public class ZkHelixParticipant implements HelixParticipant {
     _baseAccessor = _accessor.getBaseDataAccessor();
     _keyBuilder = _accessor.keyBuilder();
     _clusterAccessor = connection.createClusterAccessor(clusterId);
-    _participantAccessor = connection.createParticipantAccessor(clusterId);
     _configAccessor = connection.getConfigAccessor();
 
     _clusterId = clusterId;
@@ -310,7 +307,8 @@ public class ZkHelixParticipant implements HelixParticipant {
       // autoJoin is false
     }
 
-    if (!_participantAccessor.isParticipantStructureValid(_participantId)) {
+    if (!ZKUtil.isInstanceSetup(_connection._zkclient, _clusterId.toString(),
+        _participantId.toString(), getType())) {
       if (!autoJoin) {
         throw new HelixException("Initial cluster structure is not set up for instance: "
             + _participantId + ", instanceType: " + getType());
@@ -358,7 +356,7 @@ public class ZkHelixParticipant implements HelixParticipant {
     /**
      * from here on, we are dealing with new session
      */
-    if (!_clusterAccessor.isClusterStructureValid()) {
+    if (!ZKUtil.isClusterSetup(_clusterId.toString(), _connection._zkclient)) {
       throw new HelixException("Cluster structure is not set up for cluster: " + _clusterId);
     }
 
@@ -468,10 +466,6 @@ public class ZkHelixParticipant implements HelixParticipant {
 
   public ClusterAccessor getClusterAccessor() {
     return _clusterAccessor;
-  }
-
-  public ParticipantAccessor getParticipantAccessor() {
-    return _participantAccessor;
   }
 
 }

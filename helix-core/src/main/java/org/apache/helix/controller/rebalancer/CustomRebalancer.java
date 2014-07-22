@@ -9,8 +9,6 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.context.ControllerContextProvider;
-import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
@@ -48,27 +46,26 @@ public class CustomRebalancer implements HelixRebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-    CustomRebalancerConfig config =
-        BasicRebalancerConfig.convert(rebalancerConfig, CustomRebalancerConfig.class);
-    IdealState idealState = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+  public ResourceAssignment computeResourceMapping(IdealState idealState,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState) {
     boolean isEnabled = (idealState != null) ? idealState.isEnabled() : true;
     StateModelDefinition stateModelDef =
-        cluster.getStateModelMap().get(config.getStateModelDefId());
+        cluster.getStateModelMap().get(idealState.getStateModelDefId());
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + config.getResourceId());
+      LOG.debug("Processing resource:" + idealState.getResourceId());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
-    for (PartitionId partition : config.getPartitionSet()) {
+    ResourceAssignment partitionMapping = new ResourceAssignment(idealState.getResourceId());
+    for (PartitionId partition : idealState.getPartitionIdSet()) {
       Map<ParticipantId, State> currentStateMap =
-          currentState.getCurrentStateMap(config.getResourceId(), partition);
+          currentState.getCurrentStateMap(idealState.getResourceId(), partition);
       Set<ParticipantId> disabledInstancesForPartition =
           ConstraintBasedAssignment.getDisabledParticipants(cluster.getParticipantMap(), partition);
       Map<ParticipantId, State> bestStateForPartition =
           ConstraintBasedAssignment.computeCustomizedBestStateForPartition(cluster
-              .getLiveParticipantMap().keySet(), stateModelDef, config.getPreferenceMap(partition),
-              currentStateMap, disabledInstancesForPartition, isEnabled);
+              .getLiveParticipantMap().keySet(), stateModelDef, idealState
+              .getParticipantStateMap(partition), currentStateMap, disabledInstancesForPartition,
+              isEnabled);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;

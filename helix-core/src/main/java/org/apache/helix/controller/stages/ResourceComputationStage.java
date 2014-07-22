@@ -73,6 +73,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
       resCfgBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
       resCfgBuilder.rebalancerConfig(rebalancerCfg);
       resCfgBuilder.provisionerConfig(resource.getProvisionerConfig());
+      resCfgBuilder.idealState(resource.getIdealState());
       resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 
@@ -134,7 +135,10 @@ public class ResourceComputationStage extends AbstractBaseStage {
     for (ResourceId resourceId : resCfgBuilderMap.keySet()) {
       ResourceConfig.Builder resCfgBuilder = resCfgBuilderMap.get(resourceId);
       PartitionedRebalancerConfig.Builder rebCtxBuilder = rebCtxBuilderMap.get(resourceId);
-      resCfgBuilder.rebalancerConfig(rebCtxBuilder.build());
+      RebalancerConfig rebalancerConfig = rebCtxBuilder.build();
+      resCfgBuilder.rebalancerConfig(rebalancerConfig);
+      resCfgBuilder.idealState(PartitionedRebalancerConfig.rebalancerConfigToIdealState(
+          rebalancerConfig, 0, false));
       resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 

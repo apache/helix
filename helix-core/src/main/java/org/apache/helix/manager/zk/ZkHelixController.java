@@ -118,7 +118,7 @@ public class ZkHelixController implements HelixController {
      * from here on, we are dealing with new session
      * init handlers
      */
-    if (!_clusterAccessor.isClusterStructureValid()) {
+    if (!ZKUtil.isClusterSetup(_clusterId.toString(), _connection._zkclient)) {
       throw new HelixException("Cluster structure is not set up for cluster: " + _clusterId);
     }
 

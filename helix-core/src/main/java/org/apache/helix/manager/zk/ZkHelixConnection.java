@@ -58,8 +58,6 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.accessor.ParticipantAccessor;
-import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
@@ -230,16 +228,6 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   @Override
   public ClusterAccessor createClusterAccessor(ClusterId clusterId) {
     return new ClusterAccessor(clusterId, createDataAccessor(clusterId));
-  }
-
-  @Override
-  public ResourceAccessor createResourceAccessor(ClusterId clusterId) {
-    return new ResourceAccessor(clusterId, createDataAccessor(clusterId));
-  }
-
-  @Override
-  public ParticipantAccessor createParticipantAccessor(ClusterId clusterId) {
-    return new ParticipantAccessor(clusterId, createDataAccessor(clusterId));
   }
 
   @Override

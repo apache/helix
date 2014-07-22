@@ -29,8 +29,6 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
-import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
@@ -45,21 +43,18 @@ import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.testutil.HelixTestUtil;
 import org.apache.helix.testutil.TestUtil;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestRebalancePipeline extends ZkTestBase {
-  private static Logger LOG = Logger.getLogger(TestMessageThrottleStage.class);
-
   @Test
   public void testDuplicateMsg() {
 
     String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
@@ -81,9 +76,6 @@ public class TestRebalancePipeline extends ZkTestBase {
         0, 1
     });
     HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -139,15 +131,13 @@ public class TestRebalancePipeline extends ZkTestBase {
     String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
     final String resourceName = "testResource_dup";
     String[] resourceGroups = new String[] {
       resourceName
     };
-
-    TestHelper.setupEmptyCluster(_zkclient, clusterName);
 
     // ideal state: node0 is MASTER, node1 is SLAVE
     // replica=2 means 1 master and 1 slave
@@ -161,9 +151,6 @@ public class TestRebalancePipeline extends ZkTestBase {
     HelixTestUtil.setupLiveInstances(_baseAccessor, clusterName, new int[] {
         0, 1
     });
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     ClusterControllerManager controller =
         new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
@@ -216,8 +203,8 @@ public class TestRebalancePipeline extends ZkTestBase {
     String clusterName = TestUtil.getTestName();
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -241,9 +228,6 @@ public class TestRebalancePipeline extends ZkTestBase {
         0, 1
     });
     HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -326,8 +310,8 @@ public class TestRebalancePipeline extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -348,9 +332,6 @@ public class TestRebalancePipeline extends ZkTestBase {
       1
     });
     HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     // cluster data cache refresh pipeline
     Pipeline dataRefresh = new Pipeline();
@@ -407,8 +388,7 @@ public class TestRebalancePipeline extends ZkTestBase {
 
   private void setCurrentState(String clusterName, String instance, String resourceGroupName,
       String resourceKey, String sessionId, String state) {
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
 
     CurrentState curState = new CurrentState(resourceGroupName);

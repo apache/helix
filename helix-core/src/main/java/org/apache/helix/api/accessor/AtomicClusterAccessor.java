@@ -19,12 +19,7 @@ package org.apache.helix.api.accessor;
  * under the License.
  */
 
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
@@ -38,9 +33,6 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.lock.HelixLock;
 import org.apache.helix.lock.HelixLockable;
 import org.apache.log4j.Logger;
-
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * An atomic version of the ClusterAccessor. If atomic operations are required, use instances of
@@ -203,67 +195,102 @@ public class AtomicClusterAccessor extends ClusterAccessor {
     return null;
   }
 
-  /**
-   * Read resources atomically. This is resource-atomic, not cluster-atomic
-   */
   @Override
-  public Map<ResourceId, Resource> readResources() {
-    // read resources individually instead of together to maintain the equality link between ideal
-    // state and resource config
+  public Participant readParticipant(ParticipantId participantId) {
     ClusterId clusterId = clusterId();
-    HelixDataAccessor dataAccessor = dataAccessor();
-    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
-    Map<ResourceId, Resource> resources = Maps.newHashMap();
-    Set<String> idealStateNames =
-        Sets.newHashSet(dataAccessor.getChildNames(keyBuilder.idealStates()));
-    Set<String> resourceConfigNames =
-        Sets.newHashSet(dataAccessor.getChildNames(keyBuilder.resourceConfigs()));
-    resourceConfigNames.addAll(idealStateNames);
-    ResourceAccessor accessor = new AtomicResourceAccessor(clusterId, dataAccessor, _lockProvider);
-    for (String resourceName : resourceConfigNames) {
-      ResourceId resourceId = ResourceId.from(resourceName);
-      Resource resource = accessor.readResource(resourceId);
-      if (resource != null) {
-        resources.put(resourceId, resource);
-      }
-    }
-    return resources;
-  }
-
-  /**
-   * Read participants atomically. This is participant-atomic, not cluster-atomic
-   */
-  @Override
-  public Map<ParticipantId, Participant> readParticipants() {
-    // read participants individually to keep configs consistent with current state and messages
-    ClusterId clusterId = clusterId();
-    HelixDataAccessor dataAccessor = dataAccessor();
-    PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
-    Map<ParticipantId, Participant> participants = Maps.newHashMap();
-    ParticipantAccessor accessor =
-        new AtomicParticipantAccessor(clusterId, dataAccessor, _lockProvider);
-    List<String> participantNames = dataAccessor.getChildNames(keyBuilder.instanceConfigs());
-    for (String participantName : participantNames) {
-      ParticipantId participantId = ParticipantId.from(participantName);
-      Participant participant = accessor.readParticipant(participantId);
-      if (participant != null) {
-        participants.put(participantId, participant);
-      }
-    }
-    return participants;
-  }
-
-  @Override
-  public void initClusterStructure() {
-    ClusterId clusterId = clusterId();
-    HelixLock lock = _lockProvider.getLock(clusterId, Scope.cluster(clusterId));
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
-        _clusterAccessor.initClusterStructure();
+        return _clusterAccessor.readParticipant(participantId);
       } finally {
         lock.unlock();
       }
     }
+    return null;
+  }
+
+  @Override
+  public boolean setParticipant(ParticipantConfig participantConfig) {
+    if (participantConfig == null) {
+      LOG.error("participant config cannot be null");
+      return false;
+    }
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantConfig.getId()));
+    boolean locked = lock.lock();
+    if (locked) {
+      try {
+        return _clusterAccessor.setParticipant(participantConfig);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return false;
+  }
+
+  @Override
+  public ParticipantConfig updateParticipant(ParticipantId participantId,
+      ParticipantConfig.Delta participantDelta) {
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
+    boolean locked = lock.lock();
+    if (locked) {
+      try {
+        return _clusterAccessor.updateParticipant(participantId, participantDelta);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public Resource readResource(ResourceId resourceId) {
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
+    boolean locked = lock.lock();
+    if (locked) {
+      try {
+        return _clusterAccessor.readResource(resourceId);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public ResourceConfig updateResource(ResourceId resourceId, ResourceConfig.Delta resourceDelta) {
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
+    boolean locked = lock.lock();
+    if (locked) {
+      try {
+        return _clusterAccessor.updateResource(resourceId, resourceDelta);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return null;
+  }
+
+  @Override
+  public boolean setResource(ResourceConfig resourceConfig) {
+    if (resourceConfig == null) {
+      LOG.error("resource config cannot be null");
+      return false;
+    }
+    ClusterId clusterId = clusterId();
+    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceConfig.getId()));
+    boolean locked = lock.lock();
+    if (locked) {
+      try {
+        return _clusterAccessor.setResource(resourceConfig);
+      } finally {
+        lock.unlock();
+      }
+    }
+    return false;
   }
 }

@@ -338,13 +338,8 @@ public class ClusterDataCache {
   }
 
   /**
-<<<<<<< HEAD
-   * Get all state model definitions
-   * @return map of name to state model definition
-=======
    * Provides all state model definitions
    * @return state model definition map
->>>>>>> 8d5c27c... [HELIX-444] add per-participant partition count gauges to helix, rb=21419
    */
   public Map<String, StateModelDefinition> getStateModelDefMap() {
     return _stateModelDefMap;

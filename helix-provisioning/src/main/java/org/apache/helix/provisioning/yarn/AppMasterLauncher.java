@@ -47,6 +47,7 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.manager.zk.HelixConnectionAdaptor;
 import org.apache.helix.manager.zk.ZkHelixConnection;
@@ -161,10 +162,15 @@ public class AppMasterLauncher {
               .build();
       ResourceConfig.Builder resourceConfigBuilder =
           new ResourceConfig.Builder(ResourceId.from(resourceName));
-      ResourceConfig resourceConfig = resourceConfigBuilder.provisionerConfig(provisionerConfig) //
-          .rebalancerConfig(rebalancerConfig) //
-          .userConfig(serviceConfig) //
-          .build();
+      ResourceConfig resourceConfig =
+          resourceConfigBuilder
+              .provisionerConfig(provisionerConfig)
+              .rebalancerConfig(rebalancerConfig)
+              .userConfig(serviceConfig)
+              .idealState(
+                  PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig, 0,
+                      false)) //
+              .build();
       clusterAccessor.addResourceToCluster(resourceConfig);
     }
     // start controller

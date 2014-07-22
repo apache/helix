@@ -30,10 +30,9 @@ import java.util.TreeMap;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
-import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
@@ -50,13 +49,10 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.testutil.HelixTestUtil;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestMessageThrottleStage extends ZkTestBase {
-  private static Logger LOG = Logger.getLogger(TestMessageThrottleStage.class);
-
   final String _className = "TestMessageThrottleStage";
 
   @Test
@@ -65,6 +61,7 @@ public class TestMessageThrottleStage extends ZkTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
 
     // ideal state: node0 is MASTER, node1 is SLAVE
@@ -79,9 +76,6 @@ public class TestMessageThrottleStage extends ZkTestBase {
         0, 1
     });
     HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     ClusterEvent event = new ClusterEvent("testEvent");
     event.addAttribute("helixmanager", manager);
@@ -145,6 +139,8 @@ public class TestMessageThrottleStage extends ZkTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    TestHelper.setupEmptyCluster(_zkclient, clusterName);
+
     HelixManager manager = new DummyClusterManager(clusterName, accessor);
 
     // ideal state: node0 is MASTER, node1 is SLAVE
@@ -159,9 +155,6 @@ public class TestMessageThrottleStage extends ZkTestBase {
         0, 1
     });
     HelixTestUtil.setupStateModel(_baseAccessor, clusterName);
-
-    ClusterAccessor clusterAccessor = new ClusterAccessor(ClusterId.from(clusterName), accessor);
-    clusterAccessor.initClusterStructure();
 
     // setup constraints
     ZNRecord record = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.toString());

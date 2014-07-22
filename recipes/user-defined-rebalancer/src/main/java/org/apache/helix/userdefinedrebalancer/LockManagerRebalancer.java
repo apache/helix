@@ -32,9 +32,9 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -54,20 +54,18 @@ public class LockManagerRebalancer implements HelixRebalancer {
    * model.
    */
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-    // get a typed context
-    PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
-
+  public ResourceAssignment computeResourceMapping(IdealState idealState,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState) {
     // Initialize an empty mapping of locks to participants
-    ResourceAssignment assignment = new ResourceAssignment(config.getResourceId());
+    ResourceAssignment assignment = new ResourceAssignment(idealState.getResourceId());
 
     // Get the list of live participants in the cluster
     List<ParticipantId> liveParticipants =
         new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
 
     // Get the state model (should be a simple lock/unlock model) and the highest-priority state
-    StateModelDefId stateModelDefId = config.getStateModelDefId();
+    StateModelDefId stateModelDefId = idealState.getStateModelDefId();
     StateModelDefinition stateModelDef = cluster.getStateModelMap().get(stateModelDefId);
     if (stateModelDef.getStatesPriorityList().size() < 1) {
       LOG.error("Invalid state model definition. There should be at least one state.");
@@ -93,7 +91,7 @@ public class LockManagerRebalancer implements HelixRebalancer {
     // This assumes a simple lock-unlock model where the only state of interest is which nodes have
     // acquired each lock.
     int i = 0;
-    for (PartitionId partition : config.getPartitionSet()) {
+    for (PartitionId partition : idealState.getPartitionIdSet()) {
       Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
       for (int j = i; j < i + lockHolders; j++) {
         int participantIndex = j % liveParticipants.size();

@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Cluster;
@@ -17,8 +18,6 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.context.ControllerContextProvider;
-import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ResourceCurrentState;
@@ -64,28 +63,27 @@ public class FullAutoRebalancer implements HelixRebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-    FullAutoRebalancerConfig config =
-        BasicRebalancerConfig.convert(rebalancerConfig, FullAutoRebalancerConfig.class);
-    IdealState idealState = cluster.getResource(rebalancerConfig.getResourceId()).getIdealState();
+  public ResourceAssignment computeResourceMapping(IdealState idealState,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState) {
     boolean isEnabled = (idealState != null) ? idealState.isEnabled() : true;
     StateModelDefinition stateModelDef =
-        cluster.getStateModelMap().get(config.getStateModelDefId());
+        cluster.getStateModelMap().get(idealState.getStateModelDefId());
     // Compute a preference list based on the current ideal state
-    List<PartitionId> partitions = new ArrayList<PartitionId>(config.getPartitionSet());
+    List<PartitionId> partitions = new ArrayList<PartitionId>(idealState.getPartitionIdSet());
     Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
     Map<ParticipantId, Participant> allParticipants = cluster.getParticipantMap();
     int replicas = -1;
-    if (config.anyLiveParticipant()) {
+    String replicaStr = idealState.getReplicas();
+    if (replicaStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString())) {
       replicas = liveParticipants.size();
     } else {
-      replicas = config.getReplicaCount();
+      replicas = Integer.valueOf(replicaStr);
     }
 
     // count how many replicas should be in each state
     Map<State, String> upperBounds =
-        ConstraintBasedAssignment.stateConstraints(stateModelDef, config.getResourceId(),
+        ConstraintBasedAssignment.stateConstraints(stateModelDef, idealState.getResourceId(),
             cluster.getConfig());
     LinkedHashMap<State, Integer> stateCountMap =
         ConstraintBasedAssignment.stateCount(upperBounds, stateModelDef, liveParticipants.size(),
@@ -99,15 +97,15 @@ public class FullAutoRebalancer implements HelixRebalancer {
 
     // compute the current mapping from the current state
     Map<PartitionId, Map<ParticipantId, State>> currentMapping =
-        currentMapping(config, currentState, stateCountMap);
+        currentMapping(idealState, currentState, stateCountMap);
 
     // If there are nodes tagged with resource, use only those nodes
     // If there are nodes tagged with resource name, use only those nodes
     Set<ParticipantId> taggedNodes = new HashSet<ParticipantId>();
     Set<ParticipantId> taggedLiveNodes = new HashSet<ParticipantId>();
-    if (config.getParticipantGroupTag() != null) {
+    if (idealState.getInstanceGroupTag() != null) {
       for (ParticipantId participantId : allParticipantList) {
-        if (cluster.getParticipantMap().get(participantId).hasTag(config.getParticipantGroupTag())) {
+        if (cluster.getParticipantMap().get(participantId).hasTag(idealState.getInstanceGroupTag())) {
           taggedNodes.add(participantId);
           if (liveParticipants.containsKey(participantId)) {
             taggedLiveNodes.add(participantId);
@@ -117,24 +115,24 @@ public class FullAutoRebalancer implements HelixRebalancer {
       if (!taggedLiveNodes.isEmpty()) {
         // live nodes exist that have this tag
         if (LOG.isDebugEnabled()) {
-          LOG.debug("found the following participants with tag " + config.getParticipantGroupTag()
-              + " for " + config.getResourceId() + ": " + taggedLiveNodes);
+          LOG.debug("found the following participants with tag " + idealState.getInstanceGroupTag()
+              + " for " + idealState.getResourceId() + ": " + taggedLiveNodes);
         }
       } else if (taggedNodes.isEmpty()) {
         // no live nodes and no configured nodes have this tag
-        LOG.warn("Resource " + config.getResourceId() + " has tag "
-            + config.getParticipantGroupTag() + " but no configured participants have this tag");
+        LOG.warn("Resource " + idealState.getResourceId() + " has tag "
+            + idealState.getInstanceGroupTag() + " but no configured participants have this tag");
       } else {
         // configured nodes have this tag, but no live nodes have this tag
-        LOG.warn("Resource " + config.getResourceId() + " has tag "
-            + config.getParticipantGroupTag() + " but no live participants have this tag");
+        LOG.warn("Resource " + idealState.getResourceId() + " has tag "
+            + idealState.getInstanceGroupTag() + " but no live participants have this tag");
       }
       allParticipantList = new ArrayList<ParticipantId>(taggedNodes);
       liveParticipantList = new ArrayList<ParticipantId>(taggedLiveNodes);
     }
 
     // determine which nodes the replicas should live on
-    int maxPartition = config.getMaxPartitionsPerParticipant();
+    int maxPartition = idealState.getMaxPartitionsPerInstance();
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);
       LOG.debug("stateCountMap: " + stateCountMap);
@@ -144,8 +142,8 @@ public class FullAutoRebalancer implements HelixRebalancer {
     }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     _algorithm =
-        new AutoRebalanceStrategy(config.getResourceId(), partitions, stateCountMap, maxPartition,
-            placementScheme);
+        new AutoRebalanceStrategy(idealState.getResourceId(), partitions, stateCountMap,
+            maxPartition, placementScheme);
     ZNRecord newMapping =
         _algorithm.typedComputePartitionAssignment(liveParticipantList, currentMapping,
             allParticipantList);
@@ -156,9 +154,9 @@ public class FullAutoRebalancer implements HelixRebalancer {
 
     // compute a full partition mapping for the resource
     if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + config.getResourceId());
+      LOG.debug("Processing resource:" + idealState.getResourceId());
     }
-    ResourceAssignment partitionMapping = new ResourceAssignment(config.getResourceId());
+    ResourceAssignment partitionMapping = new ResourceAssignment(idealState.getResourceId());
     for (PartitionId partition : partitions) {
       Set<ParticipantId> disabledParticipantsForPartition =
           ConstraintBasedAssignment.getDisabledParticipants(allParticipants, partition);
@@ -178,22 +176,21 @@ public class FullAutoRebalancer implements HelixRebalancer {
       Map<ParticipantId, State> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(upperBounds,
               liveParticipants.keySet(), stateModelDef, preferenceList,
-              currentState.getCurrentStateMap(config.getResourceId(), partition),
+              currentState.getCurrentStateMap(idealState.getResourceId(), partition),
               disabledParticipantsForPartition, isEnabled);
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
   }
 
-  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(
-      FullAutoRebalancerConfig config, ResourceCurrentState currentStateOutput,
-      Map<State, Integer> stateCountMap) {
+  private Map<PartitionId, Map<ParticipantId, State>> currentMapping(IdealState idealState,
+      ResourceCurrentState currentStateOutput, Map<State, Integer> stateCountMap) {
     Map<PartitionId, Map<ParticipantId, State>> map =
         new HashMap<PartitionId, Map<ParticipantId, State>>();
 
-    for (PartitionId partition : config.getPartitionSet()) {
+    for (PartitionId partition : idealState.getPartitionIdSet()) {
       Map<ParticipantId, State> curStateMap =
-          currentStateOutput.getCurrentStateMap(config.getResourceId(), partition);
+          currentStateOutput.getCurrentStateMap(idealState.getResourceId(), partition);
       map.put(partition, new HashMap<ParticipantId, State>());
       for (ParticipantId node : curStateMap.keySet()) {
         State state = curStateMap.get(node);
@@ -203,7 +200,7 @@ public class FullAutoRebalancer implements HelixRebalancer {
       }
 
       Map<ParticipantId, State> pendingStateMap =
-          currentStateOutput.getPendingStateMap(config.getResourceId(), partition);
+          currentStateOutput.getPendingStateMap(idealState.getResourceId(), partition);
       for (ParticipantId node : pendingStateMap.keySet()) {
         State state = pendingStateMap.get(node);
         if (stateCountMap.containsKey(state)) {

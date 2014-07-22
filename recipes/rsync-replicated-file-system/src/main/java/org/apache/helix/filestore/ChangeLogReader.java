@@ -93,6 +93,7 @@ public class ChangeLogReader implements FileChangeWatcher {
         changes.add(newRecord);
         count++;
       } while (count < MAX_ENTRIES_TO_READ && raf.getFilePointer() < raf.length());
+      raf.close();
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     } catch (IOException e) {

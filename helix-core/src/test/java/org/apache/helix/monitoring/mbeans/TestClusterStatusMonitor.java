@@ -35,6 +35,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -95,7 +96,11 @@ public class TestClusterStatusMonitor {
             .addPartition(new Partition(PartitionId.from(testDB_0)))
             .stateModelDefId(StateModelDefId.from("MasterSlave")).build();
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(resourceId).rebalancerConfig(rebalancerConfig).build();
+        new ResourceConfig.Builder(resourceId)
+            .rebalancerConfig(rebalancerConfig)
+            .idealState(
+                PartitionedRebalancerConfig
+                    .rebalancerConfigToIdealState(rebalancerConfig, 0, false)).build();
     resourceMap.put(resourceId, resourceConfig);
 
     Map<String, StateModelDefinition> stateModelDefMap = Maps.newHashMap();

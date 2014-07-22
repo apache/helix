@@ -5,6 +5,7 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 
 /*
@@ -58,11 +59,13 @@ public interface HelixRebalancer {
    * MyRebalancerConfig config = BasicRebalancerConfig.convert(rebalancerConfig,
    *     MyRebalancerConfig.class);
    * </pre>
+   * @param idealState the ideal state that defines how a resource should be rebalanced
    * @param rebalancerConfig the properties of the resource for which a mapping will be computed
    * @param prevAssignment the previous ResourceAssignment of this cluster, or null if none
    * @param cluster complete snapshot of the cluster
    * @param currentState the current states of all partitions
    */
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState);
+  public ResourceAssignment computeResourceMapping(IdealState idealState,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState);
 }

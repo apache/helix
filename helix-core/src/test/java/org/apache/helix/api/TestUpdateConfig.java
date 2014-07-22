@@ -11,6 +11,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -93,11 +94,15 @@ public class TestUpdateConfig {
     UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
     userConfig.setSimpleField("key1", "value1");
     SemiAutoRebalancerConfig rebalancerContext =
-        new SemiAutoRebalancerConfig.Builder(resourceId).build();
+        new SemiAutoRebalancerConfig.Builder(resourceId).stateModelDefId(
+            StateModelDefId.from("MasterSlave")).build();
     ResourceConfig config =
-        new ResourceConfig.Builder(resourceId).userConfig(userConfig)
-            .rebalancerConfig(rebalancerContext).bucketSize(OLD_BUCKET_SIZE).batchMessageMode(true)
-            .build();
+        new ResourceConfig.Builder(resourceId)
+            .userConfig(userConfig)
+            .rebalancerConfig(rebalancerContext)
+            .idealState(
+                PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerContext, 0,
+                    false)).bucketSize(OLD_BUCKET_SIZE).batchMessageMode(true).build();
 
     // update: overwrite user config, change to full auto rebalancer context, and change the bucket
     // size

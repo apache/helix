@@ -52,6 +52,7 @@ import org.apache.helix.controller.provisioner.ProvisionerRef;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.serializer.DefaultStringSerializer;
 import org.apache.helix.controller.serializer.StringSerializer;
@@ -118,7 +119,11 @@ public class TestLocalContainerProvider extends ZkTestBase {
         new FullAutoRebalancerConfig.Builder(resourceId).addPartitions(NUM_PARTITIONS)
             .replicaCount(NUM_REPLICAS).stateModelDefId(masterSlave.getStateModelDefId()).build();
     clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(ResourceId.from(resourceName))
-        .provisionerConfig(provisionerConfig).rebalancerConfig(rebalancerConfig).build());
+        .provisionerConfig(provisionerConfig)
+        .rebalancerConfig(rebalancerConfig)
+        .idealState(
+            PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig, 0, false))
+        .build());
 
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");

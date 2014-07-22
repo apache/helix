@@ -32,6 +32,7 @@ import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRole;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.accessor.ClusterAccessor;
@@ -128,7 +129,8 @@ public class JobRunnerMain {
       while (true) {
         System.out.println("CONTAINER STATUS");
         System.out.println("----------------");
-        Collection<Participant> participants = accessor.readParticipants().values();
+        Cluster cluster = accessor.readCluster();
+        Collection<Participant> participants = cluster.getParticipantMap().values();
         for (Participant participant : participants) {
           ContainerConfig containerConfig = participant.getContainerConfig();
           if (containerConfig != null) {

@@ -984,6 +984,7 @@ public class ClusterSetup {
     while (read < bytes.length && (numRead = dis.read(bytes, read, bytes.length - read)) >= 0) {
       read = read + numRead;
     }
+    dis.close();
     return bytes;
   }
 

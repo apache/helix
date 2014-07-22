@@ -33,11 +33,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
-<<<<<<< HEAD
  * 
-=======
- *
->>>>>>> 77cc651... [HELIX-395] Remove old Helix alert/stat modules
  * <pre>
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
@@ -53,11 +49,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
-<<<<<<< HEAD
  * 
-=======
- *
->>>>>>> 77cc651... [HELIX-395] Remove old Helix alert/stat modules
  * </blockquote> Default implementations available
  * @see HelixStateMachineEngine HelixStateMachineEngine for participant
  * @see RoutingTableProvider RoutingTableProvider for spectator

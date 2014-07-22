@@ -7,12 +7,11 @@ import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixController;
 import org.apache.helix.HelixParticipant;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Partition;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.accessor.ParticipantAccessor;
-import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
@@ -156,8 +155,9 @@ public class LogicalModelExample {
 
   private static void printExternalView(HelixConnection connection, ClusterId clusterId,
       ResourceId resourceId) {
-    ResourceAccessor accessor = connection.createResourceAccessor(clusterId);
-    ExternalView externalView = accessor.readExternalView(resourceId);
+    ClusterAccessor accessor = connection.createClusterAccessor(clusterId);
+    Cluster cluster = accessor.readCluster();
+    ExternalView externalView = cluster.getResource(resourceId).getExternalView();
     System.out.println("ASSIGNMENTS:");
     for (PartitionId partitionId : externalView.getPartitionIdSet()) {
       System.out.println(partitionId + ": " + externalView.getStateMap(partitionId));
@@ -167,7 +167,7 @@ public class LogicalModelExample {
   private static void updateParticipant(ParticipantConfig participant, ClusterId clusterId,
       HelixConnection connection) {
     // add a tag to the participant and change the hostname, then update it using a delta
-    ParticipantAccessor accessor = connection.createParticipantAccessor(clusterId);
+    ClusterAccessor accessor = connection.createClusterAccessor(clusterId);
     ParticipantConfig.Delta delta =
         new ParticipantConfig.Delta(participant.getId()).addTag("newTag").setHostName("newHost");
     accessor.updateParticipant(participant.getId(), delta);
@@ -176,7 +176,7 @@ public class LogicalModelExample {
   private static void updateResource(ResourceConfig resource, ClusterId clusterId,
       HelixConnection connection) {
     // add some fields to the resource user config, then update it using the resource config delta
-    ResourceAccessor accessor = connection.createResourceAccessor(clusterId);
+    ClusterAccessor accessor = connection.createClusterAccessor(clusterId);
     UserConfig userConfig = resource.getUserConfig();
     Map<String, String> mapField = Maps.newHashMap();
     mapField.put("k1", "v1");

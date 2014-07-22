@@ -1,17 +1,5 @@
 package org.apache.helix.api.config;
 
-import java.util.Map;
-import java.util.Set;
-
-import org.apache.helix.api.Partition;
-import org.apache.helix.api.Scope;
-import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.provisioner.ProvisionerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-
-import com.google.common.collect.Sets;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -31,6 +19,17 @@ import com.google.common.collect.Sets;
  * under the License.
  */
 
+import java.util.Set;
+
+import org.apache.helix.api.Scope;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.controller.provisioner.ProvisionerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.model.IdealState;
+
+import com.google.common.collect.Sets;
+
 /**
  * Full configuration of a Helix resource. Typically used to add or modify resources on a cluster
  */
@@ -47,6 +46,7 @@ public class ResourceConfig {
 
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
+  private final IdealState _idealState;
   private final SchedulerTaskConfig _schedulerTaskConfig;
   private final ProvisionerConfig _provisionerConfig;
   private final UserConfig _userConfig;
@@ -65,13 +65,14 @@ public class ResourceConfig {
    * @param bucketSize bucket size for this resource
    * @param batchMessageMode whether or not batch messaging is allowed
    */
-  public ResourceConfig(ResourceId id, ResourceType resourceType,
+  public ResourceConfig(ResourceId id, ResourceType resourceType, IdealState idealState,
       SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig,
       ProvisionerConfig provisionerConfig, UserConfig userConfig, int bucketSize,
       boolean batchMessageMode) {
     _id = id;
     _resourceType = resourceType;
     _schedulerTaskConfig = schedulerTaskConfig;
+    _idealState = idealState;
     _rebalancerConfig = rebalancerConfig;
     _provisionerConfig = provisionerConfig;
     _userConfig = userConfig;
@@ -80,28 +81,11 @@ public class ResourceConfig {
   }
 
   /**
-   * Get the subunits of the resource
-   * @return map of subunit id to subunit or empty map if none
-   */
-  public Map<? extends PartitionId, ? extends Partition> getSubUnitMap() {
-    return _rebalancerConfig.getSubUnitMap();
-  }
-
-  /**
-   * Get a subunit that the resource contains
-   * @param subUnitId the subunit id to look up
-   * @return Partition or null if none is present with the given id
-   */
-  public Partition getSubUnit(PartitionId subUnitId) {
-    return getSubUnitMap().get(subUnitId);
-  }
-
-  /**
    * Get the set of subunit ids that the resource contains
    * @return subunit id set, or empty if none
    */
   public Set<? extends PartitionId> getSubUnitSet() {
-    return getSubUnitMap().keySet();
+    return _idealState.getPartitionIdSet();
   }
 
   /**
@@ -110,6 +94,14 @@ public class ResourceConfig {
    */
   public RebalancerConfig getRebalancerConfig() {
     return _rebalancerConfig;
+  }
+
+  /**
+   * Get the ideal state for this resource
+   * @return IdealState instance
+   */
+  public IdealState getIdealState() {
+    return _idealState;
   }
 
   /**
@@ -170,7 +162,7 @@ public class ResourceConfig {
 
   @Override
   public String toString() {
-    return getSubUnitMap().toString();
+    return _idealState.toString();
   }
 
   /**
@@ -309,6 +301,7 @@ public class ResourceConfig {
   public static class Builder {
     private final ResourceId _id;
     private ResourceType _type;
+    private IdealState _idealState;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
     private ProvisionerConfig _provisionerConfig;
@@ -345,6 +338,16 @@ public class ResourceConfig {
      */
     public Builder rebalancerConfig(RebalancerConfig rebalancerConfig) {
       _rebalancerConfig = rebalancerConfig;
+      return this;
+    }
+
+    /**
+     * Set the ideal state
+     * @param idealState a description of a resource
+     * @return Builder
+     */
+    public Builder idealState(IdealState idealState) {
+      _idealState = idealState;
       return this;
     }
 
@@ -401,7 +404,7 @@ public class ResourceConfig {
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _type, _schedulerTaskConfig, _rebalancerConfig,
+      return new ResourceConfig(_id, _type, _idealState, _schedulerTaskConfig, _rebalancerConfig,
           _provisionerConfig, _userConfig, _bucketSize, _batchMessageMode);
     }
   }

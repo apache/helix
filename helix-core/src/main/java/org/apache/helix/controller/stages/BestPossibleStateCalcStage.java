@@ -40,6 +40,7 @@ import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
@@ -221,14 +222,19 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           _rebalancerMap.put(resourceId, rebalancer);
         }
         ResourceAssignment currentAssignment = null;
+        IdealState idealState;
         Resource resourceSnapshot = cluster.getResource(resourceId);
         if (resourceSnapshot != null) {
           currentAssignment = resourceSnapshot.getResourceAssignment();
+          idealState = resourceSnapshot.getIdealState();
+        } else {
+          idealState = new IdealState(resourceId);
         }
         try {
+
           resourceAssignment =
-              rebalancer.computeResourceMapping(rebalancerConfig, currentAssignment, cluster,
-                  currentStateOutput);
+              rebalancer.computeResourceMapping(idealState, rebalancerConfig, currentAssignment,
+                  cluster, currentStateOutput);
         } catch (Exception e) {
           LOG.error("Rebalancer for resource " + resourceId + " failed.", e);
         }

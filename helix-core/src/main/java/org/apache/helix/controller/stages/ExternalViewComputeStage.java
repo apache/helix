@@ -101,7 +101,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       } else {
         view.setBucketSize(currentStateOutput.getBucketSize(resourceId));
       }
-      for (PartitionId partitionId : resource.getSubUnitMap().keySet()) {
+      for (PartitionId partitionId : resource.getSubUnitSet()) {
         Map<ParticipantId, State> currentStateMap =
             currentStateOutput.getCurrentStateMap(resourceId, partitionId);
         if (currentStateMap != null && currentStateMap.size() > 0) {

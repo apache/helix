@@ -37,7 +37,6 @@ import org.apache.helix.controller.context.BasicControllerContext;
 import org.apache.helix.controller.context.ControllerContextHolder;
 import org.apache.helix.controller.context.ControllerContextProvider;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -56,8 +55,7 @@ import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestCustomizedIdealStateRebalancer extends
-    ZkStandAloneCMTestBase {
+public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
   String db2 = TEST_DB + "2";
   static boolean testRebalancerCreated = false;
   static boolean testRebalancerInvoked = false;
@@ -71,16 +69,16 @@ public class TestCustomizedIdealStateRebalancer extends
      * which is in the highest-priority state.
      */
     @Override
-    public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-        ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
-      PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
+    public ResourceAssignment computeResourceMapping(IdealState idealState,
+        RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+        ResourceCurrentState currentState) {
       StateModelDefinition stateModelDef =
-          cluster.getStateModelMap().get(config.getStateModelDefId());
+          cluster.getStateModelMap().get(idealState.getStateModelDefId());
       List<ParticipantId> liveParticipants =
           new ArrayList<ParticipantId>(cluster.getLiveParticipantMap().keySet());
-      ResourceAssignment resourceMapping = new ResourceAssignment(config.getResourceId());
+      ResourceAssignment resourceMapping = new ResourceAssignment(idealState.getResourceId());
       int i = 0;
-      for (PartitionId partitionId : config.getPartitionSet()) {
+      for (PartitionId partitionId : idealState.getPartitionIdSet()) {
         int nodeIndex = i % liveParticipants.size();
         Map<ParticipantId, State> replicaMap = new HashMap<ParticipantId, State>();
         replicaMap.put(liveParticipants.get(nodeIndex), stateModelDef.getTypedStatesPriorityList()
@@ -91,7 +89,7 @@ public class TestCustomizedIdealStateRebalancer extends
       testRebalancerInvoked = true;
 
       // set some basic context
-      ContextId contextId = ContextId.from(config.getResourceId().stringify());
+      ContextId contextId = ContextId.from(idealState.getResourceId().stringify());
       _contextProvider.putContext(contextId, new BasicControllerContext(contextId));
       return resourceMapping;
     }

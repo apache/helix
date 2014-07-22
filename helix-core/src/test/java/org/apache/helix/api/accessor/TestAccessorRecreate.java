@@ -117,8 +117,7 @@ public class TestAccessorRecreate extends ZkTestBase {
     Assert.assertTrue(created);
 
     // read the participant
-    ParticipantAccessor participantAccessor = new ParticipantAccessor(clusterId, helixAccessor);
-    Participant participantSnapshot = participantAccessor.readParticipant(participantId);
+    Participant participantSnapshot = accessor.readParticipant(participantId);
     Assert.assertEquals(participantSnapshot.getUserConfig().getIntField(MODIFIER, -1), 1);
 
     // create a participant with the same id
@@ -133,7 +132,7 @@ public class TestAccessorRecreate extends ZkTestBase {
     Assert.assertTrue(created2);
 
     // read the cluster again
-    participantSnapshot = participantAccessor.readParticipant(participantId);
+    participantSnapshot = accessor.readParticipant(participantId);
     Assert.assertEquals(participantSnapshot.getUserConfig().getIntField(MODIFIER, -1), 2);
 
     accessor.dropCluster();

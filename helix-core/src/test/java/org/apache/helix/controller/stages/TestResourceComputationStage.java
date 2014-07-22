@@ -191,12 +191,6 @@ public class TestResourceComputationStage extends BaseStageTest {
         .getStateModelDefId(), currentState.getStateModelDefId());
     AssertJUnit.assertEquals(resourceMap.get(oldResourceId).getSubUnitSet().size(), currentState
         .getTypedPartitionStateMap().size());
-    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(
-        PartitionId.from("testResourceOld_0")));
-    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(
-        PartitionId.from("testResourceOld_1")));
-    AssertJUnit.assertNotNull(resourceMap.get(oldResourceId).getSubUnit(
-        PartitionId.from("testResourceOld_2")));
 
   }
 

@@ -41,6 +41,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
@@ -127,8 +128,11 @@ public class TestHelixConnection extends ZkTestBase {
             .preferenceList(PartitionId.from("testDB_0"), Arrays.asList(participantId)).build();
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
         stateModelDef).build());
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId).rebalancerConfig(
-        rebalancerCtx).build());
+    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId)
+        .rebalancerConfig(rebalancerCtx)
+        .idealState(
+            PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerCtx, 0, false))
+        .build());
     clusterAccessor.addParticipantToCluster(new ParticipantConfig.Builder(participantId).build());
 
     // start controller

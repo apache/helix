@@ -20,8 +20,6 @@ package org.apache.helix;
  */
 
 import org.apache.helix.api.accessor.ClusterAccessor;
-import org.apache.helix.api.accessor.ParticipantAccessor;
-import org.apache.helix.api.accessor.ResourceAccessor;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
@@ -92,20 +90,6 @@ public interface HelixConnection {
    * @return cluster-accessor
    */
   ClusterAccessor createClusterAccessor(ClusterId clusterId);
-
-  /**
-   * create a resource accessor
-   * @param clusterId
-   * @return resource accessor
-   */
-  ResourceAccessor createResourceAccessor(ClusterId clusterId);
-
-  /**
-   * create a participant accessor
-   * @param clusterId
-   * @return participant-accessor
-   */
-  ParticipantAccessor createParticipantAccessor(ClusterId clusterId);
 
   /**
    * Provides admin interface to setup and modify cluster

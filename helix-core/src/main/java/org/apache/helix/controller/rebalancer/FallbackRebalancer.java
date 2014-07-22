@@ -24,14 +24,12 @@ import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.context.ControllerContextProvider;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -60,34 +58,27 @@ public class FallbackRebalancer implements HelixRebalancer {
   }
 
   @Override
-  public ResourceAssignment computeResourceMapping(RebalancerConfig rebalancerConfig,
-      ResourceAssignment prevAssignment, Cluster cluster, ResourceCurrentState currentState) {
+  public ResourceAssignment computeResourceMapping(IdealState idealState,
+      RebalancerConfig rebalancerConfig, ResourceAssignment prevAssignment, Cluster cluster,
+      ResourceCurrentState currentState) {
     // make sure the manager is not null
     if (_helixManager == null) {
       LOG.info("HelixManager is null!");
       return null;
     }
 
-    // get the config
-    PartitionedRebalancerConfig config = PartitionedRebalancerConfig.from(rebalancerConfig);
-    if (config == null) {
-      LOG.info("Resource is not partitioned");
+    // Make sure we have an ideal state
+    if (idealState == null) {
+      LOG.info("No IdealState available");
       return null;
     }
 
-    // get the ideal state and rebalancer class
-    ResourceId resourceId = config.getResourceId();
+    // get the rebalancer class
+    ResourceId resourceId = idealState.getResourceId();
     StateModelDefinition stateModelDef =
-        cluster.getStateModelMap().get(config.getStateModelDefId());
+        cluster.getStateModelMap().get(idealState.getStateModelDefId());
     if (stateModelDef == null) {
       LOG.info("StateModelDefinition unavailable for " + resourceId);
-      return null;
-    }
-    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates(resourceId.stringify()));
-    if (idealState == null) {
-      LOG.info("No IdealState available for " + resourceId);
       return null;
     }
     String rebalancerClassName = idealState.getRebalancerClassName();
@@ -111,6 +102,7 @@ public class FallbackRebalancer implements HelixRebalancer {
     }
 
     // get the cluster data cache (unfortunately involves a second read of the cluster)
+    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
     ClusterDataCache cache = new ClusterDataCache();
     cache.refresh(accessor);
 

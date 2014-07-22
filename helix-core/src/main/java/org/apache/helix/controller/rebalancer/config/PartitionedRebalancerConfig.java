@@ -2,11 +2,13 @@ package org.apache.helix.controller.rebalancer.config;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.api.Partition;
+import org.apache.helix.api.State;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -310,6 +312,69 @@ public class PartitionedRebalancerConfig extends BasicRebalancerConfig implement
     if (rebalancerRef != null) {
       builder.rebalancerRef(rebalancerRef);
     }
+  }
+
+  /**
+   * Get an ideal state from a rebalancer config if the resource is partitioned
+   * @param config RebalancerConfig instance
+   * @param bucketSize bucket size to use
+   * @param batchMessageMode true if batch messaging allowed, false otherwise
+   * @return IdealState, or null
+   */
+  public static IdealState rebalancerConfigToIdealState(RebalancerConfig config, int bucketSize,
+      boolean batchMessageMode) {
+    PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
+    if (partitionedConfig != null) {
+      if (!PartitionedRebalancerConfig.isBuiltinConfig(partitionedConfig.getClass())) {
+        // don't proceed if this resource cannot be described by an ideal state
+        return null;
+      }
+      IdealState idealState = new IdealState(partitionedConfig.getResourceId());
+      idealState.setRebalanceMode(partitionedConfig.getRebalanceMode());
+
+      RebalancerRef ref = partitionedConfig.getRebalancerRef();
+      if (ref != null) {
+        idealState.setRebalancerRef(partitionedConfig.getRebalancerRef());
+      }
+      String replicas = null;
+      if (partitionedConfig.anyLiveParticipant()) {
+        replicas = StateModelToken.ANY_LIVEINSTANCE.toString();
+      } else {
+        replicas = Integer.toString(partitionedConfig.getReplicaCount());
+      }
+      idealState.setReplicas(replicas);
+      idealState.setNumPartitions(partitionedConfig.getPartitionSet().size());
+      idealState.setInstanceGroupTag(partitionedConfig.getParticipantGroupTag());
+      idealState.setMaxPartitionsPerInstance(partitionedConfig.getMaxPartitionsPerParticipant());
+      idealState.setStateModelDefId(partitionedConfig.getStateModelDefId());
+      idealState.setStateModelFactoryId(partitionedConfig.getStateModelFactoryId());
+      idealState.setBucketSize(bucketSize);
+      idealState.setBatchMessageMode(batchMessageMode);
+      idealState.setRebalancerConfigClass(config.getClass());
+      if (SemiAutoRebalancerConfig.class.equals(config.getClass())) {
+        SemiAutoRebalancerConfig semiAutoConfig =
+            BasicRebalancerConfig.convert(config, SemiAutoRebalancerConfig.class);
+        for (PartitionId partitionId : semiAutoConfig.getPartitionSet()) {
+          idealState.setPreferenceList(partitionId, semiAutoConfig.getPreferenceList(partitionId));
+        }
+      } else if (CustomRebalancerConfig.class.equals(config.getClass())) {
+        CustomRebalancerConfig customConfig =
+            BasicRebalancerConfig.convert(config, CustomRebalancerConfig.class);
+        for (PartitionId partitionId : customConfig.getPartitionSet()) {
+          idealState
+              .setParticipantStateMap(partitionId, customConfig.getPreferenceMap(partitionId));
+        }
+      } else {
+        for (PartitionId partitionId : partitionedConfig.getPartitionSet()) {
+          List<ParticipantId> preferenceList = Collections.emptyList();
+          idealState.setPreferenceList(partitionId, preferenceList);
+          Map<ParticipantId, State> participantStateMap = Collections.emptyMap();
+          idealState.setParticipantStateMap(partitionId, participantStateMap);
+        }
+      }
+      return idealState;
+    }
+    return null;
   }
 
   /**

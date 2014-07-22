@@ -22,6 +22,7 @@ package org.apache.helix.api.accessor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -34,15 +35,18 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Controller;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ClusterConfig;
+import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
-import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.api.id.ContextId;
 import org.apache.helix.api.id.ControllerId;
+import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -50,6 +54,9 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContext;
 import org.apache.helix.controller.context.ControllerContextHolder;
+import org.apache.helix.controller.provisioner.ContainerId;
+import org.apache.helix.controller.provisioner.ContainerSpec;
+import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
@@ -275,14 +282,6 @@ public class ClusterAccessor {
 
   /**
    * Get all the state model definitions for this cluster
-   * @return map of state model def id to state model definition
-   */
-  public Map<StateModelDefId, StateModelDefinition> readStateModelDefinitions() {
-    return readStateModelDefinitions(false);
-  }
-
-  /**
-   * Get all the state model definitions for this cluster
    * @param useCache Use the ClusterDataCache associated with this class rather than reading again
    * @return map of state model def id to state model definition
    */
@@ -298,14 +297,6 @@ public class ClusterAccessor {
       stateModelDefs.put(stateModelDef.getStateModelDefId(), stateModelDef);
     }
     return stateModelDefs;
-  }
-
-  /**
-   * Read all resources in the cluster
-   * @return map of resource id to resource
-   */
-  public Map<ResourceId, Resource> readResources() {
-    return readResources(false);
   }
 
   /**
@@ -375,20 +366,14 @@ public class ClusterAccessor {
     Map<ResourceId, Resource> resourceMap = Maps.newHashMap();
     for (String resourceName : allResources) {
       ResourceId resourceId = ResourceId.from(resourceName);
-      resourceMap.put(resourceId, ResourceAccessor.createResource(resourceId,
-          resourceConfigMap.get(resourceName), idealStateMap.get(resourceName),
-          externalViewMap.get(resourceName), resourceAssignmentMap.get(resourceName)));
+      resourceMap.put(
+          resourceId,
+          createResource(resourceId, resourceConfigMap.get(resourceName),
+              idealStateMap.get(resourceName), externalViewMap.get(resourceName),
+              resourceAssignmentMap.get(resourceName)));
     }
 
     return resourceMap;
-  }
-
-  /**
-   * Read all participants in the cluster
-   * @return map of participant id to participant, or empty map
-   */
-  public Map<ParticipantId, Participant> readParticipants() {
-    return readParticipants(false);
   }
 
   /**
@@ -453,72 +438,13 @@ public class ClusterAccessor {
 
       ParticipantId participantId = ParticipantId.from(participantName);
 
-      participantMap.put(participantId, ParticipantAccessor.createParticipant(participantId,
-          instanceConfig, userConfig, liveInstance, instanceMsgMap,
-          currentStateMap.get(participantName)));
+      participantMap.put(
+          participantId,
+          createParticipant(participantId, instanceConfig, userConfig, liveInstance,
+              instanceMsgMap, currentStateMap.get(participantName)));
     }
 
     return participantMap;
-  }
-
-  /**
-   * Get cluster constraints of a given type
-   * @param type ConstraintType value
-   * @return ClusterConstraints, or null if none present
-   */
-  public ClusterConstraints readConstraints(ConstraintType type) {
-    return _accessor.getProperty(_keyBuilder.constraint(type.toString()));
-  }
-
-  /**
-   * Remove a constraint from the cluster
-   * @param type the constraint type
-   * @param constraintId the constraint id
-   * @return true if removed, false otherwise
-   */
-  public boolean removeConstraint(ConstraintType type, ConstraintId constraintId) {
-    ClusterConstraints constraints = _accessor.getProperty(_keyBuilder.constraint(type.toString()));
-    if (constraints == null || constraints.getConstraintItem(constraintId) == null) {
-      LOG.error("Constraint with id " + constraintId + " not present");
-      return false;
-    }
-    constraints.removeConstraintItem(constraintId);
-    return _accessor.setProperty(_keyBuilder.constraint(type.toString()), constraints);
-  }
-
-  /**
-   * Read the user config of the cluster
-   * @return UserConfig, or null
-   */
-  public UserConfig readUserConfig() {
-    ClusterConfiguration clusterConfig = _accessor.getProperty(_keyBuilder.clusterConfig());
-    return clusterConfig != null ? clusterConfig.getUserConfig() : null;
-  }
-
-  /**
-   * Set the user config of the cluster, overwriting existing user configs
-   * @param userConfig the new user config
-   * @return true if the user config was set, false otherwise
-   */
-  public boolean setUserConfig(UserConfig userConfig) {
-    ClusterConfig.Delta delta = new ClusterConfig.Delta(_clusterId).setUserConfig(userConfig);
-    return updateCluster(delta) != null;
-  }
-
-  /**
-   * Clear any user-specified configuration from the cluster
-   * @return true if the config was cleared, false otherwise
-   */
-  public boolean dropUserConfig() {
-    return setUserConfig(new UserConfig(Scope.cluster(_clusterId)));
-  }
-
-  /**
-   * Read the persisted controller contexts
-   * @return map of context id to controller context
-   */
-  public Map<ContextId, ControllerContext> readControllerContext() {
-    return readControllerContext(false);
   }
 
   /**
@@ -538,18 +464,6 @@ public class ClusterAccessor {
       contexts.put(ContextId.from(contextName), contextHolders.get(contextName).getContext());
     }
     return contexts;
-  }
-
-  /**
-   * Add user configuration to the existing cluster user configuration. Overwrites properties with
-   * the same key
-   * @param userConfig the user config key-value pairs to add
-   * @return true if the user config was updated, false otherwise
-   */
-  public boolean updateUserConfig(UserConfig userConfig) {
-    ClusterConfiguration clusterConfig = new ClusterConfiguration(_clusterId);
-    clusterConfig.addNamespacedConfig(userConfig);
-    return _accessor.updateProperty(_keyBuilder.clusterConfig(), clusterConfig);
   }
 
   /**
@@ -604,7 +518,7 @@ public class ClusterAccessor {
 
     // Create an IdealState from a RebalancerConfig (if the resource supports it)
     IdealState idealState =
-        ResourceAccessor.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
+        PartitionedRebalancerConfig.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
             resource.getBucketSize(), resource.getBatchMessageMode());
     if (idealState != null) {
       _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
@@ -653,14 +567,13 @@ public class ClusterAccessor {
    * check if cluster structure is valid
    * @return true if valid or false otherwise
    */
-  public boolean isClusterStructureValid() {
+  protected boolean isClusterStructureValid() {
     List<String> paths = HelixUtil.getRequiredPathsForCluster(_clusterId.toString());
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     if (baseAccessor != null) {
       boolean[] existsResults = baseAccessor.exists(paths, 0);
       int ind = 0;
       for (boolean exists : existsResults) {
-
         if (!exists) {
           LOG.warn("Path does not exist:" + paths.get(ind));
           return false;
@@ -674,7 +587,7 @@ public class ClusterAccessor {
   /**
    * Create empty persistent properties to ensure that there is a valid cluster structure
    */
-  public void initClusterStructure() {
+  private void initClusterStructure() {
     BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
     List<String> paths = HelixUtil.getRequiredPathsForCluster(_clusterId.toString());
     for (String path : paths) {
@@ -709,19 +622,18 @@ public class ClusterAccessor {
       return false;
     }
 
-    ParticipantAccessor participantAccessor = new ParticipantAccessor(_clusterId, _accessor);
     ParticipantId participantId = participant.getId();
     InstanceConfig existConfig =
         _accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify()));
-    if (existConfig != null && participantAccessor.isParticipantStructureValid(participantId)) {
+    if (existConfig != null && isParticipantStructureValid(participantId)) {
       LOG.error("Config for participant: " + participantId + " already exists in cluster: "
           + _clusterId);
       return false;
     }
 
     // clear and rebuild the participant structure
-    participantAccessor.clearParticipantStructure(participantId);
-    participantAccessor.initParticipantStructure(participantId);
+    clearParticipantStructure(participantId);
+    initParticipantStructure(participantId);
 
     // add the config
     InstanceConfig instanceConfig = new InstanceConfig(participant.getId());
@@ -748,8 +660,20 @@ public class ClusterAccessor {
    * @return true if participant dropped, false if there was an error
    */
   public boolean dropParticipantFromCluster(ParticipantId participantId) {
-    ParticipantAccessor accessor = new ParticipantAccessor(_clusterId, _accessor);
-    return accessor.dropParticipant(participantId);
+    if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
+      LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
+    }
+
+    if (_accessor.getProperty(_keyBuilder.instance(participantId.stringify())) == null) {
+      LOG.error("Participant: " + participantId + " structure does NOT exist in cluster");
+    }
+
+    // delete participant config path
+    _accessor.removeProperty(_keyBuilder.instanceConfig(participantId.stringify()));
+
+    // delete participant path
+    _accessor.removeProperty(_keyBuilder.instance(participantId.stringify()));
+    return true;
   }
 
   /**
@@ -777,6 +701,332 @@ public class ClusterAccessor {
   }
 
   /**
+   * Read the leader controller if it is live
+   * @return Controller snapshot, or null
+   */
+  public Controller readLeader() {
+    LiveInstance leader = _accessor.getProperty(_keyBuilder.controllerLeader());
+    if (leader != null) {
+      ControllerId leaderId = ControllerId.from(leader.getId());
+      return new Controller(leaderId, leader, true);
+    }
+    return null;
+  }
+
+  /**
+   * Update a participant configuration
+   * @param participantId the participant to update
+   * @param participantDelta changes to the participant
+   * @return ParticipantConfig, or null if participant is not persisted
+   */
+  public ParticipantConfig updateParticipant(ParticipantId participantId,
+      ParticipantConfig.Delta participantDelta) {
+    Participant participant = readParticipant(participantId);
+    if (participant == null) {
+      LOG.error("Participant " + participantId + " does not exist, cannot be updated");
+      return null;
+    }
+    ParticipantConfig config = participantDelta.mergeInto(participant.getConfig());
+    setParticipant(config);
+    return config;
+  }
+
+  /**
+   * Set the configuration of an existing participant
+   * @param participantConfig participant configuration
+   * @return true if config was set, false if there was an error
+   */
+  public boolean setParticipant(ParticipantConfig participantConfig) {
+    if (participantConfig == null) {
+      LOG.error("Participant config not initialized");
+      return false;
+    }
+    InstanceConfig instanceConfig = new InstanceConfig(participantConfig.getId());
+    instanceConfig.setHostName(participantConfig.getHostName());
+    instanceConfig.setPort(Integer.toString(participantConfig.getPort()));
+    for (String tag : participantConfig.getTags()) {
+      instanceConfig.addTag(tag);
+    }
+    for (PartitionId partitionId : participantConfig.getDisabledPartitions()) {
+      instanceConfig.setParticipantEnabledForPartition(partitionId, false);
+    }
+    instanceConfig.setInstanceEnabled(participantConfig.isEnabled());
+    instanceConfig.addNamespacedConfig(participantConfig.getUserConfig());
+    _accessor.setProperty(_keyBuilder.instanceConfig(participantConfig.getId().stringify()),
+        instanceConfig);
+    return true;
+  }
+
+  /**
+   * create a participant based on physical model
+   * @param participantId
+   * @param instanceConfig
+   * @param userConfig
+   * @param liveInstance
+   * @param instanceMsgMap map of message-id to message
+   * @param instanceCurStateMap map of resource-id to current-state
+   * @return participant
+   */
+  private static Participant createParticipant(ParticipantId participantId,
+      InstanceConfig instanceConfig, UserConfig userConfig, LiveInstance liveInstance,
+      Map<String, Message> instanceMsgMap, Map<String, CurrentState> instanceCurStateMap) {
+
+    String hostName = instanceConfig.getHostName();
+
+    int port = -1;
+    try {
+      port = Integer.parseInt(instanceConfig.getPort());
+    } catch (IllegalArgumentException e) {
+      // keep as -1
+    }
+    if (port < 0 || port > 65535) {
+      port = -1;
+    }
+    boolean isEnabled = instanceConfig.getInstanceEnabled();
+
+    List<String> disabledPartitions = instanceConfig.getDisabledPartitions();
+    Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
+    if (disabledPartitions != null) {
+      disabledPartitionIdSet = new HashSet<PartitionId>();
+      for (String partitionId : disabledPartitions) {
+        disabledPartitionIdSet.add(PartitionId.from(PartitionId.extractResourceId(partitionId),
+            PartitionId.stripResourceId(partitionId)));
+      }
+    }
+
+    Set<String> tags = new HashSet<String>(instanceConfig.getTags());
+
+    RunningInstance runningInstance = null;
+    if (liveInstance != null) {
+      runningInstance =
+          new RunningInstance(liveInstance.getTypedSessionId(),
+              liveInstance.getTypedHelixVersion(), liveInstance.getProcessId());
+    }
+
+    Map<MessageId, Message> msgMap = new HashMap<MessageId, Message>();
+    if (instanceMsgMap != null) {
+      for (String msgId : instanceMsgMap.keySet()) {
+        Message message = instanceMsgMap.get(msgId);
+        msgMap.put(MessageId.from(msgId), message);
+      }
+    }
+
+    Map<ResourceId, CurrentState> curStateMap = new HashMap<ResourceId, CurrentState>();
+    if (instanceCurStateMap != null) {
+
+      for (String resourceName : instanceCurStateMap.keySet()) {
+        curStateMap.put(ResourceId.from(resourceName), instanceCurStateMap.get(resourceName));
+      }
+    }
+
+    // set up the container config if it exists
+    ContainerConfig containerConfig = null;
+    ContainerSpec containerSpec = instanceConfig.getContainerSpec();
+    ContainerState containerState = instanceConfig.getContainerState();
+    ContainerId containerId = instanceConfig.getContainerId();
+    if (containerSpec != null || containerState != null || containerId != null) {
+      containerConfig = new ContainerConfig(containerId, containerSpec, containerState);
+    }
+
+    return new Participant(participantId, hostName, port, isEnabled, disabledPartitionIdSet, tags,
+        runningInstance, curStateMap, msgMap, userConfig, containerConfig);
+  }
+
+  /**
+   * read participant related data
+   * @param participantId
+   * @return participant, or null if participant not available
+   */
+  public Participant readParticipant(ParticipantId participantId) {
+    // read physical model
+    String participantName = participantId.stringify();
+    InstanceConfig instanceConfig =
+        _accessor.getProperty(_keyBuilder.instanceConfig(participantName));
+
+    if (instanceConfig == null) {
+      LOG.error("Participant " + participantId + " is not present on the cluster");
+      return null;
+    }
+
+    UserConfig userConfig = instanceConfig.getUserConfig();
+    LiveInstance liveInstance = _accessor.getProperty(_keyBuilder.liveInstance(participantName));
+
+    Map<String, Message> instanceMsgMap = Collections.emptyMap();
+    Map<String, CurrentState> instanceCurStateMap = Collections.emptyMap();
+    if (liveInstance != null) {
+      SessionId sessionId = liveInstance.getTypedSessionId();
+
+      instanceMsgMap = _accessor.getChildValuesMap(_keyBuilder.messages(participantName));
+      instanceCurStateMap =
+          _accessor.getChildValuesMap(_keyBuilder.currentStates(participantName,
+              sessionId.stringify()));
+    }
+
+    return createParticipant(participantId, instanceConfig, userConfig, liveInstance,
+        instanceMsgMap, instanceCurStateMap);
+  }
+
+  /**
+   * Read a single snapshot of a resource
+   * @param resourceId the resource id to read
+   * @return Resource or null if not present
+   */
+  public Resource readResource(ResourceId resourceId) {
+    ResourceConfiguration config =
+        _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
+    IdealState idealState = _accessor.getProperty(_keyBuilder.idealStates(resourceId.stringify()));
+
+    if (config == null && idealState == null) {
+      LOG.error("Resource " + resourceId + " not present on the cluster");
+      return null;
+    }
+
+    ExternalView externalView =
+        _accessor.getProperty(_keyBuilder.externalView(resourceId.stringify()));
+    ResourceAssignment resourceAssignment =
+        _accessor.getProperty(_keyBuilder.resourceAssignment(resourceId.stringify()));
+    return createResource(resourceId, config, idealState, externalView, resourceAssignment);
+  }
+
+  /**
+   * Update a resource configuration
+   * @param resourceId the resource id to update
+   * @param resourceDelta changes to the resource
+   * @return ResourceConfig, or null if the resource is not persisted
+   */
+  public ResourceConfig updateResource(ResourceId resourceId, ResourceConfig.Delta resourceDelta) {
+    Resource resource = readResource(resourceId);
+    if (resource == null) {
+      LOG.error("Resource " + resourceId + " does not exist, cannot be updated");
+      return null;
+    }
+    ResourceConfig config = resourceDelta.mergeInto(resource.getConfig());
+    setResource(config);
+    return config;
+  }
+
+  /**
+   * Set a physical resource configuration, which may include user-defined configuration, as well as
+   * rebalancer configuration
+   * @param resourceId
+   * @param configuration
+   * @return true if set, false otherwise
+   */
+  private boolean setResourceConfiguration(ResourceId resourceId,
+      ResourceConfiguration configuration, RebalancerConfig rebalancerConfig) {
+    boolean status = true;
+    if (configuration != null) {
+      status =
+          _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
+    }
+    // set an ideal state if the resource supports it
+    IdealState idealState =
+        PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig,
+            configuration.getBucketSize(), configuration.getBatchMessageMode());
+    if (idealState != null) {
+      status =
+          status
+              && _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
+    }
+    return status;
+  }
+
+  /**
+   * Persist an existing resource's logical configuration
+   * @param resourceConfig logical resource configuration
+   * @return true if resource is set, false otherwise
+   */
+  public boolean setResource(ResourceConfig resourceConfig) {
+    if (resourceConfig == null || resourceConfig.getRebalancerConfig() == null) {
+      LOG.error("Resource not fully defined with a rebalancer context");
+      return false;
+    }
+    ResourceId resourceId = resourceConfig.getId();
+    ResourceConfiguration config = new ResourceConfiguration(resourceId);
+    UserConfig userConfig = resourceConfig.getUserConfig();
+    if (userConfig != null
+        && (!userConfig.getSimpleFields().isEmpty() || !userConfig.getListFields().isEmpty() || !userConfig
+            .getMapFields().isEmpty())) {
+      config.addNamespacedConfig(userConfig);
+    } else {
+      userConfig = null;
+    }
+    PartitionedRebalancerConfig partitionedConfig =
+        PartitionedRebalancerConfig.from(resourceConfig.getRebalancerConfig());
+    if (partitionedConfig == null
+        || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+      // only persist if this is not easily convertible to an ideal state
+      config.addNamespacedConfig(new RebalancerConfigHolder(resourceConfig.getRebalancerConfig())
+          .toNamespacedConfig());
+      config.setBucketSize(resourceConfig.getBucketSize());
+      config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
+    } else if (userConfig == null) {
+      config = null;
+    }
+    if (resourceConfig.getProvisionerConfig() != null) {
+      config.addNamespacedConfig(new ProvisionerConfigHolder(resourceConfig.getProvisionerConfig())
+          .toNamespacedConfig());
+    }
+    config.setBucketSize(resourceConfig.getBucketSize());
+    config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
+    setResourceConfiguration(resourceId, config, resourceConfig.getRebalancerConfig());
+    return true;
+  }
+
+  /**
+   * Create a resource snapshot instance from the physical model
+   * @param resourceId the resource id
+   * @param resourceConfiguration physical resource configuration
+   * @param idealState ideal state of the resource
+   * @param externalView external view of the resource
+   * @param resourceAssignment current resource assignment
+   * @return Resource
+   */
+  private static Resource createResource(ResourceId resourceId,
+      ResourceConfiguration resourceConfiguration, IdealState idealState,
+      ExternalView externalView, ResourceAssignment resourceAssignment) {
+    UserConfig userConfig;
+    ProvisionerConfig provisionerConfig = null;
+    RebalancerConfig rebalancerConfig = null;
+    ResourceType type = ResourceType.DATA;
+    if (resourceConfiguration != null) {
+      userConfig = resourceConfiguration.getUserConfig();
+      type = resourceConfiguration.getType();
+    } else {
+      userConfig = new UserConfig(Scope.resource(resourceId));
+    }
+    int bucketSize = 0;
+    boolean batchMessageMode = false;
+    if (idealState != null) {
+      if (resourceConfiguration != null
+          && idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        // prefer rebalancer config for user_defined data rebalancing
+        rebalancerConfig =
+            resourceConfiguration.getRebalancerConfig(PartitionedRebalancerConfig.class);
+      }
+      if (rebalancerConfig == null) {
+        // prefer ideal state for non-user_defined data rebalancing
+        rebalancerConfig = PartitionedRebalancerConfig.from(idealState);
+      }
+      bucketSize = idealState.getBucketSize();
+      batchMessageMode = idealState.getBatchMessageMode();
+      idealState.updateUserConfig(userConfig);
+    } else if (resourceConfiguration != null) {
+      bucketSize = resourceConfiguration.getBucketSize();
+      batchMessageMode = resourceConfiguration.getBatchMessageMode();
+      rebalancerConfig = resourceConfiguration.getRebalancerConfig(RebalancerConfig.class);
+    }
+    if (rebalancerConfig == null) {
+      rebalancerConfig = new PartitionedRebalancerConfig();
+    }
+    if (resourceConfiguration != null) {
+      provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
+    }
+    return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
+        rebalancerConfig, provisionerConfig, userConfig, bucketSize, batchMessageMode);
+  }
+
+  /**
    * Get the cluster ID this accessor is connected to
    * @return ClusterId
    */
@@ -790,5 +1040,66 @@ public class ClusterAccessor {
    */
   protected HelixDataAccessor dataAccessor() {
     return _accessor;
+  }
+
+  /**
+   * Create empty persistent properties to ensure that there is a valid participant structure
+   * @param participantId the identifier under which to initialize the structure
+   * @return true if the participant structure exists at the end of this call, false otherwise
+   */
+  private boolean initParticipantStructure(ParticipantId participantId) {
+    if (participantId == null) {
+      LOG.error("Participant ID cannot be null when clearing the participant in cluster "
+          + _clusterId + "!");
+      return false;
+    }
+    List<String> paths =
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    for (String path : paths) {
+      boolean status = baseAccessor.create(path, null, AccessOption.PERSISTENT);
+      if (!status) {
+        if (LOG.isDebugEnabled()) {
+          LOG.debug(path + " already exists");
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Clear properties for the participant
+   * @param participantId the participant for which to clear
+   * @return true if all paths removed, false otherwise
+   */
+  private boolean clearParticipantStructure(ParticipantId participantId) {
+    List<String> paths =
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    boolean[] removeResults = baseAccessor.remove(paths, 0);
+    boolean result = true;
+    for (boolean removeResult : removeResults) {
+      result = result && removeResult;
+    }
+    return result;
+  }
+
+  /**
+   * check if participant structure is valid
+   * @return true if valid or false otherwise
+   */
+  private boolean isParticipantStructureValid(ParticipantId participantId) {
+    List<String> paths =
+        HelixUtil.getRequiredPathsForInstance(_clusterId.toString(), participantId.toString());
+    BaseDataAccessor<?> baseAccessor = _accessor.getBaseDataAccessor();
+    if (baseAccessor != null) {
+      boolean[] existsResults = baseAccessor.exists(paths, 0);
+      for (boolean exists : existsResults) {
+        if (!exists) {
+          return false;
+        }
+      }
+    }
+    return true;
   }
 }

@@ -20,8 +20,9 @@ package org.apache.helix.provisioning.participant;
  */
 
 import org.apache.helix.HelixConnection;
+import org.apache.helix.api.Resource;
 import org.apache.helix.api.Scope;
-import org.apache.helix.api.accessor.ResourceAccessor;
+import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
@@ -45,9 +46,10 @@ public abstract class StatelessParticipantService extends AbstractParticipantSer
   @Override
   protected void init() {
     ClusterId clusterId = getClusterId();
-    ResourceAccessor resourceAccessor = getConnection().createResourceAccessor(clusterId);
+    ClusterAccessor clusterAccessor = getConnection().createClusterAccessor(clusterId);
     ResourceId resourceId = ResourceId.from(_serviceName);
-    UserConfig userConfig = resourceAccessor.readUserConfig(resourceId);
+    Resource resource = clusterAccessor.readResource(resourceId);
+    UserConfig userConfig = resource.getUserConfig();
     ServiceConfig serviceConfig = new ServiceConfig(Scope.resource(resourceId));
     serviceConfig.setSimpleFields(userConfig.getSimpleFields());
     serviceConfig.setListFields(userConfig.getListFields());

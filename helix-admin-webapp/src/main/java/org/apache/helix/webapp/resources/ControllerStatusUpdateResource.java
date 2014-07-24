@@ -47,6 +47,9 @@ public class ControllerStatusUpdateResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String zkServer =
           (String) getContext().getAttributes().get(RestAdminApplication.ZKSERVERADDRESS);
       String clusterName = (String) getRequest().getAttributes().get("clusterName");

@@ -54,6 +54,9 @@ public class IdealStateResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       presentation = getIdealStateRepresentation(clusterName, resourceName);
@@ -86,6 +89,9 @@ public class IdealStateResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       ZkClient zkClient =

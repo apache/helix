@@ -51,6 +51,9 @@ public class ResourceGroupResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       presentation = getIdealStateRepresentation(clusterName, resourceName);
@@ -83,6 +86,9 @@ public class ResourceGroupResource extends ServerResource {
   @Override
   public Representation delete() {
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceGroupName = (String) getRequest().getAttributes().get("resourceName");
       ZkClient zkClient =
@@ -103,6 +109,9 @@ public class ResourceGroupResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
 

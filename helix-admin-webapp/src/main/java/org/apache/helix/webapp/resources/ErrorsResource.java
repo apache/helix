@@ -45,6 +45,9 @@ public class ErrorsResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       presentation = getInstanceErrorsRepresentation(clusterName, instanceName);

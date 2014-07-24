@@ -51,6 +51,9 @@ public class InstanceResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       presentation = getInstanceRepresentation();
     } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
@@ -81,6 +84,9 @@ public class InstanceResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
 
@@ -162,6 +168,9 @@ public class InstanceResource extends ServerResource {
   @Override
   public Representation delete() {
     try {
+	 Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       ZkClient zkClient =

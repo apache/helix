@@ -39,7 +39,7 @@ import org.restlet.resource.ServerResource;
 
 public class ClustersResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
-
+ 
   public ClustersResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -50,6 +50,10 @@ public class ClustersResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
+
+     Headers h = new Headers();
+        h.addHeaders();
+		
     try {
       presentation = getClustersRepresentation();
     } catch (Exception e) {
@@ -79,6 +83,9 @@ public class ClustersResource extends ServerResource {
 
   @Override
   public Representation post(Representation entity) {
+
+  Headers h = new Headers();
+        h.addHeaders();
     try {
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -113,4 +120,15 @@ public class ClustersResource extends ServerResource {
   public Representation delete() {
       return null;
   }
+
+  @Override
+  public Representation options() throws ResourceException
+  {
+	Headers h = new Headers();
+        h.addHeaders();
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
+
+
+  
 }

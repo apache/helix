@@ -51,8 +51,11 @@ public class StateModelResource extends ServerResource {
 
   @Override
   public Representation get() {
-    StringRepresentation presentation = null;
+    StringRepresentation	presentation = null;
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
       presentation = getStateModelRepresentation(clusterName, modelName);
@@ -85,6 +88,9 @@ public class StateModelResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
       ZkClient zkClient =

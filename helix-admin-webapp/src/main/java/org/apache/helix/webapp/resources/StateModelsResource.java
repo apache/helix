@@ -52,6 +52,9 @@ public class StateModelsResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       presentation = getStateModelsRepresentation();
     }
 
@@ -86,6 +89,9 @@ public class StateModelsResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	Headers h = new Headers();
+        h.addHeaders();
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);

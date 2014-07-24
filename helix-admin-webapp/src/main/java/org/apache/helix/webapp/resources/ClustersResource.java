@@ -21,6 +21,7 @@ package org.apache.helix.webapp.resources;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -30,16 +31,23 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.restlet.Message;
+import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
+import org.restlet.engine.header.Header;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
+import org.restlet.resource.Get;
+import org.restlet.resource.Options;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
+import org.restlet.util.Series;
 
 public class ClustersResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
-
+  private static final String HEADERS_KEY = "org.restlet.http.headers";
   public ClustersResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -48,10 +56,22 @@ public class ClustersResource extends ServerResource {
   }
 
   @Override
-  public Representation get() {
+  public Representation get() throws ResourceException{
     StringRepresentation presentation = null;
+    
+    getMessageHeaders(getResponse()).add("Access-Control-Allow-Origin", "*"); 
+   getMessageHeaders(getResponse()).add("Access-Control-Allow-Methods", "POST,GET");
+   getMessageHeaders(getResponse()).add("Access-Control-Allow-Headers", "x-requested-with,Content-Type"); 
+    getMessageHeaders(getResponse()).add("Access-Control-Allow-Credentials", "true"); 
+   getMessageHeaders(getResponse()).add("Access-Control-Max-Age", "60"); 
+    
     try {
+     
+      
+      
+      
       presentation = getClustersRepresentation();
+      
     } catch (Exception e) {
       LOG.error("", e);
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
@@ -113,4 +133,34 @@ public class ClustersResource extends ServerResource {
   public Representation delete() {
       return null;
   }
-}
+  
+  @Override
+  public Representation options() throws ResourceException 
+  {
+	  getMessageHeaders(getResponse()).add("Access-Control-Allow-Origin", "*"); 
+		getMessageHeaders(getResponse()).add("Access-Control-Allow-Methods", "POST,OPTIONS");
+		getMessageHeaders(getResponse()).add("Access-Control-Allow-Headers", "Content-Type"); 
+		getMessageHeaders(getResponse()).add("Access-Control-Allow-Credentials", "true"); 
+		getMessageHeaders(getResponse()).add("Access-Control-Max-Age", "60"); 
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
+  
+  
+  @SuppressWarnings("unchecked")
+  static Series<Header> getMessageHeaders(Message message) {
+      ConcurrentMap<String, Object> attrs = message.getAttributes();
+      Series<Header> headers = (Series<Header>) attrs.get(HEADERS_KEY);
+      if (headers == null) {
+          headers = new Series<Header>(Header.class);
+          Series<Header> prev = (Series<Header>) 
+              attrs.putIfAbsent(HEADERS_KEY, headers);
+          if (prev != null) { headers = prev; }
+      }
+      return headers;
+  }
+  
+  
+  }
+  
+  
+  

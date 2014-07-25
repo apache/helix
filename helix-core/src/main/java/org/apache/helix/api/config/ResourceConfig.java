@@ -34,15 +34,6 @@ import com.google.common.collect.Sets;
  * Full configuration of a Helix resource. Typically used to add or modify resources on a cluster
  */
 public class ResourceConfig {
-  /**
-   * Type of a resource. A resource is any entity that can be managed by Helix.
-   */
-  public enum ResourceType {
-    /**
-     * A resource that is persistent, and potentially partitioned and replicated.
-     */
-    DATA
-  }
 
   private final ResourceId _id;
   private final RebalancerConfig _rebalancerConfig;
@@ -50,34 +41,25 @@ public class ResourceConfig {
   private final SchedulerTaskConfig _schedulerTaskConfig;
   private final ProvisionerConfig _provisionerConfig;
   private final UserConfig _userConfig;
-  private final int _bucketSize;
-  private final boolean _batchMessageMode;
-  private final ResourceType _resourceType;
 
   /**
    * Instantiate a configuration. Consider using ResourceConfig.Builder
    * @param id resource id
-   * @param partitionMap map of partition identifiers to partition objects
+   * @param idealState the ideal state of the resource
    * @param schedulerTaskConfig configuration for scheduler tasks associated with the resource
    * @param rebalancerConfig configuration for rebalancing the resource
    * @param provisionerConfig configuration for provisioning for the resource
    * @param userConfig user-defined resource properties
-   * @param bucketSize bucket size for this resource
-   * @param batchMessageMode whether or not batch messaging is allowed
    */
-  public ResourceConfig(ResourceId id, ResourceType resourceType, IdealState idealState,
+  private ResourceConfig(ResourceId id, IdealState idealState,
       SchedulerTaskConfig schedulerTaskConfig, RebalancerConfig rebalancerConfig,
-      ProvisionerConfig provisionerConfig, UserConfig userConfig, int bucketSize,
-      boolean batchMessageMode) {
+      ProvisionerConfig provisionerConfig, UserConfig userConfig) {
     _id = id;
-    _resourceType = resourceType;
     _schedulerTaskConfig = schedulerTaskConfig;
     _idealState = idealState;
     _rebalancerConfig = rebalancerConfig;
     _provisionerConfig = provisionerConfig;
     _userConfig = userConfig;
-    _bucketSize = bucketSize;
-    _batchMessageMode = batchMessageMode;
   }
 
   /**
@@ -113,14 +95,6 @@ public class ResourceConfig {
   }
 
   /**
-   * Get the resource type
-   * @return ResourceType
-   */
-  public ResourceType getType() {
-    return _resourceType;
-  }
-
-  /**
    * Get the properties configuring scheduler tasks
    * @return SchedulerTaskConfig properties
    */
@@ -144,22 +118,6 @@ public class ResourceConfig {
     return _userConfig;
   }
 
-  /**
-   * Get the bucket size for this resource
-   * @return bucket size
-   */
-  public int getBucketSize() {
-    return _bucketSize;
-  }
-
-  /**
-   * Get the batch message mode
-   * @return true if enabled, false if disabled
-   */
-  public boolean getBatchMessageMode() {
-    return _batchMessageMode;
-  }
-
   @Override
   public String toString() {
     return _idealState.toString();
@@ -170,12 +128,10 @@ public class ResourceConfig {
    */
   public static class Delta {
     private enum Fields {
-      TYPE,
+      IDEAL_STATE,
       REBALANCER_CONFIG,
       PROVISIONER_CONFIG,
       USER_CONFIG,
-      BUCKET_SIZE,
-      BATCH_MESSAGE_MODE
     }
 
     private Set<Fields> _updateFields;
@@ -191,13 +147,13 @@ public class ResourceConfig {
     }
 
     /**
-     * Set the type of this resource
-     * @param type ResourceType
+     * Set the ideal state
+     * @param idealState updated ideal state
      * @return Delta
      */
-    public Delta setType(ResourceType type) {
-      _builder.type(type);
-      _updateFields.add(Fields.TYPE);
+    public Delta setIdealState(IdealState idealState) {
+      _builder.idealState(idealState);
+      _updateFields.add(Fields.IDEAL_STATE);
       return this;
     }
 
@@ -235,28 +191,6 @@ public class ResourceConfig {
     }
 
     /**
-     * Set the bucket size
-     * @param bucketSize the size to use
-     * @return Delta
-     */
-    public Delta setBucketSize(int bucketSize) {
-      _builder.bucketSize(bucketSize);
-      _updateFields.add(Fields.BUCKET_SIZE);
-      return this;
-    }
-
-    /**
-     * Set the batch message mode
-     * @param batchMessageMode true to enable, false to disable
-     * @return Delta
-     */
-    public Delta setBatchMessageMode(boolean batchMessageMode) {
-      _builder.batchMessageMode(batchMessageMode);
-      _updateFields.add(Fields.BATCH_MESSAGE_MODE);
-      return this;
-    }
-
-    /**
      * Create a ResourceConfig that is the combination of an existing ResourceConfig and this delta
      * @param orig the original ResourceConfig
      * @return updated ResourceConfig
@@ -264,15 +198,14 @@ public class ResourceConfig {
     public ResourceConfig mergeInto(ResourceConfig orig) {
       ResourceConfig deltaConfig = _builder.build();
       Builder builder =
-          new Builder(orig.getId()).type(orig.getType())
+          new Builder(orig.getId()).idealState(orig.getIdealState())
               .rebalancerConfig(orig.getRebalancerConfig())
               .provisionerConfig(orig.getProvisionerConfig())
-              .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig())
-              .bucketSize(orig.getBucketSize()).batchMessageMode(orig.getBatchMessageMode());
+              .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig());
       for (Fields field : _updateFields) {
         switch (field) {
-        case TYPE:
-          builder.type(deltaConfig.getType());
+        case IDEAL_STATE:
+          builder.idealState(deltaConfig.getIdealState());
           break;
         case REBALANCER_CONFIG:
           builder.rebalancerConfig(deltaConfig.getRebalancerConfig());
@@ -282,12 +215,6 @@ public class ResourceConfig {
           break;
         case USER_CONFIG:
           builder.userConfig(deltaConfig.getUserConfig());
-          break;
-        case BUCKET_SIZE:
-          builder.bucketSize(deltaConfig.getBucketSize());
-          break;
-        case BATCH_MESSAGE_MODE:
-          builder.batchMessageMode(deltaConfig.getBatchMessageMode());
           break;
         }
       }
@@ -300,14 +227,11 @@ public class ResourceConfig {
    */
   public static class Builder {
     private final ResourceId _id;
-    private ResourceType _type;
     private IdealState _idealState;
     private RebalancerConfig _rebalancerConfig;
     private SchedulerTaskConfig _schedulerTaskConfig;
     private ProvisionerConfig _provisionerConfig;
     private UserConfig _userConfig;
-    private int _bucketSize;
-    private boolean _batchMessageMode;
 
     /**
      * Build a Resource with an id
@@ -315,20 +239,7 @@ public class ResourceConfig {
      */
     public Builder(ResourceId id) {
       _id = id;
-      _type = ResourceType.DATA;
-      _bucketSize = 0;
-      _batchMessageMode = false;
       _userConfig = new UserConfig(Scope.resource(id));
-    }
-
-    /**
-     * Set the type of this resource
-     * @param type ResourceType
-     * @return Builder
-     */
-    public Builder type(ResourceType type) {
-      _type = type;
-      return this;
     }
 
     /**
@@ -380,32 +291,12 @@ public class ResourceConfig {
     }
 
     /**
-     * Set the bucket size
-     * @param bucketSize the size to use
-     * @return Builder
-     */
-    public Builder bucketSize(int bucketSize) {
-      _bucketSize = bucketSize;
-      return this;
-    }
-
-    /**
-     * Set the batch message mode
-     * @param batchMessageMode true to enable, false to disable
-     * @return Builder
-     */
-    public Builder batchMessageMode(boolean batchMessageMode) {
-      _batchMessageMode = batchMessageMode;
-      return this;
-    }
-
-    /**
      * Create a Resource object
      * @return instantiated Resource
      */
     public ResourceConfig build() {
-      return new ResourceConfig(_id, _type, _idealState, _schedulerTaskConfig, _rebalancerConfig,
-          _provisionerConfig, _userConfig, _bucketSize, _batchMessageMode);
+      return new ResourceConfig(_id, _idealState, _schedulerTaskConfig, _rebalancerConfig,
+          _provisionerConfig, _userConfig);
     }
   }
 }

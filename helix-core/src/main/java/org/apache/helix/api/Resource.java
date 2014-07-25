@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.config.ResourceConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.SchedulerTaskConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.PartitionId;
@@ -47,25 +46,13 @@ public class Resource {
 
   /**
    * Construct a resource
-   * @param id resource id
-   * @param type ResourceType type
-   * @param idealState ideal state of the resource
+   * @param resourceConfig full resource configuration
    * @param externalView external view of the resource
    * @param resourceAssignment current resource assignment of the cluster
-   * @param rebalancerConfig parameters that the rebalancer should be aware of
-   * @param provisionerConfig parameters that the provisioner should be aware of
-   * @param userConfig any resource user-defined configuration
-   * @param bucketSize the bucket size to use for physically saved state
-   * @param batchMessageMode true if batch messaging allowed, false otherwise
    */
-  public Resource(ResourceId id, ResourceType type, IdealState idealState,
-      ResourceAssignment resourceAssignment, ExternalView externalView,
-      RebalancerConfig rebalancerConfig, ProvisionerConfig provisionerConfig,
-      UserConfig userConfig, int bucketSize, boolean batchMessageMode) {
-    SchedulerTaskConfig schedulerTaskConfig = schedulerTaskConfig(idealState);
-    _config =
-        new ResourceConfig(id, type, idealState, schedulerTaskConfig, rebalancerConfig,
-            provisionerConfig, userConfig, bucketSize, batchMessageMode);
+  public Resource(ResourceConfig resourceConfig, ResourceAssignment resourceAssignment,
+      ExternalView externalView) {
+    _config = resourceConfig;
     _externalView = externalView;
     _resourceAssignment = resourceAssignment;
   }
@@ -75,7 +62,7 @@ public class Resource {
    * @param idealState
    * @return scheduler-task config or null if state-model-def is not SchedulerTaskQueue
    */
-  SchedulerTaskConfig schedulerTaskConfig(IdealState idealState) {
+  public static SchedulerTaskConfig schedulerTaskConfig(IdealState idealState) {
     if (idealState == null) {
       return null;
     }
@@ -166,22 +153,6 @@ public class Resource {
    */
   public SchedulerTaskConfig getSchedulerTaskConfig() {
     return _config.getSchedulerTaskConfig();
-  }
-
-  /**
-   * Get bucket size
-   * @return bucket size
-   */
-  public int getBucketSize() {
-    return _config.getBucketSize();
-  }
-
-  /**
-   * Get batch message mode
-   * @return true if in batch message mode, false otherwise
-   */
-  public boolean getBatchMessageMode() {
-    return _config.getBatchMessageMode();
   }
 
   /**

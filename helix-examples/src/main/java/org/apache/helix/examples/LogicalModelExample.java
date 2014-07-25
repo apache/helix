@@ -90,11 +90,7 @@ public class LogicalModelExample {
         new ClusterConfig.Builder(clusterId).addResource(resource).addParticipant(participant)
             .addStateModelDefinition(lockUnlock).userConfig(userConfig).autoJoin(true);
 
-    // add a state constraint that is more restrictive than what is in the state model
-    clusterBuilder.addStateUpperBoundConstraint(Scope.cluster(clusterId),
-        lockUnlock.getStateModelDefId(), State.from("LOCKED"), 1);
-
-    // add a transition constraint (this time with a resource scope)
+    // add a transition constraint (with a resource scope)
     clusterBuilder.addTransitionConstraint(Scope.resource(resource.getId()),
         lockUnlock.getStateModelDefId(),
         Transition.from(State.from("RELEASED"), State.from("LOCKED")), 1);

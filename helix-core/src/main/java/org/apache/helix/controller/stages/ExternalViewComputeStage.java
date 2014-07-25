@@ -96,8 +96,8 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
       SchedulerTaskConfig schedulerTaskConfig = resource.getSchedulerTaskConfig();
 
-      if (resource.getBucketSize() > 0) {
-        view.setBucketSize(resource.getBucketSize());
+      if (resource.getIdealState().getBucketSize() > 0) {
+        view.setBucketSize(resource.getIdealState().getBucketSize());
       } else {
         view.setBucketSize(currentStateOutput.getBucketSize(resourceId));
       }

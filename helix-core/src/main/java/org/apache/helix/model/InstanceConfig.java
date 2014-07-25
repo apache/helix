@@ -207,7 +207,12 @@ public class InstanceConfig extends HelixProperty {
    * @return a list of partition names
    */
   public List<String> getDisabledPartitions() {
-    return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    List<String> disabledPartitions =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    if (disabledPartitions == null) {
+      disabledPartitions = Collections.emptyList();
+    }
+    return disabledPartitions;
   }
 
   /**

@@ -22,10 +22,8 @@ package org.apache.helix.api.accessor;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
@@ -35,13 +33,11 @@ import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Controller;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
-import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.config.ResourceConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ContextId;
@@ -82,7 +78,6 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 public class ClusterAccessor {
   private static Logger LOG = Logger.getLogger(ClusterAccessor.class);
@@ -360,11 +355,8 @@ public class ClusterAccessor {
     }
 
     // populate all the resources
-    Set<String> allResources = Sets.newHashSet();
-    allResources.addAll(idealStateMap.keySet());
-    allResources.addAll(resourceConfigMap.keySet());
     Map<ResourceId, Resource> resourceMap = Maps.newHashMap();
-    for (String resourceName : allResources) {
+    for (String resourceName : idealStateMap.keySet()) {
       ResourceId resourceId = ResourceId.from(resourceName);
       resourceMap.put(
           resourceId,
@@ -518,8 +510,8 @@ public class ClusterAccessor {
 
     // Create an IdealState from a RebalancerConfig (if the resource supports it)
     IdealState idealState =
-        PartitionedRebalancerConfig.rebalancerConfigToIdealState(resource.getRebalancerConfig(),
-            resource.getBucketSize(), resource.getBatchMessageMode());
+        PartitionedRebalancerConfig.rebalancerConfigToIdealState(resource.getRebalancerConfig(), 0,
+            false);
     if (idealState != null) {
       _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
     }
@@ -527,7 +519,6 @@ public class ClusterAccessor {
     // Add resource user config
     if (resource.getUserConfig() != null) {
       ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
-      configuration.setType(resource.getType());
       configuration.addNamespacedConfig(resource.getUserConfig());
       PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
       if (idealState == null
@@ -636,21 +627,8 @@ public class ClusterAccessor {
     initParticipantStructure(participantId);
 
     // add the config
-    InstanceConfig instanceConfig = new InstanceConfig(participant.getId());
-    instanceConfig.setHostName(participant.getHostName());
-    instanceConfig.setPort(Integer.toString(participant.getPort()));
-    instanceConfig.setInstanceEnabled(participant.isEnabled());
-    UserConfig userConfig = participant.getUserConfig();
-    instanceConfig.addNamespacedConfig(userConfig);
-    Set<String> tags = participant.getTags();
-    for (String tag : tags) {
-      instanceConfig.addTag(tag);
-    }
-    Set<PartitionId> disabledPartitions = participant.getDisabledPartitions();
-    for (PartitionId partitionId : disabledPartitions) {
-      instanceConfig.setParticipantEnabledForPartition(partitionId, false);
-    }
-    _accessor.setProperty(_keyBuilder.instanceConfig(participantId.stringify()), instanceConfig);
+    _accessor.setProperty(_keyBuilder.instanceConfig(participantId.stringify()),
+        participant.getInstanceConfig());
     return true;
   }
 
@@ -770,39 +748,6 @@ public class ClusterAccessor {
   private static Participant createParticipant(ParticipantId participantId,
       InstanceConfig instanceConfig, UserConfig userConfig, LiveInstance liveInstance,
       Map<String, Message> instanceMsgMap, Map<String, CurrentState> instanceCurStateMap) {
-
-    String hostName = instanceConfig.getHostName();
-
-    int port = -1;
-    try {
-      port = Integer.parseInt(instanceConfig.getPort());
-    } catch (IllegalArgumentException e) {
-      // keep as -1
-    }
-    if (port < 0 || port > 65535) {
-      port = -1;
-    }
-    boolean isEnabled = instanceConfig.getInstanceEnabled();
-
-    List<String> disabledPartitions = instanceConfig.getDisabledPartitions();
-    Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
-    if (disabledPartitions != null) {
-      disabledPartitionIdSet = new HashSet<PartitionId>();
-      for (String partitionId : disabledPartitions) {
-        disabledPartitionIdSet.add(PartitionId.from(PartitionId.extractResourceId(partitionId),
-            PartitionId.stripResourceId(partitionId)));
-      }
-    }
-
-    Set<String> tags = new HashSet<String>(instanceConfig.getTags());
-
-    RunningInstance runningInstance = null;
-    if (liveInstance != null) {
-      runningInstance =
-          new RunningInstance(liveInstance.getTypedSessionId(),
-              liveInstance.getTypedHelixVersion(), liveInstance.getProcessId());
-    }
-
     Map<MessageId, Message> msgMap = new HashMap<MessageId, Message>();
     if (instanceMsgMap != null) {
       for (String msgId : instanceMsgMap.keySet()) {
@@ -828,8 +773,9 @@ public class ClusterAccessor {
       containerConfig = new ContainerConfig(containerId, containerSpec, containerState);
     }
 
-    return new Participant(participantId, hostName, port, isEnabled, disabledPartitionIdSet, tags,
-        runningInstance, curStateMap, msgMap, userConfig, containerConfig);
+    // Populate the logical class
+    ParticipantConfig participantConfig = ParticipantConfig.from(instanceConfig);
+    return new Participant(participantConfig, liveInstance, curStateMap, msgMap, containerConfig);
   }
 
   /**
@@ -876,7 +822,7 @@ public class ClusterAccessor {
         _accessor.getProperty(_keyBuilder.resourceConfig(resourceId.stringify()));
     IdealState idealState = _accessor.getProperty(_keyBuilder.idealStates(resourceId.stringify()));
 
-    if (config == null && idealState == null) {
+    if (idealState == null) {
       LOG.error("Resource " + resourceId + " not present on the cluster");
       return null;
     }
@@ -958,8 +904,6 @@ public class ClusterAccessor {
       // only persist if this is not easily convertible to an ideal state
       config.addNamespacedConfig(new RebalancerConfigHolder(resourceConfig.getRebalancerConfig())
           .toNamespacedConfig());
-      config.setBucketSize(resourceConfig.getBucketSize());
-      config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
     } else if (userConfig == null) {
       config = null;
     }
@@ -967,8 +911,6 @@ public class ClusterAccessor {
       config.addNamespacedConfig(new ProvisionerConfigHolder(resourceConfig.getProvisionerConfig())
           .toNamespacedConfig());
     }
-    config.setBucketSize(resourceConfig.getBucketSize());
-    config.setBatchMessageMode(resourceConfig.getBatchMessageMode());
     setResourceConfiguration(resourceId, config, resourceConfig.getRebalancerConfig());
     return true;
   }
@@ -988,15 +930,11 @@ public class ClusterAccessor {
     UserConfig userConfig;
     ProvisionerConfig provisionerConfig = null;
     RebalancerConfig rebalancerConfig = null;
-    ResourceType type = ResourceType.DATA;
     if (resourceConfiguration != null) {
       userConfig = resourceConfiguration.getUserConfig();
-      type = resourceConfiguration.getType();
     } else {
       userConfig = new UserConfig(Scope.resource(resourceId));
     }
-    int bucketSize = 0;
-    boolean batchMessageMode = false;
     if (idealState != null) {
       if (resourceConfiguration != null
           && idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
@@ -1008,12 +946,8 @@ public class ClusterAccessor {
         // prefer ideal state for non-user_defined data rebalancing
         rebalancerConfig = PartitionedRebalancerConfig.from(idealState);
       }
-      bucketSize = idealState.getBucketSize();
-      batchMessageMode = idealState.getBatchMessageMode();
       idealState.updateUserConfig(userConfig);
     } else if (resourceConfiguration != null) {
-      bucketSize = resourceConfiguration.getBucketSize();
-      batchMessageMode = resourceConfiguration.getBatchMessageMode();
       rebalancerConfig = resourceConfiguration.getRebalancerConfig(RebalancerConfig.class);
     }
     if (rebalancerConfig == null) {
@@ -1022,8 +956,12 @@ public class ClusterAccessor {
     if (resourceConfiguration != null) {
       provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
     }
-    return new Resource(resourceId, type, idealState, resourceAssignment, externalView,
-        rebalancerConfig, provisionerConfig, userConfig, bucketSize, batchMessageMode);
+    ResourceConfig resourceConfig =
+        new ResourceConfig.Builder(resourceId).idealState(idealState)
+            .rebalancerConfig(rebalancerConfig).provisionerConfig(provisionerConfig)
+            .schedulerTaskConfig(Resource.schedulerTaskConfig(idealState)).userConfig(userConfig)
+            .build();
+    return new Resource(resourceConfig, resourceAssignment, externalView);
   }
 
   /**

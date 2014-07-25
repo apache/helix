@@ -252,19 +252,6 @@ public class Cluster {
   }
 
   /**
-   * Get the maximum number of participants that can be in a state
-   * @param scope the scope for the bound
-   * @param stateModelDefId the state model of the state
-   * @param state the constrained state
-   * @return The upper bound, which can be "-1" if unspecified, a numerical upper bound, "R" for
-   *         number of replicas, or "N" for number of participants
-   */
-  public String getStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-      State state) {
-    return _config.getStateUpperBoundConstraint(scope, stateModelDefId, state);
-  }
-
-  /**
    * Get the limit of simultaneous execution of a transition
    * @param scope the scope under which the transition is constrained
    * @param stateModelDefId the state model of which the transition is a part

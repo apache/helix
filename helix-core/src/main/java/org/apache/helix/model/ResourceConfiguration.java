@@ -22,7 +22,6 @@ package org.apache.helix.model;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.NamespacedConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
@@ -40,7 +39,6 @@ public class ResourceConfiguration extends HelixProperty {
   private static final Logger LOG = Logger.getLogger(ResourceConfiguration.class);
 
   public enum Fields {
-    TYPE
   }
 
   /**
@@ -65,22 +63,6 @@ public class ResourceConfiguration extends HelixProperty {
    */
   public ResourceConfiguration(ZNRecord record) {
     super(record);
-  }
-
-  /**
-   * Set the resource type
-   * @param type ResourceType type
-   */
-  public void setType(ResourceType type) {
-    _record.setEnumField(Fields.TYPE.toString(), type);
-  }
-
-  /**
-   * Get the resource type
-   * @return ResourceType type
-   */
-  public ResourceType getType() {
-    return _record.getEnumField(Fields.TYPE.toString(), ResourceType.class, ResourceType.DATA);
   }
 
   /**

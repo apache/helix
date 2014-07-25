@@ -68,8 +68,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
       RebalancerConfig rebalancerCfg = resource.getRebalancerConfig();
 
       ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
-      resCfgBuilder.bucketSize(resource.getBucketSize());
-      resCfgBuilder.batchMessageMode(resource.getBatchMessageMode());
       resCfgBuilder.schedulerTaskConfig(resource.getSchedulerTaskConfig());
       resCfgBuilder.rebalancerConfig(rebalancerCfg);
       resCfgBuilder.provisionerConfig(resource.getProvisionerConfig());
@@ -92,6 +90,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
     Map<ResourceId, PartitionedRebalancerConfig.Builder> rebCtxBuilderMap =
         new HashMap<ResourceId, PartitionedRebalancerConfig.Builder>();
+
+    Map<ResourceId, Integer> bucketSizeMap = new HashMap<ResourceId, Integer>();
+    Map<ResourceId, Boolean> batchModeMap = new HashMap<ResourceId, Boolean>();
 
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
       for (ResourceId resourceId : liveParticipant.getCurrentStateMap().keySet()) {
@@ -119,9 +120,9 @@ public class ResourceComputationStage extends AbstractBaseStage {
           rebCtxBuilderMap.put(resourceId, rebCtxBuilder);
 
           ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
-          resCfgBuilder.bucketSize(currentState.getBucketSize());
-          resCfgBuilder.batchMessageMode(currentState.getBatchMessageMode());
           resCfgBuilderMap.put(resourceId, resCfgBuilder);
+          bucketSizeMap.put(resourceId, currentState.getBucketSize());
+          batchModeMap.put(resourceId, currentState.getBatchMessageMode());
         }
 
         PartitionedRebalancerConfig.Builder rebCtxBuilder = rebCtxBuilderMap.get(resourceId);
@@ -138,7 +139,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
       RebalancerConfig rebalancerConfig = rebCtxBuilder.build();
       resCfgBuilder.rebalancerConfig(rebalancerConfig);
       resCfgBuilder.idealState(PartitionedRebalancerConfig.rebalancerConfigToIdealState(
-          rebalancerConfig, 0, false));
+          rebalancerConfig, bucketSizeMap.get(resourceId), batchModeMap.get(resourceId)));
       resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 

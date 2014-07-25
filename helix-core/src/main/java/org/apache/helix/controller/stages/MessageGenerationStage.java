@@ -74,7 +74,10 @@ public class MessageGenerationStage extends AbstractBaseStage {
 
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
-      int bucketSize = resourceConfig.getBucketSize();
+      int bucketSize = 0;
+      if (resourceConfig.getIdealState() != null) {
+        bucketSize = resourceConfig.getIdealState().getBucketSize();
+      }
 
       RebalancerConfig rebalancerCfg = resourceConfig.getRebalancerConfig();
       StateModelDefinition stateModelDef = stateModelDefMap.get(rebalancerCfg.getStateModelDefId());
@@ -129,8 +132,8 @@ public class MessageGenerationStage extends AbstractBaseStage {
           } else {
             // TODO check if instance is alive
             SessionId sessionId =
-                cluster.getLiveParticipantMap().get(participantId).getRunningInstance()
-                    .getSessionId();
+                SessionId.from(cluster.getLiveParticipantMap().get(participantId).getLiveInstance()
+                    .getSessionId());
             RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
             Message message =
                 createMessage(manager, resourceId, subUnitId, participantId, currentState,

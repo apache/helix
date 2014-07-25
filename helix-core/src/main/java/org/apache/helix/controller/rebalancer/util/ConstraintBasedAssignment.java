@@ -33,7 +33,6 @@ import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.id.ParticipantId;
@@ -102,9 +101,7 @@ public class ConstraintBasedAssignment {
       ResourceId resourceId, ClusterConfig cluster) {
     Map<State, String> stateMap = Maps.newHashMap();
     for (State state : stateModelDef.getTypedStatesPriorityList()) {
-      String num =
-          cluster.getStateUpperBoundConstraint(Scope.resource(resourceId),
-              stateModelDef.getStateModelDefId(), state);
+      String num = stateModelDef.getNumParticipantsPerState(state);
       stateMap.put(state, num);
     }
     return stateMap;

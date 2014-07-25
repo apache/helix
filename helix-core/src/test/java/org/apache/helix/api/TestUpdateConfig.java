@@ -78,19 +78,16 @@ public class TestUpdateConfig {
     Assert.assertFalse(updated.getDisabledPartitions().contains(partition1));
     Assert.assertTrue(updated.getDisabledPartitions().contains(partition2));
     Assert.assertTrue(updated.getDisabledPartitions().contains(partition3));
-    Assert.assertNull(updated.getUserConfig().getSimpleField("key1"));
     Assert.assertEquals(updated.getUserConfig().getSimpleField("key2"), "value2");
+    Assert.assertEquals(updated.getUserConfig().getSimpleField("key1"), "value1");
     Assert.assertFalse(updated.isEnabled());
   }
 
   @Test
   public void testResourceConfigUpdate() {
-    final int OLD_BUCKET_SIZE = 0;
-    final int NEW_BUCKET_SIZE = 1;
     final ResourceId resourceId = ResourceId.from("resource");
 
-    // start: add a user config, a semi auto rebalancer context, and set bucket size and batch
-    // message mode
+    // start: add a user config, a semi auto rebalancer context
     UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
     userConfig.setSimpleField("key1", "value1");
     SemiAutoRebalancerConfig rebalancerContext =
@@ -101,21 +98,21 @@ public class TestUpdateConfig {
             .userConfig(userConfig)
             .rebalancerConfig(rebalancerContext)
             .idealState(
-                PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerContext, 0,
-                    false)).bucketSize(OLD_BUCKET_SIZE).batchMessageMode(true).build();
+                PartitionedRebalancerConfig
+                    .rebalancerConfigToIdealState(rebalancerContext, 0, true)).build();
 
-    // update: overwrite user config, change to full auto rebalancer context, and change the bucket
-    // size
+    // update: overwrite user config, change to full auto rebalancer context
     UserConfig newUserConfig = new UserConfig(Scope.resource(resourceId));
     newUserConfig.setSimpleField("key2", "value2");
     FullAutoRebalancerConfig newRebalancerContext =
-        new FullAutoRebalancerConfig.Builder(resourceId).build();
+        new FullAutoRebalancerConfig.Builder(resourceId).stateModelDefId(
+            StateModelDefId.from("MasterSlave")).build();
     ResourceConfig updated =
-        new ResourceConfig.Delta(resourceId).setBucketSize(NEW_BUCKET_SIZE)
-            .setUserConfig(newUserConfig).setRebalancerConfig(newRebalancerContext)
-            .mergeInto(config);
-    Assert.assertEquals(updated.getBucketSize(), NEW_BUCKET_SIZE);
-    Assert.assertTrue(updated.getBatchMessageMode());
+        new ResourceConfig.Delta(resourceId)
+            .setUserConfig(newUserConfig)
+            .setIdealState(
+                PartitionedRebalancerConfig.rebalancerConfigToIdealState(newRebalancerContext, 0,
+                    true)).setRebalancerConfig(newRebalancerContext).mergeInto(config);
     Assert.assertNull(BasicRebalancerConfig.convert(updated.getRebalancerConfig(),
         SemiAutoRebalancerConfig.class));
     Assert.assertNotNull(BasicRebalancerConfig.convert(updated.getRebalancerConfig(),
@@ -127,36 +124,18 @@ public class TestUpdateConfig {
   @Test
   public void testClusterConfigUpdate() {
     final ClusterId clusterId = ClusterId.from("cluster");
-    final StateModelDefId masterSlave = StateModelDefId.from("MasterSlave");
-    final State master = State.from("MASTER");
-    final State slave = State.from("SLAVE");
-    final State offline = State.from("OFFLINE");
-
-    // start: add a user config, add master and slave constraints
+    // start: add a user config
     UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
     userConfig.setSimpleField("key1", "value1");
     ClusterConfig config =
-        new ClusterConfig.Builder(clusterId)
-            .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master, 2)
-            .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, slave, 3)
-            .userConfig(userConfig).autoJoin(true).build();
+        new ClusterConfig.Builder(clusterId).userConfig(userConfig).autoJoin(true).build();
 
-    // update: overwrite user config, change master constraint, remove slave constraint, add offline
-    // constraint, change auto join
+    // update: overwrite user config, change auto join
     UserConfig newUserConfig = new UserConfig(Scope.cluster(clusterId));
     newUserConfig.setSimpleField("key2", "value2");
     ClusterConfig updated =
-        new ClusterConfig.Delta(clusterId)
-            .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master, 1)
-            .removeStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, slave)
-            .addStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, offline, "R")
-            .setUserConfig(newUserConfig).setAutoJoin(false).mergeInto(config);
-    Assert.assertEquals(
-        updated.getStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, master), "1");
-    Assert.assertEquals(
-        updated.getStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, slave), "-1");
-    Assert.assertEquals(
-        updated.getStateUpperBoundConstraint(Scope.cluster(clusterId), masterSlave, offline), "R");
+        new ClusterConfig.Delta(clusterId).setUserConfig(newUserConfig).setAutoJoin(false)
+            .mergeInto(config);
     Assert.assertNull(updated.getUserConfig().getSimpleField("key1"));
     Assert.assertEquals(updated.getUserConfig().getSimpleField("key2"), "value2");
     Assert.assertFalse(updated.autoJoinAllowed());

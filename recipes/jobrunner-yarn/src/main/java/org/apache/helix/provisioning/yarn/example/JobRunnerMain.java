@@ -34,12 +34,12 @@ import org.apache.helix.HelixRole;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
 import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ApplicationSpecFactory;
 import org.apache.helix.provisioning.HelixYarnUtil;
@@ -138,8 +138,8 @@ public class JobRunnerMain {
                 + containerConfig.getState());
           }
           if (participant.isAlive()) {
-            RunningInstance runningInstance = participant.getRunningInstance();
-            System.out.println("\tProcess: " + runningInstance.getPid());
+            LiveInstance runningInstance = participant.getLiveInstance();
+            System.out.println("\tProcess: " + runningInstance.getProcessId());
           }
         }
         System.out.println("----------------");

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.api.Scope;
-import org.apache.helix.api.State;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ConstraintId;
 import org.apache.helix.api.id.ParticipantId;
@@ -15,7 +14,6 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
-import org.apache.helix.model.ClusterConstraints.ConstraintValue;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
@@ -109,57 +107,6 @@ public class ClusterConfig {
    */
   public Map<ConstraintType, ClusterConstraints> getConstraintMap() {
     return _constraintMap;
-  }
-
-  /**
-   * Get the maximum number of participants that can be in a state
-   * @param scope the scope for the bound
-   * @param stateModelDefId the state model of the state
-   * @param state the constrained state
-   * @return The upper bound, which can be "-1" if unspecified, a numerical upper bound, "R" for
-   *         number of replicas, or "N" for number of participants
-   */
-  public String getStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-      State state) {
-    // set up attributes to match based on the scope
-    ClusterConstraints stateConstraints = getConstraintMap().get(ConstraintType.STATE_CONSTRAINT);
-    Map<ConstraintAttribute, String> matchAttributes = Maps.newHashMap();
-    matchAttributes.put(ConstraintAttribute.STATE, state.toString());
-    matchAttributes.put(ConstraintAttribute.STATE_MODEL, stateModelDefId.toString());
-    switch (scope.getType()) {
-    case CLUSTER:
-      // cluster is implicit
-      break;
-    case RESOURCE:
-      matchAttributes.put(ConstraintAttribute.RESOURCE, scope.getScopedId().stringify());
-      break;
-    default:
-      LOG.error("Unsupported scope for state constraint: " + scope);
-      return "-1";
-    }
-    Set<ConstraintItem> matches = stateConstraints.match(matchAttributes);
-    int value = -1;
-    for (ConstraintItem item : matches) {
-      // match: if an R or N is found, always choose that one
-      // otherwise, take the minimum of the counts specified in the constraints
-      String constraintValue = item.getConstraintValue();
-      if (constraintValue != null) {
-        if (constraintValue.equals(ConstraintValue.N.toString())
-            || constraintValue.equals(ConstraintValue.R.toString())) {
-          return constraintValue;
-        } else {
-          try {
-            int current = Integer.parseInt(constraintValue);
-            if (value == -1 || current < value) {
-              value = current;
-            }
-          } catch (NumberFormatException e) {
-            LOG.error("Invalid state upper bound: " + constraintValue);
-          }
-        }
-      }
-    }
-    return Integer.toString(value);
   }
 
   /**
@@ -278,55 +225,6 @@ public class ClusterConfig {
         _removedConstraints.put(type, constraints);
       }
       _builder = new Builder(clusterId);
-    }
-
-    /**
-     * Add a state upper bound constraint
-     * @param scope scope under which the constraint is valid
-     * @param stateModelDefId identifier of the state model that owns the state
-     * @param state the state to constrain
-     * @param upperBound maximum number of replicas per partition in the state
-     * @return Delta
-     */
-    public Delta addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-        State state, int upperBound) {
-      return addStateUpperBoundConstraint(scope, stateModelDefId, state,
-          Integer.toString(upperBound));
-    }
-
-    /**
-     * Add a state upper bound constraint
-     * @param scope scope under which the constraint is valid
-     * @param stateModelDefId identifier of the state model that owns the state
-     * @param state the state to constrain
-     * @param dynamicUpperBound the upper bound of replicas per partition in the state, can be a
-     *          number, or the currently supported special bound values:<br />
-     *          "R" - Refers to the number of replicas specified during resource
-     *          creation. This allows having different replication factor for each
-     *          resource without having to create a different state machine. <br />
-     *          "N" - Refers to all nodes in the cluster. Useful for resources that need
-     *          to exist on all nodes. This way one can add/remove nodes without having
-     *          the change the bounds.
-     * @return Delta
-     */
-    public Delta addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-        State state, String dynamicUpperBound) {
-      _builder.addStateUpperBoundConstraint(scope, stateModelDefId, state, dynamicUpperBound);
-      return this;
-    }
-
-    /**
-     * Remove state upper bound constraint
-     * @param scope scope under which the constraint is valid
-     * @param stateModelDefId identifier of the state model that owns the state
-     * @param state the state to constrain
-     * @return Delta
-     */
-    public Delta removeStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-        State state) {
-      _removedConstraints.get(ConstraintType.STATE_CONSTRAINT).add(
-          ConstraintId.from(scope, stateModelDefId, state));
-      return this;
     }
 
     /**
@@ -604,71 +502,12 @@ public class ClusterConfig {
     }
 
     /**
-     * Add a state upper bound constraint
-     * @param scope scope under which the constraint is valid
-     * @param stateModelDefId identifier of the state model that owns the state
-     * @param state the state to constrain
-     * @param upperBound maximum number of replicas per partition in the state
-     * @return Builder
-     */
-    public Builder addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-        State state, int upperBound) {
-      return addStateUpperBoundConstraint(scope, stateModelDefId, state,
-          Integer.toString(upperBound));
-    }
-
-    /**
-     * Add a state upper bound constraint
-     * @param scope scope under which the constraint is valid
-     * @param stateModelDefId identifier of the state model that owns the state
-     * @param state the state to constrain
-     * @param dynamicUpperBound the upper bound of replicas per partition in the state, can be a
-     *          number, or the currently supported special bound values:<br />
-     *          "R" - Refers to the number of replicas specified during resource
-     *          creation. This allows having different replication factor for each
-     *          resource without having to create a different state machine. <br />
-     *          "N" - Refers to all nodes in the cluster. Useful for resources that need
-     *          to exist on all nodes. This way one can add/remove nodes without having
-     *          the change the bounds.
-     * @return Builder
-     */
-    public Builder addStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-        State state, String dynamicUpperBound) {
-      Map<String, String> attributes = Maps.newHashMap();
-      attributes.put(ConstraintAttribute.STATE.toString(), state.toString());
-      attributes.put(ConstraintAttribute.STATE_MODEL.toString(), stateModelDefId.stringify());
-      attributes.put(ConstraintAttribute.CONSTRAINT_VALUE.toString(), dynamicUpperBound);
-      switch (scope.getType()) {
-      case CLUSTER:
-        // cluster is implicit
-        break;
-      case RESOURCE:
-        attributes.put(ConstraintAttribute.RESOURCE.toString(), scope.getScopedId().stringify());
-        break;
-      default:
-        LOG.error("Unsupported scope for adding a state constraint: " + scope);
-        return this;
-      }
-      ConstraintItem item = new ConstraintItemBuilder().addConstraintAttributes(attributes).build();
-      ClusterConstraints constraints = getConstraintsInstance(ConstraintType.STATE_CONSTRAINT);
-      constraints.addConstraintItem(ConstraintId.from(scope, stateModelDefId, state), item);
-      return this;
-    }
-
-    /**
      * Add a state model definition to the cluster
      * @param stateModelDef state model definition of the cluster
      * @return Builder
      */
     public Builder addStateModelDefinition(StateModelDefinition stateModelDef) {
       _stateModelMap.put(stateModelDef.getStateModelDefId(), stateModelDef);
-      // add state constraints from the state model definition
-      for (State state : stateModelDef.getTypedStatesPriorityList()) {
-        if (!stateModelDef.getNumParticipantsPerState(state).equals("-1")) {
-          addStateUpperBoundConstraint(Scope.cluster(_id), stateModelDef.getStateModelDefId(),
-              state, stateModelDef.getNumParticipantsPerState(state));
-        }
-      }
       return this;
     }
 

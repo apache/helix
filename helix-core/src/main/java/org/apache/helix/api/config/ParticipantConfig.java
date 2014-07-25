@@ -1,13 +1,12 @@
 package org.apache.helix.api.config;
 
-import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.helix.api.Scope;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 
-import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Sets;
 
 /*
@@ -33,10 +32,7 @@ import com.google.common.collect.Sets;
  * Configuration properties of a Helix participant
  */
 public class ParticipantConfig {
-  private final ParticipantId _id;
-  private final String _hostName;
-  private final int _port;
-  private final boolean _isEnabled;
+  private final InstanceConfig _instanceConfig;
   private final Set<PartitionId> _disabledPartitions;
   private final Set<String> _tags;
   private final UserConfig _userConfig;
@@ -50,15 +46,14 @@ public class ParticipantConfig {
    * @param disabledPartitions set of partitions, if any to disable on this participant
    * @param tags tags to set for the participant
    */
-  public ParticipantConfig(ParticipantId id, String hostName, int port, boolean isEnabled,
-      Set<PartitionId> disabledPartitions, Set<String> tags, UserConfig userConfig) {
-    _id = id;
-    _hostName = hostName;
-    _port = port;
-    _isEnabled = isEnabled;
-    _disabledPartitions = ImmutableSet.copyOf(disabledPartitions);
-    _tags = ImmutableSet.copyOf(tags);
-    _userConfig = userConfig;
+  private ParticipantConfig(InstanceConfig instanceConfig) {
+    _instanceConfig = instanceConfig;
+    _disabledPartitions = Sets.newHashSet();
+    for (String partitionName : instanceConfig.getDisabledPartitions()) {
+      _disabledPartitions.add(PartitionId.from(partitionName));
+    }
+    _tags = Sets.newHashSet(instanceConfig.getTags());
+    _userConfig = instanceConfig.getUserConfig();
   }
 
   /**
@@ -66,7 +61,7 @@ public class ParticipantConfig {
    * @return host name, or null if not applicable
    */
   public String getHostName() {
-    return _hostName;
+    return _instanceConfig.getHostName();
   }
 
   /**
@@ -74,7 +69,8 @@ public class ParticipantConfig {
    * @return port number, or -1 if not applicable
    */
   public int getPort() {
-    return _port;
+    return _instanceConfig.getRecord()
+        .getIntField(InstanceConfigProperty.HELIX_PORT.toString(), -1);
   }
 
   /**
@@ -82,7 +78,7 @@ public class ParticipantConfig {
    * @return true if enabled or false otherwise
    */
   public boolean isEnabled() {
-    return _isEnabled;
+    return _instanceConfig.getInstanceEnabled();
   }
 
   /**
@@ -123,7 +119,15 @@ public class ParticipantConfig {
    * @return ParticipantId
    */
   public ParticipantId getId() {
-    return _id;
+    return _instanceConfig.getParticipantId();
+  }
+
+  /**
+   * Get the physical instance config
+   * @return InstanceConfig
+   */
+  public InstanceConfig getInstanceConfig() {
+    return _instanceConfig;
   }
 
   /**
@@ -284,24 +288,14 @@ public class ParticipantConfig {
    * Assemble a participant
    */
   public static class Builder {
-    private final ParticipantId _id;
-    private String _hostName;
-    private int _port;
-    private boolean _isEnabled;
-    private final Set<PartitionId> _disabledPartitions;
-    private final Set<String> _tags;
-    private UserConfig _userConfig;
+    private final InstanceConfig _instanceConfig;
 
     /**
      * Build a participant with a given id
      * @param id participant id
      */
     public Builder(ParticipantId id) {
-      _id = id;
-      _disabledPartitions = new HashSet<PartitionId>();
-      _tags = new HashSet<String>();
-      _isEnabled = true;
-      _userConfig = new UserConfig(Scope.participant(id));
+      _instanceConfig = new InstanceConfig(id);
     }
 
     /**
@@ -310,7 +304,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder hostName(String hostName) {
-      _hostName = hostName;
+      _instanceConfig.setHostName(hostName);
       return this;
     }
 
@@ -320,7 +314,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder port(int port) {
-      _port = port;
+      _instanceConfig.setPort(String.valueOf(port));
       return this;
     }
 
@@ -330,7 +324,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder enabled(boolean isEnabled) {
-      _isEnabled = isEnabled;
+      _instanceConfig.setInstanceEnabled(isEnabled);
       return this;
     }
 
@@ -340,7 +334,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder addDisabledPartition(PartitionId partitionId) {
-      _disabledPartitions.add(partitionId);
+      _instanceConfig.setInstanceEnabledForPartition(partitionId.toString(), false);
       return this;
     }
 
@@ -350,7 +344,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder addTag(String tag) {
-      _tags.add(tag);
+      _instanceConfig.addTag(tag);
       return this;
     }
 
@@ -360,7 +354,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder userConfig(UserConfig userConfig) {
-      _userConfig = userConfig;
+      _instanceConfig.addNamespacedConfig(userConfig);
       return this;
     }
 
@@ -369,8 +363,16 @@ public class ParticipantConfig {
      * @return instantiated Participant
      */
     public ParticipantConfig build() {
-      return new ParticipantConfig(_id, _hostName, _port, _isEnabled, _disabledPartitions, _tags,
-          _userConfig);
+      return new ParticipantConfig(_instanceConfig);
     }
+  }
+
+  /**
+   * Get a participant config from a physical instance config
+   * @param instanceConfig the populated config
+   * @return ParticipantConfig instance
+   */
+  public static ParticipantConfig from(InstanceConfig instanceConfig) {
+    return new ParticipantConfig(instanceConfig);
   }
 }

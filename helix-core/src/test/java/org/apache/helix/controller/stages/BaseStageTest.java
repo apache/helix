@@ -31,10 +31,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ResourceConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
@@ -170,11 +168,10 @@ public class BaseStageTest {
     for (IdealState idealState : idealStates) {
       ResourceId resourceId = idealState.getResourceId();
       RebalancerConfig context = PartitionedRebalancerConfig.from(idealState);
-      Resource resource =
-          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context, null,
-              new UserConfig(Scope.resource(resourceId)), idealState.getBucketSize(),
-              idealState.getBatchMessageMode());
-      resourceMap.put(resourceId, resource.getConfig());
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(resourceId).idealState(idealState).rebalancerConfig(context)
+              .userConfig(new UserConfig(Scope.resource(resourceId))).build();
+      resourceMap.put(resourceId, resourceConfig);
     }
 
     return resourceMap;

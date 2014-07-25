@@ -30,6 +30,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 
 import com.google.common.collect.ImmutableMap;
@@ -39,10 +40,10 @@ import com.google.common.collect.ImmutableMap;
  */
 public class Participant {
   private final ParticipantConfig _config;
-  
+
   private final ContainerConfig _containerConfig;
 
-  private final RunningInstance _runningInstance;
+  private final LiveInstance _liveInstance;
 
   /**
    * map of resource-id to current-state
@@ -58,15 +59,12 @@ public class Participant {
    * Construct a participant
    * @param config
    */
-  public Participant(ParticipantId id, String hostName, int port, boolean isEnabled,
-      Set<PartitionId> disabledPartitionIdSet, Set<String> tags, RunningInstance runningInstance,
+  public Participant(ParticipantConfig participantConfig, LiveInstance liveInstance,
       Map<ResourceId, CurrentState> currentStateMap, Map<MessageId, Message> messageMap,
-      UserConfig userConfig, ContainerConfig containerConfig) {
-    _config =
-        new ParticipantConfig(id, hostName, port, isEnabled, disabledPartitionIdSet, tags,
-            userConfig);
+      ContainerConfig containerConfig) {
+    _config = participantConfig;
     _containerConfig = containerConfig;
-    _runningInstance = runningInstance;
+    _liveInstance = liveInstance;
     _currentStateMap = ImmutableMap.copyOf(currentStateMap);
     _messageMap = ImmutableMap.copyOf(messageMap);
   }
@@ -100,15 +98,15 @@ public class Participant {
    * @return true if running or false otherwise
    */
   public boolean isAlive() {
-    return _runningInstance != null;
+    return _liveInstance != null;
   }
 
   /**
    * Get the running instance
    * @return running instance or null if not running
    */
-  public RunningInstance getRunningInstance() {
-    return _runningInstance;
+  public LiveInstance getLiveInstance() {
+    return _liveInstance;
   }
 
   /**

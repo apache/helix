@@ -27,7 +27,7 @@ import org.apache.helix.model.LiveInstance;
  */
 public class Controller {
   private final ControllerId _id;
-  private final RunningInstance _runningInstance;
+  private final LiveInstance _liveInstance;
   private final boolean _isLeader;
 
   /**
@@ -36,15 +36,7 @@ public class Controller {
    */
   public Controller(ControllerId id, LiveInstance liveInstance, boolean isLeader) {
     _id = id;
-
-    if (liveInstance != null) {
-      _runningInstance =
-          new RunningInstance(liveInstance.getTypedSessionId(),
-              liveInstance.getTypedHelixVersion(), liveInstance.getProcessId());
-    } else {
-      _runningInstance = null;
-    }
-
+    _liveInstance = liveInstance;
     _isLeader = isLeader;
   }
 
@@ -68,7 +60,7 @@ public class Controller {
    * Get the running instance
    * @return running instance or null if not running
    */
-  public RunningInstance getRunningInstance() {
-    return _runningInstance;
+  public LiveInstance getLiveInstance() {
+    return _liveInstance;
   }
 }

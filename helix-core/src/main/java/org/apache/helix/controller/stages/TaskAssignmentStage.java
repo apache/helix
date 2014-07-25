@@ -109,10 +109,11 @@ public class TaskAssignmentStage extends AbstractBaseStage {
       Participant liveParticipant = liveParticipantMap.get(participantId);
       String participantVersion = null;
       if (liveParticipant != null) {
-        participantVersion = liveParticipant.getRunningInstance().getVersion().toString();
+        participantVersion = liveParticipant.getLiveInstance().getHelixVersion();
       }
 
-      if (resource == null || !resource.getBatchMessageMode() || participantVersion == null
+      if (resource == null || resource.getIdealState() == null
+          || !resource.getIdealState().getBatchMessageMode() || participantVersion == null
           || !properties.isFeatureSupported("batch_message", participantVersion)) {
         outputMessages.add(message);
         continue;

@@ -68,8 +68,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
           continue;
         }
 
-        if (!liveParticipant.getRunningInstance().getSessionId()
-            .equals(message.getTypedTgtSessionId())) {
+        if (!liveParticipant.getLiveInstance().getSessionId().equals(message.getTgtSessionId())) {
           continue;
         }
 
@@ -104,7 +103,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       }
 
       // add current state
-      SessionId sessionId = liveParticipant.getRunningInstance().getSessionId();
+      SessionId sessionId = SessionId.from(liveParticipant.getLiveInstance().getSessionId());
       Map<ResourceId, CurrentState> curStateMap = liveParticipant.getCurrentStateMap();
       for (CurrentState curState : curStateMap.values()) {
         if (!sessionId.equals(curState.getTypedSessionId())) {

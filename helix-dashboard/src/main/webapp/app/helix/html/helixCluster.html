@@ -1,0 +1,36 @@
+<div ng-controller="HelixController">	
+			<h3>Helix Clusters</h3>
+			<p>Select Cluster : <select data-ng-options="o for o in clusters.listFields.clusters" data-ng-model="clusters.listFields.clusters[0]"></select></p>
+			<p>Add New Cluster : <input type="text" ng-model="name">
+			<!--<span ng-bind="name"></span> -->
+			<button ng-click="addC" type="button" class="btn btn-primary">Add Cluster</button></p>
+				<table class="table table-striped">
+				<thead>
+					<tr>
+					  <td><B>Cluster</B></td>
+					  <td><B>Action</B></td>
+					  
+					</tr>
+				</thead>
+					<tbody>
+						<tr ng-repeat='item in clusters.listFields.clusters'>
+						<td>{{item}}</td>
+						<td>
+						<button type="button" class="btn btn-default btn-xs">information</button>
+						<button type="button" class="btn btn-danger btn-xs">remove</button>
+						<button type="button" class="btn btn-primary btn-xs">active</button>
+						||</td>
+						</tr>
+					</tbody>
+				</table>
+
+			<p>
+			<button ng-click="addR" type="button" class="btn btn-default">Add Resource</button>
+			<button ng-click="addI" type="button" class="btn btn-default">Add Instance</button>
+			</p>
+			<p>
+			<button ng-click="addS" type="button" class="btn btn-default">Add State Model Definition</button>			
+			<button ng-click="addCons">Add Constraints</button>
+			<button ng-click="addconfigs" type="button" class="btn btn-info">Configs</button>
+			</p>
+</div>

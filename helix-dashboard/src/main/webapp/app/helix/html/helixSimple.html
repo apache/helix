@@ -1,0 +1,15 @@
+<div ng-controller="HelixController">
+   <h3>{{clusters.id}}</h3>
+   <p>Select a cluster: {{clusters.listFields.clusters}}</p>
+   <select data-ng-model="clusters.listFields.clusters[0]"
+      data-ng-options="cluster for cluster in clusters.listFields.clusters">                
+   </select>
+   <table border="1">
+      <tbody>
+         <tr ng-repeat='item in clusters.listFields.clusters'>
+            <td>{{item}}</td>
+            <td>information|remove|activate</td>
+         </tr>
+      </tbody>
+   </table>
+</div>

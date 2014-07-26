@@ -47,11 +47,7 @@ import org.restlet.util.Series;
 
 public class ClustersResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
-<<<<<<< HEAD
- 
-=======
-  private static final String HEADERS_KEY = "org.restlet.http.headers";
->>>>>>> 81582aaea80650af3d06297e156c3f2ed1852f07
+
   public ClustersResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -62,20 +58,11 @@ public class ClustersResource extends ServerResource {
   @Override
   public Representation get() throws ResourceException{
     StringRepresentation presentation = null;
-<<<<<<< HEAD
+
 
      Headers h = new Headers();
         h.addHeaders();
 		
-=======
-    
-    getMessageHeaders(getResponse()).add("Access-Control-Allow-Origin", "*"); 
-   getMessageHeaders(getResponse()).add("Access-Control-Allow-Methods", "POST,GET");
-   getMessageHeaders(getResponse()).add("Access-Control-Allow-Headers", "x-requested-with,Content-Type"); 
-    getMessageHeaders(getResponse()).add("Access-Control-Allow-Credentials", "true"); 
-   getMessageHeaders(getResponse()).add("Access-Control-Max-Age", "60"); 
-    
->>>>>>> 81582aaea80650af3d06297e156c3f2ed1852f07
     try {
      
       
@@ -145,9 +132,10 @@ public class ClustersResource extends ServerResource {
 
   @Override
   public Representation delete() {
+  Headers h = new Headers();
+        h.addHeaders();
       return null;
   }
-<<<<<<< HEAD
 
   @Override
   public Representation options() throws ResourceException
@@ -160,36 +148,13 @@ public class ClustersResource extends ServerResource {
 
   
 }
-=======
-  
-  @Override
-  public Representation options() throws ResourceException 
-  {
-	  getMessageHeaders(getResponse()).add("Access-Control-Allow-Origin", "*"); 
-		getMessageHeaders(getResponse()).add("Access-Control-Allow-Methods", "POST,OPTIONS");
-		getMessageHeaders(getResponse()).add("Access-Control-Allow-Headers", "Content-Type"); 
-		getMessageHeaders(getResponse()).add("Access-Control-Allow-Credentials", "true"); 
-		getMessageHeaders(getResponse()).add("Access-Control-Max-Age", "60"); 
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
+
   
   
-  @SuppressWarnings("unchecked")
-  static Series<Header> getMessageHeaders(Message message) {
-      ConcurrentMap<String, Object> attrs = message.getAttributes();
-      Series<Header> headers = (Series<Header>) attrs.get(HEADERS_KEY);
-      if (headers == null) {
-          headers = new Series<Header>(Header.class);
-          Series<Header> prev = (Series<Header>) 
-              attrs.putIfAbsent(HEADERS_KEY, headers);
-          if (prev != null) { headers = prev; }
-      }
-      return headers;
-  }
+  
   
   
   }
   
   
   
->>>>>>> 81582aaea80650af3d06297e156c3f2ed1852f07

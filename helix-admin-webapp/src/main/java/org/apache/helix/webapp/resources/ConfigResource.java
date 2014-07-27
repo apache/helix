@@ -53,7 +53,6 @@ public class ConfigResource extends ServerResource {
   }
 
   String getValue(String key) {
-  
     return (String) getRequest().getAttributes().get(key);
   }
 
@@ -121,9 +120,6 @@ public class ConfigResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation representation = null;
-
-    Headers h = new Headers();
-        h.addHeaders();
 
     String clusterName = getValue("clusterName");
     String scopeStr = getValue("scope");
@@ -228,10 +224,6 @@ public class ConfigResource extends ServerResource {
 
 @Override
   public Representation post(Representation entity) {
-
- Headers h = new Headers();
-        h.addHeaders();
-
     String clusterName = getValue("clusterName");
 
     String scopeStr = getValue("scope").toUpperCase();
@@ -275,15 +267,4 @@ public class ConfigResource extends ServerResource {
     }
     return null;
   }
-
-  @Override
-  public Representation options() throws ResourceException
-  {
-	  Headers h = new Headers();
-        h.addHeaders();
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
-
-
-  
 }

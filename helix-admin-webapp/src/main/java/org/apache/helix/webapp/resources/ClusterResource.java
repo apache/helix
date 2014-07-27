@@ -43,7 +43,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class ClusterResource extends ServerResource {
- 
+    
   public ClusterResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -53,10 +53,6 @@ public class ClusterResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
-
-     Headers h = new Headers();
-        h.addHeaders();
-		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getClusterRepresentation(clusterName);
@@ -106,10 +102,6 @@ public class ClusterResource extends ServerResource {
 
   @Override
   public Representation post(Representation entity) {
-
-  Headers h = new Headers();
-        h.addHeaders();
-		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
@@ -167,14 +159,4 @@ public class ClusterResource extends ServerResource {
     }
     return null;
   }
-
-  @Override
-  public Representation options() throws ResourceException
-  {
-	 Headers h = new Headers();
-        h.addHeaders();
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
-
-
 }

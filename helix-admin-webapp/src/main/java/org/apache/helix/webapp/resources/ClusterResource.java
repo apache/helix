@@ -169,7 +169,7 @@ public class ClusterResource extends ServerResource {
   }
 
   @Override
-  public Representation options() throws ResourceException
+  public Representation options() 
   {
 	 Headers h = new Headers();
         h.addHeaders();

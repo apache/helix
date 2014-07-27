@@ -146,7 +146,7 @@ public class ControllerResource extends ServerResource {
   }
 
    @Override
-  public Representation options() throws ResourceException
+  public Representation options() 
   {
 	  Headers h = new Headers();
         h.addHeaders();

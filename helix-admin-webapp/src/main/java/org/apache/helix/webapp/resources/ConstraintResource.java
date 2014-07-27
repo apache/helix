@@ -158,7 +158,7 @@ Headers h = new Headers();
   }
 
    @Override
-  public Representation options() throws ResourceException
+  public Representation options() 
   {
 	  Headers h = new Headers();
         h.addHeaders();

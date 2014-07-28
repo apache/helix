@@ -682,7 +682,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
        * at the time we read session-id, zkconnection might be lost again
        * wait until we get a non-zero session-id
        */
-    } while ("0".equals(_sessionId));
+    } while (!isConnected || "0".equals(_sessionId));
 
     LOG.info("Handling new session, session id: " + _sessionId + ", instance: " + _instanceName
         + ", instanceTye: " + _instanceType + ", cluster: " + _clusterName + ", zkconnection: "

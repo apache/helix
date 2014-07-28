@@ -87,6 +87,9 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
   @Override
   public void onStartContainerError(ContainerId containerId, Throwable t) {
     LOG.error("Failed to start Container " + containerId, t);
+    SettableFuture<ContainerLaunchResponse> settableFuture =
+        applicationMaster.containerLaunchResponseMap.remove(containerId);
+    settableFuture.setException(t);
     containers.remove(containerId);
   }
 
@@ -98,6 +101,9 @@ class NMCallbackHandler implements NMClientAsync.CallbackHandler {
   @Override
   public void onStopContainerError(ContainerId containerId, Throwable t) {
     LOG.error("Failed to stop Container " + containerId, t);
+    SettableFuture<ContainerStopResponse> settableFuture =
+        applicationMaster.containerStopMap.remove(containerId);
+    settableFuture.setException(t);
     containers.remove(containerId);
   }
 }

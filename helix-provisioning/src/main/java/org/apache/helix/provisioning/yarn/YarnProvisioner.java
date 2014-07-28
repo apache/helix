@@ -62,7 +62,6 @@ import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.Provisioner;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ContainerAskResponse;
 import org.apache.helix.provisioning.ContainerLaunchResponse;
@@ -87,7 +86,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
   public static AppMasterConfig applicationMasterConfig;
   public static ApplicationSpec applicationSpec;
   Map<ContainerId, Container> allocatedContainersMap = new HashMap<ContainerId, Container>();
-  private HelixManager _helixManager;
+  // private HelixManager _helixManager;
   private ResourceConfig _resourceConfig;
 
   public YarnProvisioner() {
@@ -271,7 +270,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
 
   @Override
   public void init(HelixManager helixManager, ResourceConfig resourceConfig) {
-    _helixManager = helixManager;
+    // _helixManager = helixManager;
     _resourceConfig = resourceConfig;
   }
 
@@ -338,8 +337,9 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
           break;
         case FAILED:
           // remove the failed instance
-          _helixManager.getClusterManagmentTool().dropInstance(cluster.getId().toString(),
-              new InstanceConfig(participant.getId()));
+          // _helixManager.getClusterManagmentTool().dropInstance(cluster.getId().toString(),
+          // new InstanceConfig(participant.getId()));
+          excessHaltedContainers.put(participant.getId(), participant);
           break;
         default:
           break;
@@ -375,6 +375,8 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     response.setContainersToStop(containersToStop);
     LOG.info("target provider response containers to acquire:" + response.getContainersToAcquire());
     LOG.info("target provider response containers to start:" + response.getContainersToStart());
+    LOG.info("target provider response containers to stop:" + response.getContainersToStop());
+    LOG.info("target provider response containers to release:" + response.getContainersToRelease());
     return response;
   }
 

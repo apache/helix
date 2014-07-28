@@ -137,9 +137,14 @@ var Helix = (function(Helix) {
     $scope.endpoint = "http://localhost:8100/clusters/";
 	
 	//calling rest API in helix
-	$http.get('http://localhost:9763/clusters/').
+	$http.get('http://localhost:8100/clusters/').
         success(function(data) {
 			//loading cluster list for scope variable called clusters
+            $scope.clusters = data;
+        });
+		
+	$http.post('http://localhost:8100/clusters/',{}).
+        success(function(data) {
             $scope.clusters = data;
         });
   };

@@ -64,7 +64,7 @@ public class ZkPathResource extends ServerResource {
 
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -102,7 +102,7 @@ public class ZkPathResource extends ServerResource {
 
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -152,7 +152,7 @@ public class ZkPathResource extends ServerResource {
     String zkPath = getZKPath();
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);

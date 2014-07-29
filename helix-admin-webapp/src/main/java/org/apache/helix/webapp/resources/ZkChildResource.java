@@ -63,7 +63,7 @@ public class ZkChildResource extends ServerResource {
 
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -110,7 +110,7 @@ public class ZkChildResource extends ServerResource {
     String zkPath = getZKPath();
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);

@@ -61,15 +61,15 @@ public class ClustersResource extends ServerResource {
 
 
      Headers h = new Headers();
-        h.addHeaders();
-		
+        h.addHeaders(getResponse());
+
     try {
-     
-      
-      
-      
+
+
+
+
       presentation = getClustersRepresentation();
-      
+
     } catch (Exception e) {
       LOG.error("", e);
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
@@ -99,7 +99,7 @@ public class ClustersResource extends ServerResource {
   public Representation post(Representation entity) {
 
   Headers h = new Headers();
-        h.addHeaders();
+       h.addHeaders(getResponse());
     try {
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -132,24 +132,25 @@ public class ClustersResource extends ServerResource {
 
   @Override
   public Representation delete() {
-  Headers h = new Headers();
-        h.addHeaders();
+	  Headers h = new Headers();
+      h.addHeaders(getResponse());
+
       return null;
   }
 
   @Override
-  public Representation options() 
+  public Representation options()
   {
 	Headers h = new Headers();
-        h.addHeaders();
+       h.addHeaders(getResponse());
+
 		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
   }
 
 
-  
+
 }
-  
-  
-  
-  
-  
+
+
+
+

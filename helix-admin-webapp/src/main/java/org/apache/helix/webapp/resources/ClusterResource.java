@@ -55,7 +55,7 @@ public class ClusterResource extends ServerResource {
     StringRepresentation presentation = null;
 
      Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
@@ -108,7 +108,7 @@ public class ClusterResource extends ServerResource {
   public Representation post(Representation entity) {
 
   Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
@@ -153,6 +153,9 @@ public class ClusterResource extends ServerResource {
 
   @Override
   public Representation delete() {
+	  Headers h = new Headers();
+      h.addHeaders(getResponse());
+
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
@@ -172,7 +175,7 @@ public class ClusterResource extends ServerResource {
   public Representation options() 
   {
 	 Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
   }
 

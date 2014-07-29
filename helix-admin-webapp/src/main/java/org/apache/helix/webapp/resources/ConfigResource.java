@@ -123,7 +123,7 @@ public class ConfigResource extends ServerResource {
     StringRepresentation representation = null;
 
     Headers h = new Headers();
-        h.addHeaders();
+       h.addHeaders(getResponse());
 
     String clusterName = getValue("clusterName");
     String scopeStr = getValue("scope");
@@ -230,7 +230,7 @@ public class ConfigResource extends ServerResource {
   public Representation post(Representation entity) {
 
  Headers h = new Headers();
-        h.addHeaders();
+       h.addHeaders(getResponse());
 
     String clusterName = getValue("clusterName");
 
@@ -280,7 +280,7 @@ public class ConfigResource extends ServerResource {
   public Representation options() 
   {
 	  Headers h = new Headers();
-        h.addHeaders();
+       h.addHeaders(getResponse());
 		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
   }
 

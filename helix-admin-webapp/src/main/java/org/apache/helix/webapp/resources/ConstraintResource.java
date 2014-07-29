@@ -62,7 +62,7 @@ public class ConstraintResource extends ServerResource {
     String constraintId = getValue("constraintId");
 
     Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 
     try {
       ConstraintType constraintType = ConstraintType.valueOf(constraintTypeStr);
@@ -112,7 +112,7 @@ public class ConstraintResource extends ServerResource {
     String constraintId = getValue("constraintId");
 
     Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 
     try {
       ZkClient zkClient =
@@ -139,7 +139,7 @@ public class ConstraintResource extends ServerResource {
     String constraintId = getValue("constraintId");
 
 Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 
     try {
       ZkClient zkClient =
@@ -161,7 +161,7 @@ Headers h = new Headers();
   public Representation options() 
   {
 	  Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
   }
 

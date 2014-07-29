@@ -52,7 +52,7 @@ public class ResourceGroupResource extends ServerResource {
     StringRepresentation presentation = null;
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
@@ -87,7 +87,7 @@ public class ResourceGroupResource extends ServerResource {
   public Representation delete() {
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceGroupName = (String) getRequest().getAttributes().get("resourceName");
@@ -110,7 +110,7 @@ public class ResourceGroupResource extends ServerResource {
   public Representation post(Representation entity) {
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");

@@ -65,7 +65,7 @@ public class WorkflowsResource extends ServerResource {
     StringRepresentation presentation = null;
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getHostedEntitiesRepresentation(clusterName);
@@ -120,7 +120,7 @@ public class WorkflowsResource extends ServerResource {
   public Representation post(Representation entity) {
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       Form form = new Form(entity);

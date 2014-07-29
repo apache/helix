@@ -54,7 +54,7 @@ public class StateModelResource extends ServerResource {
     StringRepresentation	presentation = null;
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");
@@ -89,7 +89,7 @@ public class StateModelResource extends ServerResource {
   public Representation post(Representation entity) {
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String modelName = (String) getRequest().getAttributes().get("modelName");

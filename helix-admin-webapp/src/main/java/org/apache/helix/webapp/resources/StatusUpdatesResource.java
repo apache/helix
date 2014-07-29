@@ -47,7 +47,7 @@ public class StatusUpdatesResource extends ServerResource {
     StringRepresentation presentation = null;
     try {
 	Headers h = new Headers();
-        h.addHeaders();
+        h.addHeaders(getResponse());
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");

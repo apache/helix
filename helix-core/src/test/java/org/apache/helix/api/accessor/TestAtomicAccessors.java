@@ -63,7 +63,7 @@ public class TestAtomicAccessors extends ZkTestBase {
       public void run() {
         UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
         userConfig.setBooleanField(key1, true);
-        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).setUserConfig(userConfig);
+        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).addUserConfig(userConfig);
         ClusterAccessor accessor =
             new AtomicClusterAccessor(clusterId, helixAccessor, lockProvider);
         accessor.updateCluster(delta);
@@ -76,7 +76,7 @@ public class TestAtomicAccessors extends ZkTestBase {
       public void run() {
         UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
         userConfig.setBooleanField(key2, true);
-        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).setUserConfig(userConfig);
+        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).addUserConfig(userConfig);
         ClusterAccessor accessor =
             new AtomicClusterAccessor(clusterId, helixAccessor, lockProvider);
         accessor.updateCluster(delta);

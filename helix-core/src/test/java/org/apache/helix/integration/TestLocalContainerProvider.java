@@ -118,7 +118,7 @@ public class TestLocalContainerProvider extends ZkTestBase {
     RebalancerConfig rebalancerConfig =
         new FullAutoRebalancerConfig.Builder(resourceId).addPartitions(NUM_PARTITIONS)
             .replicaCount(NUM_REPLICAS).stateModelDefId(masterSlave.getStateModelDefId()).build();
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(ResourceId.from(resourceName))
+    clusterAccessor.addResource(new ResourceConfig.Builder(ResourceId.from(resourceName))
         .provisionerConfig(provisionerConfig)
         .rebalancerConfig(rebalancerConfig)
         .idealState(

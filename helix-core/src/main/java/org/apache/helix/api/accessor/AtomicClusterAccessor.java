@@ -113,7 +113,7 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   }
 
   @Override
-  public boolean addParticipantToCluster(ParticipantConfig participant) {
+  public boolean addParticipant(ParticipantConfig participant) {
     if (participant == null) {
       LOG.error("Participant config cannot be null");
       return false;
@@ -123,7 +123,7 @@ public class AtomicClusterAccessor extends ClusterAccessor {
     boolean locked = lock.lock();
     if (locked) {
       try {
-        return _clusterAccessor.addParticipantToCluster(participant);
+        return _clusterAccessor.addParticipant(participant);
       } finally {
         lock.unlock();
       }
@@ -132,13 +132,13 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   }
 
   @Override
-  public boolean dropParticipantFromCluster(ParticipantId participantId) {
+  public boolean dropParticipant(ParticipantId participantId) {
     ClusterId clusterId = clusterId();
     HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantId));
     boolean locked = lock.lock();
     if (locked) {
       try {
-        return _clusterAccessor.dropParticipantFromCluster(participantId);
+        return _clusterAccessor.dropParticipant(participantId);
       } finally {
         lock.unlock();
       }
@@ -147,7 +147,7 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   }
 
   @Override
-  public boolean addResourceToCluster(ResourceConfig resource) {
+  public boolean addResource(ResourceConfig resource) {
     if (resource == null) {
       LOG.error("Resource config cannot be null");
       return false;
@@ -157,7 +157,7 @@ public class AtomicClusterAccessor extends ClusterAccessor {
     boolean locked = lock.lock();
     if (locked) {
       try {
-        return _clusterAccessor.addResourceToCluster(resource);
+        return _clusterAccessor.addResource(resource);
       } finally {
         lock.unlock();
       }
@@ -166,13 +166,13 @@ public class AtomicClusterAccessor extends ClusterAccessor {
   }
 
   @Override
-  public boolean dropResourceFromCluster(ResourceId resourceId) {
+  public boolean dropResource(ResourceId resourceId) {
     ClusterId clusterId = clusterId();
     HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceId));
     boolean locked = lock.lock();
     if (locked) {
       try {
-        return _clusterAccessor.dropResourceFromCluster(resourceId);
+        return _clusterAccessor.dropResource(resourceId);
       } finally {
         lock.unlock();
       }
@@ -208,25 +208,6 @@ public class AtomicClusterAccessor extends ClusterAccessor {
       }
     }
     return null;
-  }
-
-  @Override
-  public boolean setParticipant(ParticipantConfig participantConfig) {
-    if (participantConfig == null) {
-      LOG.error("participant config cannot be null");
-      return false;
-    }
-    ClusterId clusterId = clusterId();
-    HelixLock lock = _lockProvider.getLock(clusterId, Scope.participant(participantConfig.getId()));
-    boolean locked = lock.lock();
-    if (locked) {
-      try {
-        return _clusterAccessor.setParticipant(participantConfig);
-      } finally {
-        lock.unlock();
-      }
-    }
-    return false;
   }
 
   @Override
@@ -273,24 +254,5 @@ public class AtomicClusterAccessor extends ClusterAccessor {
       }
     }
     return null;
-  }
-
-  @Override
-  public boolean setResource(ResourceConfig resourceConfig) {
-    if (resourceConfig == null) {
-      LOG.error("resource config cannot be null");
-      return false;
-    }
-    ClusterId clusterId = clusterId();
-    HelixLock lock = _lockProvider.getLock(clusterId, Scope.resource(resourceConfig.getId()));
-    boolean locked = lock.lock();
-    if (locked) {
-      try {
-        return _clusterAccessor.setResource(resourceConfig);
-      } finally {
-        lock.unlock();
-      }
-    }
-    return false;
   }
 }

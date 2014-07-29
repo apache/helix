@@ -30,6 +30,7 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 
@@ -180,5 +181,13 @@ public class Participant {
    */
   public ContainerConfig getContainerConfig() {
     return _containerConfig;
+  }
+
+  /**
+   * Get the physical InstanceConfig that this participant is configured with
+   * @return InstanceConfig instance
+   */
+  public InstanceConfig getInstanceConfig() {
+    return _config.getInstanceConfig();
   }
 }

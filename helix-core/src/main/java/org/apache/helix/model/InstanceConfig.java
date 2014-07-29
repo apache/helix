@@ -291,7 +291,10 @@ public class InstanceConfig extends HelixProperty {
       for (String simpleField : _record.getSimpleFields().keySet()) {
         Optional<InstanceConfigProperty> enumField =
             Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
-        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        Optional<HelixPropertyAttribute> superEnumField =
+            Enums.getIfPresent(HelixPropertyAttribute.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()
+            && !superEnumField.isPresent()) {
           userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
         }
       }

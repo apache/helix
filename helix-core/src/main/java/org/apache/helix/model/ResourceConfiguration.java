@@ -74,7 +74,10 @@ public class ResourceConfiguration extends HelixProperty {
     try {
       for (String simpleField : _record.getSimpleFields().keySet()) {
         Optional<Fields> enumField = Enums.getIfPresent(Fields.class, simpleField);
-        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        Optional<HelixPropertyAttribute> superEnumField =
+            Enums.getIfPresent(HelixPropertyAttribute.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()
+            && !superEnumField.isPresent()) {
           userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
         }
       }

@@ -21,14 +21,15 @@ package org.apache.helix.api.config;
 
 import java.util.Set;
 
-import org.apache.helix.api.Scope;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.model.IdealState;
-
-import com.google.common.collect.Sets;
+import org.apache.helix.model.ProvisionerConfigHolder;
+import org.apache.helix.model.ResourceConfiguration;
 
 /**
  * Full configuration of a Helix resource. Typically used to add or modify resources on a cluster
@@ -127,14 +128,6 @@ public class ResourceConfig {
    * Update context for a ResourceConfig
    */
   public static class Delta {
-    private enum Fields {
-      IDEAL_STATE,
-      REBALANCER_CONFIG,
-      PROVISIONER_CONFIG,
-      USER_CONFIG,
-    }
-
-    private Set<Fields> _updateFields;
     private Builder _builder;
 
     /**
@@ -143,7 +136,6 @@ public class ResourceConfig {
      */
     public Delta(ResourceId resourceId) {
       _builder = new Builder(resourceId);
-      _updateFields = Sets.newHashSet();
     }
 
     /**
@@ -153,7 +145,6 @@ public class ResourceConfig {
      */
     public Delta setIdealState(IdealState idealState) {
       _builder.idealState(idealState);
-      _updateFields.add(Fields.IDEAL_STATE);
       return this;
     }
 
@@ -164,7 +155,6 @@ public class ResourceConfig {
      */
     public Delta setRebalancerConfig(RebalancerConfig config) {
       _builder.rebalancerConfig(config);
-      _updateFields.add(Fields.REBALANCER_CONFIG);
       return this;
     }
 
@@ -175,50 +165,59 @@ public class ResourceConfig {
      */
     public Delta setProvisionerConfig(ProvisionerConfig config) {
       _builder.provisionerConfig(config);
-      _updateFields.add(Fields.PROVISIONER_CONFIG);
       return this;
     }
 
     /**
-     * Set the user configuration
+     * Add the user configuration
      * @param userConfig user-specified properties
      * @return Delta
      */
-    public Delta setUserConfig(UserConfig userConfig) {
+    public Delta addUserConfig(UserConfig userConfig) {
       _builder.userConfig(userConfig);
-      _updateFields.add(Fields.USER_CONFIG);
       return this;
     }
 
     /**
-     * Create a ResourceConfig that is the combination of an existing ResourceConfig and this delta
-     * @param orig the original ResourceConfig
-     * @return updated ResourceConfig
+     * Given a physical accessor, merge in the updated logical properties
+     * @param accessor the physical accessor
      */
-    public ResourceConfig mergeInto(ResourceConfig orig) {
+    public void merge(HelixDataAccessor accessor) {
+      // Construct the logical delta
       ResourceConfig deltaConfig = _builder.build();
-      Builder builder =
-          new Builder(orig.getId()).idealState(orig.getIdealState())
-              .rebalancerConfig(orig.getRebalancerConfig())
-              .provisionerConfig(orig.getProvisionerConfig())
-              .schedulerTaskConfig(orig.getSchedulerTaskConfig()).userConfig(orig.getUserConfig());
-      for (Fields field : _updateFields) {
-        switch (field) {
-        case IDEAL_STATE:
-          builder.idealState(deltaConfig.getIdealState());
-          break;
-        case REBALANCER_CONFIG:
-          builder.rebalancerConfig(deltaConfig.getRebalancerConfig());
-          break;
-        case PROVISIONER_CONFIG:
-          builder.provisionerConfig(deltaConfig.getProvisionerConfig());
-          break;
-        case USER_CONFIG:
-          builder.userConfig(deltaConfig.getUserConfig());
-          break;
-        }
+      ResourceId resourceId = deltaConfig.getId();
+
+      // Update the ideal state if set
+      IdealState updatedIdealState = deltaConfig.getIdealState();
+      if (updatedIdealState != null) {
+        accessor.updateProperty(accessor.keyBuilder().idealStates(resourceId.toString()),
+            updatedIdealState);
       }
-      return builder.build();
+
+      // Update the resource config if any of its inner configs is set
+      boolean addedAnything = false;
+      ResourceConfiguration updatedResourceConfig = new ResourceConfiguration(resourceId);
+      ProvisionerConfig provisionerConfig = deltaConfig.getProvisionerConfig();
+      if (provisionerConfig != null) {
+        updatedResourceConfig.addNamespacedConfig(new ProvisionerConfigHolder(provisionerConfig)
+            .toNamespacedConfig());
+        addedAnything = true;
+      }
+      RebalancerConfig rebalancerConfig = deltaConfig.getRebalancerConfig();
+      if (rebalancerConfig != null) {
+        updatedResourceConfig.addNamespacedConfig(new RebalancerConfigHolder(rebalancerConfig)
+            .toNamespacedConfig());
+        addedAnything = true;
+      }
+      UserConfig userConfig = deltaConfig.getUserConfig();
+      if (userConfig != null) {
+        updatedResourceConfig.addNamespacedConfig(userConfig);
+        addedAnything = true;
+      }
+      if (addedAnything) {
+        accessor.updateProperty(accessor.keyBuilder().resourceConfig(resourceId.toString()),
+            updatedResourceConfig);
+      }
     }
   }
 
@@ -239,7 +238,6 @@ public class ResourceConfig {
      */
     public Builder(ResourceId id) {
       _id = id;
-      _userConfig = new UserConfig(Scope.resource(id));
     }
 
     /**

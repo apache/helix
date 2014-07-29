@@ -179,7 +179,7 @@ public class LogicalModelExample {
     mapField.put("k2", "v2");
     userConfig.setMapField("sampleMap", mapField);
     ResourceConfig.Delta delta =
-        new ResourceConfig.Delta(resource.getId()).setUserConfig(userConfig);
+        new ResourceConfig.Delta(resource.getId()).addUserConfig(userConfig);
     accessor.updateResource(resource.getId(), delta);
   }
 

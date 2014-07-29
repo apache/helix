@@ -44,7 +44,6 @@ import org.apache.helix.api.id.ContextId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.api.id.StateModelDefId;
@@ -123,26 +122,27 @@ public class ClusterAccessor {
     initClusterStructure();
     Map<StateModelDefId, StateModelDefinition> stateModelDefs = cluster.getStateModelMap();
     for (StateModelDefinition stateModelDef : stateModelDefs.values()) {
-      addStateModelDefinitionToCluster(stateModelDef);
+      addStateModelDefinition(stateModelDef);
     }
     Map<ResourceId, ResourceConfig> resources = cluster.getResourceMap();
     for (ResourceConfig resource : resources.values()) {
-      addResourceToCluster(resource);
+      addResource(resource);
     }
     Map<ParticipantId, ParticipantConfig> participants = cluster.getParticipantMap();
     for (ParticipantConfig participant : participants.values()) {
-      addParticipantToCluster(participant);
+      addParticipant(participant);
     }
     _accessor.createProperty(_keyBuilder.constraints(), null);
     for (ClusterConstraints constraints : cluster.getConstraintMap().values()) {
       _accessor.setProperty(_keyBuilder.constraint(constraints.getType().toString()), constraints);
     }
-    ClusterConfiguration clusterConfig = ClusterConfiguration.from(cluster.getUserConfig());
+    ClusterConfiguration clusterConfig =
+        ClusterConfiguration.from(_clusterId, cluster.getUserConfig());
     if (cluster.autoJoinAllowed()) {
       clusterConfig.setAutoJoinAllowed(cluster.autoJoinAllowed());
     }
     if (cluster.isPaused()) {
-      pauseCluster();
+      _accessor.createProperty(_keyBuilder.pause(), new PauseSignal("pause"));
     }
     _accessor.setProperty(_keyBuilder.clusterConfig(), clusterConfig);
 
@@ -155,34 +155,9 @@ public class ClusterAccessor {
    * @return updated ClusterConfig, or null if there was an error
    */
   public ClusterConfig updateCluster(ClusterConfig.Delta clusterDelta) {
+    clusterDelta.merge(_accessor);
     Cluster cluster = readCluster();
-    if (cluster == null) {
-      LOG.error("Cluster does not exist, cannot be updated");
-      return null;
-    }
-    ClusterConfig config = clusterDelta.mergeInto(cluster.getConfig());
-    boolean status = setBasicClusterConfig(config);
-    return status ? config : null;
-  }
-
-  /**
-   * Set a cluster config minus state model, participants, and resources
-   * @param config ClusterConfig
-   * @return true if correctly set, false otherwise
-   */
-  private boolean setBasicClusterConfig(ClusterConfig config) {
-    if (config == null) {
-      return false;
-    }
-    ClusterConfiguration configuration = ClusterConfiguration.from(config.getUserConfig());
-    configuration.setAutoJoinAllowed(config.autoJoinAllowed());
-    _accessor.setProperty(_keyBuilder.clusterConfig(), configuration);
-    Map<ConstraintType, ClusterConstraints> constraints = config.getConstraintMap();
-    for (ConstraintType type : constraints.keySet()) {
-      ClusterConstraints constraint = constraints.get(type);
-      _accessor.setProperty(_keyBuilder.constraint(type.toString()), constraint);
-    }
-    return true;
+    return (cluster != null) ? cluster.getConfig() : null;
   }
 
   /**
@@ -459,27 +434,11 @@ public class ClusterAccessor {
   }
 
   /**
-   * pause controller of cluster
-   * @return true if cluster was paused, false if pause failed or already paused
-   */
-  public boolean pauseCluster() {
-    return _accessor.createProperty(_keyBuilder.pause(), new PauseSignal("pause"));
-  }
-
-  /**
-   * resume controller of cluster
-   * @return true if resume succeeded, false otherwise
-   */
-  public boolean resumeCluster() {
-    return _accessor.removeProperty(_keyBuilder.pause());
-  }
-
-  /**
    * add a resource to cluster
    * @param resource
    * @return true if resource added, false if there was an error
    */
-  public boolean addResourceToCluster(ResourceConfig resource) {
+  public boolean addResource(ResourceConfig resource) {
     if (resource == null || resource.getRebalancerConfig() == null) {
       LOG.error("Resource not fully defined with a rebalancer config");
       return false;
@@ -517,22 +476,27 @@ public class ClusterAccessor {
     }
 
     // Add resource user config
+    boolean persistConfig = false;
+    ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
     if (resource.getUserConfig() != null) {
-      ResourceConfiguration configuration = new ResourceConfiguration(resourceId);
       configuration.addNamespacedConfig(resource.getUserConfig());
-      PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
-      if (idealState == null
-          && (partitionedConfig == null || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED)) {
-        // only persist if this is not easily convertible to an ideal state
-        configuration
-            .addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
-                .toNamespacedConfig());
-      }
-      ProvisionerConfig provisionerConfig = resource.getProvisionerConfig();
-      if (provisionerConfig != null) {
-        configuration.addNamespacedConfig(new ProvisionerConfigHolder(provisionerConfig)
-            .toNamespacedConfig());
-      }
+      persistConfig = true;
+    }
+    PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
+    if (idealState == null
+        && (partitionedConfig == null || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED)) {
+      // only persist if this is not easily convertible to an ideal state
+      configuration.addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
+          .toNamespacedConfig());
+      persistConfig = true;
+    }
+    ProvisionerConfig provisionerConfig = resource.getProvisionerConfig();
+    if (provisionerConfig != null) {
+      configuration.addNamespacedConfig(new ProvisionerConfigHolder(provisionerConfig)
+          .toNamespacedConfig());
+      persistConfig = true;
+    }
+    if (persistConfig) {
       _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
     }
     return true;
@@ -543,7 +507,7 @@ public class ClusterAccessor {
    * @param resourceId
    * @return true if removal succeeded, false otherwise
    */
-  public boolean dropResourceFromCluster(ResourceId resourceId) {
+  public boolean dropResource(ResourceId resourceId) {
     if (_accessor.getProperty(_keyBuilder.idealStates(resourceId.stringify())) == null) {
       LOG.error("Skip removing resource: " + resourceId
           + ", because resource ideal state already removed from cluster: " + _clusterId);
@@ -603,7 +567,7 @@ public class ClusterAccessor {
    * @param participant
    * @return true if participant added, false otherwise
    */
-  public boolean addParticipantToCluster(ParticipantConfig participant) {
+  public boolean addParticipant(ParticipantConfig participant) {
     if (participant == null) {
       LOG.error("Participant not initialized");
       return false;
@@ -637,7 +601,7 @@ public class ClusterAccessor {
    * @param participantId
    * @return true if participant dropped, false if there was an error
    */
-  public boolean dropParticipantFromCluster(ParticipantId participantId) {
+  public boolean dropParticipant(ParticipantId participantId) {
     if (_accessor.getProperty(_keyBuilder.instanceConfig(participantId.stringify())) == null) {
       LOG.error("Config for participant: " + participantId + " does NOT exist in cluster");
     }
@@ -659,7 +623,7 @@ public class ClusterAccessor {
    * @param stateModelDef fully initialized state model definition
    * @return true if the model is persisted, false otherwise
    */
-  public boolean addStateModelDefinitionToCluster(StateModelDefinition stateModelDef) {
+  public boolean addStateModelDefinition(StateModelDefinition stateModelDef) {
     if (!isClusterStructureValid()) {
       LOG.error("Cluster: " + _clusterId + " structure is not valid");
       return false;
@@ -674,7 +638,7 @@ public class ClusterAccessor {
    * @param stateModelDefId state model definition id
    * @return true if removed, false if it did not exist
    */
-  public boolean dropStateModelDefinitionFromCluster(StateModelDefId stateModelDefId) {
+  public boolean dropStateModelDefinition(StateModelDefId stateModelDefId) {
     return _accessor.removeProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify()));
   }
 
@@ -699,40 +663,9 @@ public class ClusterAccessor {
    */
   public ParticipantConfig updateParticipant(ParticipantId participantId,
       ParticipantConfig.Delta participantDelta) {
+    participantDelta.merge(_accessor);
     Participant participant = readParticipant(participantId);
-    if (participant == null) {
-      LOG.error("Participant " + participantId + " does not exist, cannot be updated");
-      return null;
-    }
-    ParticipantConfig config = participantDelta.mergeInto(participant.getConfig());
-    setParticipant(config);
-    return config;
-  }
-
-  /**
-   * Set the configuration of an existing participant
-   * @param participantConfig participant configuration
-   * @return true if config was set, false if there was an error
-   */
-  public boolean setParticipant(ParticipantConfig participantConfig) {
-    if (participantConfig == null) {
-      LOG.error("Participant config not initialized");
-      return false;
-    }
-    InstanceConfig instanceConfig = new InstanceConfig(participantConfig.getId());
-    instanceConfig.setHostName(participantConfig.getHostName());
-    instanceConfig.setPort(Integer.toString(participantConfig.getPort()));
-    for (String tag : participantConfig.getTags()) {
-      instanceConfig.addTag(tag);
-    }
-    for (PartitionId partitionId : participantConfig.getDisabledPartitions()) {
-      instanceConfig.setParticipantEnabledForPartition(partitionId, false);
-    }
-    instanceConfig.setInstanceEnabled(participantConfig.isEnabled());
-    instanceConfig.addNamespacedConfig(participantConfig.getUserConfig());
-    _accessor.setProperty(_keyBuilder.instanceConfig(participantConfig.getId().stringify()),
-        instanceConfig);
-    return true;
+    return (participant != null) ? participant.getConfig() : null;
   }
 
   /**
@@ -841,78 +774,9 @@ public class ClusterAccessor {
    * @return ResourceConfig, or null if the resource is not persisted
    */
   public ResourceConfig updateResource(ResourceId resourceId, ResourceConfig.Delta resourceDelta) {
+    resourceDelta.merge(_accessor);
     Resource resource = readResource(resourceId);
-    if (resource == null) {
-      LOG.error("Resource " + resourceId + " does not exist, cannot be updated");
-      return null;
-    }
-    ResourceConfig config = resourceDelta.mergeInto(resource.getConfig());
-    setResource(config);
-    return config;
-  }
-
-  /**
-   * Set a physical resource configuration, which may include user-defined configuration, as well as
-   * rebalancer configuration
-   * @param resourceId
-   * @param configuration
-   * @return true if set, false otherwise
-   */
-  private boolean setResourceConfiguration(ResourceId resourceId,
-      ResourceConfiguration configuration, RebalancerConfig rebalancerConfig) {
-    boolean status = true;
-    if (configuration != null) {
-      status =
-          _accessor.setProperty(_keyBuilder.resourceConfig(resourceId.stringify()), configuration);
-    }
-    // set an ideal state if the resource supports it
-    IdealState idealState =
-        PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig,
-            configuration.getBucketSize(), configuration.getBatchMessageMode());
-    if (idealState != null) {
-      status =
-          status
-              && _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
-    }
-    return status;
-  }
-
-  /**
-   * Persist an existing resource's logical configuration
-   * @param resourceConfig logical resource configuration
-   * @return true if resource is set, false otherwise
-   */
-  public boolean setResource(ResourceConfig resourceConfig) {
-    if (resourceConfig == null || resourceConfig.getRebalancerConfig() == null) {
-      LOG.error("Resource not fully defined with a rebalancer context");
-      return false;
-    }
-    ResourceId resourceId = resourceConfig.getId();
-    ResourceConfiguration config = new ResourceConfiguration(resourceId);
-    UserConfig userConfig = resourceConfig.getUserConfig();
-    if (userConfig != null
-        && (!userConfig.getSimpleFields().isEmpty() || !userConfig.getListFields().isEmpty() || !userConfig
-            .getMapFields().isEmpty())) {
-      config.addNamespacedConfig(userConfig);
-    } else {
-      userConfig = null;
-    }
-    PartitionedRebalancerConfig partitionedConfig =
-        PartitionedRebalancerConfig.from(resourceConfig.getRebalancerConfig());
-    if (partitionedConfig == null
-        || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
-      // only persist if this is not easily convertible to an ideal state
-      config.addNamespacedConfig(new RebalancerConfigHolder(resourceConfig.getRebalancerConfig())
-          .toNamespacedConfig());
-    } else if (userConfig == null) {
-      config = null;
-    }
-    if (resourceConfig.getProvisionerConfig() != null) {
-      config.addNamespacedConfig(new ProvisionerConfigHolder(resourceConfig.getProvisionerConfig())
-          .toNamespacedConfig());
-    }
-    setResourceConfiguration(resourceId, config, resourceConfig.getRebalancerConfig());
-    return true;
+    return (resource != null) ? resource.getConfig() : null;
   }
 
   /**

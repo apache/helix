@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
@@ -42,7 +41,6 @@ import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.testutil.ZkTestBase;
@@ -239,8 +237,7 @@ public class TestNewStages extends ZkTestBase {
             clusterName));
     Assert.assertTrue(result);
 
-    _dataAccessor =
-        new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    _dataAccessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
   }
 
   @AfterClass

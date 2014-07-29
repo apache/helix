@@ -329,7 +329,7 @@ public class ZkHelixParticipant implements HelixParticipant {
         ParticipantConfig.Builder builder =
             new ParticipantConfig.Builder(_participantId).hostName(hostName).port(port)
                 .enabled(true);
-        _clusterAccessor.addParticipantToCluster(builder.build());
+        _clusterAccessor.addParticipant(builder.build());
       }
     }
   }

@@ -128,12 +128,12 @@ public class TestHelixConnection extends ZkTestBase {
             .preferenceList(PartitionId.from("testDB_0"), Arrays.asList(participantId)).build();
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
         stateModelDef).build());
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId)
+    clusterAccessor.addResource(new ResourceConfig.Builder(resourceId)
         .rebalancerConfig(rebalancerCtx)
         .idealState(
             PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerCtx, 0, false))
         .build());
-    clusterAccessor.addParticipantToCluster(new ParticipantConfig.Builder(participantId).build());
+    clusterAccessor.addParticipant(new ParticipantConfig.Builder(participantId).build());
 
     // start controller
     HelixController controller = connection.createController(clusterId, controllerId);

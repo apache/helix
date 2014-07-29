@@ -166,12 +166,11 @@ public class AppMasterLauncher {
           resourceConfigBuilder
               .provisionerConfig(provisionerConfig)
               .rebalancerConfig(rebalancerConfig)
-              .userConfig(serviceConfig)
               .idealState(
                   PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig, 0,
                       false)) //
               .build();
-      clusterAccessor.addResourceToCluster(resourceConfig);
+      clusterAccessor.addResource(resourceConfig);
     }
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");

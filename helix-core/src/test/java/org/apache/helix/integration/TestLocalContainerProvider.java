@@ -40,6 +40,7 @@ import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.provisioner.ContainerId;
@@ -51,13 +52,11 @@ import org.apache.helix.controller.provisioner.ProvisionerConfig;
 import org.apache.helix.controller.provisioner.ProvisionerRef;
 import org.apache.helix.controller.provisioner.TargetProvider;
 import org.apache.helix.controller.provisioner.TargetProviderResponse;
-import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.serializer.DefaultStringSerializer;
 import org.apache.helix.controller.serializer.StringSerializer;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.AutoRebalanceModeISBuilder;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.log4j.Logger;
@@ -115,15 +114,14 @@ public class TestLocalContainerProvider extends ZkTestBase {
     // add the resource with the local provisioner
     ResourceId resourceId = ResourceId.from(resourceName);
     ProvisionerConfig provisionerConfig = new LocalProvisionerConfig(resourceId);
-    RebalancerConfig rebalancerConfig =
-        new FullAutoRebalancerConfig.Builder(resourceId).addPartitions(NUM_PARTITIONS)
-            .replicaCount(NUM_REPLICAS).stateModelDefId(masterSlave.getStateModelDefId()).build();
+    AutoRebalanceModeISBuilder idealStateBuilder = new AutoRebalanceModeISBuilder(resourceId);
+    for (int i = 0; i < NUM_PARTITIONS; i++) {
+      idealStateBuilder.add(PartitionId.from(resourceId, String.valueOf(i)));
+    }
+    idealStateBuilder.setNumReplica(NUM_REPLICAS).setStateModelDefId(
+        masterSlave.getStateModelDefId());
     clusterAccessor.addResource(new ResourceConfig.Builder(ResourceId.from(resourceName))
-        .provisionerConfig(provisionerConfig)
-        .rebalancerConfig(rebalancerConfig)
-        .idealState(
-            PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig, 0, false))
-        .build());
+        .provisionerConfig(provisionerConfig).idealState(idealStateBuilder.build()).build());
 
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");

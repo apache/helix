@@ -44,7 +44,6 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -93,7 +92,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       // if resource ideal state has bucket size, set it
       // otherwise resource has been dropped, use bucket size from current state instead
       ResourceConfig resource = resourceMap.get(resourceId);
-      RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
       SchedulerTaskConfig schedulerTaskConfig = resource.getSchedulerTaskConfig();
 
       if (resource.getIdealState().getBucketSize() > 0) {
@@ -146,10 +144,8 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         // partitions are finished (COMPLETED or ERROR), update the status update of the original
         // scheduler
         // message, and then remove the partitions from the ideal state
-        if (rebalancerConfig != null
-            && rebalancerConfig.getStateModelDefId() != null
-            && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
-                StateModelDefId.SchedulerTaskQueue)) {
+        if (idealState != null && idealState.getStateModelDefId() != null
+            && idealState.getStateModelDefId().equalsIgnoreCase(StateModelDefId.SchedulerTaskQueue)) {
           updateScheduledTaskStatus(resourceId, view, manager, schedulerTaskConfig);
         }
       }

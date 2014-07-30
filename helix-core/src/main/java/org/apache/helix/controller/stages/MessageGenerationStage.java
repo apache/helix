@@ -39,7 +39,7 @@ import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -75,12 +75,10 @@ public class MessageGenerationStage extends AbstractBaseStage {
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       int bucketSize = 0;
-      if (resourceConfig.getIdealState() != null) {
-        bucketSize = resourceConfig.getIdealState().getBucketSize();
-      }
+      bucketSize = resourceConfig.getIdealState().getBucketSize();
 
-      RebalancerConfig rebalancerCfg = resourceConfig.getRebalancerConfig();
-      StateModelDefinition stateModelDef = stateModelDefMap.get(rebalancerCfg.getStateModelDefId());
+      IdealState idealState = resourceConfig.getIdealState();
+      StateModelDefinition stateModelDef = stateModelDefMap.get(idealState.getStateModelDefId());
 
       ResourceAssignment resourceAssignment =
           bestPossibleStateOutput.getResourceAssignment(resourceId);
@@ -134,15 +132,14 @@ public class MessageGenerationStage extends AbstractBaseStage {
             SessionId sessionId =
                 SessionId.from(cluster.getLiveParticipantMap().get(participantId).getLiveInstance()
                     .getSessionId());
-            RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
             Message message =
                 createMessage(manager, resourceId, subUnitId, participantId, currentState,
                     nextState, sessionId, StateModelDefId.from(stateModelDef.getId()),
-                    rebalancerConfig.getStateModelFactoryId(), bucketSize);
+                    idealState.getStateModelFactoryId(), bucketSize);
 
             // TODO refactor get/set timeout/inner-message
-            if (rebalancerConfig != null
-                && rebalancerConfig.getStateModelDefId().equalsIgnoreCase(
+            if (idealState != null
+                && idealState.getStateModelDefId().equalsIgnoreCase(
                     StateModelDefId.SchedulerTaskQueue)) {
               if (resourceConfig.getSubUnitSet().size() > 0) {
                 // TODO refactor it -- we need a way to read in scheduler tasks a priori

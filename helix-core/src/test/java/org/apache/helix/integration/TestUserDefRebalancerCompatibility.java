@@ -83,8 +83,7 @@ public class TestUserDefRebalancerCompatibility extends ZkStandAloneCMTestBase {
                   _zkclient, CLUSTER_NAME, db2));
       Assert.assertTrue(result);
       Thread.sleep(1000);
-      HelixDataAccessor accessor =
-          new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+      HelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
       Builder keyBuilder = accessor.keyBuilder();
       ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
       Assert.assertEquals(ev.getPartitionSet().size(), 60);

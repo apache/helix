@@ -288,7 +288,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
           new PerInstanceResourceMonitor(_clusterName, beanName.instanceName(),
               beanName.resourceName());
       StateModelDefId stateModelDefId =
-          resourceMap.get(ResourceId.from(beanName.resourceName())).getRebalancerConfig()
+          resourceMap.get(ResourceId.from(beanName.resourceName())).getIdealState()
               .getStateModelDefId();
       InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
       bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),
@@ -304,7 +304,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     for (PerInstanceResourceMonitor.BeanName beanName : _perInstanceResourceMap.keySet()) {
       PerInstanceResourceMonitor bean = _perInstanceResourceMap.get(beanName);
       StateModelDefId stateModelDefId =
-          resourceMap.get(ResourceId.from(beanName.resourceName())).getRebalancerConfig()
+          resourceMap.get(ResourceId.from(beanName.resourceName())).getIdealState()
               .getStateModelDefId();
       InstanceConfig config = instanceConfigMap.get(beanName.instanceName());
       bean.update(beanMap.get(beanName), Sets.newHashSet(config.getTags()),

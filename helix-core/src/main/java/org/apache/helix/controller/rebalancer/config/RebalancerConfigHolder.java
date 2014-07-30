@@ -119,21 +119,6 @@ public final class RebalancerConfigHolder {
   }
 
   /**
-   * Get a rebalancer class instance
-   * @return Rebalancer
-   */
-  public HelixRebalancer getRebalancer() {
-    // cache the rebalancer to avoid loading and instantiating it excessively
-    if (_rebalancer == null) {
-      if (_config == null || _config.getRebalancerRef() == null) {
-        return null;
-      }
-      _rebalancer = _config.getRebalancerRef().getRebalancer();
-    }
-    return _rebalancer;
-  }
-
-  /**
    * Get the instantiated RebalancerConfig
    * @param configClass specific class of the RebalancerConfig
    * @return RebalancerConfig subclass instance, or null if conversion is not possible

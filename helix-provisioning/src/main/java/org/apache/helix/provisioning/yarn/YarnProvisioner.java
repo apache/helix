@@ -358,7 +358,11 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
       } else if (!existingContainersIdSet.contains(participantId)) {
         // Unallocated containers must be allocated
         ContainerSpec containerSpec = new ContainerSpec(participantId);
-        containerSpec.setMemory(_resourceConfig.getUserConfig().getIntField("memory", 1024));
+        int mem = 1024;
+        if (_resourceConfig.getUserConfig() != null) {
+          mem = _resourceConfig.getUserConfig().getIntField("memory", 1024);
+        }
+        containerSpec.setMemory(mem);
         containersToAcquire.add(containerSpec);
       }
     }

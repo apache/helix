@@ -187,4 +187,14 @@ public class InstanceResource extends ServerResource {
     }
     return null;
   }
+  
+  @Override
+  public Representation options()
+  {
+	Headers h = new Headers();
+       h.addHeaders(getResponse());
+
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
+
 }

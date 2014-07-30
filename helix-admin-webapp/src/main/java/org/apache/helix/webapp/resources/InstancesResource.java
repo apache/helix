@@ -167,6 +167,15 @@ public class InstancesResource extends ServerResource {
     }
     return null;
   }
+  
+  @Override
+  public Representation options()
+  {
+	Headers h = new Headers();
+       h.addHeaders(getResponse());
+
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
 
   /**
    * A wrapper class for quick serialization of the data presented by this call

@@ -493,7 +493,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   @Override
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
-
     HelixManager manager = changeContext.getManager();
     if (_messageQueueMonitor == null) {
       _messageQueueMonitor =

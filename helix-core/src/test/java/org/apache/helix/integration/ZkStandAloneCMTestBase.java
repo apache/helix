@@ -21,8 +21,8 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -49,8 +49,8 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
   protected final String CLASS_NAME = this.getClass().getSimpleName();
   protected final String CLUSTER_NAME = CLASS_NAME;
 
-  protected MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
-  protected ClusterControllerManager _controller;
+  protected MockParticipant[] _participants = new MockParticipant[NODE_NR];
+  protected MockController _controller;
 
   int _replica = 3;
 
@@ -76,13 +76,13 @@ public class ZkStandAloneCMTestBase extends ZkTestBase {
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
     }
 
     // start controller
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =

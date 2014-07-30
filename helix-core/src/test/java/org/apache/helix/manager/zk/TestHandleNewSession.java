@@ -23,7 +23,6 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -47,8 +46,8 @@ public class TestHandleNewSession extends ZkTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    MockParticipantManager participant =
-        new MockParticipantManager(_zkaddr, clusterName, "localhost_12918");
+    MockParticipant participant =
+        new MockParticipant(_zkaddr, clusterName, "localhost_12918");
     participant.syncStart();
 
     // Logger.getRootLogger().setLevel(Level.INFO);

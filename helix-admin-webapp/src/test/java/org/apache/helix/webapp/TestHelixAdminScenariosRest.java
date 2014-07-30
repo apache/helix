@@ -31,9 +31,9 @@ import java.util.Map;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -330,10 +330,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     final String clusterName = "clusterTestDeactivateCluster";
     final String controllerClusterName = "controllerClusterTestDeactivateCluster";
 
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
-    Map<String, ClusterDistributedController> distControllers =
-        new HashMap<String, ClusterDistributedController>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
+    Map<String, MockMultiClusterController> distControllers =
+        new HashMap<String, MockMultiClusterController>();
 
     // setup cluster
     addCluster(clusterName);
@@ -347,8 +347,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start mock nodes
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -356,8 +356,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
-      ClusterDistributedController distController =
-          new ClusterDistributedController(_zkaddr, controllerClusterName, controllerName);
+      MockMultiClusterController distController =
+          new MockMultiClusterController(_zkaddr, controllerClusterName, controllerName);
       distController.syncStart();
       distControllers.put(controllerName, distController);
     }
@@ -390,7 +390,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertTrue(_zkclient.exists("/" + clusterName));
 
     // leader node should be gone
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
     deleteUrl(clusterUrl, false);
@@ -398,11 +398,11 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertFalse(_zkclient.exists("/" + clusterName));
 
     // clean up
-    for (ClusterDistributedController controller : distControllers.values()) {
+    for (MockMultiClusterController controller : distControllers.values()) {
       controller.syncStop();
     }
 
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }
@@ -433,17 +433,17 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     pw.write(x);
     pw.close();
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -478,7 +478,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     // clean up
     controller.syncStop();
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }
@@ -509,17 +509,17 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     addResource(clusterName, "db_11", 22);
     rebalanceResource(clusterName, "db_11");
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -543,8 +543,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     for (int i = 3; i <= 6; i++) {
       String instanceName = "localhost_123" + i + "1";
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -561,7 +561,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     // clean up
     controller.syncStop();
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }
@@ -587,17 +587,17 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     addResource(clusterName, "db_11", 22);
     rebalanceResource(clusterName, "db_11");
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -641,7 +641,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     // clean up
     controller.syncStop();
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }
@@ -673,17 +673,17 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     addResource(clusterName, "db_11", 8);
     rebalanceResource(clusterName, "db_11");
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_9900");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_9900");
     controller.syncStart();
 
     // start mock nodes
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -723,8 +723,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     String path = accessor.keyBuilder().instanceConfig("localhost_1232").getPath();
     Assert.assertFalse(_zkclient.exists(path));
 
-    MockParticipantManager newParticipant =
-        new MockParticipantManager(_zkaddr, clusterName, "localhost_12320");
+    MockParticipant newParticipant =
+        new MockParticipant(_zkaddr, clusterName, "localhost_12320");
     newParticipant.syncStart();
     participants.put("localhost_12320", newParticipant);
 
@@ -735,7 +735,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     // clean up
     controller.syncStop();
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }
@@ -745,10 +745,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     final String clusterName = "clusterTestStartCluster";
     final String controllerClusterName = "controllerClusterTestStartCluster";
 
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
-    Map<String, ClusterDistributedController> distControllers =
-        new HashMap<String, ClusterDistributedController>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
+    Map<String, MockMultiClusterController> distControllers =
+        new HashMap<String, MockMultiClusterController>();
 
     // setup cluster
     addCluster(clusterName);
@@ -762,8 +762,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start mock nodes
     for (int i = 0; i < 6; i++) {
       String instanceName = "localhost_123" + i;
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, clusterName, instanceName);
       participant.syncStart();
       participants.put(instanceName, participant);
     }
@@ -771,8 +771,8 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
-      ClusterDistributedController distController =
-          new ClusterDistributedController(_zkaddr, controllerClusterName, controllerName);
+      MockMultiClusterController distController =
+          new MockMultiClusterController(_zkaddr, controllerClusterName, controllerName);
       distController.syncStart();
       distControllers.put(controllerName, distController);
     }
@@ -821,10 +821,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Thread.sleep(1000);
 
     // clean up
-    for (ClusterDistributedController controller : distControllers.values()) {
+    for (MockMultiClusterController controller : distControllers.values()) {
       controller.syncStop();
     }
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
   }

@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.id;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,23 +19,33 @@ package org.apache.helix;
  * under the License.
  */
 
-/**
- * Operational methods of a helix role
- */
-public interface HelixService {
-  /**
-   * start helix service
-   */
-  void start();
+import org.codehaus.jackson.annotate.JsonCreator;
+import org.codehaus.jackson.annotate.JsonProperty;
+
+public class AdministratorId extends Id {
+  @JsonProperty("id")
+  private final String _id;
 
   /**
-   * stop helix service
+   * Create a spectator id
+   * @param id string representing a spectator id
    */
-  void stop();
+  @JsonCreator
+  public AdministratorId(@JsonProperty("id") String id) {
+    _id = id;
+  }
+
+  @Override
+  public String stringify() {
+    return _id;
+  }
 
   /**
-   * is service started
-   * @return
+   * Create a spectator id from a string
+   * @param spectatorId string representing a spectator id
+   * @return SpectatorId
    */
-  boolean isStarted();
+  public static AdministratorId from(String spectatorId) {
+    return new AdministratorId(spectatorId);
+  }
 }

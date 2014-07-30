@@ -32,8 +32,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -95,13 +95,13 @@ public class TestDisableCustomCodeRunner extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
-    Map<String, MockParticipantManager> participants =
-        new HashMap<String, MockParticipantManager>();
+    Map<String, MockParticipant> participants =
+        new HashMap<String, MockParticipant>();
     Map<String, HelixCustomCodeRunner> customCodeRunners =
         new HashMap<String, HelixCustomCodeRunner>();
     Map<String, DummyCallback> callbacks = new HashMap<String, DummyCallback>();
@@ -109,7 +109,7 @@ public class TestDisableCustomCodeRunner extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       participants
-          .put(instanceName, new MockParticipantManager(_zkaddr, clusterName, instanceName));
+          .put(instanceName, new MockParticipant(_zkaddr, clusterName, instanceName));
 
       customCodeRunners.put(instanceName, new HelixCustomCodeRunner(participants.get(instanceName),
           _zkaddr));
@@ -252,7 +252,7 @@ public class TestDisableCustomCodeRunner extends ZkTestBase {
 
     // Clean up
     controller.syncStop();
-    for (MockParticipantManager participant : participants.values()) {
+    for (MockParticipant participant : participants.values()) {
       participant.syncStop();
     }
 

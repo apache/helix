@@ -27,9 +27,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.manager.zk.ZkCallbackHandler;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
@@ -109,8 +110,8 @@ public class TestDistributedControllerManager extends ZkTestBase {
    * @param newController
    * @throws Exception
    */
-  void expireController(ClusterDistributedController expireController,
-      ClusterDistributedController newController) throws Exception {
+  void expireController(MockMultiClusterController expireController,
+      MockMultiClusterController newController) throws Exception {
     String clusterName = expireController.getClusterName();
     LOG.info("Expiring distributedController: " + expireController.getInstanceName()
         + ", session: " + expireController.getSessionId() + " ...");
@@ -136,13 +137,12 @@ public class TestDistributedControllerManager extends ZkTestBase {
     Assert.assertNotNull(leader);
     Assert.assertEquals(leader.getId(), newController.getInstanceName());
 
-    // check expired-controller has 2 handlers: message and data-accessor
-    LOG.debug(expireController.getInstanceName() + " handlers: "
-        + TestHelper.printHandlers(expireController));
+    // check expired-controller has 2 handlers: message and leader-election
+    TestHelper.printHandlers(expireController, expireController.getHandlers());
 
-    List<CallbackHandler> handlers = expireController.getHandlers();
-    Assert.assertEquals(handlers.size(), 1,
-        "Distributed controller should have 1 handler (message) after lose leadership, but was "
+    List<ZkCallbackHandler> handlers = expireController.getHandlers();
+    Assert.assertEquals(handlers.size(), 2,
+        "Distributed controller should have 2 handler (message and leader-election) after lose leadership, but was "
             + handlers.size());
   }
 
@@ -165,12 +165,12 @@ public class TestDistributedControllerManager extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterDistributedController[] distributedControllers = new ClusterDistributedController[n];
+    MockMultiClusterController[] distributedControllers = new MockMultiClusterController[n];
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
       distributedControllers[i] =
-          new ClusterDistributedController(_zkaddr, clusterName, contrllerName);
+          new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       distributedControllers[i].connect();

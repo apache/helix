@@ -23,8 +23,8 @@ import java.util.Arrays;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.testutil.ZkTestBase;
@@ -41,8 +41,8 @@ public class TestClusterStateVerifier extends ZkTestBase {
       "resource0", "resource1"
   };
   private HelixAdmin _admin;
-  private MockParticipantManager[] _participants;
-  private ClusterControllerManager _controller;
+  private MockParticipant[] _participants;
+  private MockController _controller;
   private String _clusterName;
 
   @BeforeMethod
@@ -62,13 +62,13 @@ public class TestClusterStateVerifier extends ZkTestBase {
         RebalanceMode.SEMI_AUTO.toString());
 
     // Configure and start the participants
-    _participants = new MockParticipantManager[RESOURCES.length];
+    _participants = new MockParticipant[RESOURCES.length];
     for (int i = 0; i < _participants.length; i++) {
       String host = "localhost";
       int port = 12918 + i;
       String id = host + '_' + port;
       _setupTool.addInstanceToCluster(_clusterName, id);
-      _participants[i] = new MockParticipantManager(_zkaddr, _clusterName, id);
+      _participants[i] = new MockParticipant(_zkaddr, _clusterName, id);
       _participants[i].syncStart();
     }
 
@@ -82,7 +82,7 @@ public class TestClusterStateVerifier extends ZkTestBase {
     }
 
     // Start the controller
-    _controller = new ClusterControllerManager(_zkaddr, _clusterName, "controller_0");
+    _controller = new MockController(_zkaddr, _clusterName, "controller_0");
     _controller.syncStart();
     Thread.sleep(1000);
   }
@@ -91,7 +91,7 @@ public class TestClusterStateVerifier extends ZkTestBase {
   public void afterMethod() {
     // Cleanup
     _controller.syncStop();
-    for (MockParticipantManager participant : _participants) {
+    for (MockParticipant participant : _participants) {
       participant.syncStop();
     }
     _admin.dropCluster(_clusterName);

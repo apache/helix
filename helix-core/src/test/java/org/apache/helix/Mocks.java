@@ -275,12 +275,6 @@ public class Mocks {
     }
 
     @Override
-    public void addConfigChangeListener(ConfigChangeListener listener) {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
     public void addMessageListener(MessageListener listener, String instanceName) {
       // TODO Auto-generated method stub
 

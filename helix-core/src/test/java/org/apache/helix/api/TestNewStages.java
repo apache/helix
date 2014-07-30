@@ -38,8 +38,8 @@ import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.ResourceCurrentState;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ResourceAssignment;
@@ -58,8 +58,8 @@ public class TestNewStages extends ZkTestBase {
   final int n = 2;
   final int p = 8;
   final int r = 2;
-  MockParticipantManager[] _participants = new MockParticipantManager[n];
-  ClusterControllerManager _controller;
+  MockParticipant[] _participants = new MockParticipant[n];
+  MockController _controller;
 
   ClusterId _clusterId;
   HelixDataAccessor _dataAccessor;
@@ -221,14 +221,14 @@ public class TestNewStages extends ZkTestBase {
         r, // replicas
         "MasterSlave", true); // do rebalance
 
-    _controller = new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    _controller = new MockController(_zkaddr, clusterName, "controller_0");
     _controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      _participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       _participants[i].syncStart();
     }
 

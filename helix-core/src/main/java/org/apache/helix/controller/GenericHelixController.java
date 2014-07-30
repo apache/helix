@@ -29,7 +29,6 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -86,7 +85,7 @@ import org.apache.log4j.Logger;
  * 4. select the messages that can be sent, needs messages and state model constraints <br>
  * 5. send messages
  */
-public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
+public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
     ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
@@ -433,8 +432,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onConfigChange()");
+  public void onInstanceConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
+    logger.info("START: GenericClusterController.onInstanceConfigChange()");
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -449,14 +448,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     _eventQueue.put(event);
-    logger.info("END: GenericClusterController.onConfigChange()");
-  }
-
-  @Override
-  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
-      NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onInstanceConfigChange()");
-    onConfigChange(instanceConfigs, changeContext);
     logger.info("END: GenericClusterController.onInstanceConfigChange()");
   }
 

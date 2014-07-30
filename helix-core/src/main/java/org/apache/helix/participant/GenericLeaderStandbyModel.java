@@ -63,7 +63,7 @@ public class GenericLeaderStandbyModel extends StateModel {
       if (notificationType == ChangeType.LIVE_INSTANCE) {
         manager.addLiveInstanceChangeListener(_particHolder);
       } else if (notificationType == ChangeType.CONFIG) {
-        manager.addConfigChangeListener(_particHolder);
+        manager.addInstanceConfigChangeListener(_particHolder);
       } else if (notificationType == ChangeType.EXTERNAL_VIEW) {
         manager.addExternalViewChangeListener(_particHolder);
       } else {

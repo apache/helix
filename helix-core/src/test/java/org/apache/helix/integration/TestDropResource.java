@@ -20,7 +20,7 @@ package org.apache.helix.integration;
  */
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -69,7 +69,7 @@ public class TestDropResource extends ZkStandAloneCMTestBase {
         TestHelper.<String> setOf("localhost_12918", "localhost_12919",
         /* "localhost_12920", */"localhost_12921", "localhost_12922"), _zkaddr);
 
-    _participants[2] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, hostToKill);
+    _participants[2] = new MockParticipant(_zkaddr, CLUSTER_NAME, hostToKill);
     _participants[2].syncStart();
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",

@@ -27,7 +27,7 @@ import org.apache.log4j.Logger;
 public class TestUtil {
   static Logger logger = Logger.getLogger(TestUtil.class);
 
-  public static boolean isTestNGAnnotated(Class clazz, String methodName) {
+  public static boolean isTestNGAnnotated(Class<? extends Object> clazz, String methodName) {
     final String annotationsPkgName = "org.testng.annotations";
 
     // Check if the class itself is annotated.
@@ -61,7 +61,7 @@ public class TestUtil {
 
       // The first 2 elements in the stack are getStackTrace and this method itself, so ignore them.
       for (int i = 2; i < stackTrace.length; i++) {
-        Class clazz = Class.forName(stackTrace[i].getClassName());
+        Class<? extends Object> clazz = Class.forName(stackTrace[i].getClassName());
         if (isTestNGAnnotated(clazz, stackTrace[i].getMethodName())) {
           String testName = String.format("%s_%s", clazz.getSimpleName(), stackTrace[i].getMethodName());
           logger.debug("Detected " + testName + " as the test name");

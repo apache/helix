@@ -23,12 +23,11 @@ import java.util.Date;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
@@ -75,10 +74,10 @@ public class TestDistributedCMMain extends ZkTestBase {
         "LeaderStandby", true); // do rebalance
 
     // start distributed cluster controllers
-    ClusterDistributedController[] controllers = new ClusterDistributedController[n + n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[n + n];
     for (int i = 0; i < n; i++) {
       controllers[i] =
-          new ClusterDistributedController(_zkaddr, controllerClusterName, "controller_" + i);
+          new MockMultiClusterController(_zkaddr, controllerClusterName, "controller_" + i);
       controllers[i].syncStart();
     }
 
@@ -89,11 +88,11 @@ public class TestDistributedCMMain extends ZkTestBase {
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // start first cluster
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     final String firstClusterName = clusterNamePrefix + "0_0";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost0_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, firstClusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, firstClusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -110,7 +109,7 @@ public class TestDistributedCMMain extends ZkTestBase {
     _setupTool.rebalanceStorageCluster(controllerClusterName, clusterNamePrefix + "0", 6);
     for (int i = n; i < 2 * n; i++) {
       controllers[i] =
-          new ClusterDistributedController(_zkaddr, controllerClusterName, "controller_" + i);
+          new MockMultiClusterController(_zkaddr, controllerClusterName, "controller_" + i);
       controllers[i].syncStart();
     }
 

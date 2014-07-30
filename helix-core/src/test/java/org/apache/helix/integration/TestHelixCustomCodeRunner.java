@@ -27,8 +27,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.participant.CustomCodeCallbackHandler;
@@ -87,15 +87,15 @@ public class TestHelixCustomCodeRunner extends ZkTestBase {
         _nodeNb, // replica
         "MasterSlave", true);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, _clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, _clusterName, "controller_0");
     controller.syncStart();
 
-    MockParticipantManager[] participants = new MockParticipantManager[5];
+    MockParticipant[] participants = new MockParticipant[5];
     for (int i = 0; i < _nodeNb; i++) {
       String instanceName = "localhost_" + (_startPort + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, _clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, _clusterName, instanceName);
 
       registerCustomCodeRunner(participants[i]);
       participants[i].syncStart();

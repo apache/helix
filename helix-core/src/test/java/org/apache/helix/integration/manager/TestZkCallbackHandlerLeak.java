@@ -31,6 +31,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -61,16 +63,15 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    final MockController controller = new MockController(_zkaddr, clusterName, "controller");
     controller.connect();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -98,7 +99,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertTrue(result, "Controller should have 6 + 5*n zk-watchers.");
 
     // check participant zk-watchers
-    final MockParticipantManager participantManagerToExpire = participants[0];
+    final MockParticipant participantManagerToExpire = participants[0];
     result = TestHelper.verify(new TestHelper.Verifier() {
 
       @Override
@@ -118,8 +119,8 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     // printHandlers(participantManagerToExpire);
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, (5 + 2 * n),
-        "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant");
+    Assert.assertEquals(controllerHandlerNb, (6 + 2 * n),
+        "HelixController should have 10 (5+2n) callback handlers for 2 (n) participant");
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
@@ -200,16 +201,15 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    final MockController controller = new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -220,14 +220,14 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertTrue(result);
 
     // wait until we get all the listeners registered
-    final MockParticipantManager participantManager = participants[0];
+    final MockParticipant participantManager = participants[0];
     result = TestHelper.verify(new TestHelper.Verifier() {
 
       @Override
       public boolean verify() throws Exception {
         int controllerHandlerNb = controller.getHandlers().size();
         int particHandlerNb = participantManager.getHandlers().size();
-        if (controllerHandlerNb == 9 && particHandlerNb == 2)
+        if (controllerHandlerNb == 10 && particHandlerNb == 2)
           return true;
         else
           return false;
@@ -236,12 +236,14 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, (5 + 2 * n),
-        "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was "
-            + controllerHandlerNb + ", " + TestHelper.printHandlers(controller));
+    TestHelper.printHandlers(controller, controller.getHandlers());
+    TestHelper.printHandlers(participantManager, participantManager.getHandlers());
+    Assert.assertEquals(controllerHandlerNb, (6 + 2 * n),
+        "HelixController should have 10 (6+2n) callback handlers for 2 participant, but was "
+            + controllerHandlerNb);
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
-            + particHandlerNb + ", " + TestHelper.printHandlers(participantManager));
+            + particHandlerNb);
 
     // expire controller
     LOG.debug("Expiring controller session...");
@@ -292,13 +294,13 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     // check HelixManager#_handlers
     // printHandlers(controllerManager);
     int handlerNb = controller.getHandlers().size();
+    TestHelper.printHandlers(controller, controller.getHandlers());
     Assert.assertEquals(handlerNb, controllerHandlerNb,
-        "controller callback handlers should not increase after participant session expiry, but was "
-            + TestHelper.printHandlers(controller));
+        "controller callback handlers should not increase after participant session expiry");
     handlerNb = participantManager.getHandlers().size();
+    TestHelper.printHandlers(participantManager, participantManager.getHandlers());
     Assert.assertEquals(handlerNb, particHandlerNb,
-        "participant callback handlers should not increase after participant session expiry, but was "
-            + TestHelper.printHandlers(participantManager));
+        "participant callback handlers should not increase after participant session expiry");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -318,19 +320,18 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         2, // replicas
         "MasterSlave", true);
 
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(zkAddr, clusterName, "controller");
+    final MockController controller = new MockController(zkAddr, clusterName, "controller");
     controller.syncStart();
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(zkAddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(zkAddr, clusterName, instanceName);
       participants[i].syncStart();
 
       // register a controller listener on participant_0
       if (i == 0) {
-        MockParticipantManager manager = participants[0];
+        MockParticipant manager = participants[0];
         manager.addCurrentStateChangeListener(new CurrentStateChangeListener() {
           @Override
           public void onStateChange(String instanceName, List<CurrentState> statesInfo,
@@ -349,7 +350,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
                 clusterName));
     Assert.assertTrue(result);
 
-    MockParticipantManager participantToExpire = participants[0];
+    MockParticipant participantToExpire = participants[0];
     String oldSessionId = participantToExpire.getSessionId();
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
@@ -371,9 +372,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertEquals(dataListeners.get(path).size(), 1, "Should have 1 data-listeners on path: "
         + path);
     Assert
-        .assertEquals(
-            childListeners.size(),
-            2,
+        .assertEquals(childListeners.size(), 2,
             "Should have 2 paths (CURRENTSTATE/{sessionId}, and MESSAGES) each of which has 1 child-listener");
     path = keyBuilder.currentStates(participantToExpire.getInstanceName(), oldSessionId).getPath();
     Assert.assertEquals(childListeners.get(path).size(), 1,
@@ -382,17 +381,14 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
     path = keyBuilder.controller().getPath();
-    Assert.assertNull(childListeners.get(path),
-        "Should have no child-listener on path: " + path);
+    Assert.assertNull(childListeners.get(path), "Should have no child-listener on path: " + path);
 
     // check zookeeper#watches on client side
     Map<String, List<String>> watchPaths =
         ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
     LOG.debug("localhost_12918 zk-client side watchPaths: " + watchPaths);
     Assert
-        .assertEquals(
-            watchPaths.get("dataWatches").size(),
-            3,
+        .assertEquals(watchPaths.get("dataWatches").size(), 3,
             "Should have 3 data-watches: CURRENTSTATE/{sessionId}, CURRENTSTATE/{sessionId}/TestDB, MESSAGES");
     Assert.assertEquals(watchPaths.get("childWatches").size(), 2,
         "Should have 2 child-watches: MESSAGES, and CURRENTSTATE/{sessionId}");
@@ -435,8 +431,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
     path = keyBuilder.controller().getPath();
-    Assert.assertNull(childListeners.get(path),
-        "Should have no child-listener on path: " + path);
+    Assert.assertNull(childListeners.get(path), "Should have no child-listener on path: " + path);
 
     // check zookeeper#watches on client side
     watchPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());

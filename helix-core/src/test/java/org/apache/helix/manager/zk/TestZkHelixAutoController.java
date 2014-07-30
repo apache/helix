@@ -21,7 +21,7 @@ package org.apache.helix.manager.zk;
 
 import java.util.Date;
 
-import org.apache.helix.HelixAutoController;
+import org.apache.helix.HelixMultiClusterController;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
@@ -59,7 +59,7 @@ public class TestZkHelixAutoController extends ZkTestBase {
 
     // start auto-controller
     ClusterId clusterId = ClusterId.from(clusterName);
-    final HelixAutoController[] controllers = new HelixAutoController[n];
+    final HelixMultiClusterController[] controllers = new HelixMultiClusterController[n];
     for (int i = 0; i < n; i++) {
       int port = 12918 + i;
       ControllerId controllerId = ControllerId.from("localhost_" + port);

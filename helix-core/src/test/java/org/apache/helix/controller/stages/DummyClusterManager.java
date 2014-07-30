@@ -21,7 +21,6 @@ package org.apache.helix.controller.stages;
 
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -80,12 +79,6 @@ public class DummyClusterManager implements HelixManager {
 
   @Override
   public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception {
-    // TODO Auto-generated method stub
-
-  }
-
-  @Override
-  public void addConfigChangeListener(ConfigChangeListener listener) throws Exception {
     // TODO Auto-generated method stub
 
   }

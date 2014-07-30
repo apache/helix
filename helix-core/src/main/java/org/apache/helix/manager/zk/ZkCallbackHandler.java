@@ -37,7 +37,6 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -121,7 +120,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
     }
 
     _role = role;
-    _manager = new HelixConnectionAdaptor(role);
+    _manager = new ZKHelixManager(role);
     _instanceName = role.getId().stringify();
     _connection = role.getConnection();
     _accessor = _connection.createDataAccessor(role.getClusterId());
@@ -171,15 +170,10 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
 
       } else if (_changeType == ChangeType.INSTANCE_CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
-        if (_listener instanceof ConfigChangeListener) {
-          ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
-          List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
-          configChangeListener.onConfigChange(configs, changeContext);
-        } else if (_listener instanceof InstanceConfigChangeListener) {
-          InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
-          List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
-          listener.onInstanceConfigChange(configs, changeContext);
-        }
+        InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
+        List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
+        listener.onInstanceConfigChange(configs, changeContext);
+
       } else if (_changeType == CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
         ScopedConfigChangeListener listener = (ScopedConfigChangeListener) _listener;

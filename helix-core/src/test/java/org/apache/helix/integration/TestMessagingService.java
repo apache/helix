@@ -84,7 +84,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
   }
 
   @Test()
-  public void TestMessageSimpleSend() throws Exception {
+  public void testMessageSimpleSend() throws Exception {
     String hostSrc = "localhost_" + START_PORT;
     String hostDest = "localhost_" + (START_PORT + 1);
 
@@ -176,7 +176,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
   }
 
   @Test()
-  public void TestMessageSimpleSendReceiveAsync() throws Exception {
+  public void testMessageSimpleSendReceiveAsync() throws Exception {
     String hostSrc = "localhost_" + START_PORT;
     String hostDest = "localhost_" + (START_PORT + 1);
 
@@ -243,7 +243,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
   }
 
   @Test()
-  public void TestBlockingSendReceive() throws Exception {
+  public void testBlockingSendReceive() throws Exception {
     String hostSrc = "localhost_" + START_PORT;
     String hostDest = "localhost_" + (START_PORT + 1);
 
@@ -282,7 +282,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
   }
 
   @Test()
-  public void TestMultiMessageCriteria() throws Exception {
+  public void testMultiMessageCriteria() throws Exception {
     String hostSrc = "localhost_" + START_PORT;
 
     for (int i = 0; i < NODE_NR; i++) {
@@ -382,7 +382,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
   }
 
   @Test()
-  public void TestControllerMessage() throws Exception {
+  public void testControllerMessage() throws Exception {
     String hostSrc = "localhost_" + START_PORT;
 
     for (int i = 0; i < NODE_NR; i++) {

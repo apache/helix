@@ -24,6 +24,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -53,10 +55,10 @@ public class TestControllerManager extends ZkTestBase {
 
     // start multiple controllers of same name
     int m = 3;
-    ClusterControllerManager[] controllers = new ClusterControllerManager[m];
+    MockController[] controllers = new MockController[m];
 
     for (int i = 0; i < m; i++) {
-      controllers[i] = new ClusterControllerManager(_zkaddr, clusterName, "controller");
+      controllers[i] = new MockController(_zkaddr, clusterName, "controller");
       controllers[i].syncStart();
     }
 
@@ -69,11 +71,11 @@ public class TestControllerManager extends ZkTestBase {
     }
     Assert.assertEquals(leaderCnt, 1, "Should have only 1 leader but was " + leaderCnt);
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
 
       participants[i].syncStart();
     }
@@ -107,7 +109,7 @@ public class TestControllerManager extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -119,14 +121,14 @@ public class TestControllerManager extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 

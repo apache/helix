@@ -49,7 +49,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.provisioning.ApplicationSpec;
@@ -190,7 +190,7 @@ public class AppMasterLauncher {
               readFromHDFS(fs, taskConfig.name, yamlUri, applicationSpec,
                   appAttemptID.getApplicationId());
           Workflow workflow = Workflow.parse(is);
-          TaskDriver taskDriver = new TaskDriver(new HelixConnectionAdaptor(controller));
+          TaskDriver taskDriver = new TaskDriver(new ZKHelixManager(controller));
           taskDriver.start(workflow);
         }
       }

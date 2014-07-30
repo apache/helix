@@ -24,17 +24,14 @@ import java.util.Date;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.IdealState;
@@ -139,15 +136,15 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
     admin.setConstraint(clusterName, ConstraintType.MESSAGE_CONSTRAINT, "constraint1",
         constraintItemBuilder.build());
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start 1st participant
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     String instanceName1 = "localhost_12918";
 
-    participants[0] = new MockParticipantManager(_zkaddr, clusterName, instanceName1);
+    participants[0] = new MockParticipant(_zkaddr, clusterName, instanceName1);
     participants[0].getStateMachineEngine().registerStateModelFactory("Bootstrap",
         new BootstrapStateModelFactory());
     participants[0].syncStart();
@@ -160,7 +157,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
 
     // start 2nd participant which will be the master for Test0_0
     String instanceName2 = "localhost_12919";
-    participants[1] = new MockParticipantManager(_zkaddr, clusterName, instanceName2);
+    participants[1] = new MockParticipant(_zkaddr, clusterName, instanceName2);
     participants[1].getStateMachineEngine().registerStateModelFactory("Bootstrap",
         new BootstrapStateModelFactory());
     participants[1].syncStart();

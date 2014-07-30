@@ -31,8 +31,8 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterSetup;
@@ -71,14 +71,14 @@ public class TestDropResourceMetricsReset extends ZkTestBase {
 
     // Start participants and controller
     ClusterSetup setupTool = new ClusterSetup(_zkclient);
-    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    MockParticipant[] participants = new MockParticipant[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       participants[i] =
-          new MockParticipantManager(_zkaddr, clusterName, "localhost_" + (12918 + i));
+          new MockParticipant(_zkaddr, clusterName, "localhost_" + (12918 + i));
       participants[i].syncStart();
     }
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // Verify that the bean was created
@@ -95,7 +95,7 @@ public class TestDropResourceMetricsReset extends ZkTestBase {
     // Clean up
     listener.disconnect();
     controller.syncStop();
-    for (MockParticipantManager participant : participants) {
+    for (MockParticipant participant : participants) {
       participant.syncStop();
     }
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

@@ -29,7 +29,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.HelixStateModelFactory;
@@ -51,7 +51,7 @@ public class TestCorrectnessOnConnectivityLoss {
   private static final String ZK_ADDR = "localhost:2189";
   private ZkServer _zkServer;
   private String _clusterName;
-  private ClusterControllerManager _controller;
+  private MockController _controller;
 
   @BeforeMethod
   public void beforeMethod() throws Exception {
@@ -71,7 +71,7 @@ public class TestCorrectnessOnConnectivityLoss {
         RebalanceMode.FULL_AUTO, // automatic assignment
         true); // rebalance
 
-    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, "controller0");
+    _controller = new MockController(ZK_ADDR, _clusterName, "controller0");
     _controller.connect();
   }
 
@@ -124,7 +124,7 @@ public class TestCorrectnessOnConnectivityLoss {
         HelixManagerFactory.getZKHelixManager(_clusterName, "spectator", InstanceType.SPECTATOR,
             ZK_ADDR);
     spectator.connect();
-    spectator.addConfigChangeListener(routingTableProvider);
+    spectator.addInstanceConfigChangeListener(routingTableProvider);
     spectator.addExternalViewChangeListener(routingTableProvider);
     Thread.sleep(1000);
 

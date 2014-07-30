@@ -1,4 +1,4 @@
-package org.apache.helix.integration.manager;
+package org.apache.helix.manager.zk;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,10 +22,8 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.helix.HelixConnection;
 import org.apache.helix.InstanceType;
-import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.MockMSModelFactory;
@@ -34,8 +32,8 @@ import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
-  private static Logger LOG = Logger.getLogger(MockParticipantManager.class);
+public class MockParticipant extends ZKHelixManager implements Runnable {
+  private static Logger LOG = Logger.getLogger(MockParticipant.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
@@ -43,8 +41,9 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
 
   private final MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
 
-  public MockParticipantManager(String zkAddr, String clusterName, String instanceName) {
-    super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddr);
+
+  public MockParticipant(String zkAddress, String clusterName, String instanceName) {
+    super(clusterName, instanceName, InstanceType.PARTICIPANT, zkAddress);
   }
 
   public void setTransition(MockTransition transition) {
@@ -104,13 +103,17 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
     }
   }
 
-  @Override
-  public ZkClient getZkClient() {
-    return _zkclient;
+  public HelixConnection getConn() {
+    return _role.getConnection();
   }
 
-  @Override
-  public List<CallbackHandler> getHandlers() {
-    return _handlers;
+  public ZkClient getZkClient() {
+    ZkHelixConnection conn = (ZkHelixConnection)getConn();
+    return conn._zkclient;
+  }
+
+  public List<ZkCallbackHandler> getHandlers() {
+    ZkHelixConnection conn = (ZkHelixConnection)getConn();
+    return conn._handlers.get(_role);
   }
 }

@@ -1,4 +1,4 @@
-package org.apache.helix.integration.manager;
+package org.apache.helix.manager.zk;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,21 +22,17 @@ package org.apache.helix.integration.manager;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
-import org.apache.helix.HelixTimerTask;
 import org.apache.helix.InstanceType;
-import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 
-public class ClusterControllerManager extends ZKHelixManager implements Runnable, ZkTestManager {
-  private static Logger LOG = Logger.getLogger(ClusterControllerManager.class);
+public class MockController extends ZKHelixManager implements Runnable {
+  private static Logger LOG = Logger.getLogger(MockController.class);
 
   private final CountDownLatch _startCountDown = new CountDownLatch(1);
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
-  public ClusterControllerManager(String zkAddr, String clusterName, String controllerName) {
+  public MockController(String zkAddr, String clusterName, String controllerName) {
     super(clusterName, controllerName, InstanceType.CONTROLLER, zkAddr);
   }
 
@@ -74,17 +70,17 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
     }
   }
 
-  @Override
   public ZkClient getZkClient() {
-    return _zkclient;
+    ZkHelixConnection conn = (ZkHelixConnection)getConn();
+    return conn._zkclient;
   }
 
-  @Override
-  public List<CallbackHandler> getHandlers() {
-    return _handlers;
+  public ZkHelixConnection getConn() {
+    return (ZkHelixConnection)_role.getConnection();
   }
 
-  public List<HelixTimerTask> getControllerTimerTasks() {
-    return _controllerTimerTasks;
+  public List<ZkCallbackHandler> getHandlers() {
+    ZkHelixConnection conn = (ZkHelixConnection)getConn();
+    return conn._handlers.get(_role);
   }
 }

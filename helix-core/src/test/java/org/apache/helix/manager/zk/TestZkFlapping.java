@@ -31,8 +31,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
@@ -153,8 +151,8 @@ public class TestZkFlapping extends ZkTestBase {
         "MasterSlave", false);
 
     final String instanceName = "localhost_12918";
-    MockParticipantManager participant =
-        new MockParticipantManager(_zkaddr, clusterName, instanceName);
+    MockParticipant participant =
+        new MockParticipant(_zkaddr, clusterName, instanceName);
     participant.syncStart();
 
     final ZkClient client = participant.getZkClient();
@@ -232,8 +230,8 @@ public class TestZkFlapping extends ZkTestBase {
         1, // replicas
         "MasterSlave", false);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     final ZkClient client = controller.getZkClient();

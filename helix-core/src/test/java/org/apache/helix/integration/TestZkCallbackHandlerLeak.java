@@ -31,11 +31,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.integration.manager.ZkTestManager;
-import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -63,16 +60,16 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    final MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -81,7 +78,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
             .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(_zkaddr,
                 clusterName));
     Assert.assertTrue(result);
-    final MockParticipantManager participantManagerToExpire = participants[1];
+    final MockParticipant participantManagerToExpire = participants[1];
 
     // check controller zk-watchers
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -116,12 +113,12 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertTrue(result, "Participant should have 1 zk-watcher. MESSAGES->HelixTaskExecutor");
 
     // check HelixManager#_handlers
-    // printHandlers(controllerManager);
-    // printHandlers(participantManagerToExpire);
+    TestHelper.printHandlers(controller, controller.getHandlers());
+    TestHelper.printHandlers(participantManagerToExpire, participantManagerToExpire.getHandlers());
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManagerToExpire.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 9,
-        "HelixController should have 9 (5+2n) callback handlers for 2 (n) participant");
+    Assert.assertEquals(controllerHandlerNb, 10,
+        "HelixController should have 10 (6+2n) callback handlers for 2 (n) participant");
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handlers");
 
@@ -208,16 +205,16 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    final MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -228,7 +225,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertTrue(result);
     // final ZkHelixTestManager controllerManager = controller.getManager();
     // final ZkHelixTestManager participantManager = participants[0].getManager();
-    final MockParticipantManager participantManager = participants[0];
+    final MockParticipant participantManager = participants[0];
 
     // wait until we get all the listeners registered
     result = TestHelper.verify(new TestHelper.Verifier() {
@@ -237,7 +234,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
       public boolean verify() throws Exception {
         int controllerHandlerNb = controller.getHandlers().size();
         int particHandlerNb = participantManager.getHandlers().size();
-        if (controllerHandlerNb == 9 && particHandlerNb == 2)
+        if (controllerHandlerNb == 10 && particHandlerNb == 2)
           return true;
         else
           return false;
@@ -246,12 +243,14 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
 
     int controllerHandlerNb = controller.getHandlers().size();
     int particHandlerNb = participantManager.getHandlers().size();
-    Assert.assertEquals(controllerHandlerNb, 9,
-        "HelixController should have 9 (5+2n) callback handlers for 2 participant, but was "
-            + controllerHandlerNb + ", " + printHandlers(controller));
+    TestHelper.printHandlers(controller, controller.getHandlers());
+    Assert.assertEquals(controllerHandlerNb, 10,
+        "HelixController should have 10 (6+2n) callback handlers for 2 participant, but was "
+            + controllerHandlerNb);
+    TestHelper.printHandlers(participantManager, participantManager.getHandlers());
     Assert.assertEquals(particHandlerNb, 1,
         "HelixParticipant should have 1 (msg->HelixTaskExecutor) callback handler, but was "
-            + particHandlerNb + ", " + printHandlers(participantManager));
+            + particHandlerNb);
 
     // expire controller
     System.out.println("Expiring controller session...");
@@ -301,13 +300,13 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     // check HelixManager#_handlers
     // printHandlers(controllerManager);
     int handlerNb = controller.getHandlers().size();
+    TestHelper.printHandlers(controller, controller.getHandlers());
     Assert.assertEquals(handlerNb, controllerHandlerNb,
-        "controller callback handlers should not increase after participant session expiry, but was "
-            + printHandlers(controller));
+        "controller callback handlers should not increase after participant session expiry");
     handlerNb = participantManager.getHandlers().size();
+    TestHelper.printHandlers(participantManager, participantManager.getHandlers());
     Assert.assertEquals(handlerNb, particHandlerNb,
-        "participant callback handlers should not increase after participant session expiry, but was "
-            + printHandlers(participantManager));
+        "participant callback handlers should not increase after participant session expiry");
 
     // clean up
     controller.syncStop();
@@ -333,20 +332,19 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
         2, // replicas
         "MasterSlave", true);
 
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(zkAddr, clusterName, "controller_0");
+    final MockController controller = new MockController(zkAddr, clusterName, "controller_0");
     controller.syncStart();
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(zkAddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(zkAddr, clusterName, instanceName);
       participants[i].syncStart();
 
       // register a controller listener on participant_0
       if (i == 0) {
         // ZkHelixTestManager manager = participants[0].getManager();
-        MockParticipantManager manager = participants[0];
+        MockParticipant manager = participants[0];
         manager.addCurrentStateChangeListener(new CurrentStateChangeListener() {
           @Override
           public void onStateChange(String instanceName, List<CurrentState> statesInfo,
@@ -365,7 +363,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
                 clusterName));
     Assert.assertTrue(result);
 
-    MockParticipantManager participantToExpire = participants[0];
+    MockParticipant participantToExpire = participants[0];
     String oldSessionId = participantToExpire.getSessionId();
     PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
 
@@ -446,8 +444,7 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     Assert.assertEquals(childListeners.get(path).size(), 1,
         "Should have 1 child-listener on path: " + path);
     path = keyBuilder.controller().getPath();
-    Assert.assertNull(childListeners.get(path),
-        "Should have no child-listener on path: " + path);
+    Assert.assertNull(childListeners.get(path), "Should have no child-listener on path: " + path);
 
     // check zookeeper#watches on client side
     watchPaths = ZkTestHelper.getZkWatch(participantToExpire.getZkClient());
@@ -493,52 +490,5 @@ public class TestZkCallbackHandlerLeak extends ZkTestBase {
     }
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
-  }
-
-  // debug code
-  static String printHandlers(ZkTestManager manager) {
-    StringBuilder sb = new StringBuilder();
-    List<CallbackHandler> handlers = manager.getHandlers();
-    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
-
-    for (int i = 0; i < handlers.size(); i++) {
-      CallbackHandler handler = handlers.get(i);
-      String path = handler.getPath();
-      sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
-          + handler.getListener());
-      if (i < (handlers.size() - 1)) {
-        sb.append(", ");
-      }
-    }
-    sb.append("]");
-
-    return sb.toString();
-  }
-
-  void printZkListeners(ZkClient client) throws Exception {
-    Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
-    Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
-
-    System.out.println("dataListeners {");
-    for (String path : datalisteners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkDataListener> set = datalisteners.get(path);
-      for (IZkDataListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
-
-    System.out.println("childListeners {");
-    for (String path : childListeners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkChildListener> set = childListeners.get(path);
-      for (IZkChildListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
   }
 }

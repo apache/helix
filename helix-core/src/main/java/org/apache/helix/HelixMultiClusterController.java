@@ -25,7 +25,7 @@ import org.apache.helix.participant.StateMachineEngine;
 /**
  * Autonomous controller
  */
-public interface HelixAutoController extends HelixRole, HelixService, HelixConnectionStateListener {
+public interface HelixMultiClusterController extends HelixRole, HelixService, HelixConnectionStateListener {
   /**
    * get controller id
    * @return controller id

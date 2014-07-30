@@ -27,9 +27,10 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
-import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -80,12 +81,14 @@ public class TestConfigThreadpoolSize extends ZkStandAloneCMTestBase {
     HelixManager manager = _participants[0];
 
     ConfigAccessor accessor = manager.getConfigAccessor();
-    ConfigScope scope =
-        new ConfigScopeBuilder().forCluster(manager.getClusterName()).forParticipant(instanceName)
-            .build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+            .forCluster(manager.getClusterName()).forParticipant(instanceName).build();
     accessor.set(scope, "TestMsg." + HelixTaskExecutor.MAX_THREADS, "" + 12);
 
-    scope = new ConfigScopeBuilder().forCluster(manager.getClusterName()).build();
+    scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
+            manager.getClusterName()).build();
     accessor.set(scope, "TestMsg." + HelixTaskExecutor.MAX_THREADS, "" + 8);
 
     for (int i = 0; i < NODE_NR; i++) {

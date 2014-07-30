@@ -82,7 +82,7 @@ public interface HelixConnection {
    * @param controllerId
    * @return
    */
-  HelixAutoController createAutoController(ClusterId clusterId, ControllerId controllerId);
+  HelixMultiClusterController createAutoController(ClusterId clusterId, ControllerId controllerId);
 
   /**
    * create a cluster-accessor
@@ -113,10 +113,8 @@ public interface HelixConnection {
 
   /**
    * get config accessor
-   * TODO replace with new ConfigAccessor
    * @return config accessor
    */
-  @Deprecated
   ConfigAccessor getConfigAccessor();
 
   /**
@@ -162,15 +160,6 @@ public interface HelixConnection {
    */
   void addMessageListener(HelixRole role, MessageListener listener, ClusterId clusterId,
       ParticipantId participantId);
-
-  /**
-   * add config change listener
-   * @param role
-   * @param listener
-   * @param clusterId
-   */
-  @Deprecated
-  void addConfigChangeListener(HelixRole role, ConfigChangeListener listener, ClusterId clusterId);
 
   /**
    * add instance config change listener
@@ -234,7 +223,7 @@ public interface HelixConnection {
   void removeConnectionStateListener(HelixConnectionStateListener listener);
 
   /**
-   * create messasing service using this connection
+   * create messaging service using this connection
    * @param role
    * @return messaging-service
    */

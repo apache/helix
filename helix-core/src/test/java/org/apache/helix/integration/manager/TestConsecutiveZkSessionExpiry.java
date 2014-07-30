@@ -24,13 +24,15 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkCallbackHandler;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.HelixTestUtil;
@@ -97,19 +99,18 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    final ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    final MockController controller = new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
     CountDownLatch startCountdown = new CountDownLatch(1);
     CountDownLatch endCountdown = new CountDownLatch(1);
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
 
       if (i == 0) {
         participants[i].addPreConnectCallback(new PreConnectTestCallback(instanceName,
@@ -178,14 +179,13 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterDistributedController[] distributedControllers = new ClusterDistributedController[n];
+    MockMultiClusterController[] distributedControllers = new MockMultiClusterController[n];
     CountDownLatch startCountdown = new CountDownLatch(1);
     CountDownLatch endCountdown = new CountDownLatch(1);
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
-      distributedControllers[i] =
-          new ClusterDistributedController(_zkaddr, clusterName, contrllerName);
+      distributedControllers[i] = new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
       distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
           new MockMSModelFactory());
       if (i == 0) {
@@ -237,12 +237,15 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
     Assert.assertNotNull(leader);
     Assert.assertEquals(leader.getId(), "localhost_12919");
 
-    // check localhost_12918 has 2 handlers: message and data-accessor
-    LOG.debug("handlers: " + TestHelper.printHandlers(distributedControllers[0]));
-    List<CallbackHandler> handlers = distributedControllers[0].getHandlers();
-    Assert.assertEquals(handlers.size(), 1,
-        "Distributed controller should have 1 handler (message) after lose leadership, but was "
-            + handlers.size());
+    // check localhost_12918 has 2 handlers: message and leader-election
+    TestHelper.printHandlers(distributedControllers[0], distributedControllers[0].getHandlers());
+    List<ZkCallbackHandler> handlers = distributedControllers[0].getHandlers();
+    Assert
+        .assertEquals(
+            handlers.size(),
+            2,
+            "Distributed controller should have 2 handler (message and leader election) after lose leadership, but was "
+                + handlers.size());
 
     // clean up
     distributedControllers[0].disconnect();

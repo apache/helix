@@ -28,11 +28,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.testutil.ZkTestBase;
@@ -78,8 +77,8 @@ public class TestEntropyFreeNodeBounce extends ZkTestBase {
     }
 
     // Start the controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // get an admin and accessor
@@ -97,14 +96,14 @@ public class TestEntropyFreeNodeBounce extends ZkTestBase {
       Assert.assertTrue(result);
       ExternalView stableExternalView =
           accessor.getProperty(keyBuilder.externalView(RESOURCE_NAME));
-      for (HelixManager participant : participants) {
+      for (int i = 0; i < NUM_PARTICIPANTS; i++) {
         // disable the controller, bounce the node, re-enable the controller, verify assignments
         // remained the same
         helixAdmin.enableCluster(clusterName, false);
-        participant.disconnect();
+        participants[i].disconnect();
         Thread.sleep(1000);
-        participant = createParticipant(clusterName, participant.getInstanceName());
-        participant.connect();
+        participants[i] = createParticipant(clusterName, participants[i].getInstanceName());
+        participants[i].connect();
         Thread.sleep(1000);
         helixAdmin.enableCluster(clusterName, true);
         Thread.sleep(1000);

@@ -157,7 +157,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       Set<ParticipantId> errorParticipants = Sets.newHashSet();
       for (ParticipantId participantId : currentStateMap.keySet()) {
         State state = currentStateMap.get(participantId);
-        if (state.equals(State.from(HelixDefinedState.ERROR))) {
+        if (State.from(HelixDefinedState.ERROR).equals(state)) {
           errorParticipants.add(participantId);
         }
       }

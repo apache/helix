@@ -25,11 +25,9 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,9 +52,9 @@ public class TestStartMultipleControllersWithSameName extends ZkTestBase {
     // rebalance
 
     // start controller
-    ClusterControllerManager[] controllers = new ClusterControllerManager[4];
+    MockController[] controllers = new MockController[4];
     for (int i = 0; i < 4; i++) {
-      controllers[i] = new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+      controllers[i] = new MockController(_zkaddr, clusterName, "controller_0");
       controllers[i].syncStart();
     }
 

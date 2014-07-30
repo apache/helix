@@ -30,8 +30,8 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -89,8 +89,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
       participant.syncStart();
       _participants[i] = participant;
 
@@ -98,7 +98,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
 
     // start controller
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =
@@ -163,8 +163,8 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
       String storageNodeName = "localhost_" + (1000 + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, CLUSTER_NAME, storageNodeName.replace(':', '_'));
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, CLUSTER_NAME, storageNodeName.replace(':', '_'));
       participant.syncStart();
     }
     Thread.sleep(5000);

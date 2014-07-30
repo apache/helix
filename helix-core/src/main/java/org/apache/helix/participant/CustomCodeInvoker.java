@@ -21,10 +21,10 @@ package org.apache.helix.participant;
 
 import java.util.List;
 
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
@@ -35,7 +35,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 
-public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChangeListener,
+public class CustomCodeInvoker implements LiveInstanceChangeListener, InstanceConfigChangeListener,
     ExternalViewChangeListener {
   private static Logger LOG = Logger.getLogger(CustomCodeInvoker.class);
   private final CustomCodeCallbackHandler _callback;
@@ -89,7 +89,7 @@ public class CustomCodeInvoker implements LiveInstanceChangeListener, ConfigChan
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
+  public void onInstanceConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
     LOG.info("onConfigChange() invoked");
     callParticipantCode(changeContext);
   }

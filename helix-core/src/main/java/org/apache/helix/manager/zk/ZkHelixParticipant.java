@@ -72,6 +72,7 @@ public class ZkHelixParticipant implements HelixParticipant {
   final DefaultMessagingService _messagingService;
   final List<PreConnectCallback> _preConnectCallbacks;
   final List<HelixTimerTask> _timerTasks;
+  boolean _isStarted;
 
   /**
    * state-transition message handler factory for helix-participant
@@ -93,7 +94,7 @@ public class ZkHelixParticipant implements HelixParticipant {
     _participantId = participantId;
 
     _messagingService = (DefaultMessagingService) connection.createMessagingService(this);
-    HelixManager manager = new HelixConnectionAdaptor(this);
+    HelixManager manager = new ZKHelixManager(this);
     _stateMachineEngine = new HelixStateMachineEngine(manager);
     _preConnectCallbacks = new ArrayList<PreConnectCallback>();
     _timerTasks = new ArrayList<HelixTimerTask>();
@@ -397,6 +398,7 @@ public class ZkHelixParticipant implements HelixParticipant {
   public void onConnected() {
     reset();
     init();
+    _isStarted = true;
   }
 
   @Override
@@ -415,18 +417,26 @@ public class ZkHelixParticipant implements HelixParticipant {
      * remove live instance ephemeral znode
      */
     _accessor.removeProperty(_keyBuilder.liveInstance(_participantId.stringify()));
+    _isStarted = false;
   }
 
   @Override
   public void start() {
     _connection.addConnectionStateListener(this);
-    onConnected();
+    if (_connection.isConnected()) {
+      onConnected();
+    }
   }
 
   @Override
   public void stop() {
     _connection.removeConnectionStateListener(this);
     onDisconnecting();
+  }
+
+  @Override
+  public boolean isStarted() {
+    return _isStarted;
   }
 
   @Override
@@ -460,6 +470,7 @@ public class ZkHelixParticipant implements HelixParticipant {
     _liveInstanceInfoProvider = liveInstanceInfoProvider;
   }
 
+  @Override
   public HelixDataAccessor getAccessor() {
     return _accessor;
   }

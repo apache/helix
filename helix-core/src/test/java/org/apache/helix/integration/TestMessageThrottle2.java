@@ -34,7 +34,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
-import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
@@ -42,9 +41,10 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -237,32 +237,34 @@ public class TestMessageThrottle2 extends ZkTestBase {
 
   static final class MyProcess {
     private final String instanceName;
-    private HelixManager helixManager;
+    // private HelixManager helixManager;
+    private MockParticipant participant;
 
     public MyProcess(String instanceName) {
       this.instanceName = instanceName;
     }
 
     public void start() throws Exception {
-      helixManager =
-          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, _zkaddr);
+//      helixManager =
+//          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, _zkaddr);
+      participant = new MockParticipant(_zkaddr, clusterName, instanceName);
       {
         // hack to set sessionTimeout
-        Field sessionTimeout = ZKHelixManager.class.getDeclaredField("_sessionTimeout");
+        Field sessionTimeout = ZkHelixConnection.class.getDeclaredField("_sessionTimeout");
         sessionTimeout.setAccessible(true);
-        sessionTimeout.setInt(helixManager, 1000);
+        sessionTimeout.setInt(participant.getConn(), 1000);
       }
 
-      StateMachineEngine stateMach = helixManager.getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", new MyStateModelFactory(helixManager));
-      helixManager.connect();
+      StateMachineEngine stateMach = participant.getStateMachineEngine();
+      stateMach.registerStateModelFactory("MasterSlave", new MyStateModelFactory(participant));
+      participant.connect();
 
       StatusPrinter statusPrinter = new StatusPrinter();
-      statusPrinter.registerWith(helixManager);
+      statusPrinter.registerWith(participant);
     }
 
     public void stop() {
-      helixManager.disconnect();
+      participant.disconnect();
     }
   }
 

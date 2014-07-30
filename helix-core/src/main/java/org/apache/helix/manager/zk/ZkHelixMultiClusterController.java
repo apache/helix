@@ -20,8 +20,9 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.ClusterMessagingService;
-import org.apache.helix.HelixAutoController;
+import org.apache.helix.HelixMultiClusterController;
 import org.apache.helix.HelixConnection;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PreConnectCallback;
@@ -32,8 +33,8 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
-public class ZkHelixAutoController implements HelixAutoController {
-  private static Logger LOG = Logger.getLogger(ZkHelixAutoController.class);
+public class ZkHelixMultiClusterController implements HelixMultiClusterController {
+  private static Logger LOG = Logger.getLogger(ZkHelixMultiClusterController.class);
 
   final ZkHelixConnection _connection;
   final ClusterId _clusterId;
@@ -41,7 +42,7 @@ public class ZkHelixAutoController implements HelixAutoController {
   final ZkHelixParticipant _participant;
   final ZkHelixController _controller;
 
-  public ZkHelixAutoController(ZkHelixConnection connection, ClusterId clusterId,
+  public ZkHelixMultiClusterController(ZkHelixConnection connection, ClusterId clusterId,
       ControllerId controllerId) {
     _connection = connection;
     _clusterId = clusterId;
@@ -90,12 +91,18 @@ public class ZkHelixAutoController implements HelixAutoController {
   }
 
   @Override
+  public boolean isStarted() {
+    return _participant.isStarted() && _controller.isStarted();
+  }
+
+  @Override
   public void onConnected() {
     _controller.reset();
     _participant.reset();
 
     _participant.init();
     _controller.init();
+
   }
 
   @Override
@@ -128,6 +135,11 @@ public class ZkHelixAutoController implements HelixAutoController {
   @Override
   public boolean isLeader() {
     return _controller.isLeader();
+  }
+
+  @Override
+  public HelixDataAccessor getAccessor() {
+    return _participant.getAccessor();
   }
 
 }

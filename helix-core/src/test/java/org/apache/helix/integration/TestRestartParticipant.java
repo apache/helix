@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.testutil.TestUtil;
@@ -37,15 +37,15 @@ import org.testng.annotations.Test;
 
 public class TestRestartParticipant extends ZkTestBase {
   public class KillOtherTransition extends MockTransition {
-    final AtomicReference<MockParticipantManager> _other;
+    final AtomicReference<MockParticipant> _other;
 
-    public KillOtherTransition(MockParticipantManager other) {
-      _other = new AtomicReference<MockParticipantManager>(other);
+    public KillOtherTransition(MockParticipant other) {
+      _other = new AtomicReference<MockParticipant>(other);
     }
 
     @Override
     public void doTransition(Message message, NotificationContext context) {
-      MockParticipantManager other = _other.getAndSet(null);
+      MockParticipant other = _other.getAndSet(null);
       if (other != null) {
         System.err.println("Kill " + other.getInstanceName()
             + ". Interrupted exceptions are IGNORABLE");
@@ -60,7 +60,7 @@ public class TestRestartParticipant extends ZkTestBase {
     System.out.println("START testRestartParticipant at " + new Date(System.currentTimeMillis()));
 
     String clusterName = TestUtil.getTestName();
-    MockParticipantManager[] participants = new MockParticipantManager[5];
+    MockParticipant[] participants = new MockParticipant[5];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -71,8 +71,8 @@ public class TestRestartParticipant extends ZkTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -80,10 +80,10 @@ public class TestRestartParticipant extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 4) {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new KillOtherTransition(participants[0]));
       } else {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       }
 
       participants[i].syncStart();
@@ -96,8 +96,8 @@ public class TestRestartParticipant extends ZkTestBase {
 
     // restart
     Thread.sleep(500);
-    MockParticipantManager participant =
-        new MockParticipantManager(_zkaddr, participants[0].getClusterName(),
+    MockParticipant participant =
+        new MockParticipant(_zkaddr, participants[0].getClusterName(),
             participants[0].getInstanceName());
     System.err.println("Restart " + participant.getInstanceName());
     participant.syncStart();

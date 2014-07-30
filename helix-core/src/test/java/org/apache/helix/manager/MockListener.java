@@ -21,11 +21,11 @@ package org.apache.helix.manager;
 
 import java.util.List;
 
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.IdealStateChangeListener;
+import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
@@ -37,7 +37,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 
 public class MockListener implements IdealStateChangeListener, LiveInstanceChangeListener,
-    ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
+    InstanceConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
     ControllerChangeListener, MessageListener
 
 {
@@ -71,7 +71,7 @@ public class MockListener implements IdealStateChangeListener, LiveInstanceChang
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
+  public void onInstanceConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
     isConfigChangeListenerInvoked = true;
   }
 

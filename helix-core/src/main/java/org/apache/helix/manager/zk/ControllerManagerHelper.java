@@ -72,7 +72,7 @@ public class ControllerManagerHelper {
       /**
        * setup generic-controller
        */
-      _manager.addConfigChangeListener(controller);
+      _manager.addInstanceConfigChangeListener(controller);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view

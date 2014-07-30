@@ -106,19 +106,6 @@ public class TestZKLiveInstanceData extends ZkTestBase {
 
   @BeforeClass()
   public void beforeClass() throws Exception {
-    ZkClient zkClient = null;
-    try {
-      zkClient = new ZkClient(_zkaddr);
-      zkClient.setZkSerializer(new ZNRecordSerializer());
-      if (zkClient.exists("/" + clusterName)) {
-        zkClient.deleteRecursive("/" + clusterName);
-      }
-    } finally {
-      if (zkClient != null) {
-        zkClient.close();
-      }
-    }
-
     ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", _zkaddr, "-addCluster", clusterName));
     ClusterSetup.processCommandLineArgs(getArgs("-zkSvr", _zkaddr, "-addNode", clusterName,
         "localhost:54321"));

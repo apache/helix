@@ -48,12 +48,12 @@ import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ZkTestManager;
 import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkCallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -754,24 +754,22 @@ public class TestHelper {
     } while (true);
   }
 
-  // debug code
-  public static String printHandlers(ZkTestManager manager) {
+  public static void printHandlers(HelixManager manager, List<ZkCallbackHandler> handlers) {
     StringBuilder sb = new StringBuilder();
-    List<CallbackHandler> handlers = manager.getHandlers();
-    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
+    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [\n");
 
     for (int i = 0; i < handlers.size(); i++) {
-      CallbackHandler handler = handlers.get(i);
+      ZkCallbackHandler handler = handlers.get(i);
       String path = handler.getPath();
       sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
           + handler.getListener());
       if (i < (handlers.size() - 1)) {
-        sb.append(", ");
+        sb.append("\n");
       }
     }
     sb.append("]");
 
-    return sb.toString();
+    System.out.println(sb.toString());
   }
 
   public static void printZkListeners(ZkClient client) throws Exception {

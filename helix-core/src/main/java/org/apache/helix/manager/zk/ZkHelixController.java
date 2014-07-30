@@ -56,6 +56,7 @@ public class ZkHelixController implements HelixController {
   final HelixDataAccessor _accessor;
   final HelixManager _manager;
   final ZkHelixLeaderElection _leaderElection;
+  boolean _isStarted;
 
   public ZkHelixController(ZkHelixConnection connection, ClusterId clusterId,
       ControllerId controllerId) {
@@ -69,7 +70,7 @@ public class ZkHelixController implements HelixController {
     _messagingService = (DefaultMessagingService) connection.createMessagingService(this);
     _timerTasks = new ArrayList<HelixTimerTask>();
 
-    _manager = new HelixConnectionAdaptor(this);
+    _manager = new ZKHelixManager(this);
     _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
 
     _timerTasks.add(new StatusDumpTask(clusterId, _manager.getHelixDataAccessor()));
@@ -102,6 +103,11 @@ public class ZkHelixController implements HelixController {
   public void stop() {
     _connection.removeConnectionStateListener(this);
     onDisconnecting();
+  }
+
+  @Override
+  public boolean isStarted() {
+    return _isStarted;
   }
 
   void reset() {
@@ -140,6 +146,7 @@ public class ZkHelixController implements HelixController {
   public void onConnected() {
     reset();
     init();
+    _isStarted = true;
   }
 
   @Override
@@ -147,6 +154,8 @@ public class ZkHelixController implements HelixController {
     LOG.info("disconnecting " + _controllerId + "(" + getType() + ") from " + _clusterId);
 
     reset();
+
+    _isStarted = false;
   }
 
   @Override
@@ -216,7 +225,7 @@ public class ZkHelixController implements HelixController {
       /**
        * setup generic-controller
        */
-      _connection.addConfigChangeListener(this, pipeline, _clusterId);
+      _connection.addInstanceConfigChangeListener(this, pipeline, _clusterId);
       _connection.addLiveInstanceChangeListener(this, pipeline, _clusterId);
       _connection.addIdealStateChangeListener(this, pipeline, _clusterId);
       _connection.addControllerListener(this, pipeline, _clusterId);
@@ -228,7 +237,7 @@ public class ZkHelixController implements HelixController {
   }
 
   void removeListenersFromController(GenericHelixController pipeline) {
-    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(_manager.getClusterName());
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(getClusterId().stringify());
     /**
      * reset generic-controller
      */
@@ -246,6 +255,11 @@ public class ZkHelixController implements HelixController {
 
   HelixManager getManager() {
     return _manager;
+  }
+
+  @Override
+  public HelixDataAccessor getAccessor() {
+    return _accessor;
   }
 
 }

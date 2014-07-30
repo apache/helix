@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.manager.zk;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,20 +19,16 @@ package org.apache.helix;
  * under the License.
  */
 
-import java.util.List;
-
-import org.apache.helix.model.InstanceConfig;
-
 /**
- * @deprecated replaced by InstanceConfigChangeListener
+ * Helper class for testing ZkHelixConnection
  */
-public interface ConfigChangeListener {
+public class ZkConnTestHelper extends ZkHelixConnection {
 
-  /**
-   * Invoked when participant config changes
-   * @param configs
-   * @param changeContext
-   */
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext);
+  public ZkConnTestHelper(String zkAddr) {
+    super(zkAddr);
+  }
 
+  public ZkClient getZkClient() {
+    return _zkclient;
+  }
 }

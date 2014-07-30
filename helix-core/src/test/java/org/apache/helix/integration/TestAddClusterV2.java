@@ -23,8 +23,8 @@ import java.util.Date;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
@@ -49,8 +49,8 @@ public class TestAddClusterV2 extends ZkTestBase {
 
   protected static final String TEST_DB = "TestDB";
 
-  MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
-  ClusterDistributedController[] _distControllers = new ClusterDistributedController[NODE_NR];
+  MockParticipant[] _participants = new MockParticipant[NODE_NR];
+  MockMultiClusterController[] _distControllers = new MockMultiClusterController[NODE_NR];
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -90,7 +90,7 @@ public class TestAddClusterV2 extends ZkTestBase {
     // start dummy participants for the first cluster
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, firstCluster, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, firstCluster, instanceName);
       _participants[i].syncStart();
     }
 
@@ -98,7 +98,7 @@ public class TestAddClusterV2 extends ZkTestBase {
     for (int i = 0; i < NODE_NR; i++) {
       String controllerName = "controller_" + i;
       _distControllers[i] =
-          new ClusterDistributedController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
+          new MockMultiClusterController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
       _distControllers[i].syncStart();
     }
 

@@ -239,10 +239,6 @@ public class JobContext extends HelixProperty {
   public String getAssignedParticipant(int p) {
     String pStr = String.valueOf(p);
     Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      return null;
-    } else {
-      return map.get(ContextProperties.ASSIGNED_PARTICIPANT.toString());
-    }
+    return (map != null) ? map.get(ContextProperties.ASSIGNED_PARTICIPANT.toString()) : null;
   }
 }

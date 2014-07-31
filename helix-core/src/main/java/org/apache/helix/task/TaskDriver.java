@@ -132,7 +132,6 @@ public class TaskDriver {
         break;
       case list:
         driver.list(resource);
-        break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }
@@ -261,24 +260,30 @@ public class TaskDriver {
 
   public void list(String resource) {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, resource);
+    if (wCfg == null) {
+      LOG.error("Workflow " + resource + " does not exist!");
+      return;
+    }
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
 
-    System.out.println("Workflow " + resource + " consists of the following tasks: "
+    LOG.info("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
-    TaskState workflowState = wCtx.getWorkflowState();
-    if (workflowState == null) {
-      workflowState = TaskState.IN_PROGRESS;
-    }
-    System.out.println("Current state of workflow is " + wCtx.getWorkflowState().name());
-    System.out.println("Job states are: ");
-    System.out.println("-------");
+    String workflowState =
+        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
+    LOG.info("Current state of workflow is " + workflowState);
+    LOG.info("Job states are: ");
+    LOG.info("-------");
     for (String job : wCfg.getJobDag().getAllNodes()) {
-      System.out.println("Job " + job + " is " + wCtx.getJobState(job));
-      System.out.println("-------");
+      TaskState jobState = (wCtx != null) ? wCtx.getJobState(job) : TaskState.NOT_STARTED;
+      LOG.info("Job " + job + " is " + jobState);
 
-      // fetch task information
+      // fetch job information
       JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);
       JobContext jCtx = TaskUtil.getJobContext(_manager, job);
+      if (jCfg == null || jCtx == null) {
+        LOG.info("-------");
+        continue;
+      }
 
       // calculate taskPartitions
       List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
@@ -288,39 +293,21 @@ public class TaskDriver {
       for (Integer partition : partitions) {
         String taskId = jCtx.getTaskIdForPartition(partition);
         taskId = (taskId != null) ? taskId : jCtx.getTargetForPartition(partition);
-        System.out.println("Task: " + taskId);
+        LOG.info("Task: " + taskId);
         TaskConfig taskConfig = jCfg.getTaskConfig(taskId);
         if (taskConfig != null) {
-          System.out.println("Configuration: " + taskConfig.getConfigMap());
+          LOG.info("Configuration: " + taskConfig.getConfigMap());
         }
         TaskPartitionState state = jCtx.getPartitionState(partition);
-        if (state == null) {
-          state = TaskPartitionState.INIT;
-        }
-        System.out.println("State: " + state);
+        state = (state != null) ? state : TaskPartitionState.INIT;
+        LOG.info("State: " + state);
         String assignedParticipant = jCtx.getAssignedParticipant(partition);
         if (assignedParticipant != null) {
-          System.out.println("Assigned participant: " + assignedParticipant);
+          LOG.info("Assigned participant: " + assignedParticipant);
         }
-        System.out.println("-------");
+        LOG.info("-------");
       }
-
-      // group partitions by status
-      /*
-       * Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
-       * for (Integer i : partitions) {
-       * TaskPartitionState s = jCtx.getPartitionState(i);
-       * if (!statusCount.containsKey(s)) {
-       * statusCount.put(s, 0);
-       * }
-       * statusCount.put(s, statusCount.get(s) + 1);
-       * }
-       * for (TaskPartitionState s : statusCount.keySet()) {
-       * LOG.info(statusCount.get(s) + "/" + partitions.size() + " in state " + s.name());
-       * }
-       */
-
-      System.out.println("-------");
+      LOG.info("-------");
     }
   }
 

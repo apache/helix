@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.commons.cli.CommandLine;
@@ -261,37 +260,53 @@ public class TaskDriver {
 
   public void list(String resource) {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, resource);
+    if (wCfg == null) {
+      LOG.error("Workflow " + resource + " does not exist!");
+      return;
+    }
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
 
     LOG.info("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
-    LOG.info("Current state of workflow is " + wCtx.getWorkflowState().name());
+    String workflowState =
+        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
+    LOG.info("Current state of workflow is " + workflowState);
     LOG.info("Job states are: ");
     LOG.info("-------");
     for (String job : wCfg.getJobDag().getAllNodes()) {
-      LOG.info("Task " + job + " is " + wCtx.getJobState(job));
+      TaskState jobState = (wCtx != null) ? wCtx.getJobState(job) : TaskState.NOT_STARTED;
+      LOG.info("Job " + job + " is " + jobState);
 
-      // fetch task information
+      // fetch job information
+      JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);
       JobContext jCtx = TaskUtil.getJobContext(_manager, job);
+      if (jCfg == null || jCtx == null) {
+        LOG.info("-------");
+        continue;
+      }
 
       // calculate taskPartitions
       List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
       Collections.sort(partitions);
 
-      // group partitions by status
-      Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
-      for (Integer i : partitions) {
-        TaskPartitionState s = jCtx.getPartitionState(i);
-        if (!statusCount.containsKey(s)) {
-          statusCount.put(s, 0);
+      // report status
+      for (Integer partition : partitions) {
+        String taskId = jCtx.getTaskIdForPartition(partition);
+        taskId = (taskId != null) ? taskId : jCtx.getTargetForPartition(partition);
+        LOG.info("Task: " + taskId);
+        TaskConfig taskConfig = jCfg.getTaskConfig(taskId);
+        if (taskConfig != null) {
+          LOG.info("Configuration: " + taskConfig.getConfigMap());
         }
-        statusCount.put(s, statusCount.get(s) + 1);
+        TaskPartitionState state = jCtx.getPartitionState(partition);
+        state = (state != null) ? state : TaskPartitionState.INIT;
+        LOG.info("State: " + state);
+        String assignedParticipant = jCtx.getAssignedParticipant(partition);
+        if (assignedParticipant != null) {
+          LOG.info("Assigned participant: " + assignedParticipant);
+        }
+        LOG.info("-------");
       }
-
-      for (TaskPartitionState s : statusCount.keySet()) {
-        LOG.info(statusCount.get(s) + "/" + partitions.size() + " in state " + s.name());
-      }
-
       LOG.info("-------");
     }
   }

@@ -43,7 +43,8 @@ public class JobContext extends HelixProperty {
     NUM_ATTEMPTS,
     FINISH_TIME,
     TARGET,
-    TASK_ID
+    TASK_ID,
+    ASSIGNED_PARTICIPANT
   }
 
   public JobContext(ZNRecord record) {
@@ -223,5 +224,21 @@ public class JobContext extends HelixProperty {
       }
     }
     return partitionMap;
+  }
+
+  public void setAssignedParticipant(int p, String participantName) {
+    String pStr = String.valueOf(p);
+    Map<String, String> map = _record.getMapField(pStr);
+    if (map == null) {
+      map = new TreeMap<String, String>();
+      _record.setMapField(pStr, map);
+    }
+    map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
+  }
+
+  public String getAssignedParticipant(int p) {
+    String pStr = String.valueOf(p);
+    Map<String, String> map = _record.getMapField(pStr);
+    return (map != null) ? map.get(ContextProperties.ASSIGNED_PARTICIPANT.toString()) : null;
   }
 }

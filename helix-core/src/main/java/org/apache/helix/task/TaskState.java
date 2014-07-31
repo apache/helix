@@ -24,6 +24,11 @@ package org.apache.helix.task;
  */
 public enum TaskState {
   /**
+   * The task has yet to start
+   */
+  NOT_STARTED,
+
+  /**
    * The task is in progress.
    */
   IN_PROGRESS,

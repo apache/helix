@@ -9,9 +9,9 @@
  <groupId>io.hawt</groupId>
  <version>1.5-SNAPSHOT</version>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>simple-plugin</artifactId>
+  <artifactId>helix-plugin</artifactId>
   <name>${project.artifactId}</name>
-  <description>hawtio :: hawtio Simple plugin example</description>
+  <description>hawtio :: hawtio helix plugin</description>
 
   <!-- hawtio plugins are almost always war files -->
   <packaging>war</packaging>
@@ -21,7 +21,7 @@
       as we build that dynamically using maven-antrun-plugin below. -->
     <!-- plugin-context is what context this plugin will handle requests on
       in the application server -->
-    <plugin-context>/simple-plugin</plugin-context>
+    <plugin-context>/helix-plugin</plugin-context>
 
     <!-- plugin-name is the name of our plugin, affects the name used for
       the plugin's mbean -->

@@ -13,7 +13,7 @@ var Simple = (function(Simple) {
    *
    * The name of this plugin
    */
-  Simple.pluginName = 'simple_plugin';
+  Simple.pluginName = 'helix_plugin';
 
   /**
    * @property log
@@ -21,7 +21,7 @@ var Simple = (function(Simple) {
    *
    * This plugin's logger instance
    */
-  Simple.log = Logger.get('Simple');
+  Simple.log = Logger.get('Helix');
 
   /**
    * @property contextPath
@@ -30,7 +30,7 @@ var Simple = (function(Simple) {
    * The top level path of this plugin on the server
    *
    */
-  Simple.contextPath = "/simple-plugin/";
+  Simple.contextPath = "/helix-plugin/";
 
   /**
    * @property templatePath
@@ -49,7 +49,7 @@ var Simple = (function(Simple) {
    * workspace, viewRegistry and layoutFull used by the
    * run function
    */
-  Simple.module = angular.module('simple_plugin', ['hawtioCore'])
+  Simple.module = angular.module('helix_plugin', ['hawtioCore'])
       .config(function($routeProvider) {
 
         /**
@@ -59,7 +59,7 @@ var Simple = (function(Simple) {
          * routeProvider has been configured with.
          */
         $routeProvider.
-            when('/simple_plugin', {
+            when('/helix_plugin', {
               templateUrl: Simple.templatePath + 'simple.html'
             });
       });
@@ -85,7 +85,7 @@ var Simple = (function(Simple) {
 
     // tell the app to use the full layout, also could use layoutTree
     // to get the JMX tree or provide a URL to a custom layout
-    viewRegistry["simple_plugin"] = layoutFull;
+    viewRegistry["helix_plugin"] = layoutFull;
 
     /* Set up top-level link to our plugin.  Requires an object
        with the following attributes:
@@ -111,10 +111,10 @@ var Simple = (function(Simple) {
      */
     workspace.topLevelTabs.push({
       id: "simple",
-      content: "Simple",
-      title: "Simple plugin loaded dynamically",
+      content: "Helix",
+      title: "Helix plugin loaded dynamically",
       isValid: function(workspace) { return true; },
-      href: function() { return "#/simple_plugin"; },
+      href: function() { return "#/helix_plugin"; },
       isActive: function(workspace) { return workspace.isLinkActive("simple_plugin"); }
 
     });
@@ -130,9 +130,14 @@ var Simple = (function(Simple) {
    * service from hawtioCore
    *
    */
-  Simple.SimpleController = function($scope, jolokia) {
-    $scope.hello = "Hello world!";
+  Simple.SimpleController = function($scope,$http, jolokia) {
+    $scope.hello = "This is";
+	$scope.dashboardName = "Helix Dashboard";
     $scope.cpuLoad = "0";
+	$http.get("http://localhost:8100/clusters")
+      .success(function(data) {
+        $scope.clusters = data;
+      })
 
     // register a watch with jolokia on this mbean to
     // get updated metrics

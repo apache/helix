@@ -57,11 +57,26 @@ var Simple = (function(Simple) {
          * to avoid using 'otherwise', as hawtio has a handler
          * in place when a route doesn't match any routes that
          * routeProvider has been configured with.
-         */
+         
         $routeProvider.
             when('/helix_plugin', {
               templateUrl: Simple.templatePath + 'simple.html'
             });
+			*/
+			 $routeProvider
+        .when('/helix_plugin', {
+          templateUrl: Simple.templatePath + 'simple.html'
+        })
+        .when('/helix_plugin/cluster_manager', {
+          templateUrl: Simple.templatePath + 'clusterManager.html'
+        })
+		.when('/helix_plugin/resource_manager', {
+          templateUrl: Simple.templatePath + 'resourceManager.html'
+        })
+		.when('/helix_plugin/instance_manager', {
+          templateUrl: Simple.templatePath + 'instanceManager.html'
+        });
+			
       });
 
   /**

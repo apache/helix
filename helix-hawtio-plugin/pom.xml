@@ -1,16 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <parent>
+  <!--parent>
     <groupId>io.hawt</groupId>
     <artifactId>hawtio-plugin-examples</artifactId>
     <version>1.5-SNAPSHOT</version>
     <relativePath>..</relativePath>
-  </parent>
-
+  </parent-->
+ <groupId>io.hawt</groupId>
+ <version>1.5-SNAPSHOT</version>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>helix-plugin</artifactId>
+  <artifactId>simple-plugin</artifactId>
   <name>${project.artifactId}</name>
-  <description>hawtio :: hawtio helix plugin example</description>
+  <description>hawtio :: hawtio Simple plugin example</description>
 
   <!-- hawtio plugins are almost always war files -->
   <packaging>war</packaging>
@@ -20,7 +21,7 @@
       as we build that dynamically using maven-antrun-plugin below. -->
     <!-- plugin-context is what context this plugin will handle requests on
       in the application server -->
-    <plugin-context>/helix-plugin</plugin-context>
+    <plugin-context>/simple-plugin</plugin-context>
 
     <!-- plugin-name is the name of our plugin, affects the name used for
       the plugin's mbean -->
@@ -36,8 +37,66 @@
       javax.servlet,
       *;resolution:=optional
     </fuse.osgi.import>
+	   
+	   
+	<!--adding for version to build-->   
+	<jettyPort>8080</jettyPort>
+    <context>/hawtio</context>
+    <hawtio-config-dir>${basedir}/hawtio-config</hawtio-config-dir>
+    <hawtio-config-repo>https://github.com/hawtio/hawtio-config.git</hawtio-config-repo>
+
+    <webapp-dir>${project.artifactId}-${project.version}</webapp-dir>
+    <webapp-outdir>${basedir}/target/${webapp-dir}</webapp-outdir>
+    <schema-outdir>${basedir}/src/main/webapp/lib</schema-outdir>
+    <appjs-outfile>${webapp-outdir}/app/app.js</appjs-outfile>
+
+    <!-- versions -->
+    <servlet-api-version>2.5</servlet-api-version>
+    <slf4j-api-version>1.6.6</slf4j-api-version>
+    <slf4j-version>1.6.6</slf4j-version>
+    <war-plugin-version>2.1.1</war-plugin-version>
+	<maven-antrun-plugin-version>1.7</maven-antrun-plugin-version>
+	<maven-resources-plugin-version>2.6</maven-resources-plugin-version>
+	<maven-bundle-plugin-version>2.3.7</maven-bundle-plugin-version>
+
   </properties>
 
+    <pluginRepositories>
+    <pluginRepository>
+      <id>public.jboss.org</id>
+      <name>JBoss Public Repository</name>
+      <url>http://repository.jboss.org/nexus/content/groups/public</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </pluginRepository>
+    <pluginRepository>
+      <id>fs-public.jboss.org</id>
+      <name>JBoss FuseSource Public Repository</name>
+      <url>https://repository.jboss.org/nexus/content/groups/fs-public</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </pluginRepository>
+    <pluginRepository>
+      <id>ea.jboss.org</id>
+      <name>JBoss Early Access Repository</name>
+      <url>https://repository.jboss.org/nexus/content/groups/ea</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </pluginRepository>
+  </pluginRepositories>
+  
   <dependencies>
 
     <!-- we only need to embed this dependency in the war, this contains
@@ -84,7 +143,7 @@
         </includes>
       </resource>
     </resources>
-
+	
     <plugins>
 
       <!-- We use maven-antrun-plugin to build up a list of
@@ -231,4 +290,6 @@
 
     </plugins>
   </build>
+  
+  
 </project>

@@ -1,11 +1,11 @@
 /**
- * @module Simple
- * @mail Simple
+ * @module helix
+ * @mail helix
  *
- * The main entry point for the Simple module
+ * The main entry point for the helix module
  *
  */
-var Simple = (function(Simple) {
+var helix = (function(helix) {
 
   /**
    * @property pluginName
@@ -13,7 +13,7 @@ var Simple = (function(Simple) {
    *
    * The name of this plugin
    */
-  Simple.pluginName = 'simple_plugin';
+  helix.pluginName = 'helix_plugin';
 
   /**
    * @property log
@@ -21,7 +21,7 @@ var Simple = (function(Simple) {
    *
    * This plugin's logger instance
    */
-  Simple.log = Logger.get('Simple');
+  helix.log = Logger.get('helix');
 
   /**
    * @property contextPath
@@ -30,7 +30,7 @@ var Simple = (function(Simple) {
    * The top level path of this plugin on the server
    *
    */
-  Simple.contextPath = "/simple-plugin/";
+  helix.contextPath = "/helix-plugin/";
 
   /**
    * @property templatePath
@@ -38,7 +38,7 @@ var Simple = (function(Simple) {
    *
    * The path to this plugin's partials
    */
-  Simple.templatePath = Simple.contextPath + "plugin/html/";
+  helix.templatePath = helix.contextPath + "plugin/html/";
 
   /**
    * @property module
@@ -49,7 +49,7 @@ var Simple = (function(Simple) {
    * workspace, viewRegistry and layoutFull used by the
    * run function
    */
-  Simple.module = angular.module('simple_plugin', ['hawtioCore'])
+  helix.module = angular.module('helix_plugin', ['hawtioCore'])
       .config(function($routeProvider) {
 
         /**
@@ -59,8 +59,8 @@ var Simple = (function(Simple) {
          * routeProvider has been configured with.
          */
         $routeProvider.
-            when('/simple_plugin', {
-              templateUrl: Simple.templatePath + 'simple.html'
+            when('/helix_plugin', {
+              templateUrl: helix.templatePath + 'helix.html'
             });
       });
 
@@ -77,15 +77,15 @@ var Simple = (function(Simple) {
    *     plugin.  This is just a matter of adding to the workspace's
    *     topLevelTabs array.
    */
-  Simple.module.run(function(workspace, viewRegistry, layoutFull) {
+  helix.module.run(function(workspace, viewRegistry, layoutFull) {
 
-    Simple.log.info(Simple.pluginName, " loaded");
+    helix.log.info(helix.pluginName, " loaded");
 
-    Core.addCSS(Simple.contextPath + "plugin/css/simple.css");
+    Core.addCSS(helix.contextPath + "plugin/css/helix.css");
 
     // tell the app to use the full layout, also could use layoutTree
     // to get the JMX tree or provide a URL to a custom layout
-    viewRegistry["simple_plugin"] = layoutFull;
+    viewRegistry["helix_plugin"] = layoutFull;
 
     /* Set up top-level link to our plugin.  Requires an object
        with the following attributes:
@@ -110,28 +110,29 @@ var Simple = (function(Simple) {
                     route.
      */
     workspace.topLevelTabs.push({
-      id: "simple",
-      content: "Simple",
-      title: "Simple plugin loaded dynamically",
+      id: "helix",
+      content: "helix",
+      title: "helix plugin loaded dynamically",
       isValid: function(workspace) { return true; },
-      href: function() { return "#/simple_plugin"; },
-      isActive: function(workspace) { return workspace.isLinkActive("simple_plugin"); }
+      href: function() { return "#/helix_plugin"; },
+      isActive: function(workspace) { return workspace.isLinkActive("helix_plugin"); }
 
     });
 
   });
 
   /**
-   * @function SimpleController
+   * @function helixController
    * @param $scope
    * @param jolokia
    *
-   * The controller for simple.html, only requires the jolokia
+   * The controller for helix.html, only requires the jolokia
    * service from hawtioCore
    *
    */
-  Simple.SimpleController = function($scope, jolokia) {
+  helix.helixController = function($scope, jolokia) {
     $scope.hello = "Hello world!";
+	$scope.projectName = "Helix Dashboard";
     $scope.cpuLoad = "0";
 
     // register a watch with jolokia on this mbean to
@@ -148,10 +149,10 @@ var Simple = (function(Simple) {
     }
   };
 
-  return Simple;
+  return helix;
 
-})(Simple || {});
+})(helix || {});
 
 // tell the hawtio plugin loader about our plugin so it can be
 // bootstrapped with the rest of angular
-hawtioPluginLoader.addModule(Simple.pluginName);
+hawtioPluginLoader.addModule(helix.pluginName);

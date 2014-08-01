@@ -20,8 +20,10 @@ package org.apache.helix.task;
  */
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -190,14 +192,15 @@ public class TaskDriver {
 
     // Push out new ideal state based on number of target partitions
     CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
-    builder.setRebalancerMode(IdealState.RebalanceMode.USER_DEFINED);
+    builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
-    for (int i = 0; i < numPartitions; i++) {
-      builder.add(jobResource + "_" + i);
-    }
     IdealState is = builder.build();
+    for (int i = 0; i < numPartitions; i++) {
+      is.getRecord().setListField(jobResource + "_" + i, new ArrayList<String>());
+      is.getRecord().setMapField(jobResource + "_" + i, new HashMap<String, String>());
+    }
     if (taskConfigMap != null && !taskConfigMap.isEmpty()) {
       is.setRebalancerClassName(GenericTaskRebalancer.class.getName());
     } else {

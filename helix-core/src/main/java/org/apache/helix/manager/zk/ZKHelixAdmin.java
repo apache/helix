@@ -253,6 +253,8 @@ public class ZKHelixAdmin implements HelixAdmin {
             .getPreferenceList(partitionName) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED && idealState
                 .getPreferenceList(partitionName) == null)
+            || (idealState.getRebalanceMode() == RebalanceMode.TASK && idealState
+                .getPreferenceList(partitionName) == null)
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
                 .getInstanceStateMap(partitionName) == null)) {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName + ", partition: "

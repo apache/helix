@@ -123,6 +123,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         mappingCalculator = customRebalancer;
         break;
       case USER_DEFINED:
+      case TASK:
         String rebalancerClassName = idealState.getRebalancerClassName();
         logger
             .info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);

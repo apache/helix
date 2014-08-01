@@ -31,6 +31,9 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.task.FixedTargetTaskRebalancer;
+import org.apache.helix.task.GenericTaskRebalancer;
+import org.apache.helix.task.TaskRebalancer;
 import org.apache.log4j.Logger;
 
 /**
@@ -71,13 +74,15 @@ public class IdealState extends HelixProperty {
   /**
    * The mode used for rebalance. FULL_AUTO does both node location calculation and state
    * assignment, SEMI_AUTO only does the latter, and CUSTOMIZED does neither. USER_DEFINED
-   * uses a Rebalancer implementation plugged in by the user.
+   * uses a Rebalancer implementation plugged in by the user. TASK designates that a
+   * {@link TaskRebalancer} instance should be used to rebalance this resource.
    */
   public enum RebalanceMode {
     FULL_AUTO,
     SEMI_AUTO,
     CUSTOMIZED,
     USER_DEFINED,
+    TASK,
     NONE
   }
 
@@ -207,10 +212,11 @@ public class IdealState extends HelixProperty {
    */
   public Set<String> getPartitionSet() {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+        || getRebalanceMode() == RebalanceMode.FULL_AUTO
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED
+        || getRebalanceMode() == RebalanceMode.TASK) {
       return _record.getListFields().keySet();
-    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
       return _record.getMapFields().keySet();
     } else {
       logger.error("Invalid ideal state mode:" + getResourceName());
@@ -235,7 +241,8 @@ public class IdealState extends HelixProperty {
   public Set<String> getInstanceSet(String partitionName) {
     if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
         || getRebalanceMode() == RebalanceMode.FULL_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED) {
+        || getRebalanceMode() == RebalanceMode.USER_DEFINED
+        || getRebalanceMode() == RebalanceMode.TASK) {
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null) {
         return new TreeSet<String>(prefList);
@@ -457,8 +464,14 @@ public class IdealState extends HelixProperty {
       property = RebalanceMode.CUSTOMIZED;
       break;
     default:
-      if (getRebalancerClassName() != null) {
-        property = RebalanceMode.USER_DEFINED;
+      String rebalancerName = getRebalancerClassName();
+      if (rebalancerName != null) {
+        if (rebalancerName.equals(FixedTargetTaskRebalancer.class.getName())
+            || rebalancerName.equals(GenericTaskRebalancer.class.getName())) {
+          property = RebalanceMode.TASK;
+        } else {
+          property = RebalanceMode.USER_DEFINED;
+        }
       } else {
         property = RebalanceMode.SEMI_AUTO;
       }

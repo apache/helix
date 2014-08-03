@@ -1,4 +1,4 @@
-package io.hawt.example.simpleplugin;
+package io.hawt.helixplugin;
 
 import io.hawt.web.plugin.HawtioPlugin;
 import org.slf4j.Logger;

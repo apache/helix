@@ -33,7 +33,7 @@
   </context-param>
 
   <listener>
-    <listener-class>io.hawt.example.simpleplugin.PluginContextListener</listener-class>
+    <listener-class>io.hawt.helixplugin.PluginContextListener</listener-class>
   </listener>
 
 

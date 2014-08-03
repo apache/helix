@@ -1,11 +1,11 @@
 /**
- * @module Simple
- * @mail Simple
+ * @module Helix
+ * @mail Helix
  *
- * The main entry point for the Simple module
+ * The main entry point for the Helix module
  *
  */
-var Simple = (function(Simple) {
+var Helix = (function(Helix) {
 
   /**
    * @property pluginName
@@ -13,7 +13,7 @@ var Simple = (function(Simple) {
    *
    * The name of this plugin
    */
-  Simple.pluginName = 'helix_plugin';
+  Helix.pluginName = 'helix_plugin';
 
   /**
    * @property log
@@ -21,7 +21,7 @@ var Simple = (function(Simple) {
    *
    * This plugin's logger instance
    */
-  Simple.log = Logger.get('Helix');
+  Helix.log = Logger.get('Helix');
 
   /**
    * @property contextPath
@@ -30,7 +30,7 @@ var Simple = (function(Simple) {
    * The top level path of this plugin on the server
    *
    */
-  Simple.contextPath = "/helix-plugin/";
+  Helix.contextPath = "/helix-plugin/";
 
   /**
    * @property templatePath
@@ -38,7 +38,7 @@ var Simple = (function(Simple) {
    *
    * The path to this plugin's partials
    */
-  Simple.templatePath = Simple.contextPath + "plugin/html/";
+  Helix.templatePath = Helix.contextPath + "plugin/html/";
 
   /**
    * @property module
@@ -49,7 +49,7 @@ var Simple = (function(Simple) {
    * workspace, viewRegistry and layoutFull used by the
    * run function
    */
-  Simple.module = angular.module('helix_plugin', ['hawtioCore'])
+  Helix.module = angular.module('helix_plugin', ['hawtioCore'])
       .config(function($routeProvider) {
 
         /**
@@ -60,21 +60,21 @@ var Simple = (function(Simple) {
          
         $routeProvider.
             when('/helix_plugin', {
-              templateUrl: Simple.templatePath + 'simple.html'
+              templateUrl: Helix.templatePath + 'helix.html'
             });
 			*/
 			 $routeProvider
         .when('/helix_plugin', {
-          templateUrl: Simple.templatePath + 'simple.html'
+          templateUrl: Helix.templatePath + 'helix.html'
         })
         .when('/helix_plugin/cluster_manager', {
-          templateUrl: Simple.templatePath + 'clusterManager.html'
+          templateUrl: Helix.templatePath + 'clusterManager.html'
         })
 		.when('/helix_plugin/resource_manager', {
-          templateUrl: Simple.templatePath + 'resourceManager.html'
+          templateUrl: Helix.templatePath + 'resourceManager.html'
         })
 		.when('/helix_plugin/instance_manager', {
-          templateUrl: Simple.templatePath + 'instanceManager.html'
+          templateUrl: Helix.templatePath + 'instanceManager.html'
         });
 			
       });
@@ -92,11 +92,11 @@ var Simple = (function(Simple) {
    *     plugin.  This is just a matter of adding to the workspace's
    *     topLevelTabs array.
    */
-  Simple.module.run(function(workspace, viewRegistry, layoutFull) {
+  Helix.module.run(function(workspace, viewRegistry, layoutFull) {
 
-    Simple.log.info(Simple.pluginName, " loaded");
+    Helix.log.info(Helix.pluginName, " loaded");
 
-    Core.addCSS(Simple.contextPath + "plugin/css/simple.css");
+    Core.addCSS(Helix.contextPath + "plugin/css/helix.css");
 
     // tell the app to use the full layout, also could use layoutTree
     // to get the JMX tree or provide a URL to a custom layout
@@ -125,33 +125,34 @@ var Simple = (function(Simple) {
                     route.
      */
     workspace.topLevelTabs.push({
-      id: "simple",
+      id: "helix",
       content: "Helix",
       title: "Helix plugin loaded dynamically",
       isValid: function(workspace) { return true; },
       href: function() { return "#/helix_plugin"; },
-      isActive: function(workspace) { return workspace.isLinkActive("simple_plugin"); }
+      isActive: function(workspace) { return workspace.isLinkActive("helix_plugin"); }
 
     });
 
   });
 
   /**
-   * @function SimpleController
+   * @function HelixController
    * @param $scope
    * @param jolokia
    *
-   * The controller for simple.html, only requires the jolokia
+   * The controller for helix.html, only requires the jolokia
    * service from hawtioCore
    *
    */
-  Simple.SimpleController = function($scope,$http, jolokia) {
+  Helix.HelixController = function($scope,$http, jolokia) {
     $scope.hello = "This is";
 	$scope.dashboardName = "Helix Dashboard";
     $scope.cpuLoad = "0";
 	$http.get("http://localhost:8100/clusters")
       .success(function(data) {
         $scope.clusters = data;
+        
       })
 
     // register a watch with jolokia on this mbean to
@@ -176,10 +177,10 @@ var Simple = (function(Simple) {
     }
   };
 
-  return Simple;
+  return Helix;
 
-})(Simple || {});
+})(Helix || {});
 
 // tell the hawtio plugin loader about our plugin so it can be
 // bootstrapped with the rest of angular
-hawtioPluginLoader.addModule(Simple.pluginName);
+hawtioPluginLoader.addModule(Helix.pluginName);

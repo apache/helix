@@ -97,6 +97,7 @@ var Helix = (function(Helix) {
     Helix.log.info(Helix.pluginName, " loaded");
 
     Core.addCSS(Helix.contextPath + "plugin/css/helix.css");
+    Core.addCSS(Helix.contextPath + "plugin/css/bootstrap.css");
 
     // tell the app to use the full layout, also could use layoutTree
     // to get the JMX tree or provide a URL to a custom layout

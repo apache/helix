@@ -17,16 +17,45 @@
       <div class="centered">
         <h2>Cluster Manager</h2>
 		 </div>
-		 <input type="text" ng-model="cluster.clusterName" />
-  <input type="button" ng-click="addClusters(cluster)" value="Add Cluster" />
-  <input type="button" ng-click="removeClusters(cluster)" value="Remove Clusters" />
-  <input type="button" ng-click="listClusters()" value="List Clusters" />
+		 <form class="form-inline" role="form">
+		  <input  type="text" ng-model="cluster.clusterName" class="form-control" placeholder ="Cluster Name" />
+		   <input  type="text" ng-model="cluster.controllerCluster" class="form-control" placeholder ="Controller Cluster Name" />
+  <input type="button" class="btn btn-info" ng-click="addClusters(cluster)" value="Add Cluster" />
+  <input type="button" class="btn btn-danger" ng-click="removeClusters(cluster)" value="Remove Clusters" />
+  <input type="button" class="btn btn-warning" ng-click="listClusters()" value="List Clusters" />
+   <input type="button" class="btn btn-success" ng-click="enableCluster(cluster,controllerCluster)" value="Enable Cluster" />
+   <input type="button" class="btn btn-danger" ng-click="disableCluster(cluster,controllerCluster)" value="Disable Cluster" />
+   <input type="button" class="btn btn-warning" ng-click="listClusterInfo(cluster)" value="List Cluster's Info" />
+   
+   
 		<ul>
     <li ng-repeat="item in clusters.listFields.clusters">
         {{item}}
     </li>
   </ul>
-     
+  
+ <P> Participants  </P>
+		<ul>
+    <li ng-repeat="item in clusters.listFields.participants">
+        {{item}}
+    </li>
+  </ul>
+  
+  <P> Resources  </P>
+		<ul>
+    <li ng-repeat="item in clusters.listFields.resources">
+        {{item}}
+    </li>
+  </ul>
+  
+   <P> State Model Definitions  </P>
+		<ul>
+    <li ng-repeat="item in clusters.listFields.stateModelDefs">
+        {{item}}
+    </li>
+  </ul>
+  
+     </form>
     </div>
   </div>
 

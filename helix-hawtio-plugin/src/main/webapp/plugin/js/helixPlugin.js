@@ -163,6 +163,7 @@ var Helix = (function(Helix) {
       arguments: []
     }, onSuccess(render));
 
+	//Add A New Cluster
 	$scope.addClusters = function(cluster) {
         $http.post("http://localhost:8100/clusters", 'jsonParameters={"command":"addCluster","clusterName":"'+cluster.clusterName+'"}')
           .success(function(data) {
@@ -178,6 +179,8 @@ var Helix = (function(Helix) {
       Core.$apply($scope);
     }
 	 
+	 //List the Cluster Names
+	 
 	 $scope.listClusters =function() {
 	        $http.get("http://localhost:8100/clusters")
 	      .success(function(data) {
@@ -185,6 +188,8 @@ var Helix = (function(Helix) {
 	      })
 	    }
 		
+	 //Remove A Cluster
+	 
 		   $scope.removeClusters = function(cluster) {
 	        $http.delete("http://localhost:8100/clusters/"+cluster.clusterName)
 	          .success(function(data) {
@@ -193,6 +198,36 @@ var Helix = (function(Helix) {
 			   alert('Succesfull Deleted');
 	          })
 	    }
+		   
+		   //Enable a Cluster in Controller mode
+			  
+		   $scope.enableCluster = function(cluster,controllerCluster) {
+			   $http.post("http://localhost:8100/clusters/"+cluster.clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"true"}')
+		          .success(function(data) {
+		        	  $scope.cluster.clusterName = null;
+		        	 
+		          })
+		    }
+		   
+		   
+		   //Disable a Cluster in Controller mode
+		   
+		   $scope.disableCluster = function(cluster,controllerCluster) {
+			   $http.post("http://localhost:8100/clusters/"+cluster.clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"false"}')
+		          .success(function(data) {
+		        	  $scope.cluster.clusterName = null;
+		        	 
+		          })
+		    }
+		   
+		   //List Clusters' Information
+		   
+		   $scope.listClusterInfo =function(cluster) {
+		        $http.get("http://localhost:8100/clusters/"+cluster.clusterName)
+		      .success(function(data) {
+		    	  $scope.clusters = data;
+		      })
+		    }
   };
   
 

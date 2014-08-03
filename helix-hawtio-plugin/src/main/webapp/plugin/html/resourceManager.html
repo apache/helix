@@ -15,18 +15,28 @@
 			<div class="centered">
 				<h2>Resource Manager</h2>
 				<p>Select Cluster</p>
-				<select
-					data-ng-options="o for o in clusters.listFields.clusters"
+				<select data-ng-options="o for o in clusters.listFields.clusters"
 					ng-model="cluster.clusterName">
 				</select> <input type="button" ng-click="listResources(cluster)"
-					value="List Resources" />
-				<ul>
-					<li ng-repeat="item in resources.listFields.ResourceGroups">
-						{{item}}</li>
-				</ul>
-				<input type="text" ng-model="cluster.resourceName" /> <input
-					type="button" ng-click="addResources(cluster)"
-					value="Add Resource" />
+					value="List Resources" /> <input type="text"
+					ng-model="cluster.resourceName" /> <input type="button"
+					ng-click="addResources(cluster)" value="Add Resource" />
+
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Resource</th>
+							<th>Actios</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in resources.listFields.ResourceGroups">
+							<td>{{item}}</td>
+							<td><input type="button" class="btn btn-danger"
+								ng-click="removeResource(cluster,'{{item}}')" value="Remove" /></td>
+						</tr>
+					</tbody>
+				</table>
 
 			</div>
 		</div>

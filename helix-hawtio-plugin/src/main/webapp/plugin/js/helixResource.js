@@ -32,7 +32,14 @@ var Helix = (function(Helix) {
                     $scope.clusters = data;
                 })
         }
-
+        
+        $scope.removeResource = function(cluster,resourceName) {
+            $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
+                .success(function(data) {
+                    $scope.clusters = data;
+                })
+        }
+        
         $scope.listResources = function(cluster) {
             console.log(cluster.clusterName)
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")

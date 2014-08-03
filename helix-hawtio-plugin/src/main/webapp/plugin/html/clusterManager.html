@@ -19,8 +19,8 @@
 		 </div>
 		 <input type="text" ng-model="cluster.clusterName" />
   <input type="button" ng-click="addClusters(cluster)" value="Add Cluster" />
-  <input type="button" ng-click="app.removeClusters(app.cluster)" value="Remove Clusters" />
-  <input type="button" ng-click="app.listClusters()" value="List Clusters" />
+  <input type="button" ng-click="removeClusters(cluster)" value="Remove Clusters" />
+  <input type="button" ng-click="listClusters()" value="List Clusters" />
 		<ul>
     <li ng-repeat="item in clusters.listFields.clusters">
         {{item}}
@@ -31,23 +31,7 @@
   </div>
 
 </div>
-<!--div class="span6 offset3" ng-app="app" ng-controller="AppCtrl as app">
 
-  <input type="text" ng-model="app.cluster.clusterName" />
-  <input type="button" ng-click="app.addClusters(app.cluster)" value="Add Cluster" />
-  <input type="button" ng-click="app.removeClusters(app.cluster)" value="Remove Clusters" />
-  <input type="button" ng-click="app.listClusters()" value="List Clusters" />
-
-  <ul>
-    <li ng-repeat="item in app.clusters.listFields.clusters">
-        {{item}}
-    </li>
-  </ul>
-
-
-  <script src="/helix-plugin/plugin/js/app.js"></script>
-  
-</div-->
 
   <div class="row-fluid">
     <div class="span6 offset3">

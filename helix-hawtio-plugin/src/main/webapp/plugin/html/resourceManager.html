@@ -4,15 +4,16 @@
 
 	<div class="row-fluid">
 		<div class="span6 offset3">
-			<div class="centered">
+			
 				<h2>Resource Manager</h2>
-				<p>Select Cluster</p>
+				<p>Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
 					ng-model="cluster.clusterName">
-				</select> <input type="button" ng-click="listResources(cluster)"
-					value="List Resources" /> <input type="text"
+				</select> <input type="button" class="btn btn-default" ng-click="listResources(cluster)"
+					value="List Resources" /> </p>
+					<input type="text"
 					ng-model="cluster.resourceName" /> <input type="button"
-					ng-click="addResources(cluster)" value="Add Resource" />
+					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
 
 				<table class="table table-hover">
 					<thead>
@@ -25,12 +26,27 @@
 						<tr ng-repeat="item in resources.listFields.ResourceGroups">
 							<td>{{item}}</td>
 							<td><input type="button" class="btn btn-danger"
-								ng-click="removeResource(cluster,'{{item}}')" value="Remove" /></td>
+								ng-click="removeResource(cluster,'{{item}}')" value="Remove" />
+								<input type="button" class="btn btn-info"
+								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
+								</td>
 						</tr>
 					</tbody>
 				</table>
-
-			</div>
+				<div ng-show="resource">
+				<div class="panel panel-default">
+  <!-- Default panel contents -->
+  <div class="panel-heading">Simple Details</div>
+  <div class="panel-body">
+    <p>...</p>
+  </div>
+		<ul>
+    <li ng-repeat="(key, value) in resource.simpleFields">
+        {{key}}: {{ value }}
+    </li>
+  </ul>
+</div></div>
+			
 		</div>
 	</div>
 

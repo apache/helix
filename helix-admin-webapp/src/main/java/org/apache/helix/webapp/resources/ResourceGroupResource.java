@@ -85,9 +85,11 @@ public class ResourceGroupResource extends ServerResource {
 
   @Override
   public Representation delete() {
-    try {
-	Headers h = new Headers();
+  
+  Headers h = new Headers();
         h.addHeaders(getResponse());
+    try {
+	
 		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceGroupName = (String) getRequest().getAttributes().get("resourceName");

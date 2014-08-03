@@ -161,6 +161,14 @@ var Simple = (function(Simple) {
       arguments: []
     }, onSuccess(render));
 
+	$scope.addClusters = function(cluster) {
+        $http.post("http://localhost:8100/clusters", 'jsonParameters={"command":"addCluster","clusterName":"'+cluster.clusterName+'"}')
+          .success(function(data) {
+        	  $scope.cluster.clusterName = null;
+        	  $scope.clusters = data;
+          })
+    }
+	
     // update display of metric
     function render(response) {
       $scope.cpuLoad = response.value['ProcessCpuLoad'];

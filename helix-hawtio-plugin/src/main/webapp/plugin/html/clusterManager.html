@@ -16,12 +16,17 @@
     <div class="span6 offset3">
       <div class="centered">
         <h2>Cluster Manager</h2>
+		 </div>
+		 <input type="text" ng-model="cluster.clusterName" />
+  <input type="button" ng-click="addClusters(cluster)" value="Add Cluster" />
+  <input type="button" ng-click="app.removeClusters(app.cluster)" value="Remove Clusters" />
+  <input type="button" ng-click="app.listClusters()" value="List Clusters" />
 		<ul>
     <li ng-repeat="item in clusters.listFields.clusters">
         {{item}}
     </li>
   </ul>
-      </div>
+     
     </div>
   </div>
 

@@ -170,12 +170,30 @@ var Helix = (function(Helix) {
           })
     }
 	
+	
     // update display of metric
-    function render(response) {
+	 function render(response) {
       $scope.cpuLoad = response.value['ProcessCpuLoad'];
       Core.$apply($scope);
     }
+	 
+	 $scope.listClusters =function() {
+	        $http.get("http://localhost:8100/clusters")
+	      .success(function(data) {
+	    	  $scope.clusters = data;
+	      })
+	    }
+		
+		   $scope.removeClusters = function(cluster) {
+	        $http.delete("http://localhost:8100/clusters/"+cluster.clusterName)
+	          .success(function(data) {
+			   $scope.cluster.clusterName = null;
+			   $scope.listClusters();
+			   alert('Succesfull Deleted');
+	          })
+	    }
   };
+  
 
   return Helix;
 

@@ -158,9 +158,9 @@ var Helix = (function(Helix) {
 
     // register a watch with jolokia on this mbean to
     // get updated metrics
-    Core.register(jolokia, $scope, {
-      type: 'read', mbean: 'java.lang:type=OperatingSystem',
-      arguments: []
+   Core.register(jolokia, $scope, {
+     type: 'read', mbean: 'java.lang:type=OperatingSystem',
+     arguments: []
     }, onSuccess(render));
 
 	//Add A New Cluster
@@ -190,12 +190,12 @@ var Helix = (function(Helix) {
 		
 	 //Remove A Cluster
 	 
-		   $scope.removeClusters = function(cluster) {
-	        $http.delete("http://localhost:8100/clusters/"+cluster.clusterName)
+		   $scope.removeClusters = function(clusters,clusterName) {
+	        $http.delete("http://localhost:8100/clusters/"+clusterName)
 	          .success(function(data) {
-			   $scope.cluster.clusterName = null;
+			   $scope.clusters.clusterName = null;
 			   $scope.listClusters();
-			   alert('Succesfull Deleted');
+			   
 	          })
 	    }
 		   

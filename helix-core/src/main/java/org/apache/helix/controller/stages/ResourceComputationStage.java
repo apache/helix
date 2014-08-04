@@ -19,22 +19,23 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.Partition;
 import org.apache.helix.api.Resource;
+import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
 import org.apache.log4j.Logger;
 
 /**
@@ -85,14 +86,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
    * @throws StageException
    */
   Map<ResourceId, ResourceConfig> getCurStateResourceCfgMap(Cluster cluster) throws StageException {
-    Map<ResourceId, ResourceConfig.Builder> resCfgBuilderMap =
-        new HashMap<ResourceId, ResourceConfig.Builder>();
-
-    Map<ResourceId, PartitionedRebalancerConfig.Builder> rebCtxBuilderMap =
-        new HashMap<ResourceId, PartitionedRebalancerConfig.Builder>();
-
-    Map<ResourceId, Integer> bucketSizeMap = new HashMap<ResourceId, Integer>();
-    Map<ResourceId, Boolean> batchModeMap = new HashMap<ResourceId, Boolean>();
+    Map<ResourceId, IdealState> idealStateMap = new HashMap<ResourceId, IdealState>();
 
     for (Participant liveParticipant : cluster.getLiveParticipantMap().values()) {
       for (ResourceId resourceId : liveParticipant.getCurrentStateMap().keySet()) {
@@ -111,35 +105,28 @@ public class ResourceComputationStage extends AbstractBaseStage {
               + currentState.getResourceId());
         }
 
-        if (!resCfgBuilderMap.containsKey(resourceId)) {
-          PartitionedRebalancerConfig.Builder rebCtxBuilder =
-              new PartitionedRebalancerConfig.Builder(resourceId);
-          rebCtxBuilder.stateModelDefId(currentState.getStateModelDefId());
-          rebCtxBuilder.stateModelFactoryId(StateModelFactoryId.from(currentState
-              .getStateModelFactoryName()));
-          rebCtxBuilderMap.put(resourceId, rebCtxBuilder);
-
-          ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
-          resCfgBuilderMap.put(resourceId, resCfgBuilder);
-          bucketSizeMap.put(resourceId, currentState.getBucketSize());
-          batchModeMap.put(resourceId, currentState.getBatchMessageMode());
+        if (!idealStateMap.containsKey(resourceId)) {
+          IdealState idealState = new IdealState(resourceId);
+          idealState.setStateModelDefId(currentState.getStateModelDefId());
+          idealState.setStateModelFactoryName(currentState.getStateModelFactoryName());
+          idealState.setBucketSize(currentState.getBucketSize());
+          idealState.setBatchMessageMode(currentState.getBatchMessageMode());
+          idealStateMap.put(resourceId, idealState);
         }
 
-        PartitionedRebalancerConfig.Builder rebCtxBuilder = rebCtxBuilderMap.get(resourceId);
+        IdealState idealState = idealStateMap.get(resourceId);
         for (PartitionId partitionId : currentState.getTypedPartitionStateMap().keySet()) {
-          rebCtxBuilder.addPartition(new Partition(partitionId));
+          idealState.setParticipantStateMap(partitionId, new HashMap<ParticipantId, State>());
+          idealState.setPreferenceList(partitionId, new ArrayList<ParticipantId>());
         }
       }
     }
 
     Map<ResourceId, ResourceConfig> resCfgMap = new HashMap<ResourceId, ResourceConfig>();
-    for (ResourceId resourceId : resCfgBuilderMap.keySet()) {
-      ResourceConfig.Builder resCfgBuilder = resCfgBuilderMap.get(resourceId);
-      PartitionedRebalancerConfig.Builder rebCtxBuilder = rebCtxBuilderMap.get(resourceId);
-      RebalancerConfig rebalancerConfig = rebCtxBuilder.build();
-      resCfgBuilder.rebalancerConfig(rebalancerConfig);
-      resCfgBuilder.idealState(PartitionedRebalancerConfig.rebalancerConfigToIdealState(
-          rebalancerConfig, bucketSizeMap.get(resourceId), batchModeMap.get(resourceId)));
+    for (ResourceId resourceId : idealStateMap.keySet()) {
+      ResourceConfig.Builder resCfgBuilder = new ResourceConfig.Builder(resourceId);
+      IdealState idealState = idealStateMap.get(resourceId);
+      resCfgBuilder.idealState(idealState);
       resCfgMap.put(resourceId, resCfgBuilder.build());
     }
 

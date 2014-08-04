@@ -25,7 +25,6 @@ import java.util.Set;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
@@ -193,51 +192,40 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
       ResourceConfig resourceConfig = resourceMap.get(resourceId);
       RebalancerConfig rebalancerConfig = resourceConfig.getRebalancerConfig();
-      StateModelDefinition stateModelDef =
-          stateModelDefs.get(rebalancerConfig.getStateModelDefId());
+      IdealState idealState = resourceConfig.getIdealState();
+      StateModelDefinition stateModelDef = stateModelDefs.get(idealState.getStateModelDefId());
       ResourceAssignment resourceAssignment = null;
-      if (rebalancerConfig != null) {
-        // use a cached rebalancer if possible
-        RebalancerRef ref = rebalancerConfig.getRebalancerRef();
-        HelixRebalancer rebalancer = null;
-        if (_rebalancerMap.containsKey(resourceId)) {
-          HelixRebalancer candidateRebalancer = _rebalancerMap.get(resourceId);
-          if (ref != null && candidateRebalancer.getClass().equals(ref.toString())) {
-            rebalancer = candidateRebalancer;
-          }
+      // use a cached rebalancer if possible
+      RebalancerRef ref = idealState.getRebalancerRef();
+      HelixRebalancer rebalancer = null;
+      if (_rebalancerMap.containsKey(resourceId)) {
+        HelixRebalancer candidateRebalancer = _rebalancerMap.get(resourceId);
+        if (ref != null && candidateRebalancer.getClass().equals(ref.toString())) {
+          rebalancer = candidateRebalancer;
         }
+      }
 
-        // otherwise instantiate a new one
+      // otherwise instantiate a new one
+      if (rebalancer == null) {
+        if (ref != null) {
+          rebalancer = ref.getRebalancer();
+        }
+        HelixManager manager = event.getAttribute("helixmanager");
+        ControllerContextProvider provider =
+            event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
         if (rebalancer == null) {
-          if (ref != null) {
-            rebalancer = ref.getRebalancer();
-          }
-          HelixManager manager = event.getAttribute("helixmanager");
-          ControllerContextProvider provider =
-              event.getAttribute(AttributeName.CONTEXT_PROVIDER.toString());
-          if (rebalancer == null) {
-            rebalancer = new FallbackRebalancer();
-          }
-          rebalancer.init(manager, provider);
-          _rebalancerMap.put(resourceId, rebalancer);
+          rebalancer = new FallbackRebalancer();
         }
-        ResourceAssignment currentAssignment = null;
-        IdealState idealState;
-        Resource resourceSnapshot = cluster.getResource(resourceId);
-        if (resourceSnapshot != null) {
-          currentAssignment = resourceSnapshot.getResourceAssignment();
-          idealState = resourceSnapshot.getIdealState();
-        } else {
-          idealState = new IdealState(resourceId);
-        }
-        try {
-
-          resourceAssignment =
-              rebalancer.computeResourceMapping(idealState, rebalancerConfig, currentAssignment,
-                  cluster, currentStateOutput);
-        } catch (Exception e) {
-          LOG.error("Rebalancer for resource " + resourceId + " failed.", e);
-        }
+        rebalancer.init(manager, provider);
+        _rebalancerMap.put(resourceId, rebalancer);
+      }
+      ResourceAssignment currentAssignment = null;
+      try {
+        resourceAssignment =
+            rebalancer.computeResourceMapping(idealState, rebalancerConfig, currentAssignment,
+                cluster, currentStateOutput);
+      } catch (Exception e) {
+        LOG.error("Rebalancer for resource " + resourceId + " failed.", e);
       }
       if (resourceAssignment == null) {
         resourceAssignment =

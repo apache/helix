@@ -53,8 +53,6 @@ import org.apache.helix.controller.provisioner.ContainerId;
 import org.apache.helix.controller.provisioner.ContainerSpec;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.controller.provisioner.ProvisionerConfig;
-import org.apache.helix.controller.rebalancer.RebalancerRef;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.rebalancer.config.RebalancerConfigHolder;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -64,7 +62,6 @@ import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -292,34 +289,8 @@ public class ClusterAccessor {
       resourceConfigMap = _accessor.getChildValuesMap(_keyBuilder.resourceConfigs());
     }
 
-    // check if external view and resource assignment reads are required
-    boolean extraReadsRequired = false;
-    for (String resourceName : idealStateMap.keySet()) {
-      if (extraReadsRequired) {
-        break;
-      }
-      // a rebalancer can be user defined if it has that mode set, or has a different rebalancer
-      // class
-      IdealState idealState = idealStateMap.get(resourceName);
-      extraReadsRequired =
-          extraReadsRequired || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED);
-      RebalancerRef ref = idealState.getRebalancerRef();
-      if (ref != null) {
-        extraReadsRequired =
-            extraReadsRequired
-                || !PartitionedRebalancerConfig.isBuiltinRebalancer(ref.getRebalancerClass());
-      }
-    }
-    for (String resourceName : resourceConfigMap.keySet()) {
-      if (extraReadsRequired) {
-        break;
-      }
-      extraReadsRequired =
-          extraReadsRequired || resourceConfigMap.get(resourceName).hasRebalancerConfig();
-    }
-
     // now read external view and resource assignments if needed
-    if (!useCache || extraReadsRequired) {
+    if (!useCache) {
       externalViewMap = _accessor.getChildValuesMap(_keyBuilder.externalViews());
       resourceAssignmentMap = _accessor.getChildValuesMap(_keyBuilder.resourceAssignments());
       _cache.setAssignmentWritePolicy(true);
@@ -439,8 +410,8 @@ public class ClusterAccessor {
    * @return true if resource added, false if there was an error
    */
   public boolean addResource(ResourceConfig resource) {
-    if (resource == null || resource.getRebalancerConfig() == null) {
-      LOG.error("Resource not fully defined with a rebalancer config");
+    if (resource == null || resource.getIdealState() == null) {
+      LOG.error("Resource not fully defined with an ideal state");
       return false;
     }
 
@@ -448,8 +419,8 @@ public class ClusterAccessor {
       LOG.error("Cluster: " + _clusterId + " structure is not valid");
       return false;
     }
-    RebalancerConfig config = resource.getRebalancerConfig();
-    StateModelDefId stateModelDefId = config.getStateModelDefId();
+    IdealState idealState = resource.getIdealState();
+    StateModelDefId stateModelDefId = idealState.getStateModelDefId();
     if (_accessor.getProperty(_keyBuilder.stateModelDef(stateModelDefId.stringify())) == null) {
       LOG.error("State model: " + stateModelDefId + " not found in cluster: " + _clusterId);
       return false;
@@ -467,13 +438,8 @@ public class ClusterAccessor {
       return false;
     }
 
-    // Create an IdealState from a RebalancerConfig (if the resource supports it)
-    IdealState idealState =
-        PartitionedRebalancerConfig.rebalancerConfigToIdealState(resource.getRebalancerConfig(), 0,
-            false);
-    if (idealState != null) {
-      _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
-    }
+    // Persist the ideal state
+    _accessor.setProperty(_keyBuilder.idealStates(resourceId.stringify()), idealState);
 
     // Add resource user config
     boolean persistConfig = false;
@@ -482,11 +448,10 @@ public class ClusterAccessor {
       configuration.addNamespacedConfig(resource.getUserConfig());
       persistConfig = true;
     }
-    PartitionedRebalancerConfig partitionedConfig = PartitionedRebalancerConfig.from(config);
-    if (idealState == null
-        && (partitionedConfig == null || partitionedConfig.getRebalanceMode() == RebalanceMode.USER_DEFINED)) {
+    RebalancerConfig rebalancerConfig = resource.getRebalancerConfig();
+    if (rebalancerConfig != null) {
       // only persist if this is not easily convertible to an ideal state
-      configuration.addNamespacedConfig(new RebalancerConfigHolder(resource.getRebalancerConfig())
+      configuration.addNamespacedConfig(new RebalancerConfigHolder(rebalancerConfig)
           .toNamespacedConfig());
       persistConfig = true;
     }
@@ -796,29 +761,10 @@ public class ClusterAccessor {
     RebalancerConfig rebalancerConfig = null;
     if (resourceConfiguration != null) {
       userConfig = resourceConfiguration.getUserConfig();
+      rebalancerConfig = resourceConfiguration.getRebalancerConfig(RebalancerConfig.class);
+      provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
     } else {
       userConfig = new UserConfig(Scope.resource(resourceId));
-    }
-    if (idealState != null) {
-      if (resourceConfiguration != null
-          && idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED) {
-        // prefer rebalancer config for user_defined data rebalancing
-        rebalancerConfig =
-            resourceConfiguration.getRebalancerConfig(PartitionedRebalancerConfig.class);
-      }
-      if (rebalancerConfig == null) {
-        // prefer ideal state for non-user_defined data rebalancing
-        rebalancerConfig = PartitionedRebalancerConfig.from(idealState);
-      }
-      idealState.updateUserConfig(userConfig);
-    } else if (resourceConfiguration != null) {
-      rebalancerConfig = resourceConfiguration.getRebalancerConfig(RebalancerConfig.class);
-    }
-    if (rebalancerConfig == null) {
-      rebalancerConfig = new PartitionedRebalancerConfig();
-    }
-    if (resourceConfiguration != null) {
-      provisionerConfig = resourceConfiguration.getProvisionerConfig(ProvisionerConfig.class);
     }
     ResourceConfig resourceConfig =
         new ResourceConfig.Builder(resourceId).idealState(idealState)

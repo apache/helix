@@ -39,8 +39,6 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -167,9 +165,8 @@ public class BaseStageTest {
     Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
     for (IdealState idealState : idealStates) {
       ResourceId resourceId = idealState.getResourceId();
-      RebalancerConfig context = PartitionedRebalancerConfig.from(idealState);
       ResourceConfig resourceConfig =
-          new ResourceConfig.Builder(resourceId).idealState(idealState).rebalancerConfig(context)
+          new ResourceConfig.Builder(resourceId).idealState(idealState)
               .userConfig(new UserConfig(Scope.resource(resourceId))).build();
       resourceMap.put(resourceId, resourceConfig);
     }

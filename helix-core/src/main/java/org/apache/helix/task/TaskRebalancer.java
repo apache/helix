@@ -283,6 +283,9 @@ public abstract class TaskRebalancer implements HelixRebalancer {
                 instance);
         TaskPartitionState currState =
             (currHelixState != null) ? TaskPartitionState.valueOf(currHelixState.toString()) : null;
+        if (currState != null) {
+          jobCtx.setPartitionState(pId, currState);
+        }
 
         // Process any requested state transitions.
         State requestedStateStr =
@@ -339,7 +342,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
           LOG.debug(String.format(
               "Task partition %s has error state %s. Marking as such in rebalancer context.",
               pName, currState));
-          markPartitionError(jobCtx, pId, currState);
+          markPartitionError(jobCtx, pId, currState, true);
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts.
           if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()) {
@@ -364,6 +367,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
               workflowCtx.setJobState(jobResource, TaskState.FAILED);
               workflowCtx.setWorkflowState(TaskState.FAILED);
               workflowCtx.setFinishTime(System.currentTimeMillis());
+              markAllPartitionsError(jobCtx, currState, false);
               addAllPartitions(allPartitions, partitionsToDropFromIs);
               return emptyAssignment(jobResource, currStateOutput);
             } else {
@@ -428,6 +432,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
                 new PartitionAssignment(instance.toString(), TaskPartitionState.RUNNING.name()));
             excludeSet.add(pId);
             jobCtx.setAssignedParticipant(pId, instance.toString());
+            jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
           }
@@ -742,10 +747,20 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     ctx.incrementNumAttempts(pId);
   }
 
-  private static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state) {
+  private static void markPartitionError(JobContext ctx, int pId, TaskPartitionState state,
+      boolean incrementAttempts) {
     ctx.setPartitionState(pId, state);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
-    ctx.incrementNumAttempts(pId);
+    if (incrementAttempts) {
+      ctx.incrementNumAttempts(pId);
+    }
+  }
+
+  private static void markAllPartitionsError(JobContext ctx, TaskPartitionState state,
+      boolean incrementAttempts) {
+    for (int pId : ctx.getPartitionSet()) {
+      markPartitionError(ctx, pId, state, incrementAttempts);
+    }
   }
 
   /**

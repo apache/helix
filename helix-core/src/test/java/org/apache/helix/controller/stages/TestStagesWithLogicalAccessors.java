@@ -1,4 +1,4 @@
-package org.apache.helix.api;
+package org.apache.helix.controller.stages;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -25,14 +25,16 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.Cluster;
+import org.apache.helix.api.Participant;
+import org.apache.helix.api.Resource;
+import org.apache.helix.api.State;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.stages.AttributeName;
 import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
@@ -42,6 +44,8 @@ import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -54,7 +58,7 @@ import org.testng.annotations.Test;
 import com.google.common.base.Function;
 import com.google.common.collect.Maps;
 
-public class TestNewStages extends ZkTestBase {
+public class TestStagesWithLogicalAccessors extends ZkTestBase {
   final int n = 2;
   final int p = 8;
   final int r = 2;
@@ -98,8 +102,8 @@ public class TestNewStages extends ZkTestBase {
     ResourceId resourceId = ResourceId.from("TestDB0");
     Assert.assertTrue(resourceMap.containsKey(resourceId));
     Resource resource = resourceMap.get(resourceId);
-    Assert.assertNotNull(BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
-        SemiAutoRebalancerConfig.class));
+    Assert.assertNotNull(resource.getIdealState());
+    Assert.assertEquals(resource.getIdealState().getRebalanceMode(), RebalanceMode.SEMI_AUTO);
 
     System.out.println("END " + testName + " at " + new Date(System.currentTimeMillis()));
   }
@@ -163,7 +167,7 @@ public class TestNewStages extends ZkTestBase {
     ResourceCurrentState currentStateOutput = new ResourceCurrentState();
     ResourceAssignment semiAutoResult =
         resource
-            .getRebalancerConfig()
+            .getIdealState()
             .getRebalancerRef()
             .getRebalancer()
             .computeResourceMapping(resource.getIdealState(), resource.getRebalancerConfig(), null,
@@ -180,11 +184,9 @@ public class TestNewStages extends ZkTestBase {
    */
   private void verifySemiAutoRebalance(Resource resource, ResourceAssignment assignment) {
     Assert.assertEquals(assignment.getMappedPartitionIds().size(), resource.getSubUnitSet().size());
-    SemiAutoRebalancerConfig context =
-        BasicRebalancerConfig.convert(resource.getRebalancerConfig(),
-            SemiAutoRebalancerConfig.class);
+    IdealState idealState = resource.getIdealState();
     for (PartitionId partitionId : assignment.getMappedPartitionIds()) {
-      List<ParticipantId> preferenceList = context.getPreferenceList(partitionId);
+      List<ParticipantId> preferenceList = idealState.getPreferenceList(partitionId);
       Map<ParticipantId, State> replicaMap = assignment.getReplicaMap(partitionId);
       Assert.assertEquals(replicaMap.size(), preferenceList.size());
       Assert.assertEquals(replicaMap.size(), r);

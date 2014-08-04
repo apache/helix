@@ -116,8 +116,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
             CLUSTER_NAME, db2));
     Assert.assertTrue(result);
     Thread.sleep(1000);
-    HelixDataAccessor accessor =
-        new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
+    HelixDataAccessor accessor = new ZKHelixDataAccessor(CLUSTER_NAME, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev = accessor.getProperty(keyBuilder.externalView(db2));
     Assert.assertEquals(ev.getPartitionSet().size(), 60);
@@ -149,8 +148,7 @@ public class TestCustomizedIdealStateRebalancer extends ZkStandAloneCMTestBase {
     @Override
     public boolean verify() {
       try {
-        HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(getClusterName(), _baseAccessor);
+        HelixDataAccessor accessor = new ZKHelixDataAccessor(getClusterName(), _baseAccessor);
         Builder keyBuilder = accessor.keyBuilder();
         IdealState idealState = accessor.getProperty(keyBuilder.idealStates(_resourceName));
         int numberOfPartitions = idealState.getRecord().getListFields().size();

@@ -29,10 +29,6 @@ import org.apache.helix.model.IdealState;
 
 public abstract class IdealStateBuilder {
   /**
-   * Resource name e.g. myDB,
-   */
-  private String resourceName;
-  /**
    * Number of partitions/subresources
    */
   private int numPartitions;
@@ -64,7 +60,7 @@ public abstract class IdealStateBuilder {
    * name. By default a resource will be allocated to all nodes registered to
    * the cluster.
    */
-  private String nodeGroup = "*";
+  private String nodeGroup;
 
   protected ZNRecord _record;
 
@@ -72,7 +68,6 @@ public abstract class IdealStateBuilder {
    * @param resourceName
    */
   public IdealStateBuilder(String resourceName) {
-    this.resourceName = resourceName;
     _record = new ZNRecord(resourceName);
   }
 
@@ -161,6 +156,9 @@ public abstract class IdealStateBuilder {
     idealstate.setStateModelFactoryId(StateModelFactoryId.from(stateModelFactoryName));
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
+    if (nodeGroup != null) {
+      idealstate.setInstanceGroupTag(nodeGroup);
+    }
 
     if (!idealstate.isValid()) {
       throw new HelixException("invalid ideal-state: " + idealstate);

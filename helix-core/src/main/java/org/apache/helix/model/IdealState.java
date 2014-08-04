@@ -45,6 +45,8 @@ import org.apache.helix.controller.rebalancer.FullAutoRebalancer;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
+import org.apache.helix.task.FixedTargetTaskRebalancer;
+import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Enums;
@@ -105,6 +107,7 @@ public class IdealState extends HelixProperty {
     SEMI_AUTO,
     CUSTOMIZED,
     USER_DEFINED,
+    TASK,
     NONE
   }
 
@@ -307,8 +310,8 @@ public class IdealState extends HelixProperty {
     case FULL_AUTO:
       return _record.getListFields().keySet();
     case CUSTOMIZED:
-      return _record.getMapFields().keySet();
     case USER_DEFINED:
+    case TASK:
       return _record.getMapFields().keySet();
     default:
       logger.error("Invalid ideal state mode:" + getResourceName());
@@ -395,7 +398,7 @@ public class IdealState extends HelixProperty {
         return Collections.emptySet();
       }
     } else if (rebalanceMode == RebalanceMode.CUSTOMIZED
-        || rebalanceMode == RebalanceMode.USER_DEFINED) {
+        || rebalanceMode == RebalanceMode.USER_DEFINED || rebalanceMode == RebalanceMode.TASK) {
       // get instances from map fields
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
@@ -734,10 +737,14 @@ public class IdealState extends HelixProperty {
       property = RebalanceMode.CUSTOMIZED;
       break;
     default:
-      if (getRebalancerClassName() != null) {
-        property = RebalanceMode.USER_DEFINED;
-      } else {
+      String rebalancerName = getRebalancerClassName();
+      if (rebalancerName == null) {
         property = RebalanceMode.SEMI_AUTO;
+      } else if (rebalancerName.equals(FixedTargetTaskRebalancer.class.getName())
+          || rebalancerName.equals(GenericTaskRebalancer.class.getName())) {
+        property = RebalanceMode.TASK;
+      } else {
+        property = RebalanceMode.USER_DEFINED;
       }
       break;
     }

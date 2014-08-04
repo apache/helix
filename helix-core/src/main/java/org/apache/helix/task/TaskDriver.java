@@ -190,7 +190,7 @@ public class TaskDriver {
 
     // Push out new ideal state based on number of target partitions
     CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
-    builder.setRebalancerMode(IdealState.RebalanceMode.USER_DEFINED);
+    builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);

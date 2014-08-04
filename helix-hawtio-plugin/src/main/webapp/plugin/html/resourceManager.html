@@ -8,8 +8,8 @@
 				<h2>Resource Manager</h2>
 				<p>Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName">
-				</select> <input type="button" class="btn btn-default" ng-click="listResources(cluster)"
+					ng-model="cluster.clusterName" placeholder="Select Cluster">
+				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
 					value="List Resources" /> </p>
 					<input type="text"
 					ng-model="cluster.resourceName" /> <input type="button"
@@ -26,8 +26,8 @@
 						<tr ng-repeat="item in resources.listFields.ResourceGroups">
 							<td>{{item}}</td>
 							<td><input type="button" class="btn btn-danger"
-								ng-click="removeResource(cluster,'{{item}}')" value="Remove" />
-								<input type="button" class="btn btn-info"
+								ng-click="removeResource(cluster,'{{item}}')" value="Remove" /></td>
+								<td><input type="button" class="btn btn-info"
 								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
 								</td>
 						</tr>
@@ -36,12 +36,24 @@
 				<div ng-show="resource">
 				<div class="panel panel-default">
   <!-- Default panel contents -->
-  <div class="panel-heading">Simple Details</div>
+  <div class="panel-heading">Details</div>
   <div class="panel-body">
-    <p>...</p>
   </div>
+  <p>Simple Details</p>
 		<ul>
     <li ng-repeat="(key, value) in resource.simpleFields">
+        {{key}}: {{ value }}
+    </li>
+  </ul>
+  <p>List Details</p>
+  <ul>
+    <li ng-repeat="(key, value) in resource.listFields">
+        {{key}}: {{ value }}
+    </li>
+  </ul>
+  <p>Map Details</p>
+  <ul>
+    <li ng-repeat="(key, value) in resource.mapFields">
         {{key}}: {{ value }}
     </li>
   </ul>

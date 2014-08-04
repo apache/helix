@@ -57,12 +57,7 @@ var Helix = (function(Helix) {
          * to avoid using 'otherwise', as hawtio has a handler
          * in place when a route doesn't match any routes that
          * routeProvider has been configured with.
-         
-        $routeProvider.
-            when('/helix_plugin', {
-              templateUrl: Helix.templatePath + 'helix.html'
-            });
-			*/
+  		*/
 			 $routeProvider
         .when('/helix_plugin', {
           templateUrl: Helix.templatePath + 'helix.html'
@@ -99,10 +94,10 @@ var Helix = (function(Helix) {
     Core.addCSS(Helix.contextPath + "plugin/css/helix.css");
     Core.addCSS(Helix.contextPath + "plugin/css/bootstrap.css");
 
-    // tell the app to use the full layout, also could use layoutTree
-    // to get the JMX tree or provide a URL to a custom layout
-    viewRegistry["helix_plugin"] = layoutFull;
-
+    // viewRegistry["helix_plugin"] = layoutFull;
+    // tell hawtio that we have our own custom layout for
+    // our view for helix 
+    viewRegistry["helix_plugin"] = Helix.templatePath + "helixLayout.html";
     /* Set up top-level link to our plugin.  Requires an object
        with the following attributes:
 

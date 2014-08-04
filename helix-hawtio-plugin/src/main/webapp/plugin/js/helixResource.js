@@ -15,12 +15,13 @@ var Helix = (function(Helix) {
         $http.get("http://localhost:8100/clusters")
             .success(function(data) {
                 $scope.clusters = data;
+                $scope.resource = null;
             })
 
         $scope.addResources = function(cluster) {
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups", 'jsonParameters={"command":"addResource","resourceGroupName":"' + cluster.resourceName + '","partitions":"8","stateModelDefRef":"MasterSlave"}')
                 .success(function(data) {
-                    //$scope.cluster.clusterName = null;
+                    $scope.cluster.clusterName = null;
                     // $scope.clusters = data;
                     $scope.listResources(cluster);
                 })
@@ -30,6 +31,7 @@ var Helix = (function(Helix) {
             $http.get("http://localhost:8100/clusters")
                 .success(function(data) {
                     $scope.clusters = data;
+                    $scope.resource = null;
                 })
         }
         
@@ -37,6 +39,15 @@ var Helix = (function(Helix) {
             $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
                 .success(function(data) {
                     $scope.clusters = data;
+                    $scope.resource = null;
+                })
+        }
+        
+        //getInformation of resources /clusters/{clusterName}/resourceGroups/{resourceName}
+        $scope.getInformation = function(cluster,resourceName) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
+                .success(function(data) {
+                    $scope.resource = data;
                 })
         }
         
@@ -45,6 +56,7 @@ var Helix = (function(Helix) {
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
                 .success(function(data) {
                     $scope.resources = data;
+                    $scope.resource = null;
                 })
         }
 

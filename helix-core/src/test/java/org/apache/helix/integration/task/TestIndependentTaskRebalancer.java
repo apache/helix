@@ -146,7 +146,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -174,7 +174,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.FAILURE_THRESHOLD, "" + 1);
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -201,7 +201,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -230,7 +230,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
         + (NUM_INSTANCES - 1)); // this ensures that every instance gets one chance
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -260,7 +260,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     long inFiveSeconds = System.currentTimeMillis() + (5 * 1000);
     workflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(inFiveSeconds)));
     _driver.start(workflowBuilder.build());

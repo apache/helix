@@ -260,7 +260,7 @@ public class TaskUtil {
    * @param commandConfig map of job config key to config value
    * @return serialized string
    */
-  public static String serializeJobConfigMap(Map<String, String> commandConfig) {
+  public static String serializeJobCommandConfigMap(Map<String, String> commandConfig) {
     ObjectMapper mapper = new ObjectMapper();
     try {
       String serializedMap = mapper.writeValueAsString(commandConfig);
@@ -276,7 +276,7 @@ public class TaskUtil {
    * @param commandConfig the serialized job config map
    * @return a map of job config key to config value
    */
-  public static Map<String, String> deserializeJobConfigMap(String commandConfig) {
+  public static Map<String, String> deserializeJobCommandConfigMap(String commandConfig) {
     ObjectMapper mapper = new ObjectMapper();
     try {
       Map<String, String> commandConfigMap =

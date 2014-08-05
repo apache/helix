@@ -56,7 +56,7 @@ public class JobConfig {
   /** The command that is to be run by participants in the case of identical tasks. */
   public static final String COMMAND = "Command";
   /** The command configuration to be used by the tasks. */
-  public static final String JOB_CONFIG_MAP = "JobConfig";
+  public static final String JOB_COMMAND_CONFIG_MAP = "JobCommandConfig";
   /** The timeout for a task. */
   public static final String TIMEOUT_PER_TASK = "TimeoutPerPartition";
   /** The maximum number of times the task rebalancer may attempt to execute a task. */
@@ -84,7 +84,7 @@ public class JobConfig {
   private final List<String> _targetPartitions;
   private final Set<String> _targetPartitionStates;
   private final String _command;
-  private final Map<String, String> _jobConfigMap;
+  private final Map<String, String> _jobCommandConfigMap;
   private final long _timeoutPerTask;
   private final int _numConcurrentTasksPerInstance;
   private final int _maxAttemptsPerTask;
@@ -93,7 +93,7 @@ public class JobConfig {
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
-      Set<String> targetPartitionStates, String command, Map<String, String> jobConfigMap,
+      Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
@@ -101,7 +101,7 @@ public class JobConfig {
     _targetPartitions = targetPartitions;
     _targetPartitionStates = targetPartitionStates;
     _command = command;
-    _jobConfigMap = jobConfigMap;
+    _jobCommandConfigMap = jobCommandConfigMap;
     _timeoutPerTask = timeoutPerTask;
     _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
     _maxAttemptsPerTask = maxAttemptsPerTask;
@@ -134,8 +134,8 @@ public class JobConfig {
     return _command;
   }
 
-  public Map<String, String> getJobConfigMap() {
-    return _jobConfigMap;
+  public Map<String, String> getJobCommandConfigMap() {
+    return _jobCommandConfigMap;
   }
 
   public long getTimeoutPerTask() {
@@ -172,10 +172,10 @@ public class JobConfig {
     if (_command != null) {
       cfgMap.put(JobConfig.COMMAND, _command);
     }
-    if (_jobConfigMap != null) {
-      String serializedConfig = TaskUtil.serializeJobConfigMap(_jobConfigMap);
+    if (_jobCommandConfigMap != null) {
+      String serializedConfig = TaskUtil.serializeJobCommandConfigMap(_jobCommandConfigMap);
       if (serializedConfig != null) {
-        cfgMap.put(JobConfig.JOB_CONFIG_MAP, serializedConfig);
+        cfgMap.put(JobConfig.JOB_COMMAND_CONFIG_MAP, serializedConfig);
       }
     }
     if (_targetResource != null) {
@@ -242,10 +242,10 @@ public class JobConfig {
       if (cfg.containsKey(COMMAND)) {
         b.setCommand(cfg.get(COMMAND));
       }
-      if (cfg.containsKey(JOB_CONFIG_MAP)) {
+      if (cfg.containsKey(JOB_COMMAND_CONFIG_MAP)) {
         Map<String, String> commandConfigMap =
-            TaskUtil.deserializeJobConfigMap(cfg.get(JOB_CONFIG_MAP));
-        b.setJobConfigMap(commandConfigMap);
+            TaskUtil.deserializeJobCommandConfigMap(cfg.get(JOB_COMMAND_CONFIG_MAP));
+        b.setJobCommandConfigMap(commandConfigMap);
       }
       if (cfg.containsKey(TIMEOUT_PER_TASK)) {
         b.setTimeoutPerTask(Long.parseLong(cfg.get(TIMEOUT_PER_TASK)));
@@ -292,7 +292,7 @@ public class JobConfig {
       return this;
     }
 
-    public Builder setJobConfigMap(Map<String, String> v) {
+    public Builder setJobCommandConfigMap(Map<String, String> v) {
       _commandConfig = v;
       return this;
     }

@@ -217,8 +217,8 @@ var Helix = (function(Helix) {
 		   
 		   //List Clusters' Information
 		   
-		   $scope.listClusterInfo =function(cluster) {
-		        $http.get("http://localhost:8100/clusters/"+cluster.clusterName)
+		   $scope.listClusterInfo =function(clusterName) {
+		        $http.get("http://localhost:8100/clusters/"+clusterName)
 		      .success(function(data) {
 		    	  $scope.clusters = data;
 		      })

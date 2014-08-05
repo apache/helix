@@ -293,7 +293,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
     public ReindexTask(TaskCallbackContext context) {
       JobConfig jobCfg = context.getJobConfig();
-      Map<String, String> cfg = jobCfg.getJobConfigMap();
+      Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
       if (cfg == null) {
         cfg = Collections.emptyMap();
       }

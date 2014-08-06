@@ -27,18 +27,21 @@ var Helix = (function(Helix) {
                 })
         }
 
-        //list custers
-        $scope.listClusters = function() {
-            $http.get("http://localhost:8100/clusters")
-                .success(function(data) {
-                    $scope.clusters = data;
-                })
-        }
+        
 
         //list all instances 
         $scope.listInstances = function(cluster) {
             console.log(cluster.clusterName)
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances")
+                .success(function(data) {
+                    $scope.instances = data;
+                })
+        }
+		
+		//list all instance's info
+        $scope.listInstanceInfo = function(instance) {
+            
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instance.id)
                 .success(function(data) {
                     $scope.instances = data;
                 })

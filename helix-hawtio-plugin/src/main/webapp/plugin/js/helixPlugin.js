@@ -68,8 +68,23 @@ var Helix = (function(Helix) {
 		.when('/helix_plugin/resource_manager', {
           templateUrl: Helix.templatePath + 'resourceManager.html'
         })
+		.when('/helix_plugin/state_model_def_manager', {
+          templateUrl: Helix.templatePath + 'stateModelDefManager.html'
+        })
 		.when('/helix_plugin/instance_manager', {
           templateUrl: Helix.templatePath + 'instanceManager.html'
+        })
+		.when('/helix_plugin/constraint_manager', {
+          templateUrl: Helix.templatePath + 'constraintManager.html'
+        })
+		.when('/helix_plugin/config_manager', {
+          templateUrl: Helix.templatePath + 'configManager.html'
+        })
+		.when('/helix_plugin/zookeeper_path_manager', {
+          templateUrl: Helix.templatePath + 'zookeeperPathManager.html'
+        })
+		.when('/helix_plugin/cluster_visual_manager', {
+          templateUrl: Helix.templatePath + 'clusterVisualManager.html'
         });
 			
       });

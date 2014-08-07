@@ -172,7 +172,7 @@ public class Workflow {
       builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
       builder.addConfig(job.name, JobConfig.COMMAND, job.command);
       if (job.jobConfigMap != null) {
-        builder.addConfig(job.name, JobConfig.JOB_COMMAND_CONFIG_MAP, job.jobConfigMap.toString());
+        builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
       }
       builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
       if (job.targetPartitionStates != null) {

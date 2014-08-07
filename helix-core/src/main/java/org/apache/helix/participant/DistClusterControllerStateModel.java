@@ -23,8 +23,8 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
@@ -34,7 +34,7 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "LEADER", "STANDBY"
 })
-public class DistClusterControllerStateModel extends StateModel {
+public class DistClusterControllerStateModel extends TransitionHandler {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
   private HelixManager _controller = null;
   private final String _zkAddr;

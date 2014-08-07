@@ -28,6 +28,7 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.MockController;
@@ -186,7 +187,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
       distributedControllers[i] = new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
+      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
       if (i == 0) {
         distributedControllers[i].addPreConnectCallback(new PreConnectTestCallback(contrllerName,

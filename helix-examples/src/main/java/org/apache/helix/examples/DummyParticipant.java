@@ -23,11 +23,12 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
@@ -36,7 +37,7 @@ public class DummyParticipant {
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "ERROR"
   })
-  public static class DummyMSStateModel extends StateModel {
+  public static class DummyMSStateModel extends TransitionHandler {
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       PartitionId partitionId = message.getPartitionId();
@@ -86,9 +87,9 @@ public class DummyParticipant {
   }
 
   // dummy master slave state model factory
-  public static class DummyMSModelFactory extends StateModelFactory<DummyMSStateModel> {
+  public static class DummyMSModelFactory extends StateTransitionHandlerFactory<DummyMSStateModel> {
     @Override
-    public DummyMSStateModel createNewStateModel(String partitionName) {
+    public DummyMSStateModel createStateTransitionHandler(PartitionId partitionName) {
       DummyMSStateModel model = new DummyMSStateModel();
       return model;
     }
@@ -112,7 +113,7 @@ public class DummyParticipant {
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
       DummyMSModelFactory msModelFactory = new DummyMSModelFactory();
-      stateMach.registerStateModelFactory("MasterSlave", msModelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, msModelFactory);
 
       manager.connect();
 

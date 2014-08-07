@@ -1,4 +1,4 @@
-package org.apache.helix.participant.statemachine;
+package org.apache.helix.api;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -27,15 +27,11 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
-/**
- * State model factory that uses concrete id classes instead of strings.
- * Replacing {@link org.apache.helix.participant.statemachine.StateModelFactory}
- */
-public abstract class HelixStateModelFactory<T extends StateModel> {
+public abstract class StateTransitionHandlerFactory<T extends TransitionHandler> {
   /**
-   * map from partitionId to stateModel
+   * map from partitionId to transition-handler
    */
-  private final ConcurrentMap<PartitionId, T> _stateModelMap =
+  private final ConcurrentMap<PartitionId, T> _transitionHandlerMap =
       new ConcurrentHashMap<PartitionId, T>();
 
   /**
@@ -49,15 +45,15 @@ public abstract class HelixStateModelFactory<T extends StateModel> {
    * @param partitionId
    * @return
    */
-  public abstract T createNewStateModel(PartitionId partitionId);
+  public abstract T createStateTransitionHandler(PartitionId partitionId);
 
   /**
    * Create a state model for a partition
    * @param partitionId
    */
-  public T createAndAddStateModel(PartitionId partitionId) {
-    T stateModel = createNewStateModel(partitionId);
-    _stateModelMap.put(partitionId, stateModel);
+  public T createAndAddSTransitionHandler(PartitionId partitionId) {
+    T stateModel = createStateTransitionHandler(partitionId);
+    _transitionHandlerMap.put(partitionId, stateModel);
     return stateModel;
   }
 
@@ -66,8 +62,8 @@ public abstract class HelixStateModelFactory<T extends StateModel> {
    * @param partitionId
    * @return state model if exists, null otherwise
    */
-  public T getStateModel(PartitionId partitionId) {
-    return _stateModelMap.get(partitionId);
+  public T getTransitionHandler(PartitionId partitionId) {
+    return _transitionHandlerMap.get(partitionId);
   }
 
   /**
@@ -75,8 +71,8 @@ public abstract class HelixStateModelFactory<T extends StateModel> {
    * @param partitionId
    * @return state model removed or null if not exist
    */
-  public T removeStateModel(PartitionId partitionId) {
-    return _stateModelMap.remove(partitionId);
+  public T removeTransitionHandler(PartitionId partitionId) {
+    return _transitionHandlerMap.remove(partitionId);
   }
 
   /**
@@ -84,7 +80,7 @@ public abstract class HelixStateModelFactory<T extends StateModel> {
    * @return partitionId set
    */
   public Set<PartitionId> getPartitionSet() {
-    return _stateModelMap.keySet();
+    return _transitionHandlerMap.keySet();
   }
 
   /**

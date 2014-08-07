@@ -58,7 +58,7 @@ public class MockZKHelixManager implements HelixManager {
     _instanceName = instanceName;
     _clusterName = clusterName;
     _type = type;
-    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(zkClient));
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
   }
 
   @Override

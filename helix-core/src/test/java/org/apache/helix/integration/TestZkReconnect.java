@@ -32,14 +32,15 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.testutil.ZkTestUtil;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -86,13 +87,13 @@ public class TestZkReconnect {
 
     LOG.info("Register state machine");
     final CountDownLatch latch = new CountDownLatch(1);
-    participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-        new StateModelFactory<StateModel>() {
+    participant.getStateMachineEngine().registerStateModelFactory(
+        StateModelDefId.OnlineOffline, "test", new StateTransitionHandlerFactory<TransitionHandler>() {
           @Override
-          public StateModel createNewStateModel(String stateUnitKey) {
+          public TransitionHandler createStateTransitionHandler(PartitionId stateUnitKey) {
             return new SimpleStateModel(latch);
           }
-        }, "test");
+        });
 
     String resourceName = "test-resource";
     LOG.info("Ideal state assignment");
@@ -144,7 +145,7 @@ public class TestZkReconnect {
     }
   }
 
-  public static final class SimpleStateModel extends StateModel {
+  public static final class SimpleStateModel extends TransitionHandler {
 
     private final CountDownLatch latch;
 

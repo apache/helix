@@ -52,10 +52,10 @@ public class Consumer {
               InstanceType.PARTICIPANT, _zkAddr);
 
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
-      ConsumerStateModelFactory modelFactory =
-          new ConsumerStateModelFactory(_consumerId, _mqServer);
+      ConsumerStateTransitionHandlerFactory transitionHandlerFactory =
+          new ConsumerStateTransitionHandlerFactory(_consumerId, _mqServer);
       stateMach.registerStateModelFactory(
-          StateModelDefId.from(SetupConsumerCluster.DEFAULT_STATE_MODEL), modelFactory);
+          StateModelDefId.from(SetupConsumerCluster.DEFAULT_STATE_MODEL), transitionHandlerFactory);
 
       _manager.connect();
 

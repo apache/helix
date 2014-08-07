@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
@@ -111,8 +112,8 @@ public class TestAddStateModelFactoryAfterConnect extends ZkTestBase {
     // register "TestDB1_Factory" state model factory
     // Logger.getRootLogger().setLevel(Level.INFO);
     for (int i = 0; i < n; i++) {
-      participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
-          new MockMSModelFactory(), "TestDB1_Factory");
+      participants[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
+          "TestDB1_Factory", new MockMSModelFactory());
     }
 
     result =

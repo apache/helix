@@ -10,6 +10,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ParticipantConfig;
@@ -27,8 +29,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Transition;
 import org.apache.helix.model.builder.AutoRebalanceModeISBuilder;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.log4j.Logger;
 
@@ -240,7 +240,7 @@ public class LogicalModelExample {
    * Dummy state model that just prints state transitions for the lock-unlock model
    */
   @StateModelInfo(initialState = "OFFLINE", states = { "LOCKED", "RELEASED", "DROPPED", "ERROR" })
-  public static class LockUnlockStateModel extends StateModel {
+  public static class LockUnlockStateModel extends TransitionHandler {
     private final PartitionId _partitionId;
 
     /**
@@ -272,9 +272,9 @@ public class LogicalModelExample {
   /**
    * State model factory for lock-unlock
    */
-  public static class LockUnlockFactory extends HelixStateModelFactory<LockUnlockStateModel> {
+  public static class LockUnlockFactory extends StateTransitionHandlerFactory<LockUnlockStateModel> {
     @Override
-    public LockUnlockStateModel createNewStateModel(PartitionId partitionId) {
+    public LockUnlockStateModel createStateTransitionHandler(PartitionId partitionId) {
       return new LockUnlockStateModel(partitionId);
     }
   }

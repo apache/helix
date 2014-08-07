@@ -24,6 +24,7 @@ import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.Mocks.MockStateModel;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -36,7 +37,6 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
@@ -75,10 +75,10 @@ public class TestHelixTaskExecutor {
     CurrentState currentStateDelta = new CurrentState("TestDB");
     currentStateDelta.setState(PartitionId.from("TestDB_0"), State.from("OFFLINE"));
 
-    StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>() {
+    StateTransitionHandlerFactory<MockStateModel> stateModelFactory = new StateTransitionHandlerFactory<MockStateModel>() {
 
       @Override
-      public MockStateModel createNewStateModel(String partitionName) {
+      public MockStateModel createStateTransitionHandler(PartitionId partition) {
         // TODO Auto-generated method stub
         return new MockStateModel();
       }

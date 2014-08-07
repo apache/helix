@@ -57,12 +57,9 @@ public class TestResetResource extends AdminTestBase {
     MockController controller = new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
-    Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>() {
-      {
-        put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
-        put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
-      }
-    };
+    Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
+    errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
+    errPartitions.put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
 
     // start mock participants
     MockParticipant[] participants = new MockParticipant[n];

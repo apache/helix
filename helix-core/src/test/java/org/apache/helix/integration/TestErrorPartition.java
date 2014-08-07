@@ -56,11 +56,8 @@ public class TestErrorPartition extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>() {
-          {
-            put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
-          }
-        };
+        Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
+        errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
         participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
@@ -77,11 +74,8 @@ public class TestErrorPartition extends ZkTestBase {
             _zkaddr, clusterName, errStates));
     Assert.assertTrue(result);
 
-    Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>() {
-      {
-        put("TestDB0_4", TestHelper.setOf("localhost_12918"));
-      }
-    };
+    Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
+    errorStateMap.put("TestDB0_4", TestHelper.setOf("localhost_12918"));
 
     // verify "TestDB0_0", "localhost_12918" is in ERROR state
     TestHelper.verifyState(clusterName, _zkaddr, errorStateMap, "ERROR");

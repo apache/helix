@@ -19,6 +19,7 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyStateModelFactory;
@@ -43,14 +44,14 @@ public class DummyProcessThread implements Runnable {
       // StateMachineEngine genericStateMachineHandler =
       // new StateMachineEngine();
       StateMachineEngine stateMach = _manager.getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, stateModelFactory);
 
       DummyLeaderStandbyStateModelFactory stateModelFactory1 =
           new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory stateModelFactory2 =
           new DummyOnlineOfflineStateModelFactory(10);
-      stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
-      stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
+      stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, stateModelFactory1);
+      stateMach.registerStateModelFactory(StateModelDefId.OnlineOffline, stateModelFactory2);
       // _manager.getMessagingService()
       // .registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
       // genericStateMachineHandler);

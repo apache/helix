@@ -1,4 +1,4 @@
-package org.apache.helix.participant.statemachine;
+package org.apache.helix.api;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,11 +21,13 @@ package org.apache.helix.participant.statemachine;
 
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
+import org.apache.helix.participant.statemachine.StateTransitionError;
+import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
 
-public abstract class StateModel {
-  static final String DEFAULT_INITIAL_STATE = "OFFLINE";
-  Logger logger = Logger.getLogger(StateModel.class);
+public abstract class TransitionHandler {
+  public static final String DEFAULT_INITIAL_STATE = "OFFLINE";
+  Logger logger = Logger.getLogger(TransitionHandler.class);
 
   // TODO Get default state from implementation or from state model annotation
   // StateModel with initial state other than OFFLINE should override this field

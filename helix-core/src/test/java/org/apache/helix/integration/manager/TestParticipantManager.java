@@ -34,6 +34,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -74,7 +75,7 @@ public class TestParticipantManager extends ZkTestBase {
 
     HelixManager participant =
         new ZKHelixManager(clusterName, "localhost_12918", InstanceType.PARTICIPANT, _zkaddr);
-    participant.getStateMachineEngine().registerStateModelFactory("MasterSlave",
+    participant.getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
         new MockMSModelFactory());
     participant.connect();
 

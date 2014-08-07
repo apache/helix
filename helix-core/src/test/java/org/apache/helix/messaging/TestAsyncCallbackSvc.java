@@ -20,10 +20,8 @@ package org.apache.helix.messaging;
  */
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixException;
@@ -62,9 +60,7 @@ public class TestAsyncCallbackSvc {
 
   }
 
-  @Test(groups = {
-    "unitTest"
-  })
+  @Test()
   public void testAsyncCallbackSvc() throws Exception {
     AsyncCallbackService svc = new AsyncCallbackService();
     HelixManager manager = new MockHelixManager();
@@ -73,14 +69,14 @@ public class TestAsyncCallbackSvc {
     Message msg = new Message(svc.getMessageType(), MessageId.from(UUID.randomUUID().toString()));
     msg.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
-      MessageHandler aHandler = svc.createHandler(msg, changeContext);
+      svc.createHandler(msg, changeContext);
     } catch (HelixException e) {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg.getMessageId().stringify()) != -1);
     }
     Message msg2 = new Message("RandomType", MessageId.from(UUID.randomUUID().toString()));
     msg2.setTgtSessionId(SessionId.from(manager.getSessionId()));
     try {
-      MessageHandler aHandler = svc.createHandler(msg2, changeContext);
+      svc.createHandler(msg2, changeContext);
     } catch (HelixException e) {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg2.getMessageId().stringify()) != -1);
     }
@@ -88,7 +84,7 @@ public class TestAsyncCallbackSvc {
     msg3.setTgtSessionId(SessionId.from(manager.getSessionId()));
     msg3.setCorrelationId("wfwegw");
     try {
-      MessageHandler aHandler = svc.createHandler(msg3, changeContext);
+      svc.createHandler(msg3, changeContext);
     } catch (HelixException e) {
       AssertJUnit.assertTrue(e.getMessage().indexOf(msg3.getMessageId().stringify()) != -1);
     }
@@ -107,7 +103,6 @@ public class TestAsyncCallbackSvc {
     msg.setCorrelationId(corrId);
 
     MessageHandler aHandler = svc.createHandler(msg, changeContext);
-    Map<String, String> resultMap = new HashMap<String, String>();
     aHandler.handleMessage();
 
     AssertJUnit.assertTrue(callback.isDone());

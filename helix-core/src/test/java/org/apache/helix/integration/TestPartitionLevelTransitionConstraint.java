@@ -28,6 +28,10 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
@@ -38,8 +42,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -52,7 +54,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
 
   final Queue<Message> _msgOrderList = new ConcurrentLinkedQueue<Message>();
 
-  public class BootstrapStateModel extends StateModel {
+  public class BootstrapStateModel extends TransitionHandler {
     public void onBecomeBootstrapFromOffline(Message message, NotificationContext context) {
       LOG.info("Become Bootstrap from Offline");
       _msgOrderList.add(message);
@@ -85,10 +87,10 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
 
   }
 
-  public class BootstrapStateModelFactory extends StateModelFactory<BootstrapStateModel> {
+  public class BootstrapStateModelFactory extends StateTransitionHandlerFactory<BootstrapStateModel> {
 
     @Override
-    public BootstrapStateModel createNewStateModel(String stateUnitKey) {
+    public BootstrapStateModel createStateTransitionHandler(PartitionId partition) {
       BootstrapStateModel model = new BootstrapStateModel();
       return model;
     }
@@ -145,7 +147,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
     String instanceName1 = "localhost_12918";
 
     participants[0] = new MockParticipant(_zkaddr, clusterName, instanceName1);
-    participants[0].getStateMachineEngine().registerStateModelFactory("Bootstrap",
+    participants[0].getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("Bootstrap"),
         new BootstrapStateModelFactory());
     participants[0].syncStart();
 
@@ -158,7 +160,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
     // start 2nd participant which will be the master for Test0_0
     String instanceName2 = "localhost_12919";
     participants[1] = new MockParticipant(_zkaddr, clusterName, instanceName2);
-    participants[1].getStateMachineEngine().registerStateModelFactory("Bootstrap",
+    participants[1].getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("Bootstrap"),
         new BootstrapStateModelFactory());
     participants[1].syncStart();
 

@@ -24,9 +24,9 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -36,7 +36,7 @@ import org.apache.zookeeper.data.Stat;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "OFFLINE", "MASTER", "SLAVE"
 })
-public class FileStoreStateModel extends StateModel {
+public class FileStoreStateModel extends TransitionHandler {
   private final class HighWaterMarkUpdater implements DataUpdater<ZNRecord> {
     private final Message message;
     private final ChangeRecord lastRecordProcessed;

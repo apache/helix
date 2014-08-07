@@ -44,6 +44,7 @@ import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
 import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
@@ -348,8 +349,8 @@ public class ZkHelixParticipant implements HelixParticipant {
 
     ScheduledTaskStateModelFactory stStateModelFactory =
         new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
-    _stateMachineEngine.registerStateModelFactory(
-        DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
+    _stateMachineEngine.registerStateModelFactory(StateModelDefId.SchedulerTaskQueue,
+        stStateModelFactory);
     _messagingService.onConnected();
   }
 

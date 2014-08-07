@@ -20,14 +20,11 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.manager.zk.DefaultControllerMessageHandlerFactory.DefaultControllerMessageHandler;
-import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
@@ -49,7 +46,7 @@ public class TestDefaultControllerMsgHandlerFactory {
 
     boolean exceptionCaught = false;
     try {
-      MessageHandler handler = facotry.createHandler(message, context);
+      facotry.createHandler(message, context);
     } catch (HelixException e) {
       exceptionCaught = true;
     }
@@ -58,13 +55,12 @@ public class TestDefaultControllerMsgHandlerFactory {
     message = new Message(MessageType.CONTROLLER_MSG, MessageId.from("1"));
     exceptionCaught = false;
     try {
-      MessageHandler handler = facotry.createHandler(message, context);
+      facotry.createHandler(message, context);
     } catch (HelixException e) {
       exceptionCaught = true;
     }
     AssertJUnit.assertFalse(exceptionCaught);
 
-    Map<String, String> resultMap = new HashMap<String, String>();
     message = new Message(MessageType.NO_OP, MessageId.from("3"));
     DefaultControllerMessageHandler defaultHandler =
         new DefaultControllerMessageHandler(message, context);

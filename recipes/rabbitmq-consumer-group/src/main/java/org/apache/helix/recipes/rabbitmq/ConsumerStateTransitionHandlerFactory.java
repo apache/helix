@@ -1,4 +1,4 @@
-package org.apache.helix.integration.manager;
+package org.apache.helix.recipes.rabbitmq;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,17 +19,22 @@ package org.apache.helix.integration.manager;
  * under the License.
  */
 
-import java.util.List;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
 
-import org.apache.helix.manager.zk.CallbackHandler;
-import org.apache.helix.manager.zk.ZkClient;
+public class ConsumerStateTransitionHandlerFactory extends StateTransitionHandlerFactory<ConsumerStateModel> {
+  private final String _consumerId;
+  private final String _mqServer;
 
-public interface ZkTestManager {
-  ZkClient getZkClient();
+  public ConsumerStateTransitionHandlerFactory(String consumerId, String msServer) {
+    _consumerId = consumerId;
+    _mqServer = msServer;
+  }
 
-  List<CallbackHandler> getHandlers();
-
-  String getInstanceName();
-
-  String getClusterName();
+  @Override
+  public ConsumerStateModel createStateTransitionHandler(PartitionId partition) {
+    ConsumerStateModel model =
+        new ConsumerStateModel(_consumerId, partition.stringify(), _mqServer);
+    return model;
+  }
 }

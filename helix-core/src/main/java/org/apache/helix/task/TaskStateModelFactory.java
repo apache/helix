@@ -22,13 +22,13 @@ package org.apache.helix.task;
 import java.util.Map;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
 /**
  * Factory class for {@link TaskStateModel}.
  */
-public class TaskStateModelFactory extends HelixStateModelFactory<TaskStateModel> {
+public class TaskStateModelFactory extends StateTransitionHandlerFactory<TaskStateModel> {
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;
 
@@ -38,7 +38,7 @@ public class TaskStateModelFactory extends HelixStateModelFactory<TaskStateModel
   }
 
   @Override
-  public TaskStateModel createNewStateModel(PartitionId partitionId) {
+  public TaskStateModel createStateTransitionHandler(PartitionId partitionId) {
     return new TaskStateModel(_manager, _taskFactoryRegistry);
   }
 }

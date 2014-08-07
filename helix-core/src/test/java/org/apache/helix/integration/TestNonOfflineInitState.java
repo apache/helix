@@ -22,6 +22,7 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.mock.participant.MockBootstrapModelFactory;
@@ -65,7 +66,7 @@ public class TestNonOfflineInitState extends ZkTestBase {
       // add a state model with non-OFFLINE initial state
       StateMachineEngine stateMach = participants[i].getStateMachineEngine();
       MockBootstrapModelFactory bootstrapFactory = new MockBootstrapModelFactory();
-      stateMach.registerStateModelFactory("Bootstrap", bootstrapFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.from("Bootstrap"), bootstrapFactory);
 
       participants[i].syncStart();
     }

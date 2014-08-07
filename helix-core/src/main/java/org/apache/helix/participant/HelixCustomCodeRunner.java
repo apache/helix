@@ -55,7 +55,6 @@ import org.apache.log4j.Logger;
  * </code>
  */
 public class HelixCustomCodeRunner {
-  private static final String LEADER_STANDBY = "LeaderStandby";
   private static Logger LOG = Logger.getLogger(HelixCustomCodeRunner.class);
   private static String PARTICIPANT_LEADER = "PARTICIPANT_LEADER";
 
@@ -130,7 +129,8 @@ public class HelixCustomCodeRunner {
     _stateModelFty = new GenericLeaderStandbyStateModelFactory(_callback, _notificationTypes);
 
     StateMachineEngine stateMach = _manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(LEADER_STANDBY, _stateModelFty, _resourceName);
+    stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, _resourceName,
+        _stateModelFty);
     ZkClient zkClient = null;
     try {
       // manually add ideal state for participant leader using LeaderStandby
@@ -148,7 +148,7 @@ public class HelixCustomCodeRunner {
       idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
       idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
-      idealState.setStateModelDefId(StateModelDefId.from(LEADER_STANDBY));
+      idealState.setStateModelDefId(StateModelDefId.LeaderStandby);
       idealState.setStateModelFactoryId(StateModelFactoryId.from(_resourceName));
       List<String> prefList =
           new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
@@ -177,7 +177,7 @@ public class HelixCustomCodeRunner {
    */
   public void stop() {
     LOG.info("Removing stateModelFactory for " + _resourceName);
-    _manager.getStateMachineEngine().removeStateModelFactory(LEADER_STANDBY, _stateModelFty,
+    _manager.getStateMachineEngine().removeStateModelFactory(StateModelDefId.LeaderStandby,
         _resourceName);
   }
 }

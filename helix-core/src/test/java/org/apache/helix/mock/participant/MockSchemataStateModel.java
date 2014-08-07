@@ -20,8 +20,8 @@ package org.apache.helix.mock.participant;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "MASTER", "DROPPED", "ERROR"
 })
-public class MockSchemataStateModel extends StateModel {
+public class MockSchemataStateModel extends TransitionHandler {
   private static Logger LOG = Logger.getLogger(MockSchemataStateModel.class);
 
   @Transition(to = "MASTER", from = "OFFLINE")

@@ -20,17 +20,16 @@ package org.apache.helix.recipes.rabbitmq;
  */
 
 import org.apache.log4j.Logger;
-
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "ERROR"
 })
-public class ConsumerStateModel extends StateModel {
+public class ConsumerStateModel extends TransitionHandler {
   private static Logger LOG = Logger.getLogger(ConsumerStateModel.class);
 
   private final String _consumerId;

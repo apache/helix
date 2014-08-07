@@ -19,12 +19,15 @@ package org.apache.helix.mock.participant;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
 
-// mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
-public class MockSchemataModelFactory extends StateModelFactory<MockSchemataStateModel> {
+/**
+ * Mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
+ */
+public class MockSchemataModelFactory extends StateTransitionHandlerFactory<MockSchemataStateModel> {
   @Override
-  public MockSchemataStateModel createNewStateModel(String partitionKey) {
+  public MockSchemataStateModel createStateTransitionHandler(PartitionId partitionKey) {
     MockSchemataStateModel model = new MockSchemataStateModel();
     return model;
   }

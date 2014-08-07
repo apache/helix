@@ -37,8 +37,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
@@ -48,7 +46,6 @@ import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -772,30 +769,4 @@ public class TestHelper {
     System.out.println(sb.toString());
   }
 
-  public static void printZkListeners(ZkClient client) throws Exception {
-    Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
-    Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
-
-    System.out.println("dataListeners {");
-    for (String path : datalisteners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkDataListener> set = datalisteners.get(path);
-      for (IZkDataListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
-
-    System.out.println("childListeners {");
-    for (String path : childListeners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkChildListener> set = childListeners.get(path);
-      for (IZkChildListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
-  }
 }

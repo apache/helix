@@ -252,7 +252,7 @@ public class Quickstart {
           new MasterSlaveStateModelFactory(instanceName);
 
       StateMachineEngine stateMach = manager.getStateMachineEngine();
-      stateMach.registerStateModelFactory(STATE_MODEL_NAME.stringify(), stateModelFactory);
+      stateMach.registerStateModelFactory(STATE_MODEL_NAME, stateModelFactory);
       manager.connect();
     }
 

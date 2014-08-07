@@ -30,6 +30,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ParticipantConfig;
@@ -46,8 +48,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.AutoModeISBuilder;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.testutil.ZkTestBase;
@@ -61,7 +61,7 @@ public class TestHelixConnection extends ZkTestBase {
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "OFFLINE", "ERROR"
   })
-  public static class MockStateModel extends StateModel {
+  public static class MockStateModel extends TransitionHandler {
     public MockStateModel() {
 
     }
@@ -74,13 +74,13 @@ public class TestHelixConnection extends ZkTestBase {
     }
   }
 
-  public static class MockStateModelFactory extends HelixStateModelFactory<MockStateModel> {
+  public static class MockStateModelFactory extends StateTransitionHandlerFactory<MockStateModel> {
 
     public MockStateModelFactory() {
     }
 
     @Override
-    public MockStateModel createNewStateModel(PartitionId partitionId) {
+    public MockStateModel createStateTransitionHandler(PartitionId partitionId) {
       MockStateModel model = new MockStateModel();
 
       return model;

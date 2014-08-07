@@ -27,6 +27,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKHelixManager;
@@ -40,8 +41,8 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDistributedControllerManager extends ZkTestBase {
-  private static Logger LOG = Logger.getLogger(TestDistributedControllerManager.class);
+public class TestHelixMultiClusterController extends ZkTestBase {
+  private static Logger LOG = Logger.getLogger(TestHelixMultiClusterController.class);
 
   @Test
   public void simpleIntegrationTest() throws Exception {
@@ -68,7 +69,7 @@ public class TestDistributedControllerManager extends ZkTestBase {
       distributedControllers[i] =
           new ZKHelixManager(clusterName, "localhost_" + port, InstanceType.CONTROLLER_PARTICIPANT,
               _zkaddr);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
+      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }
@@ -171,7 +172,7 @@ public class TestDistributedControllerManager extends ZkTestBase {
       String contrllerName = "localhost_" + (12918 + i);
       distributedControllers[i] =
           new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory("MasterSlave",
+      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
       distributedControllers[i].connect();
     }

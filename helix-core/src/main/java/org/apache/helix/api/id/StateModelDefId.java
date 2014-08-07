@@ -26,6 +26,10 @@ import org.codehaus.jackson.annotate.JsonProperty;
 public class StateModelDefId extends Id {
   public static final StateModelDefId SchedulerTaskQueue = StateModelDefId
       .from(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE);
+  public static final StateModelDefId MasterSlave = StateModelDefId.from("MasterSlave");
+  public static final StateModelDefId LeaderStandby = StateModelDefId.from("LeaderStandby");
+  public static final StateModelDefId OnlineOffline = StateModelDefId.from("OnlineOffline");
+
   @JsonProperty("id")
   private final String _id;
 

@@ -30,17 +30,17 @@ import org.apache.helix.ExternalCommand;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.State;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
 
 @StateModelInfo(initialState = "OFFLINE", states = {})
-public class AgentStateModel extends StateModel {
+public class AgentStateModel extends TransitionHandler {
   private static final Logger _logger = Logger.getLogger(AgentStateModel.class);
   private static Pattern pattern = Pattern.compile("(\\{.+?\\})");
 

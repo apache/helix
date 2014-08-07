@@ -33,6 +33,10 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.IdealState;
@@ -41,8 +45,6 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -152,7 +154,7 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
       participants[i] =
           HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
               InstanceType.PARTICIPANT, _zkaddr);
-      participants[i].getStateMachineEngine().registerStateModelFactory(_stateModel,
+      participants[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.from(_stateModel),
           new PrefListTaskOnlineOfflineStateModelFactory());
       participants[i].connect();
     }
@@ -419,7 +421,7 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
    * should be run, and then the instance should be removed from the preference list for the task
    * (padded by spaces). All other transitions are no-ops.
    */
-  public class PrefListTaskOnlineOfflineStateModel extends StateModel {
+  public class PrefListTaskOnlineOfflineStateModel extends TransitionHandler {
     /**
      * Run the task. The parallelism of this is dictated by the constraints that are set.
      * @param message
@@ -477,9 +479,9 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
   }
 
   public class PrefListTaskOnlineOfflineStateModelFactory extends
-      StateModelFactory<PrefListTaskOnlineOfflineStateModel> {
+      StateTransitionHandlerFactory<PrefListTaskOnlineOfflineStateModel> {
     @Override
-    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String partitionName) {
+    public PrefListTaskOnlineOfflineStateModel createStateTransitionHandler(PartitionId partitionName) {
       return new PrefListTaskOnlineOfflineStateModel();
     }
   }

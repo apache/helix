@@ -20,11 +20,12 @@ package org.apache.helix.examples;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> {
+public class MasterSlaveStateModelFactory extends StateTransitionHandlerFactory<TransitionHandler> {
   int _delay;
 
   String _instanceName = "";
@@ -43,15 +44,15 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
   }
 
   @Override
-  public StateModel createNewStateModel(String partitionName) {
+  public TransitionHandler createStateTransitionHandler(PartitionId partitionName) {
     MasterSlaveStateModel stateModel = new MasterSlaveStateModel();
     stateModel.setInstanceName(_instanceName);
     stateModel.setDelay(_delay);
-    stateModel.setPartitionName(partitionName);
+    stateModel.setPartitionName(partitionName.stringify());
     return stateModel;
   }
 
-  public static class MasterSlaveStateModel extends StateModel {
+  public static class MasterSlaveStateModel extends TransitionHandler {
     int _transDelay = 0;
     String partitionName;
     String _instanceName = "";

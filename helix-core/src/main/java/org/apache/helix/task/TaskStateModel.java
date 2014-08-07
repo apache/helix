@@ -28,14 +28,14 @@ import java.util.concurrent.ThreadFactory;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
 
 @StateModelInfo(states = "{'NOT USED BY HELIX'}", initialState = "INIT")
-public class TaskStateModel extends StateModel {
+public class TaskStateModel extends TransitionHandler {
   private static final Logger LOG = Logger.getLogger(TaskStateModel.class);
   private final HelixManager _manager;
   private final ExecutorService _taskExecutor;

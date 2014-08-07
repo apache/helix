@@ -24,6 +24,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.HelixConnection;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.mock.participant.DummyProcess.DummyLeaderStandbyStateModelFactory;
 import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateModelFactory;
 import org.apache.helix.mock.participant.MockMSModelFactory;
@@ -72,17 +73,17 @@ public class MockParticipant extends ZKHelixManager implements Runnable {
   public void run() {
     try {
       StateMachineEngine stateMach = getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", _msModelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, _msModelFactory);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory =
           new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory ofModelFactory =
           new DummyOnlineOfflineStateModelFactory(10);
-      stateMach.registerStateModelFactory("LeaderStandby", lsModelFactory);
-      stateMach.registerStateModelFactory("OnlineOffline", ofModelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, lsModelFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.OnlineOffline, ofModelFactory);
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
-      stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);
+      stateMach.registerStateModelFactory(StateModelDefId.from("STORAGE_DEFAULT_SM_SCHEMATA"), schemataFactory);
 
       connect();
       _startCountDown.countDown();

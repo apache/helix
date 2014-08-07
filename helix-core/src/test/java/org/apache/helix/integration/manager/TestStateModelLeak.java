@@ -28,13 +28,15 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.TestHelper;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.participant.HelixStateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -72,8 +74,7 @@ public class TestStateModelLeak extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    MockController controller =
-        new MockController(_zkaddr, clusterName, "controller");
+    MockController controller = new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     MockParticipant[] participants = new MockParticipant[n];
@@ -92,15 +93,16 @@ public class TestStateModelLeak extends ZkTestBase {
     // check state-models in state-machine
     HelixStateMachineEngine stateMachine =
         (HelixStateMachineEngine) participants[0].getStateMachineEngine();
-    StateModelFactory<? extends StateModel> fty = stateMachine.getStateModelFactory("MasterSlave");
-    Map<String, String> expectStateModelMap = new TreeMap<String, String>();
-    expectStateModelMap.put("TestDB0_0", "SLAVE");
-    expectStateModelMap.put("TestDB0_1", "MASTER");
-    expectStateModelMap.put("TestDB0_2", "SLAVE");
-    expectStateModelMap.put("TestDB0_3", "MASTER");
+    StateTransitionHandlerFactory<? extends TransitionHandler> fty =
+        stateMachine.getStateModelFactory(StateModelDefId.from("MasterSlave"));
+    Map<PartitionId, String> expectStateModelMap = new TreeMap<PartitionId, String>();
+    expectStateModelMap.put(PartitionId.from("TestDB0_0"), "SLAVE");
+    expectStateModelMap.put(PartitionId.from("TestDB0_1"), "MASTER");
+    expectStateModelMap.put(PartitionId.from("TestDB0_2"), "SLAVE");
+    expectStateModelMap.put(PartitionId.from("TestDB0_3"), "MASTER");
     checkStateModelMap(fty, expectStateModelMap);
 
-    // drop resource
+    // drop resourcePartitionId
     HelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.dropResource(clusterName, "TestDB0");
 
@@ -146,8 +148,7 @@ public class TestStateModelLeak extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    MockController controller =
-        new MockController(_zkaddr, clusterName, "controller");
+    MockController controller = new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     MockParticipant[] participants = new MockParticipant[n];
@@ -177,12 +178,13 @@ public class TestStateModelLeak extends ZkTestBase {
     // check state-models in state-machine
     HelixStateMachineEngine stateMachine =
         (HelixStateMachineEngine) participants[0].getStateMachineEngine();
-    StateModelFactory<? extends StateModel> fty = stateMachine.getStateModelFactory("MasterSlave");
-    Map<String, String> expectStateModelMap = new TreeMap<String, String>();
-    expectStateModelMap.put("TestDB0_0", "ERROR");
-    expectStateModelMap.put("TestDB0_1", "MASTER");
-    expectStateModelMap.put("TestDB0_2", "SLAVE");
-    expectStateModelMap.put("TestDB0_3", "MASTER");
+    StateTransitionHandlerFactory<? extends TransitionHandler> fty =
+        stateMachine.getStateModelFactory(StateModelDefId.from("MasterSlave"));
+    Map<PartitionId, String> expectStateModelMap = new TreeMap<PartitionId, String>();
+    expectStateModelMap.put(PartitionId.from("TestDB0_0"), "ERROR");
+    expectStateModelMap.put(PartitionId.from("TestDB0_1"), "MASTER");
+    expectStateModelMap.put(PartitionId.from("TestDB0_2"), "SLAVE");
+    expectStateModelMap.put(PartitionId.from("TestDB0_3"), "MASTER");
     checkStateModelMap(fty, expectStateModelMap);
 
     // drop resource
@@ -212,11 +214,11 @@ public class TestStateModelLeak extends ZkTestBase {
    * @param fty
    * @param expectStateModelMap
    */
-  static void checkStateModelMap(StateModelFactory<? extends StateModel> fty,
-      Map<String, String> expectStateModelMap) {
+  static void checkStateModelMap(StateTransitionHandlerFactory<? extends TransitionHandler> fty,
+      Map<PartitionId, String> expectStateModelMap) {
     Assert.assertEquals(fty.getPartitionSet().size(), expectStateModelMap.size());
-    for (String partition : fty.getPartitionSet()) {
-      StateModel stateModel = fty.getStateModel(partition);
+    for (PartitionId partition : fty.getPartitionSet()) {
+      TransitionHandler stateModel = fty.getTransitionHandler(partition);
       String actualState = stateModel.getCurrentState();
       String expectState = expectStateModelMap.get(partition);
       LOG.debug(partition + " actual state: " + actualState + ", expect state: " + expectState);

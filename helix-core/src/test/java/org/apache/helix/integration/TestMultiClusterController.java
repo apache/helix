@@ -33,10 +33,10 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestDistributedClusterController extends ZkTestBase {
+public class TestMultiClusterController extends ZkTestBase {
 
   @Test
-  public void testDistributedClusterController() throws Exception {
+  public void test() throws Exception {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterNamePrefix = className + "_" + methodName;

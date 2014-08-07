@@ -20,11 +20,12 @@ package org.apache.helix.examples;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel> {
+public class LeaderStandbyStateModelFactory extends StateTransitionHandlerFactory<TransitionHandler> {
   int _delay;
 
   public LeaderStandbyStateModelFactory(int delay) {
@@ -32,13 +33,13 @@ public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel
   }
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey) {
+  public TransitionHandler createStateTransitionHandler(PartitionId stateUnitKey) {
     LeaderStandbyStateModel stateModel = new LeaderStandbyStateModel();
     stateModel.setDelay(_delay);
     return stateModel;
   }
 
-  public static class LeaderStandbyStateModel extends StateModel {
+  public static class LeaderStandbyStateModel extends TransitionHandler {
     int _transDelay = 0;
 
     public void setDelay(int delay) {

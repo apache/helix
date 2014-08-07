@@ -19,6 +19,7 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import org.apache.helix.api.id.PartitionId;
 import org.testng.annotations.Test;
 
 public class TestDistControllerStateModelFactory {
@@ -27,7 +28,7 @@ public class TestDistControllerStateModelFactory {
   public void testDistControllerStateModelFactory() {
     DistClusterControllerStateModelFactory factory =
         new DistClusterControllerStateModelFactory("localhost:2181");
-    DistClusterControllerStateModel stateModel = factory.createNewStateModel("key");
+    DistClusterControllerStateModel stateModel = factory.createStateTransitionHandler(PartitionId.from("key"));
     stateModel.onBecomeStandbyFromOffline(null, null);
   }
 }

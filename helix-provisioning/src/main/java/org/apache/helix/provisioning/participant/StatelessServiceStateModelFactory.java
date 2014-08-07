@@ -19,11 +19,11 @@ package org.apache.helix.provisioning.participant;
  * under the License.
  */
 
+import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
 
 public class StatelessServiceStateModelFactory extends
-    HelixStateModelFactory<StatelessServiceStateModel> {
+    StateTransitionHandlerFactory<StatelessServiceStateModel> {
 
   private final StatelessParticipantService _service;
 
@@ -32,7 +32,7 @@ public class StatelessServiceStateModelFactory extends
   }
 
   @Override
-  public StatelessServiceStateModel createNewStateModel(PartitionId partitionId) {
+  public StatelessServiceStateModel createStateTransitionHandler(PartitionId partitionId) {
     return new StatelessServiceStateModel(partitionId, _service);
   }
 

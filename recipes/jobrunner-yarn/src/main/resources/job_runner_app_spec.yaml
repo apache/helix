@@ -21,7 +21,7 @@ appConfig:
   config: {
     k1: v1
   }
-appMasterPackageUri: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-incubating-SNAPSHOT-pkg.tar'
+appMasterPackageUri: 'file:///Users/kbiscuit/helix/helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-SNAPSHOT-pkg.tar'
 appName: testApp
 serviceConfigMap:
   JobRunner: {
@@ -32,10 +32,10 @@ serviceMainClassMap: {
   JobRunner: org.apache.helix.provisioning.yarn.example.MyTaskService
 }
 servicePackageURIMap: {
-  JobRunner: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-incubating-SNAPSHOT-pkg.tar'
+  JobRunner: 'file:///Users/kbiscuit/helix/helix/recipes/jobrunner-yarn/target/jobrunner-yarn-0.7.1-SNAPSHOT-pkg.tar'
 }
 services: [
   JobRunner]
 taskConfigs:
   - name: JobRunnerWorkflow
-    yamlFile: 'file:///Users/kbiscuit/helix/incubator-helix/recipes/jobrunner-yarn/src/main/resources/dummy_job.yaml'
+    yamlFile: 'file:///Users/kbiscuit/helix/helix/recipes/jobrunner-yarn/src/main/resources/dummy_job.yaml'

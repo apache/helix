@@ -1,5 +1,5 @@
 Apache Helix
-Copyright 2012 The Apache Software Foundation
+Copyright 2014 The Apache Software Foundation
 
 
 I. Included Software
@@ -9,21 +9,24 @@ The Apache Software Foundation (http://www.apache.org/).
 Licensed under the Apache License 2.0.
 
 This product includes software developed at
-Codehaus (http://www.codehaus.org/)
+Codehaus (http://www.codehaus.org/).
 Licensed under the BSD License.
 
 This product includes software developed at
-jline (http://jline.sourceforge.net/ )
+jline (http://jline.sourceforge.net/).
 Licensed under the BSD License.
 
 This product includes software developed at
-josql (http://sourceforge.net/projects/josql/).
+Google (http://www.google.com/).
 Licensed under the Apache License 2.0.
 
 This product includes software developed at
-restlet (http://www.restlet.org/about/legal).
+snakeyaml (http://www.snakeyaml.org/).
 Licensed under the Apache License 2.0.
 
+This product includes software developed at
+zkclient (https://github.com/sgroschupf/zkclient).
+Licensed under the Apache License 2.0.
 
 II. License Summary
 - Apache License 2.0

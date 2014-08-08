@@ -5,12 +5,12 @@
 	<div class="row-fluid">
 		<div class="span6 offset3">
 			
-				<h2>Resource Manager</h2>
+				<h2>State Model Definition Manager</h2>
 				<p>Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName" placeholder="Select Cluster">
-				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
-					value="List Resources" /> </p>
+					ng-model="cluster.clusterName" >
+				</select> <input type="button" class="btn btn-warning" ng-click="listStateModelDef(cluster)"
+					value="List Information" /> </p>
 					<input type="text"
 					ng-model="cluster.resourceName" /> <input type="button"
 					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
@@ -18,8 +18,8 @@
 				<table class="table table-hover">
 					<thead>
 						<tr>
-							<th>Resource</th>
-							<th>Actions</th>
+							<th>State Model Definitions</th>
+							<th>Add</th>
 						</tr>
 					</thead>
 					<tbody>

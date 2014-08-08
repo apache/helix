@@ -5,11 +5,9 @@
     <div class="span6 offset3">
       <div class="centered">
         <h2>Instance Manager</h2>
-         <p>Select Cluster
-   <select data-ng-options="o for o in clusters.listFields.clusters" ng-model="cluster.clusterName"  > </select> 
+    <p>Select Cluster<select data-ng-options="o for o in clusters.listFields.clusters" ng-model="cluster.clusterName"  > </select> 
   <input type="button" class="btn btn-warning" ng-click="listInstances(cluster)" value="List Instances" /><p>
-  <p>
-  <input type="text" ng-model="cluster.instanceName" />
+  <p><input type="text" ng-model="cluster.instanceName" />
   <input type="button" class="btn btn-primary" ng-click="addInstances(cluster)" value="Add Instance" />
   </p>
   

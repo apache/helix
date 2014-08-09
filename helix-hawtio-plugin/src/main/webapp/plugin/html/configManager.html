@@ -6,15 +6,29 @@
 		<div class="span6 offset3">
 			
 				<h2>Config Manager</h2>
-				<p>Select Cluster
+				Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName" placeholder="Select Cluster">
-				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
-					value="List Resources" /> </p>
-					<input type="text"
-					ng-model="cluster.resourceName" /> <input type="button"
-					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
-
+					ng-model="cluster.clusterName" >
+				</select> 
+					
+				Select Level<select 
+					ng-model="config.level" >
+					<option value="user">User</option>
+					<option value="participant">Pariciapnt</option>
+					<option value="resource">Resource</option>
+				</select>
+				
+				Select Action<select 
+					ng-model="config.action" >
+					<option value="get">Get</option>
+					<option value="set">Set</option>
+					<option value="remove">Remove</option>
+				</select>
+				
+				<input type="button" class="btn btn-warning" ng-click="getLevels(cluster)"
+					value="Show" /> 
+					
+					
 				<table class="table table-hover">
 					<thead>
 						<tr>

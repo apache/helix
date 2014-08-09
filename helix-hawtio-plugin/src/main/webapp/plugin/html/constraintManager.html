@@ -8,11 +8,16 @@
 				<h2>Constraints Manager</h2>
 				<p>Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName" placeholder="Select Cluster">
+					ng-model="cluster.clusterName">
 				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
 					value="List Resources" /> </p>
 					<input type="text"
-					ng-model="cluster.resourceName" /> <input type="button"
+					ng-model="cluster.resourceName" placeholder="New Constraint" /> 
+					<input type="text"
+					ng-model="cluster.resourceName" placeholder="Resource" />
+					<input type="text"
+					ng-model="cluster.resourceName" placeholder="Constraint Value"/>
+					<input type="button"
 					ng-click="addResources(cluster)" value="Add Constraints"  class="btn btn-primary"/>
 
 				<table class="table table-hover">

@@ -4,128 +4,133 @@
 
 	<div class="row-fluid">
 		<div class="span6 offset3">
-			
-				<h2>Zookeeper Path</h2>
-				<p>Select Cluster
-				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName" placeholder="Select Cluster">
-				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
-					value="List Resources" /> </p>
-					<input type="text"
-					ng-model="cluster.resourceName" /> <input type="button"
-					ng-click="addResources(cluster)" value="Show Path"  class="btn btn-primary"/>
 
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Zookeeper Path</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="item in resources.listFields.ResourceGroups">
-							<td>{{item}}</td>
-							
-							<td><input type="button" class="btn btn-info"
-								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
-								</td>
-							
-						</tr>
-					</tbody>
-				</table>
-				<div ng-show="resource">
+			<h2>Zookeeper Path</h2>
+			<p>
+				Select Cluster <select
+					data-ng-options="o for o in clusters.listFields.clusters"
+					ng-model="cluster.clusterName">
+				</select> <input type="button" class="btn btn-warning"
+					ng-click="showPath(cluster)" value="Show Path" />
+			</p>
+
+
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Zookeeper Path</th>
+
+					</tr>
+				</thead>
+				<tbody>
+					<tr ng-repeat="item in resources.listFields.ResourceGroups">
+						<td>{{item}}</td>
+
+						<td><input type="button" class="btn btn-info"
+							ng-click="getInformation(cluster,'{{item}}')" value="Information" />
+						</td>
+
+					</tr>
+				</tbody>
+			</table>
+			<div ng-show="data">
 				<div class="panel panel-default">
-  <!-- Default panel contents -->
-  <div class="panel-heading">Details</div>
-  <div class="panel-body">
-  </div>
-  
-		<ul>
-    <li ng-repeat="(key, value) in resource.simpleFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p>List Fields</p>
-  <ul>
-    <li ng-repeat="(key, value) in resource.listFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p>Map Fields</p>
-  <ul>
-    <li ng-repeat="(key, value) in resource.mapFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p><strong>Simple Fields</strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.simpleFields">
-							<td>{{key}}</td>
-							<td>{{value}}</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-				
-				
-				<p><Strong>List Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.listFields">
-							<td>{{key}}</td>
-							<td>
-							<table>
-							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
-							</table>
-							</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-				
-				
-				<p><Strong>Map Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.mapFields">
-							<td>{{key}}</td>
-							<td>{{value}}
-							<table>
-							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
-							</table>
-							</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-</div></div>
-			
+					<!-- Default panel contents -->
+					<div class="panel-heading">Details</div>
+					<div class="panel-body">
+
+						<table class="table table-hover">
+							<tbody>
+								<tr>
+									<td><Strong>Create Time</Strong></td>
+									<td>{{data.simpleFields.ctime}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Modified Time</Strong></td>
+									<td>{{data.simpleFields.mtime}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Data Length</Strong></td>
+									<td>{{data.simpleFields.dataLength}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Number of Children</Strong></td>
+									<td>{{data.simpleFields.numChildren}}</td>
+								</tr>
+								<tr>
+									<td><Strong>ZooKeeper Path</Strong></td>
+									<td>{{data.simpleFields.zkPath}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Stat</Strong></td>
+									<td>{{data.simpleFields.stat}}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">List Fields Details</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+
+							<tbody>
+								<tr ng-repeat="(key, value) in data.listFields">
+									<td><Strong>{{key}}</Strong></td>
+									<td>
+										<table>
+											<tr ng-repeat="(key,value) in value">
+												<td>{{value}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">Map Fields Details</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>Key</th>
+									<th>Value</th>
+
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="(key, value) in data.mapFields">
+									<td>{{key}}</td>
+									<td>{{value}}
+										<table>
+											<tr ng-repeat="(key,value) in value">
+												<td>{{value}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+
+
+
+
+
 		</div>
 	</div>
 
 </div>
+

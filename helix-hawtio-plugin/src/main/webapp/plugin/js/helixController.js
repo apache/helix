@@ -26,19 +26,29 @@ var Helix = (function(Helix) {
             
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller")
                 .success(function(data) {
-                    $scope.controller = data;
+                    $scope.data = data;
+                    $scope.dataColor = null;
                 })
         }
 		
-		//list all instance's info
-        $scope.listInstanceInfo = function(instance) {
+        //Enable cluster controller
+        $scope.enable = function(cluster) {
             
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instance.id)
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller",'jsonParameters={"command":"enableCluster","enabled":"true"}')
                 .success(function(data) {
-                    $scope.instances = data;
+                    $scope.data = data;
+                    $scope.dataColor = "success";
                 })
         }
-
+        
+       $scope.disable = function(cluster) {
+            
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller",'jsonParameters={"command":"enableCluster","enabled":"false"}')
+                .success(function(data) {
+                    $scope.data = data;
+                    $scope.dataColor = "danger";
+                })
+        }
 
     };
 

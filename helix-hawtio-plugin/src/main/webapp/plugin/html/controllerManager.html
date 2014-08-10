@@ -10,13 +10,11 @@
   <p>
   <input type="button" class="btn btn-primary" ng-click="enable(cluster)" value="Enable Controller" />
   </p>
+  <p>
   <input type="button" class="btn btn-primary" ng-click="disable(cluster)" value="Disable Controller" />
   </p>
-  
-<div class="panel-heading">Simple Fields</div>
-  <div class="panel-body">
-  </div>
-  
+  <div ng-show="data">
+ 
    <table class="table table-hover">
 					<thead>
 						<tr>
@@ -25,16 +23,22 @@
 						</tr>
 					</thead>
 					<tbody>
-						<tr>
-								<tr>
+						
+								<tr class="{{dataColor}}">
+									<td><Strong>ID</Strong></td>
+									<td>{{data.id}}</td>
+									
+								</tr>
+								
+								<tr>								
 									<td><Strong>HELIX VERSION</Strong></td>
-									<td>{{data}}:{{data.simpleFields.HELIX_VERSION}}</td>
+									<td>{{data.simpleFields.HELIX_VERSION}}</td>									
 								</tr>
 								<tr>
 									<td><Strong>LIVE INSTANCE</Strong></td>
 									<td>{{data.simpleFields.LIVE_INSTANCE}}</td>
 								</tr>
-								<tr>
+								<tr class="{{dataColor}}">
 									<td><Strong>PAUSE</Strong></td>
 									<td>{{data.simpleFields.PAUSE}}</td>
 								</tr>
@@ -42,14 +46,24 @@
 									<td><Strong>SESSION ID</Strong></td>
 									<td>{{data.simpleFields.SESSION_ID}}</td>
 								</tr>
+								<tr ng-repeat="(key, value) in data.mapFields">
+									<td><strong>{{key}}</strong></td>
+									<td><table class="table table-bordered">
+									<tr ng-repeat="(keyx, valuex) in value"><td>{{keyx}} </td><td> {{valuex}}</td></tr></table></td>
 								</tr>
+								<tr ng-repeat="(key, value) in data.listFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value}}</td>
+								</tr>
+								
 								
 					</tbody>
 				</table>
-				
+				</div>
+				 </div>
 				
   
-</div>
+
       </div>
     </div>
   </div>

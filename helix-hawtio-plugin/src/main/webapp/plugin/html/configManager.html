@@ -15,7 +15,7 @@
 				<select 
 					ng-model="config.level"  >
 					<option value="cluster">Cluster</option>
-					<option value="participant">Pariciapnt</option>
+					<option value="participant">Participant</option>
 					<option value="resource">Resource</option>
 				</select>
 				
@@ -27,18 +27,32 @@
 					<option value="remove">Remove</option>
 				</select>
 				
-				<input type="button" class="btn btn-success" ng-click="go(cluster)"
+				<input type="button" class="btn btn-success" ng-click="go(cluster,instance)"
 					value="Go" /> 
 					
+				<input type="text"  ng-model="instance.instanceName"
+					placeholder ="Enter Participant" /> 
 					
 				<table class="table table-hover">
 					<thead>
 						<tr>
-							<th>Configuration Details</th>
+							<th>Simple Fields</th>
 							
 						</tr>
 					</thead>
 					<tbody>
+					<tr>
+									<td><Strong>Simple Fields</Strong></td>
+									<td>{{data.simpleFields}}</td>
+								</tr>
+								<tr>
+									<td><Strong>ZooKeeper Path</Strong></td>
+									<td>{{data.simpleFields.zkPath}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Stat</Strong></td>
+									<td>{{data.simpleFields.stat}}</td>
+								</tr>
 						
 					</tbody>
 				</table>

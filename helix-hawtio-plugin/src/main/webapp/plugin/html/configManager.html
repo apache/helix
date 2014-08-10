@@ -13,7 +13,7 @@
 					
 				Select Level 
 				<select 
-					ng-model="config.level" onchange="level(this.value)" >
+					ng-model="config.level"  >
 					<option value="cluster">Cluster</option>
 					<option value="participant">Pariciapnt</option>
 					<option value="resource">Resource</option>
@@ -21,14 +21,13 @@
 				
 				Select Action 
 				<select 
-					ng-model="config.action" onchange="action(this.value)">
-					<option value="get">Get</option>
+					ng-model="config.action" >
+					<option value ="get">Get</option>
 					<option value="set">Set</option>
 					<option value="remove">Remove</option>
 				</select>
 				
-				if(config.level.value =="cluster" & config.action.value =="get")
-				<input type="button" class="btn btn-success" ng-click="getClusterLevel(cluster)"
+				<input type="button" class="btn btn-success" ng-click="go(cluster)"
 					value="Go" /> 
 					
 					
@@ -80,11 +79,5 @@
 						</table>
 </div></div>
 </div></div>
-<script> 
-function level(cluster)
-{
-
-}
-</script>
-			
+		
 		

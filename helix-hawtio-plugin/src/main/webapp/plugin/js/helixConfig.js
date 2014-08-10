@@ -54,7 +54,44 @@ var Helix = (function(Helix) {
         
         
         
-        
+        $scope.go = function(cluster) {
+		
+		var l = document.getElementById("config.level");
+		var a = document.getElementById("config.action");
+		
+		switch(l)
+		{
+			case "cluster":
+			{
+				
+				switch(a)
+				{
+					case "get":
+					getClusterLevel(cluster);
+					break;
+				
+				}
+			
+			}
+			
+			case "participant":
+			{
+			
+			
+			
+			
+			}
+			
+			case "resource":
+			{
+		
+		
+		
+		
+			}
+		}
+            
+        }
         
 
 

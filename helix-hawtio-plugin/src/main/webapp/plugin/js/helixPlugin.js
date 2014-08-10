@@ -83,6 +83,9 @@ var Helix = (function(Helix) {
 		.when('/helix_plugin/zookeeper_path_manager', {
           templateUrl: Helix.templatePath + 'zookeeperPathManager.html'
         })
+		.when('/helix_plugin/controller_manager', {
+          templateUrl: Helix.templatePath + 'controllerManager.html'
+        })
 		.when('/helix_plugin/cluster_visual_manager', {
           templateUrl: Helix.templatePath + 'clusterVisualManager.html'
         });

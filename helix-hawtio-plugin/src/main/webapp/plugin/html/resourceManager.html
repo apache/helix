@@ -11,10 +11,27 @@
 					ng-model="cluster.clusterName" >
 				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
 					value="List Resources" /> </p>
+					<p>
 					<input type="text"
-					ng-model="cluster.resourceName" /> <input type="button"
+					ng-model="cluster.resourceName" placeholder="Resource Name" /> 
+					<input type="text"
+					ng-model="cluster.rebalanceNo" placeholder="Rebalance No"/>
+					<input type="button"
 					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
+</p>
+				<!--  notification -->
+				<div ng-show="callback">
 
+					<div class="alert alert-success alert-dismissible" role="alert">
+						<button type="button" class="close" data-dismiss="alert">
+							<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+						</button>
+						<strong>Success!</strong> {{callback}}
+					</div>
+				</div>
+				<!--  end of notification -->
+				
+				<div ng-show="resources.listFields.ResourceGroups">
 				<table class="table table-hover">
 					<thead>
 						<tr>
@@ -26,38 +43,36 @@
 						<tr ng-repeat="item in resources.listFields.ResourceGroups">
 							<td>{{item}}</td>
 							
-							<td><input type="button" class="btn btn-info"
+							<td>
+							<input type="button" class="btn btn-info"
 								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
-								</td>
-							<td><input type="button" class="btn btn-danger"
-								ng-click="removeResource(cluster,'{{item}}')" value="Remove" /></td>
-								<td><input type="button" class="btn btn-warning"
+								<input type="button" class="btn btn-danger"
+								ng-click="removeResource(cluster,'{{item}}')" value="Remove" />
+								<input type="button" class="btn btn-warning"
 								ng-click="reset(cluster,'{{item}}')" value="Reset" />
+								<input type="button" class="btn btn-warning"
+								ng-click="rebalance(cluster,'{{item}}')" value="Rebalance" />
+								<input type="button" class="btn btn-info"
+								ng-click="externalView(cluster,'{{item}}')" value="External view" />
 								</td>
 						</tr>
 					</tbody>
 				</table>
-				<div ng-show="resource">
+				</div>
+				<div ng-show="resourceInfor">
 				<div class="panel panel-default">
-  <!-- Default panel contents -->
-  <div class="panel-heading">Details</div>
-  <div class="panel-body">
-  </div>
+				  <!-- Default panel contents -->
+				  <div class="panel-heading">Resource Summary</div>
+				  <div class="panel-body">
+
   
 	
   
-  <p><strong>Simple Fields</strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
+  			
+  				<table class="table table-hover" >					
 					<tbody>
-						<tr ng-repeat="(key, value) in resource.simpleFields">
-							<td>{{key}}</td>
+						<tr ng-repeat="(key, value) in resourceInfor.simpleFields">
+							<td><strong>{{key}}</strong></td>
 							<td>{{value}}</td>
 							
 							
@@ -67,19 +82,12 @@
 				
 				
 				<p><Strong>List Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
+  				<table class="table table-hover" >
 					<tbody>
-						<tr ng-repeat="(key, value) in resource.listFields">
+						<tr ng-repeat="(key, value) in resourceInfor.listFields">
 							<td>{{key}}</td>
 							<td>
-							<table>
+							<table class="table table-bordered">
 							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
 							</table>
 							</td>
@@ -91,20 +99,18 @@
 				
 				
 				<p><Strong>Map Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
+  				<table class="table table-hover" >
+					
 					<tbody>
-						<tr ng-repeat="(key, value) in resource.mapFields">
-							<td>{{key}}</td>
-							<td>
-							<table>
-							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
+						<tr ng-repeat="(key, value) in resourceInfor.mapFields">
+							<td><strong>{{key}}<strong></td>
+							<td>							
+							<table class="table table-bordered">
+							<tr ng-repeat="(keyx,valuex) in value track by $index">
+							<td class="success">{{keyx}}</td>
+							<td ng-if="valuex == MASTER" class="success">{{valuex}}</td>
+							<td>{{valuex}}</td>
+							</tr>
 							</table>
 							</td>
 							
@@ -112,7 +118,7 @@
 						</tr>
 					</tbody>
 				</table>
-</div></div>
+</div></div>  </div>
 			
 		</div>
 	</div>

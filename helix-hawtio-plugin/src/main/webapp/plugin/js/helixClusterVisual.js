@@ -2,9 +2,7 @@
  * @module Helix
  * @mail Helix
  *
- * The main entry point for the Helix Resource Controllermodule
- * can list all resources in a cluster by calling /clusters/{clusterName}/resourceGroups
- * able to add a resource to cluster
+ * The main entry point for the Helix chartting
  *
  */
 

@@ -39,11 +39,51 @@ var Helix = (function(Helix) {
         }
 		
 		//list all instance's info
-        $scope.listInstanceInfo = function(instance) {
-            
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instance.id)
+        $scope.listInstanceInfo = function(cluster,instanceId) {            
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instanceId)
                 .success(function(data) {
-                    $scope.instances = data;
+                    $scope.instancesInfor = data;
+                })
+        }
+        
+        //droup instaces
+        $scope.removeInstance = function(cluster,instanceId) {            
+            $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instanceId)
+                .success(function(data) {
+                	if(data.ERROR){
+                		$scope.callback = null;
+                		$scope.callbackErr =  instanceId + ' can not drop'
+                	}else{
+                	$scope.callback =  instanceId + ' is removed'
+                	$scope.callbackErr = null;
+                    $scope.listInstances(cluster);}
+                })
+        }
+        
+		//disable an instance
+        $scope.disableInstance = function(cluster,instanceId) {            
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instanceId,'jsonParameters={"command":"enableInstance","enabled":"false"}')
+                .success(function(data) {
+                	$scope.callback =  instanceId + ' is disabled'
+                    $scope.instancesInfor = data;
+                })
+        }
+        
+		//enable an instance
+        $scope.enableInstance = function(cluster,instanceId) {            
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instanceId,'jsonParameters={"command":"enableInstance","enabled":"true"}')
+                .success(function(data) {
+                	$scope.callback =  instanceId + ' is enabled'
+                    $scope.instancesInfor = data;
+                })
+        }
+        
+        //resetInstance
+        $scope.resetInstance = function(cluster,instanceId) {            
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instanceId,'jsonParameters={"command":"resetInstance"}')
+                .success(function(data) {
+                	$scope.callback =  instanceId + ' is reseted'
+                    $scope.instancesInfor = data;
                 })
         }
 

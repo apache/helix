@@ -13,7 +13,7 @@
 					
 				Select Level 
 				<select 
-					ng-model="config.level" >
+					ng-model="config.level" onchange="level(this.value)" >
 					<option value="cluster">Cluster</option>
 					<option value="participant">Pariciapnt</option>
 					<option value="resource">Resource</option>
@@ -21,7 +21,7 @@
 				
 				Select Action 
 				<select 
-					ng-model="config.action" >
+					ng-model="config.action" onchange="action(this.value)">
 					<option value="get">Get</option>
 					<option value="set">Set</option>
 					<option value="remove">Remove</option>
@@ -79,5 +79,12 @@
 							</tbody>
 						</table>
 </div></div>
+</div></div>
+<script> 
+function level(cluster)
+{
+
+}
+</script>
 			
 		

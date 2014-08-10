@@ -159,22 +159,17 @@ var Helix = (function(Helix) {
    * service from hawtioCore
    *
    */
-  Helix.HelixController = function($scope,$http, jolokia) {
+  Helix.HelixController = function($scope,$http) {
     $scope.hello = "This is";
 	$scope.dashboardName = "Helix Dashboard";
-    $scope.cpuLoad = "0";
-	$http.get("http://localhost:8100/clusters")
+	$scope.HelixRestEndPoint = "http://localhost:8100/clusters";
+	$http.get($scope.HelixRestEndPoint)
       .success(function(data) {
         $scope.clusters = data;
         
       })
 
-    // register a watch with jolokia on this mbean to
-    // get updated metrics
-   Core.register(jolokia, $scope, {
-     type: 'read', mbean: 'java.lang:type=OperatingSystem',
-     arguments: []
-    }, onSuccess(render));
+
 
 	//Add A New Cluster
 	$scope.addClusters = function(cluster) {
@@ -186,14 +181,8 @@ var Helix = (function(Helix) {
     }
 	
 	
-    // update display of metric
-	 function render(response) {
-      $scope.cpuLoad = response.value['ProcessCpuLoad'];
-      Core.$apply($scope);
-    }
-	 
-	 //List the Cluster Names
-	 
+ 
+	 //List the Cluster Names	 
 	 $scope.listClusters =function() {
 	        $http.get("http://localhost:8100/clusters")
 	      .success(function(data) {
@@ -202,10 +191,10 @@ var Helix = (function(Helix) {
 	    }
 		
 	 //Remove A Cluster
-	 
-		   $scope.removeClusters = function(clusters,clusterName) {
+	    $scope.removeClusters = function(clusters,clusterName) {
 	        $http.delete("http://localhost:8100/clusters/"+clusterName)
 	          .success(function(data) {
+	        	  $scope.callback = clusterName+", is removed";
 			   $scope.clusters.clusterName = null;
 			   $scope.listClusters();
 			   
@@ -214,10 +203,10 @@ var Helix = (function(Helix) {
 		   
 		   //Enable a Cluster in Controller mode
 			  
-		   $scope.enableCluster = function(cluster,controllerCluster) {
-			   $http.post("http://localhost:8100/clusters/"+cluster.clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"true"}')
+		   $scope.enableCluster = function(cluster,clusterName) {
+			   $http.post("http://localhost:8100/clusters/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"true"}')
 		          .success(function(data) {
-		        	  $scope.cluster.clusterName = null;
+		        	  $scope.callback = clusterName+", is enabled";
 		        	 
 		          })
 		    }
@@ -225,20 +214,20 @@ var Helix = (function(Helix) {
 		   
 		   //Disable a Cluster in Controller mode
 		   
-		   $scope.disableCluster = function(cluster,controllerCluster) {
-			   $http.post("http://localhost:8100/clusters/"+cluster.clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"false"}')
-		          .success(function(data) {
-		        	  $scope.cluster.clusterName = null;
+		   $scope.disableCluster = function(cluster,clusterName) {
+			   $http.post("http://localhost:8100/clusters/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"false"}')
+		          .success(function(data) {		        	  
+		           $scope.callback = clusterName+", is disabled";
 		        	 
 		          })
 		    }
 		   
-		   //List Clusters' Information
-		   
+		   //List Clusters' Information		   
 		   $scope.listClusterInfo =function(clusterName) {
 		        $http.get("http://localhost:8100/clusters/"+clusterName)
 		      .success(function(data) {
-		    	  $scope.clusters = data;
+		    	  $scope.callback = clusterName+", cluster information is listed in below";
+		    	  $scope.clustersInfo = data;
 		      })
 		    }
   };

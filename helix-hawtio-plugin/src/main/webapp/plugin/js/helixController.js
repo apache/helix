@@ -2,10 +2,12 @@
  * @module Helix
  * @mail Helix
  *
- * The main entry point for the Helix Instance Controller module
+ * The main entry point for the Helix Controller module
  * 
- * can list all instances /clusters/{clusterName}/instances
- * able add an instance
+ * Show controller information
+ * Enable/disable cluster
+ * 
+ * using /clusters/{clusterName}/controller
  *
  */
 var Helix = (function(Helix) {
@@ -41,6 +43,8 @@ var Helix = (function(Helix) {
                 })
         }
         
+       //disable cluster
+       
        $scope.disable = function(cluster) {
             
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller",'jsonParameters={"command":"enableCluster","enabled":"false"}')

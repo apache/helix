@@ -30,6 +30,7 @@ var Helix = (function(Helix) {
                 .success(function(data) {
                     $scope.data = data;
                     $scope.dataColor = null;
+
                 })
         }
 		
@@ -43,14 +44,14 @@ var Helix = (function(Helix) {
                 })
         }
         
-       //disable cluster
-       
+       //disable cluster       
        $scope.disable = function(cluster) {
             
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller",'jsonParameters={"command":"enableCluster","enabled":"false"}')
                 .success(function(data) {
                     $scope.data = data;
                     $scope.dataColor = "danger";
+
                 })
         }
 

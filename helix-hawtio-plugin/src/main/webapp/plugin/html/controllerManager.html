@@ -1,4 +1,4 @@
-<div class="simple-helix-controller" ng-controller="Helix.HelixInstanceController">
+<div class="simple-helix-controller" ng-controller="Helix.HelixControllerController">
 
 
   <div class="row-fluid">
@@ -13,12 +13,15 @@
   <input type="button" class="btn btn-primary" ng-click="disable(cluster)" value="Disable Controller" />
   </p>
   
-
+<div class="panel-heading">Simple Fields</div>
+  <div class="panel-body">
+  </div>
+  
    <table class="table table-hover">
 					<thead>
 						<tr>
-							<th>Information : Simple Fields </th>
-							
+							<th>Key </th>
+							<th>Value</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -44,47 +47,9 @@
 					</tbody>
 				</table>
 				
-				<div ng-show="instance">
-				<div class="panel panel-default">
-  <!-- Default panel contents -->
-  <div class="panel-heading">Details</div>
-  <div class="panel-body">
-  </div>
-  <p>Simple Details</p>
-		<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="item in instances.instanceInfo">
-							<td>{{item.id}}</td>
-							<td><input type="button" class="btn btn-info"
-								ng-click="getInformation('{{item}}')" value="Information" /></td>
-							<td><input type="button" class="btn btn-danger"
-								ng-click="removeInstance(cluster,'{{item}}')" value="Remove" /></td>
-								
-								
-						</tr>
-					</tbody>
-				</table>
-  <p>List Details</p>
-  <ul>
-    <li ng-repeat="(key, value) in instance.listFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p>Map Details</p>
-  <ul>
-    <li ng-repeat="(key, value) in instance.mapFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-</div></div>
+				
   
-
+</div>
       </div>
     </div>
   </div>

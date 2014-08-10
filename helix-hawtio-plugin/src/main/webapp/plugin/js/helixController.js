@@ -10,7 +10,7 @@
  */
 var Helix = (function(Helix) {
 
-    Helix.HelixCintrollerController = function($scope, $http) {
+    Helix.HelixControllerController = function($scope, $http) {
 
         $http.get("http://localhost:8100/clusters")
             .success(function(data) {
@@ -24,7 +24,7 @@ var Helix = (function(Helix) {
         //list all info
         $scope.listInfo = function(cluster) {
             
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/controller")
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller")
                 .success(function(data) {
                     $scope.controller = data;
                 })

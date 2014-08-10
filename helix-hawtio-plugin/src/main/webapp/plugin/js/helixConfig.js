@@ -56,8 +56,11 @@ var Helix = (function(Helix) {
         
         $scope.go = function(cluster) {
 		
-		var l = document.getElementById("config.level");
-		var a = document.getElementById("config.action");
+		var e = document.getElementById("level");
+		var l =e.options[e.selectedIndex].value;
+		
+		var c = document.getElementById("action");
+		var a=c.options[c.selectedIndex].value;
 		
 		switch(l)
 		{
@@ -67,7 +70,7 @@ var Helix = (function(Helix) {
 				switch(a)
 				{
 					case "get":
-					getClusterLevel(cluster);
+					$scope.getClusterLevel(cluster);
 					break;
 				
 				}

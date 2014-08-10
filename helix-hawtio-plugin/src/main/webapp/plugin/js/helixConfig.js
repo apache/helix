@@ -18,14 +18,31 @@ var Helix = (function(Helix) {
                 $scope.resource = null;
             })
 
-        $scope.addResources = function(cluster) {
-            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups", 'jsonParameters={"command":"addResource","resourceGroupName":"' + cluster.resourceName + '","partitions":"8","stateModelDefRef":"MasterSlave"}')
+        
+		
+		 //getting User Cluster Level Config 
+        $scope.getClusterLevel = function(cluster) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/cluster")
                 .success(function(data) {
-                    $scope.cluster.clusterName = null;
-                    // $scope.clusters = data;
-                    $scope.listResources(cluster);
+                    $scope.data = data;
                 })
-        }
+        }  
+		
+		//getting User Participant Level Config 
+        $scope.getPariticipantrLevel = function(cluster) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant")
+                .success(function(data) {
+                    $scope.data = data;
+                })
+        }  
+		
+		//getting Resource Level Config 
+        $scope.getResourceLevel = function(cluster) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource")
+                .success(function(data) {
+                    $scope.data = data;
+                })
+        }  
 
         $scope.listClusters = function() {
             $http.get("http://localhost:8100/clusters")
@@ -35,30 +52,10 @@ var Helix = (function(Helix) {
                 })
         }
         
-        $scope.removeResource = function(cluster,resourceName) {
-            $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
-                .success(function(data) {
-                    $scope.clusters = data;
-                    $scope.resource = null;
-                })
-        }
         
-        //getInformation of resources /clusters/{clusterName}/resourceGroups/{resourceName}
-        $scope.getInformation = function(cluster,resourceName) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
-                .success(function(data) {
-                    $scope.resource = data;
-                })
-        }
         
-        $scope.listResources = function(cluster) {
-            console.log(cluster.clusterName)
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
-                .success(function(data) {
-                    $scope.resources = data;
-                    $scope.resource = null;
-                })
-        }
+        
+        
 
 
 

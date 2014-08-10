@@ -4,31 +4,43 @@
   <div class="row-fluid">
     <div class="span6 offset3">
       <div class="centered">
-        <h2>Instance Manager</h2>
+        <h2>Controller Manager</h2>
     <p>Select Cluster<select data-ng-options="o for o in clusters.listFields.clusters" ng-model="cluster.clusterName"  > </select> 
-  <input type="button" class="btn btn-warning" ng-click="listInstances(cluster)" value="List Instances" /><p>
-  <p><input type="text" ng-model="cluster.instanceName" />
-  <input type="button" class="btn btn-primary" ng-click="addInstances(cluster)" value="Add Instance" />
+  <input type="button" class="btn btn-warning" ng-click="listInfo(cluster)" value="List Information" /><p>
+  <p>
+  <input type="button" class="btn btn-primary" ng-click="enable(cluster)" value="Enable Controller" />
+  </p>
+  <input type="button" class="btn btn-primary" ng-click="disable(cluster)" value="Disable Controller" />
   </p>
   
 
    <table class="table table-hover">
 					<thead>
 						<tr>
-							<th>Instance</th>
-							<th>Actions</th>
+							<th>Information : Simple Fields </th>
+							
 						</tr>
 					</thead>
 					<tbody>
-						<tr ng-repeat="item in instances.instanceInfo">
-							<td>{{item.id}}</td>
-							<td><input type="button" class="btn btn-info"
-								ng-click="getInformation('{{item}}')" value="Information" /></td>
-							<td><input type="button" class="btn btn-danger"
-								ng-click="removeInstance(cluster,'{{item}}')" value="Remove" /></td>
+						<tr>
+								<tr>
+									<td><Strong>HELIX VERSION</Strong></td>
+									<td>{{data}}:{{data.simpleFields.HELIX_VERSION}}</td>
+								</tr>
+								<tr>
+									<td><Strong>LIVE INSTANCE</Strong></td>
+									<td>{{data.simpleFields.LIVE_INSTANCE}}</td>
+								</tr>
+								<tr>
+									<td><Strong>PAUSE</Strong></td>
+									<td>{{data.simpleFields.PAUSE}}</td>
+								</tr>
+								<tr>
+									<td><Strong>SESSION ID</Strong></td>
+									<td>{{data.simpleFields.SESSION_ID}}</td>
+								</tr>
+								</tr>
 								
-								
-						</tr>
 					</tbody>
 				</table>
 				

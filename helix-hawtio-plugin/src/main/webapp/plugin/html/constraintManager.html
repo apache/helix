@@ -16,18 +16,27 @@
 				</select>	
 
 
-
+</p><p>
 			<input type="button" class="btn btn-warning"
 				ng-click="listConstraints(cluster)" value="List Constraints" />
 
 			</p>
-			<input type="text" ng-model="cluster.resourceName"
-				placeholder="New Constraint" /> <input type="text"
-				ng-model="cluster.resourceName" placeholder="Resource" /> <input
-				type="text" ng-model="cluster.resourceName"
-				placeholder="Constraint Value" /> <input type="button"
+			
+			<div class="bs-callout bs-callout-danger">
+			<p>
+			<input type="text" ng-model="cluster.constraintName"
+				placeholder="New Constraint" /> 
+				<input type="text"
+				ng-model="cluster.resourceName" placeholder="Resource" /> 
+				<input
+				type="text" ng-model="cluster.constraintValue"
+				placeholder="Constraint Value" /> 
+				<input type="button"
 				ng-click="addConstraints(cluster)" value="Add Constraints"
 				class="btn btn-primary" />
+				</p>
+				</div>
+				
 				<!--  notification -->
 			<div ng-show="callback">
 

@@ -52,10 +52,12 @@ var Helix = (function(Helix) {
         }
         
         
+        //Set a contraint
+        //curl -d 'jsonParameters={"constraintAttributes":"RESOURCE=MyDB,CONSTRAINT_VALUE=1"}' -H "Content-Type: application/json" http://localhost:8100/clusters/MyCluster/constraints/MESSAGE_CONSTRAINT/MyConstraint
           $scope.addConstraints = function(cluster) {          
-            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/constraints/"+cluster.constraintType,)
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/constraints/"+cluster.constraintType+"/"+cluster.constraintName , 'jsonParameters={"constraintAttributes":"RESOURCE=' + cluster.resourceName + ',CONSTRAINT_VALUE='+cluster.constraintValue+'"}')
                 .success(function(data) {
-                    $scope.callback = constraintName + ' in cluster "'+cluster.clusterName+ '" is successfully removed ';
+                    $scope.callback = cluster.constraintName + ' is added to '+cluster.clusterName;
                     $scope.listConstraints(cluster);
                 })
                 .error(function(data, status, headers, config) {

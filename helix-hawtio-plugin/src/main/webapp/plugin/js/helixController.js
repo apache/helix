@@ -26,7 +26,7 @@ var Helix = (function(Helix) {
             
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller")
                 .success(function(data) {
-                    $scope.controller = data;
+                    $scope.data = data;
                 })
         }
 		
@@ -35,7 +35,7 @@ var Helix = (function(Helix) {
             
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances/"+instance.id)
                 .success(function(data) {
-                    $scope.instances = data;
+                    $scope.data = data;
                 })
         }
 

@@ -12,7 +12,7 @@ var Helix = (function(Helix) {
 
     Helix.HelixInstanceController = function($scope, $http) {
 
-        $http.get("http://localhost:8100/clusters")
+        $http.get(Helix.endPoint)
             .success(function(data) {
                 $scope.clusters = data;
             })

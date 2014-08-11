@@ -22,14 +22,14 @@
 			</p>
 			<!-- dynaimic selecters -->
 			<p><div ng-show="resourceSelect">
-				resource Select <select
+				Resource Select <select
 					data-ng-options="o for o in resources.listFields.ResourceGroups"
 					ng-model="cluster.resourcesName">
 				</select>
 
 			</div></p><p>
 			<div ng-show="participantSelect">
-				participant Select <select
+				Participant Select <select
 					data-ng-options="o.id for o in instances.instanceInfo"
 					ng-model="cluster.instancesName">
 				</select>
@@ -47,10 +47,11 @@
 					placeholder="Config Key" /> <input type="text"
 					ng-model="cluster.configValue" placeholder="Config Value" />
 			</p>
+			<p>
 			<input type="button" class="btn btn-success"
 				ng-click="go(cluster,instance)" value="Go" />
 
-
+			</p>
 
 			<div ng-show="configData">
 				<div class="panel panel-default">
@@ -65,7 +66,7 @@
 								<td>{{configData.id}}</td>
 								<td></td>
 							</tr>
-							<tr ng-repeat="(key,value) in configData.listFields">
+							<tr ng-repeat="(key,value) in configData.listFields track by $index">
 								<td><strong>{{key}}</strong></td>
 								<td>
 									<table class="table table-bordered">
@@ -78,7 +79,7 @@
 									</table>
 								</td>
 							</tr>
-							<tr ng-repeat="(key,value) in configData.simpleFields">
+							<tr ng-repeat="(key,value) in configData.simpleFields track by $index">
 								<td><strong>{{key}}</strong></td>
 								<td>
 									

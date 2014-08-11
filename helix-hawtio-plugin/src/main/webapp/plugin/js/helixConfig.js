@@ -84,11 +84,17 @@ var Helix = (function(Helix) {
         }  
 		
 		//deleteg Resource Level Config 
-        $scope.removeResourceLevel = function(cluster,key) {        	
+        $scope.removeResourceLevel = function(cluster,key) { 
+        	if(cluster.configLevel == "participant"){
+        		$scope.removeParticipantLevel(cluster,key);        		
+        		}
+        	if(cluster.configLevel == "resource"){            	
+            	
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName,'jsonParameters={"command":"removeConfig","configs":"'+key+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
+        	}
         }  
 
         $scope.listClusters = function() {

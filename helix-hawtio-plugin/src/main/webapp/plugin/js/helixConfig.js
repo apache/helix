@@ -52,8 +52,8 @@ var Helix = (function(Helix) {
         }  
 		
 		//setting User Participant Level Config 
-        $scope.setParticipantLevel = function(cluster,instance) {
-            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant/"+cluster.instancesName.id,'jsonParameters={"command":"setConfig","configs":"'+cluster.configKey+'='+cluster.configValue+'"}')
+        $scope.setParticipantLevel = function(cluster) {
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/participant/"+cluster.instancesName.id,'jsonParameters={"command":"setConfig","configs":"'+cluster.configKey+'='+cluster.configValue+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -76,16 +76,16 @@ var Helix = (function(Helix) {
         }  
 		
 		//delete User Participant Level Config 
-        $scope.removeParticipantLevel = function(cluster,instance) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant")
+        $scope.removeParticipantLevel = function(cluster,key) {
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/participant/"+cluster.instancesName.id,'jsonParameters={"command":"removeConfig","configs":"'+key+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
         }  
 		
 		//deleteg Resource Level Config 
-        $scope.removeResourceLevel = function(cluster,key) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName,'jsonParameters={"command":"removeConfig","configs":"'+key+'"}')
+        $scope.removeResourceLevel = function(cluster,key) {        	
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName,'jsonParameters={"command":"removeConfig","configs":"'+key+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })

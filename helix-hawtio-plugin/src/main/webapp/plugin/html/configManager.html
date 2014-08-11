@@ -21,13 +21,13 @@
 				</select>
 			</p>
 			<!-- dynaimic selecters -->
-			<div ng-show="resourceSelect">
+			<p><div ng-show="resourceSelect">
 				resource Select <select
 					data-ng-options="o for o in resources.listFields.ResourceGroups"
 					ng-model="cluster.resourcesName">
 				</select>
 
-			</div>
+			</div></p><p>
 			<div ng-show="participantSelect">
 				participant Select <select
 					data-ng-options="o.id for o in instances.instanceInfo"
@@ -35,6 +35,7 @@
 				</select>
 
 			</div>
+			</p>
 			<!-- end of dynaimic selecters -->
 			<p>
 				Select Action <select ng-model="cluster.configAction">

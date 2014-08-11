@@ -13,34 +13,10 @@ var Helix = (function(Helix) {
         $http.get("http://localhost:8100/clusters")
             .success(function(data) {
                 $scope.clusters = data;
-                $scope.resource = null;
+               
             })
 
-        $scope.addResources = function(cluster) {
-            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups", 'jsonParameters={"command":"addResource","resourceGroupName":"' + cluster.resourceName + '","partitions":"8","stateModelDefRef":"MasterSlave"}')
-                .success(function(data) {
-                    $scope.cluster.clusterName = null;
-                    // $scope.clusters = data;
-                    $scope.listResources(cluster);
-                })
-        }
-
-        $scope.listClusters = function() {
-            $http.get("http://localhost:8100/clusters")
-                .success(function(data) {
-                    $scope.clusters = data;
-                    $scope.resource = null;
-                })
-        }
-        
-        $scope.removeResource = function(cluster,resourceName) {
-            $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
-                .success(function(data) {
-                    $scope.clusters = data;
-                    $scope.resource = null;
-                })
-        }
-        
+       
         //getInformation of resources /clusters/{clusterName}/resourceGroups/{resourceName}
         $scope.getInformation = function(cluster,resourceName) {
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
@@ -49,12 +25,20 @@ var Helix = (function(Helix) {
                 })
         }
         
-        $scope.listResources = function(cluster) {
-            console.log(cluster.clusterName)
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
+        //list resources
+        $scope.listResources = function(clusterName) {
+            $http.get("http://localhost:8100/clusters/" + clusterName + "/resourceGroups")
                 .success(function(data) {
                     $scope.resources = data;
-                    $scope.resource = null;
+                })
+        }
+        
+        //list all instances 
+        $scope.listInstances = function(clusterName) {
+            console.log(cluster.clusterName)
+            $http.get("http://localhost:8100/clusters/" + clusterName + "/instances")
+                .success(function(data) {
+                    $scope.instances = data;
                 })
         }
 

@@ -22,7 +22,7 @@ var Helix = (function(Helix) {
         $scope.addResources = function(cluster) {
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups", 'jsonParameters={"command":"addResource","resourceGroupName":"' + cluster.resourceName + '","partitions":"8","stateModelDefRef":"MasterSlave"}')
                 .success(function(data) {
-                    $scope.cluster.clusterName = null;
+                	$scope.callback = null;
                     // $scope.clusters = data;
                     $scope.listResources(cluster);
                 })
@@ -32,6 +32,7 @@ var Helix = (function(Helix) {
         $scope.listClusters = function() {
             $http.get("http://localhost:8100/clusters")
                 .success(function(data) {
+                	$scope.callback = null;
                     $scope.clusters = data;
                     $scope.resource = null;
                 })
@@ -41,6 +42,7 @@ var Helix = (function(Helix) {
         $scope.removeResource = function(cluster,resourceName) {
             $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
                 .success(function(data) {
+                	$scope.callback = resourceName+ ' is removed';
                     $scope.clusters = data;
                     $scope.resource = null;
                 })
@@ -48,6 +50,7 @@ var Helix = (function(Helix) {
         
         //getInformation of resources /clusters/{clusterName}/resourceGroups/{resourceName}
         $scope.getInformation = function(cluster,resourceName) {
+        	$scope.callback = null;
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
                 .success(function(data) {
                     $scope.resourceInfor = data;
@@ -55,6 +58,7 @@ var Helix = (function(Helix) {
         }
         //list resources
         $scope.listResources = function(cluster) {
+        	$scope.callback = null;
             console.log(cluster.clusterName)
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
                 .success(function(data) {
@@ -64,6 +68,7 @@ var Helix = (function(Helix) {
         }
         //get view of mapping in external view of resources
         $scope.externalView = function(cluster,resourceName) {
+        	$scope.callback = null;
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName+"/externalView")
                 .success(function(data) {
                     $scope.resourceInfor = data;

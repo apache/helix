@@ -6,60 +6,45 @@
 		<div class="span6 offset3">
 			
 				<h2>Config Manager</h2>
-				Select Cluster
+				<p>Select Cluster
 				<select data-ng-options="o for o in clusters.listFields.clusters"
 					ng-model="cluster.clusterName" >
 				</select> 
-					
+				</p>
+				<p>	
 				Select Level 
 				<select 
-					ng-model="config.level"  >
+					ng-model="cluster.configLevel"  >
 					<option value="cluster">Cluster</option>
 					<option value="participant">Participant</option>
 					<option value="resource">Resource</option>
 				</select>
-				
+				</p>
+				<p>	
 				Select Action 
 				<select 
-					ng-model="config.action" >
+					ng-model="cluster.configAction" >
 					<option value ="get">Get</option>
 					<option value="set">Set</option>
 					<option value="remove">Remove</option>
 				</select>
-				
+				<p>
+				<input type="text" ng-model="cluster.configKey"
+				placeholder="Config Key" />
+				<input type="text" ng-model="cluster.configValue"
+				placeholder="Config Value" />
+				</p>
 				<input type="button" class="btn btn-success" ng-click="go(cluster,instance)"
 					value="Go" /> 
 					
 				<input type="text"  ng-model="instance.instanceName"
 					placeholder ="Enter Participant" /> 
 					
-				<table class="table table-hover">
-					<thead>
-						<tr>
-							<th>Simple Fields</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-					<tr>
-									<td><Strong>Simple Fields</Strong></td>
-									<td>{{data.simpleFields}}</td>
-								</tr>
-								<tr>
-									<td><Strong>ZooKeeper Path</Strong></td>
-									<td>{{data.simpleFields.zkPath}}</td>
-								</tr>
-								<tr>
-									<td><Strong>Stat</Strong></td>
-									<td>{{data.simpleFields.stat}}</td>
-								</tr>
-						
-					</tbody>
-				</table>
-				<div ng-show="resource">
+
+				<div ng-show="configData">
 				<div class="panel panel-default">
   <!-- Default panel contents -->
-  <div class="panel-heading">Details</div>
+  <div class="panel-heading">Config Details</div>
   <div class="panel-body">
   </div>
   
@@ -67,28 +52,31 @@
 							<tbody>
 								<tr>
 									<td><Strong>ID</Strong></td>
-									<td>{{data.id}}</td>
+									<td>{{configData.id}}</td>
+								</tr>
+								<tr ng-repeat="(key,value) in configData.listFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value}}
+									<table class="table table-bordered">
+										<tr ng-repeat="(keyx, valuex) in value">											
+											<td>{{valuex}}</td>
+											<td>
+											<input type="button" class="btn btn-danger btn-sm"
+										ng-click="removeClusterLevel(cluster,'{{valuex}}')" value="Remove" />
+										</td>
+										</tr>
+									</table>
+									</td>
+									
+									<!-- td><input type="button" class="btn btn-danger btn-sm"
+										ng-click="removeConstraint(cluster,'{{value}}')" value="Remove" /></td-->
+
 								</tr>
 								<tr>
 									<td><Strong>Simple Fields</Strong></td>
-									<td>{{data.simpleFields.mtime}}</td>
+									<td>{{configData.listFields.mtime}}</td>
 								</tr>
-								<tr>
-									<td><Strong>Data Length</Strong></td>
-									<td>{{data.simpleFields.dataLength}}</td>
-								</tr>
-								<tr>
-									<td><Strong>Number of Children</Strong></td>
-									<td>{{data.simpleFields.numChildren}}</td>
-								</tr>
-								<tr>
-									<td><Strong>ZooKeeper Path</Strong></td>
-									<td>{{data.simpleFields.zkPath}}</td>
-								</tr>
-								<tr>
-									<td><Strong>Stat</Strong></td>
-									<td>{{data.simpleFields.stat}}</td>
-								</tr>
+								
 							</tbody>
 						</table>
 </div></div>

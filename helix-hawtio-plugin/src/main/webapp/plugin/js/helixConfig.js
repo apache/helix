@@ -28,7 +28,7 @@ var Helix = (function(Helix) {
 		
 		//getting User Participant Level Config 
         $scope.getParticipantLevel = function(cluster,instance) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant/"+instance.instanceName)
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant/"+cluster.instancesName.id)
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -36,7 +36,7 @@ var Helix = (function(Helix) {
 		
 		//getting Resource Level Config 
         $scope.getResourceLevel = function(cluster) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource")
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName)
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -98,6 +98,40 @@ var Helix = (function(Helix) {
                 })
         }
         
+        //when user select level of condif this method will occur 
+        $scope.update = function(cluster) {
+        	$scope.participantSelect = false;
+        	$scope.resourceSelect = false;
+        	if(cluster.configLevel == "participant"){
+        		$scope.participantSelect = true;
+        		$scope.listInstances(cluster);
+        		}
+        	if(cluster.configLevel == "resource"){
+            	$scope.resourceSelect = true;
+            	$scope.listResources(cluster);
+            	}
+           
+        }
+        
+        //list resources
+        $scope.listResources = function(cluster) {
+        	$scope.callback = null;
+            console.log(cluster.clusterName)
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
+                .success(function(data) {
+                    $scope.resources = data;
+                   // $scope.resource = null;
+                })
+        }
+        
+        //list all instances 
+        $scope.listInstances = function(cluster) {
+            console.log(cluster.clusterName)
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/instances")
+                .success(function(data) {
+                    $scope.instances = data;
+                })
+        }
         
         
         $scope.go = function(cluster,instance) {

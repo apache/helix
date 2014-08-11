@@ -63,7 +63,7 @@ var Helix = (function(Helix) {
             $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
                 .success(function(data) {
                     $scope.resources = data;
-                    $scope.resource = null;
+                  //  $scope.resource = null;
                 })
         }
         //get view of mapping in external view of resources

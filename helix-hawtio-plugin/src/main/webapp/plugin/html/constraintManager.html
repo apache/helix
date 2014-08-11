@@ -10,7 +10,8 @@
 				Select Cluster <select
 					data-ng-options="o for o in clusters.listFields.clusters"
 					ng-model="cluster.clusterName">
-				</select> Constraint Type<select ng-model="cluster.constraintType">
+				</select>
+				</p><p> Constraint Type<select ng-model="cluster.constraintType">
 					<option value="MESSAGE_CONSTRAINT" selected>MESSAGE_CONSTRAINT</option>
 					<option value="STATE_CONSTRAINT">STATE_CONSTRAINT</option>
 				</select>	
@@ -31,6 +32,7 @@
 				<input
 				type="text" ng-model="cluster.constraintValue"
 				placeholder="Constraint Value" /> 
+				</p><p>
 				<input type="button"
 				ng-click="addConstraints(cluster)" value="Add Constraints"
 				class="btn btn-primary" />

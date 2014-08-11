@@ -18,7 +18,11 @@
 					ng-model="cluster.rebalanceNo" placeholder="Rebalance No"/>
 					<input type="button"
 					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
-</p>
+</p><p>
+
+<input type="text" ng-model="cluster.resourcePropertyName" placeholder="Resource Property Name" /> 
+<input type="text" ng-model="cluster.resourcePropertyValue" placeholder="Property Value" /> 
+					</p>
 				<!--  notification -->
 				<div ng-show="callback">
 
@@ -53,7 +57,10 @@
 								<input type="button" class="btn btn-warning btn-sm"
 								ng-click="rebalance(cluster,'{{item}}')" value="Rebalance" />
 								<input type="button" class="btn btn-info btn-sm"
-								ng-click="externalView(cluster,'{{item}}')" value="External view" />
+								ng-click="externalView(cluster,'{{item}}')" value="External View" />
+								<input type="button" class="btn btn-info btn-sm"
+								ng-click="addProperty(cluster,'{{item}}')" value="Add Property" />
+								
 								</td>
 						</tr>
 					</tbody>

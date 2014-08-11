@@ -87,6 +87,14 @@ var Helix = (function(Helix) {
                     $scope.resourceInfor = data;
                 })
         }
+        
+        $scope.addProperty = function(cluster,resourceName) {
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName+"/idealState",'jsonParameters={"command":"addResourceProperty","'+cluster.resourcePropertyName+'":"'+cluster.resourcePropertyValue+'"}')
+                .success(function(data) {
+                	$scope.callback = cluster.resourcePropertyName+ ' Property is added to '+resourceName+ ' in '+ cluster.clusterName +'.'
+                    $scope.resourceInfor = data;
+                })
+        }
 
 
     };

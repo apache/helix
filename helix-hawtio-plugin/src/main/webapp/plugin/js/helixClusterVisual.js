@@ -35,7 +35,7 @@ var Helix = (function(Helix) {
         
         //list all instances 
         $scope.listInstances = function(clusterName) {
-            console.log(cluster.clusterName)
+           
             $http.get("http://localhost:8100/clusters/" + clusterName + "/instances")
                 .success(function(data) {
                     $scope.instances = data;

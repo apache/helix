@@ -43,14 +43,14 @@
 					<tbody>
 						<tr ng-repeat="item in clusters.listFields.clusters">
 							<td>{{item}}</td>
-							<td><input type="button" class="btn btn-info"
+							<td><input type="button" class="btn btn-info btn-sm"
 								ng-click="listClusterInfo('{{item}}')" value="Info" />
-							<input type="button" class="btn btn-danger"
+							<input type="button" class="btn btn-danger btn-sm"
 								ng-click="removeClusters(clusters,'{{item}}')" value="Remove" />
 								<input
-						type="button" class="btn btn-success"
+						type="button" class="btn btn-success btn-sm"
 						ng-click="enableCluster(cluster,'{{item}}')" value="Enable Cluster" /> <input
-						type="button" class="btn btn-warning"
+						type="button" class="btn btn-warning btn-sm"
 						ng-click="disableCluster(cluster,'{{item}}')" value="Disable Cluster" />
 						</td>
 						</tr>

@@ -2,7 +2,7 @@
  * @module Helix
  * @mail Helix
  *
- * The main entry point for the Helix chartting
+ * The main entry point for the Helix simple visual board
  *
  */
 

@@ -7,7 +7,7 @@
     <relativePath>..</relativePath>
   </parent-->
  <groupId>io.hawt</groupId>
- <version>1.5-SNAPSHOT</version>
+ <version>1.4.14</version>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>helix-plugin</artifactId>
   <name>${project.artifactId}</name>

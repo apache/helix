@@ -20,19 +20,7 @@
 					<option value="resource">Resource</option>
 				</select>
 			</p>
-			<p>
-				Select Action <select ng-model="cluster.configAction">
-					<option value="get">Get</option>
-					<option value="set">Set</option>
-				</select>
-			<p>
-				<input type="text" ng-model="cluster.configKey"
-					placeholder="Config Key" /> <input type="text"
-					ng-model="cluster.configValue" placeholder="Config Value" />
-			</p>
-			<input type="button" class="btn btn-success"
-				ng-click="go(cluster,instance)" value="Go" />
-
+			<!-- dynaimic selecters -->
 			<div ng-show="resourceSelect">
 				resource Select <select
 					data-ng-options="o for o in resources.listFields.ResourceGroups"
@@ -47,6 +35,21 @@
 				</select>
 
 			</div>
+			<!-- end of dynaimic selecters -->
+			<p>
+				Select Action <select ng-model="cluster.configAction">
+					<option value="get">Get</option>
+					<option value="set">Set</option>
+				</select>
+			<p>
+				<input type="text" ng-model="cluster.configKey"
+					placeholder="Config Key" /> <input type="text"
+					ng-model="cluster.configValue" placeholder="Config Value" />
+			</p>
+			<input type="button" class="btn btn-success"
+				ng-click="go(cluster,instance)" value="Go" />
+
+
 
 			<div ng-show="configData">
 				<div class="panel panel-default">
@@ -59,12 +62,13 @@
 							<tr>
 								<td><Strong>ID</Strong></td>
 								<td>{{configData.id}}</td>
+								<td></td>
 							</tr>
 							<tr ng-repeat="(key,value) in configData.listFields">
 								<td><strong>{{key}}</strong></td>
 								<td>
 									<table class="table table-bordered">
-										<tr ng-repeat="(keyx, valuex) in value">
+										<tr ng-repeat="(keyx, valuex) in value">											
 											<td>{{valuex}}</td>
 											<td><input type="button" class="btn btn-danger btn-sm"
 												ng-click="removeClusterLevel(cluster,'{{valuex}}')"
@@ -72,14 +76,17 @@
 										</tr>
 									</table>
 								</td>
-
-								<!-- td><input type="button" class="btn btn-danger btn-sm"
-										ng-click="removeConstraint(cluster,'{{value}}')" value="Remove" /></td-->
-
 							</tr>
-							<tr>
-								<td><Strong>Simple Fields</Strong></td>
-								<td>{{configData.listFields.mtime}}</td>
+							<tr ng-repeat="(key,value) in configData.simpleFields">
+								<td><strong>{{key}}</strong></td>
+								<td>
+									
+											<td>{{value}}</td>
+											<td><input type="button" class="btn btn-danger btn-sm"
+												ng-click="removeResourceLevel(cluster,'{{key}}')"
+												value="Remove" /></td>
+										
+								</td>
 							</tr>
 
 						</tbody>

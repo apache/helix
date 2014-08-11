@@ -27,8 +27,9 @@ var Helix = (function(Helix) {
         }  
 		
 		//getting User Participant Level Config 
-        $scope.getParticipantLevel = function(cluster,instance) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant/"+cluster.instancesName.id)
+        //eg: http://localhost:8100/clusters/HELIX_QUICKSTART/configs/participant/localhost_12002
+        $scope.getParticipantLevel = function(cluster) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/participant/"+cluster.instancesName.id)
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -52,7 +53,7 @@ var Helix = (function(Helix) {
 		
 		//setting User Participant Level Config 
         $scope.setParticipantLevel = function(cluster,instance) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant")
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/pariticipant/"+cluster.instancesName.id,'jsonParameters={"command":"setConfig","configs":"'+cluster.configKey+'='+cluster.configValue+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -60,7 +61,7 @@ var Helix = (function(Helix) {
 		
 		//setting Resource Level Config 
         $scope.setResourceLevel = function(cluster) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource")
+            $http.post("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName,'jsonParameters={"command":"setConfig","configs":"'+cluster.configKey+'='+cluster.configValue+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -83,8 +84,8 @@ var Helix = (function(Helix) {
         }  
 		
 		//deleteg Resource Level Config 
-        $scope.removeResourceLevel = function(cluster) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource")
+        $scope.removeResourceLevel = function(cluster,key) {
+            $http.get("http://localhost:8100/clusters/" + cluster.clusterName+"/configs/resource/"+cluster.resourcesName,'jsonParameters={"command":"removeConfig","configs":"'+key+'"}')
                 .success(function(data) {
                     $scope.configData = data;
                 })
@@ -153,9 +154,6 @@ var Helix = (function(Helix) {
 					$scope.setClusterLevel(cluster);
 					break;
 					
-					case "remove":
-					$scope.removeClusterLevel(cluster);
-					break;
 				
 				}
 				
@@ -169,16 +167,13 @@ var Helix = (function(Helix) {
 				switch(configAction)
 				{
 					case "get":
-					$scope.getParticipantLevel(cluster,instance);
+					$scope.getParticipantLevel(cluster);
 					break;
 					
 					case "set":
-					$scope.setParticipantLevel(cluster,instance);
+					$scope.setParticipantLevel(cluster);
 					break;
 					
-					case "remove":
-					$scope.removeParticipantLevel(cluster,instance);
-					break;
 				
 				}
 				
@@ -200,9 +195,6 @@ var Helix = (function(Helix) {
 					$scope.setResourceLevel(cluster);
 					break;
 					
-					case "remove":
-					$scope.removeResourceLevel(cluster);
-					break;
 				
 				}
 		

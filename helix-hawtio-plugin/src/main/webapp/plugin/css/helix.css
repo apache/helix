@@ -6,3 +6,7 @@
 .cpu-display {
   display: inline-block;
 }
+
+.uneditable-input {
+	height:30px;!important;
+	}

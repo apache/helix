@@ -31,6 +31,7 @@ var Helix = (function(Helix) {
    *
    */
   Helix.contextPath = "/helix-plugin/";
+  Helix.endPoint= "http://localhost:8100/clusters";
 
   /**
    * @property templatePath
@@ -162,8 +163,9 @@ var Helix = (function(Helix) {
   Helix.HelixController = function($scope,$http) {
     $scope.hello = "This is";
 	$scope.dashboardName = "Helix Dashboard";
+	//view for scope only
 	$scope.HelixRestEndPoint = "http://localhost:8100/clusters";
-	$http.get($scope.HelixRestEndPoint)
+	$http.get(Helix.endPoint)
       .success(function(data) {
         $scope.clusters = data;
         
@@ -173,7 +175,7 @@ var Helix = (function(Helix) {
 
 	//Add A New Cluster
 	$scope.addClusters = function(cluster) {
-        $http.post("http://localhost:8100/clusters", 'jsonParameters={"command":"addCluster","clusterName":"'+cluster.clusterName+'"}')
+        $http.post(Helix.endPoint, 'jsonParameters={"command":"addCluster","clusterName":"'+cluster.clusterName+'"}')
           .success(function(data) {
         	  $scope.cluster.clusterName = null;
         	  $scope.clusters = data;
@@ -184,7 +186,7 @@ var Helix = (function(Helix) {
  
 	 //List the Cluster Names	 
 	 $scope.listClusters =function() {
-	        $http.get("http://localhost:8100/clusters")
+	        $http.get(Helix.endPoint)
 	      .success(function(data) {
 	    	  $scope.clusters = data;
 	      })
@@ -192,7 +194,7 @@ var Helix = (function(Helix) {
 		
 	 //Remove A Cluster
 	    $scope.removeClusters = function(clusters,clusterName) {
-	        $http.delete("http://localhost:8100/clusters/"+clusterName)
+	        $http.delete(Helix.endPoint+"/"+clusterName)
 	          .success(function(data) {
 	        	  $scope.callback = clusterName+", is removed";
 			   $scope.clusters.clusterName = null;
@@ -204,7 +206,7 @@ var Helix = (function(Helix) {
 		   //Enable a Cluster in Controller mode
 			  
 		   $scope.enableCluster = function(cluster,clusterName) {
-			   $http.post("http://localhost:8100/clusters/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"true"}')
+			   $http.post(Helix.endPoint+"/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"true"}')
 		          .success(function(data) {
 		        	  $scope.callback = clusterName+", is enabled";
 		        	 
@@ -215,7 +217,7 @@ var Helix = (function(Helix) {
 		   //Disable a Cluster in Controller mode
 		   
 		   $scope.disableCluster = function(cluster,clusterName) {
-			   $http.post("http://localhost:8100/clusters/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"false"}')
+			   $http.post(Helix.endPoint+"/"+clusterName, 'jsonParameters={"command":"activateCluster","grandCluster":"'+cluster.controllerCluster+'","enabled":"false"}')
 		          .success(function(data) {		        	  
 		           $scope.callback = clusterName+", is disabled";
 		        	 
@@ -224,7 +226,7 @@ var Helix = (function(Helix) {
 		   
 		   //List Clusters' Information		   
 		   $scope.listClusterInfo =function(clusterName) {
-		        $http.get("http://localhost:8100/clusters/"+clusterName)
+		        $http.get(Helix.endPoint+"/"+clusterName)
 		      .success(function(data) {
 		    	  $scope.callback = clusterName+", cluster information is listed in below";
 		    	  $scope.clustersInfo = data;

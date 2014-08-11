@@ -4,129 +4,131 @@
 
 	<div class="row-fluid">
 		<div class="span6 offset3">
-			
-				<h2>State Model Definition Manager</h2>
-				<p>Select Cluster
-				<select data-ng-options="o for o in clusters.listFields.clusters"
-					ng-model="cluster.clusterName" >
-				</select> <input type="button" class="btn btn-warning" ng-click="listStateModelDef(cluster)"
-					value="List Information" /> </p>
-					<input type="text"
-					ng-model="cluster.resourceName" /> <input type="button"
-					ng-click="addStateModelDef(cluster)" value="Add State Model Definition"  class="btn btn-primary"/>
 
+			<h2>State Model Definition Manager</h2>
+			<p>
+				Select Cluster <select
+					data-ng-options="o for o in clusters.listFields.clusters"
+					ng-model="cluster.clusterName">
+				</select> <input type="button" class="btn btn-warning"
+					ng-click="listStateModel(cluster)" value="List State Model" />
+			</p>
+			<input type="text" ng-model="cluster.newStateModelDefinition"
+				placeholder="New State Model Definition" /> <input type="button"
+				ng-click="addStateModelDef(cluster)"
+				value="Add State Model Definition" class="btn btn-primary" />
+
+			<!--  notification -->
+			<div ng-show="callback">
+
+				<div class="alert alert-success alert-dismissible" role="alert">
+					<button type="button" class="close" data-dismiss="alert">
+						<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+					</button>
+					<strong>Success!</strong> {{callback}}
+				</div>
+			</div>
+			<!--  end of notification -->
+			<!--  Error notification -->
+			<div ng-show="callbackErr">
+
+				<div class="alert alert-danger alert-dismissible" role="alert">
+					<button type="button" class="close" data-dismiss="alert">
+						<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+					</button>
+					<strong>Failure!</strong> {{callbackErr}}
+				</div>
+			</div>
+			<!--  end of Error notification -->
+
+			<div ng-show="statemodel">
 				<table class="table table-hover">
 					<thead>
 						<tr>
 							<th>State Model Definitions</th>
-							<th>Add</th>
+							<th>Action</th>
 						</tr>
 					</thead>
 					<tbody>
-						<tr ng-repeat="item in resources.listFields.ResourceGroups">
+						<tr ng-repeat="item in statemodel.listFields.models">
 							<td>{{item}}</td>
-							
-							<td><input type="button" class="btn btn-info"
-								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
-								</td>
-							<td><input type="button" class="btn btn-danger"
-								ng-click="removeResource(cluster,'{{item}}')" value="Remove" /></td>
-								
+
+							<td><input type="button" class="btn btn-info btn-sm"
+								ng-click="getDefinition(cluster,'{{item}}')" value="Definition" />
+							</td>
+
 						</tr>
 					</tbody>
 				</table>
-				<div ng-show="resource">
+			</div>
+
+
+			<div ng-show="statemodelDefinition">
 				<div class="panel panel-default">
-  <!-- Default panel contents -->
-  <div class="panel-heading">Details</div>
-  <div class="panel-body">
-  </div>
-  
-		<ul>
-    <li ng-repeat="(key, value) in resource.simpleFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p>List Fields</p>
-  <ul>
-    <li ng-repeat="(key, value) in resource.listFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p>Map Fields</p>
-  <ul>
-    <li ng-repeat="(key, value) in resource.mapFields">
-        {{key}}: {{ value }}
-    </li>
-  </ul>
-  <p><strong>Simple Fields</strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.simpleFields">
-							<td>{{key}}</td>
-							<td>{{value}}</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-				
-				
-				<p><Strong>List Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.listFields">
-							<td>{{key}}</td>
-							<td>
-							<table>
-							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
-							</table>
-							</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-				
-				
-				<p><Strong>Map Fields</Strong></p>
-  <table class="table table-hover" >
-					<thead>
-						<tr>
-							<th>Key</th>
-							<th>Value</th>
-							
-						</tr>
-					</thead>
-					<tbody>
-						<tr ng-repeat="(key, value) in resource.mapFields">
-							<td>{{key}}</td>
-							<td>{{value}}
-							<table>
-							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
-							</table>
-							</td>
-							
-							
-						</tr>
-					</tbody>
-				</table>
-</div></div>
-			
+					<!-- Default panel contents -->
+					<div class="panel-heading">State Model Definition</div>
+					<div class="panel-body">
+
+
+
+
+						<table class="table table-hover">
+
+							<tbody>
+								<tr
+									ng-repeat="(key, value) in statemodelDefinition.simpleFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value}}</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+
+
+
+						<table class="table table-hover">
+
+							<tbody>
+								<tr ng-repeat="(key, value) in statemodelDefinition.listFields">
+									<td><strong>{{key}}</strong></td>
+									<td>
+										<table>
+											<tr ng-repeat="(key,value) in value">
+												<td>{{value}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+
+
+
+						<table class="table table-hover">
+
+							<tbody>
+								<tr ng-repeat="(key, value) in statemodelDefinition.mapFields">
+									<td><strong>{{key}}<strong></td>
+									<td>
+										<table class="table table-bordered">
+											<tr ng-repeat="(keyx,valuex) in value track by $index">
+												<td class="success">{{keyx}}</td>
+												<td>{{valuex}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
 		</div>
 	</div>
 

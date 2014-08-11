@@ -10,55 +10,65 @@ var Helix = (function(Helix) {
 
     Helix.HelixStateModelDefController = function($scope, $http) {
 
-        $http.get("http://localhost:8100/clusters")
+        $http.get(Helix.endPoint)
             .success(function(data) {
                 $scope.clusters = data;
-                $scope.resource = null;
             })
 
-        $scope.addResources = function(cluster) {
-            $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups", 'jsonParameters={"command":"addResource","resourceGroupName":"' + cluster.resourceName + '","partitions":"8","stateModelDefRef":"MasterSlave"}')
-                .success(function(data) {
-                    $scope.cluster.clusterName = null;
-                    // $scope.clusters = data;
-                    $scope.listResources(cluster);
-                })
-        }
 
+        //list clusters
         $scope.listClusters = function() {
-            $http.get("http://localhost:8100/clusters")
+            $http.get(Helix.endPoint)
                 .success(function(data) {
                     $scope.clusters = data;
-                    $scope.resource = null;
                 })
         }
         
-        $scope.removeResource = function(cluster,resourceName) {
-            $http.delete("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
-                .success(function(data) {
-                    $scope.clusters = data;
-                    $scope.resource = null;
-                })
-        }
-        
-        //getInformation of resources /clusters/{clusterName}/resourceGroups/{resourceName}
-        $scope.getInformation = function(cluster,resourceName) {
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups/"+resourceName)
-                .success(function(data) {
-                    $scope.resource = data;
-                })
-        }
-        
-        $scope.listResources = function(cluster) {
-            console.log(cluster.clusterName)
-            $http.get("http://localhost:8100/clusters/" + cluster.clusterName + "/resourceGroups")
-                .success(function(data) {
-                    $scope.resources = data;
-                    $scope.resource = null;
-                })
-        }
 
+        //Show all state model 
+        $scope.listStateModel = function(cluster) {
+            $http.get(Helix.endPoint+"/" + cluster.clusterName + "/StateModelDefs")
+                .success(function(data) {
+                    $scope.statemodel = data;
+                })
+        }
+        
+        //get state model  definition
+        $scope.getDefinition = function(cluster,stateModel) {
+            $http.get(Helix.endPoint+"/" + cluster.clusterName + "/StateModelDefs/"+stateModel)
+                .success(function(data) {
+                    $scope.statemodelDefinition = data;
+                })
+        }
+        
+        // Add a state mdoel definition
+        $scope.addStateModelDef = function(cluster,stateModelName) { 
+        	$scope.callbackErr = null;
+        	$scope.callback = null;
+        	if(cluster.clusterName.length<1){
+        		$scope.callbackErr = "Please select cluster name";
+        		}else{
+        	var hData = 'jsonParameters={"command":"addStateModelDef"'
+        	+'}&newStateModelDef={'
+        	  +'"id" : "'+cluster.newStateModelDefinition+'",'
+        	  +'"simpleFields" : {"INITIAL_STATE" : "OFFLINE"},'
+        	  +'"listFields" : {"STATE_PRIORITY_LIST" : [ "ONLINE", "OFFLINE", "DROPPED" ],"STATE_TRANSITION_PRIORITYLIST" : [ "OFFLINE-ONLINE", "ONLINE-OFFLINE", "OFFLINE-DROPPED" ] },'
+        	  +'"mapFields" : {"DROPPED.meta" : { "count" : "-1" },'
+        	  +'"OFFLINE.meta" : { "count" : "-1" },'
+        	  +'"OFFLINE.next" : { "DROPPED" : "DROPPED","ONLINE" : "ONLINE" },'
+        	  +'"ONLINE.meta" : { "count" : "R" },'
+        	  +'"ONLINE.next" : { "DROPPED" : "OFFLINE","OFFLINE" : "OFFLINE"'
+        	  +'}'
+        	  +'}'
+        	  +'}';
+            $http.post(Helix.endPoint+"/" + cluster.clusterName + "/StateModelDefs",hData)
+                .success(function(data) {                	
+                	$scope.callback = 'State Mdoel definition, 'cluster.newStateModelDefinition + ' is added to '+cluster.clusterName;
+                    $scope.statemodelDefinition = data;
+                })
+        `}
 
+        }
 
     };
 

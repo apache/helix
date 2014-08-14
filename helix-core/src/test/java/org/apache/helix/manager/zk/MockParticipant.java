@@ -117,4 +117,8 @@ public class MockParticipant extends ZKHelixManager implements Runnable {
     ZkHelixConnection conn = (ZkHelixConnection)getConn();
     return conn._handlers.get(_role);
   }
+
+  public ZkHelixParticipant getParticipant() {
+    return (ZkHelixParticipant) _role;
+  }
 }

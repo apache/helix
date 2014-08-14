@@ -97,4 +97,12 @@ public class MockMultiClusterController extends ZKHelixManager implements Runnab
 
     return handlers;
   }
+
+  public ZkHelixMultiClusterController getRole() {
+    return (ZkHelixMultiClusterController) _role;
+  }
+
+  public ZkHelixController getController() {
+    return getRole()._controller;
+  }
 }

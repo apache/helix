@@ -67,18 +67,14 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 /**
- * This is a copy of {@link CallbackHandler} We need to synchronize on ZkHelixConnection
- * instead ofHelixManager to avoid dead-lock.
- * Otherwise an example deadlock scenario would be:
+ * We need to synchronize on {@link ZkHelixConnection} instead of {@link HelixManager} to avoid
+ * dead-lock. Otherwise an example deadlock scenario would be:
  * 1) main-thread calls ZkHelixConnection#disconnect(), results in:
  * - ZkHelixController#reset(), holding ZkHelixConnection, waiting HelixConnectionAdaptor
  * 2) zk-event-thread calls CallbackHandler#handleChildChange(), results in:
  * - CallbackHandler#invoke(), holding HelixConnectionAdaptor, waiting ZkHelixConnection
- * TODO remove code duplication
  */
-public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
-
-{
+public class ZkCallbackHandler implements IZkChildListener, IZkDataListener {
   private static Logger logger = Logger.getLogger(ZkCallbackHandler.class);
 
   /**

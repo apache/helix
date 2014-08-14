@@ -83,4 +83,9 @@ public class MockController extends ZKHelixManager implements Runnable {
     ZkHelixConnection conn = (ZkHelixConnection)getConn();
     return conn._handlers.get(_role);
   }
+
+  public ZkHelixController getController() {
+    return (ZkHelixController) _role;
+  }
+
 }

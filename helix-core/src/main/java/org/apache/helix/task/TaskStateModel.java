@@ -228,6 +228,12 @@ public class TaskStateModel extends TransitionHandler {
       }
     }
 
+    // Report a target if that was used to assign the partition
+    String target = ctx.getTargetForPartition(pId);
+    if (taskConfig == null && target != null) {
+      taskConfig = TaskConfig.from(target);
+    }
+
     // Populate a task callback context
     TaskCallbackContext callbackContext = new TaskCallbackContext();
     callbackContext.setManager(_manager);

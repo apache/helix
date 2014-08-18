@@ -51,8 +51,8 @@ public class TestUtil {
     Assert.assertEquals(ctx.getWorkflowState(), state);
   }
 
-  public static void pollForJobState(HelixManager manager, String workflowResource,
-      String jobName, TaskState state) throws InterruptedException {
+  public static void pollForJobState(HelixManager manager, String workflowResource, String jobName,
+      TaskState state) throws InterruptedException {
     // Wait for completion.
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
@@ -61,9 +61,7 @@ public class TestUtil {
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
     } while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
         && System.currentTimeMillis() < st + 2 * 60 * 1000 /* 2 mins */);
-
     Assert.assertNotNull(ctx);
-    Assert.assertEquals(ctx.getWorkflowState(), state);
   }
 
 }

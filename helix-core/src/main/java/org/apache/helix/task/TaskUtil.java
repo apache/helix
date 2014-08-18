@@ -56,8 +56,8 @@ import com.google.common.collect.Maps;
  */
 public class TaskUtil {
   private static final Logger LOG = Logger.getLogger(TaskUtil.class);
-  private static final String CONTEXT_NODE = "Context";
-  private static final String PREV_RA_NODE = "PreviousResourceAssignment";
+  public static final String CONTEXT_NODE = "Context";
+  public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.

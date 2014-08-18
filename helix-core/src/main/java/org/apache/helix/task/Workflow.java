@@ -27,8 +27,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -85,30 +83,6 @@ public class Workflow {
 
   public WorkflowConfig getWorkflowConfig() {
     return _workflowConfig;
-  }
-
-  public Map<String, String> getResourceConfigMap() throws Exception {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.DAG, _workflowConfig.getJobDag().toJson());
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(_workflowConfig.getExpiry()));
-    cfgMap.put(WorkflowConfig.TARGET_STATE, _workflowConfig.getTargetState().name());
-
-    // Populate schedule if present
-    ScheduleConfig scheduleConfig = _workflowConfig.getScheduleConfig();
-    if (scheduleConfig != null) {
-      Date startTime = scheduleConfig.getStartTime();
-      if (startTime != null) {
-        String formattedTime = WorkflowConfig.DEFAULT_DATE_FORMAT.format(startTime);
-        cfgMap.put(WorkflowConfig.START_TIME, formattedTime);
-      }
-      if (scheduleConfig.isRecurring()) {
-        cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, scheduleConfig.getRecurrenceUnit().toString());
-        cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, scheduleConfig.getRecurrenceInterval()
-            .toString());
-      }
-    }
-
-    return cfgMap;
   }
 
   /**
@@ -339,7 +313,7 @@ public class Workflow {
       }
 
       WorkflowConfig.Builder builder = new WorkflowConfig.Builder();
-      builder.setTaskDag(_dag);
+      builder.setJobDag(_dag);
       builder.setTargetState(TargetState.START);
       if (_scheduleConfig != null) {
         builder.setScheduleConfig(_scheduleConfig);

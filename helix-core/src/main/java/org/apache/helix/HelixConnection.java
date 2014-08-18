@@ -77,12 +77,12 @@ public interface HelixConnection {
   HelixController createController(ClusterId clusterId, ControllerId controllerId);
 
   /**
-   * create an autonomous helix-controller
+   * create a multi-cluster controller
    * @param clusterId
    * @param controllerId
    * @return
    */
-  HelixMultiClusterController createAutoController(ClusterId clusterId, ControllerId controllerId);
+  HelixMultiClusterController createMultiClusterController(ClusterId clusterId, ControllerId controllerId);
 
   /**
    * create a cluster-accessor

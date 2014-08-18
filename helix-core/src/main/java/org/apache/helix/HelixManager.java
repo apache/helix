@@ -135,7 +135,7 @@ public interface HelixManager {
 
   /**
    * Add listener for controller change
-   * Used in distributed cluster controller
+   * Used in multi-cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
 

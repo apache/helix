@@ -49,7 +49,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
-import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+import org.apache.helix.participant.MultiClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
@@ -162,8 +162,8 @@ public class HelixControllerMain {
             HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
                 InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        DistClusterControllerStateModelFactory stateModelFactory =
-            new DistClusterControllerStateModelFactory(zkConnectString);
+        MultiClusterControllerStateModelFactory stateModelFactory =
+            new MultiClusterControllerStateModelFactory(zkConnectString);
 
         StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, stateModelFactory);

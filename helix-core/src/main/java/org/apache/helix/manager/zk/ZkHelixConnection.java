@@ -210,7 +210,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   }
 
   @Override
-  public HelixMultiClusterController createAutoController(ClusterId clusterId, ControllerId controllerId) {
+  public HelixMultiClusterController createMultiClusterController(ClusterId clusterId, ControllerId controllerId) {
     return new ZkHelixMultiClusterController(this, clusterId, controllerId);
   }
 

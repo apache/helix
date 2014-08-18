@@ -96,7 +96,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
   }
 
   @Test
-  public void testDistributed() throws Exception {
+  public void testMultiCluster() throws Exception {
     String testName = TestUtil.getTestName();
     String clusterName = testName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -106,9 +106,9 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     TestHelper.setupCluster(grandClusterName, _zkaddr, 0, "controller", null, 0, 0, 1, 0, null,
         true);
 
-    MockMultiClusterController distController =
+    MockMultiClusterController multiClusterController =
         new MockMultiClusterController(_zkaddr, grandClusterName, "controller_0");
-    distController.syncStart();
+    multiClusterController.syncStart();
 
     // setup cluster
     _setupTool.addCluster(clusterName, true);
@@ -165,7 +165,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
 
     // clean up
-    distController.syncStop();
+    multiClusterController.syncStop();
     for (int i = 0; i < nodeNr; i++) {
       participants[i].syncStop();
     }

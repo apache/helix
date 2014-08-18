@@ -332,7 +332,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     Map<String, MockParticipant> participants =
         new HashMap<String, MockParticipant>();
-    Map<String, MockMultiClusterController> distControllers =
+    Map<String, MockMultiClusterController> multiClusterControllers =
         new HashMap<String, MockMultiClusterController>();
 
     // setup cluster
@@ -356,10 +356,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
-      MockMultiClusterController distController =
+      MockMultiClusterController multiClusterController =
           new MockMultiClusterController(_zkaddr, controllerClusterName, controllerName);
-      distController.syncStart();
-      distControllers.put(controllerName, distController);
+      multiClusterController.syncStart();
+      multiClusterControllers.put(controllerName, multiClusterController);
     }
 
     String clusterUrl = getClusterUrl(clusterName);
@@ -398,7 +398,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertFalse(_zkclient.exists("/" + clusterName));
 
     // clean up
-    for (MockMultiClusterController controller : distControllers.values()) {
+    for (MockMultiClusterController controller : multiClusterControllers.values()) {
       controller.syncStop();
     }
 
@@ -747,7 +747,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
 
     Map<String, MockParticipant> participants =
         new HashMap<String, MockParticipant>();
-    Map<String, MockMultiClusterController> distControllers =
+    Map<String, MockMultiClusterController> multiClusterControllers =
         new HashMap<String, MockMultiClusterController>();
 
     // setup cluster
@@ -771,10 +771,10 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       String controllerName = "controller_900" + i;
-      MockMultiClusterController distController =
+      MockMultiClusterController multiClusterController =
           new MockMultiClusterController(_zkaddr, controllerClusterName, controllerName);
-      distController.syncStart();
-      distControllers.put(controllerName, distController);
+      multiClusterController.syncStart();
+      multiClusterControllers.put(controllerName, multiClusterController);
     }
     Thread.sleep(100);
 
@@ -794,7 +794,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     deleteUrl(clusterUrl, true);
 
     // verify leader node
-    HelixDataAccessor accessor = distControllers.get("controller_9001").getHelixDataAccessor();
+    HelixDataAccessor accessor = multiClusterControllers.get("controller_9001").getHelixDataAccessor();
     LiveInstance controllerLeader = accessor.getProperty(accessor.keyBuilder().controllerLeader());
     Assert.assertTrue(controllerLeader.getInstanceName().startsWith("controller_900"));
 
@@ -821,7 +821,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Thread.sleep(1000);
 
     // clean up
-    for (MockMultiClusterController controller : distControllers.values()) {
+    for (MockMultiClusterController controller : multiClusterControllers.values()) {
       controller.syncStop();
     }
     for (MockParticipant participant : participants.values()) {

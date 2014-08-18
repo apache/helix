@@ -1,8 +1,5 @@
 package org.apache.helix.participant;
 
-import org.apache.helix.api.StateTransitionHandlerFactory;
-import org.apache.helix.api.id.PartitionId;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,18 +19,17 @@ import org.apache.helix.api.id.PartitionId;
  * under the License.
  */
 
+import org.apache.helix.api.id.PartitionId;
+import org.testng.annotations.Test;
 
-public class DistClusterControllerStateModelFactory extends
-    StateTransitionHandlerFactory<DistClusterControllerStateModel> {
-  private final String _zkAddr;
+public class TestMultiClusterControllerStateModelFactory {
 
-  public DistClusterControllerStateModelFactory(String zkAddr) {
-    _zkAddr = zkAddr;
+  @Test()
+  public void test() {
+    MultiClusterControllerStateModelFactory factory =
+        new MultiClusterControllerStateModelFactory("localhost:2181");
+    MultiClusterControllerStateModel stateModel =
+        factory.createStateTransitionHandler(PartitionId.from("key"));
+    stateModel.onBecomeStandbyFromOffline(null, null);
   }
-
-  @Override
-  public DistClusterControllerStateModel createStateTransitionHandler(PartitionId partition) {
-    return new DistClusterControllerStateModel(_zkAddr);
-  }
-
 }

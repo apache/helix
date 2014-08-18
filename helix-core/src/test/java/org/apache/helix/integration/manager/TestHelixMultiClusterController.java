@@ -63,15 +63,15 @@ public class TestHelixMultiClusterController extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    HelixManager[] distributedControllers = new HelixManager[n];
+    HelixManager[] multiClusterControllers = new HelixManager[n];
     for (int i = 0; i < n; i++) {
       int port = 12918 + i;
-      distributedControllers[i] =
+      multiClusterControllers[i] =
           new ZKHelixManager(clusterName, "localhost_" + port, InstanceType.CONTROLLER_PARTICIPANT,
               _zkaddr);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
+      multiClusterControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
-      distributedControllers[i].connect();
+      multiClusterControllers[i].connect();
     }
 
     boolean result =
@@ -79,8 +79,8 @@ public class TestHelixMultiClusterController extends ZkTestBase {
             clusterName));
     Assert.assertTrue(result);
 
-    // disconnect first distributed-controller, and verify second takes leadership
-    distributedControllers[0].disconnect();
+    // disconnect first multi-cluster-controller, and verify second takes leadership
+    multiClusterControllers[0].disconnect();
 
     // verify leader changes to localhost_12919
     Thread.sleep(100);
@@ -98,11 +98,11 @@ public class TestHelixMultiClusterController extends ZkTestBase {
     Assert.assertEquals(leader.getId(), "localhost_12919");
 
     // clean up
-    distributedControllers[1].disconnect();
+    multiClusterControllers[1].disconnect();
     Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance("localhost_12919")));
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));
 
-    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   /**
@@ -114,13 +114,13 @@ public class TestHelixMultiClusterController extends ZkTestBase {
   void expireController(MockMultiClusterController expireController,
       MockMultiClusterController newController) throws Exception {
     String clusterName = expireController.getClusterName();
-    LOG.info("Expiring distributedController: " + expireController.getInstanceName()
+    LOG.info("Expiring multiClusterController: " + expireController.getInstanceName()
         + ", session: " + expireController.getSessionId() + " ...");
     String oldSessionId = expireController.getSessionId();
 
     ZkTestHelper.expireSession(expireController.getZkClient());
     String newSessionId = expireController.getSessionId();
-    LOG.debug("Expried distributedController: " + expireController.getInstanceName()
+    LOG.debug("Expried multiClusterController: " + expireController.getInstanceName()
         + ", oldSessionId: " + oldSessionId + ", newSessionId: " + newSessionId);
 
     boolean result =
@@ -143,7 +143,7 @@ public class TestHelixMultiClusterController extends ZkTestBase {
 
     List<ZkCallbackHandler> handlers = expireController.getHandlers();
     Assert.assertEquals(handlers.size(), 2,
-        "Distributed controller should have 2 handler (message and leader-election) after lose leadership, but was "
+        "MultiCluster controller should have 2 handler (message and leader-election) after lose leadership, but was "
             + handlers.size());
   }
 
@@ -166,15 +166,15 @@ public class TestHelixMultiClusterController extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    MockMultiClusterController[] distributedControllers = new MockMultiClusterController[n];
+    MockMultiClusterController[] multiClusterControllers = new MockMultiClusterController[n];
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
-      distributedControllers[i] =
+      multiClusterControllers[i] =
           new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
+      multiClusterControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
-      distributedControllers[i].connect();
+      multiClusterControllers[i].connect();
     }
 
     boolean result =
@@ -183,18 +183,18 @@ public class TestHelixMultiClusterController extends ZkTestBase {
     Assert.assertTrue(result);
 
     // expire localhost_12918
-    expireController(distributedControllers[0], distributedControllers[1]);
+    expireController(multiClusterControllers[0], multiClusterControllers[1]);
 
     // expire localhost_12919
-    expireController(distributedControllers[1], distributedControllers[0]);
+    expireController(multiClusterControllers[1], multiClusterControllers[0]);
 
     // clean up
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
     for (int i = 0; i < n; i++) {
-      distributedControllers[i].disconnect();
-      Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(distributedControllers[i]
+      multiClusterControllers[i].disconnect();
+      Assert.assertNull(accessor.getProperty(keyBuilder.liveInstance(multiClusterControllers[i]
           .getInstanceName())));
     }
     Assert.assertNull(accessor.getProperty(keyBuilder.controllerLeader()));

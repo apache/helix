@@ -66,7 +66,7 @@ public class TestReelectedPipelineCorrectness extends ZkTestBase {
         NUM_REPLICAS, // replicas
         "MasterSlave", RebalanceMode.FULL_AUTO, true); // do rebalance
 
-    // configure distributed controllers
+    // configure multi-cluster controllers
     String controllerCluster = clusterName + "_controllers";
     _setupTool.addCluster(controllerCluster, true);
     for (int i = 0; i < NUM_CONTROLLERS; i++) {

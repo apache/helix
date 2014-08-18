@@ -39,6 +39,7 @@ import org.apache.helix.api.id.Id;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.StatusDumpTask;
 import org.apache.log4j.Logger;
@@ -226,6 +227,9 @@ public class ZkHelixController implements HelixController {
        * setup generic-controller
        */
       _connection.addInstanceConfigChangeListener(this, pipeline, _clusterId);
+      _connection.addConfigChangeListener(this, pipeline, _clusterId, ConfigScopeProperty.RESOURCE);
+      _connection.addConfigChangeListener(this, pipeline, _clusterId,
+          ConfigScopeProperty.CONSTRAINT);
       _connection.addLiveInstanceChangeListener(this, pipeline, _clusterId);
       _connection.addIdealStateChangeListener(this, pipeline, _clusterId);
       _connection.addControllerListener(this, pipeline, _clusterId);
@@ -242,6 +246,8 @@ public class ZkHelixController implements HelixController {
      * reset generic-controller
      */
     _connection.removeListener(this, pipeline, keyBuilder.instanceConfigs());
+    _connection.removeListener(this, pipeline, keyBuilder.resourceConfigs());
+    _connection.removeListener(this, pipeline, keyBuilder.constraints());
     _connection.removeListener(this, pipeline, keyBuilder.liveInstances());
     _connection.removeListener(this, pipeline, keyBuilder.idealStates());
     _connection.removeListener(this, pipeline, keyBuilder.controller());

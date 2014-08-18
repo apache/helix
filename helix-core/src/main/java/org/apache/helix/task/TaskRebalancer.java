@@ -52,6 +52,7 @@ import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
@@ -124,11 +125,19 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     final String resourceName = resource.getId().toString();
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobCfg(_manager, resourceName);
+    Map<String, ResourceConfiguration> resourceConfigs =
+        clusterData.getCache().getResourceConfigs();
+    JobConfig jobCfg = TaskUtil.getJobCfg(resourceConfigs.get(resourceName));
+    if (jobCfg == null) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(resourceConfigs.get(workflowResource));
+    if (workflowCfg == null) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
 
     // Initialize workflow context if needed

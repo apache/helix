@@ -64,10 +64,12 @@ public class ClusterDataCache {
   Map<String, InstanceConfig> _instanceConfigMap;
   Map<String, InstanceConfig> _instanceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
+  Map<String, ClusterConstraints> _constraintCacheMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
   Map<String, Map<String, String>> _idealStateRuleMap;
   Map<String, ResourceConfiguration> _resourceConfigMap;
+  Map<String, ResourceConfiguration> _resourceConfigCacheMap;
   Map<String, ControllerContextHolder> _controllerContextMap;
   PauseSignal _pause;
   LiveInstance _leader;
@@ -97,17 +99,20 @@ public class ClusterDataCache {
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _resourceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
+      _constraintCacheMap = accessor.getChildValuesMap(keyBuilder.constraints());
     }
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
+    _resourceConfigMap = Maps.newHashMap(_resourceConfigCacheMap);
+    _constraintMap = Maps.newHashMap(_constraintCacheMap);
 
     for (LiveInstance instance : _liveInstanceMap.values()) {
       LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
     }
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     List<PropertyKey> newMessageKeys = Lists.newLinkedList();
@@ -200,7 +205,6 @@ public class ClusterDataCache {
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
     // New in 0.7: Read more information for the benefit of user-defined rebalancers
-    _resourceConfigMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
     _controllerContextMap = accessor.getChildValuesMap(keyBuilder.controllerContexts());
 
     // Read all single properties together
@@ -368,6 +372,22 @@ public class ClusterDataCache {
       instanceConfigMap.put(instanceConfig.getId(), instanceConfig);
     }
     _instanceConfigCacheMap = instanceConfigMap;
+  }
+
+  public synchronized void setResourceConfigs(List<ResourceConfiguration> resourceConfigs) {
+    Map<String, ResourceConfiguration> resourceConfigMap = Maps.newHashMap();
+    for (ResourceConfiguration resourceConfig : resourceConfigs) {
+      resourceConfigMap.put(resourceConfig.getId(), resourceConfig);
+    }
+    _resourceConfigCacheMap = resourceConfigMap;
+  }
+
+  public synchronized void setConstraints(List<ClusterConstraints> constraints) {
+    Map<String, ClusterConstraints> constraintMap = Maps.newHashMap();
+    for (ClusterConstraints constraint : constraints) {
+      constraintMap.put(constraint.getId(), constraint);
+    }
+    _constraintCacheMap = constraintMap;
   }
 
   /**

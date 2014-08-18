@@ -49,6 +49,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
@@ -134,6 +135,8 @@ public class HelixControllerMain {
       GenericHelixController controller) {
     try {
       manager.addInstanceConfigChangeListener(controller);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.RESOURCE);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.CONSTRAINT);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view

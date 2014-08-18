@@ -37,7 +37,6 @@ import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.HelixMultiClusterController;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixConnectionStateListener;
 import org.apache.helix.HelixConstants.ChangeType;
@@ -45,6 +44,7 @@ import org.apache.helix.HelixController;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.HelixMultiClusterController;
 import org.apache.helix.HelixParticipant;
 import org.apache.helix.HelixRole;
 import org.apache.helix.IdealStateChangeListener;
@@ -210,7 +210,8 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   }
 
   @Override
-  public HelixMultiClusterController createAutoController(ClusterId clusterId, ControllerId controllerId) {
+  public HelixMultiClusterController createAutoController(ClusterId clusterId,
+      ControllerId controllerId) {
     return new ZkHelixMultiClusterController(this, clusterId, controllerId);
   }
 
@@ -327,6 +328,8 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
     case RESOURCE:
       propertyKey = keyBuilder.resourceConfigs();
       break;
+    case CONSTRAINT:
+      propertyKey = keyBuilder.constraints();
     default:
       break;
     }
@@ -502,7 +505,7 @@ public class ZkHelixConnection implements HelixConnection, IZkStateListener {
   @Override
   public ClusterMessagingService createMessagingService(HelixRole role) {
     HelixManager manager = new ZKHelixManager(role);
-     return new DefaultMessagingService(manager);
+    return new DefaultMessagingService(manager);
   }
 
   void addListener(HelixRole role, Object listener, PropertyKey propertyKey, ChangeType changeType,

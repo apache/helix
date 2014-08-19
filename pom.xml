@@ -200,7 +200,6 @@ under the License.
     <module>helix-provisioning</module>
     <module>helix-examples</module>
     <module>recipes</module>
-    <module>website</module>
   </modules>
 
   <mailingLists>
@@ -246,11 +245,6 @@ under the License.
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
-    </repository>
-    <repository>
-      <id>Sonatype-public</id>
-      <name>SnakeYAML repository</name>
-      <url>http://oss.sonatype.org/content/groups/public/</url>
     </repository>
   </repositories>
 
@@ -689,7 +683,16 @@ under the License.
 
   <profiles>
     <profile>
+      <id>website-modules</id>
+      <modules>
+        <module>website</module>
+      </modules>
+    </profile>
+    <profile>
       <id>rat</id>
+      <modules>
+        <module>website</module>
+      </modules>
       <build>
         <plugins>
           <plugin>

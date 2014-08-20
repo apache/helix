@@ -313,7 +313,7 @@ public class InstanceConfig extends HelixProperty {
         }
       }
     } catch (NoSuchMethodError e) {
-      LOG.error("Could not parse InstanceConfig", e);
+      LOG.error("Could not parse InstanceConfig for additional user config");
     }
     return userConfig;
   }

@@ -230,7 +230,7 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
     LOG.info("Setting up app master command");
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
     // Set Xmx based on am memory size
-    vargs.add("-Xmx" + 1024 + "m");
+    vargs.add("-Xmx" + 4096 + "m");
     // Set class name
     vargs.add(ParticipantLauncher.class.getCanonicalName());
     // Set params for container participant
@@ -358,9 +358,9 @@ public class YarnProvisioner implements Provisioner, TargetProvider, ContainerPr
       } else if (!existingContainersIdSet.contains(participantId)) {
         // Unallocated containers must be allocated
         ContainerSpec containerSpec = new ContainerSpec(participantId);
-        int mem = 1024;
+        int mem = 4096;
         if (_resourceConfig.getUserConfig() != null) {
-          mem = _resourceConfig.getUserConfig().getIntField("memory", 1024);
+          mem = _resourceConfig.getUserConfig().getIntField("memory", mem);
         }
         containerSpec.setMemory(mem);
         containersToAcquire.add(containerSpec);

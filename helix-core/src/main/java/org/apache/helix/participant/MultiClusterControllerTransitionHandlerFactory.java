@@ -1,8 +1,5 @@
 package org.apache.helix.participant;
 
-import org.apache.helix.api.StateTransitionHandlerFactory;
-import org.apache.helix.api.id.PartitionId;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -22,18 +19,20 @@ import org.apache.helix.api.id.PartitionId;
  * under the License.
  */
 
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
 
-public class MultiClusterControllerStateModelFactory extends
-    StateTransitionHandlerFactory<MultiClusterControllerStateModel> {
+public class MultiClusterControllerTransitionHandlerFactory extends
+    StateTransitionHandlerFactory<MultiClusterControllerTransitionHandler> {
   private final String _zkAddr;
 
-  public MultiClusterControllerStateModelFactory(String zkAddr) {
+  public MultiClusterControllerTransitionHandlerFactory(String zkAddr) {
     _zkAddr = zkAddr;
   }
 
   @Override
-  public MultiClusterControllerStateModel createStateTransitionHandler(PartitionId partition) {
-    return new MultiClusterControllerStateModel(_zkAddr);
+  public MultiClusterControllerTransitionHandler createStateTransitionHandler(PartitionId partition) {
+    return new MultiClusterControllerTransitionHandler(_zkAddr);
   }
 
 }

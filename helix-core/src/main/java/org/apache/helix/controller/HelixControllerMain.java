@@ -49,7 +49,8 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
-import org.apache.helix.participant.MultiClusterControllerStateModelFactory;
+import org.apache.helix.participant.MultiClusterControllerTransitionHandlerFactory;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
@@ -134,6 +135,8 @@ public class HelixControllerMain {
       GenericHelixController controller) {
     try {
       manager.addInstanceConfigChangeListener(controller);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.RESOURCE);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.CONSTRAINT);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view
@@ -162,8 +165,8 @@ public class HelixControllerMain {
             HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
                 InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        MultiClusterControllerStateModelFactory stateModelFactory =
-            new MultiClusterControllerStateModelFactory(zkConnectString);
+        MultiClusterControllerTransitionHandlerFactory stateModelFactory =
+            new MultiClusterControllerTransitionHandlerFactory(zkConnectString);
 
         StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, stateModelFactory);

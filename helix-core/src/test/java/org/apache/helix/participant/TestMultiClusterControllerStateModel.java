@@ -25,7 +25,7 @@ import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.participant.MultiClusterControllerStateModel;
+import org.apache.helix.participant.MultiClusterControllerTransitionHandler;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeMethod;
@@ -35,11 +35,11 @@ public class TestMultiClusterControllerStateModel extends ZkTestBase {
   private static Logger LOG = Logger.getLogger(TestMultiClusterControllerStateModel.class);
 
   final String clusterName = "TestMultiClusterControllerStateModel";
-  MultiClusterControllerStateModel stateModel = null;
+  MultiClusterControllerTransitionHandler stateModel = null;
 
   @BeforeMethod()
   public void beforeMethod() {
-    stateModel = new MultiClusterControllerStateModel(_zkaddr);
+    stateModel = new MultiClusterControllerTransitionHandler(_zkaddr);
     if (_zkclient.exists("/" + clusterName)) {
       _zkclient.deleteRecursive("/" + clusterName);
     }

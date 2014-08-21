@@ -34,6 +34,7 @@ import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
@@ -41,6 +42,7 @@ import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -62,15 +64,20 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -87,7 +94,8 @@ import org.apache.log4j.Logger;
  */
 public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener {
+    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener,
+    ScopedConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
   private final PipelineRegistry _registry;
@@ -213,6 +221,8 @@ public class GenericHelixController implements IdealStateChangeListener,
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange", dataRefresh, rebalancePipeline, externalViewPipeline);
       registry.register("configChange", dataRefresh, rebalancePipeline);
+      registry.register("instanceConfigChange", dataRefresh, rebalancePipeline);
+      registry.register("resourceConfigChange", dataRefresh, rebalancePipeline);
       registry.register("liveInstanceChange", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       registry.register("messageChange", dataRefresh, rebalancePipeline);
@@ -443,12 +453,52 @@ public class GenericHelixController implements IdealStateChangeListener,
     }
     _cache.setInstanceConfigs(configs);
 
-    ClusterEvent event = new ClusterEvent("configChange");
+    ClusterEvent event = new ClusterEvent("instanceConfigChange");
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     _eventQueue.put(event);
     logger.info("END: GenericClusterController.onInstanceConfigChange()");
+  }
+
+  @Override
+  public void onConfigChange(List<HelixProperty> configs, NotificationContext context) {
+    logger.info("START: GenericClusterController.onConfigChange()");
+    if (context == null || context.getType() != Type.CALLBACK) {
+      _cache.requireFullRefresh();
+    }
+
+    if (configs == null) {
+      configs = Collections.emptyList();
+    }
+
+    String eventName;
+    String path = context.getPathChanged();
+    if (path.contains(ConfigScopeProperty.RESOURCE.toString())) {
+      List<ResourceConfiguration> resourceConfigs = Lists.newArrayList();
+      for (HelixProperty property : configs) {
+        resourceConfigs.add(new ResourceConfiguration(property.getRecord()));
+      }
+      _cache.setResourceConfigs(resourceConfigs);
+      eventName = "resourceConfigChange";
+    } else if (path.contains(ConfigScopeProperty.CONSTRAINT.toString())) {
+      List<ClusterConstraints> constraints = Lists.newArrayList();
+      for (HelixProperty property : configs) {
+        constraints.add(new ClusterConstraints(property.getRecord()));
+      }
+      _cache.setConstraints(constraints);
+      eventName = "constraintChange";
+    } else {
+      logger.warn("Controller received event for unsupported path: " + path);
+      eventName = "configChange";
+    }
+
+    ClusterEvent event = new ClusterEvent(eventName);
+    event.addAttribute("changeContext", context);
+    event.addAttribute("helixmanager", context.getManager());
+    event.addAttribute("eventData", configs);
+    _eventQueue.put(event);
+    logger.info("END: GenericClusterController.onConfigChange()");
   }
 
   @Override

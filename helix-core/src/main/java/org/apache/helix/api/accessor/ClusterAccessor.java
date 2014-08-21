@@ -244,7 +244,8 @@ public class ClusterAccessor {
 
     // create the cluster snapshot object
     return new Cluster(_clusterId, resourceMap, participantMap, controllerMap, leaderId,
-        clusterConstraintMap, stateModelMap, contextMap, userConfig, isPaused, autoJoinAllowed);
+        clusterConstraintMap, stateModelMap, contextMap, userConfig, isPaused, autoJoinAllowed,
+        _cache);
   }
 
   /**

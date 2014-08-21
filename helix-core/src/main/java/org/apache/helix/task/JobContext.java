@@ -60,7 +60,18 @@ public class JobContext extends HelixProperty {
     if (tStr == null) {
       return -1;
     }
+    return Long.parseLong(tStr);
+  }
 
+  public void setFinishTime(long t) {
+    _record.setSimpleField(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
+  }
+
+  public long getFinishTime() {
+    String tStr = _record.getSimpleField(ContextProperties.FINISH_TIME.toString());
+    if (tStr == null) {
+      return WorkflowContext.UNFINISHED;
+    }
     return Long.parseLong(tStr);
   }
 

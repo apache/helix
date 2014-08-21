@@ -34,6 +34,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
@@ -52,6 +53,7 @@ import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.controller.stages.ResourceCurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
@@ -124,11 +126,19 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     final String resourceName = resource.getId().toString();
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobCfg(_manager, resourceName);
+    Map<String, ResourceConfiguration> resourceConfigs =
+        clusterData.getCache().getResourceConfigs();
+    JobConfig jobCfg = TaskUtil.getJobCfg(resourceConfigs.get(resourceName));
+    if (jobCfg == null) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(resourceConfigs.get(workflowResource));
+    if (workflowCfg == null) {
+      return emptyAssignment(resourceName, currStateOutput);
+    }
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflowResource);
 
     // Initialize workflow context if needed
@@ -165,6 +175,14 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     if (jobCtx == null) {
       jobCtx = new JobContext(new ZNRecord("TaskContext"));
       jobCtx.setStartTime(System.currentTimeMillis());
+    }
+
+    // Check for expired jobs for non-terminable workflows
+    long jobFinishTime = jobCtx.getFinishTime();
+    if (!workflowCfg.isTerminable() && jobFinishTime != WorkflowContext.UNFINISHED
+        && jobFinishTime + workflowCfg.getExpiry() <= System.currentTimeMillis()) {
+      cleanup(_manager, resourceName, workflowCfg, workflowResource);
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // The job is already in a final state (completed/failed).
@@ -364,9 +382,13 @@ public abstract class TaskRebalancer implements HelixRebalancer {
             }
 
             if (!successOptional) {
+              long finishTime = System.currentTimeMillis();
               workflowCtx.setJobState(jobResource, TaskState.FAILED);
-              workflowCtx.setWorkflowState(TaskState.FAILED);
-              workflowCtx.setFinishTime(System.currentTimeMillis());
+              if (workflowConfig.isTerminable()) {
+                workflowCtx.setWorkflowState(TaskState.FAILED);
+                workflowCtx.setFinishTime(finishTime);
+              }
+              jobCtx.setFinishTime(finishTime);
               markAllPartitionsError(jobCtx, currState, false);
               addAllPartitions(allPartitions, partitionsToDropFromIs);
               return emptyAssignment(jobResource, currStateOutput);
@@ -396,10 +418,12 @@ public abstract class TaskRebalancer implements HelixRebalancer {
     }
 
     if (isJobComplete(jobCtx, allPartitions, skippedPartitions)) {
+      long currentTime = System.currentTimeMillis();
       workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
+      jobCtx.setFinishTime(currentTime);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.COMPLETED);
-        workflowCtx.setFinishTime(System.currentTimeMillis());
+        workflowCtx.setFinishTime(currentTime);
       }
     }
 
@@ -582,6 +606,9 @@ public abstract class TaskRebalancer implements HelixRebalancer {
    * @return returns true if all tasks are {@link TaskState#COMPLETED}, false otherwise.
    */
   private static boolean isWorkflowComplete(WorkflowContext ctx, WorkflowConfig cfg) {
+    if (!cfg.isTerminable()) {
+      return false;
+    }
     for (String job : cfg.getJobDag().getAllNodes()) {
       if (ctx.getJobState(job) != TaskState.COMPLETED) {
         return false;
@@ -613,18 +640,45 @@ public abstract class TaskRebalancer implements HelixRebalancer {
 
   /**
    * Cleans up all Helix state associated with this job, wiping workflow-level information if this
-   * is the last remaining job in its workflow.
+   * is the last remaining job in its workflow, and the workflow is terminable.
    */
-  private static void cleanup(HelixManager mgr, String resourceName, WorkflowConfig cfg,
+  private static void cleanup(HelixManager mgr, final String resourceName, WorkflowConfig cfg,
       String workflowResource) {
     HelixDataAccessor accessor = mgr.getHelixDataAccessor();
+
+    // Remove any DAG references in workflow
+    PropertyKey workflowKey = getConfigPropertyKey(accessor, workflowResource);
+    DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        for (String child : jobDag.getDirectChildren(resourceName)) {
+          jobDag.getChildrenToParents().get(child).remove(resourceName);
+        }
+        for (String parent : jobDag.getDirectParents(resourceName)) {
+          jobDag.getParentsToChildren().get(parent).remove(resourceName);
+        }
+        jobDag.getChildrenToParents().remove(resourceName);
+        jobDag.getParentsToChildren().remove(resourceName);
+        jobDag.getAllNodes().remove(resourceName);
+        try {
+          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+        } catch (Exception e) {
+          LOG.equals("Could not update DAG for job " + resourceName);
+        }
+        return currentData;
+      }
+    };
+    accessor.getBaseDataAccessor().update(workflowKey.getPath(), dagRemover,
+        AccessOption.PERSISTENT);
+
     // Delete resource configs.
     PropertyKey cfgKey = getConfigPropertyKey(accessor, resourceName);
     if (!accessor.removeProperty(cfgKey)) {
       throw new RuntimeException(
           String
               .format(
-                  "Error occurred while trying to clean up task %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
+                  "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
                   resourceName, cfgKey));
     }
     // Delete property store information for this resource.
@@ -633,7 +687,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       throw new RuntimeException(
           String
               .format(
-                  "Error occurred while trying to clean up task %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
+                  "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
                   resourceName, propStoreKey));
     }
     // Finally, delete the ideal state itself.
@@ -643,7 +697,7 @@ public abstract class TaskRebalancer implements HelixRebalancer {
           "Error occurred while trying to clean up task %s. Failed to remove node %s from Helix.",
           resourceName, isKey));
     }
-    LOG.info(String.format("Successfully cleaned up task resource %s.", resourceName));
+    LOG.info(String.format("Successfully cleaned up job resource %s.", resourceName));
 
     boolean lastInWorkflow = true;
     for (String job : cfg.getJobDag().getAllNodes()) {
@@ -656,8 +710,8 @@ public abstract class TaskRebalancer implements HelixRebalancer {
       }
     }
 
-    // clean up job-level info if this was the last in workflow
-    if (lastInWorkflow) {
+    // clean up workflow-level info if this was the last in workflow
+    if (lastInWorkflow && cfg.isTerminable()) {
       // delete workflow config
       PropertyKey workflowCfgKey = getConfigPropertyKey(accessor, workflowResource);
       if (!accessor.removeProperty(workflowCfgKey)) {

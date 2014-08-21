@@ -26,9 +26,9 @@ public class TestMultiClusterControllerStateModelFactory {
 
   @Test()
   public void test() {
-    MultiClusterControllerStateModelFactory factory =
-        new MultiClusterControllerStateModelFactory("localhost:2181");
-    MultiClusterControllerStateModel stateModel =
+    MultiClusterControllerTransitionHandlerFactory factory =
+        new MultiClusterControllerTransitionHandlerFactory("localhost:2181");
+    MultiClusterControllerTransitionHandler stateModel =
         factory.createStateTransitionHandler(PartitionId.from("key"));
     stateModel.onBecomeStandbyFromOffline(null, null);
   }

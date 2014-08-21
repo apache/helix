@@ -34,14 +34,14 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "LEADER", "STANDBY"
 })
-public class MultiClusterControllerStateModel extends TransitionHandler {
-  private static Logger logger = Logger.getLogger(MultiClusterControllerStateModel.class);
+public class MultiClusterControllerTransitionHandler extends TransitionHandler {
+  private static Logger logger = Logger.getLogger(MultiClusterControllerTransitionHandler.class);
   private HelixManager _controller = null;
   private final String _zkAddr;
 
-  public MultiClusterControllerStateModel(String zkAddr) {
+  public MultiClusterControllerTransitionHandler(String zkAddr) {
     StateModelParser parser = new StateModelParser();
-    _currentState = parser.getInitialState(MultiClusterControllerStateModel.class);
+    _currentState = parser.getInitialState(MultiClusterControllerTransitionHandler.class);
     _zkAddr = zkAddr;
   }
 

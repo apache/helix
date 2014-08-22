@@ -35,6 +35,7 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TestTaskRebalancerStopResume.ReindexTask;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.ScheduleConfig;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
@@ -102,6 +103,12 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
         @Override
         public Task createNewTask(TaskCallbackContext context) {
           return new TaskTwo(context, instanceName);
+        }
+      });
+      taskFactoryReg.put("SingleFailTask", new TaskFactory() {
+        @Override
+        public Task createNewTask(TaskCallbackContext context) {
+          return new SingleFailTask();
         }
       });
 
@@ -279,6 +286,33 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertTrue((startTime + 1000) >= inFiveSeconds);
   }
 
+  @Test
+  public void testDelayedRetry() throws Exception {
+    // Create a single job with single task, set retry delay
+    int delay = 3000;
+    String jobName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+    Map<String, String> taskConfigMap = Maps.newHashMap();
+    TaskConfig taskConfig1 = new TaskConfig("SingleFailTask", taskConfigMap, false);
+    taskConfigs.add(taskConfig1);
+    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
+    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
+    workflowBuilder.addConfig(jobName, JobConfig.TASK_RETRY_DELAY, String.valueOf(delay));
+    Map<String, String> jobConfigMap = Maps.newHashMap();
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    SingleFailTask.hasFailed = false;
+    _driver.start(workflowBuilder.build());
+
+    // Ensure completion
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+
+    // Ensure a single retry happened
+    JobContext jobCtx = TaskUtil.getJobContext(_manager, jobName + "_" + jobName);
+    Assert.assertEquals(jobCtx.getPartitionNumAttempts(0), 2);
+    Assert.assertTrue(jobCtx.getFinishTime() - jobCtx.getStartTime() >= delay);
+  }
+
   private class TaskOne extends ReindexTask {
     private final boolean _shouldFail;
     private final String _instanceName;
@@ -325,6 +359,23 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
   private class TaskTwo extends TaskOne {
     public TaskTwo(TaskCallbackContext context, String instanceName) {
       super(context, instanceName);
+    }
+  }
+
+  private static class SingleFailTask implements Task {
+    public static boolean hasFailed = false;
+
+    @Override
+    public TaskResult run() {
+      if (!hasFailed) {
+        hasFailed = true;
+        return new TaskResult(Status.ERROR, null);
+      }
+      return new TaskResult(Status.COMPLETED, null);
+    }
+
+    @Override
+    public void cancel() {
     }
   }
 }

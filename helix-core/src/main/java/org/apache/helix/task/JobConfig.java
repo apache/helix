@@ -67,6 +67,8 @@ public class JobConfig {
   public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
   /** The number of tasks within the job that are allowed to fail. */
   public static final String FAILURE_THRESHOLD = "FailureThreshold";
+  /** The amount of time in ms to wait before retrying a task */
+  public static final String TASK_RETRY_DELAY = "TaskRetryDelay";
 
   /** The individual task configurations, if any **/
   public static final String TASK_CONFIGS = "TaskConfigs";
@@ -74,6 +76,7 @@ public class JobConfig {
   // // Default property values ////
 
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
+  public static final long DEFAULT_TASK_RETRY_DELAY = -1; // no delay
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
   public static final int DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE = 1;
   public static final int DEFAULT_FAILURE_THRESHOLD = 0;
@@ -90,12 +93,14 @@ public class JobConfig {
   private final int _maxAttemptsPerTask;
   private final int _maxForcedReassignmentsPerTask;
   private final int _failureThreshold;
+  private final long _retryDelay;
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
-      int maxForcedReassignmentsPerTask, int failureThreshold, Map<String, TaskConfig> taskConfigMap) {
+      int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
+      Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -107,6 +112,7 @@ public class JobConfig {
     _maxAttemptsPerTask = maxAttemptsPerTask;
     _maxForcedReassignmentsPerTask = maxForcedReassignmentsPerTask;
     _failureThreshold = failureThreshold;
+    _retryDelay = retryDelay;
     if (taskConfigMap != null) {
       _taskConfigMap = taskConfigMap;
     } else {
@@ -158,6 +164,10 @@ public class JobConfig {
     return _failureThreshold;
   }
 
+  public long getTaskRetryDelay() {
+    return _retryDelay;
+  }
+
   public Map<String, TaskConfig> getTaskConfigMap() {
     return _taskConfigMap;
   }
@@ -187,6 +197,9 @@ public class JobConfig {
     if (_targetPartitions != null) {
       cfgMap.put(JobConfig.TARGET_PARTITIONS, Joiner.on(",").join(_targetPartitions));
     }
+    if (_retryDelay > 0) {
+      cfgMap.put(JobConfig.TASK_RETRY_DELAY, "" + _retryDelay);
+    }
     cfgMap.put(JobConfig.TIMEOUT_PER_TASK, "" + _timeoutPerTask);
     cfgMap.put(JobConfig.MAX_ATTEMPTS_PER_TASK, "" + _maxAttemptsPerTask);
     cfgMap.put(JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, "" + _maxForcedReassignmentsPerTask);
@@ -210,13 +223,15 @@ public class JobConfig {
     private int _maxAttemptsPerTask = DEFAULT_MAX_ATTEMPTS_PER_TASK;
     private int _maxForcedReassignmentsPerTask = DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK;
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
+    private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
 
     public JobConfig build() {
       validate();
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
-          _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _taskConfigMap);
+          _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
+          _taskConfigMap);
     }
 
     /**
@@ -263,6 +278,9 @@ public class JobConfig {
       }
       if (cfg.containsKey(FAILURE_THRESHOLD)) {
         b.setFailureThreshold(Integer.parseInt(cfg.get(FAILURE_THRESHOLD)));
+      }
+      if (cfg.containsKey(TASK_RETRY_DELAY)) {
+        b.setTaskRetryDelay(Long.parseLong(cfg.get(TASK_RETRY_DELAY)));
       }
       return b;
     }
@@ -319,6 +337,11 @@ public class JobConfig {
 
     public Builder setFailureThreshold(int v) {
       _failureThreshold = v;
+      return this;
+    }
+
+    public Builder setTaskRetryDelay(long v) {
+      _retryDelay = v;
       return this;
     }
 

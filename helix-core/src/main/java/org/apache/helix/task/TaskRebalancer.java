@@ -64,8 +64,8 @@ import com.google.common.collect.Sets;
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
 
-  // Management of already-scheduled workflows across jobs
-  private static final BiMap<String, Date> SCHEDULED_WORKFLOWS = HashBiMap.create();
+  // Management of already-scheduled rebalances across jobs
+  private static final BiMap<String, Date> SCHEDULED_TIMES = HashBiMap.create();
   private static final ScheduledExecutorService SCHEDULED_EXECUTOR = Executors
       .newSingleThreadScheduledExecutor();
 
@@ -252,6 +252,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache);
     Map<String, SortedSet<Integer>> taskAssignments =
         getTaskPartitionAssignments(liveInstances, prevAssignment, allPartitions);
+    long currentTime = System.currentTimeMillis();
     for (String instance : taskAssignments.keySet()) {
       Set<Integer> pSet = taskAssignments.get(instance);
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
@@ -360,7 +361,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
             }
 
             if (!successOptional) {
-              long finishTime = System.currentTimeMillis();
+              long finishTime = currentTime;
               workflowCtx.setJobState(jobResource, TaskState.FAILED);
               if (workflowConfig.isTerminable()) {
                 workflowCtx.setWorkflowState(TaskState.FAILED);
@@ -374,6 +375,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
               skippedPartitions.add(pId);
               partitionsToDropFromIs.add(pId);
             }
+          } else {
+            // Mark the task to be started at some later time (if enabled)
+            markPartitionDelayed(jobCfg, jobCtx, pId);
           }
         }
           break;
@@ -395,8 +399,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       pSet.removeAll(donePartitions);
     }
 
+    // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
+    scheduleForNextTask(jobResource, jobCtx, currentTime);
+
     if (isJobComplete(jobCtx, allPartitions, skippedPartitions)) {
-      long currentTime = System.currentTimeMillis();
       workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
       jobCtx.setFinishTime(currentTime);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
@@ -409,10 +415,11 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     if (jobTgtState == TargetState.START) {
       // Contains the set of task partitions that must be excluded from consideration when making
       // any new assignments.
-      // This includes all completed, failed, already assigned partitions.
+      // This includes all completed, failed, delayed, and already assigned partitions.
       Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
       addCompletedPartitions(excludeSet, jobCtx, allPartitions);
       excludeSet.addAll(skippedPartitions);
+      excludeSet.addAll(getNonReadyPartitions(jobCtx, currentTime));
       // Get instance->[partition, ...] mappings for the target resource.
       Map<String, SortedSet<Integer>> tgtPartitionAssignments =
           getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,
@@ -476,9 +483,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     if (delayFromStart <= 0) {
       // Remove any timers that are past-time for this workflow
-      Date scheduledTime = SCHEDULED_WORKFLOWS.get(workflowResource);
+      Date scheduledTime = SCHEDULED_TIMES.get(workflowResource);
       if (scheduledTime != null && currentTime > scheduledTime.getTime()) {
-        SCHEDULED_WORKFLOWS.remove(workflowResource);
+        SCHEDULED_TIMES.remove(workflowResource);
       }
 
       // Recurring workflows are just templates that spawn new workflows
@@ -534,8 +541,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
 
     // No need to schedule the same runnable at the same time
-    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
-        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+    if (SCHEDULED_TIMES.containsKey(workflowResource)
+        || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
       return false;
     }
 
@@ -543,18 +550,48 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return false;
   }
 
-  private void scheduleRebalance(String workflowResource, String jobResource, Date startTime,
-      long delayFromStart) {
+  private void scheduleRebalance(String id, String jobResource, Date startTime, long delayFromStart) {
     // No need to schedule the same runnable at the same time
-    if (SCHEDULED_WORKFLOWS.containsKey(workflowResource)
-        || SCHEDULED_WORKFLOWS.inverse().containsKey(startTime)) {
+    if (SCHEDULED_TIMES.containsKey(id) || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
       return;
     }
 
     // For workflows not yet scheduled, schedule them and record it
     RebalanceInvoker rebalanceInvoker = new RebalanceInvoker(_manager, jobResource);
-    SCHEDULED_WORKFLOWS.put(workflowResource, startTime);
+    SCHEDULED_TIMES.put(id, startTime);
     SCHEDULED_EXECUTOR.schedule(rebalanceInvoker, delayFromStart, TimeUnit.MILLISECONDS);
+  }
+
+  private void scheduleForNextTask(String jobResource, JobContext ctx, long now) {
+    // Clear current entries if they exist and are expired
+    long currentTime = now;
+    Date scheduledTime = SCHEDULED_TIMES.get(jobResource);
+    if (scheduledTime != null && currentTime > scheduledTime.getTime()) {
+      SCHEDULED_TIMES.remove(jobResource);
+    }
+
+    // Figure out the earliest schedulable time in the future of a non-complete job
+    boolean shouldSchedule = false;
+    long earliestTime = Long.MAX_VALUE;
+    for (int p : ctx.getPartitionSet()) {
+      long retryTime = ctx.getNextRetryTime(p);
+      TaskPartitionState state = ctx.getPartitionState(p);
+      state = (state != null) ? state : TaskPartitionState.INIT;
+      Set<TaskPartitionState> errorStates =
+          Sets.newHashSet(TaskPartitionState.ERROR, TaskPartitionState.TASK_ERROR,
+              TaskPartitionState.TIMED_OUT);
+      if (errorStates.contains(state) && retryTime > currentTime && retryTime < earliestTime) {
+        earliestTime = retryTime;
+        shouldSchedule = true;
+      }
+    }
+
+    // If any was found, then schedule it
+    if (shouldSchedule) {
+      long delay = earliestTime - currentTime;
+      Date startTime = new Date(earliestTime);
+      scheduleRebalance(jobResource, jobResource, startTime, delay);
+    }
   }
 
   /**
@@ -770,6 +807,15 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return result;
   }
 
+  private static void markPartitionDelayed(JobConfig cfg, JobContext ctx, int p) {
+    long delayInterval = cfg.getTaskRetryDelay();
+    if (delayInterval <= 0) {
+      return;
+    }
+    long nextStartTime = ctx.getPartitionFinishTime(p) + delayInterval;
+    ctx.setNextRetryTime(p, nextStartTime);
+  }
+
   private static void markPartitionCompleted(JobContext ctx, int pId) {
     ctx.setPartitionState(pId, TaskPartitionState.COMPLETED);
     ctx.setPartitionFinishTime(pId, System.currentTimeMillis());
@@ -814,8 +860,18 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         }
       }
     }
-
     return result;
+  }
+
+  private static Set<Integer> getNonReadyPartitions(JobContext ctx, long now) {
+    Set<Integer> nonReadyPartitions = Sets.newHashSet();
+    for (int p : ctx.getPartitionSet()) {
+      long toStart = ctx.getNextRetryTime(p);
+      if (now < toStart) {
+        nonReadyPartitions.add(p);
+      }
+    }
+    return nonReadyPartitions;
   }
 
   /**

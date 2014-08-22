@@ -41,4 +41,5 @@ public class JobBean {
   public int maxAttemptsPerTask = JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK;
   public int maxForcedReassignmentsPerTask = JobConfig.DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK;
   public int failureThreshold = JobConfig.DEFAULT_FAILURE_THRESHOLD;
+  public long taskRetryDelay = JobConfig.DEFAULT_TASK_RETRY_DELAY;
 }

@@ -44,7 +44,8 @@ public class JobContext extends HelixProperty {
     FINISH_TIME,
     TARGET,
     TASK_ID,
-    ASSIGNED_PARTICIPANT
+    ASSIGNED_PARTICIPANT,
+    NEXT_RETRY_TIME
   }
 
   public JobContext(ZNRecord record) {
@@ -76,21 +77,15 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionState(int p, TaskPartitionState s) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      map = new TreeMap<String, String>();
-      _record.setMapField(pStr, map);
-    }
+    Map<String, String> map = getMapField(p);
     map.put(ContextProperties.STATE.toString(), s.name());
   }
 
   public TaskPartitionState getPartitionState(int p) {
-    Map<String, String> map = _record.getMapField(String.valueOf(p));
+    Map<String, String> map = getMapField(p);
     if (map == null) {
       return null;
     }
-
     String str = map.get(ContextProperties.STATE.toString());
     if (str != null) {
       return TaskPartitionState.valueOf(str);
@@ -100,12 +95,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionNumAttempts(int p, int n) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      map = new TreeMap<String, String>();
-      _record.setMapField(pStr, map);
-    }
+    Map<String, String> map = getMapField(p);
     map.put(ContextProperties.NUM_ATTEMPTS.toString(), String.valueOf(n));
   }
 
@@ -120,61 +110,42 @@ public class JobContext extends HelixProperty {
   }
 
   public int getPartitionNumAttempts(int p) {
-    Map<String, String> map = _record.getMapField(String.valueOf(p));
+    Map<String, String> map = getMapField(p);
     if (map == null) {
       return -1;
     }
-
     String nStr = map.get(ContextProperties.NUM_ATTEMPTS.toString());
     if (nStr == null) {
       return -1;
     }
-
     return Integer.parseInt(nStr);
   }
 
   public void setPartitionFinishTime(int p, long t) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      map = new TreeMap<String, String>();
-      _record.setMapField(pStr, map);
-    }
+    Map<String, String> map = getMapField(p);
     map.put(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
   }
 
   public long getPartitionFinishTime(int p) {
-    Map<String, String> map = _record.getMapField(String.valueOf(p));
+    Map<String, String> map = getMapField(p);
     if (map == null) {
       return -1;
     }
-
     String tStr = map.get(ContextProperties.FINISH_TIME.toString());
     if (tStr == null) {
       return -1;
     }
-
     return Long.parseLong(tStr);
   }
 
   public void setPartitionTarget(int p, String targetPName) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      map = new TreeMap<String, String>();
-      _record.setMapField(pStr, map);
-    }
+    Map<String, String> map = getMapField(p);
     map.put(ContextProperties.TARGET.toString(), targetPName);
   }
 
   public String getTargetForPartition(int p) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      return null;
-    } else {
-      return map.get(ContextProperties.TARGET.toString());
-    }
+    Map<String, String> map = getMapField(p);
+    return (map != null) ? map.get(ContextProperties.TARGET.toString()) : null;
   }
 
   public Map<String, List<Integer>> getPartitionsByTarget() {
@@ -206,23 +177,13 @@ public class JobContext extends HelixProperty {
   }
 
   public void setTaskIdForPartition(int p, String taskId) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      map = new TreeMap<String, String>();
-      _record.setMapField(pStr, map);
-    }
+    Map<String, String> map = getMapField(p);
     map.put(ContextProperties.TASK_ID.toString(), taskId);
   }
 
   public String getTaskIdForPartition(int p) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
-      return null;
-    } else {
-      return map.get(ContextProperties.TASK_ID.toString());
-    }
+    Map<String, String> map = getMapField(p);
+    return (map != null) ? map.get(ContextProperties.TASK_ID.toString()) : null;
   }
 
   public Map<String, Integer> getTaskIdPartitionMap() {
@@ -238,18 +199,39 @@ public class JobContext extends HelixProperty {
   }
 
   public void setAssignedParticipant(int p, String participantName) {
+    Map<String, String> map = getMapField(p);
+    map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
+  }
+
+  public String getAssignedParticipant(int p) {
+    Map<String, String> map = getMapField(p);
+    return (map != null) ? map.get(ContextProperties.ASSIGNED_PARTICIPANT.toString()) : null;
+  }
+
+  public void setNextRetryTime(int p, long t) {
+    Map<String, String> map = getMapField(p);
+    map.put(ContextProperties.NEXT_RETRY_TIME.toString(), String.valueOf(t));
+  }
+
+  public long getNextRetryTime(int p) {
+    Map<String, String> map = getMapField(p);
+    if (map == null) {
+      return -1;
+    }
+    String tStr = map.get(ContextProperties.NEXT_RETRY_TIME.toString());
+    if (tStr == null) {
+      return -1;
+    }
+    return Long.parseLong(tStr);
+  }
+
+  public Map<String, String> getMapField(int p) {
     String pStr = String.valueOf(p);
     Map<String, String> map = _record.getMapField(pStr);
     if (map == null) {
       map = new TreeMap<String, String>();
       _record.setMapField(pStr, map);
     }
-    map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
-  }
-
-  public String getAssignedParticipant(int p) {
-    String pStr = String.valueOf(p);
-    Map<String, String> map = _record.getMapField(pStr);
-    return (map != null) ? map.get(ContextProperties.ASSIGNED_PARTICIPANT.toString()) : null;
+    return map;
   }
 }

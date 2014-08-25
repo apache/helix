@@ -25,21 +25,21 @@ import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.participant.DistClusterControllerStateModel;
+import org.apache.helix.participant.MultiClusterControllerTransitionHandler;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-public class TestDistControllerStateModel extends ZkTestBase {
-  private static Logger LOG = Logger.getLogger(TestDistControllerStateModel.class);
+public class TestMultiClusterControllerStateModel extends ZkTestBase {
+  private static Logger LOG = Logger.getLogger(TestMultiClusterControllerStateModel.class);
 
-  final String clusterName = "TestDistControllerStateModel";
-  DistClusterControllerStateModel stateModel = null;
+  final String clusterName = "TestMultiClusterControllerStateModel";
+  MultiClusterControllerTransitionHandler stateModel = null;
 
   @BeforeMethod()
   public void beforeMethod() {
-    stateModel = new DistClusterControllerStateModel(_zkaddr);
+    stateModel = new MultiClusterControllerTransitionHandler(_zkaddr);
     if (_zkclient.exists("/" + clusterName)) {
       _zkclient.deleteRecursive("/" + clusterName);
     }

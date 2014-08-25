@@ -105,7 +105,7 @@ public class ZKHelixManager implements HelixManager {
       break;
     }
     case CONTROLLER_PARTICIPANT: {
-      _role = conn.createAutoController(clusterId, ControllerId.from(instanceName));
+      _role = conn.createMultiClusterController(clusterId, ControllerId.from(instanceName));
       break;
     }
     case ADMINISTRATOR: {
@@ -277,8 +277,8 @@ public class ZKHelixManager implements HelixManager {
       break;
     }
     case CONTROLLER_PARTICIPANT: {
-      HelixMultiClusterController autoController = (HelixMultiClusterController) _role;
-      engine = autoController.getStateMachineEngine();
+      HelixMultiClusterController multiClusterController = (HelixMultiClusterController) _role;
+      engine = multiClusterController.getStateMachineEngine();
       break;
     }
     default:
@@ -298,8 +298,8 @@ public class ZKHelixManager implements HelixManager {
       break;
     }
     case CONTROLLER_PARTICIPANT: {
-      HelixMultiClusterController autoController = (HelixMultiClusterController) _role;
-      isLeader = autoController.isLeader();
+      HelixMultiClusterController multiClusterController = (HelixMultiClusterController) _role;
+      isLeader = multiClusterController.isLeader();
       break;
     }
     default:
@@ -341,8 +341,8 @@ public class ZKHelixManager implements HelixManager {
       break;
     }
     case CONTROLLER_PARTICIPANT: {
-      HelixMultiClusterController autoController = (HelixMultiClusterController) _role;
-      autoController.addPreConnectCallback(callback);
+      HelixMultiClusterController multiClusterController = (HelixMultiClusterController) _role;
+      multiClusterController.addPreConnectCallback(callback);
       break;
     }
     default:
@@ -360,8 +360,8 @@ public class ZKHelixManager implements HelixManager {
       break;
     }
     case CONTROLLER_PARTICIPANT: {
-      HelixMultiClusterController autoController = (HelixMultiClusterController) _role;
-      autoController.setLiveInstanceInfoProvider(liveInstanceInfoProvider);
+      HelixMultiClusterController multiClusterController = (HelixMultiClusterController) _role;
+      multiClusterController.setLiveInstanceInfoProvider(liveInstanceInfoProvider);
       break;
     }
     default:

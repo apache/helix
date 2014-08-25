@@ -33,7 +33,7 @@ import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-public class TestZkHelixAutoController extends ZkTestBase {
+public class TestZkHelixMultiClusterController extends ZkTestBase {
   @Test
   public void testOnConnectedAndDisconnecting() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
@@ -57,13 +57,13 @@ public class TestZkHelixAutoController extends ZkTestBase {
     HelixConnection connection = new ZkHelixConnection(_zkaddr);
     connection.connect();
 
-    // start auto-controller
+    // start multi-cluster-controller
     ClusterId clusterId = ClusterId.from(clusterName);
     final HelixMultiClusterController[] controllers = new HelixMultiClusterController[n];
     for (int i = 0; i < n; i++) {
       int port = 12918 + i;
       ControllerId controllerId = ControllerId.from("localhost_" + port);
-      controllers[i] = connection.createAutoController(clusterId, controllerId);
+      controllers[i] = connection.createMultiClusterController(clusterId, controllerId);
       controllers[i].start();
     }
 

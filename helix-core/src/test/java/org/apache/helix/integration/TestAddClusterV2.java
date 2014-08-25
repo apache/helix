@@ -50,7 +50,7 @@ public class TestAddClusterV2 extends ZkTestBase {
   protected static final String TEST_DB = "TestDB";
 
   MockParticipant[] _participants = new MockParticipant[NODE_NR];
-  MockMultiClusterController[] _distControllers = new MockMultiClusterController[NODE_NR];
+  MockMultiClusterController[] _multiClusterControllers = new MockMultiClusterController[NODE_NR];
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -94,12 +94,12 @@ public class TestAddClusterV2 extends ZkTestBase {
       _participants[i].syncStart();
     }
 
-    // start distributed cluster controllers
+    // start multi-cluster controllers
     for (int i = 0; i < NODE_NR; i++) {
       String controllerName = "controller_" + i;
-      _distControllers[i] =
+      _multiClusterControllers[i] =
           new MockMultiClusterController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
-      _distControllers[i].syncStart();
+      _multiClusterControllers[i].syncStart();
     }
 
     verifyClusters();
@@ -135,8 +135,8 @@ public class TestAddClusterV2 extends ZkTestBase {
     String leader = getCurrentLeader(CONTROLLER_CLUSTER);
     int leaderIdx = -1;
     for (int i = 0; i < NODE_NR; i++) {
-      if (!_distControllers[i].getInstanceName().equals(leader)) {
-        _distControllers[i].syncStop();
+      if (!_multiClusterControllers[i].getInstanceName().equals(leader)) {
+        _multiClusterControllers[i].syncStop();
         verifyClusters();
       } else {
         leaderIdx = i;
@@ -144,7 +144,7 @@ public class TestAddClusterV2 extends ZkTestBase {
     }
     Assert.assertNotSame(leaderIdx, -1);
 
-    _distControllers[leaderIdx].syncStop();
+    _multiClusterControllers[leaderIdx].syncStop();
 
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].syncStop();

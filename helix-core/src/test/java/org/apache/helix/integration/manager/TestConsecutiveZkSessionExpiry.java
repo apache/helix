@@ -162,7 +162,7 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
   }
 
   @Test
-  public void testDistributedController() throws Exception {
+  public void testMultiClusterController() throws Exception {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
@@ -180,20 +180,20 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
         2, // replicas
         "MasterSlave", true); // do rebalance
 
-    MockMultiClusterController[] distributedControllers = new MockMultiClusterController[n];
+    MockMultiClusterController[] multiClusterControllers = new MockMultiClusterController[n];
     CountDownLatch startCountdown = new CountDownLatch(1);
     CountDownLatch endCountdown = new CountDownLatch(1);
 
     for (int i = 0; i < n; i++) {
       String contrllerName = "localhost_" + (12918 + i);
-      distributedControllers[i] = new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
-      distributedControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
+      multiClusterControllers[i] = new MockMultiClusterController(_zkaddr, clusterName, contrllerName);
+      multiClusterControllers[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave,
           new MockMSModelFactory());
       if (i == 0) {
-        distributedControllers[i].addPreConnectCallback(new PreConnectTestCallback(contrllerName,
+        multiClusterControllers[i].addPreConnectCallback(new PreConnectTestCallback(contrllerName,
             startCountdown, endCountdown));
       }
-      distributedControllers[i].connect();
+      multiClusterControllers[i].connect();
     }
 
     boolean result =
@@ -201,23 +201,23 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
             clusterName));
     Assert.assertTrue(result);
 
-    // expire the session of distributedController
-    LOG.info("1st Expiring distributedController session...");
-    String oldSessionId = distributedControllers[0].getSessionId();
+    // expire the session of multiClusterController
+    LOG.info("1st Expiring multiClusterController session...");
+    String oldSessionId = multiClusterControllers[0].getSessionId();
 
-    ZkTestHelper.asyncExpireSession(distributedControllers[0].getZkClient());
-    String newSessionId = distributedControllers[0].getSessionId();
-    LOG.info("Expried distributedController session. oldSessionId: " + oldSessionId
+    ZkTestHelper.asyncExpireSession(multiClusterControllers[0].getZkClient());
+    String newSessionId = multiClusterControllers[0].getSessionId();
+    LOG.info("Expried multiClusterController session. oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
     // expire zk session again during HelixManager#handleNewSession()
     startCountdown.await();
-    LOG.info("2nd Expiring distributedController session...");
-    oldSessionId = distributedControllers[0].getSessionId();
+    LOG.info("2nd Expiring multiClusterController session...");
+    oldSessionId = multiClusterControllers[0].getSessionId();
 
-    ZkTestHelper.asyncExpireSession(distributedControllers[0].getZkClient());
-    newSessionId = distributedControllers[0].getSessionId();
-    LOG.info("Expried distributedController session. oldSessionId: " + oldSessionId
+    ZkTestHelper.asyncExpireSession(multiClusterControllers[0].getZkClient());
+    newSessionId = multiClusterControllers[0].getSessionId();
+    LOG.info("Expried multiClusterController session. oldSessionId: " + oldSessionId
         + ", newSessionId: " + newSessionId);
 
     endCountdown.countDown();
@@ -239,18 +239,18 @@ public class TestConsecutiveZkSessionExpiry extends ZkTestBase {
     Assert.assertEquals(leader.getId(), "localhost_12919");
 
     // check localhost_12918 has 2 handlers: message and leader-election
-    TestHelper.printHandlers(distributedControllers[0], distributedControllers[0].getHandlers());
-    List<ZkCallbackHandler> handlers = distributedControllers[0].getHandlers();
+    TestHelper.printHandlers(multiClusterControllers[0], multiClusterControllers[0].getHandlers());
+    List<ZkCallbackHandler> handlers = multiClusterControllers[0].getHandlers();
     Assert
         .assertEquals(
             handlers.size(),
             2,
-            "Distributed controller should have 2 handler (message and leader election) after lose leadership, but was "
+            "MultiCluster controller should have 2 handler (message and leader election) after lose leadership, but was "
                 + handlers.size());
 
     // clean up
-    distributedControllers[0].disconnect();
-    distributedControllers[1].disconnect();
+    multiClusterControllers[0].disconnect();
+    multiClusterControllers[1].disconnect();
     Assert.assertNull(HelixTestUtil.pollForProperty(LiveInstance.class, accessor,
         keyBuilder.liveInstance("localhost_12918"), false));
     Assert.assertNull(HelixTestUtil.pollForProperty(LiveInstance.class, accessor,

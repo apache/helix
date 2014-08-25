@@ -25,7 +25,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+import org.apache.helix.participant.MultiClusterControllerTransitionHandlerFactory;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
@@ -63,8 +63,8 @@ public class MockMultiClusterController extends ZKHelixManager implements Runnab
   public void run() {
     try {
       StateMachineEngine stateMach = getStateMachineEngine();
-      DistClusterControllerStateModelFactory lsModelFactory =
-          new DistClusterControllerStateModelFactory(_zkAddress);
+      MultiClusterControllerTransitionHandlerFactory lsModelFactory =
+          new MultiClusterControllerTransitionHandlerFactory(_zkAddress);
       stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, lsModelFactory);
 
       connect();

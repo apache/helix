@@ -19,16 +19,20 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
-import org.testng.annotations.Test;
 
-public class TestDistControllerStateModelFactory {
+public class MultiClusterControllerTransitionHandlerFactory extends
+    StateTransitionHandlerFactory<MultiClusterControllerTransitionHandler> {
+  private final String _zkAddr;
 
-  @Test()
-  public void testDistControllerStateModelFactory() {
-    DistClusterControllerStateModelFactory factory =
-        new DistClusterControllerStateModelFactory("localhost:2181");
-    DistClusterControllerStateModel stateModel = factory.createStateTransitionHandler(PartitionId.from("key"));
-    stateModel.onBecomeStandbyFromOffline(null, null);
+  public MultiClusterControllerTransitionHandlerFactory(String zkAddr) {
+    _zkAddr = zkAddr;
   }
+
+  @Override
+  public MultiClusterControllerTransitionHandler createStateTransitionHandler(PartitionId partition) {
+    return new MultiClusterControllerTransitionHandler(_zkAddr);
+  }
+
 }

@@ -90,7 +90,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         3, // replicas
         "LeaderStandby", true); // do rebalance
 
-    // start distributed cluster controllers
+    // start multi-cluster controllers
     _controllers = new MockMultiClusterController[n + n];
     for (int i = 0; i < n; i++) {
       _controllers[i] =

@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.7.1</version>
+    <version>0.7.1-SNAPSHOT</version>
   </parent>
 
   <artifactId>jobrunner-yarn</artifactId>

@@ -35,13 +35,13 @@ under the License.
       javax.management*,
       org.apache.commons.math*;version="[2.1,3)",
       org.apache.log4j*;version="[1.2,2)",
-      org.restlet;version="[2.1.4,3]",
       *
     </osgi.import>
     <osgi.ignore>
       org.apache.helix.tools*
     </osgi.ignore>
-    <osgi.export>org.apache.helix*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix.ipc*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix.resolver*;version="${project.version};-noimport:=true</osgi.export>
   </properties>
 
   <dependencies>
@@ -78,6 +78,7 @@ under the License.
       </dependency>
   </dependencies>
   <build>
+    <!--
     <resources>
       <resource>
         <directory>${basedir}/src/main/resources</directory>
@@ -85,11 +86,9 @@ under the License.
       </resource>
       <resource>
         <directory>${basedir}</directory>
-        <includes>
-          <include>DISCLAIMER</include>
-        </includes>
       </resource>
     </resources>
+    -->
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -107,10 +106,6 @@ under the License.
         <artifactId>appassembler-maven-plugin</artifactId>
         <configuration>
           <programs>
-            <program>
-              <mainClass>org.apache.helix.ipc.netty.NettyHelixIPCService</mainClass>
-              <name>netty-helix-ipc-service</name>
-            </program>
           </programs>
         </configuration>
       </plugin>
@@ -118,14 +113,14 @@ under the License.
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
         <configuration>
-          <!--
           <descriptors>
             <descriptor>src/assemble/assembly.xml</descriptor>
           </descriptors>
-          -->
+          <!--
           <descriptorRefs>
             <descriptorRef>jar-with-dependencies</descriptorRef>
           </descriptorRefs>
+          -->
         </configuration>
         <executions>
           <execution>

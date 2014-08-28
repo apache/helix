@@ -22,7 +22,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.7.1-SNAPSHOT</version>
+    <version>0.7.1</version>
   </parent>
   <artifactId>helix-provisioning</artifactId>
   <packaging>bundle</packaging>

@@ -38,7 +38,8 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.log4j.Logger;
 
-public class RoutingTableProvider implements ExternalViewChangeListener, InstanceConfigChangeListener {
+public class RoutingTableProvider implements ExternalViewChangeListener,
+    InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(RoutingTableProvider.class);
   private final AtomicReference<RoutingTable> _routingTableRef;
 
@@ -91,6 +92,15 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     return instanceSet;
   }
 
+  /**
+   * Get the configuration of an instance from its name
+   * @param instanceName the instance ID
+   * @return InstanceConfig if present, null otherwise
+   */
+  public InstanceConfig getInstanceConfig(String instanceName) {
+    return _routingTableRef.get().getConfig(instanceName);
+  }
+
   @Override
   public void onExternalViewChange(List<ExternalView> externalViewList,
       NotificationContext changeContext) {
@@ -124,12 +134,13 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
     Builder keyBuilder = accessor.keyBuilder();
 
+    RoutingTable newRoutingTable = new RoutingTable();
     List<InstanceConfig> configList = accessor.getChildValues(keyBuilder.instanceConfigs());
     Map<String, InstanceConfig> instanceConfigMap = new HashMap<String, InstanceConfig>();
     for (InstanceConfig config : configList) {
       instanceConfigMap.put(config.getId(), config);
+      newRoutingTable.addConfig(config);
     }
-    RoutingTable newRoutingTable = new RoutingTable();
     if (externalViewList != null) {
       for (ExternalView extView : externalViewList) {
         String resourceName = extView.getId();
@@ -154,9 +165,11 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
   class RoutingTable {
     private final HashMap<String, ResourceInfo> resourceInfoMap;
+    private final Map<String, InstanceConfig> instanceConfigMap;
 
     public RoutingTable() {
       resourceInfoMap = new HashMap<String, RoutingTableProvider.ResourceInfo>();
+      instanceConfigMap = new HashMap<String, InstanceConfig>();
     }
 
     public void addEntry(String resourceName, String partitionName, String state,
@@ -169,10 +182,17 @@ public class RoutingTableProvider implements ExternalViewChangeListener, Instanc
 
     }
 
+    public void addConfig(InstanceConfig config) {
+      instanceConfigMap.put(config.getInstanceName(), config);
+    }
+
     ResourceInfo get(String resourceName) {
       return resourceInfoMap.get(resourceName);
     }
 
+    InstanceConfig getConfig(String instanceName) {
+      return instanceConfigMap.get(instanceName);
+    }
   }
 
   class ResourceInfo {

@@ -199,6 +199,7 @@ under the License.
     <module>helix-agent</module>
     <module>helix-provisioning</module>
     <module>helix-examples</module>
+    <module>helix-ipc</module>
     <module>recipes</module>
   </modules>
 

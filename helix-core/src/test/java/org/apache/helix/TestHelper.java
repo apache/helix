@@ -20,7 +20,9 @@ package org.apache.helix;
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -767,6 +769,14 @@ public class TestHelper {
     sb.append("]");
 
     System.out.println(sb.toString());
+  }
+
+  public static int getRandomPort() throws IOException {
+    ServerSocket sock = new ServerSocket();
+    sock.bind(null);
+    int port = sock.getLocalPort();
+    sock.close();
+    return port;
   }
 
 }

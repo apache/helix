@@ -42,6 +42,7 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -591,6 +592,25 @@ public class PropertyKey {
      */
     public PropertyKey pause() {
       return new PropertyKey(PAUSE, PauseSignal.class, _clusterName);
+    }
+
+    /**
+     * Get a property key associated with a {@link HealthStat} for an instance
+     * @param instanceName
+     * @param id identifies the statistics
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey healthReport(String instanceName, String id) {
+      return new PropertyKey(PropertyType.HEALTHREPORT, HealthStat.class, _clusterName, instanceName, id);
+    }
+
+    /**
+     * Get a property key associated with {@link HealthStat}s for an instance
+     * @param instanceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey healthReports(String instanceName) {
+      return new PropertyKey(PropertyType.HEALTHREPORT, HealthStat.class, _clusterName, instanceName);
     }
   }
 

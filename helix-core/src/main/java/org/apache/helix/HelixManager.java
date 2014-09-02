@@ -22,6 +22,7 @@ package org.apache.helix;
 import java.util.List;
 
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -287,4 +288,11 @@ public interface HelixManager {
    * @param liveInstanceInfoProvider
    */
   void setLiveInstanceInfoProvider(LiveInstanceInfoProvider liveInstanceInfoProvider);
+
+  /**
+   * Participant only component that periodically update participant health
+   * report to cluster manager server.
+   * @return ParticipantHealthReportCollector
+   */
+  ParticipantHealthReportCollector getHealthReportCollector();
 }

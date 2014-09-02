@@ -56,6 +56,9 @@ import org.apache.helix.PropertyType;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
+import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
@@ -116,6 +119,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   private final StateMachineEngine _stateMachineEngine;
   private final List<HelixTimerTask> _timerTasks = new ArrayList<HelixTimerTask>();
+
+  private final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
 
   /**
    * controller fields
@@ -212,19 +217,28 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     switch (instanceType) {
     case PARTICIPANT:
       _stateMachineEngine = new HelixStateMachineEngine(this);
+      _participantHealthInfoCollector =
+          new ParticipantHealthReportCollectorImpl(this, _instanceName);
+      _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
       break;
     case CONTROLLER:
       _stateMachineEngine = null;
+      _participantHealthInfoCollector = null;
       _controllerTimerTasks.add(new StatusDumpTask(this));
 
       break;
     case CONTROLLER_PARTICIPANT:
       _stateMachineEngine = new HelixStateMachineEngine(this);
+      _participantHealthInfoCollector =
+          new ParticipantHealthReportCollectorImpl(this, _instanceName);
+
+      _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
       _controllerTimerTasks.add(new StatusDumpTask(this));
       break;
     case ADMINISTRATOR:
     case SPECTATOR:
       _stateMachineEngine = null;
+      _participantHealthInfoCollector = null;
       break;
     default:
       throw new IllegalArgumentException("unrecognized type: " + instanceType);
@@ -857,4 +871,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     }
   }
 
+  @Override
+  public ParticipantHealthReportCollector getHealthReportCollector() {
+    checkConnected();
+    return _participantHealthInfoCollector;
+  }
 }

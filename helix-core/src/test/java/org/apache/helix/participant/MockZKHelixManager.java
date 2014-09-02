@@ -41,6 +41,7 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
@@ -250,6 +251,12 @@ public class MockZKHelixManager implements HelixManager {
   public void addControllerMessageListener(MessageListener listener) {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public ParticipantHealthReportCollector getHealthReportCollector() {
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

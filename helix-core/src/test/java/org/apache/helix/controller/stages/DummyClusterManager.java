@@ -39,6 +39,7 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -244,5 +245,11 @@ public class DummyClusterManager implements HelixManager {
   public void addControllerMessageListener(MessageListener listener) {
     // TODO Auto-generated method stub
 
+  }
+
+  @Override
+  public ParticipantHealthReportCollector getHealthReportCollector() {
+    // TODO Auto-generated method stub
+    return null;
   }
 }

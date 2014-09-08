@@ -27,7 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkBadVersionException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
-import org.apache.helix.AccessOption;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
@@ -43,10 +42,12 @@ public class HelixGroupCommit<T> {
     final String _key;
     final DataUpdater<T> _updater;
     AtomicBoolean _sent = new AtomicBoolean(false);
+    boolean _isSuccess;
 
     Entry(String key, DataUpdater<T> updater) {
       _key = key;
       _updater = updater;
+      _isSuccess = true;
     }
   }
 
@@ -73,15 +74,12 @@ public class HelixGroupCommit<T> {
     while (!entry._sent.get()) {
       if (queue._running.compareAndSet(null, Thread.currentThread())) {
         ArrayList<Entry<T>> processed = new ArrayList<Entry<T>>();
+        boolean success = true;
         try {
           Entry<T> first = queue._pending.peek();
           if (first == null) {
             return true;
           }
-
-          // remove from queue
-          // Entry first = queue._pending.poll();
-          // processed.add(first);
 
           String mergedKey = first._key;
 
@@ -103,9 +101,6 @@ public class HelixGroupCommit<T> {
                 // OK
               }
 
-              // updater should handler merged == null
-              // merged = first._updater.update(merged);
-
               // iterate over processed if we are retrying
               Iterator<Entry<T>> it = processed.iterator();
               while (it.hasNext()) {
@@ -114,7 +109,9 @@ public class HelixGroupCommit<T> {
                   continue;
                 }
                 merged = ent._updater.update(merged);
-                // System.out.println("After merging:" + merged);
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("After merging processed entry. path: " + mergedKey + ", value: " + merged);
+                }
               }
 
               // iterate over queue._pending for newly coming requests
@@ -126,11 +123,17 @@ public class HelixGroupCommit<T> {
                 }
                 processed.add(ent);
                 merged = ent._updater.update(merged);
-                // System.out.println("After merging:" + merged);
+                if (LOG.isDebugEnabled()) {
+                  LOG.debug("After merging pending entry. path: " + mergedKey + ", value: " + merged);
+                }
+
                 it.remove();
               }
-              // System.out.println("size:"+ processed.size());
-              accessor.set(mergedKey, merged, readStat.getVersion(), options);
+              success = accessor.set(mergedKey, merged, readStat.getVersion(), options);
+              if (!success) {
+                LOG.error("Fail to group commit. path: " + mergedKey + ", value: " + merged
+                    + ", version: " + readStat.getVersion());
+              }
             } catch (ZkBadVersionException e) {
               retry = true;
             }
@@ -140,6 +143,7 @@ public class HelixGroupCommit<T> {
           for (Entry<T> e : processed) {
             synchronized (e) {
               e._sent.set(true);
+              e._isSuccess = success;
               e.notify();
             }
           }
@@ -155,6 +159,6 @@ public class HelixGroupCommit<T> {
         }
       }
     }
-    return true;
+    return entry._isSuccess;
   }
 }

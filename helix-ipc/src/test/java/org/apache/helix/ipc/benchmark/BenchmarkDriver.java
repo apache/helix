@@ -70,12 +70,8 @@ public class BenchmarkDriver implements Runnable {
   private String localhost;
   private Thread[] trafficThreads;
 
-  public BenchmarkDriver(int port,
-                         int numPartitions,
-                         int numThreads,
-                         int messageSize,
-                         int numConnections,
-                         long maxChannelLifeMillis) {
+  public BenchmarkDriver(int port, int numPartitions, int numThreads, int messageSize,
+      int numConnections, long maxChannelLifeMillis) {
     this.port = port;
     this.numPartitions = numPartitions;
     this.isShutdown = new AtomicBoolean(true);
@@ -111,10 +107,8 @@ public class BenchmarkDriver implements Runnable {
       localhost = InetAddress.getLocalHost().getCanonicalHostName();
       ipcService =
           new NettyHelixIPCService(new NettyHelixIPCService.Config()
-              .setInstanceName(localhost + "_" + port)
-              .setPort(port)
-              .setNumConnections(numConnections)
-              .setMaxChannelLifeMillis(maxChannelLifeMillis));
+              .setInstanceName(localhost + "_" + port).setPort(port)
+              .setNumConnections(numConnections).setMaxChannelLifeMillis(maxChannelLifeMillis));
 
       // Counts number of messages received, and ack them
       ipcService.registerCallback(MESSAGE_TYPE, new HelixIPCCallback() {
@@ -201,7 +195,8 @@ public class BenchmarkDriver implements Runnable {
     options.addOption("threads", true, "Number of threads");
     options.addOption("messageSize", true, "Message size in bytes");
     options.addOption("numConnections", true, "Number of connections between nodes");
-    options.addOption("maxChannelLifeMillis", true, "Maximum length of time to keep Netty Channel open");
+    options.addOption("maxChannelLifeMillis", true,
+        "Maximum length of time to keep Netty Channel open");
 
     CommandLine commandLine = new GnuParser().parse(options, args);
 
@@ -220,13 +215,11 @@ public class BenchmarkDriver implements Runnable {
       }
     });
 
-    new BenchmarkDriver(
-            Integer.parseInt(commandLine.getArgs()[0]),
-            Integer.parseInt(commandLine.getOptionValue("partitions", "1")),
-            Integer.parseInt(commandLine.getOptionValue("threads", "1")),
-            Integer.parseInt(commandLine.getOptionValue("messageSize", "1024")),
-            Integer.parseInt(commandLine.getOptionValue("numConnections", "1")),
-            Long.parseLong(commandLine.getOptionValue("maxChannelLifeMillis", "5000"))).run();
+    new BenchmarkDriver(Integer.parseInt(commandLine.getArgs()[0]), Integer.parseInt(commandLine
+        .getOptionValue("partitions", "1")), Integer.parseInt(commandLine.getOptionValue("threads",
+        "1")), Integer.parseInt(commandLine.getOptionValue("messageSize", "1024")),
+        Integer.parseInt(commandLine.getOptionValue("numConnections", "1")),
+        Long.parseLong(commandLine.getOptionValue("maxChannelLifeMillis", "5000"))).run();
 
     latch.await();
   }

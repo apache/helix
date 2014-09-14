@@ -298,7 +298,7 @@ under the License.
     <helix.release.arguments>-Papache-release</helix.release.arguments>
 
     <!-- for release changelog and download pages -->
-    <currentRelease>0.7.0-incubating</currentRelease>
+    <currentRelease>0.7.1</currentRelease>
 
     <!-- OSGi Properties -->
     <osgi.import />

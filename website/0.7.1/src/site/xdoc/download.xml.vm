@@ -18,6 +18,8 @@ specific language governing permissions and limitations
 under the License.
 
 -->
+#set( $releaseName = "0.7.1" )
+#set( $releaseDate = "09/03/2014" )
 <document xmlns="http://maven.apache.org/XDOC/2.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
           xsi:schemaLocation="http://maven.apache.org/XDOC/2.0 http://maven.apache.org/xsd/xdoc-2.0.xsd">
 
@@ -33,7 +35,7 @@ under the License.
       </macro>
     </div>
 
-    <section name="Apache Helix Downloads">
+    <section name="Introduction">
       <p>Apache Helix artifacts are distributed in source and binary form under the terms of the
         <a href="http://www.apache.org/licenses/LICENSE-2.0">Apache License, Version 2.0</a>.
         See the included <tt>LICENSE</tt> and <tt>NOTICE</tt> files included in each artifact for additional license
@@ -43,9 +45,9 @@ under the License.
       It is good practice to <a href="#Verifying_Releases">verify the integrity</a> of the distribution files.</p>
     </section>
 
-    <section name="Current Release">
-      <p>Release date: 09/03/2014 </p>
-      <p><a href="releasenotes/release-${currentRelease}.html">${currentRelease} Release notes</a></p>
+    <section name="Release">
+      <p>Release date: ${releaseDate} </p>
+      <p><a href="releasenotes/release-${releaseName}.html">${releaseName} Release notes</a></p>
       <a name="mirror"/>
       <subsection name="Mirror">
 
@@ -94,7 +96,7 @@ under the License.
         </p>
 
       </subsection>
-      <subsection name="${currentRelease} Sources">
+      <subsection name="${releaseName} Sources">
         <table>
           <thead>
             <tr>
@@ -106,20 +108,20 @@ under the License.
           <tbody>
             <tr>
               <td>
-                <a href="[preferred]/helix/${currentRelease}/src/helix-${currentRelease}-src.zip">helix-${currentRelease}-src.zip</a>
+                <a href="[preferred]/helix/${releaseName}/src/helix-${releaseName}-src.zip">helix-${releaseName}-src.zip</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.asc">asc</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/src/helix-${releaseName}-src.zip.asc">asc</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/src/helix-${currentRelease}-src.zip.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/src/helix-${releaseName}-src.zip.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/src/helix-${releaseName}-src.zip.sha1">sha1</a>
               </td>
             </tr>
           </tbody>
         </table>
       </subsection>
-      <subsection name="${currentRelease} Binaries">
+      <subsection name="${releaseName} Binaries">
         <table>
           <thead>
             <tr>
@@ -131,74 +133,74 @@ under the License.
           <tbody>
             <tr>
               <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar">helix-core-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar">helix-core-${releaseName}-pkg.tar</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.asc">asc</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-core-${currentRelease}-pkg.tar.sha1">sha1</a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar">helix-admin-webapp-${currentRelease}-pkg.tar</a>
-              </td>
-              <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.asc">asc</a>
-              </td>
-              <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-admin-webapp-${currentRelease}-pkg.tar.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-core-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
             <tr>
               <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar">helix-agent-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar">helix-admin-webapp-${releaseName}-pkg.tar</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.asc">asc</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-agent-${currentRelease}-pkg.tar.sha1">sha1</a>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-provisioning-${currentRelease}-pkg.tar">helix-provisioning-${currentRelease}-pkg.tar</a>
-              </td>
-              <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-provisioning-${currentRelease}-pkg.tar.asc">asc</a>
-              </td>
-              <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-provisioning-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-provisioning-${currentRelease}-pkg.tar.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-admin-webapp-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
             <tr>
               <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-ipc-${currentRelease}-pkg.tar">helix-ipc-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar">helix-agent-${releaseName}-pkg.tar</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-ipc-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.asc">asc</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-ipc-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-ipc-${currentRelease}-pkg.tar.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-agent-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
             <tr>
               <td>
-                <a href="[preferred]/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar">helix-examples-${currentRelease}-pkg.tar</a>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-provisioning-${releaseName}-pkg.tar">helix-provisioning-${releaseName}-pkg.tar</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.asc">asc</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-provisioning-${releaseName}-pkg.tar.asc">asc</a>
               </td>
               <td>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.md5">md5</a>
-                <a href="http://www.apache.org/dist/helix/${currentRelease}/binaries/helix-examples-${currentRelease}-pkg.tar.sha1">sha1</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-provisioning-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-provisioning-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-ipc-${releaseName}-pkg.tar">helix-ipc-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-ipc-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-ipc-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-ipc-${releaseName}-pkg.tar.sha1">sha1</a>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <a href="[preferred]/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar">helix-examples-${releaseName}-pkg.tar</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.asc">asc</a>
+              </td>
+              <td>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.md5">md5</a>
+                <a href="http://www.apache.org/dist/helix/${releaseName}/binaries/helix-examples-${releaseName}-pkg.tar.sha1">sha1</a>
               </td>
             </tr>
           </tbody>

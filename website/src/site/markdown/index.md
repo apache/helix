@@ -75,17 +75,21 @@ Modeling a distributed system as a state machine with constraints on states and 
 
 ### News
 
-Apache Helix has a new release:
+Apache Helix has two new releases:
 
-* [0.6.3](./0.6.3-docs/index.html) - A release focused on stability improvements and performance.
+* [0.6.4](./0.6.4-docs/index.html) - A release that includes stability improvements, and ad-hoc task management.
 
-    [\[Quick Start\]](./0.6.3-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.3.html)
+    [\[Quick Start\]](./0.6.4-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.6.4.html)
+
+* [0.7.1 (beta)](./0.7.1-docs/index.html) - A release that includes YARN integration, ad-hoc task management, and performant IPC.
+
+    [\[Quick Start\]](./0.7.1-docs/Quickstart.html) [\[Release Notes\]](./releasenotes/release-0.7.1.html)
 
 ### Download
 
-<a href="./0.6.3-docs/download.html" class="btn btn-primary btn-small">0.6.3</a>
+<a href="./0.6.4-docs/download.html" class="btn btn-primary btn-small">0.6.4</a>
 
-<a href="./0.7.0-incubating-docs/download.html" class="btn btn-primary btn-small">0.7.0-incubating (alpha)</a>
+<a href="./0.7.1-docs/download.html" class="btn btn-primary btn-small">0.7.1 (beta)</a>
 
 ### Maven Dependency
 
@@ -93,7 +97,7 @@ Apache Helix has a new release:
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.6.3</version>
+  <version>0.6.4</version>
 </dependency>
 ```
 
@@ -104,6 +108,6 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.6.3
+git checkout helix-0.6.4
 mvn install package -DskipTests
 ```

@@ -1,0 +1,164 @@
+ -----
+ Release Notes for Apache Helix 0.6.4
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.6.4
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.6.4.
+
+  This is the sixth release under the Apache umbrella, and the second as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+  []
+
+* Changes
+
+** Sub-task
+
+    * [HELIX-171] - handleNewSession() should wait on all left-over tasks to be cancelled successfully before start new session
+
+    * [HELIX-178] - Flapping detection
+
+    * [HELIX-353] - Write an independent task rebalancer
+
+    * [HELIX-417] - Support arbitrary-named target partitions in the task framework
+
+    * [HELIX-422] - Simplify creation of single jobs
+
+    * [HELIX-437] - Configurations at task, job, and cluster level
+
+    * [HELIX-438] - Improve task framework retry logic
+
+    * [HELIX-439] - Support thresholding for job success/failure
+
+    * [HELIX-440] - Add scheduling layer to task framework
+
+    * [HELIX-455] - Add REST API for submitting jobs
+
+    * [HELIX-459] - Job context should include the instance that completed the job
+
+    * [HELIX-460] - Add back healthcheck interfaces for compatibility
+
+    * [HELIX-468] - TaskDriver list should be more robust
+
+    * [HELIX-482] - Support "smarter" task failure strategies
+
+    * [HELIX-492] - Task should be its own rebalance mode
+
+    * [HELIX-497] - Support named queues of jobs
+
+    * [HELIX-506] - Ensure that tasks are not placed on targets with pending transitions
+
+
+
+
+** Bug
+
+    * [HELIX-132] - current-state and external-view are not cleaned up when a resource has been removed
+
+    * [HELIX-350] - cluster status monitor should not be reset in FINALIZE type pipeline
+
+    * [HELIX-394] - Shutdown GenericHelixController#_eventThread when HelixManager disconnects
+
+    * [HELIX-395] - Remove old Helix alert/stat modules
+
+    * [HELIX-413] - ClusterStateVerifier should always return true if called with 0 resources
+
+    * [HELIX-423] - Code duplication in controller leader election
+
+    * [HELIX-425] - 0.7 does not honor partition transition throttling correctly
+
+    * [HELIX-429] - Upgrade restlet to 2.2.0
+
+    * [HELIX-430] - Restlet 2.2.0 causes failures
+
+    * [HELIX-433] - Untagging may fail in FULL_AUTO mode
+
+    * [HELIX-443] - Race condition in Helix register/unregister MessageHandlerFactory
+
+    * [HELIX-445] - NPE in ZkPathDataDumpTask
+
+    * [HELIX-448] - Call onCallback for CustomCodeCallbackHandler for FINALIZE type
+
+    * [HELIX-453] - On session expiry/recovery, not all message types are re-registered
+
+    * [HELIX-464] - rabbitmq recipe is broken
+
+    * [HELIX-465] - ZkCopy skips paths already exist in destination namespace
+
+    * [HELIX-466] - Speed up zkcopy by using asyn read/write
+
+    * [HELIX-471] - ResourceMonitor never unregistered even if the resource is dropped
+
+    * [HELIX-472] - Errors should be cleaned up less frequently
+
+    * [HELIX-476] - ZNRecordStreamingSerializer.deserialize throw NullPointerException when 'id' property is not the first item in JSON
+
+    * [HELIX-491] - ZKHelixManager#waitUntilConnected() bug
+
+    * [HELIX-495] - TestPreferenceListAsQueue is flaky
+
+** Improvement
+
+    * [HELIX-426] - 0.6 doesn't support partition constraints
+
+    * [HELIX-444] - add per-participant partition count gauges to helix
+
+    * [HELIX-446] - Remove ZkPropertyTransfer and restlet dependency from helix-core
+
+    * [HELIX-452] - Increase frequency of status update cleanup
+
+** New Feature
+
+    * [HELIX-130] - ZkDumper should provide a copy option
+
+    * [HELIX-245] - New Recipe: Auto-Scaling with Apache Helix and Apache Hadoop YARN
+
+    * [HELIX-336] - Add support for task framework
+
+    * [HELIX-461] - Add a partitions without top state metric
+
+    * [HELIX-463] - Add gauges for participant and controller message queue sizes
+
+** Task
+
+    * [HELIX-427] - Write a test for using preference lists as execution queues
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

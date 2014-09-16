@@ -109,7 +109,6 @@ public class NettyHelixIPCService implements HelixIPCService {
   private final Config config;
   private final AtomicBoolean isShutdown;
   private final Map<InetSocketAddress, List<Channel>> channelMap;
-  private final ConcurrentMap<Channel, Long> channelOpenTimes;
   private final MetricRegistry metricRegistry;
   private final ConcurrentMap<Integer, HelixIPCCallback> callbacks;
 
@@ -128,7 +127,6 @@ public class NettyHelixIPCService implements HelixIPCService {
     this.config = config;
     this.isShutdown = new AtomicBoolean(true);
     this.channelMap = new HashMap<InetSocketAddress, List<Channel>>();
-    this.channelOpenTimes = new ConcurrentHashMap<Channel, Long>();
     this.metricRegistry = new MetricRegistry();
     this.callbacks = new ConcurrentHashMap<Integer, HelixIPCCallback>();
   }
@@ -175,6 +173,7 @@ public class NettyHelixIPCService implements HelixIPCService {
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
                   socketChannel.pipeline().addLast(
                       new LengthFieldPrepender(LENGTH_FIELD_LENGTH, true));
+                  socketChannel.pipeline().addLast(new BackPressureHandler());
                 }
               });
     }
@@ -215,17 +214,16 @@ public class NettyHelixIPCService implements HelixIPCService {
       // Pick the channel for this scope
       int idx = (Integer.MAX_VALUE & destination.getScope().hashCode()) % channels.size();
       Channel channel = channels.get(idx);
-      if (channel == null || !channel.isOpen() || isExpired(channel)) {
+      if (channel == null || !channel.isOpen()) {
         synchronized (channelMap) {
           channel = channels.get(idx);
-          if (channel == null || !channel.isOpen() || isExpired(channel)) {
+          if (channel == null || !channel.isOpen()) {
             if (channel != null && channel.isOpen()) {
               channel.close();
             }
             channel = clientBootstrap.connect(destination.getSocketAddress()).sync().channel();
             channels.set(idx, channel);
             statChannelOpen.inc();
-            channelOpenTimes.put(channel, System.currentTimeMillis());
           }
         }
       }
@@ -268,24 +266,52 @@ public class NettyHelixIPCService implements HelixIPCService {
       }
 
       // Send
+      BackPressureHandler backPressureHandler = channel.pipeline().get(BackPressureHandler.class);
+      backPressureHandler.waitUntilWritable(channel);
+      channel.writeAndFlush(fullByteBuf);
+
       statTxMsg.mark();
       statTxBytes.mark(fullByteBuf.readableBytes());
-      channel.writeAndFlush(fullByteBuf);
     } catch (Exception e) {
       statError.inc();
       throw new IllegalStateException("Could not send message to " + destination, e);
     }
   }
 
-  private boolean isExpired(Channel channel) {
-    Long channelOpenTime = channelOpenTimes.get(channel);
-    return channelOpenTime != null
-        && System.currentTimeMillis() - channelOpenTime >= config.getMaxChannelLifeMillis();
-  }
-
   @Override
   public void registerCallback(int messageType, HelixIPCCallback callback) {
     callbacks.put(messageType, callback);
+  }
+
+  private class BackPressureHandler extends SimpleChannelInboundHandler<ByteBuf> {
+    private final Object sync = new Object();
+
+    BackPressureHandler() {
+      super(false);
+    }
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+      ctx.fireChannelRead(msg);
+    }
+
+    public void waitUntilWritable(Channel channel) throws InterruptedException {
+      synchronized (sync) {
+        while (channel.isOpen() && !channel.isWritable()) {
+          LOG.warn(channel + " is not writable, waiting until it is");
+          sync.wait();
+        }
+      }
+    }
+
+    @Override
+    public void channelWritabilityChanged(ChannelHandlerContext ctx) {
+      synchronized (sync) {
+        if (ctx.channel().isWritable()) {
+          sync.notifyAll();
+        }
+      }
+    }
   }
 
   @ChannelHandler.Sharable
@@ -466,11 +492,6 @@ public class NettyHelixIPCService implements HelixIPCService {
       return this;
     }
 
-    public Config setMaxChannelLifeMillis(long maxChannelLifeMillis) {
-      this.maxChannelLifeMillis = maxChannelLifeMillis;
-      return this;
-    }
-
     public String getInstanceName() {
       return instanceName;
     }
@@ -481,10 +502,6 @@ public class NettyHelixIPCService implements HelixIPCService {
 
     public int getNumConnections() {
       return numConnections;
-    }
-
-    public long getMaxChannelLifeMillis() {
-      return maxChannelLifeMillis;
     }
   }
 }

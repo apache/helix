@@ -43,8 +43,6 @@ import org.apache.helix.ipc.netty.NettyHelixIPCService;
 import org.apache.helix.resolver.HelixAddress;
 import org.apache.helix.resolver.HelixMessageScope;
 import org.apache.log4j.BasicConfigurator;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
 
 import com.google.common.collect.ImmutableSet;
 

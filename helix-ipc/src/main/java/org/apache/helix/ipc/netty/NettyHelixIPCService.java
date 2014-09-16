@@ -19,17 +19,16 @@ package org.apache.helix.ipc.netty;
  * under the License.
  */
 
+import static org.apache.helix.ipc.netty.NettyHelixIPCUtils.*;
+
 import io.netty.bootstrap.Bootstrap;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.Channel;
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
@@ -38,7 +37,6 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder;
 import io.netty.handler.codec.LengthFieldPrepender;
 
 import java.net.InetSocketAddress;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -51,7 +49,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.helix.ipc.HelixIPCCallback;
 import org.apache.helix.ipc.HelixIPCService;
 import org.apache.helix.resolver.HelixAddress;
-import org.apache.helix.resolver.HelixMessageScope;
 import org.apache.log4j.Logger;
 
 import com.codahale.metrics.Counter;
@@ -63,7 +60,7 @@ import com.codahale.metrics.MetricRegistry;
  * Provides partition/state-level messaging among nodes in a Helix cluster.
  * <p>
  * The message format is (where len == 4B, and contains the length of the next field)
- * 
+ *
  * <pre>
  *      +----------------------+
  *      | totalLength (4B)     |
@@ -89,7 +86,7 @@ import com.codahale.metrics.MetricRegistry;
  *      | len | message        |
  *      +----------------------+
  * </pre>
- * 
+ *
  * </p>
  */
 public class NettyHelixIPCService implements HelixIPCService {
@@ -152,6 +149,7 @@ public class NettyHelixIPCService implements HelixIPCService {
       // Report metrics via JMX
       jmxReporter = JmxReporter.forRegistry(metricRegistry).build();
       jmxReporter.start();
+      LOG.info("Registered JMX metrics reporter");
 
       new ServerBootstrap().group(eventLoopGroup).channel(NioServerSocketChannel.class)
           .option(ChannelOption.SO_KEEPALIVE, true).childOption(ChannelOption.SO_KEEPALIVE, true)
@@ -159,11 +157,21 @@ public class NettyHelixIPCService implements HelixIPCService {
             @Override
             protected void initChannel(SocketChannel socketChannel) throws Exception {
               socketChannel.pipeline().addLast(
-                  new LengthFieldBasedFrameDecoder(MAX_FRAME_LENGTH, LENGTH_FIELD_OFFSET,
-                      LENGTH_FIELD_LENGTH, LENGTH_ADJUSTMENT, INITIAL_BYTES_TO_STRIP));
-              socketChannel.pipeline().addLast(new HelixIPCCallbackHandler());
+                  new LengthFieldBasedFrameDecoder(
+                      MAX_FRAME_LENGTH,
+                      LENGTH_FIELD_OFFSET,
+                      LENGTH_FIELD_LENGTH,
+                      LENGTH_ADJUSTMENT,
+                      INITIAL_BYTES_TO_STRIP));
+              socketChannel.pipeline().addLast(
+                  new NettyHelixIPCCallbackHandler(
+                      config.getInstanceName(),
+                      callbacks,
+                      statRxMsg,
+                      statRxBytes));
             }
           }).bind(new InetSocketAddress(config.getPort()));
+      LOG.info("Listening on port " + config.getPort());
 
       clientBootstrap =
           new Bootstrap().group(eventLoopGroup).channel(NioSocketChannel.class)
@@ -171,9 +179,8 @@ public class NettyHelixIPCService implements HelixIPCService {
               .handler(new ChannelInitializer<SocketChannel>() {
                 @Override
                 protected void initChannel(SocketChannel socketChannel) throws Exception {
-                  socketChannel.pipeline().addLast(
-                      new LengthFieldPrepender(LENGTH_FIELD_LENGTH, true));
-                  socketChannel.pipeline().addLast(new BackPressureHandler());
+                  socketChannel.pipeline().addLast(new LengthFieldPrepender(LENGTH_FIELD_LENGTH, true));
+                  socketChannel.pipeline().addLast(new NettyHelixIPCBackPressureHandler());
                 }
               });
     }
@@ -185,7 +192,10 @@ public class NettyHelixIPCService implements HelixIPCService {
   public void shutdown() throws Exception {
     if (!isShutdown.getAndSet(true)) {
       jmxReporter.stop();
+      LOG.info("Stopped JMX reporter");
+
       eventLoopGroup.shutdownGracefully();
+      LOG.info("Shut down event loop group");
     }
   }
 
@@ -194,6 +204,9 @@ public class NettyHelixIPCService implements HelixIPCService {
    */
   @Override
   public void send(HelixAddress destination, int messageType, UUID messageId, ByteBuf message) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Sending " + messageId);
+    }
     // Send message
     try {
       // Get list of channels
@@ -266,7 +279,8 @@ public class NettyHelixIPCService implements HelixIPCService {
       }
 
       // Send
-      BackPressureHandler backPressureHandler = channel.pipeline().get(BackPressureHandler.class);
+      NettyHelixIPCBackPressureHandler backPressureHandler
+          = channel.pipeline().get(NettyHelixIPCBackPressureHandler.class);
       backPressureHandler.waitUntilWritable(channel);
       channel.writeAndFlush(fullByteBuf);
 
@@ -281,201 +295,13 @@ public class NettyHelixIPCService implements HelixIPCService {
   @Override
   public void registerCallback(int messageType, HelixIPCCallback callback) {
     callbacks.put(messageType, callback);
-  }
-
-  private class BackPressureHandler extends SimpleChannelInboundHandler<ByteBuf> {
-    private final Object sync = new Object();
-
-    BackPressureHandler() {
-      super(false);
-    }
-
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-      ctx.fireChannelRead(msg);
-    }
-
-    public void waitUntilWritable(Channel channel) throws InterruptedException {
-      synchronized (sync) {
-        while (channel.isOpen() && !channel.isWritable()) {
-          LOG.warn(channel + " is not writable, waiting until it is");
-          sync.wait();
-        }
-      }
-    }
-
-    @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) {
-      synchronized (sync) {
-        if (ctx.channel().isWritable()) {
-          sync.notifyAll();
-        }
-      }
-    }
-  }
-
-  @ChannelHandler.Sharable
-  private class HelixIPCCallbackHandler extends SimpleChannelInboundHandler<ByteBuf> {
-
-    HelixIPCCallbackHandler() {
-      super(false); // we will manage reference
-    }
-
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
-      try {
-        int idx = 0;
-
-        // Message length
-        int messageLength = byteBuf.readInt();
-        idx += 4;
-
-        // Message version
-        @SuppressWarnings("unused")
-        int messageVersion = byteBuf.readInt();
-        idx += 4;
-
-        // Message type
-        int messageType = byteBuf.readInt();
-        idx += 4;
-
-        // Message ID
-        UUID messageId = new UUID(byteBuf.readLong(), byteBuf.readLong());
-        idx += 16;
-
-        // Cluster
-        byteBuf.readerIndex(idx);
-        int clusterSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("clusterSize", clusterSize, messageLength);
-        String clusterName = toNonEmptyString(clusterSize, byteBuf);
-        idx += clusterSize;
-
-        // Resource
-        byteBuf.readerIndex(idx);
-        int resourceSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("resourceSize", resourceSize, messageLength);
-        String resourceName = toNonEmptyString(resourceSize, byteBuf);
-        idx += resourceSize;
-
-        // Partition
-        byteBuf.readerIndex(idx);
-        int partitionSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("partitionSize", partitionSize, messageLength);
-        String partitionName = toNonEmptyString(partitionSize, byteBuf);
-        idx += partitionSize;
-
-        // State
-        byteBuf.readerIndex(idx);
-        int stateSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("stateSize", stateSize, messageLength);
-        String state = toNonEmptyString(stateSize, byteBuf);
-        idx += stateSize;
-
-        // Source instance
-        byteBuf.readerIndex(idx);
-        int srcInstanceSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("srcInstanceSize", srcInstanceSize, messageLength);
-        String srcInstance = toNonEmptyString(srcInstanceSize, byteBuf);
-        idx += srcInstanceSize;
-
-        // Destination instance
-        byteBuf.readerIndex(idx);
-        int dstInstanceSize = byteBuf.readInt();
-        idx += 4;
-        checkLength("dstInstanceSize", dstInstanceSize, messageLength);
-        String dstInstance = toNonEmptyString(dstInstanceSize, byteBuf);
-        idx += dstInstanceSize;
-
-        // Position at message
-        byteBuf.readerIndex(idx + 4);
-
-        // Error check
-        if (dstInstance == null) {
-          throw new IllegalStateException("Received message addressed to null destination from "
-              + srcInstance);
-        } else if (!dstInstance.equals(config.getInstanceName())) {
-          throw new IllegalStateException(config.getInstanceName()
-              + " received message addressed to " + dstInstance + " from " + srcInstance);
-        } else if (callbacks.get(messageType) == null) {
-          throw new IllegalStateException("No callback registered for message type " + messageType);
-        }
-
-        // Build scope
-        HelixMessageScope scope =
-            new HelixMessageScope.Builder().cluster(clusterName).resource(resourceName)
-                .partition(partitionName).state(state).sourceInstance(srcInstance).build();
-
-        // Get callback
-        HelixIPCCallback callback = callbacks.get(messageType);
-        if (callback == null) {
-          throw new IllegalStateException("No callback registered for message type " + messageType);
-        }
-
-        // Handle callback
-        callback.onMessage(scope, messageId, byteBuf);
-
-        // Stats
-        statRxMsg.mark();
-        statRxBytes.mark(messageLength);
-      } finally {
-        byteBuf.release();
-      }
-    }
-
-    @Override
-    public void exceptionCaught(ChannelHandlerContext channelHandlerContext, Throwable cause) {
-      LOG.error(cause);
-    }
-  }
-
-  /** Given a byte buf w/ a certain reader index, encodes the next length bytes as a String */
-  private static String toNonEmptyString(int length, ByteBuf byteBuf) {
-    if (byteBuf.readableBytes() >= length) {
-      return byteBuf.toString(byteBuf.readerIndex(), length, Charset.defaultCharset());
-    }
-    return null;
-  }
-
-  /** Writes [s.length(), s] to buf, or [0] if s is null */
-  private static void writeStringWithLength(ByteBuf buf, String s) {
-    if (s == null) {
-      buf.writeInt(0);
-      return;
-    }
-
-    buf.writeInt(s.length());
-    for (int i = 0; i < s.length(); i++) {
-      buf.writeByte(s.charAt(i));
-    }
-  }
-
-  /** Returns the length of a string, or 0 if s is null */
-  private static int getLength(String s) {
-    return s == null ? 0 : s.length();
-  }
-
-  /**
-   * @throws java.lang.IllegalArgumentException if length > messageLength (attempt to prevent OOM
-   *           exceptions)
-   */
-  private static void checkLength(String fieldName, int length, int messageLength)
-      throws IllegalArgumentException {
-    if (length > messageLength) {
-      throw new IllegalArgumentException(fieldName + "=" + length
-          + " is greater than messageLength=" + messageLength);
-    }
+    LOG.info("Registered callback " + callback + " for message type " + messageType);
   }
 
   public static class Config {
     private String instanceName;
     private int port;
     private int numConnections = 1;
-    private long maxChannelLifeMillis = 5000;
 
     public Config setInstanceName(String instanceName) {
       this.instanceName = instanceName;

@@ -60,7 +60,7 @@ import com.codahale.metrics.MetricRegistry;
  * Provides partition/state-level messaging among nodes in a Helix cluster.
  * <p>
  * The message format is (where len == 4B, and contains the length of the next field)
- * 
+ *
  * <pre>
  *      +----------------------+
  *      | totalLength (4B)     |
@@ -86,7 +86,7 @@ import com.codahale.metrics.MetricRegistry;
  *      | len | message        |
  *      +----------------------+
  * </pre>
- * 
+ *
  * </p>
  */
 public class NettyHelixIPCService implements HelixIPCService {
@@ -154,22 +154,22 @@ public class NettyHelixIPCService implements HelixIPCService {
       new ServerBootstrap().group(eventLoopGroup).channel(NioServerSocketChannel.class)
           .option(ChannelOption.SO_KEEPALIVE, true).childOption(ChannelOption.SO_KEEPALIVE, true)
           .childHandler(new ChannelInitializer<SocketChannel>() {
-              @Override
-              protected void initChannel(SocketChannel socketChannel) throws Exception {
-                  socketChannel.pipeline().addLast(
-                          new LengthFieldBasedFrameDecoder(
-                                  MAX_FRAME_LENGTH,
-                                  LENGTH_FIELD_OFFSET,
-                                  LENGTH_FIELD_LENGTH,
-                                  LENGTH_ADJUSTMENT,
-                                  INITIAL_BYTES_TO_STRIP));
-                  socketChannel.pipeline().addLast(
-                          new NettyHelixIPCCallbackHandler(
-                                  config.getInstanceName(),
-                                  callbacks,
-                                  statRxMsg,
-                                  statRxBytes));
-              }
+            @Override
+            protected void initChannel(SocketChannel socketChannel) throws Exception {
+              socketChannel.pipeline().addLast(
+                  new LengthFieldBasedFrameDecoder(
+                      MAX_FRAME_LENGTH,
+                      LENGTH_FIELD_OFFSET,
+                      LENGTH_FIELD_LENGTH,
+                      LENGTH_ADJUSTMENT,
+                      INITIAL_BYTES_TO_STRIP));
+              socketChannel.pipeline().addLast(
+                  new NettyHelixIPCCallbackHandler(
+                      config.getInstanceName(),
+                      callbacks,
+                      statRxMsg,
+                      statRxBytes));
+            }
           }).bind(new InetSocketAddress(config.getPort()));
       LOG.info("Listening on port " + config.getPort());
 
@@ -280,7 +280,7 @@ public class NettyHelixIPCService implements HelixIPCService {
 
       // Send
       NettyHelixIPCBackPressureHandler backPressureHandler
-              = channel.pipeline().get(NettyHelixIPCBackPressureHandler.class);
+          = channel.pipeline().get(NettyHelixIPCBackPressureHandler.class);
       backPressureHandler.waitUntilWritable(channel);
       channel.writeAndFlush(fullByteBuf);
 

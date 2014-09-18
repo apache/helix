@@ -26,34 +26,34 @@ import io.netty.channel.SimpleChannelInboundHandler;
 import org.apache.log4j.Logger;
 
 public class NettyHelixIPCBackPressureHandler extends SimpleChannelInboundHandler<ByteBuf> {
-    private static final Logger LOG = Logger.getLogger(NettyHelixIPCBackPressureHandler.class);
+  private static final Logger LOG = Logger.getLogger(NettyHelixIPCBackPressureHandler.class);
 
-    private final Object sync = new Object();
+  private final Object sync = new Object();
 
-    public NettyHelixIPCBackPressureHandler() {
-        super(false);
+  public NettyHelixIPCBackPressureHandler() {
+    super(false);
+  }
+
+  @Override
+  protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
+    ctx.fireChannelRead(msg);
+  }
+
+  public void waitUntilWritable(Channel channel) throws InterruptedException {
+    synchronized (sync) {
+      while (channel.isOpen() && !channel.isWritable()) {
+        LOG.warn(channel + " is not writable, waiting until it is");
+        sync.wait();
+      }
     }
+  }
 
-    @Override
-    protected void channelRead0(ChannelHandlerContext ctx, ByteBuf msg) throws Exception {
-        ctx.fireChannelRead(msg);
+  @Override
+  public void channelWritabilityChanged(ChannelHandlerContext ctx) {
+    synchronized (sync) {
+      if (ctx.channel().isWritable()) {
+        sync.notifyAll();
+      }
     }
-
-    public void waitUntilWritable(Channel channel) throws InterruptedException {
-        synchronized (sync) {
-            while (channel.isOpen() && !channel.isWritable()) {
-                LOG.warn(channel + " is not writable, waiting until it is");
-                sync.wait();
-            }
-        }
-    }
-
-    @Override
-    public void channelWritabilityChanged(ChannelHandlerContext ctx) {
-        synchronized (sync) {
-            if (ctx.channel().isWritable()) {
-                sync.notifyAll();
-            }
-        }
-    }
+  }
 }

@@ -24,41 +24,41 @@ import io.netty.buffer.ByteBuf;
 import java.nio.charset.Charset;
 
 public class NettyHelixIPCUtils {
-    /** Writes [s.length(), s] to buf, or [0] if s is null */
-    public static void writeStringWithLength(ByteBuf buf, String s) {
-        if (s == null) {
-            buf.writeInt(0);
-            return;
-        }
-
-        buf.writeInt(s.length());
-        for (int i = 0; i < s.length(); i++) {
-            buf.writeByte(s.charAt(i));
-        }
+  /** Writes [s.length(), s] to buf, or [0] if s is null */
+  public static void writeStringWithLength(ByteBuf buf, String s) {
+    if (s == null) {
+      buf.writeInt(0);
+      return;
     }
 
-    /** Returns the length of a string, or 0 if s is null */
-    public static int getLength(String s) {
-        return s == null ? 0 : s.length();
+    buf.writeInt(s.length());
+    for (int i = 0; i < s.length(); i++) {
+      buf.writeByte(s.charAt(i));
     }
+  }
 
-    /** Given a byte buf w/ a certain reader index, encodes the next length bytes as a String */
-    public static String toNonEmptyString(int length, ByteBuf byteBuf) {
-        if (byteBuf.readableBytes() >= length) {
-            return byteBuf.toString(byteBuf.readerIndex(), length, Charset.defaultCharset());
-        }
-        return null;
-    }
+  /** Returns the length of a string, or 0 if s is null */
+  public static int getLength(String s) {
+    return s == null ? 0 : s.length();
+  }
 
-    /**
-     * @throws java.lang.IllegalArgumentException if length > messageLength (attempt to prevent OOM
-     *           exceptions)
-     */
-    public static void checkLength(String fieldName, int length, int messageLength)
-            throws IllegalArgumentException {
-        if (length > messageLength) {
-            throw new IllegalArgumentException(fieldName + "=" + length
-                    + " is greater than messageLength=" + messageLength);
-        }
+  /** Given a byte buf w/ a certain reader index, encodes the next length bytes as a String */
+  public static String toNonEmptyString(int length, ByteBuf byteBuf) {
+    if (byteBuf.readableBytes() >= length) {
+      return byteBuf.toString(byteBuf.readerIndex(), length, Charset.defaultCharset());
     }
+    return null;
+  }
+
+  /**
+   * @throws java.lang.IllegalArgumentException if length > messageLength (attempt to prevent OOM
+   *           exceptions)
+   */
+  public static void checkLength(String fieldName, int length, int messageLength)
+      throws IllegalArgumentException {
+    if (length > messageLength) {
+      throw new IllegalArgumentException(fieldName + "=" + length
+          + " is greater than messageLength=" + messageLength);
+    }
+  }
 }

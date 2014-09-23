@@ -21,43 +21,45 @@ package org.apache.helix.recipes.rabbitmq;
 
 import java.util.List;
 
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
+import org.apache.helix.HelixConnection;
+import org.apache.helix.HelixParticipant;
+import org.apache.helix.api.id.ClusterId;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.participant.StateMachineEngine;
+import org.apache.helix.manager.zk.ZkHelixConnection;
 
 public class Consumer {
   private final String _zkAddr;
-  private final String _clusterName;
-  private final String _consumerId;
+  private final ClusterId _clusterId;
+  private final ParticipantId _consumerId;
   private final String _mqServer;
-  private HelixManager _manager = null;
+  HelixConnection _connection;
+  private HelixParticipant _participant = null;
 
-  public Consumer(String zkAddr, String clusterName, String consumerId, String mqServer) {
+  public Consumer(String zkAddr, ClusterId clusterId, ParticipantId consumerId, String mqServer) {
     _zkAddr = zkAddr;
-    _clusterName = clusterName;
+    _clusterId = clusterId;
     _consumerId = consumerId;
     _mqServer = mqServer;
   }
 
   public void connect() {
     try {
-      _manager =
-          HelixManagerFactory.getZKHelixManager(_clusterName, _consumerId,
-              InstanceType.PARTICIPANT, _zkAddr);
+      _connection = new ZkHelixConnection(_zkAddr);
+      _connection.connect();
+      _participant = _connection.createParticipant(_clusterId, _consumerId);
 
-      StateMachineEngine stateMach = _manager.getStateMachineEngine();
-      ConsumerStateTransitionHandlerFactory transitionHandlerFactory =
-          new ConsumerStateTransitionHandlerFactory(_consumerId, _mqServer);
+      StateMachineEngine stateMach = _participant.getStateMachineEngine();
+      ConsumerTransitionHandlerFactory transitionHandlerFactory =
+          new ConsumerTransitionHandlerFactory(_consumerId, _mqServer);
       stateMach.registerStateModelFactory(
           StateModelDefId.from(SetupConsumerCluster.DEFAULT_STATE_MODEL), transitionHandlerFactory);
-
-      _manager.connect();
+      _participant.start();
 
       Thread.currentThread().join();
     } catch (InterruptedException e) {
@@ -71,8 +73,12 @@ public class Consumer {
   }
 
   public void disconnect() {
-    if (_manager != null) {
-      _manager.disconnect();
+    if (_participant != null) {
+      _participant.stop();
+    }
+
+    if (_connection != null) {
+      _connection.disconnect();
     }
   }
 
@@ -106,7 +112,8 @@ public class Consumer {
 
       // start consumer
       final Consumer consumer =
-          new Consumer(zkAddr, clusterName, "consumer_" + consumerId, mqServer);
+          new Consumer(zkAddr, ClusterId.from(clusterName), ParticipantId.from("consumer_"
+              + consumerId), mqServer);
 
       Runtime.getRuntime().addShutdownHook(new Thread() {
         @Override

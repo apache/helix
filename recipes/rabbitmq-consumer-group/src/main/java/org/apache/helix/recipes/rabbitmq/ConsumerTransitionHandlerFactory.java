@@ -20,21 +20,22 @@ package org.apache.helix.recipes.rabbitmq;
  */
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 
-public class ConsumerStateTransitionHandlerFactory extends StateTransitionHandlerFactory<ConsumerStateModel> {
-  private final String _consumerId;
+public class ConsumerTransitionHandlerFactory extends StateTransitionHandlerFactory<ConsumerTransitionHandler> {
+  private final ParticipantId _consumerId;
   private final String _mqServer;
 
-  public ConsumerStateTransitionHandlerFactory(String consumerId, String msServer) {
+  public ConsumerTransitionHandlerFactory(ParticipantId consumerId, String msServer) {
     _consumerId = consumerId;
     _mqServer = msServer;
   }
 
   @Override
-  public ConsumerStateModel createStateTransitionHandler(PartitionId partition) {
-    ConsumerStateModel model =
-        new ConsumerStateModel(_consumerId, partition.stringify(), _mqServer);
+  public ConsumerTransitionHandler createStateTransitionHandler(PartitionId partition) {
+    ConsumerTransitionHandler model =
+        new ConsumerTransitionHandler(_consumerId, partition, _mqServer);
     return model;
   }
 }

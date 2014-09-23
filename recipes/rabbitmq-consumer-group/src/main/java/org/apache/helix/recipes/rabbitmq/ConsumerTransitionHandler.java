@@ -22,6 +22,8 @@ package org.apache.helix.recipes.rabbitmq;
 import org.apache.log4j.Logger;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
@@ -29,16 +31,16 @@ import org.apache.helix.participant.statemachine.Transition;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "ERROR"
 })
-public class ConsumerStateModel extends TransitionHandler {
-  private static Logger LOG = Logger.getLogger(ConsumerStateModel.class);
+public class ConsumerTransitionHandler extends TransitionHandler {
+  private static Logger LOG = Logger.getLogger(ConsumerTransitionHandler.class);
 
-  private final String _consumerId;
-  private final String _partition;
+  private final ParticipantId _consumerId;
+  private final PartitionId _partition;
 
   private final String _mqServer;
   private ConsumerThread _thread = null;
 
-  public ConsumerStateModel(String consumerId, String partition, String mqServer) {
+  public ConsumerTransitionHandler(ParticipantId consumerId, PartitionId partition, String mqServer) {
     _partition = partition;
     _consumerId = consumerId;
     _mqServer = mqServer;

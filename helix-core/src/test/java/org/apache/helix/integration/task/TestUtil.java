@@ -20,6 +20,7 @@ package org.apache.helix.integration.task;
  */
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.TestHelper;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowContext;
@@ -29,6 +30,8 @@ import org.testng.Assert;
  * Static test utility methods.
  */
 public class TestUtil {
+  private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
+
   /**
    * Polls {@link org.apache.helix.task.JobContext} for given task resource until a timeout is
    * reached.
@@ -45,7 +48,7 @@ public class TestUtil {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
     } while ((ctx == null || ctx.getWorkflowState() == null || ctx.getWorkflowState() != state)
-        && System.currentTimeMillis() < st + 2 * 60 * 1000 /* 2 mins */);
+        && System.currentTimeMillis() < st + _default_timeout);
 
     Assert.assertNotNull(ctx);
     Assert.assertEquals(ctx.getWorkflowState(), state);
@@ -60,8 +63,22 @@ public class TestUtil {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
     } while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
-        && System.currentTimeMillis() < st + 2 * 60 * 1000 /* 2 mins */);
+        && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
+    Assert.assertEquals(ctx.getJobState(jobName), state);
   }
 
+  public static void pollForEmptyJobState(final HelixManager manager, final String workflowName,
+      final String jobName) throws Exception {
+    final String namespacedJobName = String.format("%s_%s", workflowName, jobName);
+    boolean succeed = TestHelper.verify(new TestHelper.Verifier() {
+
+      @Override
+      public boolean verify() throws Exception {
+        WorkflowContext ctx = TaskUtil.getWorkflowContext(manager, workflowName);
+        return ctx == null || ctx.getJobState(namespacedJobName) == null;
+      }
+    }, _default_timeout);
+    Assert.assertTrue(succeed);
+  }
 }

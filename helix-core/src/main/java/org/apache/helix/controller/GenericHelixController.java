@@ -31,7 +31,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
@@ -66,7 +65,6 @@ import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -94,7 +92,7 @@ import com.google.common.collect.Lists;
  */
 public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener,
+    ControllerChangeListener, InstanceConfigChangeListener,
     ScopedConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
@@ -180,7 +178,7 @@ public class GenericHelixController implements IdealStateChangeListener,
   }
 
   /**
-   * Starts the rebalancing timer
+   * Stops the rebalancing timer
    */
   void stopRebalancingTimer() {
     if (_rebalanceTimer != null) {
@@ -278,7 +276,7 @@ public class GenericHelixController implements IdealStateChangeListener,
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
         stopRebalancingTimer();
-        logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
+        logger.info("Get FINALIZE notification, skip the pipeline. Event: " + event.getName());
         return;
       } else {
         if (_clusterStatusMonitor == null) {
@@ -317,18 +315,6 @@ public class GenericHelixController implements IdealStateChangeListener,
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
-
-  @Override
-  public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext) {
-    // logger.info("START: GenericClusterController.onExternalViewChange()");
-    // ClusterEvent event = new ClusterEvent("externalViewChange");
-    // event.addAttribute("helixmanager", changeContext.getManager());
-    // event.addAttribute("changeContext", changeContext);
-    // event.addAttribute("eventData", externalViewList);
-    // _eventQueue.put(event);
-    // logger.info("END: GenericClusterController.onExternalViewChange()");
-  }
 
   @Override
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,

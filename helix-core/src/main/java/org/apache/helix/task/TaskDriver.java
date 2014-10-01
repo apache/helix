@@ -127,13 +127,13 @@ public class TaskDriver {
         }
         break;
       case stop:
-        driver.setTaskTargetState(resource, TargetState.STOP);
+        driver.setWorkflowTargetState(resource, TargetState.STOP);
         break;
       case resume:
-        driver.setTaskTargetState(resource, TargetState.START);
+        driver.setWorkflowTargetState(resource, TargetState.START);
         break;
       case delete:
-        driver.setTaskTargetState(resource, TargetState.DELETE);
+        driver.setWorkflowTargetState(resource, TargetState.DELETE);
         break;
       case list:
         driver.list(resource);
@@ -360,36 +360,36 @@ public class TaskDriver {
 
   /** Public method to resume a workflow/queue */
   public void resume(String workflow) {
-    setTaskTargetState(workflow, TargetState.START);
+    setWorkflowTargetState(workflow, TargetState.START);
   }
 
   /** Public method to stop a workflow/queue */
   public void stop(String workflow) {
-    setTaskTargetState(workflow, TargetState.STOP);
+    setWorkflowTargetState(workflow, TargetState.STOP);
   }
 
   /** Public method to delete a workflow/queue */
   public void delete(String workflow) {
-    setTaskTargetState(workflow, TargetState.DELETE);
+    setWorkflowTargetState(workflow, TargetState.DELETE);
   }
 
-  /** Helper function to change target state for a given task */
-  private void setTaskTargetState(String jobResource, TargetState state) {
-    setSingleTaskTargetState(jobResource, state);
+  /** Helper function to change target state for a given workflow */
+  private void setWorkflowTargetState(String workflowName, TargetState state) {
+    setSingleWorkflowTargetState(workflowName, state);
 
     // For recurring schedules, child workflows must also be handled
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     List<String> resources = accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+    String prefix = workflowName + "_" + TaskConstants.SCHEDULED;
     for (String resource : resources) {
-      String prefix = resource + "_" + TaskConstants.SCHEDULED;
       if (resource.startsWith(prefix)) {
-        setSingleTaskTargetState(resource, state);
+        setSingleWorkflowTargetState(resource, state);
       }
     }
   }
 
-  /** Helper function to change target state for a given task */
-  private void setSingleTaskTargetState(String jobResource, final TargetState state) {
+  /** Helper function to change target state for a given workflow */
+  private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
@@ -405,7 +405,7 @@ public class TaskDriver {
     List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
     updaters.add(updater);
     List<String> paths = Lists.newArrayList();
-    paths.add(accessor.keyBuilder().resourceConfig(jobResource).getPath());
+    paths.add(accessor.keyBuilder().resourceConfig(workflowName).getPath());
     accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     invokeRebalance();
   }

@@ -19,6 +19,7 @@ package org.apache.helix.provisioning.yarn.example;
  * under the License.
  */
 
+import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskResult;
@@ -32,6 +33,7 @@ public class MyTask implements Task {
   private static final long DEFAULT_DELAY = 60000L;
   private final long _delay;
   private volatile boolean _canceled;
+  private AtomicDouble _progress = new AtomicDouble(0.0);
 
   public MyTask(TaskCallbackContext context) {
     LOG.info("Job config" + context.getJobConfig().getJobCommandConfigMap());
@@ -46,8 +48,10 @@ public class MyTask implements Task {
     long expiry = System.currentTimeMillis() + _delay;
     long timeLeft;
     while (System.currentTimeMillis() < expiry) {
+      long currentTime = System.currentTimeMillis();
+      updateProgress(currentTime, expiry);
       if (_canceled) {
-        timeLeft = expiry - System.currentTimeMillis();
+        timeLeft = expiry - currentTime;
         return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
             : timeLeft));
       }
@@ -60,6 +64,22 @@ public class MyTask implements Task {
   @Override
   public void cancel() {
     _canceled = true;
+  }
+
+  @Override
+  public double getProgress() {
+    return _progress.get();
+  }
+
+  private void updateProgress(long currentTime, long expiry) {
+    double progress = 1.0 - (double)(expiry - currentTime) / _delay;
+    if (progress < 0.0) {
+      progress = 0.0;
+    }
+    if (progress > 1.0) {
+      progress = 1.0;
+    }
+    _progress.set(progress);
   }
 
   private static void sleep(long d) {

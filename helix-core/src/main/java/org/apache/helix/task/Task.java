@@ -38,4 +38,11 @@ public interface Task {
    * required and return from the {@link #run()} method.
    */
   void cancel();
+
+  /**
+   * Get the current progress of the task. If a task is cancelled, it returns the progress it
+   * has made when it's cancelled.
+   * @return the progress of the task, within the ranage of [0 .. 1.0], 1.0 means completed
+   */
+  double getProgress();
 }

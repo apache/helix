@@ -32,7 +32,6 @@ import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
@@ -60,7 +59,6 @@ import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -84,7 +82,7 @@ import org.apache.log4j.Logger;
  */
 public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener {
+    ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   volatile boolean init = false;
   private final PipelineRegistry _registry;
@@ -305,18 +303,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
-
-  @Override
-  public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext) {
-    // logger.info("START: GenericClusterController.onExternalViewChange()");
-    // ClusterEvent event = new ClusterEvent("externalViewChange");
-    // event.addAttribute("helixmanager", changeContext.getManager());
-    // event.addAttribute("changeContext", changeContext);
-    // event.addAttribute("eventData", externalViewList);
-    // _eventQueue.put(event);
-    // logger.info("END: GenericClusterController.onExternalViewChange()");
-  }
 
   @Override
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,

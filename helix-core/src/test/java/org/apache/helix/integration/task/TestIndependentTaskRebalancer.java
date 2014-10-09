@@ -376,10 +376,5 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     @Override
     public void cancel() {
     }
-
-    @Override
-    public double getProgress() {
-      return 0.0;
-    }
   }
 }

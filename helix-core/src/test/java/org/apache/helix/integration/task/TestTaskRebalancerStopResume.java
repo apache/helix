@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.google.common.util.concurrent.AtomicDouble;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
@@ -270,7 +269,6 @@ public class TestTaskRebalancerStopResume extends ZkTestBase {
   public static class ReindexTask implements Task {
     private final long _delay;
     private volatile boolean _canceled;
-    private AtomicDouble _progress = new AtomicDouble(0.0);
 
     public ReindexTask(TaskCallbackContext context) {
       JobConfig jobCfg = context.getJobConfig();
@@ -286,10 +284,8 @@ public class TestTaskRebalancerStopResume extends ZkTestBase {
       long expiry = System.currentTimeMillis() + _delay;
       long timeLeft;
       while (System.currentTimeMillis() < expiry) {
-        long currentTime = System.currentTimeMillis();
-        updateProgress(currentTime, expiry);
         if (_canceled) {
-          timeLeft = expiry - currentTime;
+          timeLeft = expiry - System.currentTimeMillis();
           return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
               : timeLeft));
         }
@@ -303,22 +299,6 @@ public class TestTaskRebalancerStopResume extends ZkTestBase {
     @Override
     public void cancel() {
       _canceled = true;
-    }
-
-    @Override
-    public double getProgress() {
-      return _progress.get();
-    }
-
-    private void updateProgress(long currentTime, long expiry) {
-      double progress = 1.0 - (double)(expiry - currentTime) / _delay;
-      if (progress < 0.0) {
-        progress = 0.0;
-      }
-      if (progress > 1.0) {
-        progress = 1.0;
-      }
-      _progress.set(progress);
     }
 
     private static void sleep(long d) {

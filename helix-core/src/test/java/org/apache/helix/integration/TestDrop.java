@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -45,6 +46,7 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestDrop extends ZkTestBase {
@@ -462,14 +464,27 @@ public class TestDrop extends ZkTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  /**
-   * Drop a single partition in a resource of semi-auto mode
-   */
-  @Test
-  public void testDropSinglePartitionSemiAuto() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
+  @DataProvider(name = "RebalanceModeProvider")
+  public static Object [][] rebalanceModes() {
+    IdealState.RebalanceMode modes [] = IdealState.RebalanceMode.values();
+    Object [][] args = new Object[modes.length][];
+    for (int i = 0; i < modes.length; i++) {
+      args[i] = new Object [] { modes[i] };
+    }
+    return args;
+  }
+
+
+  @Test(dataProvider = "RebalanceModeProvider")
+  public void testDropSinglePartition(IdealState.RebalanceMode mode)
+      throws Exception {
+    if (!mode.equals(IdealState.RebalanceMode.FULL_AUTO) &&
+        !mode.equals(IdealState.RebalanceMode.SEMI_AUTO) &&
+        !mode.equals(IdealState.RebalanceMode.CUSTOMIZED)) {
+      return;
+    }
+
+    String clusterName = TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName() + "_" + mode.name();
     int n = 2;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -481,7 +496,7 @@ public class TestDrop extends ZkTestBase {
         4, // partitions per resource
         n, // number of nodes
         2, // replicas
-        "MasterSlave", true); // do rebalance
+        "MasterSlave", mode, true); // do rebalance
 
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();

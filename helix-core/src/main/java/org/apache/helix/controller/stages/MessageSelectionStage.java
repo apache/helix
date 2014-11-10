@@ -209,6 +209,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
           }
 
           if (newLowerBound < stateConstraints.get(fromState).getLowerBound()) {
+            LOG.info("Reach lower_bound: " + stateConstraints.get(fromState).getLowerBound()
+                + ", not send message: " + message);
             continue;
           }
         }
@@ -217,6 +219,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
         if (stateConstraints.containsKey(toState)) {
           int newUpperBound = bounds.get(toState).getUpperBound() + 1;
           if (newUpperBound > stateConstraints.get(toState).getUpperBound()) {
+            LOG.info("Reach upper_bound: " + stateConstraints.get(toState).getUpperBound()
+                + ", not send message: " + message);
             continue;
           }
         }
@@ -249,7 +253,8 @@ public class MessageSelectionStage extends AbstractBaseStage {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
         if (idealState != null) {
-          max = cache.getReplicas(idealState.getResourceName());
+          // HELIX-541: set upper_bound to R+1 to avoid live-lock
+          max = cache.getReplicas(idealState.getResourceName()) + 1;
         }
       } else {
         try {

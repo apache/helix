@@ -153,6 +153,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       if (prevExecutor != null) {
         LOG.warn("Skip creating a new thread pool for type: " + type + ", already existing pool: "
             + prevExecutor + ", isShutdown: " + prevExecutor.isShutdown());
+        newPool.shutdown();
         newPool = null;
       }
       LOG.info("Registered message handler factory for type: " + type + ", poolSize: "
@@ -483,6 +484,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         // Will happen if we register and call init
         LOG.info("Skip init a new thread pool for type: " + msgType + ", already existing pool: "
             + prevPool + ", isShutdown: " + prevPool.isShutdown());
+        newPool.shutdown();
         newPool = null;
       }
     }

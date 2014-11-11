@@ -25,6 +25,7 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
@@ -52,6 +53,25 @@ public class TaskStateModel extends StateModel {
         return new Thread(r, "TaskStateModel-thread-pool");
       }
     });
+  }
+
+  public boolean isShutdown() {
+    return _taskExecutor.isShutdown();
+  }
+
+  public boolean isTerminated() {
+    return _taskExecutor.isTerminated();
+  }
+
+  public void shutdown() {
+    reset();
+    _taskExecutor.shutdown();
+    _timer.cancel();
+  }
+
+  public boolean awaitTermination(long timeout, TimeUnit unit)
+      throws InterruptedException {
+    return _taskExecutor.awaitTermination(timeout, unit);
   }
 
   @Transition(to = "RUNNING", from = "INIT")

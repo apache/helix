@@ -328,6 +328,7 @@ public class AutoRebalanceStrategy {
    */
   private void normalizePreferenceLists(Map<String, List<String>> preferenceLists,
       Map<String, List<String>> newPreferences) {
+
     Map<String, Map<String, Integer>> nodeReplicaCounts =
         new HashMap<String, Map<String, Integer>>();
     for (String partition : preferenceLists.keySet()) {
@@ -346,10 +347,12 @@ public class AutoRebalanceStrategy {
    */
   private void normalizePreferenceList(List<String> preferenceList,
       Map<String, Map<String, Integer>> nodeReplicaCounts) {
-    // make this a LinkedHashSet to preserve iteration order
-    Set<String> notAssigned = new LinkedHashSet<String>(preferenceList);
     List<String> newPreferenceList = new ArrayList<String>();
     int replicas = Math.min(countStateReplicas(), preferenceList.size());
+
+    // make this a LinkedHashSet to preserve iteration order
+    // truncate preference list to match replicas, @see HELIX-547
+    Set<String> notAssigned = new LinkedHashSet<String>(preferenceList.subList(0, replicas));
     for (int i = 0; i < replicas; i++) {
       String state = _stateMap.get(i);
       String node = getMinimumNodeForReplica(state, notAssigned, nodeReplicaCounts);
@@ -435,10 +438,21 @@ public class AutoRebalanceStrategy {
         for (int replicaId = 0; replicaId < count; replicaId++) {
           Replica replica = new Replica(partition, replicaId);
           if (_preferredAssignment.get(replica).id != node.id
-              && !_existingPreferredAssignment.containsKey(replica)
-              && !existingNonPreferredAssignment.containsKey(replica)) {
-            existingNonPreferredAssignment.put(replica, node);
-            node.nonPreferred.add(replica);
+              && !_existingPreferredAssignment.containsKey(replica)) {
+            if (!existingNonPreferredAssignment.containsKey(replica)) {
+              existingNonPreferredAssignment.put(replica, node);
+              node.nonPreferred.add(replica);
+            } else {
+              // if we have more than 1 existing non-preferred assignment, choose the node with more head-room
+              // this intends to make algorithm deterministic, @see HELIX-547
+              Node curNode = existingNonPreferredAssignment.get(replica);
+              int curHeadroom = curNode.capacity - curNode.currentlyAssigned;
+              int newHeadroon = node.capacity - node.currentlyAssigned;
+              if (newHeadroon > curHeadroom) {
+                existingNonPreferredAssignment.put(replica, node);
+                node.nonPreferred.add(replica);
+              }
+            }
             break;
           }
         }

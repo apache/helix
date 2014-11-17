@@ -635,6 +635,8 @@ public class GenericHelixController implements IdealStateChangeListener,
         } catch (ZkInterruptedException e) {
           logger.warn("ClusterEventProcessor caught a ZK connection interrupt", e);
           interrupt();
+        } catch (ThreadDeath death) {
+          throw death;
         } catch (Throwable t) {
           logger.error("ClusterEventProcessor failed while running the controller pipeline", t);
         }

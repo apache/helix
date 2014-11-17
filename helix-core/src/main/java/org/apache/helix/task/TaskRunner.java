@@ -67,6 +67,8 @@ public class TaskRunner implements Runnable {
       signalStarted();
       try {
         _result = _task.run();
+      } catch (ThreadDeath death) {
+        throw death;
       } catch (Throwable t) {
         LOG.error("Problem running the task", t);
         _result = new TaskResult(Status.ERROR, null);

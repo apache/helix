@@ -125,7 +125,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   /**
    * controller fields
    */
-  private final GenericHelixController _controller;
+  private GenericHelixController _controller;
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<HelixTimerTask>();
 
@@ -525,6 +525,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
        * stop all timer tasks
        */
       stopTimerTasks();
+
+      if (_controller != null) {
+        try {
+          _controller.shutdown();
+        }
+        catch (InterruptedException e) {
+          LOG.info("Interrupted shutting down GenericHelixController", e);
+        }
+        finally {
+          _controller = null;
+        }
+      }
 
       /**
        * shutdown thread pool first to avoid reset() being invoked in the middle of state

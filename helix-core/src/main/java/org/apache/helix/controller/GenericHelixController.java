@@ -573,6 +573,15 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     }
   }
 
+  public void shutdown() throws InterruptedException {
+    stopRebalancingTimer();
+    while (_eventThread.isAlive())
+    {
+      _eventThread.interrupt();
+      _eventThread.join(1000);
+    }
+  }
+
   private class ClusterEventProcessor extends Thread {
     @Override
     public void run() {

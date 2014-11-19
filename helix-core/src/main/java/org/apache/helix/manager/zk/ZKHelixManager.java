@@ -560,8 +560,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           _controller.shutdown();
         } catch (InterruptedException e) {
           LOG.info("Interrupted shutting down GenericHelixController", e);
-        }
-        finally {
+        } finally {
           _controller = null;
           _leaderElectionHandler = null;
         }

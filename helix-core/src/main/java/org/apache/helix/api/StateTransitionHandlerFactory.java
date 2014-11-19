@@ -19,6 +19,8 @@ package org.apache.helix.api;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -29,62 +31,79 @@ import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
 public abstract class StateTransitionHandlerFactory<T extends TransitionHandler> {
   /**
-   * map from partitionId to transition-handler
+   * map from ResourceId resourceId to map from partitionId to transition-handler
    */
-  private final ConcurrentMap<PartitionId, T> _transitionHandlerMap =
-      new ConcurrentHashMap<PartitionId, T>();
+  private final ConcurrentMap<ResourceId, ConcurrentMap<PartitionId, T>> _transitionHandlerMap =
+      new ConcurrentHashMap<ResourceId, ConcurrentMap<PartitionId, T>>();
 
   /**
-   * map from resourceName to BatchMessageWrapper
+   * map from ResourceId to BatchMessageWrapper
    */
   private final ConcurrentMap<ResourceId, BatchMessageWrapper> _batchMsgWrapperMap =
       new ConcurrentHashMap<ResourceId, BatchMessageWrapper>();
 
   /**
-   * This method will be invoked only once per partition per session
+   * This method will be invoked only once per resource per partition per session
+   * @param resourceId
    * @param partitionId
    * @return
    */
-  public abstract T createStateTransitionHandler(PartitionId partitionId);
+  public abstract T createStateTransitionHandler(ResourceId resourceId, PartitionId partitionId);
 
   /**
-   * Create a state model for a partition
+   * Create a state model for a partition of a resource
+   * @param resourceId
    * @param partitionId
    */
-  public T createAndAddSTransitionHandler(PartitionId partitionId) {
-    T stateModel = createStateTransitionHandler(partitionId);
-    _transitionHandlerMap.put(partitionId, stateModel);
+  public T createAndAddSTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
+    T stateModel = createStateTransitionHandler(resourceId, partitionId);
+    _transitionHandlerMap.putIfAbsent(resourceId, new ConcurrentHashMap<PartitionId, T>());
+    _transitionHandlerMap.get(resourceId).put(partitionId, stateModel);
     return stateModel;
   }
 
   /**
-   * Get the state model for a partition
+   * Get the state model for a partition of a resource
+   * @param resourceId
    * @param partitionId
    * @return state model if exists, null otherwise
    */
-  public T getTransitionHandler(PartitionId partitionId) {
-    return _transitionHandlerMap.get(partitionId);
+  public T getTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
+    Map<PartitionId, T> map = _transitionHandlerMap.get(resourceId);
+    return map == null? null : map.get(partitionId);
   }
 
   /**
-   * remove state model for a partition
+   * Remove state model for a partition of a resource
+   * @param resourceId
    * @param partitionId
    * @return state model removed or null if not exist
    */
-  public T removeTransitionHandler(PartitionId partitionId) {
-    return _transitionHandlerMap.remove(partitionId);
+  public T removeTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
+    Map<PartitionId, T> map = _transitionHandlerMap.get(resourceId);
+    return map == null? null : map.remove(partitionId);
   }
 
   /**
-   * get partition set
-   * @return partitionId set
+   * Get resource set
+   * @return resourceId set
    */
-  public Set<PartitionId> getPartitionSet() {
+  public Set<ResourceId> getResourceSet() {
     return _transitionHandlerMap.keySet();
   }
 
   /**
-   * create a default batch-message-wrapper for a resource
+   * Get partition set of a resource
+   * @param resourceId
+   * @return partitionId set
+   */
+  public Set<PartitionId> getPartitionSet(ResourceId resourceId) {
+    Map<PartitionId, T> map = _transitionHandlerMap.get(resourceId);
+    return map == null? Collections.<PartitionId>emptySet() : map.keySet();
+  }
+
+  /**
+   * Create a default batch-message-wrapper for a resource
    * @param resourceId
    * @return
    */
@@ -93,7 +112,7 @@ public abstract class StateTransitionHandlerFactory<T extends TransitionHandler>
   }
 
   /**
-   * create a batch-message-wrapper for a resource and put it into map
+   * Create a batch-message-wrapper for a resource and put it into map
    * @param resourceId
    * @return
    */
@@ -104,7 +123,7 @@ public abstract class StateTransitionHandlerFactory<T extends TransitionHandler>
   }
 
   /**
-   * get batch-message-wrapper for a resource
+   * Get batch-message-wrapper for a resource
    * @param resourceId
    * @return
    */

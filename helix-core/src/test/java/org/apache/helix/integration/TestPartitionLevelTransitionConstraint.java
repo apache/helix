@@ -31,6 +31,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
@@ -90,7 +91,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkTestBase {
   public class BootstrapStateModelFactory extends StateTransitionHandlerFactory<BootstrapStateModel> {
 
     @Override
-    public BootstrapStateModel createStateTransitionHandler(PartitionId partition) {
+    public BootstrapStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       BootstrapStateModel model = new BootstrapStateModel();
       return model;
     }

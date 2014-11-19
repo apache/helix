@@ -21,10 +21,11 @@ package org.apache.helix.lockmanager;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class LockFactory extends StateTransitionHandlerFactory<Lock> {
   @Override
-  public Lock createStateTransitionHandler(PartitionId lockName) {
+  public Lock createStateTransitionHandler(ResourceId resource, PartitionId lockName) {
     return new Lock(lockName.toString());
   }
 }

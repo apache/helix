@@ -21,11 +21,12 @@ package org.apache.helix.agent;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class AgentStateModelFactory extends StateTransitionHandlerFactory<AgentStateModel> {
 
   @Override
-  public AgentStateModel createStateTransitionHandler(PartitionId partitionKey) {
+  public AgentStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
     AgentStateModel model = new AgentStateModel();
     return model;
   }

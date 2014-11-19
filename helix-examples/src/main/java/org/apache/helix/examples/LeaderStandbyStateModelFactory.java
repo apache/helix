@@ -23,6 +23,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
 
 public class LeaderStandbyStateModelFactory extends StateTransitionHandlerFactory<TransitionHandler> {
@@ -33,7 +34,7 @@ public class LeaderStandbyStateModelFactory extends StateTransitionHandlerFactor
   }
 
   @Override
-  public TransitionHandler createStateTransitionHandler(PartitionId stateUnitKey) {
+  public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId stateUnitKey) {
     LeaderStandbyStateModel stateModel = new LeaderStandbyStateModel();
     stateModel.setDelay(_delay);
     return stateModel;

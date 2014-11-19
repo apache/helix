@@ -21,6 +21,7 @@ package org.apache.helix.provisioning.participant;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class StatelessServiceStateModelFactory extends
     StateTransitionHandlerFactory<StatelessServiceStateModel> {
@@ -32,7 +33,7 @@ public class StatelessServiceStateModelFactory extends
   }
 
   @Override
-  public StatelessServiceStateModel createStateTransitionHandler(PartitionId partitionId) {
+  public StatelessServiceStateModel createStateTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
     return new StatelessServiceStateModel(partitionId, _service);
   }
 

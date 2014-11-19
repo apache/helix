@@ -30,6 +30,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -198,7 +199,7 @@ public class TestCorrectnessOnConnectivityLoss {
     }
 
     @Override
-    public MyStateModel createStateTransitionHandler(PartitionId partitionId) {
+    public MyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partitionId) {
       return new MyStateModel(_counts);
     }
   }

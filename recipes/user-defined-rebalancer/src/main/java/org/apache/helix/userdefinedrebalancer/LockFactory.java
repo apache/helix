@@ -21,6 +21,7 @@ package org.apache.helix.userdefinedrebalancer;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 /**
  * This factory allows a participant to get the appropriate state model callbacks for the lock
@@ -29,7 +30,7 @@ import org.apache.helix.api.id.PartitionId;
  */
 public class LockFactory extends StateTransitionHandlerFactory<Lock> {
   @Override
-  public Lock createStateTransitionHandler(PartitionId partitionId) {
+  public Lock createStateTransitionHandler(ResourceId resource, PartitionId partitionId) {
     // TODO Auto-generated method stub
     return new Lock(partitionId.stringify());
   }

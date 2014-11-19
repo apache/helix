@@ -23,6 +23,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
 
 public class MasterSlaveStateModelFactory extends StateTransitionHandlerFactory<TransitionHandler> {
@@ -44,7 +45,7 @@ public class MasterSlaveStateModelFactory extends StateTransitionHandlerFactory<
   }
 
   @Override
-  public TransitionHandler createStateTransitionHandler(PartitionId partitionName) {
+  public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId partitionName) {
     MasterSlaveStateModel stateModel = new MasterSlaveStateModel();
     stateModel.setInstanceName(_instanceName);
     stateModel.setDelay(_delay);

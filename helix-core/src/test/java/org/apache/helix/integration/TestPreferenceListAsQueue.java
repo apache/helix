@@ -39,6 +39,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -161,8 +162,8 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
       participants[i] =
           HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
               InstanceType.PARTICIPANT, _zkaddr);
-      participants[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.from(_stateModel),
-          new PrefListTaskOnlineOfflineStateModelFactory());
+      participants[i].getStateMachineEngine().registerStateModelFactory(
+          StateModelDefId.from(_stateModel), new PrefListTaskOnlineOfflineStateModelFactory());
       participants[i].connect();
     }
 
@@ -504,7 +505,8 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
   public class PrefListTaskOnlineOfflineStateModelFactory extends
       StateTransitionHandlerFactory<PrefListTaskOnlineOfflineStateModel> {
     @Override
-    public PrefListTaskOnlineOfflineStateModel createStateTransitionHandler(PartitionId partitionName) {
+    public PrefListTaskOnlineOfflineStateModel createStateTransitionHandler(ResourceId resource,
+        PartitionId partition) {
       return new PrefListTaskOnlineOfflineStateModel();
     }
   }

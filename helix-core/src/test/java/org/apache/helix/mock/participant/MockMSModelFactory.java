@@ -2,6 +2,7 @@ package org.apache.helix.mock.participant;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -22,7 +23,6 @@ import org.apache.helix.api.id.PartitionId;
  * under the License.
  */
 
-
 // mock master slave state model factory
 public class MockMSModelFactory extends StateTransitionHandlerFactory<MockMSStateModel> {
   private MockTransition _transition;
@@ -39,14 +39,16 @@ public class MockMSModelFactory extends StateTransitionHandlerFactory<MockMSStat
     _transition = transition;
 
     // set existing transition
-    for (PartitionId partition : getPartitionSet()) {
-      MockMSStateModel stateModel = getTransitionHandler(partition);
-      stateModel.setTransition(transition);
+    for (ResourceId resource : getResourceSet()) {
+      for (PartitionId partition : getPartitionSet(resource)) {
+        MockMSStateModel stateModel = getTransitionHandler(resource, partition);
+        stateModel.setTransition(transition);
+      }
     }
   }
 
   @Override
-  public MockMSStateModel createStateTransitionHandler(PartitionId partitionKey) {
+  public MockMSStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
     MockMSStateModel model = new MockMSStateModel(_transition);
 
     return model;

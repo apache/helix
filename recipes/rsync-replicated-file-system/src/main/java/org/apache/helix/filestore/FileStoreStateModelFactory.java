@@ -22,6 +22,7 @@ package org.apache.helix.filestore;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class FileStoreStateModelFactory extends StateTransitionHandlerFactory<FileStoreStateModel> {
   private final HelixManager manager;
@@ -31,7 +32,7 @@ public class FileStoreStateModelFactory extends StateTransitionHandlerFactory<Fi
   }
 
   @Override
-  public FileStoreStateModel createStateTransitionHandler(PartitionId partition) {
+  public FileStoreStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
     FileStoreStateModel model;
     model =
         new FileStoreStateModel(manager, partition.toString().split("_")[0], partition.toString());

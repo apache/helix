@@ -33,6 +33,7 @@ import org.apache.helix.api.State;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
@@ -147,7 +148,8 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     }
   }
 
-  public static class SleepStateModelFactory extends StateTransitionHandlerFactory<TimeOutStateModel> {
+  public static class SleepStateModelFactory extends
+      StateTransitionHandlerFactory<TimeOutStateModel> {
     Set<PartitionId> partitionsToSleep = new HashSet<PartitionId>();
     int _sleepTime;
 
@@ -164,7 +166,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     }
 
     @Override
-    public TimeOutStateModel createStateTransitionHandler(PartitionId partition) {
+    public TimeOutStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       return new TimeOutStateModel(new SleepTransition(_sleepTime),
           partitionsToSleep.contains(partition));
     }
@@ -187,7 +189,8 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       }
 
       _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
-      _participants[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.from("MasterSlave"), factory);
+      _participants[i].getStateMachineEngine().registerStateModelFactory(
+          StateModelDefId.from("MasterSlave"), factory);
       _participants[i].syncStart();
     }
     String controllerName = "controller_0";
@@ -206,7 +209,8 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       ParticipantId idealMaster = idealState.getPreferenceList(p).get(0);
       Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals(State.from("ERROR")));
 
-      TimeOutStateModel model = factories.get(idealMaster.stringify()).getTransitionHandler(p);
+      TimeOutStateModel model =
+          factories.get(idealMaster.stringify()).getTransitionHandler(ResourceId.from(TEST_DB), p);
       Assert.assertEquals(model._errorCallcount, 1);
       Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
     }

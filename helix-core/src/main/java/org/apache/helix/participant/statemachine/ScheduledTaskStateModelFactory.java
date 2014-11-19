@@ -21,6 +21,7 @@ package org.apache.helix.participant.statemachine;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.log4j.Logger;
 
@@ -34,8 +35,8 @@ public class ScheduledTaskStateModelFactory extends StateTransitionHandlerFactor
   }
 
   @Override
-  public ScheduledTaskStateModel createStateTransitionHandler(PartitionId partition) {
-    logger.info("Create state model for ScheduledTask " + partition);
-    return new ScheduledTaskStateModel(this, _executor, partition);
+  public ScheduledTaskStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
+    logger.info("Create state model for ScheduledTask " + resource + "_" + partition);
+    return new ScheduledTaskStateModel(this, _executor, resource, partition);
   }
 }

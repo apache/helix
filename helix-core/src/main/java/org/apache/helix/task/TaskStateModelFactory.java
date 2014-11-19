@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.helix.HelixManager;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 /**
  * Factory class for {@link TaskStateModel}.
@@ -38,7 +39,7 @@ public class TaskStateModelFactory extends StateTransitionHandlerFactory<TaskSta
   }
 
   @Override
-  public TaskStateModel createStateTransitionHandler(PartitionId partitionId) {
+  public TaskStateModel createStateTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
     return new TaskStateModel(_manager, _taskFactoryRegistry);
   }
 }

@@ -24,6 +24,7 @@ import java.util.List;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class GenericLeaderStandbyStateModelFactory extends
     StateTransitionHandlerFactory<GenericLeaderStandbyModel> {
@@ -40,7 +41,8 @@ public class GenericLeaderStandbyStateModelFactory extends
   }
 
   @Override
-  public GenericLeaderStandbyModel createStateTransitionHandler(PartitionId partition) {
+  public GenericLeaderStandbyModel createStateTransitionHandler(ResourceId resourceId,
+      PartitionId partition) {
     return new GenericLeaderStandbyModel(_callback, _notificationTypes, partition);
   }
 }

@@ -558,8 +558,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       if (_controller != null) {
         try {
           _controller.shutdown();
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
           LOG.info("Interrupted shutting down GenericHelixController", e);
         }
         finally {

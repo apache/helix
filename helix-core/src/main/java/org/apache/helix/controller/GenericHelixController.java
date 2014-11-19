@@ -92,9 +92,9 @@ import com.google.common.collect.Lists;
  */
 public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ControllerChangeListener, InstanceConfigChangeListener,
-    ScopedConfigChangeListener {
+    ControllerChangeListener, InstanceConfigChangeListener, ScopedConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
+  private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000L;
   volatile boolean init = false;
   private final PipelineRegistry _registry;
 
@@ -618,6 +618,14 @@ public class GenericHelixController implements IdealStateChangeListener,
       logger.info("Shut down _clusterStatusMonitor for cluster " + clusterName);
       _clusterStatusMonitor.reset();
       _clusterStatusMonitor = null;
+    }
+  }
+
+  public void shutdown() throws InterruptedException {
+    stopRebalancingTimer();
+    while (_eventThread.isAlive()) {
+      _eventThread.interrupt();
+      _eventThread.join(EVENT_THREAD_JOIN_TIMEOUT);
     }
   }
 

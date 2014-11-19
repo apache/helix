@@ -47,24 +47,25 @@ import org.apache.log4j.Logger;
 public class ZkHelixController implements HelixController {
   private static Logger LOG = Logger.getLogger(ZkHelixController.class);
 
-  final ZkHelixConnection _connection;
-  final ClusterId _clusterId;
-  final ControllerId _controllerId;
-  final GenericHelixController _pipeline;
-  final DefaultMessagingService _messagingService;
-  final List<HelixTimerTask> _timerTasks;
-  final ClusterAccessor _clusterAccessor;
-  final HelixDataAccessor _accessor;
-  final HelixManager _manager;
-  final ZkHelixLeaderElection _leaderElection;
-  boolean _isStarted;
+  private final ZkHelixConnection _connection;
+  private final ClusterId _clusterId;
+  private final ControllerId _controllerId;
+  private final DefaultMessagingService _messagingService;
+  private final List<HelixTimerTask> _timerTasks;
+  @SuppressWarnings("unused")
+  private final ClusterAccessor _clusterAccessor;
+  private final HelixDataAccessor _accessor;
+  private final HelixManager _manager;
+  private boolean _isStarted;
+
+  private GenericHelixController _pipeline;
+  private ZkHelixLeaderElection _leaderElection;
 
   public ZkHelixController(ZkHelixConnection connection, ClusterId clusterId,
       ControllerId controllerId) {
     _connection = connection;
     _clusterId = clusterId;
     _controllerId = controllerId;
-    _pipeline = new GenericHelixController();
     _clusterAccessor = connection.createClusterAccessor(clusterId);
     _accessor = connection.createDataAccessor(clusterId);
 
@@ -72,7 +73,6 @@ public class ZkHelixController implements HelixController {
     _timerTasks = new ArrayList<HelixTimerTask>();
 
     _manager = new ZKHelixManager(this);
-    _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
 
     _timerTasks.add(new StatusDumpTask(clusterId, _manager.getHelixDataAccessor()));
   }
@@ -112,34 +112,47 @@ public class ZkHelixController implements HelixController {
   }
 
   void reset() {
-    /**
-     * reset all handlers, make sure cleanup completed for previous session
-     * disconnect if fail to cleanup
-     */
-    _connection.resetHandlers(this);
+    // clean up old pipeline instance
+    if (_leaderElection != null) {
+      _connection.removeListener(this, _leaderElection, _accessor.keyBuilder().controller());
+    }
+    if (_pipeline != null) {
+      try {
+        _pipeline.shutdown();
+      } catch (InterruptedException e) {
+        LOG.info("Interrupted shutting down GenericHelixController", e);
+      } finally {
+        _pipeline = null;
+        _leaderElection = null;
+      }
+    }
 
+    // reset all handlers, make sure cleanup completed for previous session
+    // disconnect if fail to cleanup
+    _connection.resetHandlers(this);
   }
 
   void init() {
-    /**
-     * from here on, we are dealing with new session
-     * init handlers
-     */
+    // from here on, we are dealing with new session
+
+    // init handlers
     if (!ZKUtil.isClusterSetup(_clusterId.toString(), _connection._zkclient)) {
       throw new HelixException("Cluster structure is not set up for cluster: " + _clusterId);
     }
 
-    /**
-     * leader-election listener should be reset/init before all other controller listeners;
-     * it's ok to add a listener multiple times, since we check existence in
-     * ZkHelixConnection#addXXXListner()
-     */
-    _connection.addControllerListener(this, _leaderElection, _clusterId);
+    // Recreate the pipeline on a new connection
+    if (_pipeline == null) {
+      _pipeline = new GenericHelixController();
+      _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
 
-    /**
-     * ok to init message handler and controller handlers twice
-     * the second init will be skipped (see CallbackHandler)
-     */
+      // leader-election listener should be reset/init before all other controller listeners;
+      // it's ok to add a listener multiple times, since we check existence in
+      // ZkHelixConnection#addXXXListner()
+      _connection.addControllerListener(this, _leaderElection, _clusterId);
+    }
+
+    // ok to init message handler and controller handlers twice
+    // the second init will be skipped (see CallbackHandler)
     _connection.initHandlers(this);
   }
 

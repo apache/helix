@@ -84,6 +84,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
     ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
+  private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000;
   volatile boolean init = false;
   private final PipelineRegistry _registry;
 
@@ -570,6 +571,14 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       logger.info("Shut down _clusterStatusMonitor for cluster " + clusterName);
       _clusterStatusMonitor.reset();
       _clusterStatusMonitor = null;
+    }
+  }
+
+  public void shutdown() throws InterruptedException {
+    stopRebalancingTimer();
+    while (_eventThread.isAlive()) {
+      _eventThread.interrupt();
+      _eventThread.join(EVENT_THREAD_JOIN_TIMEOUT);
     }
   }
 

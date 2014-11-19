@@ -125,7 +125,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   /**
    * controller fields
    */
-  private final GenericHelixController _controller;
+  private GenericHelixController _controller;
   private CallbackHandler _leaderElectionHandler = null;
   protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<HelixTimerTask>();
 
@@ -216,21 +216,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      */
     switch (instanceType) {
     case PARTICIPANT:
-      _controller = null;
       _stateMachineEngine = new HelixStateMachineEngine(this);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
       _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
       break;
     case CONTROLLER:
-      _controller = new GenericHelixController();
       _stateMachineEngine = null;
       _participantHealthInfoCollector = null;
       _controllerTimerTasks.add(new StatusDumpTask(this));
 
       break;
     case CONTROLLER_PARTICIPANT:
-      _controller = new GenericHelixController();
       _stateMachineEngine = new HelixStateMachineEngine(this);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
@@ -240,7 +237,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       break;
     case ADMINISTRATOR:
     case SPECTATOR:
-      _controller = null;
       _stateMachineEngine = null;
       _participantHealthInfoCollector = null;
       break;
@@ -501,6 +497,21 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       return;
     }
 
+    switch (_instanceType) {
+    case CONTROLLER:
+      if (_controller == null) {
+        _controller = new GenericHelixController();
+      }
+      break;
+    case CONTROLLER_PARTICIPANT:
+      if (_controller == null) {
+        _controller = new GenericHelixController();
+      }
+      break;
+    default:
+      break;
+    }
+
     try {
       createClient();
       _messagingService.onConnected();
@@ -543,6 +554,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       _zkclient.close();
       _zkclient = null;
       LOG.info("Cluster manager: " + _instanceName + " disconnected");
+
+      if (_controller != null) {
+        try {
+          _controller.shutdown();
+        } catch (InterruptedException e) {
+          LOG.info("Interrupted shutting down GenericHelixController", e);
+        }
+        finally {
+          _controller = null;
+          _leaderElectionHandler = null;
+        }
+      }
     }
   }
 

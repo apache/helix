@@ -37,7 +37,7 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   }
 
   @Override
-  public TaskStateModel createNewStateModel(String partitionName) {
+  public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
     return new TaskStateModel(_manager, _taskFactoryRegistry);
   }
 }

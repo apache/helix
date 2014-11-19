@@ -32,7 +32,7 @@ public class LeaderStandbyStateModelFactory extends StateModelFactory<StateModel
   }
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey) {
+  public StateModel createNewStateModel(String resourceName, String stateUnitKey) {
     LeaderStandbyStateModel stateModel = new LeaderStandbyStateModel();
     stateModel.setDelay(_delay);
     return stateModel;

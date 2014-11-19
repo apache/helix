@@ -23,7 +23,7 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 
 public class LockFactory extends StateModelFactory<Lock> {
   @Override
-  public Lock createNewStateModel(String lockName) {
+  public Lock createNewStateModel(String resourceName, String lockName) {
     return new Lock(lockName);
   }
 }

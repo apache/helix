@@ -72,7 +72,7 @@ public class TestHelixTaskExecutor {
     StateModelFactory<MockStateModel> stateModelFactory = new StateModelFactory<MockStateModel>() {
 
       @Override
-      public MockStateModel createNewStateModel(String partitionName) {
+      public MockStateModel createNewStateModel(String resource, String partitionName) {
         // TODO Auto-generated method stub
         return new MockStateModel();
       }

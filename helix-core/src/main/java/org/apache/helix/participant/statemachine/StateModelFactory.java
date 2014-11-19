@@ -19,6 +19,7 @@ package org.apache.helix.participant.statemachine;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,9 +29,10 @@ import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
 public abstract class StateModelFactory<T extends StateModel> {
   /**
-   * mapping from partitionName to StateModel
+   * mapping resourceName to map of partitionName to StateModel
    */
-  private final ConcurrentMap<String, T> _stateModelMap = new ConcurrentHashMap<String, T>();
+  private final ConcurrentMap<String, ConcurrentMap<String, T>> _stateModelMap =
+      new ConcurrentHashMap<String, ConcurrentMap<String, T>>();
 
   /**
    * mapping from resourceName to BatchMessageWrapper
@@ -39,46 +41,65 @@ public abstract class StateModelFactory<T extends StateModel> {
       new ConcurrentHashMap<String, BatchMessageWrapper>();
 
   /**
-   * This method will be invoked only once per partitionName per session
+   * This method will be invoked only once per resource per partition per session
+   * Replacing old StateModelFactory#createNewStateModel(String partitionName)
+   * Add "resourceName" to signature @see HELIX-552
+   * @param resourceName
    * @param partitionName
-   * @return
+   * @return state model
    */
-  public abstract T createNewStateModel(String partitionName);
+  public abstract T createNewStateModel(String resourceName, String partitionName);
 
   /**
    * Create a state model for a partition
-   * @param partitionName
+   * @param partitionKey
    */
-  public T createAndAddStateModel(String partitionName) {
-    T stateModel = createNewStateModel(partitionName);
-    _stateModelMap.put(partitionName, stateModel);
+  public T createAndAddStateModel(String resourceName, String partitionKey) {
+    T stateModel = createNewStateModel(resourceName, partitionKey);
+    _stateModelMap.putIfAbsent(resourceName, new ConcurrentHashMap<String, T>());
+    _stateModelMap.get(resourceName).put(partitionKey, stateModel);
     return stateModel;
   }
 
   /**
    * Get the state model for a partition
-   * @param partitionName
+   * @param resourceName
+   * @param partitionKey
    * @return state model if exists, null otherwise
    */
-  public T getStateModel(String partitionName) {
-    return _stateModelMap.get(partitionName);
+  public T getStateModel(String resourceName, String partitionKey) {
+    Map<String, T> map = _stateModelMap.get(resourceName);
+    return map == null? null : map.get(partitionKey);
   }
 
   /**
    * remove state model for a partition
-   * @param partitionName
+   * @param resourceName
+   * @param partitionKey
    * @return state model removed or null if not exist
    */
-  public T removeStateModel(String partitionName) {
-    return _stateModelMap.remove(partitionName);
+  public T removeStateModel(String resourceName, String partitionKey) {
+    Map<String, T> map = _stateModelMap.get(resourceName);
+    return map == null? null : map.remove(partitionKey);
   }
 
   /**
-   * get partition set
+   * get resource set
+   * @param resourceName
+   * @return resource name set
+   */
+  public Set<String> getResourceSet() {
+    return _stateModelMap.keySet();
+  }
+
+  /**
+   * get partition set for a resource
+   * @param resourceName
    * @return partition key set
    */
-  public Set<String> getPartitionSet() {
-    return _stateModelMap.keySet();
+  public Set<String> getPartitionSet(String resourceName) {
+    Map<String, T> map = _stateModelMap.get(resourceName);
+    return (map == null? Collections.<String>emptySet() : map.keySet());
   }
 
   /**

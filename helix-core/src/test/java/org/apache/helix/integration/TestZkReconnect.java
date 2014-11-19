@@ -83,7 +83,7 @@ public class TestZkReconnect {
     participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
         new StateModelFactory<StateModel>() {
           @Override
-          public StateModel createNewStateModel(String stateUnitKey) {
+          public StateModel createNewStateModel(String resource, String stateUnitKey) {
             return new SimpleStateModel(latch);
           }
         }, "test");

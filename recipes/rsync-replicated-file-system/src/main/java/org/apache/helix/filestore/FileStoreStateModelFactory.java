@@ -30,7 +30,7 @@ public class FileStoreStateModelFactory extends StateModelFactory<FileStoreState
   }
 
   @Override
-  public FileStoreStateModel createNewStateModel(String partition) {
+  public FileStoreStateModel createNewStateModel(String resource, String partition) {
     FileStoreStateModel model;
     model = new FileStoreStateModel(manager, partition.split("_")[0], partition);
     return model;

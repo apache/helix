@@ -37,14 +37,16 @@ public class MockMSModelFactory extends StateModelFactory<MockMSStateModel> {
     _transition = transition;
 
     // set existing transition
-    for (String partition : getPartitionSet()) {
-      MockMSStateModel stateModel = getStateModel(partition);
-      stateModel.setTransition(transition);
+    for (String resource : getResourceSet()) {
+      for (String partition : getPartitionSet(resource)) {
+        MockMSStateModel stateModel = getStateModel(resource, partition);
+        stateModel.setTransition(transition);
+      }
     }
   }
 
   @Override
-  public MockMSStateModel createNewStateModel(String partitionKey) {
+  public MockMSStateModel createNewStateModel(String resourceName, String partitionKey) {
     MockMSStateModel model = new MockMSStateModel(_transition);
 
     return model;

@@ -90,7 +90,7 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
   public class BootstrapStateModelFactory extends StateModelFactory<BootstrapStateModel> {
 
     @Override
-    public BootstrapStateModel createNewStateModel(String stateUnitKey) {
+    public BootstrapStateModel createNewStateModel(String resource, String stateUnitKey) {
       BootstrapStateModel model = new BootstrapStateModel();
       return model;
     }

@@ -196,7 +196,7 @@ public class TestCorrectnessOnConnectivityLoss {
     }
 
     @Override
-    public MyStateModel createNewStateModel(String partitionId) {
+    public MyStateModel createNewStateModel(String resource, String partitionId) {
       return new MyStateModel(_counts);
     }
   }

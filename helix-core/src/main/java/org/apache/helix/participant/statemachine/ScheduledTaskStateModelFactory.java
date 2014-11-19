@@ -32,8 +32,8 @@ public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledT
   }
 
   @Override
-  public ScheduledTaskStateModel createNewStateModel(String partitionName) {
-    logger.info("Create state model for ScheduledTask " + partitionName);
-    return new ScheduledTaskStateModel(this, _executor, partitionName);
+  public ScheduledTaskStateModel createNewStateModel(String resourceName, String partitionKey) {
+    logger.info("Create state model for ScheduledTask " + resourceName + "_" + partitionKey);
+    return new ScheduledTaskStateModel(this, _executor, resourceName, partitionKey);
   }
 }

@@ -24,7 +24,7 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 // mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
 public class MockSchemataModelFactory extends StateModelFactory<MockSchemataStateModel> {
   @Override
-  public MockSchemataStateModel createNewStateModel(String partitionKey) {
+  public MockSchemataStateModel createNewStateModel(String resourceName, String partitionKey) {
     MockSchemataStateModel model = new MockSchemataStateModel();
     return model;
   }

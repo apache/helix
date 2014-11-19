@@ -30,7 +30,7 @@ public class DistClusterControllerStateModelFactory extends
   }
 
   @Override
-  public DistClusterControllerStateModel createNewStateModel(String stateUnitKey) {
+  public DistClusterControllerStateModel createNewStateModel(String resourceName, String partitionKey) {
     return new DistClusterControllerStateModel(_zkAddr);
   }
 

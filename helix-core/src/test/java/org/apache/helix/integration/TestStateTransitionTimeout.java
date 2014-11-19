@@ -161,7 +161,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     }
 
     @Override
-    public TimeOutStateModel createNewStateModel(String stateUnitKey) {
+    public TimeOutStateModel createNewStateModel(String resource, String stateUnitKey) {
       return new TimeOutStateModel(new SleepTransition(_sleepTime),
           partitionsToSleep.contains(stateUnitKey));
     }
@@ -170,7 +170,6 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
   @Test
   public void testStateTransitionTimeOut() throws Exception {
     Map<String, SleepStateModelFactory> factories = new HashMap<String, SleepStateModelFactory>();
-    // MockParticipantManager[] participants = new MockParticipantManager[NODE_NR];
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     for (int i = 0; i < NODE_NR; i++) {
@@ -204,7 +203,7 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       String idealMaster = idealState.getPreferenceList(p).get(0);
       Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
 
-      TimeOutStateModel model = factories.get(idealMaster).getStateModel(p);
+      TimeOutStateModel model = factories.get(idealMaster).getStateModel(TEST_DB, p);
       Assert.assertEquals(model._errorCallcount, 1);
       Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
     }

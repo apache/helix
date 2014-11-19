@@ -116,7 +116,7 @@ public class TestHelixTaskHandler {
         new StateModelFactory<MockStateModelAnnotated>() {
 
           @Override
-          public MockStateModelAnnotated createNewStateModel(String partitionName) {
+          public MockStateModelAnnotated createNewStateModel(String resource, String partitionName) {
             // TODO Auto-generated method stub
             return new MockStateModelAnnotated();
           }

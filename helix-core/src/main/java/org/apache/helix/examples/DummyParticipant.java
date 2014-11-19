@@ -87,7 +87,7 @@ public class DummyParticipant {
   // dummy master slave state model factory
   public static class DummyMSModelFactory extends StateModelFactory<DummyMSStateModel> {
     @Override
-    public DummyMSStateModel createNewStateModel(String partitionName) {
+    public DummyMSStateModel createNewStateModel(String resourceName, String partitionName) {
       DummyMSStateModel model = new DummyMSStateModel();
       return model;
     }

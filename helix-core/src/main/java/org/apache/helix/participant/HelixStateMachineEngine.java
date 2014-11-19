@@ -142,13 +142,15 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
         .values()) {
       for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {
-        for (String resourceKey : stateModelFactory.getPartitionSet()) {
-          StateModel stateModel = stateModelFactory.getStateModel(resourceKey);
-          stateModel.reset();
-          String initialState = _stateModelParser.getInitialState(stateModel.getClass());
-          stateModel.updateState(initialState);
-          // TODO probably should update the state on ZK. Shi confirm what needs
-          // to be done here.
+        for (String resourceName : stateModelFactory.getResourceSet()) {
+          for (String partitionKey : stateModelFactory.getPartitionSet(resourceName)) {
+            StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
+            stateModel.reset();
+            String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+            stateModel.updateState(initialState);
+            // TODO probably should update the state on ZK. Shi confirm what needs
+            // to be done here.
+          }
         }
       }
     }
@@ -206,9 +208,9 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     if (message.getBatchMessageMode() == false) {
       // create currentStateDelta for this partition
       String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
-      StateModel stateModel = stateModelFactory.getStateModel(partitionKey);
+      StateModel stateModel = stateModelFactory.getStateModel(resourceName, partitionKey);
       if (stateModel == null) {
-        stateModel = stateModelFactory.createAndAddStateModel(partitionKey);
+        stateModel = stateModelFactory.createAndAddStateModel(resourceName, partitionKey);
         stateModel.updateState(initState);
       }
 

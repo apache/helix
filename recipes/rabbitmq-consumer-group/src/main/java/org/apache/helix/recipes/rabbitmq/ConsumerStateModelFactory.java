@@ -31,7 +31,7 @@ public class ConsumerStateModelFactory extends StateModelFactory<ConsumerStateMo
   }
 
   @Override
-  public ConsumerStateModel createNewStateModel(String partition) {
+  public ConsumerStateModel createNewStateModel(String resource, String partition) {
     ConsumerStateModel model = new ConsumerStateModel(_consumerId, partition, _mqServer);
     return model;
   }

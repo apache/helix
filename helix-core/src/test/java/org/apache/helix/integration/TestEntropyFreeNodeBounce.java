@@ -152,7 +152,7 @@ public class TestEntropyFreeNodeBounce extends ZkUnitTestBase {
   private static class MockStateModelFactory extends StateModelFactory<MockStateModel> {
 
     @Override
-    public MockStateModel createNewStateModel(String partitionName) {
+    public MockStateModel createNewStateModel(String resource, String partitionName) {
       return new MockStateModel();
     }
 

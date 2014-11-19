@@ -39,7 +39,7 @@ public class GenericLeaderStandbyStateModelFactory extends
   }
 
   @Override
-  public GenericLeaderStandbyModel createNewStateModel(String partitionKey) {
+  public GenericLeaderStandbyModel createNewStateModel(String resourceName, String partitionKey) {
     return new GenericLeaderStandbyModel(_callback, _notificationTypes, partitionKey);
   }
 }

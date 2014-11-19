@@ -108,8 +108,8 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
-        "All state-models should be dropped, but was " + fty.getPartitionSet());
+    Assert.assertTrue(fty.getPartitionSet("TestDB0").isEmpty(),
+        "All state-models should be dropped, but was " + fty.getPartitionSet("TestDB0"));
 
     // cleanup
     controller.syncStop();
@@ -193,8 +193,8 @@ public class TestStateModelLeak extends ZkUnitTestBase {
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
-        "All state-models should be dropped, but was " + fty.getPartitionSet());
+    Assert.assertTrue(fty.getPartitionSet("TestDB0").isEmpty(),
+        "All state-models should be dropped, but was " + fty.getPartitionSet("TestDB0"));
 
     // cleanup
     controller.syncStop();
@@ -212,9 +212,9 @@ public class TestStateModelLeak extends ZkUnitTestBase {
    */
   static void checkStateModelMap(StateModelFactory<? extends StateModel> fty,
       Map<String, String> expectStateModelMap) {
-    Assert.assertEquals(fty.getPartitionSet().size(), expectStateModelMap.size());
-    for (String partition : fty.getPartitionSet()) {
-      StateModel stateModel = fty.getStateModel(partition);
+    Assert.assertEquals(fty.getPartitionSet("TestDB0").size(), expectStateModelMap.size());
+    for (String partition : fty.getPartitionSet("TestDB0")) {
+      StateModel stateModel = fty.getStateModel("TestDB0", partition);
       String actualState = stateModel.getCurrentState();
       String expectState = expectStateModelMap.get(partition);
       LOG.debug(partition + " actual state: " + actualState + ", expect state: " + expectState);

@@ -37,7 +37,7 @@ import org.apache.helix.participant.statemachine.Transition;
 public class BootstrapHandler extends StateModelFactory<StateModel> {
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey) {
+  public StateModel createNewStateModel(String resourceName, String stateUnitKey) {
     return new BootstrapStateModel(stateUnitKey);
   }
 

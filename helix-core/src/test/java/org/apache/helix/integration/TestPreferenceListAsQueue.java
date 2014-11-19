@@ -502,7 +502,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
   public class PrefListTaskOnlineOfflineStateModelFactory extends
       StateModelFactory<PrefListTaskOnlineOfflineStateModel> {
     @Override
-    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String partitionName) {
+    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String resource, String partitionName) {
       return new PrefListTaskOnlineOfflineStateModel();
     }
   }

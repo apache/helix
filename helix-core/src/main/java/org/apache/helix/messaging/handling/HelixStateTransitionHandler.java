@@ -195,7 +195,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
-        _stateModelFactory.removeStateModel(partitionKey);
+        _stateModelFactory.removeStateModel(resource, partitionKey);
       } else {
         // if the partition is not to be dropped, update _stateModel to the TO_STATE
         _stateModel.updateState(toState);

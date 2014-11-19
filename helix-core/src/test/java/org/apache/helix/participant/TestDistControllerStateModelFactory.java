@@ -23,18 +23,15 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.participant.DistClusterControllerStateModel;
 import org.apache.helix.participant.DistClusterControllerStateModelFactory;
 import org.testng.annotations.Test;
-import org.testng.annotations.Test;
 
 public class TestDistControllerStateModelFactory {
   final String zkAddr = ZkUnitTestBase.ZK_ADDR;
 
-  @Test(groups = {
-    "unitTest"
-  })
+  @Test()
   public void testDistControllerStateModelFactory() {
     DistClusterControllerStateModelFactory factory =
         new DistClusterControllerStateModelFactory(zkAddr);
-    DistClusterControllerStateModel stateModel = factory.createNewStateModel("key");
+    DistClusterControllerStateModel stateModel = factory.createNewStateModel("name", "key");
     stateModel.onBecomeStandbyFromOffline(null, null);
   }
 }

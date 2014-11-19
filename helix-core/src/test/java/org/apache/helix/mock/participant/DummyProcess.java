@@ -115,7 +115,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyStateModel createNewStateModel(String stateUnitKey) {
+    public DummyStateModel createNewStateModel(String resourceName, String stateUnitKey) {
       DummyStateModel model = new DummyStateModel();
       model.setDelay(_delay);
       return model;
@@ -131,7 +131,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey) {
+    public DummyLeaderStandbyStateModel createNewStateModel(String resourceName, String stateUnitKey) {
       DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
       model.setDelay(_delay);
       return model;
@@ -147,7 +147,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey) {
+    public DummyOnlineOfflineStateModel createNewStateModel(String resourceName, String stateUnitKey) {
       DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
       model.setDelay(_delay);
       return model;

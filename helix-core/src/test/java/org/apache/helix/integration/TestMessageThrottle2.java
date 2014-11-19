@@ -328,7 +328,7 @@ public class TestMessageThrottle2 extends ZkIntegrationTestBase {
     }
 
     @Override
-    public MyStateModel createNewStateModel(String partitionName) {
+    public MyStateModel createNewStateModel(String resource, String partitionName) {
       return new MyStateModel(helixManager);
     }
   }

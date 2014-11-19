@@ -44,7 +44,7 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
   }
 
   @Override
-  public StateModel createNewStateModel(String partitionName) {
+  public StateModel createNewStateModel(String resourceName, String partitionName) {
     MasterSlaveStateModel stateModel = new MasterSlaveStateModel();
     stateModel.setInstanceName(_instanceName);
     stateModel.setDelay(_delay);

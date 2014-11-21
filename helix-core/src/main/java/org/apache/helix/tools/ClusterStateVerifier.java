@@ -126,11 +126,17 @@ public class ClusterStateVerifier {
 
   }
 
+  private static ZkClient validateAndGetClient(String zkAddr, String clusterName) {
+    if (zkAddr == null || clusterName == null) {
+      throw new IllegalArgumentException("requires zkAddr|clusterName");
+    }
+    return ZKClientPool.getZkClient(zkAddr);
+  }
+
   /**
    * verifier that verifies best possible state and external view
    */
   public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
-    private final String zkAddr;
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
     private final ZkClient zkClient;
@@ -147,13 +153,17 @@ public class ClusterStateVerifier {
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
         Map<String, Map<String, String>> errStates, Set<String> resources) {
-      if (zkAddr == null || clusterName == null) {
-        throw new IllegalArgumentException("requires zkAddr|clusterName");
+      this(validateAndGetClient(zkAddr, clusterName), clusterName, errStates, resources);
+    }
+
+    public BestPossAndExtViewZkVerifier(ZkClient zkClient, String clusterName,
+        Map<String, Map<String, String>> errStates, Set<String> resources) {
+      if (zkClient == null || clusterName == null) {
+        throw new IllegalArgumentException("requires zkClient|clusterName");
       }
-      this.zkAddr = zkAddr;
       this.clusterName = clusterName;
       this.errStates = errStates;
-      this.zkClient = ZKClientPool.getZkClient(zkAddr); // null;
+      this.zkClient = zkClient;
       this.resources = resources;
     }
 
@@ -186,22 +196,24 @@ public class ClusterStateVerifier {
       String verifierName = getClass().getName();
       verifierName =
           verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-      return verifierName + "(" + clusterName + "@" + zkAddr + ")";
+      return verifierName + "(" + clusterName + "@" + zkClient.getServers() + ")";
     }
   }
 
   public static class MasterNbInExtViewVerifier implements ZkVerifier {
-    private final String zkAddr;
     private final String clusterName;
     private final ZkClient zkClient;
 
     public MasterNbInExtViewVerifier(String zkAddr, String clusterName) {
-      if (zkAddr == null || clusterName == null) {
-        throw new IllegalArgumentException("requires zkAddr|clusterName");
+      this(validateAndGetClient(zkAddr, clusterName), clusterName);
+    }
+
+    public MasterNbInExtViewVerifier(ZkClient zkClient, String clusterName) {
+      if (zkClient == null || clusterName == null) {
+        throw new IllegalArgumentException("requires zkClient|clusterName");
       }
-      this.zkAddr = zkAddr;
       this.clusterName = clusterName;
-      this.zkClient = ZKClientPool.getZkClient(zkAddr);
+      this.zkClient = zkClient;
     }
 
     @Override

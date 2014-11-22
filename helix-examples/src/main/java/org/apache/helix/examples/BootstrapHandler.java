@@ -30,6 +30,7 @@ import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -39,7 +40,7 @@ import org.apache.helix.participant.statemachine.Transition;
 public class BootstrapHandler extends StateTransitionHandlerFactory<TransitionHandler> {
 
   @Override
-  public TransitionHandler createStateTransitionHandler(PartitionId stateUnitKey) {
+  public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId stateUnitKey) {
     return new BootstrapStateModel(stateUnitKey);
   }
 

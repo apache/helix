@@ -42,6 +42,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.manager.zk.MockParticipant;
@@ -328,7 +329,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
     }
 
     @Override
-    public MyStateModel createStateTransitionHandler(PartitionId partitionName) {
+    public MyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       return new MyStateModel(helixManager);
     }
   }

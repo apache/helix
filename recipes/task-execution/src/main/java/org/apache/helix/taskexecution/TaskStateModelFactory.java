@@ -21,6 +21,7 @@ package org.apache.helix.taskexecution;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class TaskStateModelFactory extends StateTransitionHandlerFactory<TaskStateModel> {
   private final String _workerId;
@@ -35,7 +36,7 @@ public class TaskStateModelFactory extends StateTransitionHandlerFactory<TaskSta
   }
 
   @Override
-  public TaskStateModel createStateTransitionHandler(PartitionId partition) {
+  public TaskStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
     TaskStateModel model =
         new TaskStateModel(_workerId, partition.toString(), _taskFactory, _taskResultStore);
     return model;

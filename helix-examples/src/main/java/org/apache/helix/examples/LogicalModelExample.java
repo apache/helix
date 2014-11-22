@@ -274,7 +274,7 @@ public class LogicalModelExample {
    */
   public static class LockUnlockFactory extends StateTransitionHandlerFactory<LockUnlockStateModel> {
     @Override
-    public LockUnlockStateModel createStateTransitionHandler(PartitionId partitionId) {
+    public LockUnlockStateModel createStateTransitionHandler(ResourceId resource, PartitionId partitionId) {
       return new LockUnlockStateModel(partitionId);
     }
   }

@@ -21,6 +21,7 @@ package org.apache.helix.participant;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class MultiClusterControllerTransitionHandlerFactory extends
     StateTransitionHandlerFactory<MultiClusterControllerTransitionHandler> {
@@ -31,7 +32,8 @@ public class MultiClusterControllerTransitionHandlerFactory extends
   }
 
   @Override
-  public MultiClusterControllerTransitionHandler createStateTransitionHandler(PartitionId partition) {
+  public MultiClusterControllerTransitionHandler createStateTransitionHandler(ResourceId resource,
+      PartitionId partition) {
     return new MultiClusterControllerTransitionHandler(_zkAddr);
   }
 

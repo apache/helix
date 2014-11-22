@@ -26,6 +26,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
@@ -89,7 +90,7 @@ public class DummyParticipant {
   // dummy master slave state model factory
   public static class DummyMSModelFactory extends StateTransitionHandlerFactory<DummyMSStateModel> {
     @Override
-    public DummyMSStateModel createStateTransitionHandler(PartitionId partitionName) {
+    public DummyMSStateModel createStateTransitionHandler(ResourceId resource, PartitionId partitionName) {
       DummyMSStateModel model = new DummyMSStateModel();
       return model;
     }

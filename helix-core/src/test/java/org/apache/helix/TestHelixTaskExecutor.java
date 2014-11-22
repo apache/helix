@@ -78,7 +78,7 @@ public class TestHelixTaskExecutor {
     StateTransitionHandlerFactory<MockStateModel> stateModelFactory = new StateTransitionHandlerFactory<MockStateModel>() {
 
       @Override
-      public MockStateModel createStateTransitionHandler(PartitionId partition) {
+      public MockStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
         // TODO Auto-generated method stub
         return new MockStateModel();
       }

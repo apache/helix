@@ -80,7 +80,7 @@ public class TestHelixConnection extends ZkTestBase {
     }
 
     @Override
-    public MockStateModel createStateTransitionHandler(PartitionId partitionId) {
+    public MockStateModel createStateTransitionHandler(ResourceId resource, PartitionId partitionId) {
       MockStateModel model = new MockStateModel();
 
       return model;

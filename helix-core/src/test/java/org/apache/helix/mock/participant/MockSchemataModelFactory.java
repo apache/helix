@@ -21,13 +21,15 @@ package org.apache.helix.mock.participant;
 
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 /**
  * Mock STORAGE_DEFAULT_SM_SCHEMATA state model factory
  */
 public class MockSchemataModelFactory extends StateTransitionHandlerFactory<MockSchemataStateModel> {
   @Override
-  public MockSchemataStateModel createStateTransitionHandler(PartitionId partitionKey) {
+  public MockSchemataStateModel createStateTransitionHandler(ResourceId resource,
+      PartitionId partition) {
     MockSchemataStateModel model = new MockSchemataStateModel();
     return model;
   }

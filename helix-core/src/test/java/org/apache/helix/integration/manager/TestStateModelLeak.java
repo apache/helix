@@ -31,6 +31,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.MockController;
@@ -112,8 +113,10 @@ public class TestStateModelLeak extends ZkTestBase {
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
-        "All state-models should be dropped, but was " + fty.getPartitionSet());
+    for (ResourceId resource : fty.getResourceSet()) {
+      Assert.assertTrue(fty.getPartitionSet(resource).isEmpty(),
+          "All state-models should be dropped, but was " + fty.getPartitionSet(resource));
+    }
 
     // cleanup
     controller.syncStop();
@@ -197,9 +200,10 @@ public class TestStateModelLeak extends ZkTestBase {
     Assert.assertTrue(result);
 
     // check state models have been dropped also
-    Assert.assertTrue(fty.getPartitionSet().isEmpty(),
-        "All state-models should be dropped, but was " + fty.getPartitionSet());
-
+    for (ResourceId resource : fty.getResourceSet()) {
+      Assert.assertTrue(fty.getPartitionSet(resource).isEmpty(),
+          "All state-models should be dropped, but was " + fty.getPartitionSet(resource));
+    }
     // cleanup
     controller.syncStop();
     for (int i = 0; i < n; i++) {
@@ -216,9 +220,10 @@ public class TestStateModelLeak extends ZkTestBase {
    */
   static void checkStateModelMap(StateTransitionHandlerFactory<? extends TransitionHandler> fty,
       Map<PartitionId, String> expectStateModelMap) {
-    Assert.assertEquals(fty.getPartitionSet().size(), expectStateModelMap.size());
-    for (PartitionId partition : fty.getPartitionSet()) {
-      TransitionHandler stateModel = fty.getTransitionHandler(partition);
+    ResourceId resource = ResourceId.from("TestDB0");
+    Assert.assertEquals(fty.getPartitionSet(resource).size(), expectStateModelMap.size());
+    for (PartitionId partition : fty.getPartitionSet(resource)) {
+      TransitionHandler stateModel = fty.getTransitionHandler(resource, partition);
       String actualState = stateModel.getCurrentState();
       String expectState = expectStateModelMap.get(partition);
       LOG.debug(partition + " actual state: " + actualState + ", expect state: " + expectState);

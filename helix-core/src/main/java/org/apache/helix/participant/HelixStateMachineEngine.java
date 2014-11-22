@@ -71,12 +71,13 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     _stateModelDefs = new ConcurrentHashMap<StateModelDefId, StateModelDefinition>();
   }
 
-  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(StateModelDefId stateModelName) {
+  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(
+      StateModelDefId stateModelName) {
     return getStateModelFactory(stateModelName, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
-  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(StateModelDefId stateModelName,
-      String factoryName) {
+  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(
+      StateModelDefId stateModelName, String factoryName) {
     if (!_stateModelFactoryMap.containsKey(stateModelName)) {
       return null;
     }
@@ -116,14 +117,18 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   public void reset() {
     for (Map<String, StateTransitionHandlerFactory<? extends TransitionHandler>> ftyMap : _stateModelFactoryMap
         .values()) {
-      for (StateTransitionHandlerFactory<? extends TransitionHandler> stateModelFactory : ftyMap.values()) {
-        for (PartitionId partition : stateModelFactory.getPartitionSet()) {
-          TransitionHandler stateModel = stateModelFactory.getTransitionHandler(partition);
-          stateModel.reset();
-          String initialState = _stateModelParser.getInitialState(stateModel.getClass());
-          stateModel.updateState(initialState);
-          // TODO probably should update the state on ZK. Shi confirm what needs
-          // to be done here.
+      for (StateTransitionHandlerFactory<? extends TransitionHandler> stateModelFactory : ftyMap
+          .values()) {
+        for (ResourceId resource : stateModelFactory.getResourceSet()) {
+          for (PartitionId partition : stateModelFactory.getPartitionSet(resource)) {
+            TransitionHandler stateModel =
+                stateModelFactory.getTransitionHandler(resource, partition);
+            stateModel.reset();
+            String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+            stateModel.updateState(initialState);
+            // TODO probably should update the state on ZK. Shi confirm what needs
+            // to be done here.
+          }
         }
       }
     }
@@ -179,9 +184,10 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     if (message.getBatchMessageMode() == false) {
       // create currentStateDelta for this partition
       String initState = _stateModelDefs.get(message.getStateModelDefId()).getInitialState();
-      TransitionHandler stateModel = stateModelFactory.getTransitionHandler(partitionKey);
+      TransitionHandler stateModel =
+          stateModelFactory.getTransitionHandler(resourceId, partitionKey);
       if (stateModel == null) {
-        stateModel = stateModelFactory.createAndAddSTransitionHandler(partitionKey);
+        stateModel = stateModelFactory.createAndAddSTransitionHandler(resourceId, partitionKey);
         stateModel.updateState(initState);
       }
 
@@ -200,8 +206,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       return new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
           currentStateDelta);
     } else {
-      BatchMessageWrapper wrapper =
-          stateModelFactory.getBatchMessageWrapper(resourceId);
+      BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceId);
       if (wrapper == null) {
         wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceId);
       }
@@ -241,8 +246,10 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         + " using factory-name: " + factoryName + " with: " + factory);
 
     if (!_stateModelFactoryMap.containsKey(stateModelDefId)) {
-      _stateModelFactoryMap.put(stateModelDefId,
-          new ConcurrentHashMap<String, StateTransitionHandlerFactory<? extends TransitionHandler>>());
+      _stateModelFactoryMap
+          .put(
+              stateModelDefId,
+              new ConcurrentHashMap<String, StateTransitionHandlerFactory<? extends TransitionHandler>>());
     }
 
     if (_stateModelFactoryMap.get(stateModelDefId).containsKey(factoryName)) {
@@ -290,10 +297,12 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       _stateModelFactoryMap.remove(stateModelDefId);
     }
 
-    for (PartitionId partition : fty.getPartitionSet()) {
-      TransitionHandler stateModel = fty.getTransitionHandler(partition);
-      stateModel.reset();
-      // TODO probably should remove the state from zookeeper
+    for (ResourceId resource : fty.getResourceSet()) {
+      for (PartitionId partition : fty.getPartitionSet(resource)) {
+        TransitionHandler stateModel = fty.getTransitionHandler(resource, partition);
+        stateModel.reset();
+        // TODO probably should remove the state from zookeeper
+      }
     }
 
     return true;

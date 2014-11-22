@@ -20,6 +20,7 @@ package org.apache.helix.integration;
  */
 
 import java.util.Date;
+import java.util.Map;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -38,10 +39,14 @@ import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestEntropyFreeNodeBounce extends ZkTestBase {
+  private static Logger LOG = Logger.getLogger(TestEntropyFreeNodeBounce.class);
+
+  // TODO fix this test. it fails because of HELIX-543 RB-27808
   @Test
   public void testBounceAll() throws Exception {
     // pick numbers that don't divide evenly
@@ -110,6 +115,17 @@ public class TestEntropyFreeNodeBounce extends ZkTestBase {
         result =
             ClusterStateVerifier.verifyByZkCallback(new MatchingExternalViewVerifier(
                 stableExternalView, clusterName));
+        if (!result) {
+          ExternalView currentExternalView =
+              accessor.getProperty(keyBuilder.externalView(RESOURCE_NAME));
+          for (String partition : stableExternalView.getPartitionSet()) {
+            Map<String, String> expect = stableExternalView.getStateMap(partition);
+            Map<String, String> actual = currentExternalView.getStateMap(partition);
+            if (!expect.equals(actual)) {
+              LOG.error(partition + " is moved. expect: " + expect + ", actual: " + actual);
+            }
+          }
+        }
         Assert.assertTrue(result);
       }
     } finally {

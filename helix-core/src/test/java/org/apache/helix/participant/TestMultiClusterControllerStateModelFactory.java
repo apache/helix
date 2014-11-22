@@ -20,6 +20,7 @@ package org.apache.helix.participant;
  */
 
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.testng.annotations.Test;
 
 public class TestMultiClusterControllerStateModelFactory {
@@ -29,7 +30,7 @@ public class TestMultiClusterControllerStateModelFactory {
     MultiClusterControllerTransitionHandlerFactory factory =
         new MultiClusterControllerTransitionHandlerFactory("localhost:2181");
     MultiClusterControllerTransitionHandler stateModel =
-        factory.createStateTransitionHandler(PartitionId.from("key"));
+        factory.createStateTransitionHandler(ResourceId.from("name"), PartitionId.from("key"));
     stateModel.onBecomeStandbyFromOffline(null, null);
   }
 }

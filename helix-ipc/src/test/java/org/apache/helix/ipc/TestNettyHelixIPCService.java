@@ -40,6 +40,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.ipc.netty.NettyHelixIPCService;
@@ -333,7 +334,7 @@ public class TestNettyHelixIPCService extends ZkTestBase {
   public static class DummyStateModelFactory extends
       StateTransitionHandlerFactory<TransitionHandler> {
     @Override
-    public TransitionHandler createStateTransitionHandler(PartitionId partitionId) {
+    public TransitionHandler createStateTransitionHandler(ResourceId resourceId, PartitionId partitionId) {
       return new DummyStateModel();
     }
 

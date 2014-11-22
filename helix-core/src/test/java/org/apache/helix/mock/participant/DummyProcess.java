@@ -35,6 +35,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
@@ -112,7 +113,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyStateModel createStateTransitionHandler(PartitionId partition) {
+    public DummyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyStateModel model = new DummyStateModel();
       model.setDelay(_delay);
       return model;
@@ -128,7 +129,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyLeaderStandbyStateModel createStateTransitionHandler(PartitionId partition) {
+    public DummyLeaderStandbyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
       model.setDelay(_delay);
       return model;
@@ -144,7 +145,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyOnlineOfflineStateModel createStateTransitionHandler(PartitionId partition) {
+    public DummyOnlineOfflineStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
       model.setDelay(_delay);
       return model;

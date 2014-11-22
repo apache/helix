@@ -119,7 +119,7 @@ public class TestHelixTaskHandler {
         new StateTransitionHandlerFactory<MockStateModelAnnotated>() {
 
           @Override
-          public MockStateModelAnnotated createStateTransitionHandler(PartitionId partitionName) {
+          public MockStateModelAnnotated createStateTransitionHandler(ResourceId resource, PartitionId partitionName) {
             // TODO Auto-generated method stub
             return new MockStateModelAnnotated();
           }

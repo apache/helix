@@ -90,7 +90,7 @@ public class TestZkReconnect {
     participant.getStateMachineEngine().registerStateModelFactory(
         StateModelDefId.OnlineOffline, "test", new StateTransitionHandlerFactory<TransitionHandler>() {
           @Override
-          public TransitionHandler createStateTransitionHandler(PartitionId stateUnitKey) {
+          public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId stateUnitKey) {
             return new SimpleStateModel(latch);
           }
         });

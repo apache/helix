@@ -26,6 +26,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.model.Message;
@@ -39,13 +40,15 @@ public class ScheduledTaskStateModel extends TransitionHandler {
   // StateModel with initial state other than OFFLINE should override this field
   protected String _currentState = DEFAULT_INITIAL_STATE;
   final ScheduledTaskStateModelFactory _factory;
+  final ResourceId _resource;
   final PartitionId _partition;
 
   final HelixTaskExecutor _executor;
 
   public ScheduledTaskStateModel(ScheduledTaskStateModelFactory factory,
-      HelixTaskExecutor executor, PartitionId partition) {
+      HelixTaskExecutor executor, ResourceId resource, PartitionId partition) {
     _factory = factory;
+    _resource = resource;
     _partition = partition;
     _executor = executor;
   }
@@ -108,8 +111,8 @@ public class ScheduledTaskStateModel extends TransitionHandler {
 
   // We need this to prevent state model leak
   private void removeFromStatemodelFactory() {
-    if (_factory.getTransitionHandler(_partition) != null) {
-      _factory.removeTransitionHandler(_partition);
+    if (_factory.getTransitionHandler(_resource, _partition) != null) {
+      _factory.removeTransitionHandler(_resource, _partition);
     } else {
       logger.warn(_partition + " not found in ScheduledTaskStateModelFactory");
     }

@@ -70,6 +70,7 @@ import org.apache.helix.model.builder.ResourceAssignmentBuilder;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class ClusterStateVerifier {
@@ -91,16 +92,14 @@ public class ClusterStateVerifier {
     private final ZkClient _zkclient;
 
     public ZkVerifier(String clusterName, ZkClient zkclient) {
-      if (zkclient == null || clusterName == null) {
-        throw new IllegalArgumentException("zkclient/clusterName can't be null");
-      }
-
+      Preconditions.checkArgument(zkclient != null && clusterName != null,
+          "zkclient/clusterName can't be null");
       _clusterName = clusterName;
       _zkclient = zkclient;
     }
 
     public ZkVerifier(String clusterName, String zkAddr) {
-      this(clusterName, ZKClientPool.getZkClient(zkAddr));
+      this(clusterName, validateAndGetClient(zkAddr, clusterName));
     }
 
     public ZkClient getZkClient() {
@@ -133,8 +132,7 @@ public class ClusterStateVerifier {
 
     @Override
     public void handleDataDeleted(String dataPath) throws Exception {
-      // TODO Auto-generated method stub
-
+      LOG.debug(String.format("Data at path %s deleted", dataPath));
     }
 
     @Override
@@ -150,6 +148,12 @@ public class ClusterStateVerifier {
       }
     }
 
+  }
+
+  private static ZkClient validateAndGetClient(String zkAddr, String clusterName) {
+    Preconditions.checkArgument(zkAddr != null && clusterName != null,
+        "requires zkAddr and clusterName");
+    return ZKClientPool.getZkClient(zkAddr);
   }
 
   /**
@@ -171,8 +175,13 @@ public class ClusterStateVerifier {
 
     public BestPossAndExtViewZkVerifier(String zkAddr, String clusterName,
         Map<String, Map<String, String>> errStates, Set<String> resources) {
-      super(clusterName, zkAddr);
-      this.zkAddr = zkAddr;
+      this(validateAndGetClient(zkAddr, clusterName), clusterName, errStates, resources);
+    }
+
+    public BestPossAndExtViewZkVerifier(ZkClient zkClient, String clusterName,
+        Map<String, Map<String, String>> errStates, Set<String> resources) {
+      super(clusterName, zkClient);
+      this.zkAddr = zkClient.getServers();
       this.errStates = errStates;
       this.resources = resources;
     }
@@ -181,7 +190,8 @@ public class ClusterStateVerifier {
     public boolean verify() {
       try {
         HelixDataAccessor accessor =
-            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(getZkClient()));
+            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
+                getZkClient()));
 
         return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, getClusterName(),
             resources);
@@ -206,11 +216,16 @@ public class ClusterStateVerifier {
       super(clusterName, zkAddr);
     }
 
+    public MasterNbInExtViewVerifier(ZkClient zkClient, String clusterName) {
+      super(clusterName, zkClient);
+    }
+
     @Override
     public boolean verify() {
       try {
         ZKHelixDataAccessor accessor =
-            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(getZkClient()));
+            new ZKHelixDataAccessor(getClusterName(), new ZkBaseDataAccessor<ZNRecord>(
+                getZkClient()));
 
         return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
       } catch (Exception e) {
@@ -515,8 +530,7 @@ public class ClusterStateVerifier {
       } while (curTime <= startTime + timeout);
       return result;
     } catch (Exception e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
+      LOG.error("Failed to verify cluster state by polling", e);
     } finally {
       long endTime = System.currentTimeMillis();
 
@@ -561,8 +575,7 @@ public class ClusterStateVerifier {
           result = verifier.verify();
         }
       } catch (Exception e) {
-        // TODO Auto-generated catch block
-        e.printStackTrace();
+        LOG.error("Failed to verify cluster state by callback", e);
       }
     }
 
@@ -653,10 +666,10 @@ public class ClusterStateVerifier {
   }
 
   public static boolean verifyState(String[] args) {
-    // TODO Auto-generated method stub
     String clusterName = "storage-cluster";
     String zkServer = "localhost:2181";
     long timeoutValue = 0;
+    @SuppressWarnings("unused")
     long periodValue = 1000;
 
     Set<String> resourceSet = null;

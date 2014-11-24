@@ -40,8 +40,7 @@ under the License.
     <osgi.ignore>
       org.apache.helix.tools*
     </osgi.ignore>
-    <osgi.export>org.apache.helix.ipc*;version="${project.version};-noimport:=true</osgi.export>
-    <osgi.export>org.apache.helix.resolver*;version="${project.version};-noimport:=true</osgi.export>
+    <osgi.export>org.apache.helix.resolver*,org.apache.helix.ipc*;version="${project.version};-noimport:=true</osgi.export> 
   </properties>
 
   <dependencies>

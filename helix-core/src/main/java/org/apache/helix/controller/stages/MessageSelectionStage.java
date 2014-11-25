@@ -97,18 +97,29 @@ public class MessageSelectionStage extends AbstractBaseStage {
       IdealState idealState = cache.getIdealState(resourceName);
       Map<String, Bounds> stateConstraints =
           computeStateConstraints(stateModelDef, idealState, cache);
-
       for (Partition partition : resource.getPartitions()) {
         List<Message> messages = messageGenOutput.getMessages(resourceName, partition);
         List<Message> selectedMessages =
             selectMessages(cache.getLiveInstances(),
                 currentStateOutput.getCurrentStateMap(resourceName, partition),
-                currentStateOutput.getPendingStateMap(resourceName, partition), messages,
+                currentStateOutput.getPendingMessageMap(resourceName, partition), messages,
                 stateConstraints, stateTransitionPriorities, stateModelDef.getInitialState());
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
     event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);
+  }
+
+  private void increaseStateCnt(Map<String, Bounds> stateConstraints, String state,
+      Map<String, Integer> stateCnts) {
+    if (!stateConstraints.containsKey(state)) {
+      // skip state that doesn't have constraint
+      return;
+    }
+    if (!stateCnts.containsKey(state)) {
+      stateCnts.put(state, 0);
+    }
+    stateCnts.put(state, stateCnts.get(state) + 1);
   }
 
   // TODO: This method deserves its own class. The class should not understand helix but
@@ -131,15 +142,14 @@ public class MessageSelectionStage extends AbstractBaseStage {
    * @return: selected messages
    */
   List<Message> selectMessages(Map<String, LiveInstance> liveInstances,
-      Map<String, String> currentStates, Map<String, String> pendingStates, List<Message> messages,
-      Map<String, Bounds> stateConstraints, final Map<String, Integer> stateTransitionPriorities,
-      String initialState) {
+      Map<String, String> currentStates, Map<String, Message> pendingMessages,
+      List<Message> messages, Map<String, Bounds> stateConstraints,
+      final Map<String, Integer> stateTransitionPriorities, String initialState) {
     if (messages == null || messages.isEmpty()) {
       return Collections.emptyList();
     }
-
     List<Message> selectedMessages = new ArrayList<Message>();
-    Map<String, Bounds> bounds = new HashMap<String, Bounds>();
+    Map<String, Integer> stateCnts = new HashMap<String, Integer>();
 
     // count currentState, if no currentState, count as in initialState
     for (String instance : liveInstances.keySet()) {
@@ -148,21 +158,14 @@ public class MessageSelectionStage extends AbstractBaseStage {
         state = currentStates.get(instance);
       }
 
-      if (!bounds.containsKey(state)) {
-        bounds.put(state, new Bounds(0, 0));
-      }
-      bounds.get(state).increaseLowerBound();
-      bounds.get(state).increaseUpperBound();
+      increaseStateCnt(stateConstraints, state, stateCnts);
     }
 
     // count pendingStates
-    for (String instance : pendingStates.keySet()) {
-      String state = pendingStates.get(instance);
-      if (!bounds.containsKey(state)) {
-        bounds.put(state, new Bounds(0, 0));
-      }
-      // TODO: add lower bound, need to refactor pendingState to include fromState also
-      bounds.get(state).increaseUpperBound();
+    for (String instance : pendingMessages.keySet()) {
+      Message message = pendingMessages.get(instance);
+      increaseStateCnt(stateConstraints, message.getToState(), stateCnts);
+      increaseStateCnt(stateConstraints, message.getFromState(), stateCnts);
     }
 
     // group messages based on state transition priority
@@ -187,47 +190,19 @@ public class MessageSelectionStage extends AbstractBaseStage {
     // select messages
     for (List<Message> messageList : messagesGroupByStateTransitPriority.values()) {
       for (Message message : messageList) {
-        String fromState = message.getFromState();
         String toState = message.getToState();
 
-        if (!bounds.containsKey(fromState)) {
-          LOG.error("Message's fromState is not in currentState. message: " + message);
-          continue;
-        }
-
-        if (!bounds.containsKey(toState)) {
-          bounds.put(toState, new Bounds(0, 0));
-        }
-
-        // check lower bound of fromState
-        if (stateConstraints.containsKey(fromState)) {
-          int newLowerBound = bounds.get(fromState).getLowerBound() - 1;
-          if (newLowerBound < 0) {
-            LOG.error("Number of currentState in " + fromState
-                + " is less than number of messages transiting from " + fromState);
-            continue;
-          }
-
-          if (newLowerBound < stateConstraints.get(fromState).getLowerBound()) {
-            LOG.info("Reach lower_bound: " + stateConstraints.get(fromState).getLowerBound()
-                + ", not send message: " + message);
-            continue;
-          }
-        }
-
-        // check upper bound of toState
         if (stateConstraints.containsKey(toState)) {
-          int newUpperBound = bounds.get(toState).getUpperBound() + 1;
-          if (newUpperBound > stateConstraints.get(toState).getUpperBound()) {
+          int newCnt = (stateCnts.containsKey(toState) ? stateCnts.get(toState) + 1 : 1);
+          if (newCnt > stateConstraints.get(toState).getUpperBound()) {
             LOG.info("Reach upper_bound: " + stateConstraints.get(toState).getUpperBound()
                 + ", not send message: " + message);
             continue;
           }
         }
 
+        increaseStateCnt(stateConstraints, message.getToState(), stateCnts);
         selectedMessages.add(message);
-        bounds.get(fromState).increaseLowerBound();
-        bounds.get(toState).increaseUpperBound();
       }
     }
 
@@ -253,8 +228,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
         if (idealState != null) {
-          // HELIX-541: set upper_bound to R+1 to avoid live-lock
-          max = cache.getReplicas(idealState.getResourceName()) + 1;
+          max = cache.getReplicas(idealState.getResourceName());
         }
       } else {
         try {

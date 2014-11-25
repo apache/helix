@@ -46,6 +46,7 @@ import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -262,9 +263,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         final String pName = pName(jobResource, pId);
 
         // Check for pending state transitions on this (partition, instance).
-        String pendingState =
+        Message pendingMessage =
             currStateOutput.getPendingState(jobResource, new Partition(pName), instance);
-        if (pendingState != null) {
+        if (pendingMessage != null) {
           // There is a pending state transition for this (partition, instance). Just copy forward
           // the state assignment from the previous ideal state.
           Map<String, String> stateMap = prevAssignment.getReplicaMap(new Partition(pName));
@@ -272,10 +273,12 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
             String prevState = stateMap.get(instance);
             paMap.put(pId, new PartitionAssignment(instance, prevState));
             assignedPartitions.add(pId);
-            LOG.debug(String
-                .format(
-                    "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
-                    pName, instance, prevState));
+            if (LOG.isDebugEnabled()) {
+              LOG.debug(String
+                  .format(
+                      "Task partition %s has a pending state transition on instance %s. Using the previous ideal state which was %s.",
+                      pName, instance, prevState));
+            }
           }
 
           continue;

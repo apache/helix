@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 
@@ -140,10 +141,10 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
         for (String instance : instances) {
-          String pending =
+          Message pendingMessage =
               currStateOutput.getPendingState(tgtIs.getResourceName(), new Partition(pName),
                   instance);
-          if (pending != null) {
+          if (pendingMessage != null) {
             continue;
           }
           String s =

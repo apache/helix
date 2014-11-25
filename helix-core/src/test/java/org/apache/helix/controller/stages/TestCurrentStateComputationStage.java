@@ -82,7 +82,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     CurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
     String pendingState =
         output2.getPendingState("testResourceName", new Partition("testResourceName_1"),
-            "localhost_3");
+            "localhost_3").getToState();
     AssertJUnit.assertEquals(pendingState, "SLAVE");
 
     ZNRecord record1 = new ZNRecord("testResourceName");

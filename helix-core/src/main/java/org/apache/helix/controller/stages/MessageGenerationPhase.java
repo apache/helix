@@ -75,6 +75,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
       StateModelDefinition stateModelDef = cache.getStateModelDef(resource.getStateModelDefRef());
 
       for (Partition partition : resource.getPartitions()) {
+
         Map<String, String> instanceStateMap =
             bestPossibleStateOutput.getInstanceStateMap(resourceName, partition);
 
@@ -96,7 +97,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
             continue;
           }
 
-          String pendingState =
+          Message pendingMessage =
               currentStateOutput.getPendingState(resourceName, partition, instanceName);
 
           String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
@@ -107,7 +108,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
             continue;
           }
 
-          if (pendingState != null) {
+          if (pendingMessage != null) {
+            String pendingState = pendingMessage.getToState();
             if (nextState.equalsIgnoreCase(pendingState)) {
               logger.debug("Message already exists for " + instanceName + " to transit "
                   + partition.getPartitionName() + " from " + currentState + " to " + nextState);
@@ -121,10 +123,12 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                   + pendingState + ", currentState: " + currentState + ", nextState: " + nextState);
             }
           } else {
+
             Message message =
                 createMessage(manager, resourceName, partition.getPartitionName(), instanceName,
                     currentState, nextState, sessionIdMap.get(instanceName), stateModelDef.getId(),
                     resource.getStateModelFactoryname(), bucketSize);
+
             IdealState idealState = cache.getIdealState(resourceName);
             if (idealState != null
                 && idealState.getStateModelDefRef().equalsIgnoreCase(

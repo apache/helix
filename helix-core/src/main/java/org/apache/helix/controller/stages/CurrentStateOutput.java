@@ -25,13 +25,20 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 
 import com.google.common.collect.Sets;
 
+/**
+ * The current state includes both current state and pending messages
+ * For pending messages, we consider both toState and fromState
+ * Pending message prevents controller sending transitions that may potentially violate state
+ * constraints @see HELIX-541
+ */
 public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
-  private final Map<String, Map<Partition, Map<String, String>>> _pendingStateMap;
+  private final Map<String, Map<Partition, Map<String, Message>>> _pendingStateMap;
   // Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the
   // REQUESTED_STATE
   // field in the CURRENTSTATES node.
@@ -47,7 +54,7 @@ public class CurrentStateOutput {
 
   public CurrentStateOutput() {
     _currentStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
-    _pendingStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
+    _pendingStateMap = new HashMap<String, Map<Partition, Map<String, Message>>>();
     _resourceStateModelMap = new HashMap<String, String>();
     _curStateMetaMap = new HashMap<String, CurrentState>();
     _requestedStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
@@ -114,14 +121,14 @@ public class CurrentStateOutput {
   }
 
   public void setPendingState(String resourceName, Partition partition, String instanceName,
-      String state) {
+      Message message) {
     if (!_pendingStateMap.containsKey(resourceName)) {
-      _pendingStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+      _pendingStateMap.put(resourceName, new HashMap<Partition, Map<String, Message>>());
     }
     if (!_pendingStateMap.get(resourceName).containsKey(partition)) {
-      _pendingStateMap.get(resourceName).put(partition, new HashMap<String, String>());
+      _pendingStateMap.get(resourceName).put(partition, new HashMap<String, Message>());
     }
-    _pendingStateMap.get(resourceName).get(partition).put(instanceName, state);
+    _pendingStateMap.get(resourceName).get(partition).put(instanceName, message);
   }
 
   /**
@@ -169,12 +176,12 @@ public class CurrentStateOutput {
    * @param resourceName
    * @param partition
    * @param instanceName
-   * @return
+   * @return pending message
    */
-  public String getPendingState(String resourceName, Partition partition, String instanceName) {
-    Map<Partition, Map<String, String>> map = _pendingStateMap.get(resourceName);
+  public Message getPendingState(String resourceName, Partition partition, String instanceName) {
+    Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
     if (map != null) {
-      Map<String, String> instanceStateMap = map.get(partition);
+      Map<String, Message> instanceStateMap = map.get(partition);
       if (instanceStateMap != null) {
         return instanceStateMap.get(instanceName);
       }
@@ -199,14 +206,35 @@ public class CurrentStateOutput {
   }
 
   /**
-   * given (resource, partition), returns (instance->toState) map
+   * Given (resource, partition), returns (instance->toState) map
    * @param resourceName
    * @param partition
-   * @return
+   * @return pending target state map
    */
   public Map<String, String> getPendingStateMap(String resourceName, Partition partition) {
     if (_pendingStateMap.containsKey(resourceName)) {
-      Map<Partition, Map<String, String>> map = _pendingStateMap.get(resourceName);
+      Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
+      if (map.containsKey(partition)) {
+        Map<String, Message> pendingMsgMap = map.get(partition);
+        Map<String, String> pendingStateMap = new HashMap<String, String>();
+        for (String instance : pendingMsgMap.keySet()) {
+          pendingStateMap.put(instance, pendingMsgMap.get(instance).getToState());
+        }
+        return pendingStateMap;
+      }
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * Given (resource, partition), returns (instance->pendingMessage) map
+   * @param resourceName
+   * @param partition
+   * @return pending messages map
+   */
+  public Map<String, Message> getPendingMessageMap(String resourceName, Partition partition) {
+    if (_pendingStateMap.containsKey(resourceName)) {
+      Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
       if (map.containsKey(partition)) {
         return map.get(partition);
       }
@@ -221,7 +249,7 @@ public class CurrentStateOutput {
    */
   public Set<Partition> getCurrentStateMappedPartitions(String resourceId) {
     Map<Partition, Map<String, String>> currentStateMap = _currentStateMap.get(resourceId);
-    Map<Partition, Map<String, String>> pendingStateMap = _pendingStateMap.get(resourceId);
+    Map<Partition, Map<String, Message>> pendingStateMap = _pendingStateMap.get(resourceId);
     Set<Partition> partitionSet = Sets.newHashSet();
     if (currentStateMap != null) {
       partitionSet.addAll(currentStateMap.keySet());

@@ -24,16 +24,38 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.stages.MessageSelectionStage;
 import org.apache.helix.controller.stages.MessageSelectionStage.Bounds;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.Message.MessageState;
+import org.apache.helix.model.Message.MessageType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestMsgSelectionStage {
+  private Message newMessage(String resourceName, String partitionName, String instanceName,
+      String fromState, String toState) {
+    String uuid = UUID.randomUUID().toString();
+    Message message = new Message(MessageType.STATE_TRANSITION, uuid);
+    message.setSrcName("controller");
+    message.setTgtName(instanceName);
+    message.setMsgState(MessageState.NEW);
+    message.setResourceName(resourceName);
+    message.setPartitionName(partitionName);
+    message.setFromState(fromState);
+    message.setToState(toState);
+    message.setTgtSessionId("sessionId");
+    message.setSrcSessionId("sessionId");
+    message.setStateModelDef("MasterSlave");
+    message.setStateModelFactoryName("DEFAULT");
+    message.setBucketSize(0);
+    return message;
+  }
+
   @Test
   public void testMasterXfer() {
     System.out.println("START testMasterXfer at " + new Date(System.currentTimeMillis()));
@@ -46,7 +68,7 @@ public class TestMsgSelectionStage {
     currentStates.put("localhost_0", "SLAVE");
     currentStates.put("localhost_1", "MASTER");
 
-    Map<String, String> pendingStates = new HashMap<String, String>();
+    Map<String, Message> pendingMessages = new HashMap<String, Message>();
 
     List<Message> messages = new ArrayList<Message>();
     messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
@@ -63,7 +85,7 @@ public class TestMsgSelectionStage {
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
     List<Message> selectedMsg =
-        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingMessages,
             messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 1);
@@ -84,8 +106,8 @@ public class TestMsgSelectionStage {
     currentStates.put("localhost_0", "SLAVE");
     currentStates.put("localhost_1", "SLAVE");
 
-    Map<String, String> pendingStates = new HashMap<String, String>();
-    pendingStates.put("localhost_1", "MASTER");
+    Map<String, Message> pendingMessages = new HashMap<String, Message>();
+    pendingMessages.put("localhost_1", newMessage("TestDB", "TestDB_0", "localhost_1", "SLAVE", "MASTER"));
 
     List<Message> messages = new ArrayList<Message>();
     messages.add(TestHelper.createMessage("msgId_0", "SLAVE", "MASTER", "localhost_0", "TestDB",
@@ -100,7 +122,7 @@ public class TestMsgSelectionStage {
     stateTransitionPriorities.put("SLAVE-MASTER", 1);
 
     List<Message> selectedMsg =
-        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingStates,
+        new MessageSelectionStage().selectMessages(liveInstances, currentStates, pendingMessages,
             messages, stateConstraints, stateTransitionPriorities, "OFFLINE");
 
     Assert.assertEquals(selectedMsg.size(), 0);

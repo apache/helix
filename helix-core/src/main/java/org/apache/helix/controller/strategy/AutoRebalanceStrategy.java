@@ -351,8 +351,7 @@ public class AutoRebalanceStrategy {
     int replicas = Math.min(countStateReplicas(), preferenceList.size());
 
     // make this a LinkedHashSet to preserve iteration order
-    // truncate preference list to match replicas, @see HELIX-547
-    Set<String> notAssigned = new LinkedHashSet<String>(preferenceList.subList(0, replicas));
+    Set<String> notAssigned = new LinkedHashSet<String>(preferenceList);
     for (int i = 0; i < replicas; i++) {
       String state = _stateMap.get(i);
       String node = getMinimumNodeForReplica(state, notAssigned, nodeReplicaCounts);
@@ -438,21 +437,11 @@ public class AutoRebalanceStrategy {
         for (int replicaId = 0; replicaId < count; replicaId++) {
           Replica replica = new Replica(partition, replicaId);
           if (_preferredAssignment.get(replica).id != node.id
-              && !_existingPreferredAssignment.containsKey(replica)) {
-            if (!existingNonPreferredAssignment.containsKey(replica)) {
-              existingNonPreferredAssignment.put(replica, node);
-              node.nonPreferred.add(replica);
-            } else {
-              // if we have more than 1 existing non-preferred assignment, choose the node with more head-room
-              // this intends to make algorithm deterministic, @see HELIX-547
-              Node curNode = existingNonPreferredAssignment.get(replica);
-              int curHeadroom = curNode.capacity - curNode.currentlyAssigned;
-              int newHeadroon = node.capacity - node.currentlyAssigned;
-              if (newHeadroon > curHeadroom) {
-                existingNonPreferredAssignment.put(replica, node);
-                node.nonPreferred.add(replica);
-              }
-            }
+              && !_existingPreferredAssignment.containsKey(replica)
+              && !existingNonPreferredAssignment.containsKey(replica)) {
+            existingNonPreferredAssignment.put(replica, node);
+            node.nonPreferred.add(replica);
+
             break;
           }
         }
@@ -586,11 +575,11 @@ public class AutoRebalanceStrategy {
     public int currentlyAssigned;
     public int capacity;
     public boolean hasCeilingCapacity;
-    private String id;
+    private final String id;
     boolean isAlive;
-    private List<Replica> preferred;
-    private List<Replica> nonPreferred;
-    private Set<Replica> newReplicas;
+    private final List<Replica> preferred;
+    private final List<Replica> nonPreferred;
+    private final Set<Replica> newReplicas;
 
     public Node(String id) {
       preferred = new ArrayList<Replica>();
@@ -696,7 +685,7 @@ public class AutoRebalanceStrategy {
     @Override
     public int compareTo(Replica that) {
       if (that instanceof Replica) {
-        return this.format.compareTo(((Replica) that).format);
+        return this.format.compareTo(that.format);
       }
       return -1;
     }

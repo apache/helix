@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -68,7 +69,9 @@ public final class ZKUtil {
     for (String path : requiredPaths) {
       if (!zkClient.exists(path)) {
         isValid = false;
-        logger.info("Invalid cluster setup, missing znode path: " + path);
+        if (logger.isDebugEnabled()) {
+          logger.debug("Invalid cluster setup, missing znode path: " + path);
+        }
       }
     }
     return isValid;

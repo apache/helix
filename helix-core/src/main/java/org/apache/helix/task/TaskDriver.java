@@ -39,6 +39,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.AccessOption;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
@@ -46,9 +47,17 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.store.HelixPropertyStore;
+import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
@@ -74,7 +83,9 @@ public class TaskDriver {
   /** Field for specifying a workflow file when starting a job */
   private static final String WORKFLOW_FILE_OPTION = "file";
 
-  private final HelixManager _manager;
+  private final HelixDataAccessor _accessor;
+  private final ConfigAccessor _cfgAccessor;
+  private final HelixPropertyStore<ZNRecord> _propertyStore;
   private final HelixAdmin _admin;
   private final String _clusterName;
 
@@ -88,9 +99,27 @@ public class TaskDriver {
   }
 
   public TaskDriver(HelixManager manager) {
-    _manager = manager;
-    _clusterName = manager.getClusterName();
-    _admin = manager.getClusterManagmentTool();
+    this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(), manager
+        .getConfigAccessor(), manager.getHelixPropertyStore(), manager.getClusterName());
+  }
+
+  public TaskDriver(ZkClient client, String clusterName) {
+    this(client, new ZkBaseDataAccessor<ZNRecord>(client), clusterName);
+  }
+
+  public TaskDriver(ZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor, String clusterName) {
+    this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
+        new ConfigAccessor(client), new ZkHelixPropertyStore<ZNRecord>(baseAccessor,
+            PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName), null), clusterName);
+  }
+
+  public TaskDriver(HelixAdmin admin, HelixDataAccessor accessor, ConfigAccessor cfgAccessor,
+      HelixPropertyStore<ZNRecord> propertyStore, String clusterName) {
+    _admin = admin;
+    _accessor = accessor;
+    _cfgAccessor = cfgAccessor;
+    _propertyStore = propertyStore;
+    _clusterName = clusterName;
   }
 
   /**
@@ -173,11 +202,10 @@ public class TaskDriver {
   /** Creates a new named job queue (workflow) */
   public void createQueue(JobQueue queue) throws Exception {
     String queueName = queue.getName();
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     HelixProperty property = new HelixProperty(queueName);
     property.getRecord().getSimpleFields().putAll(queue.getResourceConfigMap());
     boolean created =
-        accessor.createProperty(accessor.keyBuilder().resourceConfig(queueName), property);
+        _accessor.createProperty(_accessor.keyBuilder().resourceConfig(queueName), property);
     if (!created) {
       throw new IllegalArgumentException("Queue " + queueName + " already exists!");
     }
@@ -185,21 +213,21 @@ public class TaskDriver {
 
   /** Flushes a named job queue */
   public void flushQueue(String queueName) throws Exception {
-    WorkflowConfig config = TaskUtil.getWorkflowCfg(_manager, queueName);
+    WorkflowConfig config =
+        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
     if (config == null) {
       throw new IllegalArgumentException("Queue does not exist!");
     }
 
     // Remove all ideal states and resource configs to trigger a drop event
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
     final Set<String> toRemove = Sets.newHashSet(config.getJobDag().getAllNodes());
     for (String resourceName : toRemove) {
-      accessor.removeProperty(keyBuilder.idealStates(resourceName));
-      accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
+      _accessor.removeProperty(keyBuilder.idealStates(resourceName));
+      _accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
       // Delete context
       String contextKey = Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName);
-      _manager.getHelixPropertyStore().remove(contextKey, AccessOption.PERSISTENT);
+      _propertyStore.remove(contextKey, AccessOption.PERSISTENT);
     }
 
     // Now atomically clear the DAG
@@ -227,7 +255,7 @@ public class TaskDriver {
         return currentData;
       }
     };
-    accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+    _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
 
     // Now atomically clear the results
     path =
@@ -243,16 +271,15 @@ public class TaskDriver {
         return currentData;
       }
     };
-    _manager.getHelixPropertyStore().update(path, updater, AccessOption.PERSISTENT);
+    _propertyStore.update(path, updater, AccessOption.PERSISTENT);
   }
 
   /** Adds a new job to the end an existing named queue */
   public void enqueueJob(final String queueName, final String jobName, JobConfig.Builder jobBuilder)
       throws Exception {
     // Get the job queue config and capacity
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     HelixProperty workflowConfig =
-        accessor.getProperty(accessor.keyBuilder().resourceConfig(queueName));
+        _accessor.getProperty(_accessor.keyBuilder().resourceConfig(queueName));
     if (workflowConfig == null) {
       throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
     }
@@ -307,8 +334,8 @@ public class TaskDriver {
         return currentData;
       }
     };
-    String path = accessor.keyBuilder().resourceConfig(queueName).getPath();
-    boolean status = accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+    String path = _accessor.keyBuilder().resourceConfig(queueName).getPath();
+    boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
       throw new IllegalArgumentException("Could not enqueue job");
     }
@@ -327,8 +354,7 @@ public class TaskDriver {
     _admin.addResource(_clusterName, jobResource, numPartitions, TaskConstants.STATE_MODEL_NAME);
 
     // Set the job configuration
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
     HelixProperty resourceConfig = new HelixProperty(jobResource);
     resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
@@ -337,7 +363,7 @@ public class TaskDriver {
         resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
       }
     }
-    accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
+    _accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
 
     // Push out new ideal state based on number of target partitions
     CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
@@ -378,8 +404,7 @@ public class TaskDriver {
     setSingleWorkflowTargetState(workflowName, state);
 
     // For recurring schedules, child workflows must also be handled
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-    List<String> resources = accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+    List<String> resources = _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
     String prefix = workflowName + "_" + TaskConstants.SCHEDULED;
     for (String resource : resources) {
       if (resource.startsWith(prefix)) {
@@ -390,7 +415,6 @@ public class TaskDriver {
 
   /** Helper function to change target state for a given workflow */
   private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -405,18 +429,18 @@ public class TaskDriver {
     List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
     updaters.add(updater);
     List<String> paths = Lists.newArrayList();
-    paths.add(accessor.keyBuilder().resourceConfig(workflowName).getPath());
-    accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
+    paths.add(_accessor.keyBuilder().resourceConfig(workflowName).getPath());
+    _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     invokeRebalance();
   }
 
   public void list(String resource) {
-    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, resource);
+    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, resource);
     if (wCfg == null) {
       LOG.error("Workflow " + resource + " does not exist!");
       return;
     }
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, resource);
 
     LOG.info("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
@@ -430,8 +454,8 @@ public class TaskDriver {
       LOG.info("Job " + job + " is " + jobState);
 
       // fetch job information
-      JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);
-      JobContext jCtx = TaskUtil.getJobContext(_manager, job);
+      JobConfig jCfg = TaskUtil.getJobCfg(_accessor, job);
+      JobContext jCtx = TaskUtil.getJobContext(_propertyStore, job);
       if (jCfg == null || jCtx == null) {
         LOG.info("-------");
         continue;
@@ -472,8 +496,7 @@ public class TaskDriver {
     for (String resource : _admin.getResourcesInCluster(_clusterName)) {
       IdealState is = _admin.getResourceIdealState(_clusterName, resource);
       if (is.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        accessor.updateProperty(accessor.keyBuilder().idealStates(resource), is);
+        _accessor.updateProperty(_accessor.keyBuilder().idealStates(resource), is);
         break;
       }
     }

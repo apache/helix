@@ -100,7 +100,7 @@ public class Workflow {
    * the following
    * form:
    * <p/>
-   * 
+   *
    * <pre>
    * name: MyFlow
    * jobs:
@@ -132,47 +132,49 @@ public class Workflow {
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
     Builder builder = new Builder(wf.name);
 
-    for (JobBean job : wf.jobs) {
-      if (job.name == null) {
-        throw new IllegalArgumentException("A job must have a name.");
-      }
-
-      if (job.parents != null) {
-        for (String parent : job.parents) {
-          builder.addParentChildDependency(parent, job.name);
+    if (wf != null) {
+      for (JobBean job : wf.jobs) {
+        if (job.name == null) {
+          throw new IllegalArgumentException("A job must have a name.");
         }
-      }
 
-      builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
-      builder.addConfig(job.name, JobConfig.COMMAND, job.command);
-      if (job.jobConfigMap != null) {
-        builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
-      }
-      builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
-      if (job.targetPartitionStates != null) {
-        builder.addConfig(job.name, JobConfig.TARGET_PARTITION_STATES,
-            Joiner.on(",").join(job.targetPartitionStates));
-      }
-      if (job.targetPartitions != null) {
-        builder.addConfig(job.name, JobConfig.TARGET_PARTITIONS,
-            Joiner.on(",").join(job.targetPartitions));
-      }
-      builder.addConfig(job.name, JobConfig.MAX_ATTEMPTS_PER_TASK,
-          String.valueOf(job.maxAttemptsPerTask));
-      builder.addConfig(job.name, JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK,
-          String.valueOf(job.maxForcedReassignmentsPerTask));
-      builder.addConfig(job.name, JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE,
-          String.valueOf(job.numConcurrentTasksPerInstance));
-      builder.addConfig(job.name, JobConfig.TIMEOUT_PER_TASK,
-          String.valueOf(job.timeoutPerPartition));
-      builder
-          .addConfig(job.name, JobConfig.FAILURE_THRESHOLD, String.valueOf(job.failureThreshold));
-      if (job.tasks != null) {
-        List<TaskConfig> taskConfigs = Lists.newArrayList();
-        for (TaskBean task : job.tasks) {
-          taskConfigs.add(TaskConfig.from(task));
+        if (job.parents != null) {
+          for (String parent : job.parents) {
+            builder.addParentChildDependency(parent, job.name);
+          }
         }
-        builder.addTaskConfigs(job.name, taskConfigs);
+
+        builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
+        builder.addConfig(job.name, JobConfig.COMMAND, job.command);
+        if (job.jobConfigMap != null) {
+          builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
+        }
+        builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
+        if (job.targetPartitionStates != null) {
+          builder.addConfig(job.name, JobConfig.TARGET_PARTITION_STATES,
+              Joiner.on(",").join(job.targetPartitionStates));
+        }
+        if (job.targetPartitions != null) {
+          builder.addConfig(job.name, JobConfig.TARGET_PARTITIONS,
+              Joiner.on(",").join(job.targetPartitions));
+        }
+        builder.addConfig(job.name, JobConfig.MAX_ATTEMPTS_PER_TASK,
+            String.valueOf(job.maxAttemptsPerTask));
+        builder.addConfig(job.name, JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK,
+            String.valueOf(job.maxForcedReassignmentsPerTask));
+        builder.addConfig(job.name, JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE,
+            String.valueOf(job.numConcurrentTasksPerInstance));
+        builder.addConfig(job.name, JobConfig.TIMEOUT_PER_TASK,
+            String.valueOf(job.timeoutPerPartition));
+        builder.addConfig(job.name, JobConfig.FAILURE_THRESHOLD,
+            String.valueOf(job.failureThreshold));
+        if (job.tasks != null) {
+          List<TaskConfig> taskConfigs = Lists.newArrayList();
+          for (TaskBean task : job.tasks) {
+            taskConfigs.add(TaskConfig.from(task));
+          }
+          builder.addTaskConfigs(job.name, taskConfigs);
+        }
       }
     }
 

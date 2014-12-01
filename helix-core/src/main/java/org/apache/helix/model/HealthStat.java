@@ -26,7 +26,6 @@ import java.util.Map;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.Message.Attributes;
-import org.apache.log4j.Logger;
 
 /**
  * Represents a set of properties that can be queried to determine the health of instances on a

@@ -21,19 +21,15 @@ package org.apache.helix.integration;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
-import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.HelixControllerMain;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
@@ -50,7 +46,6 @@ import org.apache.helix.tools.TestExecutor;
 import org.apache.helix.tools.TestTrigger;
 import org.apache.helix.tools.ZnodeOpArg;
 import org.apache.helix.tools.TestCommand.CommandType;
-import org.apache.helix.tools.TestCommand.NodeOpArg;
 import org.apache.helix.tools.TestExecutor.ZnodePropertyType;
 import org.apache.log4j.Logger;
 import org.testng.Assert;

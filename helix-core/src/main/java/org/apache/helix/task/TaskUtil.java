@@ -41,6 +41,7 @@ import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
@@ -59,13 +60,13 @@ public class TaskUtil {
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
-   * @param manager HelixManager object used to connect to Helix.
-   * @param jobResource The name of the job resource.
+   * @param accessor Accessor to access Helix configs
+   * @param jobResource The name of the job resource
    * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
    *         otherwise.
    */
-  public static JobConfig getJobCfg(HelixManager manager, String jobResource) {
-    HelixProperty jobResourceConfig = getResourceConfig(manager, jobResource);
+  public static JobConfig getJobCfg(HelixDataAccessor accessor, String jobResource) {
+    HelixProperty jobResourceConfig = getResourceConfig(accessor, jobResource);
     if (jobResourceConfig == null) {
       return null;
     }
@@ -83,6 +84,38 @@ public class TaskUtil {
   }
 
   /**
+   * Parses job resource configurations in Helix into a {@link JobConfig} object.
+   * @param manager HelixManager object used to connect to Helix.
+   * @param jobResource The name of the job resource.
+   * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
+   *         otherwise.
+   */
+  public static JobConfig getJobCfg(HelixManager manager, String jobResource) {
+    return getJobCfg(manager.getHelixDataAccessor(), jobResource);
+  }
+
+  /**
+   * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
+   * @param cfgAccessor Config accessor to access Helix configs
+   * @param accessor Accessor to access Helix configs
+   * @param clusterName Cluster name
+   * @param workflowResource The name of the workflow resource.
+   * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
+   *         workflow, null otherwise.
+   */
+  public static WorkflowConfig getWorkflowCfg(ConfigAccessor cfgAccessor,
+      HelixDataAccessor accessor, String clusterName, String workflowResource) {
+    Map<String, String> workflowCfg =
+        getResourceConfigMap(cfgAccessor, accessor, clusterName, workflowResource);
+    if (workflowCfg == null) {
+      return null;
+    }
+    WorkflowConfig.Builder b = WorkflowConfig.Builder.fromMap(workflowCfg);
+
+    return b.build();
+  }
+
+  /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
    * @param manager Helix manager object used to connect to Helix.
    * @param workflowResource The name of the workflow resource.
@@ -90,13 +123,8 @@ public class TaskUtil {
    *         workflow, null otherwise.
    */
   public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflowResource) {
-    Map<String, String> workflowCfg = getResourceConfigMap(manager, workflowResource);
-    if (workflowCfg == null) {
-      return null;
-    }
-    WorkflowConfig.Builder b = WorkflowConfig.Builder.fromMap(workflowCfg);
-
-    return b.build();
+    return getWorkflowCfg(manager.getConfigAccessor(), manager.getHelixDataAccessor(),
+        manager.getClusterName(), workflowResource);
   }
 
   /**
@@ -168,16 +196,27 @@ public class TaskUtil {
 
   /**
    * Get the runtime context of a single job
+   * @param propertyStore Property store for the cluster
+   * @param jobResource The name of the job
+   * @return the {@link JobContext}, or null if none is available
+   */
+  public static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
+      String jobResource) {
+    ZNRecord r =
+        propertyStore.get(
+            Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
+            null, AccessOption.PERSISTENT);
+    return r != null ? new JobContext(r) : null;
+  }
+
+  /**
+   * Get the runtime context of a single job
    * @param manager a connection to Helix
    * @param jobResource the name of the job
    * @return the {@link JobContext}, or null if none is available
    */
   public static JobContext getJobContext(HelixManager manager, String jobResource) {
-    ZNRecord r =
-        manager.getHelixPropertyStore().get(
-            Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
-            null, AccessOption.PERSISTENT);
-    return r != null ? new JobContext(r) : null;
+    return getJobContext(manager.getHelixPropertyStore(), jobResource);
   }
 
   /**
@@ -193,21 +232,32 @@ public class TaskUtil {
   }
 
   /**
-   * Get the rumtime context of a single workflow
-   * @param manager a connection to Helix
-   * @param workflowResource the name of the workflow
+   * Get the runtime context of a single workflow
+   * @param propertyStore Property store of the cluster
+   * @param workflowResource The name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
-  public static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
+  public static WorkflowContext getWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
+      String workflowResource) {
     ZNRecord r =
-        manager.getHelixPropertyStore().get(
+        propertyStore.get(
             Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource,
                 CONTEXT_NODE), null, AccessOption.PERSISTENT);
     return r != null ? new WorkflowContext(r) : null;
   }
 
   /**
-   * Set the rumtime context of a single workflow
+   * Get the runtime context of a single workflow
+   * @param manager a connection to Helix
+   * @param workflowResource the name of the workflow
+   * @return the {@link WorkflowContext}, or null if none is available
+   */
+  public static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
+    return getWorkflowContext(manager.getHelixPropertyStore(), workflowResource);
+  }
+
+  /**
+   * Set the runtime context of a single workflow
    * @param manager a connection to Helix
    * @param workflowResource the name of the workflow
    * @param ctx the up-to-date {@link WorkflowContext} for the workflow
@@ -403,25 +453,19 @@ public class TaskUtil {
     return builder.build();
   }
 
-  private static Map<String, String> getResourceConfigMap(HelixManager manager, String resource) {
-    HelixConfigScope scope = getResourceConfigScope(manager.getClusterName(), resource);
-    ConfigAccessor configAccessor = manager.getConfigAccessor();
+  private static Map<String, String> getResourceConfigMap(ConfigAccessor cfgAccessor,
+      HelixDataAccessor accessor, String clusterName, String resource) {
+    HelixConfigScope scope = getResourceConfigScope(clusterName, resource);
 
-    Map<String, String> taskCfg = new HashMap<String, String>();
-    List<String> cfgKeys = configAccessor.getKeys(scope);
+    List<String> cfgKeys = cfgAccessor.getKeys(scope);
     if (cfgKeys == null || cfgKeys.isEmpty()) {
       return null;
     }
 
-    for (String cfgKey : cfgKeys) {
-      taskCfg.put(cfgKey, configAccessor.get(scope, cfgKey));
-    }
-
-    return getResourceConfig(manager, resource).getRecord().getSimpleFields();
+    return getResourceConfig(accessor, resource).getRecord().getSimpleFields();
   }
 
-  private static HelixProperty getResourceConfig(HelixManager manager, String resource) {
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+  private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.resourceConfig(resource));
   }

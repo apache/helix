@@ -34,7 +34,6 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.BatchMessageHandler;
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
-import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandler;
 import org.apache.helix.messaging.handling.TaskExecutor;
 import org.apache.helix.model.CurrentState;

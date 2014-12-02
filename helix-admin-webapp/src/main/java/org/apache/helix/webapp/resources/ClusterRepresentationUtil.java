@@ -53,9 +53,7 @@ public class ClusterRepresentationUtil {
   private static final ZNRecord EMPTY_ZNRECORD = new ZNRecord("EMPTY_ZNRECORD");
 
   public static String getClusterPropertyAsString(ZkClient zkClient, String clusterName,
-      PropertyKey propertyKey,
-      // String key,
-      MediaType mediaType)
+      PropertyKey propertyKey, MediaType mediaType)
 
   throws JsonGenerationException, JsonMappingException, IOException {
     return getClusterPropertyAsString(zkClient, clusterName, mediaType, propertyKey);

@@ -43,6 +43,9 @@ import org.apache.helix.webapp.resources.ExternalViewResource;
 import org.apache.helix.webapp.resources.IdealStateResource;
 import org.apache.helix.webapp.resources.InstanceResource;
 import org.apache.helix.webapp.resources.InstancesResource;
+import org.apache.helix.webapp.resources.JobQueuesResource;
+import org.apache.helix.webapp.resources.JobQueueResource;
+import org.apache.helix.webapp.resources.JobResource;
 import org.apache.helix.webapp.resources.ResourceGroupResource;
 import org.apache.helix.webapp.resources.ResourceGroupsResource;
 import org.apache.helix.webapp.resources.SchedulerTasksResource;
@@ -92,6 +95,9 @@ public class RestAdminApplication extends Application {
     router.attach("/clusters/{clusterName}/resourceGroups/{resourceName}",
         ResourceGroupResource.class);
     router.attach("/clusters/{clusterName}/workflows", WorkflowsResource.class);
+    router.attach("/clusters/{clusterName}/jobQueues", JobQueuesResource.class);
+    router.attach("/clusters/{clusterName}/jobQueues/{jobQueue}", JobQueueResource.class);
+    router.attach("/clusters/{clusterName}/jobQueues/{jobQueue}/{job}", JobResource.class);
     router.attach("/clusters/{clusterName}/instances", InstancesResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}", InstanceResource.class);
     router.attach("/clusters/{clusterName}/instances/{instanceName}/currentState/{resourceName}",

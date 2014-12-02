@@ -792,7 +792,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
        */
       _disconnectTimeHistory.add(System.currentTimeMillis());
       if (isFlapping()) {
-        LOG.error("instanceName: " + _instanceName + " is flapping. diconnect it. "
+        LOG.error("instanceName: " + _instanceName + " is flapping. disconnect it. "
             + " maxDisconnectThreshold: " + _maxDisconnectThreshold + " disconnects in "
             + _flappingTimeWindowMs + "ms.");
         disconnect();

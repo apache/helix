@@ -58,9 +58,10 @@ public class AdminTestBase {
     AssertJUnit.assertTrue(_zkServer != null);
     ZKClientPool.reset();
 
-    _gZkClient = new ZkClient(ZK_ADDR);
-    _gZkClient.setZkSerializer(new ZNRecordSerializer());
-    _gSetupTool = new ClusterSetup(ZK_ADDR);
+    _gZkClient =
+        new ZkClient(ZK_ADDR, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
+            ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());
+    _gSetupTool = new ClusterSetup(_gZkClient);
 
     // start admin
     _adminThread = new AdminThread(ZK_ADDR, ADMIN_PORT);

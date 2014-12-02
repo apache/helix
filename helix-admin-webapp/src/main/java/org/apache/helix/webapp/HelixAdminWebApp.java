@@ -28,12 +28,12 @@ import org.restlet.data.Protocol;
 
 public class HelixAdminWebApp {
   public final Logger LOG = Logger.getLogger(HelixAdminWebApp.class);
-  RestAdminApplication _adminApp = null;
-  Component _component = null;
+  private RestAdminApplication _adminApp = null;
+  private Component _component = null;
 
-  int _helixAdminPort;
-  String _zkServerAddress;
-  ZkClient _zkClient;
+  private final int _helixAdminPort;
+  private final String _zkServerAddress;
+  private ZkClient _zkClient = null;
 
   public HelixAdminWebApp(String zkServerAddress, int adminPort) {
     _zkServerAddress = zkServerAddress;
@@ -58,14 +58,16 @@ public class HelixAdminWebApp {
       _component.getDefaultHost().attach(_adminApp);
       _component.start();
     }
-    LOG.info("helixAdminWebApp started on port " + _helixAdminPort);
+    LOG.info("helixAdminWebApp started on port: " + _helixAdminPort);
   }
 
   public synchronized void stop() {
+    LOG.info("Stopping helixAdminWebApp");
     try {
       _component.stop();
+      LOG.info("Stopped helixAdminWebApp");
     } catch (Exception e) {
-      LOG.error("", e);
+      LOG.error("Exception in stopping helixAdminWebApp", e);
     } finally {
       if (_zkClient != null) {
         _zkClient.close();

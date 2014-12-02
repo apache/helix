@@ -90,12 +90,13 @@ public class TaskDriver {
   private final String _clusterName;
 
   /** Commands which may be parsed from the first argument to main */
-  private enum DriverCommand {
+  public enum DriverCommand {
     start,
     stop,
     delete,
     resume,
-    list
+    list,
+    flush
   }
 
   public TaskDriver(HelixManager manager) {
@@ -166,6 +167,10 @@ public class TaskDriver {
         break;
       case list:
         driver.list(resource);
+        break;
+      case flush:
+        driver.flushQueue(resource);
+        break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
       }

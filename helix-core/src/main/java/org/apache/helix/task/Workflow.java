@@ -132,7 +132,7 @@ public class Workflow {
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
     Builder builder = new Builder(wf.name);
 
-    if (wf != null) {
+    if (wf != null && wf.jobs != null) {
       for (JobBean job : wf.jobs) {
         if (job.name == null) {
           throw new IllegalArgumentException("A job must have a name.");

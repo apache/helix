@@ -96,8 +96,11 @@ public class JsonParameters {
   final Map<String, ZNRecord> _extraParameterMap = new HashMap<String, ZNRecord>();
 
   public JsonParameters(Representation entity) throws Exception {
-    Form form = new Form(entity);
+    this(new Form(entity));
 
+  }
+
+  public JsonParameters(Form form) throws Exception {
     // get parameters in String format
     String jsonPayload = form.getFirstValue(JSON_PARAMETERS, true);
     if (jsonPayload == null || jsonPayload.isEmpty()) {
@@ -151,7 +154,7 @@ public class JsonParameters {
     }
 
     if (!_parameterMap.containsKey(MANAGEMENT_COMMAND)) {
-      throw new HelixException("Missing management paramater '" + MANAGEMENT_COMMAND + "'");
+      throw new HelixException("Missing management parameter '" + MANAGEMENT_COMMAND + "'");
     }
 
     if (!_parameterMap.get(MANAGEMENT_COMMAND).equalsIgnoreCase(command)
@@ -217,25 +220,17 @@ public class JsonParameters {
       }
     } else if (command.equalsIgnoreCase(ClusterSetup.addResource)) {
       if (!_parameterMap.containsKey(RESOURCE_GROUP_NAME)) {
-        throw new HelixException("Missing Json paramaters: '" + RESOURCE_GROUP_NAME + "'");
+        throw new HelixException("Missing Json parameters: '" + RESOURCE_GROUP_NAME + "'");
       }
 
       if (!_parameterMap.containsKey(PARTITIONS)) {
-        throw new HelixException("Missing Json paramaters: '" + PARTITIONS + "'");
+        throw new HelixException("Missing Json parameters: '" + PARTITIONS + "'");
       }
 
       if (!_parameterMap.containsKey(STATE_MODEL_DEF_REF)) {
-        throw new HelixException("Missing Json paramaters: '" + STATE_MODEL_DEF_REF + "'");
+        throw new HelixException("Missing Json parameters: '" + STATE_MODEL_DEF_REF + "'");
       }
 
     }
-  }
-
-  // temp test
-  public static void main(String[] args) throws Exception {
-    String jsonPayload =
-        "{\"command\":\"resetPartition\",\"resource\": \"DB-1\",\"partition\":\"DB-1_22 DB-1_23\"}";
-    Map<String, String> map = ClusterRepresentationUtil.JsonToMap(jsonPayload);
-    System.out.println(map);
   }
 }

@@ -33,7 +33,10 @@ public class ResourceUtil {
   public enum RequestKey {
     CLUSTER_NAME("clusterName"),
     JOB_QUEUE("jobQueue"),
-    JOB("job");
+    JOB("job"),
+    CONSTRAINT_TYPE("constraintType"),
+    CONSTRAINT_ID("constraintId"),
+    RESOURCE_NAME("resourceName");
 
     private final String _key;
 

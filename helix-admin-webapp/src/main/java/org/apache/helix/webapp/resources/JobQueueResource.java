@@ -46,6 +46,12 @@ import org.restlet.resource.ServerResource;
 
 import java.util.Map;
 
+/**
+ * Class for server-side resource at <code>"/clusters/{clusterName}/jobQueues/{jobQueue}"
+ * <p>
+ * <li>GET list job queue info
+ * <li>POST start a new job in a job queue, or stop/resume/flush/delete a job queue
+ */
 public class JobQueueResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(JobQueueResource.class);
 
@@ -55,6 +61,11 @@ public class JobQueueResource extends ServerResource {
     setNegotiated(false);
   }
 
+  /**
+   * List job queue info
+   * <p>
+   * Usage: <code>curl http://{host:port}/clusters/{clusterName}/jobQueues/{jobQueue}
+   */
   @Override
   public Representation get() {
     StringRepresentation presentation;
@@ -105,6 +116,22 @@ public class JobQueueResource extends ServerResource {
     return representation;
   }
 
+  /**
+   * Start a new job in a job queue, or stop/resume/flush/delete a job queue
+   * <p>
+   * Usage:
+   * <p>
+   * <li>Start a new job in a job queue:
+   * <code>curl -d @'./{input.txt}' -H 'Content-Type: application/json'
+   * http://{host:port}/clusters/{clusterName}/jobQueues/{jobQueue}
+   * <p>
+   * input.txt: <code>jsonParameters={"command":"start"}&newJob={newJobConfig.yaml}
+   * <p>
+   * For newJobConfig.yaml, see {@link Workflow#parse(String)}
+   * <li>Stop/resume/flush/delete a job queue:
+   * <code>curl -d 'jsonParameters={"command":"{stop/resume/flush/delete}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/jobQueues/{jobQueue}
+   */
   @Override
   public Representation post(Representation entity) {
     String clusterName =
@@ -123,7 +150,8 @@ public class JobQueueResource extends ServerResource {
       switch (cmd) {
       case start: {
         // Get the job queue and submit it
-        String yamlPayload = ResourceUtil.getYamlParameters(form, ResourceUtil.YamlParamKey.NEW_JOB);
+        String yamlPayload =
+            ResourceUtil.getYamlParameters(form, ResourceUtil.YamlParamKey.NEW_JOB);
         if (yamlPayload == null) {
           throw new HelixException("Yaml job config is required!");
         }
@@ -161,7 +189,6 @@ public class JobQueueResource extends ServerResource {
       }
       getResponse().setEntity(getHostedEntitiesRepresentation(clusterName, jobQueueName));
       getResponse().setStatus(Status.SUCCESS_OK);
-
     } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);

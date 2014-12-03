@@ -38,6 +38,11 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+/**
+ * Class for server-side resource at <code>"/clusters/{clusterName}/jobQueues/{jobQueue}/{job}"
+ * <p>
+ * <li>GET list job info
+ */
 public class JobResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(JobResource.class);
 
@@ -47,6 +52,11 @@ public class JobResource extends ServerResource {
     setNegotiated(false);
   }
 
+  /**
+   * List job info
+   * <p>
+   * Usage: <code>curl http://{host:port}/clusters/{clusterName}/jobQueues/{jobQueue}/{job}
+   */
   @Override
   public Representation get() {
     StringRepresentation presentation;

@@ -30,7 +30,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -41,6 +40,13 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+/**
+ * Class for server-side resource at
+ * <code>"/clusters/{clusterName}/resourceGroups/{resourceName}/idealState"
+ * <p>
+ * <li>GET get ideal state
+ * <li>POST set ideal state
+ */
 public class IdealStateResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(IdealStateResource.class);
 
@@ -50,12 +56,20 @@ public class IdealStateResource extends ServerResource {
     setNegotiated(false);
   }
 
+  /**
+   * Get ideal state
+   * <p>
+   * Usage:
+   * <code>curl http://{host:port}/clusters/{clusterName}/resourceGroups/{resourceName}/idealState
+   */
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceName = (String) getRequest().getAttributes().get("resourceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
       presentation = getIdealStateRepresentation(clusterName, resourceName);
     }
 
@@ -71,7 +85,8 @@ public class IdealStateResource extends ServerResource {
   StringRepresentation getIdealStateRepresentation(String clusterName, String resourceName)
       throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
 
     String message =
         ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
@@ -83,13 +98,54 @@ public class IdealStateResource extends ServerResource {
     return representation;
   }
 
+  /**
+   * Set ideal state
+   * <p>
+   * Usage:
+   * <p>
+   * <li>Add ideal state:
+   * <code>curl -d @'{newIdealState.json}' -H 'Content-Type: application/json'
+   * http://{host:port}/clusters/{cluster}/resourceGroups/{resource}/idealState
+   * <pre>
+   * newIdealState:
+   * jsonParameters={"command":"addIdealState"}&newIdealState={
+   *  "id" : "{MyDB}",
+   *  "simpleFields" : {
+   *    "IDEAL_STATE_MODE" : "AUTO",
+   *    "NUM_PARTITIONS" : "{8}",
+   *    "REBALANCE_MODE" : "SEMI_AUTO",
+   *    "REPLICAS" : "0",
+   *    "STATE_MODEL_DEF_REF" : "MasterSlave",
+   *    "STATE_MODEL_FACTORY_NAME" : "DEFAULT"
+   *  },
+   *  "listFields" : {
+   *  },
+   *  "mapFields" : {
+   *    "{MyDB_0}" : {
+   *      "{localhost_1001}" : "MASTER",
+   *      "{localhost_1002}" : "SLAVE"
+   *    }
+   *  }
+   * }
+   * </pre>
+   * <li>Rebalance cluster:
+   * <code>curl -d 'jsonParameters={"command":"rebalance","replicas":"{3}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{cluster}/resourceGroups/{resource}/idealState
+   * <li>Expand resource: <code>n/a
+   * <li>Add resource property:
+   * <code>curl -d 'jsonParameters={"command":"addResourceProperty","{REBALANCE_TIMER_PERIOD}":"{500}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{cluster}/resourceGroups/{resource}/idealState
+   */
   @Override
   public Representation post(Representation entity) {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceName = (String) getRequest().getAttributes().get("resourceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
+
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
 
       JsonParameters jsonParameters = new JsonParameters(entity);

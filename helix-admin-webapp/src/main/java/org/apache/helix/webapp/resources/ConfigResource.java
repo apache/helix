@@ -33,9 +33,6 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
-import org.restlet.Context;
-import org.restlet.Request;
-import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -43,6 +40,12 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+/**
+ * Class for server-side resource at <code> "/clusters/{clusterName}/configs"
+ * <p>
+ * <li>GET get scoped configs
+ * <li>POST set/remove scoped configs
+ */
 public class ConfigResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ConfigResource.class);
 
@@ -76,15 +79,14 @@ public class ConfigResource extends ServerResource {
   StringRepresentation getConfigKeys(ConfigScopeProperty scopeProperty, String... keys)
       throws Exception {
     StringRepresentation representation = null;
-    // String clusterName = getValue("clusterName");
 
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
 
     HelixConfigScope scope = new HelixConfigScopeBuilder(scopeProperty, keys).build();
-    // List<String> configKeys = admin.getConfigKeys(scopeProperty, clusterName, keys);
     List<String> configKeys = admin.getConfigKeys(scope);
     record.setListField(scopeProperty.toString(), configKeys);
 
@@ -95,12 +97,12 @@ public class ConfigResource extends ServerResource {
     return representation;
   }
 
-  StringRepresentation getConfigs(// ConfigScope scope,
-      ConfigScopeProperty scopeProperty, String... keys) throws Exception {
+  StringRepresentation getConfigs(ConfigScopeProperty scopeProperty, String... keys)
+      throws Exception {
     StringRepresentation representation = null;
-    // String clusterName = getValue("clusterName");
 
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     HelixAdmin admin = setupTool.getClusterManagementTool();
     ZNRecord record = new ZNRecord(scopeProperty + " Config");
@@ -117,6 +119,18 @@ public class ConfigResource extends ServerResource {
     return representation;
   }
 
+  /**
+   * Get scoped configs
+   * <p>
+   * Usage:
+   * <p>
+   * <li>Get cluster-level configs:
+   * <code>curl http://{host:port}/clusters/{clusterName}/configs/cluster
+   * <li>Get instance-level configs:
+   * <code>curl http://{host:port}/clusters/{clusterName}/configs/participant/{instanceName}
+   * <li>Get resource-level configs:
+   * <code>curl http://{host:port}/clusters/{clusterName}/configs/resource/{resourceName}
+   */
   @Override
   public Representation get() {
     StringRepresentation representation = null;
@@ -143,15 +157,6 @@ public class ConfigResource extends ServerResource {
         } else {
           // path is "/clusters/{clusterName}/configs/cluster|participant|resource/
           // {clusterName}|{participantName}|{resourceName}"
-          // ConfigScope scope;
-          // if (scopeProperty == ConfigScopeProperty.CLUSTER)
-          // {
-          // scope = new ConfigScopeBuilder().build(scopeProperty, clusterName);
-          // }
-          // else
-          // {
-          // scope = new ConfigScopeBuilder().build(scopeProperty, clusterName, scopeKey1);
-          // }
           representation = getConfigs(scopeProperty, clusterName, scopeKey1);
         }
         break;
@@ -167,11 +172,6 @@ public class ConfigResource extends ServerResource {
         } else {
           // path is
           // "/clusters/{clusterName}/configs/partition/resourceName/partitionName"
-          // ConfigScope scope =
-          // new ConfigScopeBuilder().build(scopeProperty,
-          // clusterName,
-          // scopeKey1,
-          // scopeKey2);
           representation = getConfigs(scopeProperty, clusterName, scopeKey1, scopeKey2);
         }
         break;
@@ -198,13 +198,13 @@ public class ConfigResource extends ServerResource {
     JsonParameters jsonParameters = new JsonParameters(entity);
     String command = jsonParameters.getCommand();
 
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     if (command.equalsIgnoreCase(ClusterSetup.setConfig)) {
       jsonParameters.verifyCommand(ClusterSetup.setConfig);
       String propertiesStr = jsonParameters.getParameter(JsonParameters.CONFIGS);
 
-      // setupTool.setConfig(scopeStr, propertiesStr);
       setupTool.setConfig(type, scopeArgs, propertiesStr);
     } else if (command.equalsIgnoreCase(ClusterSetup.removeConfig)) {
       jsonParameters.verifyCommand(ClusterSetup.removeConfig);
@@ -221,8 +221,31 @@ public class ConfigResource extends ServerResource {
     getResponse().setStatus(Status.SUCCESS_OK);
   }
 
-
-@Override
+  /**
+   * Set/remove scoped configs
+   * <p>
+   * Usage:
+   * <p>
+   * <li>Set cluster level configs:
+   * <code>curl -d 'jsonParameters={"command":"setConfig","configs":"{key1=value1,key2=value2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/cluster
+   * <li>Remove cluster level configs:
+   * <code>curl -d 'jsonParameters={"command":"removeConfig","configs":"{key1,key2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/cluster
+   * <li>Set instance level configs:
+   * <code>curl -d 'jsonParameters={"command":"setConfig","configs":"{key1=value1,key2=value2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/participant/{instanceName}
+   * <li>Remove instance level configs:
+   * <code>curl -d 'jsonParameters={"command":"removeConfig","configs":"{key1,key2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/participant/{instanceName}
+   * <li>Set resource level configs:
+   * <code>curl -d 'jsonParameters={"command":"setConfig","configs":"{key1=value1,key2=value2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/resource/{resourceName}
+   * <li>Remove resource level configs:
+   * <code>curl -d 'jsonParameters={"command":"removeConfig","configs":"{key1,key2}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{clusterName}/configs/resource/{resourceName}
+   */
+  @Override
   public Representation post(Representation entity) {
     String clusterName = getValue("clusterName");
 

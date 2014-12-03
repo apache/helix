@@ -27,11 +27,7 @@ import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
-import org.restlet.Context;
-import org.restlet.Request;
-import org.restlet.Response;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
@@ -39,8 +35,14 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+/**
+ * Class for server-side resource at <code>"/clusters/{clusterName}/constraints/{constraintType}"
+ * <p>
+ * <li>GET list all constraints
+ * <li>POST set constraints
+ * <li>DELETE remove constraints
+ */
 public class ConstraintResource extends ServerResource {
-
   private final static Logger LOG = Logger.getLogger(ConstraintResource.class);
 
   public ConstraintResource() {
@@ -49,24 +51,26 @@ public class ConstraintResource extends ServerResource {
     setNegotiated(false);
   }
 
-  // TODO move to a util function
-  String getValue(String key) {
-    return (String) getRequest().getAttributes().get(key);
-  }
-
+  /**
+   * List all constraints
+   * <p>
+   * Usage: <code>curl http://{host:port}/clusters/{clusterName}/constraints/MESSAGE_CONSTRAINT
+   */
   @Override
   public Representation get() {
     StringRepresentation representation = null;
-    String clusterName = getValue("clusterName");
-    String constraintTypeStr = getValue("constraintType").toUpperCase();
-    String constraintId = getValue("constraintId");
+    String clusterName =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+    String constraintTypeStr =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_TYPE);
+    String constraintId =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_ID);
 
     try {
       ConstraintType constraintType = ConstraintType.valueOf(constraintTypeStr);
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-      // ClusterSetup setupTool = new ClusterSetup(zkClient);
-      HelixAdmin admin = new ZKHelixAdmin(zkClient); // setupTool.getClusterManagementTool();
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
+      HelixAdmin admin = new ZKHelixAdmin(zkClient);
 
       ZNRecord record = admin.getConstraints(clusterName, constraintType).getRecord();
       if (constraintId == null) {
@@ -96,21 +100,31 @@ public class ConstraintResource extends ServerResource {
     } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      LOG.error("", e);
+      LOG.error("Exception get constraints", e);
     }
 
     return representation;
   }
 
+  /**
+   * Set constraints
+   * <p>
+   * Usage:
+   * <code>curl -d 'jsonParameters={"constraintAttributes":"RESOURCE={resource},CONSTRAINT_VALUE={1}"}'
+   * -H "Content-Type: application/json" http://{host:port}/clusters/{cluster}/constraints/MESSAGE_CONSTRAINT/{constraintId}
+   */
   @Override
   public Representation post(Representation entity) {
-    String clusterName = getValue("clusterName");
-    String constraintTypeStr = getValue("constraintType").toUpperCase();
-    String constraintId = getValue("constraintId");
+    String clusterName =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+    String constraintTypeStr =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_TYPE);
+    String constraintId =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_ID);
 
     try {
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       JsonParameters jsonParameters = new JsonParameters(entity);
 
@@ -126,21 +140,29 @@ public class ConstraintResource extends ServerResource {
     return null;
   }
 
+  /**
+   * Remove constraints
+   * <p>
+   * Usage:
+   * <code>curl -X DELETE http://{host:port}/clusters/{cluster}/constraints/MESSAGE_CONSTRAINT/{constraintId}
+   */
   @Override
   public Representation delete() {
-    String clusterName = getValue("clusterName");
-    String constraintTypeStr = getValue("constraintType").toUpperCase();
-    String constraintId = getValue("constraintId");
+    String clusterName =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+    String constraintTypeStr =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_TYPE);
+    String constraintId =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CONSTRAINT_ID);
 
     try {
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
 
       setupTool.removeConstraint(clusterName, constraintTypeStr, constraintId);
-
     } catch (Exception e) {
-      LOG.error("Error in deleting ", e);
+      LOG.error("Error in delete constraint", e);
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);

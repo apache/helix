@@ -20,9 +20,7 @@ package org.apache.helix.webapp.resources;
  */
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -31,44 +29,56 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
-import org.restlet.data.Method;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+/**
+ * Class for server-side resource at <code> "/clusters/{clusterName}"
+ * <p>
+ * <li>GET list cluster information
+ * <li>POST activate/deactivate a cluster in distributed controller mode
+ * <li>DELETE remove a cluster
+ */
 public class ClusterResource extends ServerResource {
-    
+  private final static Logger LOG = Logger.getLogger(ClusterResource.class);
+
   public ClusterResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
     setNegotiated(false);
   }
 
+  /**
+   * List cluster information
+   * <p>
+   * Usage: <code> curl http://{host:port}/clusters/{clusterName}
+   */
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
       presentation = getClusterRepresentation(clusterName);
-    }
-
-    catch (Exception e) {
+    } catch (Exception e) {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
-      e.printStackTrace();
+      LOG.error("Exception in get cluster", e);
     }
     return presentation;
   }
 
   StringRepresentation getClusterRepresentation(String clusterName) throws JsonGenerationException,
       JsonMappingException, IOException {
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
     ClusterSetup setupTool = new ClusterSetup(zkClient);
     List<String> instances =
         setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
@@ -100,12 +110,20 @@ public class ClusterResource extends ServerResource {
     return representation;
   }
 
+  /**
+   * Activate/deactivate a cluster in distributed controller mode
+   * <p>
+   * Usage: <code> curl -d 'jsonParameters=
+   * {"command":"activateCluster","grandCluster":"{controllerCluster}","enabled":"{true/false}"}' -H
+   * "Content-Type: application/json" http://{host:port}/clusters/{clusterName}}
+   */
   @Override
   public Representation post(Representation entity) {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
 
       JsonParameters jsonParameters = new JsonParameters(entity);
@@ -143,12 +161,18 @@ public class ClusterResource extends ServerResource {
     return getResponseEntity();
   }
 
+  /**
+   * Remove a cluster
+   * <p>
+   * Usage: <code> curl -X DELETE http://{host:port}/clusters/{clusterName}
+   */
   @Override
   public Representation delete() {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
       ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
       ClusterSetup setupTool = new ClusterSetup(zkClient);
       setupTool.deleteCluster(clusterName);
       getResponse().setStatus(Status.SUCCESS_OK);

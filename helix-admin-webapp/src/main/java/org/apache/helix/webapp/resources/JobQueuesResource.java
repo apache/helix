@@ -47,6 +47,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Class for server-side resource at <code>"/clusters/{clusterName}/jobQueues"
+ * <p>
+ * <li>GET list all job queues
+ * <li>POST add a new job queue
+ */
 public class JobQueuesResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(JobQueuesResource.class);
 
@@ -56,6 +62,11 @@ public class JobQueuesResource extends ServerResource {
     setNegotiated(false);
   }
 
+  /**
+   * List all job queues
+   * <p>
+   * Usage: <code>curl http://{host:port}/clusters/{clusterName}/jobQueues
+   */
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
@@ -110,6 +121,15 @@ public class JobQueuesResource extends ServerResource {
     return representation;
   }
 
+  /**
+   * Add a new job queue
+   * <p>
+   * Usage:
+   * <code>curl -d @'{jobQueueConfig.yaml}'
+   * -H 'Content-Type: application/json' http://{host:port}/clusters/{clusterName}/jobQueues
+   * <p>
+   * For jobQueueConfig.yaml, see {@link Workflow#parse(String)}
+   */
   @Override
   public Representation post(Representation entity) {
     try {

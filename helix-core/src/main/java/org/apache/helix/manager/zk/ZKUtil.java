@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
@@ -65,11 +66,13 @@ public final class ZKUtil {
     requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
     boolean isValid = true;
 
-    for (String path : requiredPaths) {
-      if (!zkClient.exists(path)) {
+    BaseDataAccessor<Object> baseAccessor = new ZkBaseDataAccessor<Object>(zkClient);
+    boolean[] ret = baseAccessor.exists(requiredPaths, 0);
+    for (int i = 0; i < ret.length; i++) {
+      if (!ret[i]) {
         isValid = false;
         if (logger.isDebugEnabled()) {
-          logger.debug("Invalid cluster setup, missing znode path: " + path);
+          logger.debug("Invalid cluster setup, missing znode path: " + requiredPaths.get(i));
         }
       }
     }
@@ -285,9 +288,7 @@ public final class ZKUtil {
         }
       } catch (Exception e) {
         retryCount = retryCount + 1;
-        logger.warn("Exception trying to createOrReplace " + path + " Exception:" + e.getMessage()
-            + ". Will retry.");
-        e.printStackTrace();
+        logger.warn("Exception trying to createOrReplace " + path + ". Will retry.", e);
       }
     }
 

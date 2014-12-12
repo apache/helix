@@ -24,7 +24,6 @@ import java.io.IOException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -47,8 +46,11 @@ public class ExternalViewResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceName = (String) getRequest().getAttributes().get("resourceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
+
       presentation = getExternalViewRepresentation(clusterName, resourceName);
     }
 
@@ -56,7 +58,7 @@ public class ExternalViewResource extends ServerResource {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      LOG.error("", e);
+      LOG.error("Exception in get externalView", e);
     }
     return presentation;
   }
@@ -64,14 +66,13 @@ public class ExternalViewResource extends ServerResource {
   StringRepresentation getExternalViewRepresentation(String clusterName, String resourceName)
       throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    ;
+    ZkClient zkclient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.RAW_ZKCLIENT);
 
-    String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            keyBuilder.externalView(resourceName), MediaType.APPLICATION_JSON);
+    String extViewStr =
+        ResourceUtil.readZkAsBytes(zkclient, keyBuilder.externalView(resourceName));
     StringRepresentation representation =
-        new StringRepresentation(message, MediaType.APPLICATION_JSON);
+        new StringRepresentation(extViewStr, MediaType.APPLICATION_JSON);
 
     return representation;
   }

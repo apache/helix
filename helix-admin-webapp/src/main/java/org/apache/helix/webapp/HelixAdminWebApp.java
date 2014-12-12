@@ -19,8 +19,10 @@ package org.apache.helix.webapp;
  * under the License.
  */
 
+import org.apache.helix.manager.zk.ByteArraySerializer;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.webapp.resources.ResourceUtil;
 import org.apache.log4j.Logger;
 import org.restlet.Component;
 import org.restlet.Context;
@@ -34,6 +36,7 @@ public class HelixAdminWebApp {
   private final int _helixAdminPort;
   private final String _zkServerAddress;
   private ZkClient _zkClient = null;
+  private ZkClient _rawZkClient = null;
 
   public HelixAdminWebApp(String zkServerAddress, int adminPort) {
     _zkServerAddress = zkServerAddress;
@@ -46,6 +49,10 @@ public class HelixAdminWebApp {
       _zkClient =
           new ZkClient(_zkServerAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
               ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
+      _rawZkClient =
+          new ZkClient(_zkServerAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
+              ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ByteArraySerializer());
+
       _component = new Component();
       _component.getServers().add(Protocol.HTTP, _helixAdminPort);
       Context applicationContext = _component.getContext().createChildContext();
@@ -53,6 +60,8 @@ public class HelixAdminWebApp {
           .put(RestAdminApplication.ZKSERVERADDRESS, _zkServerAddress);
       applicationContext.getAttributes().put(RestAdminApplication.PORT, "" + _helixAdminPort);
       applicationContext.getAttributes().put(RestAdminApplication.ZKCLIENT, _zkClient);
+      applicationContext.getAttributes().put(ResourceUtil.ContextKey.RAW_ZKCLIENT.toString(),
+          _rawZkClient);
       _adminApp = new RestAdminApplication(applicationContext);
       // Attach the application to the component and start it
       _component.getDefaultHost().attach(_adminApp);
@@ -71,6 +80,9 @@ public class HelixAdminWebApp {
     } finally {
       if (_zkClient != null) {
         _zkClient.close();
+      }
+      if (_rawZkClient != null) {
+        _rawZkClient.close();
       }
     }
   }

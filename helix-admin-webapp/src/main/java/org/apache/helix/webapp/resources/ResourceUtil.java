@@ -19,14 +19,30 @@ package org.apache.helix.webapp.resources;
  * under the License.
  */
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.helix.BaseDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.webapp.RestAdminApplication;
+import org.codehaus.jackson.JsonGenerationException;
+import org.codehaus.jackson.map.JsonMappingException;
+import org.codehaus.jackson.map.ObjectMapper;
+import org.codehaus.jackson.map.SerializationConfig;
 import org.restlet.Context;
 import org.restlet.Request;
 import org.restlet.data.Form;
-import org.restlet.representation.Representation;
 
 public class ResourceUtil {
+  private static final String EMPTY_ZNRECORD_STRING =
+      objectToJson(ClusterRepresentationUtil.EMPTY_ZNRECORD);
+
   /**
    * Key enums for getting values from request
    */
@@ -36,7 +52,8 @@ public class ResourceUtil {
     JOB("job"),
     CONSTRAINT_TYPE("constraintType"),
     CONSTRAINT_ID("constraintId"),
-    RESOURCE_NAME("resourceName");
+    RESOURCE_NAME("resourceName"),
+    INSTANCE_NAME("instanceName");
 
     private final String _key;
 
@@ -54,7 +71,8 @@ public class ResourceUtil {
    */
   public enum ContextKey {
     ZK_ADDR(RestAdminApplication.ZKSERVERADDRESS),
-    ZKCLIENT(RestAdminApplication.ZKCLIENT);
+    ZKCLIENT(RestAdminApplication.ZKCLIENT),
+    RAW_ZKCLIENT("rawZkClient"); // zkclient that uses raw-byte serializer
 
     private final String _key;
 
@@ -74,6 +92,7 @@ public class ResourceUtil {
     NEW_JOB("newJob");
 
     private final String _key;
+
     YamlParamKey(String key) {
       _key = key;
     }
@@ -83,10 +102,28 @@ public class ResourceUtil {
     }
   }
 
+  private static String objectToJson(Object object) {
+    ObjectMapper mapper = new ObjectMapper();
+    SerializationConfig serializationConfig = mapper.getSerializationConfig();
+    serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
+
+    StringWriter sw = new StringWriter();
+    try {
+      mapper.writeValue(sw, object);
+    } catch (JsonGenerationException e) {
+      // Should not be here
+    } catch (JsonMappingException e) {
+      // Should not be here
+    } catch (IOException e) {
+      // Should not be here
+    }
+
+    return sw.toString();
+  }
+
   public static String getAttributeFromRequest(Request r, RequestKey key) {
     return (String) r.getAttributes().get(key.toString());
   }
-
 
   public static ZkClient getAttributeFromCtx(Context ctx, ContextKey key) {
     return (ZkClient) ctx.getAttributes().get(key.toString());
@@ -94,5 +131,44 @@ public class ResourceUtil {
 
   public static String getYamlParameters(Form form, YamlParamKey key) {
     return form.getFirstValue(key.toString());
+  }
+
+  public static String readZkAsBytes(ZkClient zkclient, PropertyKey propertyKey) {
+    byte[] bytes = zkclient.readData(propertyKey.getPath());
+    return bytes == null ? EMPTY_ZNRECORD_STRING : new String(bytes);
+  }
+
+  static String extractSimpleFieldFromZNRecord(String recordStr, String key) {
+    int idx = recordStr.indexOf(key);
+    if (idx != -1) {
+      idx = recordStr.indexOf('"', idx + key.length() + 1);
+      if (idx != -1) {
+        int idx2 = recordStr.indexOf('"', idx + 1);
+        if (idx2 != -1) {
+          return recordStr.substring(idx + 1, idx2);
+        }
+      }
+
+    }
+    return null;
+  }
+
+  public static Map<String, String> readZkChildrenAsBytesMap(ZkClient zkclient, PropertyKey propertyKey) {
+    BaseDataAccessor<byte[]> baseAccessor = new ZkBaseDataAccessor<byte[]>(zkclient);
+    String parentPath = propertyKey.getPath();
+    List<String> childNames = baseAccessor.getChildNames(parentPath, 0);
+    if (childNames == null) {
+      return null;
+    }
+    List<String> paths = new ArrayList<String>();
+    for (String childName : childNames) {
+      paths.add(parentPath + "/" + childName);
+    }
+    List<byte[]> values = baseAccessor.get(paths, null, 0);
+    Map<String, String> ret = new HashMap<String, String>();
+    for (int i = 0; i < childNames.size(); i++) {
+      ret.put(childNames.get(i), new String(values.get(i)));
+    }
+    return ret;
   }
 }

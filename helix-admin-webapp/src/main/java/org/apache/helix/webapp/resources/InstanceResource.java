@@ -27,7 +27,6 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -56,24 +55,25 @@ public class InstanceResource extends ServerResource {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      LOG.error("", e);
+      LOG.error("Exception in get instance", e);
     }
     return presentation;
   }
 
   StringRepresentation getInstanceRepresentation() throws JsonGenerationException,
       JsonMappingException, IOException {
-    String clusterName = (String) getRequest().getAttributes().get("clusterName");
-    String instanceName = (String) getRequest().getAttributes().get("instanceName");
+    String clusterName =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+    String instanceName =
+        ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.INSTANCE_NAME);
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+    ZkClient zkclient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.RAW_ZKCLIENT);
 
-    String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            MediaType.APPLICATION_JSON, keyBuilder.instanceConfig(instanceName));
-
+    String instanceCfgStr =
+        ResourceUtil.readZkAsBytes(zkclient, keyBuilder.instanceConfig(instanceName));
     StringRepresentation representation =
-        new StringRepresentation(message, MediaType.APPLICATION_JSON);
+        new StringRepresentation(instanceCfgStr, MediaType.APPLICATION_JSON);
 
     return representation;
   }
@@ -81,8 +81,14 @@ public class InstanceResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String instanceName = (String) getRequest().getAttributes().get("instanceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String instanceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.INSTANCE_NAME);
+
+      ZkClient zkclient =
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkclient);
 
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -91,9 +97,6 @@ public class InstanceResource extends ServerResource {
 
         boolean enabled = Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
 
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool().enableInstance(clusterName, instanceName, enabled);
       } else if (command.equalsIgnoreCase(ClusterSetup.enablePartition)) {
         jsonParameters.verifyCommand(ClusterSetup.enablePartition);
@@ -103,9 +106,6 @@ public class InstanceResource extends ServerResource {
         String[] partitions = jsonParameters.getParameter(JsonParameters.PARTITION).split(";");
         String resource = jsonParameters.getParameter(JsonParameters.RESOURCE);
 
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool().enablePartition(enabled, clusterName, instanceName,
             resource, Arrays.asList(partitions));
       } else if (command.equalsIgnoreCase(ClusterSetup.resetPartition)) {
@@ -113,9 +113,6 @@ public class InstanceResource extends ServerResource {
 
         String resource = jsonParameters.getParameter(JsonParameters.RESOURCE);
 
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         String[] partitionNames =
             jsonParameters.getParameter(JsonParameters.PARTITION).split("\\s+");
         setupTool.getClusterManagementTool().resetPartition(clusterName, instanceName, resource,
@@ -123,24 +120,15 @@ public class InstanceResource extends ServerResource {
       } else if (command.equalsIgnoreCase(ClusterSetup.resetInstance)) {
         jsonParameters.verifyCommand(ClusterSetup.resetInstance);
 
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool()
             .resetInstance(clusterName, Arrays.asList(instanceName));
       } else if (command.equalsIgnoreCase(ClusterSetup.addInstanceTag)) {
         jsonParameters.verifyCommand(ClusterSetup.addInstanceTag);
         String tag = jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool().addInstanceTag(clusterName, instanceName, tag);
       } else if (command.equalsIgnoreCase(ClusterSetup.removeInstanceTag)) {
         jsonParameters.verifyCommand(ClusterSetup.removeInstanceTag);
         String tag = jsonParameters.getParameter(ClusterSetup.instanceGroupTag);
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool().removeInstanceTag(clusterName, instanceName, tag);
       } else {
         throw new HelixException("Unsupported command: " + command + ". Should be one of ["
@@ -154,7 +142,7 @@ public class InstanceResource extends ServerResource {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("", e);
+      LOG.error("Exception in post instance", e);
     }
     return null;
   }
@@ -162,19 +150,20 @@ public class InstanceResource extends ServerResource {
   @Override
   public Representation delete() {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String instanceName = (String) getRequest().getAttributes().get("instanceName");
-      ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-
-      ClusterSetup setupTool = new ClusterSetup(zkClient);
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String instanceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.INSTANCE_NAME);
+      ZkClient zkclient =
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkclient);
       setupTool.dropInstanceFromCluster(clusterName, instanceName);
       getResponse().setStatus(Status.SUCCESS_OK);
     } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
-      LOG.error("Error in remove", e);
+      LOG.error("Error in delete instance", e);
     }
     return null;
   }

@@ -1,4 +1,4 @@
-package resources;
+package org.apache.helix.webapp.resources;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

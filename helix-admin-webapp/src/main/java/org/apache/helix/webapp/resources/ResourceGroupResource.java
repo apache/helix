@@ -27,7 +27,6 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -51,8 +50,10 @@ public class ResourceGroupResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceName = (String) getRequest().getAttributes().get("resourceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
       presentation = getIdealStateRepresentation(clusterName, resourceName);
     }
 
@@ -60,7 +61,7 @@ public class ResourceGroupResource extends ServerResource {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      LOG.error("", e);
+      LOG.error("Exception in get resource group", e);
     }
     return presentation;
   }
@@ -68,14 +69,14 @@ public class ResourceGroupResource extends ServerResource {
   StringRepresentation getIdealStateRepresentation(String clusterName, String resourceName)
       throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
 
-    String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            keyBuilder.idealStates(resourceName), MediaType.APPLICATION_JSON);
+    ZkClient zkclient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.RAW_ZKCLIENT);
+    String idealStateStr =
+        ResourceUtil.readZkAsBytes(zkclient, keyBuilder.idealStates(resourceName));
 
     StringRepresentation representation =
-        new StringRepresentation(message, MediaType.APPLICATION_JSON);
+        new StringRepresentation(idealStateStr, MediaType.APPLICATION_JSON);
 
     return representation;
   }
@@ -83,13 +84,15 @@ public class ResourceGroupResource extends ServerResource {
   @Override
   public Representation delete() {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceGroupName = (String) getRequest().getAttributes().get("resourceName");
-      ZkClient zkClient =
-          (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
+      ZkClient zkclient =
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
 
-      ClusterSetup setupTool = new ClusterSetup(zkClient);
-      setupTool.dropResourceFromCluster(clusterName, resourceGroupName);
+      ClusterSetup setupTool = new ClusterSetup(zkclient);
+      setupTool.dropResourceFromCluster(clusterName, resourceName);
       getResponse().setStatus(Status.SUCCESS_OK);
     } catch (Exception e) {
       getResponse().setEntity(ClusterRepresentationUtil.getErrorAsJsonStringFromException(e),
@@ -103,23 +106,23 @@ public class ResourceGroupResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
-      String resourceName = (String) getRequest().getAttributes().get("resourceName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+      String resourceName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.RESOURCE_NAME);
+      ZkClient zkclient =
+          ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
+      ClusterSetup setupTool = new ClusterSetup(zkclient);
 
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
       if (command.equalsIgnoreCase(ClusterSetup.resetResource)) {
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
+
         setupTool.getClusterManagementTool()
             .resetResource(clusterName, Arrays.asList(resourceName));
       } else if (command.equalsIgnoreCase(ClusterSetup.enableResource)) {
         jsonParameters.verifyCommand(ClusterSetup.enableResource);
         boolean enabled = Boolean.parseBoolean(jsonParameters.getParameter(JsonParameters.ENABLED));
-        ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.getClusterManagementTool().enableResource(clusterName, resourceName, enabled);
       } else {
         throw new HelixException("Unsupported command: " + command + ". Should be one of ["

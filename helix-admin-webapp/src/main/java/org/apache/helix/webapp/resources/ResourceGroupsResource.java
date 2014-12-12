@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
@@ -31,7 +30,6 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -58,7 +56,8 @@ public class ResourceGroupsResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
       presentation = getHostedEntitiesRepresentation(clusterName);
     }
 
@@ -66,7 +65,7 @@ public class ResourceGroupsResource extends ServerResource {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      LOG.error("", e);
+      LOG.error("Exception in get resourceGroups", e);
     }
     return presentation;
   }
@@ -74,21 +73,24 @@ public class ResourceGroupsResource extends ServerResource {
   StringRepresentation getHostedEntitiesRepresentation(String clusterName)
       throws JsonGenerationException, JsonMappingException, IOException {
     // Get all resources
-    ZkClient zkClient = (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-    HelixDataAccessor accessor =
-        ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Map<String, IdealState> idealStateMap = accessor.getChildValuesMap(keyBuilder.idealStates());
+    ZkClient zkclient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.RAW_ZKCLIENT);
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(clusterName);
+    Map<String, String> idealStateMap =
+        ResourceUtil.readZkChildrenAsBytesMap(zkclient, keyBuilder.idealStates());
 
     // Create the result
     ZNRecord hostedEntitiesRecord = new ZNRecord("ResourceGroups");
 
     // Figure out which tags are present on which resources
     Map<String, String> tagMap = Maps.newHashMap();
-    for (IdealState idealState : idealStateMap.values()) {
-      String tag = idealState.getInstanceGroupTag();
+    for (String resourceName : idealStateMap.keySet()) {
+      String idealStateStr = idealStateMap.get(resourceName);
+      String tag =
+          ResourceUtil.extractSimpleFieldFromZNRecord(idealStateStr,
+              IdealState.IdealStateProperty.INSTANCE_GROUP_TAG.toString());
       if (tag != null) {
-        tagMap.put(idealState.getId(), tag);
+        tagMap.put(resourceName, tag);
       }
     }
 
@@ -109,7 +111,8 @@ public class ResourceGroupsResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
-      String clusterName = (String) getRequest().getAttributes().get("clusterName");
+      String clusterName =
+          ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
 
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -148,8 +151,7 @@ public class ResourceGroupsResource extends ServerResource {
         }
 
         ZkClient zkClient =
-            (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
-        ;
+            ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
         ClusterSetup setupTool = new ClusterSetup(zkClient);
         setupTool.addResourceToCluster(clusterName, entityName, partitions, stateModelDefRef, mode,
             bucketSize, maxPartitionsPerNode);

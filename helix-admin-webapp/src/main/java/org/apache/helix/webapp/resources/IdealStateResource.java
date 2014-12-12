@@ -77,7 +77,7 @@ public class IdealStateResource extends ServerResource {
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
       presentation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
 
-      LOG.error("", e);
+      LOG.error("Exception in get idealState", e);
     }
     return presentation;
   }
@@ -85,15 +85,13 @@ public class IdealStateResource extends ServerResource {
   StringRepresentation getIdealStateRepresentation(String clusterName, String resourceName)
       throws JsonGenerationException, JsonMappingException, IOException {
     Builder keyBuilder = new PropertyKey.Builder(clusterName);
-    ZkClient zkClient =
-        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
-
-    String message =
-        ClusterRepresentationUtil.getClusterPropertyAsString(zkClient, clusterName,
-            keyBuilder.idealStates(resourceName), MediaType.APPLICATION_JSON);
+    ZkClient zkclient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.RAW_ZKCLIENT);
+    String idealStateStr =
+        ResourceUtil.readZkAsBytes(zkclient, keyBuilder.idealStates(resourceName));
 
     StringRepresentation representation =
-        new StringRepresentation(message, MediaType.APPLICATION_JSON);
+        new StringRepresentation(idealStateStr, MediaType.APPLICATION_JSON);
 
     return representation;
   }

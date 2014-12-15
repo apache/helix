@@ -123,8 +123,8 @@ public class ZkAsyncCallbacks {
     int _rc = -1;
 
     public void callback(int rc, String path, Object ctx) {
-      if (rc != 0) {
-        LOG.warn(this + ", rc:" + Code.get(rc) + ", path: " + path);
+      if (rc != 0 && LOG.isDebugEnabled()) {
+        LOG.debug(this + ", rc:" + Code.get(rc) + ", path: " + path);
       }
       _rc = rc;
       handle();

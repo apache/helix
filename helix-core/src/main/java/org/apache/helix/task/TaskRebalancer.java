@@ -405,7 +405,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
     scheduleForNextTask(jobResource, jobCtx, currentTime);
 
-    if (isJobComplete(jobCtx, allPartitions, skippedPartitions)) {
+    if (isJobComplete(jobCtx, allPartitions, skippedPartitions, jobCfg)) {
       workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
       jobCtx.setFinishTime(currentTime);
       if (isWorkflowComplete(workflowCtx, workflowConfig)) {
@@ -421,6 +421,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       // This includes all completed, failed, delayed, and already assigned partitions.
       Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
       addCompletedPartitions(excludeSet, jobCtx, allPartitions);
+      addGiveupPartitions(excludeSet, jobCtx, allPartitions, jobCfg);
       excludeSet.addAll(skippedPartitions);
       excludeSet.addAll(getNonReadyPartitions(jobCtx, currentTime));
       // Get instance->[partition, ...] mappings for the target resource.
@@ -607,10 +608,11 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    *         context, false otherwise.
    */
   private static boolean isJobComplete(JobContext ctx, Set<Integer> allPartitions,
-      Set<Integer> skippedPartitions) {
+      Set<Integer> skippedPartitions, JobConfig cfg) {
     for (Integer pId : allPartitions) {
       TaskPartitionState state = ctx.getPartitionState(pId);
-      if (!skippedPartitions.contains(pId) && state != TaskPartitionState.COMPLETED) {
+      if (!skippedPartitions.contains(pId) && state != TaskPartitionState.COMPLETED
+          && !isTaskGivenup(ctx, cfg, pId)) {
         return false;
       }
     }
@@ -789,6 +791,20 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     for (Integer pId : pIds) {
       TaskPartitionState state = ctx.getPartitionState(pId);
       if (state == TaskPartitionState.COMPLETED) {
+        set.add(pId);
+      }
+    }
+  }
+
+  private static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {
+    return ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask();
+  }
+
+  // add all partitions that have been tried maxNumberAttempts
+  private static void addGiveupPartitions(Set<Integer> set, JobContext ctx, Iterable<Integer> pIds,
+      JobConfig cfg) {
+    for (Integer pId : pIds) {
+      if (isTaskGivenup(ctx, cfg, pId)) {
         set.add(pId);
       }
     }

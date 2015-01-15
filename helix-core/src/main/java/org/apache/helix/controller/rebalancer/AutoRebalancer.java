@@ -124,13 +124,6 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
-    if (LOG.isInfoEnabled()) {
-      LOG.info("currentMapping: " + currentMapping);
-      LOG.info("stateCountMap: " + stateCountMap);
-      LOG.info("liveNodes: " + liveNodes);
-      LOG.info("allNodes: " + allNodes);
-      LOG.info("maxPartition: " + maxPartition);
-    }
     ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
     placementScheme.init(_manager);
     _algorithm =
@@ -139,8 +132,13 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     ZNRecord newMapping =
         _algorithm.computePartitionAssignment(liveNodes, currentMapping, allNodes);
 
-    if (LOG.isInfoEnabled()) {
-      LOG.info("newMapping: " + newMapping);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("currentMapping: " + currentMapping);
+      LOG.debug("stateCountMap: " + stateCountMap);
+      LOG.debug("liveNodes: " + liveNodes);
+      LOG.debug("allNodes: " + allNodes);
+      LOG.debug("maxPartition: " + maxPartition);
+      LOG.debug("newMapping: " + newMapping);
     }
 
     IdealState newIdealState = new IdealState(resourceName);

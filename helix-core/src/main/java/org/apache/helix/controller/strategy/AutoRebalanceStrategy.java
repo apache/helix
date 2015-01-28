@@ -436,6 +436,13 @@ public class AutoRebalanceStrategy {
         // check if its in one of the preferred position
         for (int replicaId = 0; replicaId < count; replicaId++) {
           Replica replica = new Replica(partition, replicaId);
+          if (!_preferredAssignment.containsKey(replica)) {
+
+            logger.info("partitions: " + _partitions);
+            logger.info("currentMapping.keySet: " + currentMapping.keySet());
+            throw new IllegalArgumentException("partition: " + replica + " is in currentMapping but not in partitions");
+          }
+
           if (_preferredAssignment.get(replica).id != node.id
               && !_existingPreferredAssignment.containsKey(replica)
               && !existingNonPreferredAssignment.containsKey(replica)) {

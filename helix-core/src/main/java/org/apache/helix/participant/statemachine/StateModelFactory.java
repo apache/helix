@@ -56,8 +56,12 @@ public abstract class StateModelFactory<T extends StateModel> {
    */
   public T createAndAddStateModel(String resourceName, String partitionKey) {
     T stateModel = createNewStateModel(resourceName, partitionKey);
-    _stateModelMap.putIfAbsent(resourceName, new ConcurrentHashMap<String, T>());
-    _stateModelMap.get(resourceName).put(partitionKey, stateModel);
+    synchronized(_stateModelMap) {
+      if (!_stateModelMap.containsKey(resourceName)) {
+        _stateModelMap.put(resourceName, new ConcurrentHashMap<String, T>());
+      }
+      _stateModelMap.get(resourceName).put(partitionKey, stateModel);
+    }
     return stateModel;
   }
 
@@ -79,8 +83,17 @@ public abstract class StateModelFactory<T extends StateModel> {
    * @return state model removed or null if not exist
    */
   public T removeStateModel(String resourceName, String partitionKey) {
-    Map<String, T> map = _stateModelMap.get(resourceName);
-    return map == null? null : map.remove(partitionKey);
+    T stateModel = null;
+    synchronized(_stateModelMap) {
+      Map<String, T> map = _stateModelMap.get(resourceName);
+      if (map != null) {
+        stateModel = map.remove(partitionKey);
+        if (map.isEmpty()) {
+          _stateModelMap.remove(resourceName);
+        }
+      }
+    }
+    return stateModel;
   }
 
   /**

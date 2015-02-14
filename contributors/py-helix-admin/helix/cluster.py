@@ -23,17 +23,21 @@ from partition import Partition
 from resourcegroup import ResourceGroup
 
 from helixexceptions import HelixException
-import functions
+from functions import RestHelixFunctions
+try:
+  from zkfunctions import ZookeeperHelixFunctions
+  zookeeper_ok = True
+except ImportError:
+  zookeeper_ok = False
 
 
-class Cluster(object):
+class BaseCluster(object):
     """Basic model of a cluster, holds participants, partitions, slices,
     external view, ideal state, resource groups"""
     ver = (1, 0)
 
-    def __init__(self, host, cluster):
-        super(Cluster, self).__init__()
-        self.host = host
+    def __init__(self, cluster):
+        super(BaseCluster, self).__init__()
         self.cluster = cluster
 
         # dynamically loaded data below
@@ -48,15 +52,13 @@ class Cluster(object):
                                            self.cluster)
 
     def __repr__(self):
-        return "{0}({1}, {2})".format(self.__class__.__name__, self.cluster,
-                                      self.host)
+        return "{0}({1}, {2})".format(self.__class__.__name__, self.cluster)
 
     def load_resources(self):
         """queries helix for resource groups and loades them into model"""
         try:
-            for cur_resource in functions.get_resource_groups(self.host,
-                                                              self.cluster):
-                data = functions.get_resource_group(self.host, self.cluster,
+            for cur_resource in self.functions.get_resource_groups(self.cluster):
+                data = self.functions.get_resource_group(self.cluster,
                                                     cur_resource)
                 name = data["id"]
                 count = data["simpleFields"]["NUM_PARTITIONS"]
@@ -94,7 +96,7 @@ class Cluster(object):
 
     def _cluster_exists(self):
         """verify cluster exists in helix"""
-        if self.cluster in functions.get_clusters(self.host):
+        if self.cluster in self.functions.get_clusters():
             return True
         return False
 
@@ -103,7 +105,7 @@ class Cluster(object):
         self._participants = {}
 
         try:
-            instances = functions.get_instances(self.host, self.cluster)
+            instances = self.functions.get_instances(self.cluster)
             for instance in instances:
                 ident = instance["id"]
                 enabled = instance["simpleFields"]["HELIX_ENABLED"]
@@ -129,7 +131,7 @@ class Cluster(object):
         """query partitions from helix and load into model"""
         self._partitions = {}
         for resource in self.resources:
-            newstate = functions.get_ideal_state(self.host, self.cluster,
+            newstate = self.functions.get_ideal_state(self.cluster,
                                                  resource)
             self._partitions[resource] = {}
             if newstate:
@@ -152,7 +154,7 @@ class Cluster(object):
         self._ideal_state = {}
         for resource in self.resources:
             self._ideal_state[resource] = \
-                functions.get_ideal_state(self.host, self.cluster, resource)
+                self.functions.get_ideal_state(self.cluster, resource)
 
     @property
     def ideal_state(self):
@@ -171,7 +173,7 @@ class Cluster(object):
         self._external_view = {}
         for resource in self.resources:
             self._external_view[resource] = \
-                functions.get_external_view(self.host, self.cluster, resource)
+                self.functions.get_external_view(self.cluster, resource)
 
     @property
     def external_view(self):
@@ -187,18 +189,18 @@ class Cluster(object):
 
     def get_config(self, config):
         """ get requested config from helix"""
-        return functions.get_config(self.host, self.cluster, config)
+        return self.functions.get_config(self.cluster, config)
 
     def set_cluster_config(self, config):
         """ set given configs in helix"""
-        return functions.set_config(self.host, self.cluster, config)
+        return self.functions.set_config(self.cluster, config)
 
     def set_resource_config(self, config, resource):
         """ set given configs in helix"""
         rname = resource
         if isinstance(resource, ResourceGroup):
             rname = resource.name
-        return functions.set_config(self.host, self.cluster, config,
+        return self.functions.set_config(self.cluster, config,
                                     resource=rname)
 
     def set_participant_config(self, config, participant):
@@ -206,34 +208,34 @@ class Cluster(object):
         if isinstance(participant, Participant):
             pname = participant.ident
         """ set given configs in helix"""
-        return functions.set_config(self.host, self.cluster, config,
+        return self.functions.set_config(self.cluster, config,
                                     participant=pname)
 
     def activate_cluster(self, grand, enabled=True):
         """activate this cluster with the specified grand cluster"""
-        return functions.activate_cluster(self.host, self.cluster, grand,
+        return self.functions.activate_cluster(self.cluster, grand,
                                           enabled)
 
     def deactivate_cluster(self, grand):
         """deactivate this cluster against the given grandcluster"""
-        return functions.deactivate_cluster(self.host, self.cluster, grand)
+        return self.functions.deactivate_cluster(self.cluster, grand)
 
     def add_cluster(self):
         """add cluster to helix"""
-        return functions.add_cluster(self.host, self.cluster)
+        return self.functions.add_cluster(self.cluster)
 
     def add_instance(self, instances, port):
         """add instance to cluster"""
-        return functions.add_instance(self.host, self.cluster, instances, port)
+        return self.functions.add_instance(self.cluster, instances, port)
 
     def rebalance(self, resource, replicas, key=""):
         """rebalance a resource group"""
-        return functions.rebalance(self.host, self.cluster, resource,
+        return self.functions.rebalance(self.cluster, resource,
                                    replicas, key)
 
     def add_resource(self, resource, partitions, state_model_def, mode=""):
         """add resource to cluster"""
-        return functions.add_resource(self.host, self.cluster, resource,
+        return self.functions.add_resource(self.cluster, resource,
                                       partitions, state_model_def, mode)
 
     def enable_instance(self, instance, enabled=True):
@@ -245,7 +247,7 @@ class Cluster(object):
             ident = instance
         else:
             raise HelixException("Instance must be a string or participant")
-        return functions.enable_instance(self.host, self.cluster, ident,
+        return self.functions.enable_instance(self.cluster, ident,
                                          enabled)
 
     def disable_instance(self, instance):
@@ -272,7 +274,7 @@ class Cluster(object):
         else:
             raise HelixException("Partition must be a string or partition")
 
-        return functions.enable_partition(self.host, self.cluster, resource,
+        return self.functions.enable_partition(self.cluster, resource,
                                           part_id, ident, enabled)
 
     def disable_partition(self, resource, partition, instance):
@@ -291,7 +293,7 @@ class Cluster(object):
             raise HelixException(
                 "Resource must be a string or a resource group object")
 
-        return functions.enable_resource(self.host, self.cluster,
+        return self.functions.enable_resource(self.cluster,
                                          resource_name, enabled)
 
     def disable_resource(self, resource):
@@ -308,7 +310,7 @@ class Cluster(object):
         else:
             raise HelixException("Resource must be resource object or string")
 
-        return functions.add_resource_tag(self.host, self.cluster,
+        return self.functions.add_resource_tag(self.cluster,
                                           resource_name, tag)
 
     # del resource not yet available in api
@@ -322,7 +324,7 @@ class Cluster(object):
     #     else:
     #         raise HelixException("Resource must be resource object or str")
     #
-    #     return functions.del_resource_tag(self.host, self.cluster,
+    #     return self.functions.del_resource_tag(self.cluster,
     #                                       resource_name, tag)
 
     def add_instance_tag(self, instance, tag):
@@ -335,7 +337,7 @@ class Cluster(object):
         else:
             raise HelixException("Instance must be a string or participant")
 
-        return functions.add_instance_tag(self.host, self.cluster, ident, tag)
+        return self.functions.add_instance_tag(self.cluster, ident, tag)
 
     def del_instance_tag(self, instance, tag):
         ident = None
@@ -347,18 +349,37 @@ class Cluster(object):
         else:
             raise HelixException("Instance must be a string or participant")
 
-        return functions.del_instance_tag(self.host, self.cluster, ident, tag)
+        return self.functions.del_instance_tag(self.cluster, ident, tag)
 
     def del_instance(self, instance):
         """remove instance from cluster, assumes instance is a
         participant object"""
-        return functions.del_instance(self.host, self.cluster, instance.ident)
+        return self.functions.del_instance(self.cluster, instance.ident)
 
     def del_resource(self, resource):
         """remove resource group from cluster, assumes resource is a
         resource object"""
-        return functions.del_resource(self.host, self.cluster, resource.name)
+        return self.functions.del_resource(self.cluster, resource.name)
 
     def del_cluster(self):
         """remove cluster from helix"""
-        return functions.del_cluster(self.host, self.cluster)
+        return self.functions.del_cluster(self.cluster)
+
+class Cluster(BaseCluster):
+    def __init__(self, host, cluster):
+       super(Cluster, self).__init__(cluster)
+       self.host = host
+       self.functions = RestHelixFunctions(host)
+
+
+class ZKCluster(BaseCluster):
+    def __init__(self, zookeeper_connect_string, zookeeper_root, cluster):
+        super(ZKCluster, self).__init__(cluster)
+
+        # We want to fail if kazoo cannot be found, but only if using the zookeeper object.
+        if not zookeeper_ok:
+          raise ImportError
+
+        self.zookeeper_connect_string = zookeeper_connect_string
+        self.zookeeper_root = zookeeper_root
+        self.functions = ZookeeperHelixFunctions(self.zookeeper_connect_string, self.zookeeper_root)

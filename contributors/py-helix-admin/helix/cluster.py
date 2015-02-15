@@ -59,7 +59,7 @@ class BaseCluster(object):
         try:
             for cur_resource in self.functions.get_resource_groups(self.cluster):
                 data = self.functions.get_resource_group(self.cluster,
-                                                    cur_resource)
+                                                         cur_resource)
                 name = data["id"]
                 count = data["simpleFields"]["NUM_PARTITIONS"]
                 replicas = data["simpleFields"]["REPLICAS"]
@@ -132,7 +132,7 @@ class BaseCluster(object):
         self._partitions = {}
         for resource in self.resources:
             newstate = self.functions.get_ideal_state(self.cluster,
-                                                 resource)
+                                                      resource)
             self._partitions[resource] = {}
             if newstate:
                 for part in newstate:
@@ -201,7 +201,7 @@ class BaseCluster(object):
         if isinstance(resource, ResourceGroup):
             rname = resource.name
         return self.functions.set_config(self.cluster, config,
-                                    resource=rname)
+                                         resource=rname)
 
     def set_participant_config(self, config, participant):
         pname = participant
@@ -209,12 +209,12 @@ class BaseCluster(object):
             pname = participant.ident
         """ set given configs in helix"""
         return self.functions.set_config(self.cluster, config,
-                                    participant=pname)
+                                         participant=pname)
 
     def activate_cluster(self, grand, enabled=True):
         """activate this cluster with the specified grand cluster"""
         return self.functions.activate_cluster(self.cluster, grand,
-                                          enabled)
+                                               enabled)
 
     def deactivate_cluster(self, grand):
         """deactivate this cluster against the given grandcluster"""
@@ -236,7 +236,7 @@ class BaseCluster(object):
     def add_resource(self, resource, partitions, state_model_def, mode=""):
         """add resource to cluster"""
         return self.functions.add_resource(self.cluster, resource,
-                                      partitions, state_model_def, mode)
+                                           partitions, state_model_def, mode)
 
     def enable_instance(self, instance, enabled=True):
         """enable instance, assumes instance a participant object"""
@@ -248,7 +248,7 @@ class BaseCluster(object):
         else:
             raise HelixException("Instance must be a string or participant")
         return self.functions.enable_instance(self.cluster, ident,
-                                         enabled)
+                                              enabled)
 
     def disable_instance(self, instance):
         """disable instance, assumes instance is a participant object"""
@@ -294,7 +294,7 @@ class BaseCluster(object):
                 "Resource must be a string or a resource group object")
 
         return self.functions.enable_resource(self.cluster,
-                                         resource_name, enabled)
+                                              resource_name, enabled)
 
     def disable_resource(self, resource):
         """disable given function"""
@@ -311,7 +311,7 @@ class BaseCluster(object):
             raise HelixException("Resource must be resource object or string")
 
         return self.functions.add_resource_tag(self.cluster,
-                                          resource_name, tag)
+                                               resource_name, tag)
 
     # del resource not yet available in api
     # def del_resource_tag(self, resource, tag):

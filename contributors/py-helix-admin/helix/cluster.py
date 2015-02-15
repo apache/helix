@@ -25,10 +25,10 @@ from resourcegroup import ResourceGroup
 from helixexceptions import HelixException
 from functions import RestHelixFunctions
 try:
-  from zkfunctions import ZookeeperHelixFunctions
-  zookeeper_ok = True
+    from zkfunctions import ZookeeperHelixFunctions
+    zookeeper_ok = True
 except ImportError:
-  zookeeper_ok = False
+    zookeeper_ok = False
 
 
 class BaseCluster(object):
@@ -39,6 +39,7 @@ class BaseCluster(object):
     def __init__(self, cluster):
         super(BaseCluster, self).__init__()
         self.cluster = cluster
+        self.functions = None
 
         # dynamically loaded data below
         self._partitions = {}
@@ -367,9 +368,9 @@ class BaseCluster(object):
 
 class Cluster(BaseCluster):
     def __init__(self, host, cluster):
-       super(Cluster, self).__init__(cluster)
-       self.host = host
-       self.functions = RestHelixFunctions(host)
+        super(Cluster, self).__init__(cluster)
+        self.host = host
+        self.functions = RestHelixFunctions(host)
 
 
 class ZKCluster(BaseCluster):
@@ -378,7 +379,7 @@ class ZKCluster(BaseCluster):
 
         # We want to fail if kazoo cannot be found, but only if using the zookeeper object.
         if not zookeeper_ok:
-          raise ImportError
+            raise ImportError
 
         self.zookeeper_connect_string = zookeeper_connect_string
         self.zookeeper_root = zookeeper_root

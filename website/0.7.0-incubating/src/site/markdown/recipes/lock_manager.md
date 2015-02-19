@@ -138,7 +138,7 @@ This provides more details on how to setup the cluster and where to plugin appli
 Create a lock group and specify the number of locks in the lock group.
 
 ```
-./helix-admin --zkSvr localhost:2199  --addResource lock-manager-demo lock-group 6 OnlineOffline AUTO_REBALANCE
+./helix-admin --zkSvr localhost:2199  --addResource lock-manager-demo lock-group 6 OnlineOffline --mode AUTO_REBALANCE
 ```
 
 #### Start the Nodes

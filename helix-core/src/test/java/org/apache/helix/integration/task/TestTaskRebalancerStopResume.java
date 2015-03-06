@@ -19,9 +19,11 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -250,20 +252,120 @@ public class TestTaskRebalancerStopResume extends ZkTestBase {
     // Flush queue and check cleanup
     LOG.info("Flusing job-queue: " + queueName);
     _driver.flushQueue(queueName);
+
+    verifyJobDeleted(queueName, namespacedJob1);
+    verifyJobDeleted(queueName, namespacedJob2);
+    verifyJobNotInQueue(queueName, namespacedJob1);
+    verifyJobNotInQueue(queueName, namespacedJob2);
+  }
+
+  @Test
+  public void stopDeleteAndResumeNamedQueue() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue queue = new JobQueue.Builder(queueName).build();
+    _driver.createQueue(queue);
+
+    // Create and Enqueue jobs
+    List<String> currentJobNames = new ArrayList<String>();
+    for (int i = 0; i <= 4; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder job =
+          new JobConfig.Builder().setCommand("Reindex")
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
+      LOG.info("Enqueuing job: " + jobName);
+      _driver.enqueueJob(queueName, jobName, job);
+      currentJobNames.add(i, jobName);
+    }
+
+    // ensure job 1 is started before deleting it
+    String deletedJob1 = currentJobNames.get(0);
+    String namedSpaceDeletedJob1 = String.format("%s_%s", queueName, deletedJob1);
+    TestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+
+    // stop the queue
+    LOG.info("Pausing job-queue: " + queueName);
+    _driver.stop(queueName);
+    TestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.STOPPED);
+    TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
+
+    // delete the in-progress job (job 1) and verify it being deleted
+    _driver.deleteJob(queueName, deletedJob1);
+    verifyJobDeleted(queueName, namedSpaceDeletedJob1);
+
+    LOG.info("Resuming job-queue: " + queueName);
+    _driver.resume(queueName);
+
+    // ensure job 2 is started
+    TestUtil.pollForJobState(_manager, queueName,
+        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.IN_PROGRESS);
+
+    // stop the queue
+    LOG.info("Pausing job-queue: " + queueName);
+    _driver.stop(queueName);
+    TestUtil.pollForJobState(_manager, queueName,
+        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
+    TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
+
+    // Ensure job 3 is not started before deleting it
+    String deletedJob2 = currentJobNames.get(2);
+    String namedSpaceDeletedJob2 = String.format("%s_%s", queueName, deletedJob2);
+    TestUtil.pollForEmptyJobState(_manager, queueName, namedSpaceDeletedJob2);
+
+    // delete not-started job (job 3) and verify it being deleted
+    _driver.deleteJob(queueName, deletedJob2);
+    verifyJobDeleted(queueName, namedSpaceDeletedJob2);
+
+    LOG.info("Resuming job-queue: " + queueName);
+    _driver.resume(queueName);
+
+    // Ensure the jobs left are successful completed in the correct order
+    currentJobNames.remove(deletedJob1);
+    currentJobNames.remove(deletedJob2);
+    long preJobFinish = 0;
+    for (int i = 0; i < currentJobNames.size(); i++) {
+      String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
+      TestUtil.pollForJobState(_manager, queueName, namedSpaceJobName, TaskState.COMPLETED);
+
+      JobContext jobContext = TaskUtil.getJobContext(_manager, namedSpaceJobName);
+      long jobStart = jobContext.getStartTime();
+      Assert.assertTrue(jobStart >= preJobFinish);
+      preJobFinish = jobContext.getFinishTime();
+    }
+
+    // Flush queue
+    LOG.info("Flusing job-queue: " + queueName);
+    _driver.flushQueue(queueName);
+
+    TimeUnit.MILLISECONDS.sleep(200);
+    // verify the cleanup
+    for (int i = 0; i < currentJobNames.size(); i++) {
+      String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
+      verifyJobDeleted(queueName, namedSpaceJobName);
+      verifyJobNotInQueue(queueName, namedSpaceJobName);
+    }
+  }
+
+  private void verifyJobDeleted(String queueName, String jobName) throws Exception {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob1)));
-    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob1)));
-    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob2)));
-    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob2)));
+
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)));
+    TestUtil.pollForEmptyJobState(_manager, queueName, jobName);
+  }
+
+  private void verifyJobNotInQueue(String queueName, String namedSpacedJobName) {
     WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, queueName);
     JobDag dag = workflowCfg.getJobDag();
-    Assert.assertFalse(dag.getAllNodes().contains(namespacedJob1));
-    Assert.assertFalse(dag.getAllNodes().contains(namespacedJob2));
-    Assert.assertFalse(dag.getChildrenToParents().containsKey(namespacedJob1));
-    Assert.assertFalse(dag.getChildrenToParents().containsKey(namespacedJob2));
-    Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob1));
-    Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob2));
+    Assert.assertFalse(dag.getAllNodes().contains(namedSpacedJobName));
+    Assert.assertFalse(dag.getChildrenToParents().containsKey(namedSpacedJobName));
+    Assert.assertFalse(dag.getParentsToChildren().containsKey(namedSpacedJobName));
   }
 
   public static class ReindexTask implements Task {

@@ -50,7 +50,7 @@ import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 
 public class ClusterRepresentationUtil {
-  private static final ZNRecord EMPTY_ZNRECORD = new ZNRecord("EMPTY_ZNRECORD");
+  public static final ZNRecord EMPTY_ZNRECORD = new ZNRecord("EMPTY_ZNRECORD");
 
   public static String getClusterPropertyAsString(ZkClient zkClient, String clusterName,
       PropertyKey propertyKey,

@@ -100,6 +100,13 @@ public class AdminTestHelper {
     return record;
   }
 
+  public static void delete(Client client, String url) throws IOException {
+    Reference resourceRef = new Reference(url);
+    Request request = new Request(Method.DELETE, resourceRef);
+    Response response = client.handle(request);
+    Assert.assertEquals(response.getStatus(), Status.SUCCESS_NO_CONTENT);
+  }
+
   public static ZNRecord post(Client client, String url, String body)
       throws IOException {
     Reference resourceRef = new Reference(url);

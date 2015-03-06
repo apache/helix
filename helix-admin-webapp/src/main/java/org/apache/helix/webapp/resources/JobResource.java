@@ -30,9 +30,11 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
 import org.apache.log4j.Logger;
 import org.restlet.data.MediaType;
+import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
@@ -76,6 +78,33 @@ public class JobResource extends ServerResource {
       LOG.error("Fail to get job: " + jobName, e);
     }
     return presentation;
+  }
+
+
+  @Override
+  public Representation delete() {
+    StringRepresentation representation = null;
+
+    String clusterName = ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.CLUSTER_NAME);
+    String jobQueueName = ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.JOB_QUEUE);
+    String jobName = ResourceUtil.getAttributeFromRequest(getRequest(), ResourceUtil.RequestKey.JOB);
+
+    ZkClient zkClient =
+        ResourceUtil.getAttributeFromCtx(getContext(), ResourceUtil.ContextKey.ZKCLIENT);
+
+    TaskDriver driver = new TaskDriver(zkClient, clusterName);
+
+    try {
+      driver.deleteJob(jobQueueName, jobName);
+      getResponse().setStatus(Status.SUCCESS_NO_CONTENT);
+    } catch (Exception e) {
+      String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
+      representation = new StringRepresentation(error, MediaType.APPLICATION_JSON);
+
+      LOG.error("Fail to delete job: " + jobName, e);
+    }
+
+    return representation;
   }
 
   StringRepresentation getHostedEntitiesRepresentation(String clusterName, String jobQueueName,

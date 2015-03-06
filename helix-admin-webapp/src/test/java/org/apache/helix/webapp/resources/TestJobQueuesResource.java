@@ -130,14 +130,22 @@ public class TestJobQueuesResource extends AdminTestBase {
 
     WorkflowBean wfBean = new WorkflowBean();
     wfBean.name = queueName;
-    JobBean jBean = new JobBean();
-    jBean.name = "myJob1";
-    jBean.command = "DummyTask";
-    jBean.targetResource = WorkflowGenerator.DEFAULT_TGT_DB;
-    jBean.targetPartitionStates = Lists.newArrayList("MASTER");
-    wfBean.jobs = Lists.newArrayList(jBean);
+
+    JobBean jBean1 = new JobBean();
+    jBean1.name = "myJob1";
+    jBean1.command = "DummyTask";
+    jBean1.targetResource = WorkflowGenerator.DEFAULT_TGT_DB;
+    jBean1.targetPartitionStates = Lists.newArrayList("MASTER");
+
+    JobBean jBean2 = new JobBean();
+    jBean2.name = "myJob2";
+    jBean2.command = "DummyTask";
+    jBean2.targetResource = WorkflowGenerator.DEFAULT_TGT_DB;
+    jBean2.targetPartitionStates = Lists.newArrayList("SLAVE");
+
+    wfBean.jobs = Lists.newArrayList(jBean1, jBean2);
     String jobYamlConfig = new Yaml().dump(wfBean);
-    LOG.info("Enqueuing a job: " + jobQueueYamlConfig);
+    LOG.info("Enqueuing jobs: " + jobQueueYamlConfig);
 
     Map<String, String> paraMap = new HashMap<String, String>();
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, TaskDriver.DriverCommand.start.toString());
@@ -152,7 +160,7 @@ public class TestJobQueuesResource extends AdminTestBase {
     // Get job
     resourceUrl =
         "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/jobQueues/" + queueName
-            + "/" + jBean.name;
+            + "/" + jBean1.name;
     getRet = AdminTestHelper.get(_gClient, resourceUrl);
     LOG.info("Got job: " + getRet);
 
@@ -164,7 +172,16 @@ public class TestJobQueuesResource extends AdminTestBase {
     postRet = AdminTestHelper.post(_gClient, resourceUrl, postBody);
     LOG.info("Stopped job-queue, ret: " + postRet);
 
+    // Delete a job
+    resourceUrl =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/jobQueues/" + queueName
+            + "/" + jBean2.name;
+    AdminTestHelper.delete(_gClient, resourceUrl);
+    LOG.info("Delete a job: ");
+
     // Resume job queue
+    resourceUrl =
+        "http://localhost:" + ADMIN_PORT + "/clusters/" + clusterName + "/jobQueues/" + queueName;
     paraMap.put(JsonParameters.MANAGEMENT_COMMAND, TaskDriver.DriverCommand.resume.toString());
     postBody = String.format("%s=%s", JsonParameters.JSON_PARAMETERS, ClusterRepresentationUtil.ObjectToJson(paraMap));
     postRet = AdminTestHelper.post(_gClient, resourceUrl, postBody);

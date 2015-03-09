@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
@@ -28,6 +29,7 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -77,6 +79,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
       participants[i].syncStart();
     }
+    PropertyKey evKey = accessor.keyBuilder().externalView("TestDB0");
 
     boolean result =
         ClusterStateVerifier
@@ -87,6 +90,22 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
+
+    ExternalView ev = accessor.getProperty(evKey);
+    int v1 = ev.getRecord().getVersion();
+    // disable the participant
+    _gSetupTool.getClusterManagementTool().enableInstance(clusterName,
+        participants[0].getInstanceName(), false);
+    // wait for change in EV
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(result);
+
+    // read the version in EV
+    ev = accessor.getProperty(evKey);
+    int v2 = ev.getRecord().getVersion();
+    Assert.assertEquals(v2 > v1, true);
 
     // clean up
     controller.syncStop();

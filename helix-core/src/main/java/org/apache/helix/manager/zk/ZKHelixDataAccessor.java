@@ -223,6 +223,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       if (record != null) {
         record.setCreationTime(stat.getCtime());
         record.setModifiedTime(stat.getMtime());
+        record.setVersion(stat.getVersion());
       }
     } catch (ZkNoNodeException e) {
       // OK
@@ -401,7 +402,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
         if (value.getBucketSize() == 0) {
           records.add(value.getRecord());
         } else {
-          _baseDataAccessor.remove(path, options);
 
           ZNRecord metaRecord = new ZNRecord(value.getId());
           metaRecord.setSimpleFields(value.getRecord().getSimpleFields());

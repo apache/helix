@@ -123,6 +123,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
       // compare the new external view with current one, set only on different
       ExternalView curExtView = curExtViews.get(resourceName);
+
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord())) {
         keys.add(keyBuilder.externalView(resourceName));
         newExtViews.add(view);
@@ -136,6 +137,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
             && idealState.getStateModelDefRef().equalsIgnoreCase(
                 DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
           updateScheduledTaskStatus(view, manager, idealState);
+        }
+        if (idealState != null) {
+          view.getRecord().getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
         }
       }
     }

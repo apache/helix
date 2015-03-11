@@ -20,13 +20,18 @@ package org.apache.helix.manager.zk;
  */
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.util.GZipCompressionUtil;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.DeserializationConfig;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -77,21 +82,27 @@ public class ZNRecordSerializer implements ZkSerializer {
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
     serializationConfig.set(SerializationConfig.Feature.AUTO_DETECT_FIELDS, true);
     serializationConfig.set(SerializationConfig.Feature.CAN_OVERRIDE_ACCESS_MODIFIERS, true);
-    StringWriter sw = new StringWriter();
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    byte[] serializedBytes = null;
     try {
-      mapper.writeValue(sw, data);
+      mapper.writeValue(baos, data);
+      serializedBytes = baos.toByteArray();
+      // apply compression if needed
+      if (record.getBooleanField("enableCompression", false)) {
+        serializedBytes = GZipCompressionUtil.compress(serializedBytes);
+      }
     } catch (Exception e) {
       logger.error("Exception during data serialization. Will not write to zk. Data (first 1k): "
-          + sw.toString().substring(0, 1024), e);
+          + new String(baos.toByteArray()).substring(0, 1024), e);
       throw new HelixException(e);
     }
-
-    if (sw.toString().getBytes().length > ZNRecord.SIZE_LIMIT) {
+    if (serializedBytes.length > ZNRecord.SIZE_LIMIT) {
       logger.error("Data size larger than 1M, ZNRecord.id: " + record.getId()
-          + ". Will not write to zk. Data (first 1k): " + sw.toString().substring(0, 1024));
+          + ". Will not write to zk. Data (first 1k): "
+          + new String(serializedBytes).substring(0, 1024));
       throw new HelixException("Data size larger than 1M, ZNRecord.id: " + record.getId());
     }
-    return sw.toString().getBytes();
+    return serializedBytes;
   }
 
   @Override
@@ -109,7 +120,13 @@ public class ZNRecordSerializer implements ZkSerializer {
     deserializationConfig.set(DeserializationConfig.Feature.AUTO_DETECT_SETTERS, true);
     deserializationConfig.set(DeserializationConfig.Feature.FAIL_ON_UNKNOWN_PROPERTIES, true);
     try {
+      //decompress the data if its already compressed
+      if (GZipCompressionUtil.isCompressed(bytes)) {
+        byte[] uncompressedBytes = GZipCompressionUtil.uncompress(bais);
+        bais = new ByteArrayInputStream(uncompressedBytes);
+      }
       ZNRecord zn = mapper.readValue(bais, ZNRecord.class);
+
       return zn;
     } catch (Exception e) {
       logger.error("Exception during deserialization of bytes: " + new String(bytes), e);

@@ -3,8 +3,10 @@ package org.apache.helix.manager.zk;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.UUID;
 
 import org.apache.helix.ZNRecord;
+import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -30,7 +32,7 @@ import com.google.common.collect.ImmutableMap;
  * under the License.
  */
 
-public class TestZNRecordStreamingSerializer {
+public class TestZNRecordSerializer {
   /**
    * Test the normal case of serialize/deserialize where ZNRecord is well-formed
    */
@@ -43,37 +45,9 @@ public class TestZNRecordStreamingSerializer {
     record.setListField("k4", ImmutableList.of("d", "e", "f", "g"));
     record.setSimpleField("k5", "a");
     record.setSimpleField("k5", "b");
-    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
     ZNRecord result = (ZNRecord) serializer.deserialize(serializer.serialize(record));
     Assert.assertEquals(result, record);
-  }
-
-  /**
-   * Check that the ZNRecord is not constructed if there is no id in the json
-   */
-  @Test
-  public void noIdTest() {
-    StringBuilder jsonString =
-        new StringBuilder("{\n").append("  \"simpleFields\": {},\n")
-            .append("  \"listFields\": {},\n").append("  \"mapFields\": {}\n").append("}\n");
-    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    ZNRecord result = (ZNRecord) serializer.deserialize(jsonString.toString().getBytes());
-    Assert.assertNull(result);
-  }
-
-  /**
-   * Test that the json still deserizalizes correctly if id is not first
-   */
-  @Test
-  public void idNotFirstTest() {
-    StringBuilder jsonString =
-        new StringBuilder("{\n").append("  \"simpleFields\": {},\n")
-            .append("  \"listFields\": {},\n").append("  \"mapFields\": {},\n")
-            .append("\"id\": \"myId\"\n").append("}");
-    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
-    ZNRecord result = (ZNRecord) serializer.deserialize(jsonString.toString().getBytes());
-    Assert.assertNotNull(result);
-    Assert.assertEquals(result.getId(), "myId");
   }
 
   /**
@@ -82,7 +56,7 @@ public class TestZNRecordStreamingSerializer {
   @Test
   public void fieldAutoInitTest() {
     StringBuilder jsonString = new StringBuilder("{\n").append("\"id\": \"myId\"\n").append("}");
-    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
     ZNRecord result = (ZNRecord) serializer.deserialize(jsonString.toString().getBytes());
     Assert.assertNotNull(result);
     Assert.assertEquals(result.getId(), "myId");
@@ -93,6 +67,7 @@ public class TestZNRecordStreamingSerializer {
     Assert.assertNotNull(result.getMapFields());
     Assert.assertTrue(result.getMapFields().isEmpty());
   }
+
   @Test
   public void testBasicCompression() {
     ZNRecord record = new ZNRecord("testId");
@@ -107,7 +82,7 @@ public class TestZNRecordStreamingSerializer {
       }
       record.setMapField("TestResource_" + p, map);
     }
-    ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+    ZNRecordSerializer serializer = new ZNRecordSerializer();
     byte[] serializedBytes;
     serializedBytes = serializer.serialize(record);
     int uncompressedSize = serializedBytes.length;
@@ -138,7 +113,7 @@ public class TestZNRecordStreamingSerializer {
         }
         record.setMapField("TestResource_" + p, map);
       }
-      ZNRecordStreamingSerializer serializer = new ZNRecordStreamingSerializer();
+      ZNRecordSerializer serializer = new ZNRecordSerializer();
       byte[] serializedBytes;
       record.setSimpleField("enableCompression", "true");
       serializedBytes = serializer.serialize(record);

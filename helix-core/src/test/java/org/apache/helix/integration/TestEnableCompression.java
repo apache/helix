@@ -6,24 +6,17 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.serialize.BytesPushThroughSerializer;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
-import org.apache.helix.model.builder.IdealStateBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.helix.util.GZipCompressionUtil;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -98,10 +91,6 @@ public class TestEnableCompression extends ZkIntegrationTestBase {
     ZkClient zkClient =
         new ZkClient(ZK_ADDR, 60 * 1000, 60 * 1000, new BytesPushThroughSerializer());
     zkClient.waitUntilConnected(10, TimeUnit.SECONDS);
-
-    ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");

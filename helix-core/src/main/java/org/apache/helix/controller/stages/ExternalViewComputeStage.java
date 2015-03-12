@@ -121,9 +121,15 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         clusterStatusMonitor.unregisterResource(view.getResourceName());
       }
 
-      // compare the new external view with current one, set only on different
       ExternalView curExtView = curExtViews.get(resourceName);
+      // copy simplefields from IS, in cases where IS is deleted copy it from existing ExternalView
+      if (idealState != null) {
+        view.getRecord().getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
+      } else if (curExtView != null) {
+        view.getRecord().getSimpleFields().putAll(curExtView.getRecord().getSimpleFields());
+      }
 
+      // compare the new external view with current one, set only on different
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord())) {
         keys.add(keyBuilder.externalView(resourceName));
         newExtViews.add(view);
@@ -138,9 +144,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
                 DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
           updateScheduledTaskStatus(view, manager, idealState);
         }
-        if (idealState != null) {
-          view.getRecord().getSimpleFields().putAll(idealState.getRecord().getSimpleFields());
-        }
+
       }
     }
     // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all.
@@ -235,8 +239,9 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
                       .get(Message.Attributes.MSG_ID.toString()), result);
         }
         // All done for the scheduled tasks that came from controllerMsgId, add summary for it
-        if (controllerMsgUpdates.get(controllerMsgId).size() == controllerMsgIdCountMap.get(
-            controllerMsgId).intValue()) {
+        Integer controllerMsgIdCount = controllerMsgIdCountMap.get(controllerMsgId);
+        if (controllerMsgIdCount != null
+            && controllerMsgUpdates.get(controllerMsgId).size() == controllerMsgIdCount.intValue()) {
           int finishedTasksNum = 0;
           int completedTasksNum = 0;
           for (String key : controllerStatusUpdate.getRecord().getMapFields().keySet()) {

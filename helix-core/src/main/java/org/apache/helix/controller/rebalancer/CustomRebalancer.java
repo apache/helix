@@ -104,8 +104,8 @@ public class CustomRebalancer implements Rebalancer, MappingCalculator {
     if (currentStateMap != null) {
       for (String instance : currentStateMap.keySet()) {
         if ((idealStateMap == null || !idealStateMap.containsKey(instance))
-            && !disabledInstancesForPartition.contains(instance) && isResourceEnabled) {
-          // if dropped and not disabled, transit to DROPPED
+            && !disabledInstancesForPartition.contains(instance)) {
+          // if dropped (whether disabled or not), transit to DROPPED
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
         } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
             HelixDefinedState.ERROR.name()))

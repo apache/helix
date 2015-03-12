@@ -20,11 +20,15 @@ package org.apache.helix.manager.zk;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixException;
@@ -33,8 +37,10 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.CurrentState.CurrentStateProperty;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
@@ -242,12 +248,41 @@ public class ParticipantManagerHelper {
         StateModelDefinition stateModel =
             _dataAccessor.getProperty(_keyBuilder.stateModelDef(stateModelDefRef));
 
+        BaseDataAccessor<ZNRecord> baseAccessor = _dataAccessor.getBaseDataAccessor();
         String curStatePath =
             _keyBuilder.currentState(_instanceName, _sessionId, lastCurState.getResourceName())
                 .getPath();
-        _dataAccessor.getBaseDataAccessor().update(curStatePath,
-            new CurStateCarryOverUpdater(_sessionId, stateModel.getInitialState(), lastCurState),
-            AccessOption.PERSISTENT);
+
+        String initState = stateModel.getInitialState();
+        if (lastCurState.getBucketSize() > 0) {
+          // update parent node
+          ZNRecord metaRecord = new ZNRecord(lastCurState.getId());
+          metaRecord.setSimpleFields(lastCurState.getRecord().getSimpleFields());
+          DataUpdater<ZNRecord> metaRecordUpdater =
+              new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(metaRecord));
+          boolean success =
+              baseAccessor.update(curStatePath, metaRecordUpdater, AccessOption.PERSISTENT);
+          if (success) {
+            // update current state buckets
+            ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(lastCurState.getBucketSize());
+
+            Map<String, ZNRecord> map = bucketizer.bucketize(lastCurState.getRecord());
+            List<String> paths = new ArrayList<String>();
+            List<DataUpdater<ZNRecord>> updaters = new ArrayList<DataUpdater<ZNRecord>>();
+            for (String bucketName : map.keySet()) {
+              paths.add(curStatePath + "/" + bucketName);
+              updaters.add(new CurStateCarryOverUpdater(_sessionId, initState, new CurrentState(map
+                  .get(bucketName))));
+            }
+
+            baseAccessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
+          }
+
+        } else {
+          _dataAccessor.getBaseDataAccessor().update(curStatePath,
+              new CurStateCarryOverUpdater(_sessionId, initState, lastCurState),
+              AccessOption.PERSISTENT);
+        }
       }
     }
 

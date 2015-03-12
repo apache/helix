@@ -187,6 +187,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
           int bucketSize = property.getBucketSize();
           if (bucketSize > 0) {
+            // @see HELIX-574
+            // clean up list and map fields in case we write to parent node by mistake
+            property.getRecord().getMapFields().clear();
+            property.getRecord().getListFields().clear();
+
             List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options);
             ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
 
@@ -239,6 +244,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
         int bucketSize = property.getBucketSize();
         if (bucketSize > 0) {
+          // @see HELIX-574
+          // clean up list and map fields in case we write to parent node by mistake
+          property.getRecord().getMapFields().clear();
+          property.getRecord().getListFields().clear();
+
           List<ZNRecord> childRecords = _baseDataAccessor.getChildren(path, null, options);
           ZNRecord assembledRecord = new ZNRecordAssembler().assemble(childRecords);
 

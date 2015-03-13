@@ -23,16 +23,17 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -43,48 +44,58 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestBucketizedResource extends ZkIntegrationTestBase {
+
+  private void setupCluster(String clusterName, List<String> instanceNames, String dbName,
+      int replica, int partitions, int bucketSize) {
+    _gSetupTool.addCluster(clusterName, true);
+    _gSetupTool.addInstancesToCluster(clusterName,
+        instanceNames.toArray(new String[instanceNames.size()]));
+
+    // add a bucketized resource
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    ZNRecord idealStateRec =
+        DefaultIdealStateCalculator.calculateIdealState(instanceNames, partitions, replica - 1,
+            dbName,
+            "MASTER", "SLAVE");
+    IdealState idealState = new IdealState(idealStateRec);
+    idealState.setBucketSize(bucketSize);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
+    idealState.setReplicas(Integer.toString(replica));
+    accessor.setProperty(keyBuilder.idealStates(dbName), idealState);
+
+  }
+
   @Test()
-  public void testBucketizedResource() throws Exception {
+  public void testBucketizedResource() {
     // Logger.getRootLogger().setLevel(Level.INFO);
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
 
+    List<String> instanceNames =
+        Arrays.asList("localhost_12918", "localhost_12919", "localhost_12920", "localhost_12921", "localhost_12922");
+    int n = instanceNames.size();
+    String dbName = "TestDB0";
+
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     MockParticipantManager[] participants = new MockParticipantManager[5];
-    // ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
 
-    TestHelper.setupCluster(clusterName, ZK_ADDR, 12918, // participant port
-        "localhost", // participant name prefix
-        "TestDB", // resource name prefix
-        1, // resources
-        10, // partitions per resource
-        5, // number of nodes
-        3, // replicas
-        "MasterSlave", true); // do rebalance
+    setupCluster(clusterName, instanceNames, dbName, 3, 10, 1);
 
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    // String idealStatePath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName,
-    // "TestDB0");
-    Builder keyBuilder = accessor.keyBuilder();
-    IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
-    idealState.setBucketSize(1);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName);
     controller.syncStart();
 
     // start participants
-    for (int i = 0; i < 5; i++) {
-      String instanceName = "localhost_" + (12918 + i);
-
-      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
+    for (int i = 0; i < n; i++) {
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(i));
       participants[i].syncStart();
     }
-    PropertyKey evKey = accessor.keyBuilder().externalView("TestDB0");
+    PropertyKey evKey = accessor.keyBuilder().externalView(dbName);
 
     boolean result =
         ClusterStateVerifier
@@ -114,7 +125,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
 
     // clean up
     controller.syncStop();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < n; i++) {
       participants[i].syncStop();
     }
 
@@ -122,44 +133,28 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
   }
 
   @Test
-  public void testBounceDisableAndDrop() throws Exception {
+  public void testBounceDisableAndDrop() {
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     String clusterName = className + "_" + methodName;
     String dbName = "TestDB0";
-    int n = 5;
-    int r = 3;
     List<String> instanceNames =
         Arrays.asList("localhost_0", "localhost_1", "localhost_2", "localhost_3", "localhost_4");
+    int n = instanceNames.size();
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    // create cluster and add nodes to cluster
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    _gSetupTool.addCluster(clusterName, true);
-    _gSetupTool.addInstancesToCluster(clusterName,
-        instanceNames.toArray(new String[instanceNames.size()]));
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // add a bucketized resource
-    ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
-    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
-    Builder keyBuilder = accessor.keyBuilder();
-    ZNRecord idealStateRec =
-        DefaultIdealStateCalculator.calculateIdealState(instanceNames, 10, r - 1, dbName, "MASTER",
-            "SLAVE");
-    IdealState idealState = new IdealState(idealStateRec);
-    idealState.setBucketSize(2);
-    idealState.setStateModelDefRef("MasterSlave");
-    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
-    idealState.setReplicas(Integer.toString(r));
-    accessor.setProperty(keyBuilder.idealStates(dbName), idealState);
+    setupCluster(clusterName, instanceNames, dbName, 3, 10, 2);
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller");
+    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName);
     controller.syncStart();
 
     // start participants
+    MockParticipantManager[] participants = new MockParticipantManager[n];
     for (int i = 0; i < n; i++) {
       participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(i));
       participants[i].syncStart();
@@ -184,7 +179,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     String path =
         keyBuilder.currentState(instanceNames.get(0), participants[0].getSessionId(), dbName)
             .getPath();
-    ZNRecord record = baseAccessor.get(path, null, 0);
+    ZNRecord record = _baseAccessor.get(path, null, 0);
     Assert.assertTrue(record.getMapFields().size() == 0);
 
     // disable the bucketize resource
@@ -204,8 +199,94 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
 
     // make sure external-view is cleaned up
     path = keyBuilder.externalView(dbName).getPath();
-    result = baseAccessor.exists(path, 0);
+    result = _baseAccessor.exists(path, 0);
     Assert.assertFalse(result);
+
+    // clean up
+    controller.syncStop();
+    for (MockParticipantManager participant : participants) {
+      participant.syncStop();
+    }
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  class TestExternalViewListener implements ExternalViewChangeListener {
+    int cbCnt = 0;
+
+    @Override
+    public void onExternalViewChange(List<ExternalView> externalViewList,
+        NotificationContext changeContext) {
+      if (changeContext.getType() == Type.CALLBACK) {
+        cbCnt++;
+      }
+    }
+
+  }
+
+  @Test
+  public void testListenerOnBucketizedResource() throws Exception {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String dbName = "TestDB0";
+    List<String> instanceNames =
+        Arrays.asList("localhost_0", "localhost_1", "localhost_2", "localhost_3", "localhost_4");
+    int n = instanceNames.size();
+
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+
+    ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+    setupCluster(clusterName, instanceNames, dbName, 3, 10, 2);
+
+    // start controller
+    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName);
+    controller.syncStart();
+
+    // start participants
+    MockParticipantManager[] participants = new MockParticipantManager[n];
+    for (int i = 0; i < n; i++) {
+      participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceNames.get(i));
+      participants[i].syncStart();
+    }
+
+    boolean result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(result);
+
+    // add an external view listener
+    TestExternalViewListener listener = new TestExternalViewListener();
+    controller.addExternalViewChangeListener(listener);
+
+    // remove "TestDB0"
+    _gSetupTool.dropResourceFromCluster(clusterName, dbName);
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(result);
+    // wait callback to finish
+    Thread.sleep(100);
+    listener.cbCnt = 0;
+
+    // add a new db
+    String newDbName = "TestDB1";
+    int r = 3;
+    ZNRecord idealStateRec =
+        DefaultIdealStateCalculator.calculateIdealState(instanceNames, 10, r - 1, newDbName,
+            "MASTER", "SLAVE");
+    IdealState idealState = new IdealState(idealStateRec);
+    idealState.setBucketSize(2);
+    idealState.setStateModelDefRef("MasterSlave");
+    idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
+    idealState.setReplicas(Integer.toString(r));
+    accessor.setProperty(keyBuilder.idealStates(newDbName), idealState);
+    result =
+        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
+            clusterName));
+    Assert.assertTrue(result);
+    Assert.assertTrue(listener.cbCnt > 0);
 
     // clean up
     controller.syncStop();

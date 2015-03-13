@@ -36,6 +36,10 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
+  public ClusterControllerManager(String zkAddr, String clusterName) {
+    this(zkAddr, clusterName, "controller");
+  }
+
   public ClusterControllerManager(String zkAddr, String clusterName, String controllerName) {
     super(clusterName, controllerName, InstanceType.CONTROLLER, zkAddr);
   }

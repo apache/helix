@@ -25,6 +25,7 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
@@ -46,6 +47,7 @@ public class ZkIntegrationTestBase {
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
+  protected static BaseDataAccessor<ZNRecord> _baseAccessor;
 
   public static final String ZK_ADDR = "localhost:2183";
   protected static final String CLUSTER_PREFIX = "CLUSTER";
@@ -67,6 +69,7 @@ public class ZkIntegrationTestBase {
     _gZkClient = new ZkClient(ZK_ADDR);
     _gZkClient.setZkSerializer(new ZNRecordSerializer());
     _gSetupTool = new ClusterSetup(ZK_ADDR);
+    _baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
   }
 
   @AfterSuite

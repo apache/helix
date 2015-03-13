@@ -378,17 +378,14 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       if (parentPath != null && parentPath.startsWith(_path)) {
         NotificationContext changeContext = new NotificationContext(_manager);
 
-        if (currentChilds == null) {
-          // parentPath has been removed
-          if (parentPath.equals(_path)) {
-            // _path has been removed, remove this listener
-            _manager.removeListener(_propertyKey, _listener);
-          }
-          changeContext.setType(NotificationContext.Type.FINALIZE);
+        if (currentChilds == null && parentPath.equals(_path)) {
+          // _path has been removed, remove this listener
+          // removeListener will call handler.reset(), which in turn call invoke() on FINALIZE type
+          _manager.removeListener(_propertyKey, _listener);
         } else {
           changeContext.setType(NotificationContext.Type.CALLBACK);
+          invoke(changeContext);
         }
-        invoke(changeContext);
       }
     } catch (Exception e) {
       String msg =

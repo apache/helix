@@ -20,6 +20,7 @@ package org.apache.helix.participant.statemachine;
  */
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -42,13 +43,29 @@ public abstract class StateModelFactory<T extends StateModel> {
 
   /**
    * This method will be invoked only once per resource per partition per session
-   * Replacing old StateModelFactory#createNewStateModel(String partitionName)
+   * Replace deprecating StateModelFactory#createNewStateModel(String partitionName)
    * Add "resourceName" to signature @see HELIX-552
    * @param resourceName
    * @param partitionName
    * @return state model
    */
-  public abstract T createNewStateModel(String resourceName, String partitionName);
+  public T createNewStateModel(String resourceName, String partitionName) {
+    // default implementation ignores resourceName
+    return createNewStateModel(partitionName);
+  }
+
+  /**
+   * NOTE: This method is deprecated. Bring it back to keep backward compatible.
+   * Replaced by StateModelFactory#createNewStateModel(String resourceName, String partitionName)
+   * This method will be invoked only once per partitionName per session
+   * @param partitionName
+   * @return state model
+   */
+  @Deprecated
+  public T createNewStateModel(String partitionName) {
+    throw new UnsupportedOperationException(
+        "Please implement StateModelFactory#createNewStateModel(String resourceName, String partitionName)");
+  }
 
   /**
    * Create a state model for a partition
@@ -74,6 +91,25 @@ public abstract class StateModelFactory<T extends StateModel> {
   public T getStateModel(String resourceName, String partitionKey) {
     Map<String, T> map = _stateModelMap.get(resourceName);
     return map == null? null : map.get(partitionKey);
+  }
+
+  /**
+   * NOTE: This method is deprecated. Bring it back to keep backward compatible.
+   * Replaced by StateModelFactory#getStateModel(String resourceName, String partitionKey)
+   * Get the state model for a partition
+   * @param partitionName
+   * @return state model if exists, null otherwise
+   */
+  @Deprecated
+  public T getStateModel(String partitionName) {
+    // return the first state model that match partitionName
+    // assuming partitionName is unique across all resources
+    for (ConcurrentMap<String, T> map : _stateModelMap.values()) {
+      if (map.containsKey(partitionName)) {
+        return map.get(partitionName);
+      }
+    }
+    return null;
   }
 
   /**
@@ -116,9 +152,25 @@ public abstract class StateModelFactory<T extends StateModel> {
   }
 
   /**
+   * NOTE: This method is deprecated. Bring it back to keep backward compatible.
+   * Replaced by StateModelFactory#getPartitionSet(String resourceName)
+   * get partition set
+   * @return partition key set
+   */
+  @Deprecated
+  public Set<String> getPartitionSet() {
+    // return union of all partitions, assuming partitionName is unique across all resources
+    Set<String> allPartitions = new HashSet<String>();
+    for (ConcurrentMap<String, T> map : _stateModelMap.values()) {
+      allPartitions.addAll(map.keySet());
+    }
+    return allPartitions;
+  }
+
+  /**
    * create a default batch-message-wrapper for a resource
    * @param resourceName
-   * @return
+   * @return batch message handler
    */
   public BatchMessageWrapper createBatchMessageWrapper(String resourceName) {
     return new BatchMessageWrapper();
@@ -127,7 +179,7 @@ public abstract class StateModelFactory<T extends StateModel> {
   /**
    * create a batch-message-wrapper for a resource and put it into map
    * @param resourceName
-   * @return
+   * @return batch message handler
    */
   public BatchMessageWrapper createAndAddBatchMessageWrapper(String resourceName) {
     BatchMessageWrapper wrapper = createBatchMessageWrapper(resourceName);
@@ -138,7 +190,7 @@ public abstract class StateModelFactory<T extends StateModel> {
   /**
    * get batch-message-wrapper for a resource
    * @param resourceName
-   * @return
+   * @return batch message handler
    */
   public BatchMessageWrapper getBatchMessageWrapper(String resourceName) {
     return _batchMsgWrapperMap.get(resourceName);

@@ -70,16 +70,30 @@ public abstract class StateModelFactory<T extends StateModel> {
   /**
    * Create a state model for a partition
    * @param partitionKey
+   * @return state model
    */
   public T createAndAddStateModel(String resourceName, String partitionKey) {
     T stateModel = createNewStateModel(resourceName, partitionKey);
-    synchronized(_stateModelMap) {
+    synchronized (_stateModelMap) {
       if (!_stateModelMap.containsKey(resourceName)) {
         _stateModelMap.put(resourceName, new ConcurrentHashMap<String, T>());
       }
       _stateModelMap.get(resourceName).put(partitionKey, stateModel);
     }
     return stateModel;
+  }
+
+  /**
+   * NOTE: This method is deprecated. Bring it back to keep backward compatible.
+   * Replaced by StateModelFactory#createAndAddStateModel(String resourceName, String partitionKey)
+   * Create a state model for a partition
+   * @param partitionName
+   * @return state model
+   */
+  @Deprecated
+  public T createAndAddStateModel(String partitionName) {
+    throw new UnsupportedOperationException(
+        "This method is replaced by StateModelFactory#createAndAddStateModel(String resourceName, String partitionKey)");
   }
 
   /**
@@ -90,7 +104,7 @@ public abstract class StateModelFactory<T extends StateModel> {
    */
   public T getStateModel(String resourceName, String partitionKey) {
     Map<String, T> map = _stateModelMap.get(resourceName);
-    return map == null? null : map.get(partitionKey);
+    return map == null ? null : map.get(partitionKey);
   }
 
   /**
@@ -120,7 +134,7 @@ public abstract class StateModelFactory<T extends StateModel> {
    */
   public T removeStateModel(String resourceName, String partitionKey) {
     T stateModel = null;
-    synchronized(_stateModelMap) {
+    synchronized (_stateModelMap) {
       Map<String, T> map = _stateModelMap.get(resourceName);
       if (map != null) {
         stateModel = map.remove(partitionKey);
@@ -130,6 +144,25 @@ public abstract class StateModelFactory<T extends StateModel> {
       }
     }
     return stateModel;
+  }
+
+  /**
+   * NOTE: This method is deprecated. Bring it back to keep backward compatible.
+   * Replaced by StateModelFactory#removeStateModel(String resourceName, String partitionKey)
+   * remove state model for a partition
+   * @param partitionName
+   * @return state model removed or null if not exist
+   */
+  @Deprecated
+  public T removeStateModel(String partitionName) {
+    // remove the first state model that match partitionName
+    // assuming partitionName is unique across all resources
+    for (ConcurrentMap<String, T> map : _stateModelMap.values()) {
+      if (map.containsKey(partitionName)) {
+        return map.remove(partitionName);
+      }
+    }
+    return null;
   }
 
   /**
@@ -148,7 +181,7 @@ public abstract class StateModelFactory<T extends StateModel> {
    */
   public Set<String> getPartitionSet(String resourceName) {
     Map<String, T> map = _stateModelMap.get(resourceName);
-    return (map == null? Collections.<String>emptySet() : map.keySet());
+    return (map == null ? Collections.<String> emptySet() : map.keySet());
   }
 
   /**

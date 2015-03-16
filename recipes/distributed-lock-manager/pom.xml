@@ -23,7 +23,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix.recipes</groupId>
     <artifactId>recipes</artifactId>
-    <version>0.6.5-SNAPSHOT</version>
+    <version>0.6.5</version>
   </parent>
 
   <artifactId>distributed-lock-manager</artifactId>

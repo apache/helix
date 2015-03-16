@@ -105,7 +105,7 @@ public class TestEnableCompression extends ZkIntegrationTestBase {
 
     boolean result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+            clusterName), 120000);
     Assert.assertTrue(result);
 
     List<String> compressedPaths = new ArrayList<String>();

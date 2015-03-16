@@ -267,7 +267,14 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
             clusterName));
     Assert.assertTrue(result);
     // wait callback to finish
-    Thread.sleep(100);
+    int waitTime =0;
+    do {
+      Thread.sleep(1000);
+      waitTime += 1000;
+      if (waitTime > 30000) {
+        break;
+      }
+    } while (listener.cbCnt == 0);
     listener.cbCnt = 0;
 
     // add a new db

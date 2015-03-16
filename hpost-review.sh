@@ -54,5 +54,5 @@ if [[ $JIRA_STATUS -eq 404 ]]; then
     usage
 fi;
 
-rbt post --server="https://reviews.apache.org" --target-groups=helix --summary="$(git log --pretty=format:%s $REVLIST)" --description="$(git whatchanged $REVLIST)" --diff-filename=<(git diff --no-prefix $REVLIST) --repository-url=git://git.apache.org/helix.git -o --bugs-closed=$BUG_NAME $*
+rbt post --server="https://reviews.apache.org" --target-groups=helix --summary="$(git log --pretty=format:%s $REVLIST)" --description="$(git whatchanged $REVLIST)" --diff-filename=<(git diff $REVLIST) --repository-url=git://git.apache.org/helix.git -o --bugs-closed=$BUG_NAME $*
 

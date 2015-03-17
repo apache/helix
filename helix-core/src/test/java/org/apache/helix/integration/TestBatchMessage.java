@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.I0Itec.zkclient.IZkChildListener;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixProperty.HelixPropertyAttribute;
@@ -217,22 +218,32 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     // enable batch message
     ZKHelixDataAccessor accessor =
-        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+        new ZKHelixDataAccessor(clusterName, _baseAccessor);
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
+    // get MASTER for errPartition
+    String errPartition = "TestDB0_0";
+    String masterOfPartition0 = null;
+    for (Map.Entry<String, String> entry : idealState.getInstanceStateMap(errPartition).entrySet()) {
+      if (entry.getValue().equals("MASTER")) {
+        masterOfPartition0 = entry.getKey();
+        break;
+      }
+    }
+    Assert.assertNotNull(masterOfPartition0);
+
+    ClusterControllerManager controller = new ClusterControllerManager(ZK_ADDR, clusterName);
     controller.syncStart();
 
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      if (i == 1) {
+      if (instanceName.equals(masterOfPartition0)) {
         Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
-        errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
+        errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_0"));
         participants[i] = new MockParticipantManager(ZK_ADDR, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
@@ -243,16 +254,16 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
 
     Map<String, Map<String, String>> errStates = new HashMap<String, Map<String, String>>();
     errStates.put("TestDB0", new HashMap<String, String>());
-    errStates.get("TestDB0").put("TestDB0_4", "localhost_12919");
+    errStates.get("TestDB0").put(errPartition, masterOfPartition0);
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName, errStates));
     Assert.assertTrue(result);
 
     Map<String, Set<String>> errorStateMap = new HashMap<String, Set<String>>();
-    errorStateMap.put("TestDB0_4", TestHelper.setOf("localhost_12919"));
+    errorStateMap.put(errPartition, TestHelper.setOf(masterOfPartition0));
 
-    // verify "TestDB0_4", "localhost_12919" is in ERROR state
+    // verify "TestDB0_0", masterOfPartition0 is in ERROR state
     TestHelper.verifyState(clusterName, ZK_ADDR, errorStateMap, "ERROR");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));

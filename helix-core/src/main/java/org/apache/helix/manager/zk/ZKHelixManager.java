@@ -60,6 +60,7 @@ import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollectorImpl;
 import org.apache.helix.healthcheck.ParticipantHealthReportTask;
 import org.apache.helix.messaging.DefaultMessagingService;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
@@ -453,6 +454,18 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     return baseDataAccessor;
   }
 
+  /**
+   * Add Helix built-in state model definitions if not exist
+   */
+  private void addBuiltInStateModelDefinitions() {
+    PropertyKey.Builder keyBuilder = _dataAccessor.keyBuilder();
+    for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
+      PropertyKey key = keyBuilder.stateModelDef(def.getStateModelDefinition().getId());
+      // creation succeeds only if not exist
+      _dataAccessor.createProperty(key, def.getStateModelDefinition());
+    }
+  }
+
   void createClient() throws Exception {
     PathBasedZkSerializer zkSerializer =
         ChainedPathZkSerializer.builder(new ZNRecordStreamingSerializer()).build();
@@ -464,6 +477,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     _dataAccessor = new ZKHelixDataAccessor(_clusterName, _instanceType, _baseDataAccessor);
     _configAccessor = new ConfigAccessor(_zkclient);
+
+    if (_instanceType == InstanceType.CONTROLLER
+        || _instanceType == InstanceType.CONTROLLER_PARTICIPANT) {
+      addBuiltInStateModelDefinitions();
+    }
 
     int retryCount = 0;
 
@@ -499,10 +517,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     switch (_instanceType) {
     case CONTROLLER:
-      if (_controller == null) {
-        _controller = new GenericHelixController();
-      }
-      break;
     case CONTROLLER_PARTICIPANT:
       if (_controller == null) {
         _controller = new GenericHelixController();

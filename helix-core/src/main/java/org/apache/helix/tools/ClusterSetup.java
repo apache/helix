@@ -48,6 +48,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
@@ -149,19 +150,10 @@ public class ClusterSetup {
   public void addCluster(String clusterName, boolean overwritePrevious) {
     _admin.addCluster(clusterName, overwritePrevious);
 
-    // StateModelConfigGenerator generator = new StateModelConfigGenerator();
-    addStateModelDef(clusterName, "MasterSlave",
-        new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave()));
-    addStateModelDef(clusterName, "LeaderStandby", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForLeaderStandby()));
-    addStateModelDef(clusterName, "StorageSchemata", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForStorageSchemata()));
-    addStateModelDef(clusterName, "OnlineOffline", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForOnlineOffline()));
-    addStateModelDef(clusterName, "ScheduledTask", new StateModelDefinition(
-        StateModelConfigGenerator.generateConfigForScheduledTaskQueue()));
-    addStateModelDef(clusterName, "Task",
-        new StateModelDefinition(StateModelConfigGenerator.generateConfigForTaskStateModel()));
+    for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
+      addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
+                       def.getStateModelDefinition());
+    }
   }
 
   public void activateCluster(String clusterName, String grandCluster, boolean enable) {

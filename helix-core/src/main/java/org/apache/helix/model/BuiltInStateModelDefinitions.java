@@ -1,4 +1,4 @@
-package org.apache.helix.integration;
+package org.apache.helix.model;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -12,27 +12,31 @@ package org.apache.helix.integration;
  *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is dist_hdlrFtyRegistryributed on an
+ * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
 
-import java.util.Date;
-
-import org.testng.annotations.Test;
-
 /**
- * This is a simple integration test. We will use this until we have framework
- * which helps us write integration tests easily
+ * Helix Built-in State Model Definitions
  */
+public enum BuiltInStateModelDefinitions {
+  MasterSlave(new MasterSlaveSMD()),
+  LeaderStandby(new LeaderStandbySMD()),
+  StorageSchemata(new StorageSchemataSMD()),
+  OnlineOffline(new OnlineOfflineSMD()),
+  ScheduledTask(new ScheduledTaskSMD()),
+  Task(new TaskSMD());
 
-public class IntegrationTest extends ZkStandAloneCMTestBase {
-  @Test
-  public void integrationTest() throws Exception {
-    System.out.println("START IntegrationTest at " + new Date(System.currentTimeMillis()));
-    // Thread.currentThread().join();
-    System.out.println("END IntegrationTest at " + new Date(System.currentTimeMillis()));
+  private final StateModelDefinition def;
+
+  private BuiltInStateModelDefinitions(StateModelDefinition def) {
+    this.def = def;
+  }
+
+  public StateModelDefinition getStateModelDefinition() {
+    return def;
   }
 }

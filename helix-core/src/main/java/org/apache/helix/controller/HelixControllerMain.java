@@ -135,8 +135,6 @@ public class HelixControllerMain {
       manager.addConfigChangeListener(controller);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
-      // no need for controller to listen on external-view
-      // manager.addExternalViewChangeListener(controller);
       manager.addControllerListener(controller);
     } catch (ZkInterruptedException e) {
       logger
@@ -164,18 +162,11 @@ public class HelixControllerMain {
         DistClusterControllerStateModelFactory stateModelFactory =
             new DistClusterControllerStateModelFactory(zkConnectString);
 
-        // StateMachineEngine genericStateMachineHandler = new
-        // StateMachineEngine();
         StateMachineEngine stateMach = manager.getStateMachineEngine();
         stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-        // genericStateMachineHandler);
         manager.connect();
       } else {
         logger.error("cluster controller mode:" + controllerMode + " NOT supported");
-        // throw new
-        // IllegalArgumentException("Unsupported cluster controller mode:" +
-        // controllerMode);
       }
     } catch (Exception e) {
       logger.error("Exception while starting controller", e);

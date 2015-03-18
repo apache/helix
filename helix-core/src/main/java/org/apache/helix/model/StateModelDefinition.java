@@ -171,8 +171,6 @@ public class StateModelDefinition extends HelixProperty {
    * @return name of the initial state
    */
   public String getInitialState() {
-    // return _record.getSimpleField(StateModelDefinitionProperty.INITIAL_STATE
-    // .toString());
     return _initialState;
   }
 
@@ -215,7 +213,7 @@ public class StateModelDefinition extends HelixProperty {
     /**
      * initial state of a replica when it starts, most commonly used initial
      * state is OFFLINE
-     * @param state
+     * @param initialState
      */
     public Builder initialState(String initialState) {
       this.initialState = initialState;
@@ -228,7 +226,8 @@ public class StateModelDefinition extends HelixProperty {
      * STATE2 has a constraint of 3 but only one node is up then Helix will uses
      * the priority to see STATE constraint has to be given higher preference <br/>
      * Use -1 to indicates states with no constraints, like OFFLINE
-     * @param states
+     * @param state
+     * @param priority
      */
     public Builder addState(String state, int priority) {
       statesMap.put(state, priority);

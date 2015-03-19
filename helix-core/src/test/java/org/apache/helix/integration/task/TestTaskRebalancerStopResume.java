@@ -20,7 +20,9 @@ package org.apache.helix.integration.task;
  */
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +53,7 @@ import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -254,6 +257,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     verifyJobNotInQueue(queueName, namespacedJob2);
   }
 
+
   @Test
   public void stopDeleteAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
@@ -319,9 +323,19 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
 
-    // Ensure the jobs left are successful completed in the correct order
     currentJobNames.remove(deletedJob1);
     currentJobNames.remove(deletedJob2);
+
+    // add job 3 back
+    JobConfig.Builder job =
+        new JobConfig.Builder().setCommand("Reindex")
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
+    LOG.info("Enqueuing job: " + deletedJob2);
+    _driver.enqueueJob(queueName, deletedJob2, job);
+    currentJobNames.add(deletedJob2);
+
+    // Ensure the jobs left are successful completed in the correct order
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
@@ -344,6 +358,105 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
       verifyJobDeleted(queueName, namedSpaceJobName);
       verifyJobNotInQueue(queueName, namedSpaceJobName);
     }
+  }
+
+  private JobQueue buildRecurrentJobQueue(String jobQueueName)
+  {
+    Map<String, String> cfgMap = new HashMap<String, String>();
+    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
+    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.DEFAULT_DATE_FORMAT.format(
+        Calendar.getInstance().getTime()));
+    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
+    cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
+    return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
+  }
+
+  @Test
+  public void stopDeleteAndResumeRecurrentNamedQueue() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue queue = buildRecurrentJobQueue(queueName);
+    _driver.createQueue(queue);
+
+    // Create and Enqueue jobs
+    List<String> currentJobNames = new ArrayList<String>();
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    for (int i = 0; i <= 4; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder job =
+          new JobConfig.Builder().setCommand("Reindex")
+              .setJobCommandConfigMap(commandConfig)
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
+      LOG.info("Enqueuing job: " + jobName);
+      _driver.enqueueJob(queueName, jobName, job);
+      currentJobNames.add(i, jobName);
+    }
+
+    WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
+    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+
+    // ensure job 1 is started before deleting it
+    String deletedJob1 = currentJobNames.get(0);
+    String namedSpaceDeletedJob1 = String.format("%s_%s", scheduledQueue, deletedJob1);
+    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+
+    // stop the queue
+    LOG.info("Pausing job-queue: " + scheduledQueue);
+    _driver.stop(queueName);
+    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
+    TestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
+
+    // delete the in-progress job (job 1) and verify it being deleted
+    _driver.deleteJob(queueName, deletedJob1);
+    verifyJobDeleted(queueName, namedSpaceDeletedJob1);
+    verifyJobDeleted(scheduledQueue, namedSpaceDeletedJob1);
+
+    LOG.info("Resuming job-queue: " + queueName);
+    _driver.resume(queueName);
+
+    // ensure job 2 is started
+    TestUtil.pollForJobState(_manager, scheduledQueue,
+        String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS);
+
+    // stop the queue
+    LOG.info("Pausing job-queue: " + queueName);
+    _driver.stop(queueName);
+    TestUtil.pollForJobState(_manager, scheduledQueue,
+        String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.STOPPED);
+    TestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
+
+    // Ensure job 3 is not started before deleting it
+    String deletedJob2 = currentJobNames.get(2);
+    String namedSpaceDeletedJob2 = String.format("%s_%s", scheduledQueue, deletedJob2);
+    TestUtil.pollForEmptyJobState(_manager, scheduledQueue, namedSpaceDeletedJob2);
+
+    // delete not-started job (job 3) and verify it being deleted
+    _driver.deleteJob(queueName, deletedJob2);
+    verifyJobDeleted(queueName, namedSpaceDeletedJob2);
+    verifyJobDeleted(scheduledQueue, namedSpaceDeletedJob2);
+
+    LOG.info("Resuming job-queue: " + queueName);
+    _driver.resume(queueName);
+
+    // Ensure the jobs left are successful completed in the correct order
+    currentJobNames.remove(deletedJob1);
+    currentJobNames.remove(deletedJob2);
+    long preJobFinish = 0;
+    for (int i = 0; i < currentJobNames.size(); i++) {
+      String namedSpaceJobName = String.format("%s_%s", scheduledQueue, currentJobNames.get(i));
+      TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
+
+      JobContext jobContext = TaskUtil.getJobContext(_manager, namedSpaceJobName);
+      long jobStart = jobContext.getStartTime();
+      Assert.assertTrue(jobStart >= preJobFinish);
+      preJobFinish = jobContext.getFinishTime();
+    }
+    // verify the job is not there for the next recurrence of queue schedule
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

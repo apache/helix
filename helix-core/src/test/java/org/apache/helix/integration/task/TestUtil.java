@@ -81,4 +81,17 @@ public class TestUtil {
     }, _default_timeout);
     Assert.assertTrue(succeed);
   }
+
+  public static WorkflowContext pollForWorkflowContext(HelixManager manager, String workflowResource)
+      throws InterruptedException {
+    // Wait for completion.
+    long st = System.currentTimeMillis();
+    WorkflowContext ctx;
+    do {
+      Thread.sleep(100);
+      ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+    } while (ctx == null && System.currentTimeMillis() < st + _default_timeout);
+    Assert.assertNotNull(ctx);
+    return ctx;
+  }
 }

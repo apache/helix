@@ -281,17 +281,59 @@ public class TaskDriver {
 
   /** Delete a job from an existing named queue, the queue has to be stopped prior to this call */
   public void deleteJob(final String queueName, final String jobName) {
-    HelixProperty workflowConfig = _accessor.getProperty(_accessor.keyBuilder().resourceConfig(queueName));
-    if (workflowConfig == null) {
+    WorkflowConfig workflowCfg =
+        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
+
+    if (workflowCfg == null) {
       throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
     }
-    boolean isTerminable =
-        workflowConfig.getRecord().getBooleanField(WorkflowConfig.TERMINABLE, true);
-    if (isTerminable) {
+    if (workflowCfg.isTerminable()) {
       throw new IllegalArgumentException(queueName + " is not a queue!");
     }
 
+    boolean isRecurringWorkflow =
+        (workflowCfg.getScheduleConfig() != null && workflowCfg.getScheduleConfig().isRecurring());
+
+    if (isRecurringWorkflow) {
+      WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
+
+      String lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+
+      // delete the current scheduled one
+      deleteJobFromScheduledQueue(lastScheduledQueue, jobName);
+
+      // Remove the job from the original queue template's DAG
+      removeJobFromDag(queueName, jobName);
+
+      // delete the ideal state and resource config for the template job
+      final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+      _admin.dropResource(_clusterName, namespacedJobName);
+
+      // Delete the job template from property store
+      String jobPropertyPath =
+          Joiner.on("/")
+              .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
+      _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
+    } else {
+      deleteJobFromScheduledQueue(queueName, jobName);
+    }
+  }
+
+
+  /** delete a job from a scheduled (non-recurrent) queue.*/
+  private void deleteJobFromScheduledQueue(final String queueName, final String jobName) {
+    WorkflowConfig workflowCfg =
+        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
+
+    if (workflowCfg == null) {
+      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+    }
+
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
+    if (wCtx != null && wCtx.getWorkflowState() == null) {
+      throw new IllegalStateException("Queue " + queueName + " does not have a valid work state!");
+    }
+
     String workflowState =
         (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
 
@@ -300,7 +342,26 @@ public class TaskDriver {
     }
 
     // Remove the job from the queue in the DAG
+    removeJobFromDag(queueName, jobName);
+
+    // delete the ideal state and resource config for the job
     final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+    _admin.dropResource(_clusterName, namespacedJobName);
+
+    // update queue's property to remove job from JOB_STATES if it is already started.
+    removeJobStateFromQueue(queueName, jobName);
+
+    // Delete the job from property store
+    String jobPropertyPath =
+        Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
+    _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
+  }
+
+  /** Remove the job name from the DAG from the queue configuration */
+  private void removeJobFromDag(final String queueName, final String jobName) {
+    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -338,7 +399,7 @@ public class TaskDriver {
           currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
         } catch (Exception e) {
           throw new IllegalStateException(
-              "Could not remove job " + jobName + " from queue " + queueName, e);
+              "Could not remove job " + jobName + " from DAG of queue " + queueName, e);
         }
         return currentData;
       }
@@ -347,17 +408,20 @@ public class TaskDriver {
     String path = _accessor.keyBuilder().resourceConfig(queueName).getPath();
     boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
-      throw new IllegalArgumentException("Could not enqueue job");
+      throw new IllegalArgumentException(
+          "Could not remove job " + jobName + " from DAG of queue " + queueName);
     }
+  }
 
-    // delete the ideal state and resource config for the job
-    _admin.dropResource(_clusterName, namespacedJobName);
-
-    // update queue's property to remove job from JOB_STATES if it is already started.
+  /** update queue's property to remove job from JOB_STATES if it is already started.
+   */
+  private void removeJobStateFromQueue(final String queueName, final String jobName) {
+    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
     String queuePropertyPath =
         Joiner.on("/")
             .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
-    updater = new DataUpdater<ZNRecord>() {
+
+    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
@@ -369,13 +433,9 @@ public class TaskDriver {
         return currentData;
       }
     };
-    _propertyStore.update(queuePropertyPath, updater, AccessOption.PERSISTENT);
-
-    // Delete the job from property store
-    String jobPropertyPath =
-        Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
-    _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
+    if (!_propertyStore.update(queuePropertyPath, updater, AccessOption.PERSISTENT)) {
+      LOG.warn("Fail to remove job state for job " + namespacedJobName + " from queue " + queueName);
+    }
   }
 
   /** Adds a new job to the end an existing named queue */

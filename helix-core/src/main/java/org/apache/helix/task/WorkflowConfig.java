@@ -24,6 +24,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
@@ -82,6 +83,10 @@ public class WorkflowConfig {
     return _scheduleConfig;
   }
 
+  public boolean isRecurring() {
+    return _scheduleConfig != null && _scheduleConfig.isRecurring();
+  }
+
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
@@ -121,6 +126,11 @@ public class WorkflowConfig {
 
     public Builder setJobDag(JobDag v) {
       _taskDag = v;
+      return this;
+    }
+
+    public Builder setExpiry(long v, TimeUnit unit) {
+      _expiry = unit.toMillis(v);
       return this;
     }
 

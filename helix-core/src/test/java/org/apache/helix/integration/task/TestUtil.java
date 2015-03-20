@@ -23,6 +23,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
 
@@ -56,13 +57,30 @@ public class TestUtil {
 
   public static void pollForJobState(HelixManager manager, String workflowResource, String jobName,
       TaskState state) throws InterruptedException {
-    // Wait for completion.
-    long st = System.currentTimeMillis();
+    // Get workflow config
+    WorkflowConfig wfCfg = TaskUtil.getWorkflowCfg(manager, workflowResource);
+    Assert.assertNotNull(wfCfg);
     WorkflowContext ctx;
+    if (wfCfg.isRecurring()) {
+      // if it's recurring, need to reconstruct workflow and job name
+      do {
+        Thread.sleep(100);
+        ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+      } while ((ctx == null || ctx.getLastScheduledSingleWorkflow() == null));
+      Assert.assertNotNull(ctx);
+      Assert.assertNotNull(ctx.getLastScheduledSingleWorkflow());
+      jobName = jobName.substring(workflowResource.length() + 1);
+      workflowResource = ctx.getLastScheduledSingleWorkflow();
+      jobName = String.format("%s_%s", workflowResource, jobName);
+    }
+
+    // Wait for state
+    long st = System.currentTimeMillis();
     do {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
-    } while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
+    }
+    while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
         && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
     Assert.assertEquals(ctx.getJobState(jobName), state);

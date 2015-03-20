@@ -559,6 +559,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     if (SCHEDULED_TIMES.containsKey(id) || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
       return;
     }
+    LOG.info("Schedule rebalance with id: " + id + "and job: " + jobResource);
 
     // For workflows not yet scheduled, schedule them and record it
     RebalanceInvoker rebalanceInvoker = new RebalanceInvoker(_manager, jobResource);
@@ -664,6 +665,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    */
   private static void cleanup(HelixManager mgr, final String resourceName, WorkflowConfig cfg,
       String workflowResource) {
+    LOG.info("Cleaning up job: " + resourceName + " in workflow: " + workflowResource);
     HelixDataAccessor accessor = mgr.getHelixDataAccessor();
 
     // Remove any DAG references in workflow
@@ -684,7 +686,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         try {
           currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
         } catch (Exception e) {
-          LOG.equals("Could not update DAG for job " + resourceName);
+          LOG.equals("Could not update DAG for job: " + resourceName);
         }
         return currentData;
       }
@@ -695,28 +697,31 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // Delete resource configs.
     PropertyKey cfgKey = getConfigPropertyKey(accessor, resourceName);
     if (!accessor.removeProperty(cfgKey)) {
-      throw new RuntimeException(
-          String
-              .format(
-                  "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
-                  resourceName, cfgKey));
+      throw new RuntimeException(String.format(
+          "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
+          resourceName,
+          cfgKey));
     }
+
     // Delete property store information for this resource.
+    // For recurring workflow, it's OK if the node doesn't exist.
     String propStoreKey = getRebalancerPropStoreKey(resourceName);
-    if (!mgr.getHelixPropertyStore().remove(propStoreKey, AccessOption.PERSISTENT)) {
-      throw new RuntimeException(
-          String
-              .format(
-                  "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
-                  resourceName, propStoreKey));
-    }
-    // Finally, delete the ideal state itself.
+    mgr.getHelixPropertyStore().remove(propStoreKey, AccessOption.PERSISTENT);
+
+    // Delete the ideal state itself.
     PropertyKey isKey = getISPropertyKey(accessor, resourceName);
     if (!accessor.removeProperty(isKey)) {
       throw new RuntimeException(String.format(
           "Error occurred while trying to clean up task %s. Failed to remove node %s from Helix.",
           resourceName, isKey));
     }
+
+    // Delete dead external view
+    // because job is already completed, there is no more current state change
+    // thus dead external views removal will not be triggered
+    PropertyKey evKey = accessor.keyBuilder().externalView(resourceName);
+    accessor.removeProperty(evKey);
+
     LOG.info(String.format("Successfully cleaned up job resource %s.", resourceName));
 
     boolean lastInWorkflow = true;
@@ -727,11 +732,12 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
           || accessor.getProperty(getConfigPropertyKey(accessor, job)) != null
           || accessor.getProperty(getISPropertyKey(accessor, job)) != null) {
         lastInWorkflow = false;
+        break;
       }
     }
 
     // clean up workflow-level info if this was the last in workflow
-    if (lastInWorkflow && cfg.isTerminable()) {
+    if (lastInWorkflow && (cfg.isTerminable() || cfg.getTargetState() == TargetState.DELETE)) {
       // delete workflow config
       PropertyKey workflowCfgKey = getConfigPropertyKey(accessor, workflowResource);
       if (!accessor.removeProperty(workflowCfgKey)) {

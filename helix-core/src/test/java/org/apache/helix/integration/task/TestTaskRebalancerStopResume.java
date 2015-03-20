@@ -29,22 +29,28 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import com.google.common.collect.Lists;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.ScheduleConfig;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
@@ -56,6 +62,7 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.util.PathUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -259,7 +266,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
 
   @Test
-  public void stopDeleteAndResumeNamedQueue() throws Exception {
+  public void stopDeleteJobAndResumeNamedQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -307,8 +314,10 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager, queueName,
-        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
+    TestUtil.pollForJobState(_manager,
+                             queueName,
+                             String.format("%s_%s", queueName, currentJobNames.get(1)),
+                             TaskState.STOPPED);
     TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
@@ -372,7 +381,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   }
 
   @Test
-  public void stopDeleteAndResumeRecurrentNamedQueue() throws Exception {
+  public void stopDeleteJobAndResumeRecurrentQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -457,6 +466,76 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
       preJobFinish = jobContext.getFinishTime();
     }
     // verify the job is not there for the next recurrence of queue schedule
+  }
+
+  @Test
+  public void stopAndDeleteQueue() throws Exception {
+    final String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
+    WorkflowConfig wfCfg
+        = new WorkflowConfig.Builder().setExpiry(2, TimeUnit.MINUTES)
+                                      .setScheduleConfig(ScheduleConfig.recurringFromNow(TimeUnit.MINUTES, 1)).build();
+    JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
+    _driver.createQueue(qCfg);
+
+    // Enqueue 2 jobs
+    Set<String> master = Sets.newHashSet("MASTER");
+    JobConfig.Builder job1 =
+        new JobConfig.Builder().setCommand("Reindex")
+                               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+    String job1Name = "masterJob";
+    LOG.info("Enqueuing job1: " + job1Name);
+    _driver.enqueueJob(queueName, job1Name, job1);
+
+    Set<String> slave = Sets.newHashSet("SLAVE");
+    JobConfig.Builder job2 =
+        new JobConfig.Builder().setCommand("Reindex")
+                               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+    String job2Name = "slaveJob";
+    LOG.info("Enqueuing job2: " + job2Name);
+    _driver.enqueueJob(queueName, job2Name, job2);
+
+    String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
+    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+
+    String namespacedJob2 = String.format("%s_%s", queueName,  job2Name);
+    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+
+    // Stop and delete queue
+    _driver.stop(queueName);
+    _driver.delete(queueName);
+
+    // Wait until all status are cleaned up
+    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+      @Override public boolean verify() throws Exception {
+        HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+
+        // check paths for resource-config, ideal-state, external-view, property-store
+        List<String> paths
+            = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
+                                 keyBuilder.idealStates().getPath(),
+                                 keyBuilder.externalViews().getPath(),
+                                 PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
+                                     + TaskConstants.REBALANCER_CONTEXT_ROOT);
+
+        for (String path : paths) {
+          List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);
+          for (String childName : childNames) {
+            if (childName.startsWith(queueName)) {
+              return false;
+            }
+          }
+        }
+
+        return true;
+      }
+    }, 30 * 1000);
+    Assert.assertTrue(result);
+
+    System.out.println("END " + queueName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

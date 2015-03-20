@@ -345,7 +345,11 @@ public class TaskUtil {
   public static void invokeRebalance(HelixManager manager, String resource) {
     // The pipeline is idempotent, so touching an ideal state is enough to trigger a pipeline run
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    accessor.updateProperty(accessor.keyBuilder().idealStates(resource), new IdealState(resource));
+    PropertyKey key = accessor.keyBuilder().idealStates(resource);
+    IdealState is = accessor.getProperty(key);
+    if (is != null) {
+      accessor.updateProperty(key, is);
+    }
   }
 
   /**

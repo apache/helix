@@ -373,7 +373,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
-    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.DEFAULT_DATE_FORMAT.format(
+    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.getDefaultDateFormat().format(
         Calendar.getInstance().getTime()));
     cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");

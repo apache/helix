@@ -269,8 +269,8 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     // wait callback to finish
     int waitTime =0;
     do {
-      Thread.sleep(1000);
-      waitTime += 1000;
+      Thread.sleep(100);
+      waitTime += 100;
       if (waitTime > 30000) {
         break;
       }
@@ -293,6 +293,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
+    Thread.sleep(200);
     Assert.assertTrue(listener.cbCnt > 0);
 
     // clean up

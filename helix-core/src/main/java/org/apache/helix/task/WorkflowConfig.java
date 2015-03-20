@@ -41,11 +41,6 @@ public class WorkflowConfig {
 
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
-  public static final SimpleDateFormat DEFAULT_DATE_FORMAT = new SimpleDateFormat(
-      "MM-dd-yyyy HH:mm:ss");
-  static {
-    DEFAULT_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
-  }
 
   /* Member variables */
   private final JobDag _jobDag;
@@ -87,6 +82,14 @@ public class WorkflowConfig {
     return _scheduleConfig != null && _scheduleConfig.isRecurring();
   }
 
+  public static SimpleDateFormat getDefaultDateFormat() {
+    SimpleDateFormat defaultDateFormat = new SimpleDateFormat(
+        "MM-dd-yyyy HH:mm:ss");
+    defaultDateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+    return defaultDateFormat;
+  }
+
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
@@ -99,7 +102,7 @@ public class WorkflowConfig {
     if (scheduleConfig != null) {
       Date startTime = scheduleConfig.getStartTime();
       if (startTime != null) {
-        String formattedTime = WorkflowConfig.DEFAULT_DATE_FORMAT.format(startTime);
+        String formattedTime = WorkflowConfig.getDefaultDateFormat().format(startTime);
         cfgMap.put(WorkflowConfig.START_TIME, formattedTime);
       }
       if (scheduleConfig.isRecurring()) {

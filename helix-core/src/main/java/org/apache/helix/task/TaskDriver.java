@@ -659,7 +659,7 @@ public class TaskDriver {
     // find a task
     for (String resource : _admin.getResourcesInCluster(_clusterName)) {
       IdealState is = _admin.getResourceIdealState(_clusterName, resource);
-      if (is.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+      if (is != null && is.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
         _accessor.updateProperty(_accessor.keyBuilder().idealStates(resource), is);
         break;
       }

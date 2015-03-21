@@ -373,8 +373,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
-    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.getDefaultDateFormat().format(
-        Calendar.getInstance().getTime()));
+    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.getDefaultDateFormat().format(Calendar.getInstance().getTime()));
     cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
     return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
@@ -503,12 +502,19 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     String namespacedJob2 = String.format("%s_%s", queueName,  job2Name);
     TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
 
-    // Stop and delete queue
+    // Stop queue
     _driver.stop(queueName);
+
+    boolean result =
+        ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
+            ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
+
+    // Delete queue
     _driver.delete(queueName);
 
     // Wait until all status are cleaned up
-    boolean result = TestHelper.verify(new TestHelper.Verifier() {
+    result = TestHelper.verify(new TestHelper.Verifier() {
       @Override public boolean verify() throws Exception {
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();
         PropertyKey.Builder keyBuilder = accessor.keyBuilder();

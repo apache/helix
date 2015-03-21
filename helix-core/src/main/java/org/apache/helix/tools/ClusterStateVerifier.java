@@ -61,6 +61,7 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.task.TaskConstants;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -255,15 +256,22 @@ public class ClusterStateVerifier {
       cache.refresh(accessor);
 
       Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null) // || idealStates.isEmpty())
-      {
+      if (idealStates == null) {
         // ideal state is null because ideal state is dropped
         idealStates = Collections.emptyMap();
       }
 
+      // filter out all resources that use Task state model
+      Iterator it = idealStates.entrySet().iterator();
+      while (it.hasNext()) {
+        Map.Entry<String, IdealState> pair = (Map.Entry<String, IdealState>)it.next();
+        if (pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+          it.remove();
+        }
+      }
+
       Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (extViews == null) // || extViews.isEmpty())
-      {
+      if (extViews == null) {
         extViews = Collections.emptyMap();
       }
 

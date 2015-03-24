@@ -63,7 +63,7 @@ under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-site-plugin</artifactId>
-        <version>3.3</version>
+        <version>3.2</version>
         <dependencies>
           <dependency>
             <groupId>lt.velykis.maven.skins</groupId>

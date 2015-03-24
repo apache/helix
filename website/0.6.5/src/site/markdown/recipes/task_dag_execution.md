@@ -81,7 +81,7 @@ Start redis e.g:
 
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout helix-0.6.4
+git checkout helix-0.6.5
 cd recipes/task-execution
 mvn clean install package -DskipTests
 cd target/task-execution-pkg/bin

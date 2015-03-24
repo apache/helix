@@ -27,7 +27,7 @@ Requirements: JDK 1.6+, Maven 2.0.8+
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.6.4
+git checkout tags/helix-0.6.5
 mvn install package -DskipTests
 ```
 
@@ -37,6 +37,6 @@ mvn install package -DskipTests
 <dependency>
   <groupId>org.apache.helix</groupId>
   <artifactId>helix-core</artifactId>
-  <version>0.6.4</version>
+  <version>0.6.5</version>
 </dependency>
 ```

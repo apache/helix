@@ -26,9 +26,9 @@ under the License.
     <version>0.7.2-SNAPSHOT</version>
   </parent>
 
-  <artifactId>0.6.4-docs</artifactId>
+  <artifactId>0.6.5-docs</artifactId>
   <packaging>bundle</packaging>
-  <name>Apache Helix :: Website :: 0.6.4</name>
+  <name>Apache Helix :: Website :: 0.6.5</name>
 
   <properties>
   </properties>

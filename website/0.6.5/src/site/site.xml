@@ -55,23 +55,23 @@
 
     <breadcrumbs position="left">
       <item name="Apache Helix" href="http://helix.apache.org/"/>
-      <item name="Release 0.6.4" href="http://helix.apache.org/0.6.4-docs/"/>
+      <item name="Release 0.6.5" href="http://helix.apache.org/0.6.5-docs/"/>
     </breadcrumbs>
 
     <links>
-      <item name="Helix 0.6.4" href="./index.html"/>
+      <item name="Helix 0.6.5" href="./index.html"/>
     </links>
 
     <menu name="Get Helix">
       <item name="Download" href="./download.html"/>
       <item name="Building" href="./Building.html"/>
-      <item name="Release Notes" href="./releasenotes/release-0.6.4.html"/>
+      <item name="Release Notes" href="./releasenotes/release-0.6.5.html"/>
     </menu>
 
     <menu name="Hands-On">
       <item name="Quick Start" href="./Quickstart.html"/>
       <item name="Tutorial" href="./Tutorial.html"/>
-      <item name="Javadocs" href="http://helix.apache.org/javadocs/0.6.4"/>
+      <item name="Javadocs" href="http://helix.apache.org/javadocs/0.6.5"/>
     </menu>
 
     <menu name="Recipes">

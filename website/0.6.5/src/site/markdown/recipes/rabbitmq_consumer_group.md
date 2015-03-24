@@ -52,7 +52,7 @@ We showcase how such a dynamic application can be developed using Helix. Even th
 ```
 git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd helix
-git checkout tags/helix-0.6.4
+git checkout tags/helix-0.6.5
 mvn clean install package -DskipTests
 cd recipes/rabbitmq-consumer-group/bin
 chmod +x *

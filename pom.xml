@@ -732,6 +732,8 @@ under the License.
                     <exclude>src/main/scripts/integration-test/script/.metadata_infra</exclude>
                     <exclude>helix-dev-release/**</exclude>
                     <exclude>DEPENDENCIES</exclude>
+                    <exclude>dependency-reduced-pom.xml</exclude>
+                    <exclude>**/d3.min.js</exclude>
                   </excludes>
                 </configuration>
               </execution>

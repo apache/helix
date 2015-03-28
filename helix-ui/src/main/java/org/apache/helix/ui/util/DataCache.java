@@ -9,11 +9,14 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.ui.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 public class DataCache {
+    private static final Logger LOG = LoggerFactory.getLogger(DataCache.class);
     private static final int CACHE_EXPIRY_TIME = 30;
     private static final TimeUnit CACHE_EXPIRY_UNIT = TimeUnit.SECONDS;
 
@@ -90,19 +93,25 @@ public class DataCache {
                                 .forCluster(resourceSpec.getClusterName())
                                 .forResource(resourceSpec.getResourceName())
                                 .build();
+                        try
+                        {
+                           List<String> clusterConfigKeys = clusterSetup.getClusterManagementTool().getConfigKeys(configScope);
 
-                        List<String> clusterConfigKeys = clusterSetup.getClusterManagementTool().getConfigKeys(configScope);
+                           Map<String, String> config = clusterSetup.getClusterManagementTool().getConfig(configScope, clusterConfigKeys);
 
-                        Map<String, String> config = clusterSetup.getClusterManagementTool().getConfig(configScope, clusterConfigKeys);
-
-                        if (config != null) {
-                            for (Map.Entry<String, String> entry : config.entrySet()) {
-                                configTable.add(new ConfigTableRow(
-                                        HelixConfigScope.ConfigScopeProperty.RESOURCE.toString(),
-                                        resourceSpec.getClusterName(),
-                                        entry.getKey(),
-                                        entry.getValue()));
-                            }
+                           if (config != null) {
+                               for (Map.Entry<String, String> entry : config.entrySet()) {
+                                   configTable.add(new ConfigTableRow(
+                                           HelixConfigScope.ConfigScopeProperty.RESOURCE.toString(),
+                                           resourceSpec.getClusterName(),
+                                           entry.getKey(),
+                                           entry.getValue()));
+                               }
+                           }
+                        }
+                        catch (Exception e)
+                        {
+                          LOG.warn("Could not get resource config for {}", resourceSpec.getResourceName(), e);
                         }
 
                         return configTable;

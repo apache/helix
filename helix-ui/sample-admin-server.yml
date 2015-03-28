@@ -1,0 +1,12 @@
+adminMode: true
+
+zkAddresses:
+  - "localhost:2181"
+
+server:
+    applicationConnectors:
+        - type: http
+          port: 60000
+    adminConnectors:
+        - type: http
+          port: 60001

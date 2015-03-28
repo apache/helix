@@ -200,6 +200,7 @@ under the License.
     <module>helix-provisioning</module>
     <module>helix-examples</module>
     <module>helix-ipc</module>
+    <module>helix-ui</module>
     <module>recipes</module>
   </modules>
 

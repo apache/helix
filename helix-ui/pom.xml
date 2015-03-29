@@ -31,6 +31,7 @@ under the License.
     <url>http://maven.apache.org</url>
 
     <properties>
+        <maven.test.skip.exec>true</maven.test.skip.exec>
         <dropwizard.version>0.8.0</dropwizard.version>
         <osgi.import>
           javax.management*,
@@ -42,7 +43,6 @@ under the License.
           org.apache.helix.tools*
         </osgi.ignore>
     </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.dropwizard</groupId>
@@ -72,6 +72,11 @@ under the License.
                     <artifactId>log4j</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.testng</groupId>
+            <artifactId>testng</artifactId>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 

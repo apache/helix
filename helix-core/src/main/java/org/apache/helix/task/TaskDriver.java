@@ -369,37 +369,35 @@ public class TaskDriver {
         JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
         Set<String> allNodes = jobDag.getAllNodes();
         if (!allNodes.contains(namespacedJobName)) {
-          throw new IllegalStateException("Could not delete job from queue " + queueName + ", job "
-              + jobName + " not exists");
-        }
-
-        String parent = null;
-        String child = null;
-        // remove the node from the queue
-        for (String node : allNodes) {
-          if (!node.equals(namespacedJobName)) {
-            if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
-              parent = node;
-              jobDag.removeParentToChild(parent, namespacedJobName);
-            } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
-              child = node;
-              jobDag.removeParentToChild(namespacedJobName, child);
+          LOG.warn("Could not delete job from queue " + queueName + ", job " + jobName + " not exists");
+        } else {
+          String parent = null;
+          String child = null;
+          // remove the node from the queue
+          for (String node : allNodes) {
+            if (!node.equals(namespacedJobName)) {
+              if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
+                parent = node;
+                jobDag.removeParentToChild(parent, namespacedJobName);
+              } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
+                child = node;
+                jobDag.removeParentToChild(namespacedJobName, child);
+              }
             }
           }
-        }
 
-        if (parent != null && child != null) {
-          jobDag.addParentToChild(parent, child);
-        }
+          if (parent != null && child != null) {
+            jobDag.addParentToChild(parent, child);
+          }
 
-        jobDag.removeNode(namespacedJobName);
+          jobDag.removeNode(namespacedJobName);
 
-        // Save the updated DAG
-        try {
-          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              "Could not remove job " + jobName + " from DAG of queue " + queueName, e);
+          // Save the updated DAG
+          try {
+            currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+          } catch (Exception e) {
+            throw new IllegalStateException("Could not remove job " + jobName + " from DAG of queue " + queueName, e);
+          }
         }
         return currentData;
       }

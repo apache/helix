@@ -220,8 +220,8 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 =
-    new JobConfig.Builder().setCommand("Reindex")
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+        new JobConfig.Builder().setCommand("Reindex")
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
@@ -315,9 +315,9 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
     TestUtil.pollForJobState(_manager,
-                             queueName,
-                             String.format("%s_%s", queueName, currentJobNames.get(1)),
-                             TaskState.STOPPED);
+        queueName,
+        String.format("%s_%s", queueName, currentJobNames.get(1)),
+        TaskState.STOPPED);
     TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
@@ -373,7 +373,8 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
-    cfgMap.put(WorkflowConfig.START_TIME, WorkflowConfig.getDefaultDateFormat().format(Calendar.getInstance().getTime()));
+    cfgMap.put(WorkflowConfig.START_TIME,
+        WorkflowConfig.getDefaultDateFormat().format(Calendar.getInstance().getTime()));
     cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
     return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
@@ -468,6 +469,58 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
   }
 
   @Test
+  public void deleteJobFromRecurrentQueueNotStarted() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue queue = buildRecurrentJobQueue(queueName);
+    _driver.createQueue(queue);
+
+    // create jobs
+    List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
+    List<String> jobNames = new ArrayList<String>();
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+
+    final int JOB_COUNTS = 3;
+
+    for (int i = 0; i < JOB_COUNTS; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder job =
+          new JobConfig.Builder().setCommand("Reindex").setJobCommandConfigMap(commandConfig)
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      jobs.add(job);
+      jobNames.add(targetPartition.toLowerCase() + "Job" + i);
+    }
+
+    // enqueue all jobs except last one
+    for (int i = 0; i < JOB_COUNTS - 1; ++i) {
+      LOG.info("Enqueuing job: " + jobNames.get(i));
+      _driver.enqueueJob(queueName, jobNames.get(i), jobs.get(i));
+    }
+    String currentLastJob = jobNames.get(JOB_COUNTS - 2);
+
+    WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
+    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+
+    // ensure all jobs are finished
+    String namedSpaceJob = String.format("%s_%s", scheduledQueue, currentLastJob);
+    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
+
+    // enqueue the last job
+    LOG.info("Enqueuing job: " + jobNames.get(JOB_COUNTS - 1));
+    _driver.enqueueJob(queueName, jobNames.get(JOB_COUNTS - 1), jobs.get(JOB_COUNTS - 1));
+
+    // remove the last job
+    _driver.deleteJob(queueName, jobNames.get(JOB_COUNTS - 1));
+
+    // verify
+    verifyJobDeleted(queueName, String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
+  }
+
+  @Test
   public void stopAndDeleteQueue() throws Exception {
     final String queueName = TestHelper.getTestMethodName();
 
@@ -475,7 +528,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     System.out.println("START " + queueName + " at " + new Date(System.currentTimeMillis()));
     WorkflowConfig wfCfg
         = new WorkflowConfig.Builder().setExpiry(2, TimeUnit.MINUTES)
-                                      .setScheduleConfig(ScheduleConfig.recurringFromNow(TimeUnit.MINUTES, 1)).build();
+        .setScheduleConfig(ScheduleConfig.recurringFromNow(TimeUnit.MINUTES, 1)).build();
     JobQueue qCfg = new JobQueue.Builder(queueName).fromMap(wfCfg.getResourceConfigMap()).build();
     _driver.createQueue(qCfg);
 
@@ -483,7 +536,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 =
         new JobConfig.Builder().setCommand("Reindex")
-                               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job1: " + job1Name);
     _driver.enqueueJob(queueName, job1Name, job1);
@@ -491,7 +544,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 =
         new JobConfig.Builder().setCommand("Reindex")
-                               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job2: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
@@ -522,10 +575,10 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
         // check paths for resource-config, ideal-state, external-view, property-store
         List<String> paths
             = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
-                                 keyBuilder.idealStates().getPath(),
-                                 keyBuilder.externalViews().getPath(),
-                                 PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
-                                     + TaskConstants.REBALANCER_CONTEXT_ROOT);
+            keyBuilder.idealStates().getPath(),
+            keyBuilder.externalViews().getPath(),
+            PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
+                + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {
           List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);

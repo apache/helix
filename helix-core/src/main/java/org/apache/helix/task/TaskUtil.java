@@ -343,7 +343,7 @@ public class TaskUtil {
     Date startTime = null;
     if (cfg.containsKey(WorkflowConfig.START_TIME)) {
       try {
-        startTime = WorkflowConfig.DEFAULT_DATE_FORMAT.parse(cfg.get(WorkflowConfig.START_TIME));
+        startTime = WorkflowConfig.getDefaultDateFormat().parse(cfg.get(WorkflowConfig.START_TIME));
       } catch (ParseException e) {
         LOG.error("Unparseable date " + cfg.get(WorkflowConfig.START_TIME), e);
         return null;

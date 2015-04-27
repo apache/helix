@@ -58,6 +58,13 @@ public interface HelixAdmin {
   List<String> getResourcesInCluster(String clusterName);
 
   /**
+  * Get a list of resources in a cluster with a tag
+  * @param clusterName
+  * @param tag
+  */
+  List<String> getResourcesInClusterWithTag(String clusterName, String tag);
+
+  /**
    * Add a cluster
    * @param clusterName
    * @return true if successfully created, or if cluster already exists

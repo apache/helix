@@ -669,6 +669,24 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public List<String> getResourcesInClusterWithTag(String clusterName, String tag) {
+    List<String> resourcesWithTag = new ArrayList<String>();
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    for (String resourceName : getResourcesInCluster(clusterName)) {
+      IdealState is = accessor.getProperty(keyBuilder.idealStates(resourceName));
+      if (is != null && is.getInstanceGroupTag() != null && is.getInstanceGroupTag().equals(tag)) {
+        resourcesWithTag.add(resourceName);
+      }
+    }
+
+    return resourcesWithTag;
+  }
+
+  @Override
   public IdealState getResourceIdealState(String clusterName, String resourceName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));

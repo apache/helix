@@ -245,7 +245,7 @@ public class AppLauncher {
     // Set java executable command
     LOG.info("Setting up app master launch command");
     vargs.add(Environment.JAVA_HOME.$() + "/bin/java");
-    int amMemory = 1024;
+    int amMemory = 4096;
     // Set Xmx based on am memory size
     vargs.add("-Xmx" + amMemory + "m");
     // Set class name
@@ -433,7 +433,7 @@ public class AppLauncher {
         prevReport = reportMessage;
         Thread.sleep(10000);
       } catch (Exception e) {
-        LOG.error("Exception while getting info ", e);
+        LOG.error("Exception while getting info", e);
         break;
       }
     }
@@ -508,7 +508,7 @@ public class AppLauncher {
         prevReport = reportMessage;
         Thread.sleep(10000);
       } catch (Exception e) {
-        LOG.error("Exception while getting info ");
+        LOG.error("Exception while getting info", e);
         break;
       }
     }

@@ -20,9 +20,9 @@ package org.apache.helix.provisioning.participant;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "OFFLINE", "ONLINE", "ERROR"
 })
-public class StatelessServiceStateModel extends StateModel {
+public class StatelessServiceStateModel extends TransitionHandler {
   private static final Logger LOG = Logger.getLogger(StatelessServiceStateModel.class);
 
   private final StatelessParticipantService _service;

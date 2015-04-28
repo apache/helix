@@ -29,12 +29,11 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
-import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
 import org.apache.helix.LiveInstanceChangeListener;
@@ -42,6 +41,7 @@ import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.controller.pipeline.Pipeline;
@@ -63,15 +63,19 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfiguration;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.Lists;
 
 /**
  * Cluster Controllers main goal is to keep the cluster state as close as possible to Ideal State.
@@ -86,10 +90,11 @@ import org.apache.log4j.Logger;
  * 4. select the messages that can be sent, needs messages and state model constraints <br>
  * 5. send messages
  */
-public class GenericHelixController implements ConfigChangeListener, IdealStateChangeListener,
+public class GenericHelixController implements IdealStateChangeListener,
     LiveInstanceChangeListener, MessageListener, CurrentStateChangeListener,
-    ExternalViewChangeListener, ControllerChangeListener, InstanceConfigChangeListener {
+    ControllerChangeListener, InstanceConfigChangeListener, ScopedConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
+  private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000L;
   volatile boolean init = false;
   private final PipelineRegistry _registry;
 
@@ -173,7 +178,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   /**
-   * Starts the rebalancing timer
+   * Stops the rebalancing timer
    */
   void stopRebalancingTimer() {
     if (_rebalanceTimer != null) {
@@ -214,6 +219,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       registry.register("idealStateChange", dataRefresh, rebalancePipeline);
       registry.register("currentStateChange", dataRefresh, rebalancePipeline, externalViewPipeline);
       registry.register("configChange", dataRefresh, rebalancePipeline);
+      registry.register("instanceConfigChange", dataRefresh, rebalancePipeline);
+      registry.register("resourceConfigChange", dataRefresh, rebalancePipeline);
       registry.register("liveInstanceChange", dataRefresh, rebalancePipeline, externalViewPipeline);
 
       registry.register("messageChange", dataRefresh, rebalancePipeline);
@@ -269,7 +276,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     if (context != null) {
       if (context.getType() == Type.FINALIZE) {
         stopRebalancingTimer();
-        logger.info("Get FINALIZE notification, skip the pipeline. Event :" + event.getName());
+        logger.info("Get FINALIZE notification, skip the pipeline. Event: " + event.getName());
         return;
       } else {
         if (_clusterStatusMonitor == null) {
@@ -308,18 +315,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
-
-  @Override
-  public void onExternalViewChange(List<ExternalView> externalViewList,
-      NotificationContext changeContext) {
-    // logger.info("START: GenericClusterController.onExternalViewChange()");
-    // ClusterEvent event = new ClusterEvent("externalViewChange");
-    // event.addAttribute("helixmanager", changeContext.getManager());
-    // event.addAttribute("changeContext", changeContext);
-    // event.addAttribute("eventData", externalViewList);
-    // _eventQueue.put(event);
-    // logger.info("END: GenericClusterController.onExternalViewChange()");
-  }
 
   @Override
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,
@@ -433,8 +428,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   @Override
-  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onConfigChange()");
+  public void onInstanceConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
+    logger.info("START: GenericClusterController.onInstanceConfigChange()");
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -444,20 +439,52 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     }
     _cache.setInstanceConfigs(configs);
 
-    ClusterEvent event = new ClusterEvent("configChange");
+    ClusterEvent event = new ClusterEvent("instanceConfigChange");
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     _eventQueue.put(event);
-    logger.info("END: GenericClusterController.onConfigChange()");
+    logger.info("END: GenericClusterController.onInstanceConfigChange()");
   }
 
   @Override
-  public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
-      NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onInstanceConfigChange()");
-    onConfigChange(instanceConfigs, changeContext);
-    logger.info("END: GenericClusterController.onInstanceConfigChange()");
+  public void onConfigChange(List<HelixProperty> configs, NotificationContext context) {
+    logger.info("START: GenericClusterController.onConfigChange()");
+    if (context == null || context.getType() != Type.CALLBACK) {
+      _cache.requireFullRefresh();
+    }
+
+    if (configs == null) {
+      configs = Collections.emptyList();
+    }
+
+    String eventName;
+    String path = context.getPathChanged();
+    if (path.contains(ConfigScopeProperty.RESOURCE.toString())) {
+      List<ResourceConfiguration> resourceConfigs = Lists.newArrayList();
+      for (HelixProperty property : configs) {
+        resourceConfigs.add(new ResourceConfiguration(property.getRecord()));
+      }
+      _cache.setResourceConfigs(resourceConfigs);
+      eventName = "resourceConfigChange";
+    } else if (path.contains(ConfigScopeProperty.CONSTRAINT.toString())) {
+      List<ClusterConstraints> constraints = Lists.newArrayList();
+      for (HelixProperty property : configs) {
+        constraints.add(new ClusterConstraints(property.getRecord()));
+      }
+      _cache.setConstraints(constraints);
+      eventName = "constraintChange";
+    } else {
+      logger.warn("Controller received event for unsupported path: " + path);
+      eventName = "configChange";
+    }
+
+    ClusterEvent event = new ClusterEvent(eventName);
+    event.addAttribute("changeContext", context);
+    event.addAttribute("helixmanager", context.getManager());
+    event.addAttribute("eventData", configs);
+    _eventQueue.put(event);
+    logger.info("END: GenericClusterController.onConfigChange()");
   }
 
   @Override
@@ -594,6 +621,14 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     }
   }
 
+  public void shutdown() throws InterruptedException {
+    stopRebalancingTimer();
+    while (_eventThread.isAlive()) {
+      _eventThread.interrupt();
+      _eventThread.join(EVENT_THREAD_JOIN_TIMEOUT);
+    }
+  }
+
   private class ClusterEventProcessor extends Thread {
     @Override
     public void run() {
@@ -608,6 +643,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         } catch (ZkInterruptedException e) {
           logger.warn("ClusterEventProcessor caught a ZK connection interrupt", e);
           interrupt();
+        } catch (ThreadDeath death) {
+          throw death;
         } catch (Throwable t) {
           logger.error("ClusterEventProcessor failed while running the controller pipeline", t);
         }

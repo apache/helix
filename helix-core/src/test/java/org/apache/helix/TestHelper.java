@@ -20,7 +20,9 @@ package org.apache.helix;
  */
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Method;
+import java.net.ServerSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -37,8 +39,6 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IDefaultNameSpace;
-import org.I0Itec.zkclient.IZkChildListener;
-import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.ZkServer;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.commons.io.FileUtils;
@@ -48,12 +48,11 @@ import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ZkTestManager;
-import org.apache.helix.manager.zk.CallbackHandler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkCallbackHandler;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -754,50 +753,30 @@ public class TestHelper {
     } while (true);
   }
 
-  // debug code
-  public static String printHandlers(ZkTestManager manager) {
+  public static void printHandlers(HelixManager manager, List<ZkCallbackHandler> handlers) {
     StringBuilder sb = new StringBuilder();
-    List<CallbackHandler> handlers = manager.getHandlers();
-    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [");
+    sb.append(manager.getInstanceName() + " has " + handlers.size() + " cb-handlers. [\n");
 
     for (int i = 0; i < handlers.size(); i++) {
-      CallbackHandler handler = handlers.get(i);
+      ZkCallbackHandler handler = handlers.get(i);
       String path = handler.getPath();
       sb.append(path.substring(manager.getClusterName().length() + 1) + ": "
           + handler.getListener());
       if (i < (handlers.size() - 1)) {
-        sb.append(", ");
+        sb.append("\n");
       }
     }
     sb.append("]");
 
-    return sb.toString();
+    System.out.println(sb.toString());
   }
 
-  public static void printZkListeners(ZkClient client) throws Exception {
-    Map<String, Set<IZkDataListener>> datalisteners = ZkTestHelper.getZkDataListener(client);
-    Map<String, Set<IZkChildListener>> childListeners = ZkTestHelper.getZkChildListener(client);
-
-    System.out.println("dataListeners {");
-    for (String path : datalisteners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkDataListener> set = datalisteners.get(path);
-      for (IZkDataListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
-
-    System.out.println("childListeners {");
-    for (String path : childListeners.keySet()) {
-      System.out.println("\t" + path + ": ");
-      Set<IZkChildListener> set = childListeners.get(path);
-      for (IZkChildListener listener : set) {
-        CallbackHandler handler = (CallbackHandler) listener;
-        System.out.println("\t\t" + handler.getListener());
-      }
-    }
-    System.out.println("}");
+  public static int getRandomPort() throws IOException {
+    ServerSocket sock = new ServerSocket();
+    sock.bind(null);
+    int port = sock.getLocalPort();
+    sock.close();
+    return port;
   }
+
 }

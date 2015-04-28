@@ -26,8 +26,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.model.Message;
 import org.apache.helix.testutil.ZkTestBase;
@@ -42,10 +42,14 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
 
   public class SessionExpiryTransition extends MockTransition {
     private final AtomicBoolean _done = new AtomicBoolean();
+    private final MockParticipant _participant;
+
+    public SessionExpiryTransition(MockParticipant participant) {
+      _participant = participant;
+    }
 
     @Override
     public void doTransition(Message message, NotificationContext context) {
-      MockParticipantManager manager = (MockParticipantManager) context.getManager();
 
       String instance = message.getTgtName();
       PartitionId partition = message.getPartitionId();
@@ -54,7 +58,7 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
           // on localhost_12918
           && _done.getAndSet(true) == false) {
         try {
-          ZkTestHelper.expireSession(manager.getZkClient());
+          ZkTestHelper.expireSession(_participant.getZkClient());
         } catch (Exception e) {
           LOG.error("Exception expire zk-session", e);
         }
@@ -72,7 +76,7 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[5];
+    MockParticipant[] participants = new MockParticipant[5];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -84,15 +88,15 @@ public class TestSessionExpiryInTransition extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
-      participants[i].setTransition(new SessionExpiryTransition());
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
+      participants[i].setTransition(new SessionExpiryTransition(participants[i]));
       participants[i].syncStart();
     }
 

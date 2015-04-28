@@ -168,12 +168,8 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
    */
   @Override
   public boolean set(String path, T record, int expectVersion, int options) {
-    try {
-      AccessResult result = doSet(path, record, expectVersion, options);
-      return result._retCode == RetCode.OK;
-    } catch (ZkBadVersionException e) {
-      return false;
-    }
+    AccessResult result = doSet(path, record, expectVersion, options);
+    return result._retCode == RetCode.OK;
   }
 
   /**

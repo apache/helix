@@ -22,6 +22,7 @@ package org.apache.helix.participant.statemachine;
 import java.lang.reflect.Method;
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -34,7 +35,7 @@ public class TestStateModelParser {
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "ERROR"
   })
-  class StateModelUsingAnnotation extends StateModel {
+  class StateModelUsingAnnotation extends TransitionHandler {
     @Transition(to = "SLAVE", from = "OFFLINE")
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
       LOG.info("Become SLAVE from OFFLINE");
@@ -58,7 +59,7 @@ public class TestStateModelParser {
     }
   }
 
-  class StateModelUsingNameConvention extends StateModel {
+  class StateModelUsingNameConvention extends TransitionHandler {
     // empty state model
   }
 

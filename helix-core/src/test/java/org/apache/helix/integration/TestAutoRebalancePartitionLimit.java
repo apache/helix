@@ -29,11 +29,9 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -77,7 +75,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
 
     // start controller
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     HelixManager manager = _controller; // _startCMResultMap.get(controllerName)._manager;
@@ -85,7 +83,7 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
       Thread.sleep(2000);
       boolean result =
@@ -147,8 +145,8 @@ public class TestAutoRebalancePartitionLimit extends ZkStandAloneCMTestBase {
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
 
       String newInstanceName = storageNodeName.replace(':', '_');
-      MockParticipantManager participant =
-          new MockParticipantManager(_zkaddr, CLUSTER_NAME, newInstanceName);
+      MockParticipant participant =
+          new MockParticipant(_zkaddr, CLUSTER_NAME, newInstanceName);
       participant.syncStart();
     }
 

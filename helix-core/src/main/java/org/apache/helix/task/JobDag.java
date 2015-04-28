@@ -64,8 +64,38 @@ public class JobDag {
     _allNodes.add(child);
   }
 
+  public void removeParentToChild(String parent, String child) {
+    if (_parentsToChildren.containsKey(parent)) {
+      Set<String> children = _parentsToChildren.get(parent);
+      children.remove(child);
+      if (children.isEmpty()) {
+        _parentsToChildren.remove(parent);
+      }
+    }
+
+    if (_childrenToParents.containsKey(child)) {
+      Set<String> parents =  _childrenToParents.get(child);
+      parents.remove(parent);
+      if (parents.isEmpty()) {
+        _childrenToParents.remove(child);
+      }
+    }
+  }
+
   public void addNode(String node) {
     _allNodes.add(node);
+  }
+
+  /**
+   * must make sure no other node dependence before removing the node
+   */
+  public void removeNode(String node) {
+    if (_parentsToChildren.containsKey(node) || _childrenToParents.containsKey(node)) {
+      throw new IllegalStateException(
+          "The node is either a parent or a child of other node, could not be deleted");
+    }
+
+    _allNodes.remove(node);
   }
 
   public Map<String, Set<String>> getParentsToChildren() {

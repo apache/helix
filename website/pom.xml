@@ -21,7 +21,7 @@ under the License.
   <parent>
     <groupId>org.apache.helix</groupId>
     <artifactId>helix</artifactId>
-    <version>0.7.1-incubating-SNAPSHOT</version>
+    <version>0.7.2-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <packaging>pom</packaging>
@@ -35,8 +35,10 @@ under the License.
     <module>0.6.1-incubating</module>
     <module>0.6.2-incubating</module>
     <module>0.6.3</module>
+    <module>0.6.4</module>
+    <module>0.6.5</module>
     <module>0.7.0-incubating</module>
-    <module>trunk</module>
+    <module>0.7.1</module>
   </modules>
 
   <properties>

@@ -26,10 +26,10 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.CallbackHandler;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
+import org.apache.helix.manager.zk.MockController;
+import org.apache.helix.manager.zk.ZkCallbackHandler;
 import org.apache.helix.testutil.TestUtil;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -52,15 +52,15 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "TestDB", 1, 20, nodeNr - 1,
         3, "MasterSlave", true);
 
-    MockParticipantManager[] participants = new MockParticipantManager[nodeNr];
+    MockParticipant[] participants = new MockParticipant[nodeNr];
     for (int i = 0; i < nodeNr - 1; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     boolean result;
@@ -76,7 +76,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _setupTool.addInstanceToCluster(clusterName, "localhost_12922");
     _setupTool.rebalanceStorageCluster(clusterName, "TestDB0", 3);
 
-    participants[nodeNr - 1] = new MockParticipantManager(_zkaddr, clusterName, "localhost_12922");
+    participants[nodeNr - 1] = new MockParticipant(_zkaddr, clusterName, "localhost_12922");
     new Thread(participants[nodeNr - 1]).start();
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -96,7 +96,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
   }
 
   @Test
-  public void testDistributed() throws Exception {
+  public void testMultiCluster() throws Exception {
     String testName = TestUtil.getTestName();
     String clusterName = testName;
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -106,9 +106,9 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     TestHelper.setupCluster(grandClusterName, _zkaddr, 0, "controller", null, 0, 0, 1, 0, null,
         true);
 
-    ClusterDistributedController distController =
-        new ClusterDistributedController(_zkaddr, grandClusterName, "controller_0");
-    distController.syncStart();
+    MockMultiClusterController multiClusterController =
+        new MockMultiClusterController(_zkaddr, grandClusterName, "controller_0");
+    multiClusterController.syncStart();
 
     // setup cluster
     _setupTool.addCluster(clusterName, true);
@@ -130,10 +130,10 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _setupTool.addResourceToCluster(clusterName, "TestDB0", 1, "LeaderStandby");
     _setupTool.rebalanceStorageCluster(clusterName, "TestDB0", 1);
 
-    MockParticipantManager[] participants = new MockParticipantManager[nodeNr];
+    MockParticipant[] participants = new MockParticipant[nodeNr];
     for (int i = 0; i < nodeNr - 1; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -152,7 +152,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     _setupTool.addInstanceToCluster(clusterName, "localhost_12919");
     _setupTool.rebalanceStorageCluster(clusterName, "TestDB0", 2);
 
-    participants[nodeNr - 1] = new MockParticipantManager(_zkaddr, clusterName, "localhost_12919");
+    participants[nodeNr - 1] = new MockParticipant(_zkaddr, clusterName, "localhost_12919");
     participants[nodeNr - 1].syncStart();
     result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -165,7 +165,7 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
 
     // clean up
-    distController.syncStop();
+    multiClusterController.syncStop();
     for (int i = 0; i < nodeNr; i++) {
       participants[i].syncStop();
     }
@@ -173,9 +173,9 @@ public class TestAddNodeAfterControllerStart extends ZkTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  boolean checkHandlers(List<CallbackHandler> handlers, String path) {
+  boolean checkHandlers(List<ZkCallbackHandler> handlers, String path) {
     // System.out.println(handlers.size() + " handlers: ");
-    for (CallbackHandler handler : handlers) {
+    for (ZkCallbackHandler handler : handlers) {
       // System.out.println(handler.getPath());
       if (handler.getPath().equals(path)) {
         return true;

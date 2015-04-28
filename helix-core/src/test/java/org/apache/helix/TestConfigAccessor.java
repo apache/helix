@@ -23,10 +23,10 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.manager.zk.ZKHelixAdmin;
-import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -44,72 +44,80 @@ public class TestConfigAccessor extends ZkTestBase {
         "MasterSlave", true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_zkclient);
-    ConfigScope clusterScope = new ConfigScopeBuilder().forCluster(clusterName).build();
+    HelixConfigScope clusterScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
 
     // cluster scope config
     String clusterConfigValue = configAccessor.get(clusterScope, "clusterConfigKey");
     Assert.assertNull(clusterConfigValue);
 
-    configAccessor.set(clusterScope, "clusterConfigKey", "clusterConfigValue");
-    clusterConfigValue = configAccessor.get(clusterScope, "clusterConfigKey");
-    Assert.assertEquals(clusterConfigValue, "clusterConfigValue");
+    for (int i = 0; i < 2; i++) {
+      configAccessor.set(clusterScope, "clusterConfigKey" + i, "clusterConfigValue" + i);
+      clusterConfigValue = configAccessor.get(clusterScope, "clusterConfigKey" + i);
+      Assert.assertEquals(clusterConfigValue, "clusterConfigValue" + i);
+    }
 
     // resource scope config
-    ConfigScope resourceScope =
-        new ConfigScopeBuilder().forCluster(clusterName).forResource("testResource").build();
+    HelixConfigScope resourceScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
+            .forResource("testResource").build();
     configAccessor.set(resourceScope, "resourceConfigKey", "resourceConfigValue");
     String resourceConfigValue = configAccessor.get(resourceScope, "resourceConfigKey");
     Assert.assertEquals(resourceConfigValue, "resourceConfigValue");
 
     // partition scope config
-    ConfigScope partitionScope =
-        new ConfigScopeBuilder().forCluster(clusterName).forResource("testResource")
-            .forPartition("testPartition").build();
+    HelixConfigScope partitionScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
+            .forResource("testResource").forPartition("testPartition").build();
     configAccessor.set(partitionScope, "partitionConfigKey", "partitionConfigValue");
     String partitionConfigValue = configAccessor.get(partitionScope, "partitionConfigKey");
     Assert.assertEquals(partitionConfigValue, "partitionConfigValue");
 
     // participant scope config
-    ConfigScope participantScope =
-        new ConfigScopeBuilder().forCluster(clusterName).forParticipant("localhost_12918").build();
+    HelixConfigScope participantScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forParticipant("localhost_12918").build();
     configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");
     String participantConfigValue = configAccessor.get(participantScope, "participantConfigKey");
     Assert.assertEquals(participantConfigValue, "participantConfigValue");
 
-    List<String> keys = configAccessor.getKeys(ConfigScopeProperty.RESOURCE, clusterName);
+    HelixConfigScope partialResourceScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName).build();
+    List<String> keys = configAccessor.getKeys(partialResourceScope);
     Assert.assertEquals(keys.size(), 1, "should be [testResource]");
     Assert.assertEquals(keys.get(0), "testResource");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.CLUSTER, clusterName);
-    Assert.assertEquals(keys.size(), 1, "should be [" + clusterName + "]");
-    Assert.assertEquals(keys.get(0), clusterName);
+    keys = configAccessor.getKeys(clusterScope);
+    Assert.assertEquals(keys.size(), 2, "should be [clusterConfigKey0, clusterConfigKey1]");
+    Assert.assertEquals(keys.get(0), "clusterConfigKey0");
+    Assert.assertEquals(keys.get(1), "clusterConfigKey1");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.PARTICIPANT, clusterName);
+    HelixConfigScope partialParticipantScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .build();
+    keys = configAccessor.getKeys(partialParticipantScope);
     Assert.assertEquals(keys.size(), 5, "should be [localhost_12918~22] sorted");
     Assert.assertEquals(keys.get(0), "localhost_12918");
     Assert.assertEquals(keys.get(4), "localhost_12922");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource");
+    HelixConfigScope partialPartitionScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster(clusterName)
+            .forResource("testResource").build();
+    keys = configAccessor.getKeys(partialPartitionScope);
     Assert.assertEquals(keys.size(), 1, "should be [testPartition]");
     Assert.assertEquals(keys.get(0), "testPartition");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.RESOURCE, clusterName, "testResource");
+    keys = configAccessor.getKeys(resourceScope);
     Assert.assertEquals(keys.size(), 1, "should be [resourceConfigKey]");
     Assert.assertEquals(keys.get(0), "resourceConfigKey");
 
-    keys = configAccessor.getKeys(ConfigScopeProperty.CLUSTER, clusterName, clusterName);
-    Assert.assertEquals(keys.size(), 1, "should be [clusterConfigKey]");
-    Assert.assertEquals(keys.get(0), "clusterConfigKey");
-
-    keys = configAccessor.getKeys(ConfigScopeProperty.PARTICIPANT, clusterName, "localhost_12918");
+    keys = configAccessor.getKeys(participantScope);
     System.out.println((keys));
     Assert.assertEquals(keys.size(), 4,
         "should be [HELIX_ENABLED, HELIX_HOST, HELIX_PORT, participantConfigKey]");
     Assert.assertEquals(keys.get(3), "participantConfigKey");
 
-    keys =
-        configAccessor.getKeys(ConfigScopeProperty.PARTITION, clusterName, "testResource",
-            "testPartition");
+    keys = configAccessor.getKeys(partitionScope);
     Assert.assertEquals(keys.size(), 1, "should be [partitionConfigKey]");
     Assert.assertEquals(keys.get(0), "partitionConfigKey");
 
@@ -132,21 +140,24 @@ public class TestConfigAccessor extends ZkTestBase {
 
     // negative tests
     try {
-      new ConfigScopeBuilder().forPartition("testPartition").build();
+      new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forPartition("testPartition")
+          .build();
       Assert.fail("Should fail since cluster name is not set");
     } catch (Exception e) {
       // OK
     }
 
     try {
-      new ConfigScopeBuilder().forCluster("testCluster").forPartition("testPartition").build();
+      new HelixConfigScopeBuilder(ConfigScopeProperty.PARTITION).forCluster("testCluster")
+          .forPartition("testPartition").build();
       Assert.fail("Should fail since resource name is not set");
     } catch (Exception e) {
       // OK
     }
 
     try {
-      new ConfigScopeBuilder().forParticipant("testParticipant").build();
+      new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+          .forParticipant("testParticipant").build();
       Assert.fail("Should fail since cluster name is not set");
     } catch (Exception e) {
       // OK
@@ -168,8 +179,9 @@ public class TestConfigAccessor extends ZkTestBase {
     ZKHelixAdmin admin = new ZKHelixAdmin(_zkclient);
     admin.addCluster(clusterName, true);
     ConfigAccessor configAccessor = new ConfigAccessor(_zkclient);
-    ConfigScope participantScope =
-        new ConfigScopeBuilder().forCluster(clusterName).forParticipant("localhost_12918").build();
+    HelixConfigScope participantScope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forParticipant("localhost_12918").build();
 
     try {
       configAccessor.set(participantScope, "participantConfigKey", "participantConfigValue");

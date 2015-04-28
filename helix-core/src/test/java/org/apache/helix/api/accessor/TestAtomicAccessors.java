@@ -2,20 +2,15 @@ package org.apache.helix.api.accessor;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Scope;
-import org.apache.helix.api.State;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
-import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.lock.HelixLock;
 import org.apache.helix.lock.HelixLockable;
 import org.apache.helix.lock.zk.ZKHelixLock;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
@@ -53,10 +48,6 @@ public class TestAtomicAccessors extends ZkTestBase {
     final HelixDataAccessor helixAccessor =
         new ZKHelixDataAccessor(clusterId.stringify(), _baseAccessor);
     final LockProvider lockProvider = new LockProvider();
-    final StateModelDefId stateModelDefId = StateModelDefId.from("FakeModel");
-    final State state = State.from("fake");
-    final int constraint1 = 10;
-    final int constraint2 = 11;
     final String key1 = "key1";
     final String key2 = "key2";
 
@@ -72,10 +63,7 @@ public class TestAtomicAccessors extends ZkTestBase {
       public void run() {
         UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
         userConfig.setBooleanField(key1, true);
-        ClusterConfig.Delta delta =
-            new ClusterConfig.Delta(clusterId).addStateUpperBoundConstraint(
-                Scope.cluster(clusterId), stateModelDefId, state, constraint1).setUserConfig(
-                userConfig);
+        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).addUserConfig(userConfig);
         ClusterAccessor accessor =
             new AtomicClusterAccessor(clusterId, helixAccessor, lockProvider);
         accessor.updateCluster(delta);
@@ -88,10 +76,7 @@ public class TestAtomicAccessors extends ZkTestBase {
       public void run() {
         UserConfig userConfig = new UserConfig(Scope.cluster(clusterId));
         userConfig.setBooleanField(key2, true);
-        ClusterConfig.Delta delta =
-            new ClusterConfig.Delta(clusterId).addStateUpperBoundConstraint(
-                Scope.cluster(clusterId), stateModelDefId, state, constraint2).setUserConfig(
-                userConfig);
+        ClusterConfig.Delta delta = new ClusterConfig.Delta(clusterId).addUserConfig(userConfig);
         ClusterAccessor accessor =
             new AtomicClusterAccessor(clusterId, helixAccessor, lockProvider);
         accessor.updateCluster(delta);

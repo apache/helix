@@ -31,6 +31,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.HelixTaskResult;
@@ -39,7 +40,6 @@ import org.apache.helix.messaging.handling.MessageTask;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -189,7 +189,7 @@ public class Mocks {
 
   }
 
-  public static class MockStateModel extends StateModel {
+  public static class MockStateModel extends TransitionHandler {
     boolean stateModelInvoked = false;
 
     public void onBecomeMasterFromSlave(Message msg, NotificationContext context) {
@@ -202,7 +202,7 @@ public class Mocks {
   }
 
   @StateModelInfo(states = "{'OFFLINE','SLAVE','MASTER'}", initialState = "OFFINE")
-  public static class MockStateModelAnnotated extends StateModel {
+  public static class MockStateModelAnnotated extends TransitionHandler {
     boolean stateModelInvoked = false;
 
     @Transition(from = "SLAVE", to = "MASTER")
@@ -270,12 +270,6 @@ public class Mocks {
 
     @Override
     public void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) {
-      // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void addConfigChangeListener(ConfigChangeListener listener) {
       // TODO Auto-generated method stub
 
     }

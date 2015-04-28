@@ -32,11 +32,13 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.log4j.Logger;
 
 public class DummyProcess {
@@ -49,13 +51,11 @@ public class DummyProcess {
   public static final String help = "help";
   public static final String transDelay = "transDelay";
   public static final String helixManagerType = "helixManagerType";
-  // public static final String rootNamespace = "rootNamespace";
 
   private final String _zkConnectString;
   private final String _clusterName;
   private final String _instanceName;
   private DummyStateModelFactory stateModelFactory;
-  // private StateMachineEngine genericStateMachineHandler;
 
   private int _transDelayInMs = 0;
   private final String _clusterMangerType;
@@ -96,19 +96,16 @@ public class DummyProcess {
         new DummyLeaderStandbyStateModelFactory(_transDelayInMs);
     DummyOnlineOfflineStateModelFactory stateModelFactory2 =
         new DummyOnlineOfflineStateModelFactory(_transDelayInMs);
-    // genericStateMachineHandler = new StateMachineEngine();
     StateMachineEngine stateMach = manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
-    stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory1);
-    stateMach.registerStateModelFactory("OnlineOffline", stateModelFactory2);
+    stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, stateModelFactory);
+    stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, stateModelFactory1);
+    stateMach.registerStateModelFactory(StateModelDefId.OnlineOffline, stateModelFactory2);
 
     manager.connect();
-    // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-    // genericStateMachineHandler);
     return manager;
   }
 
-  public static class DummyStateModelFactory extends StateModelFactory<DummyStateModel> {
+  public static class DummyStateModelFactory extends StateTransitionHandlerFactory<DummyStateModel> {
     int _delay;
 
     public DummyStateModelFactory(int delay) {
@@ -116,7 +113,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyStateModel createNewStateModel(String stateUnitKey) {
+    public DummyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyStateModel model = new DummyStateModel();
       model.setDelay(_delay);
       return model;
@@ -124,7 +121,7 @@ public class DummyProcess {
   }
 
   public static class DummyLeaderStandbyStateModelFactory extends
-      StateModelFactory<DummyLeaderStandbyStateModel> {
+      StateTransitionHandlerFactory<DummyLeaderStandbyStateModel> {
     int _delay;
 
     public DummyLeaderStandbyStateModelFactory(int delay) {
@@ -132,7 +129,7 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyLeaderStandbyStateModel createNewStateModel(String stateUnitKey) {
+    public DummyLeaderStandbyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyLeaderStandbyStateModel model = new DummyLeaderStandbyStateModel();
       model.setDelay(_delay);
       return model;
@@ -140,7 +137,7 @@ public class DummyProcess {
   }
 
   public static class DummyOnlineOfflineStateModelFactory extends
-      StateModelFactory<DummyOnlineOfflineStateModel> {
+      StateTransitionHandlerFactory<DummyOnlineOfflineStateModel> {
     int _delay;
 
     public DummyOnlineOfflineStateModelFactory(int delay) {
@@ -148,14 +145,14 @@ public class DummyProcess {
     }
 
     @Override
-    public DummyOnlineOfflineStateModel createNewStateModel(String stateUnitKey) {
+    public DummyOnlineOfflineStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       DummyOnlineOfflineStateModel model = new DummyOnlineOfflineStateModel();
       model.setDelay(_delay);
       return model;
     }
   }
 
-  public static class DummyStateModel extends StateModel {
+  public static class DummyStateModel extends TransitionHandler {
     int _transDelay = 0;
 
     public void setDelay(int delay) {
@@ -200,7 +197,7 @@ public class DummyProcess {
     }
   }
 
-  public static class DummyOnlineOfflineStateModel extends StateModel {
+  public static class DummyOnlineOfflineStateModel extends TransitionHandler {
     int _transDelay = 0;
 
     public void setDelay(int delay) {
@@ -231,7 +228,7 @@ public class DummyProcess {
     }
   }
 
-  public static class DummyLeaderStandbyStateModel extends StateModel {
+  public static class DummyLeaderStandbyStateModel extends TransitionHandler {
     int _transDelay = 0;
 
     public void setDelay(int delay) {
@@ -353,7 +350,6 @@ public class DummyProcess {
   public static CommandLine processCommandLineArgs(String[] cliArgs) throws Exception {
     CommandLineParser cliParser = new GnuParser();
     Options cliOptions = constructCommandLineOptions();
-    // CommandLine cmd = null;
 
     try {
       return cliParser.parse(cliOptions, cliArgs);
@@ -371,8 +367,6 @@ public class DummyProcess {
     String zkConnectString = "localhost:2181";
     String clusterName = "testCluster";
     String instanceName = "localhost_8900";
-    String cvFileStr = null;
-    // String rootNs = null;
     int delay = 0;
 
     if (args.length > 0) {

@@ -155,7 +155,7 @@ public class TestAccessorRecreate extends ZkTestBase {
     ParticipantConfig participant =
         new ParticipantConfig.Builder(participantId).hostName("host").port(0)
             .userConfig(userConfig).build();
-    return accessor.addParticipantToCluster(participant);
+    return accessor.addParticipant(participant);
   }
   // private HelixLockable lockProvider() {
   // return new HelixLockable() {

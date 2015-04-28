@@ -190,9 +190,16 @@ public class GenericTaskRebalancer extends TaskRebalancer {
       Map<ParticipantId, State> stateMap =
           currStateOutput.getCurrentStateMap(ResourceId.from(targetResource),
               PartitionId.from(partition));
+      Map<ParticipantId, State> pendingStateMap =
+          currStateOutput.getPendingStateMap(ResourceId.from(targetResource),
+              PartitionId.from(partition));
       for (Map.Entry<ParticipantId, State> e : stateMap.entrySet()) {
         ParticipantId instanceName = e.getKey();
         State state = e.getValue();
+        State pending = pendingStateMap.get(instanceName);
+        if (pending != null) {
+          continue;
+        }
         if (targetStates == null || targetStates.isEmpty()
             || targetStates.contains(state.toString())) {
           eligibleInstances.add(instanceName);

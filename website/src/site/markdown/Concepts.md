@@ -268,7 +268,7 @@ Helix allows various granularities of control for adjusting the ideal state. Whe
 * __SEMI\_AUTO__: Helix will take in a \"preference list\" representing the location each replica can live at, and automatically determine the state based on constraints
 * __CUSTOMIZED__: Helix will take in a map of location to state and fire transitions to get the external view to match
 
-Helix comes with a few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./0.6.3-docs/tutorial_rebalance.html) to find out more about various execution modes of Helix like FULL_AUTO, SEMI_AUTO and CUSTOMIZED.
+Helix comes with a few algorithms to automatically compute the IdealState based on the constraints. For example, if you have a resource of 3 partitions and 2 replicas, Helix can automatically compute the IdealState based on the nodes that are currently active. See the [tutorial](./0.6.4-docs/tutorial_rebalance.html) to find out more about various execution modes of Helix like FULL_AUTO, SEMI_AUTO and CUSTOMIZED.
 
 
 

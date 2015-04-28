@@ -32,6 +32,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
@@ -46,10 +48,6 @@ import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
-import org.apache.helix.participant.statemachine.HelixStateModelFactoryAdaptor;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.log4j.Logger;
 
@@ -58,65 +56,32 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   /**
    * Map of StateModelDefId to map of FactoryName to StateModelFactory
-   * TODO change to use StateModelDefId and HelixStateModelFactory
    */
-  private final Map<String, Map<String, StateModelFactory<? extends StateModel>>> _stateModelFactoryMap;
+  private final Map<StateModelDefId, Map<String, StateTransitionHandlerFactory<? extends TransitionHandler>>> _stateModelFactoryMap;
   private final StateModelParser _stateModelParser;
   private final HelixManager _manager;
-  private final ConcurrentHashMap<String, StateModelDefinition> _stateModelDefs;
+  private final ConcurrentHashMap<StateModelDefId, StateModelDefinition> _stateModelDefs;
 
   public HelixStateMachineEngine(HelixManager manager) {
     _stateModelParser = new StateModelParser();
     _manager = manager;
 
     _stateModelFactoryMap =
-        new ConcurrentHashMap<String, Map<String, StateModelFactory<? extends StateModel>>>();
-    _stateModelDefs = new ConcurrentHashMap<String, StateModelDefinition>();
+        new ConcurrentHashMap<StateModelDefId, Map<String, StateTransitionHandlerFactory<? extends TransitionHandler>>>();
+    _stateModelDefs = new ConcurrentHashMap<StateModelDefId, StateModelDefinition>();
   }
 
-  public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName) {
+  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(
+      StateModelDefId stateModelName) {
     return getStateModelFactory(stateModelName, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
-  public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName,
-      String factoryName) {
+  public StateTransitionHandlerFactory<? extends TransitionHandler> getStateModelFactory(
+      StateModelDefId stateModelName, String factoryName) {
     if (!_stateModelFactoryMap.containsKey(stateModelName)) {
       return null;
     }
     return _stateModelFactoryMap.get(stateModelName).get(factoryName);
-  }
-
-  @Override
-  public boolean registerStateModelFactory(String stateModelDef,
-      StateModelFactory<? extends StateModel> factory) {
-    return registerStateModelFactory(stateModelDef, factory,
-        HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
-  }
-
-  @Override
-  public boolean registerStateModelFactory(String stateModelName,
-      StateModelFactory<? extends StateModel> factory, String factoryName) {
-    if (stateModelName == null || factory == null || factoryName == null) {
-      throw new HelixException("stateModelDef|stateModelFactory|factoryName cannot be null");
-    }
-
-    LOG.info("Register state model factory for state model " + stateModelName
-        + " using factory name " + factoryName + " with " + factory);
-
-    if (!_stateModelFactoryMap.containsKey(stateModelName)) {
-      _stateModelFactoryMap.put(stateModelName,
-          new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>());
-    }
-
-    if (_stateModelFactoryMap.get(stateModelName).containsKey(factoryName)) {
-      LOG.warn("stateModelFactory for " + stateModelName + " using factoryName " + factoryName
-          + " has already been registered.");
-      return false;
-    }
-
-    _stateModelFactoryMap.get(stateModelName).put(factoryName, factory);
-    sendNopMessage();
-    return true;
   }
 
   // TODO: duplicated code in DefaultMessagingService
@@ -150,16 +115,20 @@ public class HelixStateMachineEngine implements StateMachineEngine {
 
   @Override
   public void reset() {
-    for (Map<String, StateModelFactory<? extends StateModel>> ftyMap : _stateModelFactoryMap
+    for (Map<String, StateTransitionHandlerFactory<? extends TransitionHandler>> ftyMap : _stateModelFactoryMap
         .values()) {
-      for (StateModelFactory<? extends StateModel> stateModelFactory : ftyMap.values()) {
-        for (String resourceKey : stateModelFactory.getPartitionSet()) {
-          StateModel stateModel = stateModelFactory.getStateModel(resourceKey);
-          stateModel.reset();
-          String initialState = _stateModelParser.getInitialState(stateModel.getClass());
-          stateModel.updateState(initialState);
-          // TODO probably should update the state on ZK. Shi confirm what needs
-          // to be done here.
+      for (StateTransitionHandlerFactory<? extends TransitionHandler> stateModelFactory : ftyMap
+          .values()) {
+        for (ResourceId resource : stateModelFactory.getResourceSet()) {
+          for (PartitionId partition : stateModelFactory.getPartitionSet(resource)) {
+            TransitionHandler stateModel =
+                stateModelFactory.getTransitionHandler(resource, partition);
+            stateModel.reset();
+            String initialState = _stateModelParser.getInitialState(stateModel.getClass());
+            stateModel.updateState(initialState);
+            // TODO probably should update the state on ZK. Shi confirm what needs
+            // to be done here.
+          }
         }
       }
     }
@@ -191,8 +160,8 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
     }
 
-    StateModelFactory<? extends StateModel> stateModelFactory =
-        getStateModelFactory(stateModelId.stringify(), factoryName);
+    StateTransitionHandlerFactory<? extends TransitionHandler> stateModelFactory =
+        getStateModelFactory(stateModelId, factoryName);
     if (stateModelFactory == null) {
       LOG.warn("Fail to create msg-handler because cannot find stateModelFactory for model: "
           + stateModelId + " using factoryName: " + factoryName + " for resource: " + resourceId);
@@ -200,7 +169,7 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     }
 
     // check if the state model definition exists and cache it
-    if (!_stateModelDefs.containsKey(stateModelId.stringify())) {
+    if (!_stateModelDefs.containsKey(stateModelId)) {
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
       Builder keyBuilder = accessor.keyBuilder();
       StateModelDefinition stateModelDef =
@@ -209,15 +178,16 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         throw new HelixException("fail to create msg-handler because stateModelDef for "
             + stateModelId + " does NOT exist");
       }
-      _stateModelDefs.put(stateModelId.stringify(), stateModelDef);
+      _stateModelDefs.put(stateModelId, stateModelDef);
     }
 
     if (message.getBatchMessageMode() == false) {
       // create currentStateDelta for this partition
-      String initState = _stateModelDefs.get(message.getStateModelDef()).getInitialState();
-      StateModel stateModel = stateModelFactory.getStateModel(partitionKey.stringify());
+      String initState = _stateModelDefs.get(message.getStateModelDefId()).getInitialState();
+      TransitionHandler stateModel =
+          stateModelFactory.getTransitionHandler(resourceId, partitionKey);
       if (stateModel == null) {
-        stateModel = stateModelFactory.createAndAddStateModel(partitionKey.stringify());
+        stateModel = stateModelFactory.createAndAddSTransitionHandler(resourceId, partitionKey);
         stateModel.updateState(initState);
       }
 
@@ -236,10 +206,9 @@ public class HelixStateMachineEngine implements StateMachineEngine {
       return new HelixStateTransitionHandler(stateModelFactory, stateModel, message, context,
           currentStateDelta);
     } else {
-      BatchMessageWrapper wrapper =
-          stateModelFactory.getBatchMessageWrapper(resourceId.stringify());
+      BatchMessageWrapper wrapper = stateModelFactory.getBatchMessageWrapper(resourceId);
       if (wrapper == null) {
-        wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceId.stringify());
+        wrapper = stateModelFactory.createAndAddBatchMessageWrapper(resourceId);
       }
 
       // get executor-service for the message
@@ -259,27 +228,15 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   }
 
   @Override
-  public boolean removeStateModelFactory(String stateModelDef,
-      StateModelFactory<? extends StateModel> factory) {
-    throw new UnsupportedOperationException("Remove not yet supported");
-  }
-
-  @Override
-  public boolean removeStateModelFactory(String stateModelDef,
-      StateModelFactory<? extends StateModel> factory, String factoryName) {
-    throw new UnsupportedOperationException("Remove not yet supported");
-  }
-
-  @Override
   public boolean registerStateModelFactory(StateModelDefId stateModelDefId,
-      HelixStateModelFactory<? extends StateModel> factory) {
+      StateTransitionHandlerFactory<? extends TransitionHandler> factory) {
     return registerStateModelFactory(stateModelDefId, HelixConstants.DEFAULT_STATE_MODEL_FACTORY,
         factory);
   }
 
   @Override
   public boolean registerStateModelFactory(StateModelDefId stateModelDefId, String factoryName,
-      HelixStateModelFactory<? extends StateModel> factory) {
+      StateTransitionHandlerFactory<? extends TransitionHandler> factory) {
     if (stateModelDefId == null || factoryName == null || factory == null) {
       LOG.info("stateModelDefId|factoryName|stateModelFactory is null");
       return false;
@@ -288,22 +245,20 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     LOG.info("Registering state model factory for state-model-definition: " + stateModelDefId
         + " using factory-name: " + factoryName + " with: " + factory);
 
-    StateModelFactory<? extends StateModel> factoryAdaptor =
-        new HelixStateModelFactoryAdaptor(factory);
-
-    String stateModelDefName = stateModelDefId.stringify();
-    if (!_stateModelFactoryMap.containsKey(stateModelDefName)) {
-      _stateModelFactoryMap.put(stateModelDefName,
-          new ConcurrentHashMap<String, StateModelFactory<? extends StateModel>>());
+    if (!_stateModelFactoryMap.containsKey(stateModelDefId)) {
+      _stateModelFactoryMap
+          .put(
+              stateModelDefId,
+              new ConcurrentHashMap<String, StateTransitionHandlerFactory<? extends TransitionHandler>>());
     }
 
-    if (_stateModelFactoryMap.get(stateModelDefName).containsKey(factoryName)) {
+    if (_stateModelFactoryMap.get(stateModelDefId).containsKey(factoryName)) {
       LOG.info("Skip register state model factory for " + stateModelDefId + " using factory-name "
           + factoryName + ", since it has already been registered.");
       return false;
     }
 
-    _stateModelFactoryMap.get(stateModelDefName).put(factoryName, factoryAdaptor);
+    _stateModelFactoryMap.get(stateModelDefId).put(factoryName, factory);
 
     sendNopMessage();
     return true;
@@ -324,15 +279,14 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     LOG.info("Removing state model factory for state-model-definition: " + stateModelDefId
         + " using factory-name: " + factoryName);
 
-    String stateModelDefName = stateModelDefId.stringify();
-    Map<String, StateModelFactory<? extends StateModel>> ftyMap =
-        _stateModelFactoryMap.get(stateModelDefName);
+    Map<String, StateTransitionHandlerFactory<? extends TransitionHandler>> ftyMap =
+        _stateModelFactoryMap.get(stateModelDefId);
     if (ftyMap == null) {
       LOG.info("Skip remove state model factory " + stateModelDefId + ", since it does NOT exist");
       return false;
     }
 
-    StateModelFactory<? extends StateModel> fty = ftyMap.remove(factoryName);
+    StateTransitionHandlerFactory<? extends TransitionHandler> fty = ftyMap.remove(factoryName);
     if (fty == null) {
       LOG.info("Skip remove state model factory " + stateModelDefId + " using factory-name "
           + factoryName + ", since it does NOT exist");
@@ -340,13 +294,15 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     }
 
     if (ftyMap.isEmpty()) {
-      _stateModelFactoryMap.remove(stateModelDefName);
+      _stateModelFactoryMap.remove(stateModelDefId);
     }
 
-    for (String partition : fty.getPartitionSet()) {
-      StateModel stateModel = fty.getStateModel(partition);
-      stateModel.reset();
-      // TODO probably should remove the state from zookeeper
+    for (ResourceId resource : fty.getResourceSet()) {
+      for (PartitionId partition : fty.getPartitionSet(resource)) {
+        TransitionHandler stateModel = fty.getTransitionHandler(resource, partition);
+        stateModel.reset();
+        // TODO probably should remove the state from zookeeper
+      }
     }
 
     return true;

@@ -19,10 +19,13 @@ package org.apache.helix.participant.statemachine;
  * under the License.
  */
 
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.log4j.Logger;
 
-public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledTaskStateModel> {
+public class ScheduledTaskStateModelFactory extends StateTransitionHandlerFactory<ScheduledTaskStateModel> {
   Logger logger = Logger.getLogger(ScheduledTaskStateModelFactory.class);
 
   HelixTaskExecutor _executor;
@@ -32,8 +35,8 @@ public class ScheduledTaskStateModelFactory extends StateModelFactory<ScheduledT
   }
 
   @Override
-  public ScheduledTaskStateModel createNewStateModel(String partitionName) {
-    logger.info("Create state model for ScheduledTask " + partitionName);
-    return new ScheduledTaskStateModel(this, _executor, partitionName);
+  public ScheduledTaskStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
+    logger.info("Create state model for ScheduledTask " + resource + "_" + partition);
+    return new ScheduledTaskStateModel(this, _executor, resource, partition);
   }
 }

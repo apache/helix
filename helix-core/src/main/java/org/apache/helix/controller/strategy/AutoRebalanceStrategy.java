@@ -33,6 +33,9 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import com.google.common.collect.ArrayListMultimap;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Multimaps;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
@@ -141,8 +144,12 @@ public class AutoRebalanceStrategy {
       final Map<PartitionId, Map<ParticipantId, State>> currentMapping,
       final List<ParticipantId> allNodes) {
     Comparator<ParticipantId> nodeComparator = new NodeComparator();
+    Comparator<ParticipantId> currentStateNodeComparator =
+        new CurrentStateNodeComparator(currentMapping);
+
     List<ParticipantId> sortedLiveNodes = new ArrayList<ParticipantId>(liveNodes);
-    Collections.sort(sortedLiveNodes, nodeComparator);
+    Collections.sort(sortedLiveNodes, currentStateNodeComparator);
+
     List<ParticipantId> sortedAllNodes = new ArrayList<ParticipantId>(allNodes);
     Collections.sort(sortedAllNodes, nodeComparator);
     List<String> sortedNodeNames =
@@ -481,7 +488,7 @@ public class AutoRebalanceStrategy {
   }
 
   /**
-   * Safe check for the number of replicas of a given id assiged to a node
+   * Safe check for the number of replicas of a given id assigned to a node
    * @param state the state to assign
    * @param node the node to check
    * @param nodeReplicaCounts a map of node to replica id and counts
@@ -496,11 +503,11 @@ public class AutoRebalanceStrategy {
       return 0;
     }
     Map<String, Integer> replicaCounts = nodeReplicaCounts.get(node);
-    if (!replicaCounts.containsKey(state)) {
+    if (!replicaCounts.containsKey(state.toString())) {
       replicaCounts.put(state.toString(), 0);
       return 0;
     }
-    return replicaCounts.get(state);
+    return replicaCounts.get(state.toString());
   }
 
   /**
@@ -609,7 +616,7 @@ public class AutoRebalanceStrategy {
   /**
    * Given a predefined set of all possible nodes, compute an assignment of replicas to
    * nodes that evenly assigns all replicas to nodes.
-   * @param allNodes Identifiers to all nodes, live and non-live
+   * @param nodeNames Identifiers to all nodes, live and non-live
    * @return Preferred assignment of replicas
    */
   private Map<Replica, Node> computePreferredPlacement(final List<String> nodeNames) {
@@ -633,8 +640,7 @@ public class AutoRebalanceStrategy {
 
   /**
    * Counts the total number of replicas given a state-count mapping
-   * @param states
-   * @return
+   * @return The number
    */
   private int countStateReplicas() {
     int total = 0;
@@ -842,6 +848,47 @@ public class AutoRebalanceStrategy {
     @Override
     public int compare(ParticipantId o1, ParticipantId o2) {
       return o1.toString().compareTo(o2.toString());
+    }
+  }
+
+  /**
+   * Sorter for live nodes that sorts firstly according to the number of partitions currently
+   * registered against a node (more partitions means sort earlier), then by node name.
+   * This prevents unnecessarily moving partitions due to the capacity assignment
+   * unnecessarily reducing the capacity of lower down elements.
+   */
+  private static class CurrentStateNodeComparator implements Comparator<ParticipantId> {
+
+    /**
+     * The number of partitions that are active for each partition.
+     */
+    private final Map<ParticipantId, Integer> partitionCounts;
+
+    /**
+     * Create it.
+     * @param currentMapping The current mapping of partitions to participants.
+     */
+    public CurrentStateNodeComparator(Map<PartitionId, Map<ParticipantId, State>> currentMapping) {
+      partitionCounts = new HashMap<ParticipantId, Integer>();
+      for (Entry<PartitionId, Map<ParticipantId, State>> entry : currentMapping.entrySet()) {
+        for (ParticipantId participantId : entry.getValue().keySet()) {
+          Integer existing = partitionCounts.get(participantId);
+          partitionCounts.put(participantId, existing != null ? existing + 1 : 1);
+        }
+      }
+    }
+
+    @Override
+    public int compare(ParticipantId o1, ParticipantId o2) {
+      Integer c1 = partitionCounts.get(o1);
+      if (c1 == null) {
+        c1 = 0;
+      }
+      Integer c2 = partitionCounts.get(o2);
+      if (c2 == null) {
+        c2 = 0;
+      }
+      return c1 < c2 ? 1 : (c1 > c2 ? -1 : o1.toString().compareTo(o2.toString()));
     }
   }
 }

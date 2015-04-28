@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
 
 /**
@@ -30,7 +31,7 @@ import org.apache.helix.model.Message;
  */
 public class StateModelParser {
 
-  public Method getMethodForTransition(Class<? extends StateModel> clazz, String fromState,
+  public Method getMethodForTransition(Class<? extends TransitionHandler> clazz, String fromState,
       String toState, Class<?>[] paramTypes) {
     Method method = getMethodForTransitionUsingAnnotation(clazz, fromState, toState, paramTypes);
     if (method == null) {
@@ -48,7 +49,7 @@ public class StateModelParser {
    * @param paramTypes
    * @return Method if found else null
    */
-  public Method getMethodForTransitionByConvention(Class<? extends StateModel> clazz,
+  public Method getMethodForTransitionByConvention(Class<? extends TransitionHandler> clazz,
       String fromState, String toState, Class<?>[] paramTypes) {
     Method methodToInvoke = null;
     String methodName = "onBecome" + toState + "From" + fromState;
@@ -82,7 +83,7 @@ public class StateModelParser {
    * @param paramTypes
    * @return
    */
-  public Method getMethodForTransitionUsingAnnotation(Class<? extends StateModel> clazz,
+  public Method getMethodForTransitionUsingAnnotation(Class<? extends TransitionHandler> clazz,
       String fromState, String toState, Class<?>[] paramTypes) {
     StateModelInfo stateModelInfo = clazz.getAnnotation(StateModelInfo.class);
     Method methodToInvoke = null;
@@ -114,12 +115,12 @@ public class StateModelParser {
    * @param clazz
    * @return
    */
-  public String getInitialState(Class<? extends StateModel> clazz) {
+  public String getInitialState(Class<? extends TransitionHandler> clazz) {
     StateModelInfo stateModelInfo = clazz.getAnnotation(StateModelInfo.class);
     if (stateModelInfo != null) {
       return stateModelInfo.initialState();
     } else {
-      return StateModel.DEFAULT_INITIAL_STATE;
+      return TransitionHandler.DEFAULT_INITIAL_STATE;
     }
   }
 

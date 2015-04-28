@@ -59,7 +59,7 @@ public class TestZKCallback extends ZkTestBase {
   }
 
   public class TestCallbackListener implements MessageListener, LiveInstanceChangeListener,
-      ConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
+      InstanceConfigChangeListener, CurrentStateChangeListener, ExternalViewChangeListener,
       IdealStateChangeListener {
     boolean externalViewChangeReceived = false;
     boolean liveInstanceChangeReceived = false;
@@ -81,7 +81,7 @@ public class TestZKCallback extends ZkTestBase {
     }
 
     @Override
-    public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
+    public void onInstanceConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
       configChangeReceived = true;
     }
 
@@ -127,7 +127,7 @@ public class TestZKCallback extends ZkTestBase {
     testHelixManager.addMessageListener(testListener, "localhost_8900");
     testHelixManager.addCurrentStateChangeListener(testListener, "localhost_8900",
         testHelixManager.getSessionId());
-    testHelixManager.addConfigChangeListener(testListener);
+    testHelixManager.addInstanceConfigChangeListener(testListener);
     testHelixManager.addIdealStateChangeListener(testListener);
     testHelixManager.addExternalViewChangeListener(testListener);
     testHelixManager.addLiveInstanceChangeListener(testListener);

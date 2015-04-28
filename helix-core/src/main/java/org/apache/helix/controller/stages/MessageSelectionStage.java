@@ -26,10 +26,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
-import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
@@ -38,9 +38,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.controller.rebalancer.config.BasicRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.ReplicatedRebalancerConfig;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -109,7 +107,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
     for (ResourceId resourceId : resourceMap.keySet()) {
       ResourceConfig resource = resourceMap.get(resourceId);
       StateModelDefinition stateModelDef =
-          stateModelDefMap.get(resource.getRebalancerConfig().getStateModelDefId());
+          stateModelDefMap.get(resource.getIdealState().getStateModelDefId());
 
       if (stateModelDef == null) {
         LOG.info("resource: "
@@ -125,7 +123,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
       // if configResource == null, the resource has been dropped
       Map<State, Bounds> stateConstraints =
           computeStateConstraints(stateModelDef,
-              configResource == null ? null : configResource.getRebalancerConfig(), cluster);
+              configResource == null ? null : configResource.getIdealState(), cluster);
 
       // TODO fix it
       for (PartitionId partitionId : bestPossibleStateOutput.getResourceAssignment(resourceId)
@@ -271,28 +269,24 @@ public class MessageSelectionStage extends AbstractBaseStage {
    * @return
    */
   private Map<State, Bounds> computeStateConstraints(StateModelDefinition stateModelDefinition,
-      RebalancerConfig rebalancerConfig, Cluster cluster) {
-    ReplicatedRebalancerConfig config =
-        (rebalancerConfig != null) ? BasicRebalancerConfig.convert(rebalancerConfig,
-            ReplicatedRebalancerConfig.class) : null;
+      IdealState idealState, Cluster cluster) {
     Map<State, Bounds> stateConstraints = new HashMap<State, Bounds>();
 
     List<State> statePriorityList = stateModelDefinition.getTypedStatesPriorityList();
     for (State state : statePriorityList) {
-      String numInstancesPerState =
-          cluster.getStateUpperBoundConstraint(Scope.cluster(cluster.getId()),
-              stateModelDefinition.getStateModelDefId(), state);
+      String numInstancesPerState = stateModelDefinition.getNumParticipantsPerState(state);
       int max = -1;
       if ("N".equals(numInstancesPerState)) {
         max = cluster.getLiveParticipantMap().size();
       } else if ("R".equals(numInstancesPerState)) {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
-        if (config != null) {
-          if (config.anyLiveParticipant()) {
+        if (idealState != null) {
+          String replicas = idealState.getReplicas();
+          if (replicas.equals(StateModelToken.ANY_LIVEINSTANCE.toString())) {
             max = cluster.getLiveParticipantMap().size();
           } else {
-            max = config.getReplicaCount();
+            max = Integer.parseInt(replicas);
           }
         }
       } else {

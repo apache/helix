@@ -29,12 +29,11 @@ import javax.management.MalformedObjectNameException;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.apache.log4j.Logger;
@@ -46,8 +45,8 @@ import org.testng.annotations.Test;
 public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
   private static final Logger LOG = Logger.getLogger(TestClusterStatusMonitorLifecycle.class);
 
-  MockParticipantManager[] _participants;
-  ClusterDistributedController[] _controllers;
+  MockParticipant[] _participants;
+  MockMultiClusterController[] _controllers;
   String _controllerClusterName;
   String _clusterNamePrefix;
   String _firstClusterName;
@@ -91,11 +90,11 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
         3, // replicas
         "LeaderStandby", true); // do rebalance
 
-    // start distributed cluster controllers
-    _controllers = new ClusterDistributedController[n + n];
+    // start multi-cluster controllers
+    _controllers = new MockMultiClusterController[n + n];
     for (int i = 0; i < n; i++) {
       _controllers[i] =
-          new ClusterDistributedController(_zkaddr, _controllerClusterName, "controller_" + i);
+          new MockMultiClusterController(_zkaddr, _controllerClusterName, "controller_" + i);
       _controllers[i].syncStart();
     }
 
@@ -106,11 +105,11 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     Assert.assertTrue(result, "Controller cluster NOT in ideal state");
 
     // start first cluster
-    _participants = new MockParticipantManager[n];
+    _participants = new MockParticipant[n];
     _firstClusterName = _clusterNamePrefix + "0_0";
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost0_" + (12918 + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, _firstClusterName, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, _firstClusterName, instanceName);
       _participants[i].syncStart();
     }
 
@@ -127,7 +126,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     _setupTool.rebalanceStorageCluster(_controllerClusterName, _clusterNamePrefix + "0", 6);
     for (int i = n; i < 2 * n; i++) {
       _controllers[i] =
-          new ClusterDistributedController(_zkaddr, _controllerClusterName, "controller_" + i);
+          new MockMultiClusterController(_zkaddr, _controllerClusterName, "controller_" + i);
       _controllers[i].syncStart();
     }
 
@@ -206,8 +205,8 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     String firstControllerName =
         accessor.getProperty(accessor.keyBuilder().controllerLeader()).getId();
 
-    ClusterDistributedController firstController = null;
-    for (ClusterDistributedController controller : _controllers) {
+    MockMultiClusterController firstController = null;
+    for (MockMultiClusterController controller : _controllers) {
       if (controller.getInstanceName().equals(firstControllerName)) {
         firstController = controller;
       }
@@ -222,7 +221,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkTestBase {
     Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 12);
 
     String instanceName = "localhost0_" + (12918 + 0);
-    _participants[0] = new MockParticipantManager(_zkaddr, _firstClusterName, instanceName);
+    _participants[0] = new MockParticipant(_zkaddr, _firstClusterName, instanceName);
     _participants[0].syncStart();
 
     // 1 participant comes back

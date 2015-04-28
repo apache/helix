@@ -65,7 +65,7 @@ Add a State model to a cluster
 Add a resource to a cluster
 
 ```
---addResource <clusterName> <resourceName> <partitionNum> <stateModelRef> <mode (AUTO_REBALANCE|AUTO|CUSTOMIZED)>
+--addResource <clusterName> <resourceName> <partitionNum> <stateModelRef> <--mode (AUTO_REBALANCE|AUTO|CUSTOMIZED)>
 ```
 
 Upload an IdealState (Partition to Node Mapping)

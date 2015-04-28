@@ -48,8 +48,8 @@ To quickly see this working run the lock-manager-demo script where 12 locks are 
  This version starts multiple threads with in same process to simulate a multi node deployment. Try the long version to get a better idea of how it works.
  
 ```
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
-cd incubator-helix
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
+cd helix
 mvn clean install package -DskipTests
 cd recipes/distributed-lock-manager/target/distributed-lock-manager-pkg/bin
 chmod +x *
@@ -137,7 +137,7 @@ This provides more details on how to setup the cluster and where to plugin appli
 Create a lock group and specify the number of locks in the lock group. 
 
 ```
-./helix-admin --zkSvr localhost:2199  --addResource lock-manager-demo lock-group 6 OnlineOffline FULL_AUTO
+./helix-admin --zkSvr localhost:2199  --addResource lock-manager-demo lock-group 6 OnlineOffline --mode FULL_AUTO
 ```
 
 ##### Start the nodes

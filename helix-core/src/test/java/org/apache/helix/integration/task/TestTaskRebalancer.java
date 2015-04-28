@@ -22,6 +22,7 @@ package org.apache.helix.integration.task;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -29,12 +30,15 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockController;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.JobDag;
+import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConstants;
@@ -46,6 +50,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -57,6 +62,7 @@ import org.testng.annotations.Test;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 public class TestTaskRebalancer extends ZkTestBase {
   private static final int n = 5;
@@ -66,8 +72,8 @@ public class TestTaskRebalancer extends ZkTestBase {
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
   private final String CLUSTER_NAME = "TestTaskRebalancer";
-  private final MockParticipantManager[] _participants = new MockParticipantManager[n];
-  private ClusterControllerManager _controller;
+  private final MockParticipant[] _participants = new MockParticipant[n];
+  private MockController _controller;
 
   private HelixManager _manager;
   private TaskDriver _driver;
@@ -88,7 +94,8 @@ public class TestTaskRebalancer extends ZkTestBase {
     // Set up target db
     _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_PARTITIONS,
         MASTER_SLAVE_STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
+    _setupTool
+        .rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("Reindex", new TaskFactory() {
@@ -101,7 +108,7 @@ public class TestTaskRebalancer extends ZkTestBase {
     // start dummy participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -112,7 +119,7 @@ public class TestTaskRebalancer extends ZkTestBase {
 
     // start controller
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     // create cluster manager
@@ -286,13 +293,64 @@ public class TestTaskRebalancer extends ZkTestBase {
     Assert.assertEquals(maxAttempts, 2);
   }
 
+  @Test
+  public void testNamedQueue() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    JobQueue queue = new JobQueue.Builder(queueName).build();
+    _driver.createQueue(queue);
+
+    // Enqueue jobs
+    Set<String> master = Sets.newHashSet("MASTER");
+    Set<String> slave = Sets.newHashSet("SLAVE");
+    JobConfig.Builder job1 =
+        new JobConfig.Builder().setCommand("Reindex")
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
+    JobConfig.Builder job2 =
+        new JobConfig.Builder().setCommand("Reindex")
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
+    _driver.enqueueJob(queueName, "masterJob", job1);
+    _driver.enqueueJob(queueName, "slaveJob", job2);
+
+    // Ensure successful completion
+    String namespacedJob1 = queueName + "_masterJob";
+    String namespacedJob2 = queueName + "_slaveJob";
+    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    JobContext masterJobContext = TaskUtil.getJobContext(_manager, namespacedJob1);
+    JobContext slaveJobContext = TaskUtil.getJobContext(_manager, namespacedJob2);
+
+    // Ensure correct ordering
+    long job1Finish = masterJobContext.getFinishTime();
+    long job2Start = slaveJobContext.getStartTime();
+    Assert.assertTrue(job2Start >= job1Finish);
+
+    // Flush queue and check cleanup
+    _driver.flushQueue(queueName);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob1)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob1)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob2)));
+    Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob2)));
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, queueName);
+    JobDag dag = workflowCfg.getJobDag();
+    Assert.assertFalse(dag.getAllNodes().contains(namespacedJob1));
+    Assert.assertFalse(dag.getAllNodes().contains(namespacedJob2));
+    Assert.assertFalse(dag.getChildrenToParents().containsKey(namespacedJob1));
+    Assert.assertFalse(dag.getChildrenToParents().containsKey(namespacedJob2));
+    Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob1));
+    Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob2));
+  }
+
   private static class ReindexTask implements Task {
     private final long _delay;
     private volatile boolean _canceled;
 
     public ReindexTask(TaskCallbackContext context) {
       JobConfig jobCfg = context.getJobConfig();
-      Map<String, String> cfg = jobCfg.getJobConfigMap();
+      Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
       if (cfg == null) {
         cfg = Collections.emptyMap();
       }

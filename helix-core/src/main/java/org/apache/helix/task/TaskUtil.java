@@ -56,8 +56,8 @@ import com.google.common.collect.Maps;
  */
 public class TaskUtil {
   private static final Logger LOG = Logger.getLogger(TaskUtil.class);
-  private static final String CONTEXT_NODE = "Context";
-  private static final String PREV_RA_NODE = "PreviousResourceAssignment";
+  public static final String CONTEXT_NODE = "Context";
+  public static final String PREV_RA_NODE = "PreviousResourceAssignment";
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
@@ -68,6 +68,16 @@ public class TaskUtil {
    */
   public static JobConfig getJobCfg(HelixManager manager, String jobResource) {
     HelixProperty jobResourceConfig = getResourceConfig(manager, jobResource);
+    return getJobCfg(jobResourceConfig);
+  }
+
+  /**
+   * Parses job resource configurations directly from a property into a {@link JobConfig}.
+   * @param jobResourceConfig the property containing the configuration
+   * @return A {@link JobConfig} object if the property valid configurations for the job, null
+   *         otherwise.
+   */
+  public static JobConfig getJobCfg(HelixProperty jobResourceConfig) {
     if (jobResourceConfig == null) {
       return null;
     }
@@ -93,6 +103,29 @@ public class TaskUtil {
    */
   public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflowResource) {
     Map<String, String> workflowCfg = getResourceConfigMap(manager, workflowResource);
+    return getWorkflowCfg(workflowCfg);
+  }
+
+  /**
+   * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
+   * @param workflowResourceConfig the proeprty containing the configurations
+   * @return A {@link WorkflowConfig} object if the property contains valid configurations for the
+   *         workflow, null otherwise.
+   */
+  public static WorkflowConfig getWorkflowCfg(HelixProperty workflowResourceConfig) {
+    if (workflowResourceConfig == null) {
+      return null;
+    }
+    return getWorkflowCfg(workflowResourceConfig.getRecord().getSimpleFields());
+  }
+
+  /**
+   * Parses a key-value map into a {@link WorkflowConfig} object.
+   * @param workflowCfg the map of configurations
+   * @return A {@link WorkflowConfig} object if the map contains valid configurations for the
+   *         workflow, null otherwise.
+   */
+  private static WorkflowConfig getWorkflowCfg(Map<String, String> workflowCfg) {
     if (workflowCfg == null) {
       return null;
     }
@@ -260,7 +293,7 @@ public class TaskUtil {
    * @param commandConfig map of job config key to config value
    * @return serialized string
    */
-  public static String serializeJobConfigMap(Map<String, String> commandConfig) {
+  public static String serializeJobCommandConfigMap(Map<String, String> commandConfig) {
     ObjectMapper mapper = new ObjectMapper();
     try {
       String serializedMap = mapper.writeValueAsString(commandConfig);
@@ -276,7 +309,7 @@ public class TaskUtil {
    * @param commandConfig the serialized job config map
    * @return a map of job config key to config value
    */
-  public static Map<String, String> deserializeJobConfigMap(String commandConfig) {
+  public static Map<String, String> deserializeJobCommandConfigMap(String commandConfig) {
     ObjectMapper mapper = new ObjectMapper();
     try {
       Map<String, String> commandConfigMap =
@@ -310,7 +343,7 @@ public class TaskUtil {
     Date startTime = null;
     if (cfg.containsKey(WorkflowConfig.START_TIME)) {
       try {
-        startTime = WorkflowConfig.DEFAULT_DATE_FORMAT.parse(cfg.get(WorkflowConfig.START_TIME));
+        startTime = WorkflowConfig.getDefaultDateFormat().parse(cfg.get(WorkflowConfig.START_TIME));
       } catch (ParseException e) {
         LOG.error("Unparseable date " + cfg.get(WorkflowConfig.START_TIME), e);
         return null;

@@ -33,11 +33,12 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.log4j.Logger;
 
 public class ExampleProcess {
@@ -59,7 +60,7 @@ public class ExampleProcess {
   private final String stateModelType;
   private HelixManager manager;
 
-  private StateModelFactory<StateModel> stateModelFactory;
+  private StateTransitionHandlerFactory<TransitionHandler> stateModelFactory;
   private final int delay;
 
   public ExampleProcess(String zkConnectString, String clusterName, String instanceName,
@@ -83,12 +84,9 @@ public class ExampleProcess {
     } else if ("LeaderStandby".equalsIgnoreCase(stateModelType)) {
       stateModelFactory = new LeaderStandbyStateModelFactory(delay);
     }
-    // genericStateMachineHandler = new StateMachineEngine();
-    // genericStateMachineHandler.registerStateModelFactory(stateModelType,
-    // stateModelFactory);
 
     StateMachineEngine stateMach = manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory(stateModelType, stateModelFactory);
+    stateMach.registerStateModelFactory(StateModelDefId.from(stateModelType), stateModelFactory);
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), stateMach);

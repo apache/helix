@@ -28,6 +28,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.log4j.Logger;
 
 /**
@@ -72,7 +73,9 @@ public class ControllerManagerHelper {
       /**
        * setup generic-controller
        */
-      _manager.addConfigChangeListener(controller);
+      _manager.addInstanceConfigChangeListener(controller);
+      _manager.addConfigChangeListener(controller, ConfigScopeProperty.RESOURCE);
+      _manager.addConfigChangeListener(controller, ConfigScopeProperty.CONSTRAINT);
       _manager.addLiveInstanceChangeListener(controller);
       _manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view
@@ -92,6 +95,8 @@ public class ControllerManagerHelper {
      * reset generic-controller
      */
     _manager.removeListener(keyBuilder.instanceConfigs(), controller);
+    _manager.removeListener(keyBuilder.resourceConfigs(), controller);
+    _manager.removeListener(keyBuilder.constraints(), controller);
     _manager.removeListener(keyBuilder.liveInstances(), controller);
     _manager.removeListener(keyBuilder.idealStates(), controller);
     _manager.removeListener(keyBuilder.controller(), controller);

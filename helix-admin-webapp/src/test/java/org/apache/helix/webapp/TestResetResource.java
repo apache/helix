@@ -25,8 +25,8 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -54,27 +54,24 @@ public class TestResetResource extends AdminTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller = new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
-    Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>() {
-      {
-        put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
-        put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
-      }
-    };
+    Map<String, Set<String>> errPartitions = new HashMap<String, Set<String>>();
+    errPartitions.put("SLAVE-MASTER", TestHelper.setOf("TestDB0_4"));
+    errPartitions.put("OFFLINE-SLAVE", TestHelper.setOf("TestDB0_8"));
 
     // start mock participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
         participants[i] =
-            new MockParticipantManager(_zkaddr, clusterName, instanceName);
+            new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errPartitions));
       } else {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }

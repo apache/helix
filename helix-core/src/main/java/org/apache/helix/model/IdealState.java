@@ -40,14 +40,13 @@ import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.api.id.StateModelFactoryId;
+import org.apache.helix.controller.rebalancer.CustomRebalancer;
+import org.apache.helix.controller.rebalancer.FullAutoRebalancer;
 import org.apache.helix.controller.rebalancer.HelixRebalancer;
 import org.apache.helix.controller.rebalancer.RebalancerRef;
-import org.apache.helix.controller.rebalancer.config.CustomRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
-import org.apache.helix.util.HelixUtil;
+import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
+import org.apache.helix.task.FixedTargetTaskRebalancer;
+import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Enums;
@@ -108,6 +107,7 @@ public class IdealState extends HelixProperty {
     SEMI_AUTO,
     CUSTOMIZED,
     USER_DEFINED,
+    TASK,
     NONE
   }
 
@@ -217,47 +217,26 @@ public class IdealState extends HelixProperty {
    * @return RebalancerRef
    */
   public RebalancerRef getRebalancerRef() {
+    RebalancerRef ref = null;
     String className = getRebalancerClassName();
     if (className != null) {
-      return RebalancerRef.from(getRebalancerClassName());
-    }
-    return null;
-  }
-
-  /**
-   * Set the RebalancerConfig implementation class for this resource
-   * @param clazz the class object
-   */
-  public void setRebalancerConfigClass(Class<? extends RebalancerConfig> clazz) {
-    String className = clazz.getName();
-    _record.setSimpleField(IdealStateProperty.REBALANCER_CONFIG_NAME.toString(), className);
-  }
-
-  /**
-   * Get the class representing the rebalancer config of this resource
-   * @return The rebalancer config class
-   */
-  public Class<? extends RebalancerConfig> getRebalancerConfigClass() {
-    // try to extract the class from the persisted data
-    String className = _record.getSimpleField(IdealStateProperty.REBALANCER_CONFIG_NAME.toString());
-    if (className != null) {
-      try {
-        return HelixUtil.loadClass(getClass(), className).asSubclass(RebalancerConfig.class);
-      } catch (ClassNotFoundException e) {
-        logger.error(className + " is not a valid class");
+      ref = RebalancerRef.from(getRebalancerClassName());
+    } else {
+      switch (getRebalanceMode()) {
+      case FULL_AUTO:
+        ref = RebalancerRef.from(FullAutoRebalancer.class);
+        break;
+      case SEMI_AUTO:
+        ref = RebalancerRef.from(SemiAutoRebalancer.class);
+        break;
+      case CUSTOMIZED:
+        ref = RebalancerRef.from(CustomRebalancer.class);
+        break;
+      default:
+        break;
       }
     }
-    // the fallback is to use the mode
-    switch (getRebalanceMode()) {
-    case FULL_AUTO:
-      return FullAutoRebalancerConfig.class;
-    case SEMI_AUTO:
-      return SemiAutoRebalancerConfig.class;
-    case CUSTOMIZED:
-      return CustomRebalancerConfig.class;
-    default:
-      return PartitionedRebalancerConfig.class;
-    }
+    return ref;
   }
 
   /**
@@ -331,15 +310,9 @@ public class IdealState extends HelixProperty {
     case FULL_AUTO:
       return _record.getListFields().keySet();
     case CUSTOMIZED:
-      return _record.getMapFields().keySet();
     case USER_DEFINED:
-      Class<? extends RebalancerConfig> configClass = getRebalancerConfigClass();
-      if (configClass.equals(SemiAutoRebalancerConfig.class)
-          || configClass.equals(FullAutoRebalancerConfig.class)) {
-        return _record.getListFields().keySet();
-      } else {
-        return _record.getMapFields().keySet();
-      }
+    case TASK:
+      return _record.getMapFields().keySet();
     default:
       logger.error("Invalid ideal state mode:" + getResourceName());
       return Collections.emptySet();
@@ -414,18 +387,8 @@ public class IdealState extends HelixProperty {
    * @return set of instance names
    */
   public Set<String> getInstanceSet(String partitionName) {
-    boolean useListFields = false;
     RebalanceMode rebalanceMode = getRebalanceMode();
-    if (rebalanceMode == RebalanceMode.USER_DEFINED) {
-      Class<? extends RebalancerConfig> configClass = getRebalancerConfigClass();
-      if (configClass.equals(SemiAutoRebalancerConfig.class)
-          || configClass.equals(FullAutoRebalancerConfig.class)) {
-        // override: if the user defined rebalancer expects auto-type inputs, use the list fields
-        useListFields = true;
-      }
-    }
-    if (useListFields || rebalanceMode == RebalanceMode.SEMI_AUTO
-        || rebalanceMode == RebalanceMode.FULL_AUTO) {
+    if (rebalanceMode == RebalanceMode.SEMI_AUTO || rebalanceMode == RebalanceMode.FULL_AUTO) {
       // get instances from list fields
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null) {
@@ -435,7 +398,7 @@ public class IdealState extends HelixProperty {
         return Collections.emptySet();
       }
     } else if (rebalanceMode == RebalanceMode.CUSTOMIZED
-        || rebalanceMode == RebalanceMode.USER_DEFINED) {
+        || rebalanceMode == RebalanceMode.USER_DEFINED || rebalanceMode == RebalanceMode.TASK) {
       // get instances from map fields
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
@@ -774,10 +737,14 @@ public class IdealState extends HelixProperty {
       property = RebalanceMode.CUSTOMIZED;
       break;
     default:
-      if (getRebalancerClassName() != null) {
-        property = RebalanceMode.USER_DEFINED;
-      } else {
+      String rebalancerName = getRebalancerClassName();
+      if (rebalancerName == null) {
         property = RebalanceMode.SEMI_AUTO;
+      } else if (rebalancerName.equals(FixedTargetTaskRebalancer.class.getName())
+          || rebalancerName.equals(GenericTaskRebalancer.class.getName())) {
+        property = RebalanceMode.TASK;
+      } else {
+        property = RebalanceMode.USER_DEFINED;
       }
       break;
     }
@@ -825,7 +792,6 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * <<<<<<< HEAD
    * Get the non-Helix simple fields from this property and add them to a UserConfig
    * @param userConfig the user config to update
    */

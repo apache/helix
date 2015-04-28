@@ -3,7 +3,6 @@ package org.apache.helix.api;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
@@ -109,20 +108,18 @@ public class TestNamespacedConfig {
     UserConfig userConfig = new UserConfig(Scope.resource(resourceId));
     userConfig.setSimpleField(KEY1, VALUE1);
     ResourceConfiguration resourceConfig = new ResourceConfiguration(resourceId);
-    resourceConfig.setType(ResourceType.DATA);
     resourceConfig.addNamespacedConfig(userConfig);
     resourceConfig.getRecord().setSimpleField(KEY2, VALUE2);
     IdealState idealState = new IdealState(resourceId);
     idealState.setRebalanceMode(RebalanceMode.USER_DEFINED);
     idealState.getRecord().setSimpleField(KEY3, VALUE3);
 
-    // should have key1, key2, and key3, not type or rebalance mode
+    // should have key1, key2, and key3, not rebalance mode
     UserConfig result = resourceConfig.getUserConfig();
     idealState.updateUserConfig(result);
     Assert.assertEquals(result.getSimpleField(KEY1), VALUE1);
     Assert.assertEquals(result.getSimpleField(KEY2), VALUE2);
     Assert.assertEquals(result.getSimpleField(KEY3), VALUE3);
-    Assert.assertNull(result.getSimpleField(ResourceConfiguration.Fields.TYPE.toString()));
     Assert
         .assertNull(result.getSimpleField(IdealState.IdealStateProperty.REBALANCE_MODE.toString()));
   }

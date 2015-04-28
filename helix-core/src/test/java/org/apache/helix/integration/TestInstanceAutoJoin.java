@@ -2,11 +2,12 @@ package org.apache.helix.integration;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.ZKHelixManager;
-import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -43,8 +44,7 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db2, 1);
     String instance2 = "localhost_279699";
     // StartCMResult result = TestHelper.startDummyProcess(zkaddr, CLUSTER_NAME, instance2);
-    MockParticipantManager newParticipant =
-        new MockParticipantManager(_zkaddr, CLUSTER_NAME, instance2);
+    MockParticipant newParticipant = new MockParticipant(_zkaddr, CLUSTER_NAME, instance2);
     newParticipant.syncStart();
 
     Thread.sleep(500);
@@ -52,11 +52,12 @@ public class TestInstanceAutoJoin extends ZkStandAloneCMTestBase {
     Assert.assertTrue(null == manager.getHelixDataAccessor().getProperty(
         accessor.keyBuilder().liveInstance(instance2)));
 
-    ConfigScope scope = new ConfigScopeBuilder().forCluster(CLUSTER_NAME).build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(CLUSTER_NAME).build();
 
     manager.getConfigAccessor().set(scope, ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN, "true");
 
-    newParticipant = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instance2);
+    newParticipant = new MockParticipant(_zkaddr, CLUSTER_NAME, instance2);
     newParticipant.syncStart();
 
     Thread.sleep(500);

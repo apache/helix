@@ -30,8 +30,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -43,12 +43,12 @@ import org.testng.annotations.Test;
 
 public class TestRenamePartition extends ZkTestBase {
   // map from clusterName to participants
-  final Map<String, MockParticipantManager[]> _participantMap =
-      new ConcurrentHashMap<String, MockParticipantManager[]>();
+  final Map<String, MockParticipant[]> _participantMap =
+      new ConcurrentHashMap<String, MockParticipant[]>();
 
   // map from clusterName to controllers
-  final Map<String, ClusterControllerManager> _controllerMap =
-      new ConcurrentHashMap<String, ClusterControllerManager>();
+  final Map<String, MockController> _controllerMap =
+      new ConcurrentHashMap<String, MockController>();
 
   @Test()
   public void testRenamePartitionAutoIS() throws Exception {
@@ -136,17 +136,17 @@ public class TestRenamePartition extends ZkTestBase {
   }
 
   private void startAndVerify(String clusterName) throws Exception {
-    MockParticipantManager[] participants = new MockParticipantManager[5];
+    MockParticipant[] participants = new MockParticipant[5];
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -160,14 +160,14 @@ public class TestRenamePartition extends ZkTestBase {
   }
 
   private void stop(String clusterName) {
-    ClusterControllerManager controller = _controllerMap.get(clusterName);
+    MockController controller = _controllerMap.get(clusterName);
     if (controller != null) {
       controller.syncStop();
     }
 
-    MockParticipantManager[] participants = _participantMap.get(clusterName);
+    MockParticipant[] participants = _participantMap.get(clusterName);
     if (participants != null) {
-      for (MockParticipantManager participant : participants) {
+      for (MockParticipant participant : participants) {
         participant.syncStop();
       }
     }

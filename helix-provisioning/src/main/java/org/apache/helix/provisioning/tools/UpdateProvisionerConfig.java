@@ -60,6 +60,7 @@ public class UpdateProvisionerConfig {
     YarnProvisionerConfig config = new YarnProvisionerConfig(resourceId);
     config.setNumContainers(numContainers);
     delta.setProvisionerConfig(config);
+    delta.setIdealState(resource.getIdealState());
     ResourceConfig updatedResourceConfig = clusterAccessor.updateResource(resourceId, delta);
     LOG.info("Update provisioner config:" + updatedResourceConfig.getProvisionerConfig());
 

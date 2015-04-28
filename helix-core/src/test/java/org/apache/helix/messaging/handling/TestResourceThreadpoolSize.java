@@ -25,9 +25,10 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
-import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -37,8 +38,9 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
   public void TestThreadPoolSizeConfig() {
     HelixManager manager = _participants[0];
     ConfigAccessor accessor = manager.getConfigAccessor();
-    ConfigScope scope =
-        new ConfigScopeBuilder().forCluster(manager.getClusterName()).forResource("NextDB").build();
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
+            .forCluster(manager.getClusterName()).forResource("NextDB").build();
     accessor.set(scope, HelixTaskExecutor.MAX_THREADS, "" + 12);
 
     _setupTool.addResourceToCluster(CLUSTER_NAME, "NextDB", 64, STATE_MODEL);

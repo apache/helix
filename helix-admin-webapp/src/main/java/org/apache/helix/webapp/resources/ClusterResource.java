@@ -20,9 +20,7 @@ package org.apache.helix.webapp.resources;
  */
 
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -35,7 +33,6 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.restlet.data.MediaType;
-import org.restlet.data.Method;
 import org.restlet.data.Status;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
@@ -43,7 +40,11 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class ClusterResource extends ServerResource {
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> upstream/master
   public ClusterResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));

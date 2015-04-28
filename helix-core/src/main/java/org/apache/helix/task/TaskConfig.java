@@ -36,7 +36,8 @@ public class TaskConfig {
   private enum TaskConfigFields {
     TASK_ID,
     TASK_COMMAND,
-    TASK_SUCCESS_OPTIONAL
+    TASK_SUCCESS_OPTIONAL,
+    TASK_TARGET_PARTITION
   }
 
   private static final Logger LOG = Logger.getLogger(TaskConfig.class);
@@ -50,19 +51,25 @@ public class TaskConfig {
    * @param successOptional true if this task need not pass for the job to succeed, false
    *          otherwise
    * @param id existing task ID
+   * @param target target partition for a task
    */
   public TaskConfig(String command, Map<String, String> configMap, boolean successOptional,
-      String id) {
+      String id, String target) {
     if (configMap == null) {
       configMap = Maps.newHashMap();
     }
     if (id == null) {
       id = UUID.randomUUID().toString();
     }
-    configMap.put(TaskConfigFields.TASK_COMMAND.toString(), command);
+    if (command != null) {
+      configMap.put(TaskConfigFields.TASK_COMMAND.toString(), command);
+    }
     configMap.put(TaskConfigFields.TASK_SUCCESS_OPTIONAL.toString(),
         Boolean.toString(successOptional));
     configMap.put(TaskConfigFields.TASK_ID.toString(), id);
+    if (target != null) {
+      configMap.put(TaskConfigFields.TASK_TARGET_PARTITION.toString(), target);
+    }
     _configMap = configMap;
   }
 
@@ -74,7 +81,7 @@ public class TaskConfig {
    *          otherwise
    */
   public TaskConfig(String command, Map<String, String> configMap, boolean successOptional) {
-    this(command, configMap, successOptional, null);
+    this(command, configMap, successOptional, null, null);
   }
 
   /**
@@ -87,10 +94,18 @@ public class TaskConfig {
 
   /**
    * Get the command to invoke for this task
-   * @return string command
+   * @return string command, or null if not overridden
    */
   public String getCommand() {
     return _configMap.get(TaskConfigFields.TASK_COMMAND.toString());
+  }
+
+  /**
+   * Get the target partition of this task, if any
+   * @return the target partition, or null
+   */
+  public String getTargetPartition() {
+    return _configMap.get(TaskConfigFields.TASK_TARGET_PARTITION.toString());
   }
 
   /**
@@ -126,6 +141,15 @@ public class TaskConfig {
   }
 
   /**
+   * Instantiate a typed configuration from just a target
+   * @param target the target partition
+   * @return instantiated TaskConfig
+   */
+  public static TaskConfig from(String target) {
+    return new TaskConfig(null, null, false, null, target);
+  }
+
+  /**
    * Instantiate a typed configuration from a bean
    * @param bean plain bean describing the task
    * @return instantiated TaskConfig
@@ -142,9 +166,10 @@ public class TaskConfig {
   public static TaskConfig from(Map<String, String> rawConfigMap) {
     String taskId = rawConfigMap.get(TaskConfigFields.TASK_ID.toString());
     String command = rawConfigMap.get(TaskConfigFields.TASK_COMMAND.toString());
+    String targetPartition = rawConfigMap.get(TaskConfigFields.TASK_TARGET_PARTITION.toString());
     String successOptionalStr = rawConfigMap.get(TaskConfigFields.TASK_SUCCESS_OPTIONAL.toString());
     boolean successOptional =
         (successOptionalStr != null) ? Boolean.valueOf(successOptionalStr) : null;
-    return new TaskConfig(command, rawConfigMap, successOptional, taskId);
+    return new TaskConfig(command, rawConfigMap, successOptional, taskId, targetPartition);
   }
 }

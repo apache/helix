@@ -25,17 +25,18 @@ import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
 
 @StateModelInfo(states = "{'NOT USED BY HELIX'}", initialState = "INIT")
-public class TaskStateModel extends StateModel {
+public class TaskStateModel extends TransitionHandler {
   private static final Logger LOG = Logger.getLogger(TaskStateModel.class);
   private final HelixManager _manager;
   private final ExecutorService _taskExecutor;
@@ -52,6 +53,25 @@ public class TaskStateModel extends StateModel {
         return new Thread(r, "TaskStateModel-thread-pool");
       }
     });
+  }
+
+  public boolean isShutdown() {
+    return _taskExecutor.isShutdown();
+  }
+
+  public boolean isTerminated() {
+    return _taskExecutor.isTerminated();
+  }
+
+  public void shutdown() {
+    reset();
+    _taskExecutor.shutdown();
+    _timer.cancel();
+  }
+
+  public boolean awaitTermination(long timeout, TimeUnit unit)
+      throws InterruptedException {
+    return _taskExecutor.awaitTermination(timeout, unit);
   }
 
   @Transition(to = "RUNNING", from = "INIT")
@@ -226,6 +246,12 @@ public class TaskStateModel extends StateModel {
           command = taskConfig.getCommand();
         }
       }
+    }
+
+    // Report a target if that was used to assign the partition
+    String target = ctx.getTargetForPartition(pId);
+    if (taskConfig == null && target != null) {
+      taskConfig = TaskConfig.from(target);
     }
 
     // Populate a task callback context

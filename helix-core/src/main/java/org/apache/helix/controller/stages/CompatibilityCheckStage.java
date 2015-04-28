@@ -24,7 +24,6 @@ import java.util.Map;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
 import org.apache.helix.api.Cluster;
-import org.apache.helix.api.HelixVersion;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
@@ -50,8 +49,7 @@ public class CompatibilityCheckStage extends AbstractBaseStage {
     // Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
     Map<ParticipantId, Participant> liveParticipants = cluster.getLiveParticipantMap();
     for (Participant liveParticipant : liveParticipants.values()) {
-      HelixVersion version = liveParticipant.getRunningInstance().getVersion();
-      String participantVersion = (version != null) ? version.toString() : null;
+      String participantVersion = liveParticipant.getLiveInstance().getHelixVersion();
       if (!properties.isParticipantCompatible(participantVersion)) {
         String errorMsg =
             "incompatible participant. pipeline will not continue. " + "controller: "

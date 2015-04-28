@@ -33,7 +33,7 @@ public class WorkflowContext extends HelixProperty {
   public static final String WORKFLOW_STATE = "STATE";
   public static final String START_TIME = "START_TIME";
   public static final String FINISH_TIME = "FINISH_TIME";
-  public static final String TASK_STATES = "TASK_STATES";
+  public static final String JOB_STATES = "JOB_STATES";
   public static final String LAST_SCHEDULED_WORKFLOW = "LAST_SCHEDULED_WORKFLOW";
   public static final int UNFINISHED = -1;
 
@@ -60,16 +60,16 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setJobState(String jobResource, TaskState s) {
-    Map<String, String> states = _record.getMapField(TASK_STATES);
+    Map<String, String> states = _record.getMapField(JOB_STATES);
     if (states == null) {
       states = new TreeMap<String, String>();
-      _record.setMapField(TASK_STATES, states);
+      _record.setMapField(JOB_STATES, states);
     }
     states.put(jobResource, s.name());
   }
 
   public TaskState getJobState(String jobResource) {
-    Map<String, String> states = _record.getMapField(TASK_STATES);
+    Map<String, String> states = _record.getMapField(JOB_STATES);
     if (states == null) {
       return null;
     }

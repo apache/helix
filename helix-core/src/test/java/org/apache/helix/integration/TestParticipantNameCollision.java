@@ -22,7 +22,7 @@ package org.apache.helix.integration;
 import java.util.Date;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 
@@ -33,13 +33,13 @@ public class TestParticipantNameCollision extends ZkStandAloneCMTestBase {
   public void testParticiptantNameCollision() throws Exception {
     logger.info("RUN TestParticipantNameCollision() at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager newParticipant = null;
+    MockParticipant newParticipant = null;
     for (int i = 0; i < 1; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
       try {
         // the call fails on getClusterManagerForParticipant()
         // no threads start
-        newParticipant = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+        newParticipant = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
         newParticipant.syncStart();
       } catch (Exception e) {
         e.printStackTrace();

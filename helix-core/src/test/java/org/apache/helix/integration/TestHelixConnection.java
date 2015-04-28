@@ -19,7 +19,6 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import java.util.Arrays;
 import java.util.Date;
 import java.util.Map;
 
@@ -31,6 +30,8 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ParticipantConfig;
@@ -41,15 +42,12 @@ import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.participant.statemachine.HelixStateModelFactory;
-import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.model.builder.AutoModeISBuilder;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.testutil.ZkTestBase;
@@ -63,7 +61,7 @@ public class TestHelixConnection extends ZkTestBase {
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "OFFLINE", "ERROR"
   })
-  public static class MockStateModel extends StateModel {
+  public static class MockStateModel extends TransitionHandler {
     public MockStateModel() {
 
     }
@@ -76,13 +74,13 @@ public class TestHelixConnection extends ZkTestBase {
     }
   }
 
-  public static class MockStateModelFactory extends HelixStateModelFactory<MockStateModel> {
+  public static class MockStateModelFactory extends StateTransitionHandlerFactory<MockStateModel> {
 
     public MockStateModelFactory() {
     }
 
     @Override
-    public MockStateModel createNewStateModel(PartitionId partitionId) {
+    public MockStateModel createStateTransitionHandler(ResourceId resource, PartitionId partitionId) {
       MockStateModel model = new MockStateModel();
 
       return model;
@@ -122,18 +120,16 @@ public class TestHelixConnection extends ZkTestBase {
             .addTransition(slave, offline, 4).addTransition(slave, master, 2)
             .addTransition(master, slave, 1).addTransition(offline, dropped).initialState(offline)
             .upperBound(master, 1).dynamicUpperBound(slave, "R").build();
-    RebalancerConfig rebalancerCtx =
-        new SemiAutoRebalancerConfig.Builder(resourceId).addPartitions(1).replicaCount(1)
-            .stateModelDefId(stateModelDefId)
-            .preferenceList(PartitionId.from("testDB_0"), Arrays.asList(participantId)).build();
+    PartitionId partition0 = PartitionId.from(resourceId, "0");
+    AutoModeISBuilder idealStateBuilder = new AutoModeISBuilder(resourceId).add(partition0);
+    idealStateBuilder.setNumReplica(1).setStateModelDefId(stateModelDefId);
+    idealStateBuilder.assignPreferenceList(partition0, participantId);
+    IdealState idealState = idealStateBuilder.build();
     clusterAccessor.createCluster(new ClusterConfig.Builder(clusterId).addStateModelDefinition(
         stateModelDef).build());
-    clusterAccessor.addResourceToCluster(new ResourceConfig.Builder(resourceId)
-        .rebalancerConfig(rebalancerCtx)
-        .idealState(
-            PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerCtx, 0, false))
+    clusterAccessor.addResource(new ResourceConfig.Builder(resourceId).idealState(idealState)
         .build());
-    clusterAccessor.addParticipantToCluster(new ParticipantConfig.Builder(participantId).build());
+    clusterAccessor.addParticipant(new ParticipantConfig.Builder(participantId).build());
 
     // start controller
     HelixController controller = connection.createController(clusterId, controllerId);

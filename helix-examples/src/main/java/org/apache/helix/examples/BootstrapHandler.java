@@ -26,30 +26,28 @@ import org.apache.helix.Criteria;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
-public class BootstrapHandler extends StateModelFactory<StateModel> {
+public class BootstrapHandler extends StateTransitionHandlerFactory<TransitionHandler> {
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey) {
+  public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId stateUnitKey) {
     return new BootstrapStateModel(stateUnitKey);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = "{'OFFLINE','SLAVE','MASTER'}")
-  public static class BootstrapStateModel extends StateModel {
+  public static class BootstrapStateModel extends TransitionHandler {
 
-    private final String _stateUnitKey;
-
-    public BootstrapStateModel(String stateUnitKey) {
-      _stateUnitKey = stateUnitKey;
-
+    public BootstrapStateModel(PartitionId stateUnitKey) {
     }
 
     @Transition(from = "MASTER", to = "SLAVE")

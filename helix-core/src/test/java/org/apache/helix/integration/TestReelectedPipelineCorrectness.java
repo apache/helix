@@ -24,13 +24,12 @@ import java.util.Date;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
@@ -67,7 +66,7 @@ public class TestReelectedPipelineCorrectness extends ZkTestBase {
         NUM_REPLICAS, // replicas
         "MasterSlave", RebalanceMode.FULL_AUTO, true); // do rebalance
 
-    // configure distributed controllers
+    // configure multi-cluster controllers
     String controllerCluster = clusterName + "_controllers";
     _setupTool.addCluster(controllerCluster, true);
     for (int i = 0; i < NUM_CONTROLLERS; i++) {
@@ -76,18 +75,18 @@ public class TestReelectedPipelineCorrectness extends ZkTestBase {
     _setupTool.activateCluster(clusterName, controllerCluster, true);
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    MockParticipant[] participants = new MockParticipant[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     // start controllers
-    ClusterDistributedController[] controllers = new ClusterDistributedController[NUM_CONTROLLERS];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[NUM_CONTROLLERS];
     for (int i = 0; i < NUM_CONTROLLERS; i++) {
       controllers[i] =
-          new ClusterDistributedController(_zkaddr, controllerCluster, "controller_" + i);
+          new MockMultiClusterController(_zkaddr, controllerCluster, "controller_" + i);
       controllers[i].syncStart();
     }
     Thread.sleep(1000);

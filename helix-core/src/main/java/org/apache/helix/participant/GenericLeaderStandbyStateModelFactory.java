@@ -22,10 +22,12 @@ package org.apache.helix.participant;
 import java.util.List;
 
 import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 
 public class GenericLeaderStandbyStateModelFactory extends
-    StateModelFactory<GenericLeaderStandbyModel> {
+    StateTransitionHandlerFactory<GenericLeaderStandbyModel> {
   private final CustomCodeCallbackHandler _callback;
   private final List<ChangeType> _notificationTypes;
 
@@ -39,7 +41,8 @@ public class GenericLeaderStandbyStateModelFactory extends
   }
 
   @Override
-  public GenericLeaderStandbyModel createNewStateModel(String partitionKey) {
-    return new GenericLeaderStandbyModel(_callback, _notificationTypes, partitionKey);
+  public GenericLeaderStandbyModel createStateTransitionHandler(ResourceId resourceId,
+      PartitionId partition) {
+    return new GenericLeaderStandbyModel(_callback, _notificationTypes, partition);
   }
 }

@@ -27,7 +27,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.participant.AbstractParticipantService;
 import org.apache.helix.provisioning.ServiceConfig;
 import org.apache.helix.provisioning.participant.StatelessParticipantService;
@@ -56,7 +56,7 @@ public class MyTaskService extends StatelessParticipantService {
     LOG.info("Initialized service with config " + serviceConfig);
 
     // Register for callbacks for tasks
-    HelixManager manager = new HelixConnectionAdaptor(getParticipant());
+    HelixManager manager = new ZKHelixManager(getParticipant());
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("RunTask", new TaskFactory() {
       @Override

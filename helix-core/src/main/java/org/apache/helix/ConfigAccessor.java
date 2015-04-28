@@ -30,7 +30,6 @@ import java.util.TreeMap;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.util.StringTemplate;
@@ -70,66 +69,6 @@ public class ConfigAccessor {
    */
   public ConfigAccessor(ZkClient zkClient) {
     this.zkClient = zkClient;
-  }
-
-  /**
-   * get config
-   * @deprecated replaced by {@link #get(HelixConfigScope, String)}
-   * @param scope
-   * @param key
-   * @return value or null if doesn't exist
-   */
-  @Deprecated
-  public String get(ConfigScope scope, String key) {
-    Map<String, String> map = get(scope, Arrays.asList(key));
-    return map.get(key);
-  }
-
-  /**
-   * get configs
-   * @deprecated replaced by {@link #get(HelixConfigScope, List<String>)}
-   * @param scope
-   * @param keys
-   * @return
-   */
-  @Deprecated
-  public Map<String, String> get(ConfigScope scope, List<String> keys) {
-    if (scope == null || scope.getScope() == null) {
-      LOG.error("Scope can't be null");
-      return null;
-    }
-
-    // String value = null;
-    Map<String, String> map = new HashMap<String, String>();
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("cluster " + clusterName + " is not setup yet");
-    }
-
-    String scopeStr = scope.getScopeStr();
-    String[] splits = scopeStr.split("\\|");
-
-    ZNRecord record = zkClient.readData(splits[0], true);
-
-    if (record != null) {
-      if (splits.length == 1) {
-        for (String key : keys) {
-          if (record.getSimpleFields().containsKey(key)) {
-            map.put(key, record.getSimpleField(key));
-          }
-        }
-      } else if (splits.length == 2) {
-        if (record.getMapField(splits[1]) != null) {
-          for (String key : keys) {
-            if (record.getMapField(splits[1]).containsKey(key)) {
-              map.put(key, record.getMapField(splits[1]).get(key));
-            }
-          }
-        }
-      }
-    }
-    return map;
-
   }
 
   /**
@@ -198,72 +137,6 @@ public class ConfigAccessor {
   }
 
   /**
-   * Set config, create if not exist
-   * @deprecated replaced by {@link #set(HelixConfigScope, String, String)}
-   * @param scope
-   * @param key
-   * @param value
-   */
-  @Deprecated
-  public void set(ConfigScope scope, String key, String value) {
-    Map<String, String> map = new HashMap<String, String>();
-    map.put(key, value);
-    set(scope, map);
-  }
-
-  /**
-   * Set configs, create if not exist
-   * @deprecated replaced by {@link #set(HelixConfigScope, Map<String, String>)}
-   * @param scope
-   * @param keyValueMap
-   */
-  @Deprecated
-  public void set(ConfigScope scope, Map<String, String> keyValueMap) {
-    if (scope == null || scope.getScope() == null) {
-      LOG.error("Scope can't be null");
-      return;
-    }
-
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("cluster: " + clusterName + " is NOT setup.");
-    }
-
-    if (scope.getScope() == ConfigScopeProperty.PARTICIPANT) {
-      String scopeStr = scope.getScopeStr();
-      String instanceName = scopeStr.substring(scopeStr.lastIndexOf('/') + 1);
-      if (!ZKUtil.isInstanceSetup(zkClient, scope.getClusterName(), instanceName,
-          InstanceType.PARTICIPANT)) {
-        throw new HelixException("instance: " + instanceName + " is NOT setup in cluster: "
-            + clusterName);
-      }
-    }
-
-    // use "|" to delimit resource and partition. e.g. /MyCluster/CONFIGS/PARTICIPANT/MyDB|MyDB_0
-    String scopeStr = scope.getScopeStr();
-    String[] splits = scopeStr.split("\\|");
-
-    String id = splits[0].substring(splits[0].lastIndexOf('/') + 1);
-    ZNRecord update = new ZNRecord(id);
-    if (splits.length == 1) {
-      for (String key : keyValueMap.keySet()) {
-        String value = keyValueMap.get(key);
-        update.setSimpleField(key, value);
-      }
-    } else if (splits.length == 2) {
-      if (update.getMapField(splits[1]) == null) {
-        update.setMapField(splits[1], new TreeMap<String, String>());
-      }
-      for (String key : keyValueMap.keySet()) {
-        String value = keyValueMap.get(key);
-        update.getMapField(splits[1]).put(key, value);
-      }
-    }
-    ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
-    return;
-  }
-
-  /**
    * Set config, creating it if it doesn't exist
    * @param scope scope specification of the entity set to query
    *          (e.g. cluster, resource, participant, etc.)
@@ -315,59 +188,6 @@ public class ConfigAccessor {
   }
 
   /**
-   * Remove config
-   * @deprecated replaced by {@link #remove(HelixConfigScope, String)}
-   * @param scope
-   * @param key
-   */
-  @Deprecated
-  public void remove(ConfigScope scope, String key) {
-    remove(scope, Arrays.asList(key));
-  }
-
-  /**
-   * remove configs
-   * @deprecated replaced by {@link #remove(HelixConfigScope, List<String>)}
-   * @param scope
-   * @param keys
-   */
-  @Deprecated
-  public void remove(ConfigScope scope, List<String> keys) {
-    if (scope == null || scope.getScope() == null) {
-      LOG.error("Scope can't be null");
-      return;
-    }
-
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("cluster " + clusterName + " is not setup yet");
-    }
-
-    String scopeStr = scope.getScopeStr();
-    String[] splits = scopeStr.split("\\|");
-
-    String id = splits[0].substring(splits[0].lastIndexOf('/') + 1);
-    ZNRecord update = new ZNRecord(id);
-    if (splits.length == 1) {
-      // subtract doesn't care about value, use empty string
-      for (String key : keys) {
-        update.setSimpleField(key, "");
-      }
-    } else if (splits.length == 2) {
-      if (update.getMapField(splits[1]) == null) {
-        update.setMapField(splits[1], new TreeMap<String, String>());
-      }
-      // subtract doesn't care about value, use empty string
-      for (String key : keys) {
-        update.getMapField(splits[1]).put(key, "");
-      }
-    }
-
-    ZKUtil.subtract(zkClient, splits[0], update);
-    return;
-  }
-
-  /**
    * Remove a single config
    * @param scope scope specification of the entity set to query
    *          (e.g. cluster, resource, participant, etc.)
@@ -413,60 +233,6 @@ public class ConfigAccessor {
 
     ZKUtil.subtract(zkClient, zkPath, update);
     return;
-  }
-
-  /**
-   * get config keys
-   * @deprecated replaced by {@link #getKeys(HelixConfigScope)}
-   * @param type
-   * @param clusterName
-   * @param keys
-   * @return
-   */
-  @Deprecated
-  public List<String> getKeys(ConfigScopeProperty type, String clusterName, String... keys) {
-    if (type == null || clusterName == null) {
-      LOG.error("clusterName|scope can't be null");
-      return Collections.emptyList();
-    }
-
-    try {
-      if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-        LOG.error("cluster " + clusterName + " is not setup yet");
-        return Collections.emptyList();
-      }
-
-      String[] args = new String[1 + keys.length];
-      args[0] = clusterName;
-      System.arraycopy(keys, 0, args, 1, keys.length);
-      String scopeStr = template.instantiate(type, args);
-      String[] splits = scopeStr.split("\\|");
-      List<String> retKeys = null;
-      if (splits.length == 1) {
-        retKeys = zkClient.getChildren(splits[0]);
-      } else {
-        ZNRecord record = zkClient.readData(splits[0]);
-
-        if (splits[1].startsWith("SIMPLEKEYS")) {
-          retKeys = new ArrayList<String>(record.getSimpleFields().keySet());
-
-        } else if (splits[1].startsWith("MAPKEYS")) {
-          retKeys = new ArrayList<String>(record.getMapFields().keySet());
-        } else if (splits[1].startsWith("MAPMAPKEYS")) {
-          retKeys = new ArrayList<String>(record.getMapField(splits[2]).keySet());
-        }
-      }
-      if (retKeys == null) {
-        LOG.error("Invalid scope: " + type + " or keys: " + Arrays.toString(args));
-        return Collections.emptyList();
-      }
-
-      Collections.sort(retKeys);
-      return retKeys;
-    } catch (Exception e) {
-      return Collections.emptyList();
-    }
-
   }
 
   /**

@@ -22,8 +22,7 @@ package org.apache.helix.integration;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -47,7 +46,6 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     idealStateOld2.merge(is2.getRecord());
 
     String instanceName = "localhost_" + (START_PORT + 0);
-    ZKHelixAdmin tool = new ZKHelixAdmin(_zkclient);
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);
 
     boolean result =
@@ -77,8 +75,8 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
       exception = true;
     }
     Assert.assertFalse(exception);
-    MockParticipantManager newParticipant =
-        new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName2);
+    MockParticipant newParticipant =
+        new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName2);
     newParticipant.syncStart();
 
     result =

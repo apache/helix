@@ -34,17 +34,21 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
-import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceChangeListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.HelixControllerMain;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -54,8 +58,6 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.testutil.ZkTestBase;
@@ -237,45 +239,43 @@ public class TestMessageThrottle2 extends ZkTestBase {
 
   static final class MyProcess {
     private final String instanceName;
-    private HelixManager helixManager;
+    // private HelixManager helixManager;
+    private MockParticipant participant;
 
     public MyProcess(String instanceName) {
       this.instanceName = instanceName;
     }
 
     public void start() throws Exception {
-      helixManager =
-          new ZKHelixManager(clusterName, instanceName, InstanceType.PARTICIPANT, _zkaddr);
+      participant = new MockParticipant(_zkaddr, clusterName, instanceName);
       {
         // hack to set sessionTimeout
-        Field sessionTimeout = ZKHelixManager.class.getDeclaredField("_sessionTimeout");
+        Field sessionTimeout = ZkHelixConnection.class.getDeclaredField("_sessionTimeout");
         sessionTimeout.setAccessible(true);
-        sessionTimeout.setInt(helixManager, 1000);
+        sessionTimeout.setInt(participant.getConn(), 1000);
       }
 
-      StateMachineEngine stateMach = helixManager.getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", new MyStateModelFactory(helixManager));
-      helixManager.connect();
+      StateMachineEngine stateMach = participant.getStateMachineEngine();
+      stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, new MyStateModelFactory(participant));
+      participant.connect();
 
       StatusPrinter statusPrinter = new StatusPrinter();
-      statusPrinter.registerWith(helixManager);
+      statusPrinter.registerWith(participant);
     }
 
     public void stop() {
-      helixManager.disconnect();
+      participant.disconnect();
     }
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = {
       "MASTER", "SLAVE", "ERROR"
   })
-  public static class MyStateModel extends StateModel {
+  public static class MyStateModel extends TransitionHandler {
     private static final Logger LOGGER = Logger.getLogger(MyStateModel.class);
 
-    private final HelixManager helixManager;
 
     public MyStateModel(HelixManager helixManager) {
-      this.helixManager = helixManager;
     }
 
     @Transition(to = "SLAVE", from = "OFFLINE")
@@ -321,7 +321,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
     }
   }
 
-  static class MyStateModelFactory extends StateModelFactory<MyStateModel> {
+  static class MyStateModelFactory extends StateTransitionHandlerFactory<MyStateModel> {
     private final HelixManager helixManager;
 
     public MyStateModelFactory(HelixManager helixManager) {
@@ -329,7 +329,7 @@ public class TestMessageThrottle2 extends ZkTestBase {
     }
 
     @Override
-    public MyStateModel createNewStateModel(String partitionName) {
+    public MyStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       return new MyStateModel(helixManager);
     }
   }

@@ -20,15 +20,15 @@ package org.apache.helix.userdefinedrebalancer;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 
 @StateModelInfo(initialState = "RELEASED", states = {
     "RELEASED", "LOCKED"
 })
-public class Lock extends StateModel {
+public class Lock extends TransitionHandler {
   private String lockName;
 
   public Lock(String lockName) {

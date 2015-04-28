@@ -22,6 +22,7 @@ package org.apache.helix.provisioning.yarn;
 import java.util.Map;
 
 import org.apache.helix.HelixConnection;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
 import org.apache.helix.api.Resource;
@@ -35,6 +36,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.controller.provisioner.ContainerId;
 import org.apache.helix.controller.provisioner.ContainerState;
 import org.apache.helix.manager.zk.ZkHelixConnection;
+import org.apache.helix.model.ExternalView;
 
 public class AppStatusReportGenerator {
   static String TAB = "\t";
@@ -53,8 +55,16 @@ public class AppStatusReportGenerator {
     for (ResourceId resourceId : resources.keySet()) {
       builder.append("SERVICE").append(TAB).append(resourceId).append(NEWLINE);
       Resource resource = resources.get(resourceId);
-      Map<ParticipantId, State> serviceStateMap =
-          resource.getExternalView().getStateMap(PartitionId.from(resourceId.stringify() + "_0"));
+      Map<ParticipantId, State> serviceStateMap = null;
+      if (resource != null) {
+        HelixDataAccessor accessor = connection.createDataAccessor(clusterId);
+        ExternalView externalView =
+            accessor.getProperty(accessor.keyBuilder().externalView(resourceId.stringify()));
+        if (externalView != null) {
+          serviceStateMap =
+              externalView.getStateMap(PartitionId.from(resourceId.stringify() + "_0"));
+        }
+      }
 
       builder.append(TAB).append("CONTAINER_NAME").append(TAB).append(TAB)
           .append("CONTAINER_STATE").append(TAB).append("SERVICE_STATE").append(TAB)

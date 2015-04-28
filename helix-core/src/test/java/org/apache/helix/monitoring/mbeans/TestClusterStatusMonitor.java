@@ -28,20 +28,17 @@ import javax.management.MBeanServerConnection;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.api.Partition;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.SemiAutoRebalancerConfig;
 import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.AutoModeISBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -91,16 +88,11 @@ public class TestClusterStatusMonitor {
 
     Map<ResourceId, ResourceConfig> resourceMap = Maps.newHashMap();
     ResourceId resourceId = ResourceId.from(testDB);
-    RebalancerConfig rebalancerConfig =
-        new SemiAutoRebalancerConfig.Builder(resourceId)
-            .addPartition(new Partition(PartitionId.from(testDB_0)))
-            .stateModelDefId(StateModelDefId.from("MasterSlave")).build();
+    AutoModeISBuilder idealStateBuilder = new AutoModeISBuilder(resourceId).add(testDB_0);
+    idealStateBuilder.setStateModel("MasterSlave");
+    IdealState idealState = idealStateBuilder.build();
     ResourceConfig resourceConfig =
-        new ResourceConfig.Builder(resourceId)
-            .rebalancerConfig(rebalancerConfig)
-            .idealState(
-                PartitionedRebalancerConfig
-                    .rebalancerConfigToIdealState(rebalancerConfig, 0, false)).build();
+        new ResourceConfig.Builder(resourceId).idealState(idealState).build();
     resourceMap.put(resourceId, resourceConfig);
 
     Map<String, StateModelDefinition> stateModelDefMap = Maps.newHashMap();

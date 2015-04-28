@@ -23,7 +23,6 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 

@@ -84,7 +84,7 @@ public class WorkflowGenerator {
       ObjectMapper mapper = new ObjectMapper();
       try {
         String serializedMap = mapper.writeValueAsString(commandConfig);
-        builder.addConfig(jobName, JobConfig.JOB_CONFIG_MAP, serializedMap);
+        builder.addConfig(jobName, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
       } catch (IOException e) {
         LOG.error("Error serializing " + commandConfig, e);
       }
@@ -103,8 +103,8 @@ public class WorkflowGenerator {
     ObjectMapper mapper = new ObjectMapper();
     try {
       String serializedMap = mapper.writeValueAsString(DEFAULT_COMMAND_CONFIG);
-      builder.addConfig(JOB_NAME_1, JobConfig.JOB_CONFIG_MAP, serializedMap);
-      builder.addConfig(JOB_NAME_2, JobConfig.JOB_CONFIG_MAP, serializedMap);
+      builder.addConfig(JOB_NAME_1, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
+      builder.addConfig(JOB_NAME_2, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
     } catch (IOException e) {
       LOG.error("Error serializing " + DEFAULT_COMMAND_CONFIG, e);
     }

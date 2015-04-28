@@ -21,8 +21,6 @@ package org.apache.helix.manager.zk;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.testutil.ZkTestBase;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -44,7 +42,7 @@ public class TestZkManagerFlappingDetection extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     String instanceName = "localhost_" + (12918 + 0);
-    MockParticipantManager manager = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+    MockParticipant manager = new MockParticipant(_zkaddr, clusterName, instanceName);
 
     manager.connect();
     ZkClient zkClient = manager.getZkClient();
@@ -139,7 +137,7 @@ public class TestZkManagerFlappingDetection extends ZkTestBase {
     // flapping time window to 5 sec
     System.setProperty("helixmanager.flappingTimeWindow", "5000");
     System.setProperty("helixmanager.maxDisconnectThreshold", "3");
-    ClusterControllerManager manager2 = new ClusterControllerManager(_zkaddr, clusterName, null);
+    MockController manager2 = new MockController(_zkaddr, clusterName, null);
     manager2.connect();
     Thread.sleep(100);
     ZkClient zkClient = manager2.getZkClient();

@@ -40,11 +40,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class ClusterResource extends ServerResource {
-<<<<<<< HEAD
- 
-=======
 
->>>>>>> upstream/master
   public ClusterResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -172,13 +168,7 @@ public class ClusterResource extends ServerResource {
     return null;
   }
 
-  @Override
-  public Representation options() 
-  {
-	 Headers h = new Headers();
-        h.addHeaders(getResponse());
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
+  
 
 
 }

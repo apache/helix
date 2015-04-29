@@ -56,7 +56,7 @@ public class ClustersResource extends ServerResource {
   }
 
   @Override
-  public Representation get() throws ResourceException{
+  public Representation get() {
     StringRepresentation presentation = null;
 
 
@@ -64,9 +64,6 @@ public class ClustersResource extends ServerResource {
         h.addHeaders(getResponse());
 
     try {
-
-
-
 
       presentation = getClustersRepresentation();
 
@@ -138,15 +135,7 @@ public class ClustersResource extends ServerResource {
       return null;
   }
 
-  @Override
-  public Representation options()
-  {
-	Headers h = new Headers();
-       h.addHeaders(getResponse());
-
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
-
+  
 
 
 }

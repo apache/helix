@@ -94,7 +94,7 @@ public class TestNonOfflineInitState extends ZkIntegrationTestBase {
     ClusterSetup setupTool = new ClusterSetup(ZkAddr);
     setupTool.addCluster(clusterName, true);
     setupTool.addStateModelDef(clusterName, "Bootstrap",
-        TestHelper.generateStateModelDefForBootstrap());
+        TestHelper.generateStateModelDefForBootstrap(), false);
 
     for (int i = 0; i < nodesNb; i++) {
       int port = startPort + i;

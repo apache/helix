@@ -1,0 +1,104 @@
+<div class="simple-helix-controller"
+	ng-controller="Helix.HelixConstraintController">
+
+
+	<div class="row-fluid">
+		<div class="span6 offset3">
+
+			<h2>Constraints Manager</h2>
+			<p>
+				Select Cluster <select
+					data-ng-options="o for o in clusters.listFields.clusters"
+					ng-model="cluster.clusterName">
+				</select>
+				</p><p> Constraint Type<select ng-model="cluster.constraintType">
+					<option value="MESSAGE_CONSTRAINT" selected>MESSAGE_CONSTRAINT</option>
+					<option value="STATE_CONSTRAINT">STATE_CONSTRAINT</option>
+				</select>	
+
+
+</p><p>
+			<input type="button" class="btn btn-warning"
+				ng-click="listConstraints(cluster)" value="List Constraints" />
+
+			</p>
+			
+			<div class="bs-callout bs-callout-danger">
+			<p>
+			<input type="text" ng-model="cluster.constraintName"
+				placeholder="New Constraint" /> 
+				<input type="text"
+				ng-model="cluster.resourceName" placeholder="Resource" /> 
+				<input
+				type="text" ng-model="cluster.constraintValue"
+				placeholder="Constraint Value" /> 
+				</p><p>
+				<input type="button"
+				ng-click="addConstraints(cluster)" value="Add Constraints"
+				class="btn btn-primary" />
+				</p>
+				</div>
+				
+				<!--  notification -->
+			<div ng-show="callback">
+
+				<div class="alert alert-success alert-dismissible" role="alert">
+					<button type="button" class="close" data-dismiss="alert">
+						<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+					</button>
+					<strong>Success!</strong> {{callback}}
+				</div>
+			</div>
+			<div ng-show="constraints">
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">Details</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>Constraints</th>
+									<th>Value</th>
+									<th>Resource</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="(key, value) in constraints.mapFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value.CONSTRAINT_VALUE}}</td>
+									<td>{{value.RESOURCE}}</td>
+									<td><input type="button" class="btn btn-danger btn-sm"
+										ng-click="removeConstraint(cluster,'{{key}}')" value="Remove" /></td>
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<!-- end constraints -->
+				<div ng-show="constraints.listFields">
+					<div class="panel panel-default">
+						<!-- Default panel contents -->
+						<div class="panel-heading">List field details</div>
+						<div class="panel-body">
+							<p>List Fields</p>
+							<ul>
+								<li ng-repeat="(key, value) in constraints.listFields">
+									{{key}}: {{ value }}</li>
+							</ul>
+
+							<p>Simple Fields</p>
+							<ul>
+								<li ng-repeat="(key, value) in constraints.simpleFields">
+									{{key}}: {{ value }}</li>
+							</ul>
+
+						</div>
+					</div>
+				</div>
+
+			</div>
+		</div>
+
+	</div>

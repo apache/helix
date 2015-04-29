@@ -1,0 +1,141 @@
+<div class="simple-helix-controller" ng-controller="Helix.HelixInstanceController">
+
+
+  <div class="row-fluid">
+    <div class="span6 offset3">
+      <div class="centered">
+        <h2>Instance Manager</h2>
+    <p>Select Cluster  <select data-ng-options="o for o in clusters.listFields.clusters" ng-model="cluster.clusterName"  > </select> 
+  <input type="button" class="btn btn-warning" ng-click="listInstances(cluster)" value="List Instances" /><p>
+  <p><input type="text" ng-model="cluster.instanceName" />
+  <input type="button" class="btn btn-primary" ng-click="addInstances(cluster)" value="Add Instance" />
+  </p>
+  
+  				<!--  notification -->
+				<div ng-show="callback">
+
+					<div class="alert alert-success alert-dismissible" role="alert">
+						<button type="button" class="close" data-dismiss="alert">
+							<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+						</button>
+						<strong>Success!</strong> {{callback}}
+					</div>
+				</div>
+				<!--  end of notification -->
+				
+				  				<!--  notification -->
+				<div ng-show="callbackErr">
+
+					<div class="alert alert-danger alert-dismissible" role="alert">
+						<button type="button" class="close" data-dismiss="alert">
+							<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+						</button>
+						<strong>Failure!</strong> {{callbackErr}}
+					</div>
+				</div>
+				<!--  end of notification -->
+				
+				
+  
+<div ng-show="instances">
+   <table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Instance</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in instances.instanceInfo">
+							<td>{{item.id}}</td>
+							<td><p><input type="button" class="btn btn-info btn-sm"
+								ng-click="listInstanceInfo(cluster,'{{item.id}}')" value="Information" />
+								<input type="button" class="btn btn-danger btn-sm"
+								ng-click="removeInstance(cluster,'{{item.id}}')" value="Remove" />
+								<input type="button" class="btn btn-default btn-sm"
+								ng-click="disableInstance(cluster,'{{item.id}}')" value="Disable" />
+								<input type="button" class="btn btn-info btn-sm"
+								ng-click="enableInstance(cluster,'{{item.id}}')" value="Enable" />								
+								<input type="button" class="btn btn-primary btn-sm"
+								ng-click="resetInstance(cluster,'{{item.id}}')" value="Reset" />
+								</p>
+								</td>
+								
+								
+						</tr>
+					</tbody>
+				</table>
+				
+</div>
+				
+
+ 
+ 
+ 				<div ng-show="instancesInfor">
+				<div class="panel panel-default">
+				  <!-- Default panel contents -->
+				  <div class="panel-heading">Instance Summary</div>
+				  <div class="panel-body">
+
+  
+	
+  
+  			
+  				<table class="table table-hover" >					
+					<tbody>
+						<tr ng-repeat="(key, value) in instancesInfor.simpleFields">
+							<td><strong>{{key}}</strong></td>
+							<td>{{value}}</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+				
+				
+				<p><Strong>List Fields</Strong></p>
+  				<table class="table table-hover" >
+					<tbody>
+						<tr ng-repeat="(key, value) in instancesInfor.listFields">
+							<td>{{key}}</td>
+							<td>
+							<table class="table table-bordered">
+							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
+							</table>
+							</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+				
+				
+				<p><Strong>Map Fields</Strong></p>
+  				<table class="table table-hover" >
+					
+					<tbody>
+						<tr ng-repeat="(key, value) in instancesInfor.mapFields">
+							<td><strong>{{key}}<strong></td>
+							<td>							
+							<table class="table table-bordered">
+							<tr ng-repeat="(keyx,valuex) in value track by $index">
+							<td>{{keyx}}</td>
+							<td>{{valuex}}</td>
+							</tr>
+							</table>
+							</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+</div></div>  </div>
+
+
+</div></div>
+  
+
+      </div>
+    </div>
+  </div>
+</div>

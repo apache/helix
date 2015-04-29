@@ -58,6 +58,9 @@ public class InstancesResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	 Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getInstancesRepresentation(clusterName);
     }
@@ -116,6 +119,9 @@ public class InstancesResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	 Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -160,6 +166,15 @@ public class InstancesResource extends ServerResource {
       LOG.error("", e);
     }
     return null;
+  }
+  
+  @Override
+  public Representation options()
+  {
+	Headers h = new Headers();
+       h.addHeaders(getResponse());
+
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
   }
 
   /**

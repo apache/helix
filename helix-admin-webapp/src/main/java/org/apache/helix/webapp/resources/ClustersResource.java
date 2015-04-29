@@ -21,6 +21,7 @@ package org.apache.helix.webapp.resources;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.ConcurrentMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
@@ -30,16 +31,23 @@ import org.apache.helix.webapp.RestAdminApplication;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
+import org.restlet.Message;
+import org.restlet.data.Form;
 import org.restlet.data.MediaType;
 import org.restlet.data.Status;
+import org.restlet.engine.header.Header;
 import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
+import org.restlet.resource.Get;
+import org.restlet.resource.Options;
+import org.restlet.resource.ResourceException;
 import org.restlet.resource.ServerResource;
+import org.restlet.util.Series;
 
 public class ClustersResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
-
+ 
   public ClustersResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -50,8 +58,15 @@ public class ClustersResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
+
+
+     Headers h = new Headers();
+        h.addHeaders(getResponse());
+
     try {
+
       presentation = getClustersRepresentation();
+
     } catch (Exception e) {
       LOG.error("", e);
       String error = ClusterRepresentationUtil.getErrorAsJsonStringFromException(e);
@@ -79,6 +94,9 @@ public class ClustersResource extends ServerResource {
 
   @Override
   public Representation post(Representation entity) {
+
+  Headers h = new Headers();
+       h.addHeaders(getResponse());
     try {
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
@@ -111,6 +129,13 @@ public class ClustersResource extends ServerResource {
 
   @Override
   public Representation delete() {
+	  Headers h = new Headers();
+      h.addHeaders(getResponse());
+
       return null;
   }
+
+  
+
+
 }

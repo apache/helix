@@ -132,7 +132,18 @@ public class ControllerResource extends ServerResource {
           MediaType.APPLICATION_JSON);
       getResponse().setStatus(Status.SUCCESS_OK);
     }
-
+    
     return null;
   }
+
+   @Override
+  public Representation options() 
+  {
+	  Headers h = new Headers();
+        h.addHeaders(getResponse());
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
+
+
+  
 }

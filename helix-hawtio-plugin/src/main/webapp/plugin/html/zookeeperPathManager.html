@@ -1,0 +1,129 @@
+<div class="simple-helix-controller"
+	ng-controller="Helix.HelixZookeeperPathController">
+
+
+	<div class="row-fluid">
+		<div class="span6 offset3">
+
+			<h2>Zookeeper Path</h2>
+			<p>
+				Select Cluster <select
+					data-ng-options="o for o in clusters.listFields.clusters"
+					ng-model="cluster.clusterName">
+				</select> <input type="button" class="btn btn-warning"
+					ng-click="showPath(cluster)" value="Show Path" />
+			</p>
+
+
+			<table class="table table-hover">
+				<thead>
+					<tr>
+						<th>Zookeeper Path</th>
+
+					</tr>
+				</thead>
+				<tbody>
+					
+				</tbody>
+			</table>
+			<div ng-show="data">
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">Details</div>
+					<div class="panel-body">
+
+						<table class="table table-hover">
+							<tbody>
+								<tr>
+									<td><Strong>Create Time</Strong></td>
+									<td>{{data.simpleFields.ctime}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Modified Time</Strong></td>
+									<td>{{data.simpleFields.mtime}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Data Length</Strong></td>
+									<td>{{data.simpleFields.dataLength}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Number of Children</Strong></td>
+									<td>{{data.simpleFields.numChildren}}</td>
+								</tr>
+								<tr>
+									<td><Strong>ZooKeeper Path</Strong></td>
+									<td>{{data.simpleFields.zkPath}}</td>
+								</tr>
+								<tr>
+									<td><Strong>Stat</Strong></td>
+									<td>{{data.simpleFields.stat}}</td>
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">List Fields Details</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+
+							<tbody>
+								<tr ng-repeat="(key, value) in data.listFields">
+									<td><Strong>{{key}}</Strong></td>
+									<td>
+										<table>
+											<tr ng-repeat="(key,value) in value">
+												<td>{{value}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">Map Fields Details</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+							<thead>
+								<tr>
+									<th>Key</th>
+									<th>Value</th>
+
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="(key, value) in data.mapFields">
+									<td>{{key}}</td>
+									<td>{{value}}
+										<table>
+											<tr ng-repeat="(key,value) in value">
+												<td>{{value}}</td>
+											</tr>
+										</table>
+									</td>
+
+
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</div>
+
+
+
+
+
+
+		</div>
+	</div>
+
+</div>
+

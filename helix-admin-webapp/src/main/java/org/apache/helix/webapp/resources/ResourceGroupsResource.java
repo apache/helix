@@ -58,6 +58,9 @@ public class ResourceGroupsResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
+	Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getHostedEntitiesRepresentation(clusterName);
     }
@@ -109,6 +112,9 @@ public class ResourceGroupsResource extends ServerResource {
   @Override
   public Representation post(Representation entity) {
     try {
+	Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
 
       JsonParameters jsonParameters = new JsonParameters(entity);
@@ -171,4 +177,14 @@ public class ResourceGroupsResource extends ServerResource {
     }
     return null;
   }
+  
+  @Override
+  public Representation options()
+  {
+	Headers h = new Headers();
+       h.addHeaders(getResponse());
+
+		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
+  }
+
 }

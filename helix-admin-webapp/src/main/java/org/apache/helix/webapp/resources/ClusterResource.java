@@ -142,6 +142,9 @@ public class ClusterResource extends ServerResource {
 
   @Override
   public Representation delete() {
+	  Headers h = new Headers();
+      h.addHeaders(getResponse());
+
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
@@ -156,4 +159,9 @@ public class ClusterResource extends ServerResource {
     }
     return null;
   }
+}
+
+  
+
+
 }

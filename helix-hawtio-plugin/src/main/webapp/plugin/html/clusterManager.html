@@ -1,0 +1,126 @@
+<!---
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+<div class="simple-helix-controller"
+	ng-controller="Helix.HelixController">
+
+
+	<div class="row-fluid">
+		<div class="span6 offset3">
+			<div class="centered">
+				<h2>Cluster Manager</h2>
+			</div>
+			<form class="form-inline" role="form">
+				<P>
+					<input type="text" ng-model="cluster.clusterName"
+						class="form-control" placeholder="Cluster Name" /> <input
+						type="button" class="btn btn-primary"
+						ng-click="addClusters(cluster)" value="Add Cluster" /> <input
+						type="button" class="btn btn-warning" ng-click="listClusters()"
+						value="List Clusters" />
+				</P>
+
+				<P>
+					<input type="text" ng-model="cluster.controllerCluster"
+						class="form-control" placeholder="Controller Cluster Name" />
+				</P>
+				<!--  notification -->
+				<div ng-show="callback">
+
+					<div class="alert alert-success alert-dismissible" role="alert">
+						<button type="button" class="close" data-dismiss="alert">
+							<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+						</button>
+						<strong>Success!</strong> {{callback}}
+					</div>
+				</div>
+				<!--  end of notification -->
+
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Cluster</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in clusters.listFields.clusters">
+							<td>{{item}}</td>
+							<td><input type="button" class="btn btn-info btn-sm"
+								ng-click="listClusterInfo('{{item}}')" value="Info" />
+							<input type="button" class="btn btn-danger btn-sm"
+								ng-click="removeClusters(clusters,'{{item}}')" value="Remove" />
+								<input
+						type="button" class="btn btn-success btn-sm"
+						ng-click="enableCluster(cluster,'{{item}}')" value="Enable Cluster" /> <input
+						type="button" class="btn btn-warning btn-sm"
+						ng-click="disableCluster(cluster,'{{item}}')" value="Disable Cluster" />
+						</td>
+						</tr>
+					</tbody>
+				</table></form>
+
+<div ng-show="clustersInfo">
+
+				<div class="panel panel-default">
+					<!-- Default panel contents -->
+					<div class="panel-heading">Cluster Summary</div>
+					<div class="panel-body">
+						<table class="table table-hover">
+							<thead>
+								<tr>									
+								</tr>
+							</thead>
+							<tbody>
+								<tr ng-repeat="(key, value) in clustersInfo.listFields">
+									<td><strong>{{key}}</strong></td>
+									<td>
+									<table class="table table-bordered">
+										<tr ng-repeat="(keyx, valuex) in value">											
+											<td>{{valuex}}</td>
+										</tr>
+									</table>
+									</td>									
+								</tr>
+								<tr ng-repeat="(key, value) in clustersInfo.simpleFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value}}</td>									
+								</tr>
+								<tr ng-repeat="(key, value) in clustersInfo.mapFields">
+									<td><strong>{{key}}</strong></td>
+									<td>{{value}}</td>									
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+</div>
+			
+		</div>
+	</div>
+
+</div>
+
+
+<div class="row-fluid">
+	<div class="span6 offset3">
+		<p class="centered">This is an hawtio plugin that's can be used
+			for cluster management with Apache Helix.</p>
+	</div>
+</div>

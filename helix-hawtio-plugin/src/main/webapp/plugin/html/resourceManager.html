@@ -1,0 +1,133 @@
+<div class="simple-helix-controller"
+	ng-controller="Helix.HelixResourceController">
+
+
+	<div class="row-fluid">
+		<div class="span6 offset3">
+			
+				<h2>Resource Manager</h2>
+				<p>Select Cluster
+				<select data-ng-options="o for o in clusters.listFields.clusters"
+					ng-model="cluster.clusterName" >
+				</select> <input type="button" class="btn btn-warning" ng-click="listResources(cluster)"
+					value="List Resources" /> </p>
+					<p>
+					<input type="text"
+					ng-model="cluster.resourceName" placeholder="Resource Name" /> 
+					<input type="text"
+					ng-model="cluster.rebalanceNo" placeholder="Rebalance No"/>
+					<input type="button"
+					ng-click="addResources(cluster)" value="Add Resource"  class="btn btn-primary"/>
+</p><p>
+
+<input type="text" ng-model="cluster.resourcePropertyName" placeholder="Resource Property Name" /> 
+<input type="text" ng-model="cluster.resourcePropertyValue" placeholder="Property Value" /> 
+					</p>
+				<!--  notification -->
+				<div ng-show="callback">
+
+					<div class="alert alert-success alert-dismissible" role="alert">
+						<button type="button" class="close" data-dismiss="alert">
+							<span aria-hidden="true">&times;</span><span class="sr-only">Close</span>
+						</button>
+						<strong>Success!</strong> {{callback}}
+					</div>
+				</div>
+				<!--  end of notification -->
+				
+				<div ng-show="resources.listFields.ResourceGroups">
+				<table class="table table-hover">
+					<thead>
+						<tr>
+							<th>Resource</th>
+							<th>Actions</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr ng-repeat="item in resources.listFields.ResourceGroups">
+							<td>{{item}}</td>
+							
+							<td>
+							<input type="button" class="btn btn-info btn-sm"
+								ng-click="getInformation(cluster,'{{item}}')" value="Information" />
+								<input type="button" class="btn btn-danger btn-sm"
+								ng-click="removeResource(cluster,'{{item}}')" value="Remove" />
+								<input type="button" class="btn btn-warning btn-sm"
+								ng-click="reset(cluster,'{{item}}')" value="Reset" />
+								<input type="button" class="btn btn-warning btn-sm"
+								ng-click="rebalance(cluster,'{{item}}')" value="Rebalance" />
+								<input type="button" class="btn btn-info btn-sm"
+								ng-click="externalView(cluster,'{{item}}')" value="External View" />
+								<input type="button" class="btn btn-info btn-sm"
+								ng-click="addProperty(cluster,'{{item}}')" value="Add Property" />
+								
+								</td>
+						</tr>
+					</tbody>
+				</table>
+				</div>
+				<div ng-show="resourceInfor">
+				<div class="panel panel-default">
+				  <!-- Default panel contents -->
+				  <div class="panel-heading">Resource Summary</div>
+				  <div class="panel-body">
+
+  
+	
+  
+  			
+  				<table class="table table-hover" >					
+					<tbody>
+						<tr ng-repeat="(key, value) in resourceInfor.simpleFields">
+							<td><strong>{{key}}</strong></td>
+							<td>{{value}}</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+				
+				
+				<p><Strong>List Fields</Strong></p>
+  				<table class="table table-hover" >
+					<tbody>
+						<tr ng-repeat="(key, value) in resourceInfor.listFields">
+							<td>{{key}}</td>
+							<td>
+							<table class="table table-bordered">
+							<tr ng-repeat="(key,value) in value"><td>{{value}}</td></tr>
+							</table>
+							</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+				
+				
+				<p><Strong>Map Fields</Strong></p>
+  				<table class="table table-hover" >
+					
+					<tbody>
+						<tr ng-repeat="(key, value) in resourceInfor.mapFields">
+							<td><strong>{{key}}<strong></td>
+							<td>							
+							<table class="table table-bordered">
+							<tr ng-repeat="(keyx,valuex) in value track by $index">
+							<td class="success">{{keyx}}</td>
+							<td ng-if="valuex == MASTER" class="success">{{valuex}}</td>
+							<td>{{valuex}}</td>
+							</tr>
+							</table>
+							</td>
+							
+							
+						</tr>
+					</tbody>
+				</table>
+</div></div>  </div>
+			
+		</div>
+	</div>
+
+</div>

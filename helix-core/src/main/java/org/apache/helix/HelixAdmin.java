@@ -232,8 +232,20 @@ public interface HelixAdmin {
    * @param clusterName
    * @param stateModelDef
    * @param record
+   * @return true if successfully created, or if state model definition already exists
    */
   void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record);
+
+  /**
+   * Add a state model definition
+   * @param clusterName
+   * @param stateModelDef
+   * @param record
+   * @param recreateIfExists If the state definition already exists, it will delete it and recreate
+   * @return true if successfully created, or if state model definition already exists
+   */
+  void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record,
+      boolean recreateIfExists);
 
   /**
    * Drop a resource from a cluster

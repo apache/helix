@@ -55,7 +55,9 @@ public class IdealState extends HelixProperty {
     MAX_PARTITIONS_PER_INSTANCE,
     INSTANCE_GROUP_TAG,
     REBALANCER_CLASS_NAME,
-    HELIX_ENABLED
+    HELIX_ENABLED,
+    RESOURCE_GROUP_NAME,
+    GROUP_ROUTING_ENABLED
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -113,7 +115,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the rebalance mode of the ideal state
+   * Set the rebalance mode of the ideal state
    * @param mode {@link IdealStateModeProperty}
    */
   @Deprecated
@@ -124,7 +126,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the rebalance mode of the resource
+   * Set the rebalance mode of the resource
    * @param rebalancerType
    */
   public void setRebalanceMode(RebalanceMode rebalancerType) {
@@ -157,6 +159,43 @@ public class IdealState extends HelixProperty {
    */
   public String getRebalancerClassName() {
     return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
+  }
+
+  /**
+   * Set the resource group name
+   * @param resourceGroupName
+   */
+  public void setResourceGroupName(String resourceGroupName) {
+    _record.setSimpleField(IdealStateProperty.RESOURCE_GROUP_NAME.toString(), resourceGroupName);
+  }
+
+  /**
+   * Get the resource group name
+   *
+   * @return
+   */
+  public String getResourceGroupName() {
+    return _record.getSimpleField(IdealStateProperty.RESOURCE_GROUP_NAME.toString());
+  }
+
+  /**
+   * Get if the resource group routing feature is enabled or not
+   * By default, it's disabled
+   *
+   * @return true if enabled; false otherwise
+   */
+  public boolean isResourceGroupEnabled() {
+    return _record.getBooleanField(IdealStateProperty.GROUP_ROUTING_ENABLED.name(), false);
+  }
+
+  /**
+   * Enable/Disable the aggregated routing on resource group.
+   *
+   * @param enabled
+   */
+  public void enableGroupRouting(boolean enabled) {
+    _record.setSimpleField(IdealStateProperty.GROUP_ROUTING_ENABLED.name(),
+        Boolean.toString(enabled));
   }
 
   /**

@@ -37,6 +37,7 @@ import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
@@ -57,6 +58,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -220,6 +222,10 @@ public class ClusterSetup {
     _admin.addInstance(clusterName, config);
   }
 
+  public void addInstanceTag(String clusterName, String instanceName, String tag) {
+    _admin.addInstanceTag(clusterName, instanceName, tag);
+  }
+
   public void dropInstancesFromCluster(String clusterName, String[] instanceInfoArray) {
     for (String instanceInfo : instanceInfoArray) {
       if (instanceInfo.length() > 0) {
@@ -340,6 +346,10 @@ public class ClusterSetup {
     _admin.addStateModelDef(clusterName, stateModelDef, record, overwritePrevious);
   }
 
+  public void addResourceToCluster(String clusterName, String resourceName, IdealState idealState) {
+    _admin.addResource(clusterName, resourceName, idealState);
+  }
+
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,
       String stateModelRef) {
     addResourceToCluster(clusterName, resourceName, numResources, stateModelRef,
@@ -361,6 +371,50 @@ public class ClusterSetup {
       String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance) {
     _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
         bucketSize, maxPartitionsPerInstance);
+  }
+
+
+  /**
+   * Get the mangled IdealState name if resourceGroup/resourceTag is enable.
+   */
+  public static String genIdealStateNameWithResourceTag(String resourceName, String resourceTag) {
+    return resourceName + "$" + resourceTag;
+  }
+
+  /**
+   * Create an IdealState for a resource that belongs to a resource group We use
+   * "resourceGroupName$resourceInstanceTag" as the IdealState znode name to differetiate different
+   * resources from the same resourceGroup.
+   */
+  public IdealState createIdealStateForResourceGroup(String resourceGroupName,
+      String resourceTag, int numPartition, int replica, String rebalanceMode, String stateModelDefName) {
+    String idealStateId = genIdealStateNameWithResourceTag(resourceGroupName, resourceTag);
+    IdealState idealState = new IdealState(idealStateId);
+    idealState.setNumPartitions(numPartition);
+    idealState.setStateModelDefRef(stateModelDefName);
+    IdealState.RebalanceMode mode =
+        idealState.rebalanceModeFromString(rebalanceMode, IdealState.RebalanceMode.SEMI_AUTO);
+    idealState.setRebalanceMode(mode);
+    idealState.setReplicas("" + replica);
+    idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
+    idealState.setResourceGroupName(resourceGroupName);
+    idealState.setInstanceGroupTag(resourceTag);
+    idealState.enableGroupRouting(true);
+
+    return idealState;
+  }
+
+  /**
+   * Enable or disable a resource within a resource group associated with a given resource tag
+   *
+   * @param clusterName
+   * @param resourceName
+   * @param resourceTag
+   */
+  public void enableResource(String clusterName, String resourceName, String resourceTag,
+      boolean enabled) {
+    String idealStateId = genIdealStateNameWithResourceTag(resourceName, resourceTag);
+    _admin.enableResource(clusterName, idealStateId, enabled);
   }
 
   public void dropResourceFromCluster(String clusterName, String resourceName) {
@@ -448,7 +502,7 @@ public class ClusterSetup {
   /**
    * set configs
    * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
-   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
+   * @param scopeArgsCsv scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
    * @param keyValuePairs csv-formatted key-value pairs. e.g. k1=v1,k2=v2
    */
   public void setConfig(ConfigScopeProperty type, String scopeArgsCsv, String keyValuePairs) {
@@ -463,7 +517,7 @@ public class ClusterSetup {
   /**
    * remove configs
    * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
-   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
+   * @param scopeArgsCsv scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
    * @param keysCsv csv-formatted keys. e.g. k1,k2
    */
   public void removeConfig(ConfigScopeProperty type, String scopeArgsCsv, String keysCsv) {
@@ -616,7 +670,7 @@ public class ClusterSetup {
             .create();
     listInstancesOption.setArgs(1);
     listInstancesOption.setRequired(false);
-    listInstancesOption.setArgName("clusterName");
+    listInstancesOption.setArgName("clusterName <-tag tagName>");
 
     Option addClusterOption =
         OptionBuilder.withLongOpt(addCluster).withDescription("Add a new cluster").create();
@@ -747,7 +801,8 @@ public class ClusterSetup {
 
     Option enableResourceOption =
         OptionBuilder.withLongOpt(enableResource).withDescription("Enable/disable a resource")
-            .hasArgs(3).isRequired(false).withArgName("clusterName resourceName true/false")
+            .hasArgs(3).isRequired(false)
+            .withArgName("clusterName resourceName true/false <-tag resourceTag>")
             .create();
 
     Option rebalanceOption =
@@ -1146,9 +1201,17 @@ public class ClusterSetup {
       return 0;
     } else if (cmd.hasOption(listInstances)) {
       String clusterName = cmd.getOptionValue(listInstances);
-      List<String> instances =
-          setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
 
+      List<String> instances;
+      if (cmd.hasOption(tag)) {
+        String instanceTag = cmd.getOptionValues(tag)[0];
+        instances = setupTool.getClusterManagementTool()
+            .getInstancesInClusterWithTag(clusterName, instanceTag);
+      } else {
+        instances =
+            setupTool.getClusterManagementTool().getInstancesInCluster(clusterName);
+      }
+      
       System.out.println("Instances in cluster " + clusterName + ":");
       for (String instanceName : instances) {
         System.out.println(instanceName);
@@ -1251,7 +1314,12 @@ public class ClusterSetup {
       String clusterName = cmd.getOptionValues(enableResource)[0];
       String resourceName = cmd.getOptionValues(enableResource)[1];
       boolean enabled = Boolean.parseBoolean(cmd.getOptionValues(enableResource)[2].toLowerCase());
-      setupTool.getClusterManagementTool().enableResource(clusterName, resourceName, enabled);
+      if (cmd.hasOption(tag)) {
+        String resourceTag = cmd.getOptionValues(tag)[0];
+        setupTool.enableResource(clusterName, resourceName, resourceTag, enabled);
+      } else {
+        setupTool.getClusterManagementTool().enableResource(clusterName, resourceName, enabled);
+      }
     } else if (cmd.hasOption(enablePartition)) {
       String[] args = cmd.getOptionValues(enablePartition);
 

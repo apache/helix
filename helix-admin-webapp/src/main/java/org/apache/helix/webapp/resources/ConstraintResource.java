@@ -58,9 +58,6 @@ public class ConstraintResource extends ServerResource {
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
 
-    Headers h = new Headers();
-        h.addHeaders(getResponse());
-
     try {
       ConstraintType constraintType = ConstraintType.valueOf(constraintTypeStr);
       ZkClient zkClient =
@@ -108,9 +105,6 @@ public class ConstraintResource extends ServerResource {
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
 
-    Headers h = new Headers();
-        h.addHeaders(getResponse());
-
     try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -135,9 +129,6 @@ public class ConstraintResource extends ServerResource {
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
 
-Headers h = new Headers();
-        h.addHeaders(getResponse());
-
     try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -153,13 +144,4 @@ Headers h = new Headers();
     }
     return null;
   }
-
-   @Override
-  public Representation options() 
-  {
-	  Headers h = new Headers();
-        h.addHeaders(getResponse());
-		return new StringRepresentation(" ",MediaType.APPLICATION_JSON);
-  }
-
 }

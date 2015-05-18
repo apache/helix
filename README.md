@@ -49,8 +49,5 @@ Helix is a generic cluster management framework used for automatic management of
 To deploy the web site to Apache infrastructure: sh website/deploySite.sh -Dusername=uid -Dpassword=pwd (-DskipTests if you don't want to run units tests)
 uid is your asf id, pwd is the password
 
- 
-### Deploying the .war file
 
-To Deploy the Dashboard build the dashboard with mvn clean compile. The resulting .war file needs to be deployed on a suitable server such as Tomcat. Run standalone Zookeeper and the RestAdmin Webapp. Then deploy the dashboard on the server. 
    

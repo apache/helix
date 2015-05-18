@@ -45,9 +45,6 @@ public class CurrentStatesResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-	 Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String instanceName = (String) getRequest().getAttributes().get("instanceName");
       presentation = getInstanceCurrentStatesRepresentation(clusterName, instanceName);

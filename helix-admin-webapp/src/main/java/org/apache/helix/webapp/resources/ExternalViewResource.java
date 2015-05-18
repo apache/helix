@@ -47,9 +47,6 @@ public class ExternalViewResource extends ServerResource {
   public Representation get() {
     StringRepresentation presentation = null;
     try {
-	 Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       String resourceName = (String) getRequest().getAttributes().get("resourceName");
       presentation = getExternalViewRepresentation(clusterName, resourceName);

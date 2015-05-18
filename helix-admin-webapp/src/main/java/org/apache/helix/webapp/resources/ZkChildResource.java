@@ -62,9 +62,6 @@ public class ZkChildResource extends ServerResource {
     String zkPath = getZKPath();
 
     try {
-	Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ZNRecord result = readZkChild(zkPath, zkClient);
@@ -109,9 +106,6 @@ public class ZkChildResource extends ServerResource {
   public Representation delete() {
     String zkPath = getZKPath();
     try {
-	Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
 

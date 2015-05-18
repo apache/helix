@@ -63,9 +63,6 @@ public class ZkPathResource extends ServerResource {
     String zkPath = getZKPath();
 
     try {
-	Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       JsonParameters jsonParameters = new JsonParameters(entity);
       String command = jsonParameters.getCommand();
 
@@ -101,9 +98,6 @@ public class ZkPathResource extends ServerResource {
     String zkPath = getZKPath();
 
     try {
-	Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       ZNRecord result = readZkDataStatAndChild(zkPath, zkClient);
@@ -151,9 +145,6 @@ public class ZkPathResource extends ServerResource {
   public Representation delete() {
     String zkPath = getZKPath();
     try {
-	Headers h = new Headers();
-        h.addHeaders(getResponse());
-		
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
       zkClient.deleteRecursive(zkPath);

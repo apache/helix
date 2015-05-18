@@ -173,13 +173,14 @@ public class MessageThrottleStage extends AbstractBaseStage {
       matches = selectConstraints(matches, msgAttr);
 
       boolean msgThrottled = false;
+      Map<String, Integer> perMessageThrottleQuotaMap = new HashMap<String, Integer>();
       for (ConstraintItem item : matches) {
         String key = item.filter(msgAttr).toString();
         if (!throttleMap.containsKey(key)) {
           throttleMap.put(key, valueOf(item.getConstraintValue()));
         }
         int value = throttleMap.get(key);
-        throttleMap.put(key, --value);
+        perMessageThrottleQuotaMap.put(key, --value);
 
         if (needThrottle && value < 0) {
           msgThrottled = true;
@@ -193,6 +194,10 @@ public class MessageThrottleStage extends AbstractBaseStage {
 
       if (!msgThrottled) {
         throttleOutputMsgs.add(message);
+        // copy back perMessageThrottleQuotaMap to throttleMap
+        for (Map.Entry<String, Integer> entry: perMessageThrottleQuotaMap.entrySet()) {
+          throttleMap.put(entry.getKey(), entry.getValue());
+        }
       }
     }
 

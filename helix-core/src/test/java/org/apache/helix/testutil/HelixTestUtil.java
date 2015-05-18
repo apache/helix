@@ -30,6 +30,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.State;
 import org.apache.helix.api.id.MessageId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.Pipeline;
 import org.apache.helix.controller.pipeline.Stage;
@@ -235,6 +236,13 @@ public class HelixTestUtil {
     msg.setToState(State.from(toState));
     msg.getRecord().setSimpleField(Attributes.RESOURCE_NAME.toString(), resourceName);
     msg.setTgtName(tgtName);
+    return msg;
+  }
+
+  public static Message newMessage(MessageType type, MessageId msgId, String fromState,
+      String toState, String resourceName, String tgtName, String partitionId) {
+    Message msg = newMessage(type, msgId, fromState, toState, resourceName, tgtName);
+    msg.setPartitionId(PartitionId.from(partitionId));
     return msg;
   }
 }

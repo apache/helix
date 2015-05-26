@@ -94,7 +94,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
 
     // Add a state model with the transition to ONLINE deprioritized
     _clusterSetup.addStateModelDef(_clusterName, _stateModel,
-        createReprioritizedStateModelDef(_stateModel), false);
+        createReprioritizedStateModelDef(_stateModel));
 
     // Add a constraint of one transition per partition
     ConstraintItemBuilder constraintItemBuilder = new ConstraintItemBuilder();
@@ -119,7 +119,7 @@ public class TestPreferenceListAsQueue extends ZkUnitTestBase {
 
     // Add a state model with the parallelism implicit
     _clusterSetup.addStateModelDef(_clusterName, _stateModel,
-        createEnforcedParallelismStateModelDef(_stateModel, PARALLELISM), false);
+        createEnforcedParallelismStateModelDef(_stateModel, PARALLELISM));
     runTest();
   }
 

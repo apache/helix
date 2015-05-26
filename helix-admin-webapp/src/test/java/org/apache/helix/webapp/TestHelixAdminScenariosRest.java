@@ -220,7 +220,7 @@ public class TestHelixAdminScenariosRest extends AdminTestBase {
     Assert.assertTrue(response.contains("\\ClusterTest"));
 
     // Add already exist cluster
-    response = assertSuccessPostOperation(url, addClusterCmd("clusterTest"), false);
+    response = assertSuccessPostOperation(url, addClusterCmd("clusterTest"), true);
 
     // delete cluster without resource and instance
     Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _gZkClient));

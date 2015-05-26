@@ -152,7 +152,7 @@ public class ClusterSetup {
 
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
       addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
-          def.getStateModelDefinition(), overwritePrevious);
+                       def.getStateModelDefinition());
     }
   }
 
@@ -329,9 +329,8 @@ public class ClusterSetup {
     return _admin;
   }
 
-  public void addStateModelDef(String clusterName, String stateModelDef,
-      StateModelDefinition record, boolean overwritePrevious) {
-    _admin.addStateModelDef(clusterName, stateModelDef, record, overwritePrevious);
+  public void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record) {
+    _admin.addStateModelDef(clusterName, stateModelDef, record);
   }
 
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,

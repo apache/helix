@@ -69,7 +69,12 @@ public class TestHelixAdminCli extends ZkIntegrationTestBase {
 
     // Add already exist cluster
     command = "--zkSvr localhost:2183 -addCluster clusterTest";
-    ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+    try {
+      ClusterSetup.processCommandLineArgs(command.split("\\s+"));
+      Assert.fail("ClusterSetup should fail since clusterTest already exists");
+    } catch (Exception e) {
+      // OK
+    }
 
     // make sure clusters are properly setup
     Assert.assertTrue(ZKUtil.isClusterSetup("Klazt3rz", _gZkClient));

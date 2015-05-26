@@ -697,26 +697,14 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
       StateModelDefinition stateModel) {
-    addStateModelDef(clusterName, stateModelDef, stateModel, true);
-  }
-
-  @Override
-  public void addStateModelDef(String clusterName, String stateModelDef,
-      StateModelDefinition stateModel, boolean recreateIfExists) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
     String stateModelDefPath = HelixUtil.getStateModelDefinitionPath(clusterName);
     String stateModelPath = stateModelDefPath + "/" + stateModelDef;
     if (_zkClient.exists(stateModelPath)) {
-      if (recreateIfExists) {
-        logger.warn("Operation.State Model directory exists:" + stateModelPath +
-            ", remove and recreate.");
-        _zkClient.deleteRecursive(stateModelPath);
-      } else {
-        logger.warn("Skip the operation.State Model directory exists:" + stateModelPath);
-        return;
-      }
+      logger.warn("Skip the operation.State Model directory exists:" + stateModelPath);
+      throw new HelixException("State model path " + stateModelPath + " already exists.");
     }
 
     HelixDataAccessor accessor =

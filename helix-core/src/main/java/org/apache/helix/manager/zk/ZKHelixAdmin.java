@@ -669,6 +669,24 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public List<String> getResourcesInClusterWithTag(String clusterName, String tag) {
+    List<String> resourcesWithTag = new ArrayList<String>();
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    for (String resourceName : getResourcesInCluster(clusterName)) {
+      IdealState is = accessor.getProperty(keyBuilder.idealStates(resourceName));
+      if (is != null && is.getInstanceGroupTag() != null && is.getInstanceGroupTag().equals(tag)) {
+        resourcesWithTag.add(resourceName);
+      }
+    }
+
+    return resourcesWithTag;
+  }
+
+  @Override
   public IdealState getResourceIdealState(String clusterName, String resourceName) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
@@ -697,14 +715,26 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void addStateModelDef(String clusterName, String stateModelDef,
       StateModelDefinition stateModel) {
+    addStateModelDef(clusterName, stateModelDef, stateModel, false);
+  }
+
+  @Override
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      StateModelDefinition stateModel, boolean recreateIfExists) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
     String stateModelDefPath = HelixUtil.getStateModelDefinitionPath(clusterName);
     String stateModelPath = stateModelDefPath + "/" + stateModelDef;
     if (_zkClient.exists(stateModelPath)) {
-      logger.warn("Skip the operation.State Model directory exists:" + stateModelPath);
-      throw new HelixException("State model path " + stateModelPath + " already exists.");
+      if (recreateIfExists) {
+        logger.info("Operation.State Model directory exists:" + stateModelPath +
+            ", remove and recreate.");
+        _zkClient.deleteRecursive(stateModelPath);
+      } else {
+        logger.info("Skip the operation. State Model directory exists:" + stateModelPath);
+        return;
+      }
     }
 
     HelixDataAccessor accessor =
@@ -962,8 +992,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new IllegalArgumentException(
           "state model definition must have same id as state model def name");
     }
-    addStateModelDef(clusterName, stateModelDefName, new StateModelDefinition(record));
-
+    addStateModelDef(clusterName, stateModelDefName, new StateModelDefinition(record), false);
   }
 
   @Override

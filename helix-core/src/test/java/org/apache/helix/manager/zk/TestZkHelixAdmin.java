@@ -30,14 +30,12 @@ import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -129,13 +127,8 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     tool.addStateModelDef(clusterName, "MasterSlave", new StateModelDefinition(
         StateModelConfigGenerator.generateConfigForMasterSlave()));
     stateModelRecord = StateModelConfigGenerator.generateConfigForMasterSlave();
-    try {
-      tool.addStateModelDef(clusterName, stateModelRecord.getId(), new StateModelDefinition(
-          stateModelRecord));
-      Assert.fail("should fail if add an already-existing state model");
-    } catch (HelixException e) {
-      // OK
-    }
+    tool.addStateModelDef(clusterName, stateModelRecord.getId(), new StateModelDefinition(
+        stateModelRecord));
     list = tool.getStateModelDefs(clusterName);
     AssertJUnit.assertEquals(list.size(), 1);
 
@@ -313,5 +306,57 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     idealState = accessor.getProperty(keyBuilder.idealStates(resourceName));
     Assert.assertTrue(idealState.isEnabled());
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testGetResourcesWithTag() {
+    String TEST_TAG = "TestTAG";
+
+    final String clusterName = getShortClassName();
+    String rootPath = "/" + clusterName;
+    if (_gZkClient.exists(rootPath)) {
+      _gZkClient.deleteRecursive(rootPath);
+    }
+
+    HelixAdmin tool = new ZKHelixAdmin(_gZkClient);
+    tool.addCluster(clusterName, true);
+    Assert.assertTrue(ZKUtil.isClusterSetup(clusterName, _gZkClient));
+
+    tool.addStateModelDef(clusterName, "OnlineOffline",
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline()));
+
+    for (int i = 0; i < 4; i++) {
+      String instanceName = "host" + i + "_9999";
+      InstanceConfig config = new InstanceConfig(instanceName);
+      config.setHostName("host" + i);
+      config.setPort("9999");
+      // set tag to two instances
+      if (i < 2) {
+        config.addTag(TEST_TAG);
+      }
+      tool.addInstance(clusterName, config);
+      tool.enableInstance(clusterName, instanceName, true);
+      String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, instanceName);
+      AssertJUnit.assertTrue(_gZkClient.exists(path));
+    }
+
+    for (int i = 0; i < 4; i++) {
+      String resourceName = "database_" + i;
+      IdealState is = new IdealState(resourceName);
+      is.setStateModelDefRef("OnlineOffline");
+      is.setNumPartitions(2);
+      is.setRebalanceMode(IdealState.RebalanceMode.FULL_AUTO);
+      is.setReplicas("1");
+      is.enable(true);
+      if (i < 2) {
+        is.setInstanceGroupTag(TEST_TAG);
+      }
+      tool.addResource(clusterName, resourceName, is);
+    }
+
+    List<String> allResources = tool.getResourcesInCluster(clusterName);
+    List<String> resourcesWithTag = tool.getResourcesInClusterWithTag(clusterName, TEST_TAG);
+    AssertJUnit.assertEquals(allResources.size(), 4);
+    AssertJUnit.assertEquals(resourcesWithTag.size(), 2);
   }
 }

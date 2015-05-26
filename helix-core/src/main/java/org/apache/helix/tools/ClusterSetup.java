@@ -88,6 +88,7 @@ public class ClusterSetup {
   public static final String expandCluster = "expandCluster";
   public static final String expandResource = "expandResource";
   public static final String mode = "mode";
+  public static final String tag = "tag";
   public static final String instanceGroupTag = "instanceGroupTag";
   public static final String bucketSize = "bucketSize";
   public static final String resourceKeyPrefix = "key";
@@ -152,7 +153,7 @@ public class ClusterSetup {
 
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
       addStateModelDef(clusterName, def.getStateModelDefinition().getId(),
-                       def.getStateModelDefinition());
+                       def.getStateModelDefinition(), overwritePrevious);
     }
   }
 
@@ -329,8 +330,14 @@ public class ClusterSetup {
     return _admin;
   }
 
-  public void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record) {
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      StateModelDefinition record) {
     _admin.addStateModelDef(clusterName, stateModelDef, record);
+  }
+
+  public void addStateModelDef(String clusterName, String stateModelDef,
+      StateModelDefinition record, boolean overwritePrevious) {
+    _admin.addStateModelDef(clusterName, stateModelDef, record, overwritePrevious);
   }
 
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,
@@ -602,7 +609,7 @@ public class ClusterSetup {
             .withDescription("List resources hosted in a cluster").create();
     listResourceOption.setArgs(1);
     listResourceOption.setRequired(false);
-    listResourceOption.setArgName("clusterName");
+    listResourceOption.setArgName("clusterName <-tag TagValue>");
 
     Option listInstancesOption =
         OptionBuilder.withLongOpt(listInstances).withDescription("List Instances in a cluster")
@@ -665,6 +672,13 @@ public class ClusterSetup {
     resourceModeOption.setArgs(1);
     resourceModeOption.setRequired(false);
     resourceModeOption.setArgName("IdealState mode");
+
+    Option resourceTagOption =
+        OptionBuilder.withLongOpt(tag)
+            .withDescription("Specify resource tag, used with listResources command").create();
+    resourceTagOption.setArgs(1);
+    resourceTagOption.setRequired(false);
+    resourceTagOption.setArgName("tag");
 
     Option resourceBucketSizeOption =
         OptionBuilder.withLongOpt(bucketSize)
@@ -907,6 +921,7 @@ public class ClusterSetup {
     group.addOption(rebalanceOption);
     group.addOption(addResourceOption);
     group.addOption(resourceModeOption);
+    group.addOption(resourceTagOption);
     group.addOption(resourceBucketSizeOption);
     group.addOption(maxPartitionsPerNodeOption);
     group.addOption(expandResourceOption);
@@ -1096,10 +1111,18 @@ public class ClusterSetup {
 
     if (cmd.hasOption(listResources)) {
       String clusterName = cmd.getOptionValue(listResources);
-      List<String> resourceNames =
-          setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
+      List<String> resourceNames = null;
+      if (cmd.hasOption(tag)) {
+        String tagValue = cmd.getOptionValues(tag)[0];
+        resourceNames = setupTool.getClusterManagementTool()
+            .getResourcesInClusterWithTag(clusterName, tagValue);
+        System.out.println(
+            "Existing resources in cluster " + clusterName + " with tag " + tagValue + " :");
+      } else {
+        resourceNames = setupTool.getClusterManagementTool().getResourcesInCluster(clusterName);
+        System.out.println("Existing resources in cluster " + clusterName + ":");
+      }
 
-      System.out.println("Existing resources in cluster " + clusterName + ":");
       for (String resourceName : resourceNames) {
         System.out.println(resourceName);
       }

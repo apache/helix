@@ -580,10 +580,12 @@ public class TaskDriver {
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
-        // Only update target state for non-completed workflows
-        String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
-        if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
-          currentData.setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
+        if (currentData != null){
+          // Only update target state for non-completed workflows
+          String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
+          if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
+            currentData.setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
+          }
         }
         return currentData;
       }

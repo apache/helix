@@ -544,19 +544,14 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       }
     }
 
-    // No need to schedule the same runnable at the same time
-    if (SCHEDULED_TIMES.containsKey(workflowResource)
-        || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
-      return false;
-    }
-
     scheduleRebalance(workflowResource, jobResource, startTime, delayFromStart);
     return false;
   }
 
   private void scheduleRebalance(String id, String jobResource, Date startTime, long delayFromStart) {
-    // No need to schedule the same runnable at the same time
-    if (SCHEDULED_TIMES.containsKey(id) || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
+    // Do nothing if there is already a timer set for the this workflow with the same start time.
+    if ((SCHEDULED_TIMES.containsKey(id) && SCHEDULED_TIMES.get(id).equals(startTime))
+        || SCHEDULED_TIMES.inverse().containsKey(startTime)) {
       return;
     }
     LOG.info("Schedule rebalance with id: " + id + "and job: " + jobResource);
@@ -755,6 +750,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
                 .format(
                     "Error occurred while trying to clean up workflow %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
                     workflowResource, workflowPropStoreKey));
+      }
+      // Remove pending timer for this workflow if exists
+      if (SCHEDULED_TIMES.containsKey(workflowResource)) {
+        SCHEDULED_TIMES.remove(workflowResource);
       }
     }
 

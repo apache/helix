@@ -62,7 +62,7 @@ public class WorkflowGenerator {
       throw new IllegalArgumentException(
           "Additional configs should have even number of keys and values");
     }
-    Workflow.Builder bldr = generateDefaultSingleJobWorkflowBuilder(jobName);
+    Workflow.Builder bldr = generateSingleJobWorkflowBuilder(jobName, commandConfig, DEFAULT_JOB_CONFIG);
     for (int i = 0; i < cfgs.length; i += 2) {
       bldr.addConfig(jobName, cfgs[i], cfgs[i + 1]);
     }

@@ -19,8 +19,15 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
+import org.apache.helix.task.JobContext;
+import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
@@ -111,5 +118,81 @@ public class TestUtil {
     } while (ctx == null && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
     return ctx;
+  }
+
+  // 1. Different jobs in a same work flow is in RUNNING at the same time
+  // 2. No two jobs in the same work flow is in RUNNING at the same instance
+  public static boolean pollForWorkflowParallelState(HelixManager manager, String workflowName)
+      throws InterruptedException {
+
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowCfg(manager, workflowName);
+    Assert.assertNotNull(workflowConfig);
+
+    WorkflowContext workflowContext = null;
+    while (workflowContext == null) {
+      workflowContext = TaskUtil.getWorkflowContext(manager, workflowName);
+      Thread.sleep(100);
+    }
+
+    int maxRunningCount = 0;
+    boolean finished = false;
+
+    while (!finished) {
+      finished = true;
+      int runningCount = 0;
+
+      workflowContext = TaskUtil.getWorkflowContext(manager, workflowName);
+      for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
+        TaskState jobState = workflowContext.getJobState(jobName);
+        if (jobState == TaskState.IN_PROGRESS) {
+          ++runningCount;
+          finished = false;
+        }
+      }
+
+      if (runningCount > maxRunningCount ) {
+        maxRunningCount = runningCount;
+      }
+
+      List<JobContext> jobContextList = new ArrayList<JobContext>();
+      for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
+        JobContext jobContext = TaskUtil.getJobContext(manager, jobName);
+        if (jobContext != null) {
+          jobContextList.add(TaskUtil.getJobContext(manager, jobName));
+        }
+      }
+
+      Set<String> instances = new HashSet<String>();
+      for (JobContext jobContext : jobContextList) {
+        for (int partition : jobContext.getPartitionSet()) {
+          String instance = jobContext.getAssignedParticipant(partition);
+          TaskPartitionState taskPartitionState = jobContext.getPartitionState(partition);
+
+          if (instance == null) {
+            continue;
+          }
+          if (taskPartitionState != TaskPartitionState.INIT &&
+              taskPartitionState != TaskPartitionState.RUNNING) {
+            continue;
+          }
+          if (instances.contains(instance)) {
+            return false;
+          }
+
+          TaskPartitionState state = jobContext.getPartitionState(partition);
+          if (state != TaskPartitionState.COMPLETED) {
+            instances.add(instance);
+          }
+        }
+      }
+
+      Thread.sleep(100);
+    }
+
+    return maxRunningCount > 1 && maxRunningCount <= workflowConfig.getParallelJobs();
+  }
+
+  public static boolean pollForParticipantParallelState() {
+    return false;
   }
 }

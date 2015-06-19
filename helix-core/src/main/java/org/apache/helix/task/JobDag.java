@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -122,6 +123,22 @@ public class JobDag {
       return new TreeSet<String>();
     }
     return _childrenToParents.get(node);
+  }
+
+  public Set<String> getAncestors(String node) {
+    Set<String> ret = new TreeSet<String>();
+    Set<String> current = Collections.singleton(node);
+
+    while (!current.isEmpty()) {
+      Set<String> next = new TreeSet<String>();
+      for (String currentNode : current) {
+        next.addAll(getDirectParents(currentNode));
+      }
+      ret.addAll(next);
+      current = next;
+    }
+
+    return ret;
   }
 
   public String toJson() throws Exception {

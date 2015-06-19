@@ -32,8 +32,8 @@ public class JobQueue extends WorkflowConfig {
   private final int _capacity;
 
   private JobQueue(String name, int capacity, WorkflowConfig config) {
-    super(config.getJobDag(), config.getTargetState(), config.getExpiry(), config.isTerminable(),
-        config.getScheduleConfig());
+    super(config.getJobDag(), config.getParallelJobs(), config.getTargetState(), config.getExpiry(),
+        config.isTerminable(), config.getScheduleConfig());
     _name = name;
     _capacity = capacity;
   }
@@ -70,6 +70,11 @@ public class JobQueue extends WorkflowConfig {
     public Builder(String name) {
       _builder = new WorkflowConfig.Builder();
       _name = name;
+    }
+
+    public Builder parallelJobs(int parallelJobs) {
+      _builder.setParallelJobs(parallelJobs);
+      return this;
     }
 
     public Builder expiry(long expiry) {

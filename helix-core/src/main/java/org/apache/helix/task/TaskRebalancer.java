@@ -91,7 +91,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    * @param prevAssignment the previous task partition assignment
    * @param instances the instances
    * @param jobCfg the task configuration
-   * @param taskCtx the task context
+   * @param jobContext the task context
    * @param workflowCfg the workflow configuration
    * @param workflowCtx the workflow context
    * @param partitionSet the partitions to assign
@@ -135,18 +135,18 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
 
     // check ancestor job status
-    int unStartCount = 0;
+    int notStartedCount = 0;
     int inCompleteCount = 0;
     for (String ancestor : workflowCfg.getJobDag().getAncestors(resourceName)) {
       TaskState jobState = workflowCtx.getJobState(ancestor);
       if (jobState == null || jobState == TaskState.NOT_STARTED) {
-        ++unStartCount;
+        ++notStartedCount;
       } else if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
         ++inCompleteCount;
       }
     }
 
-    if (unStartCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()) {
+    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()) {
       return emptyAssignment(resourceName, currStateOutput);
     }
 
@@ -227,7 +227,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return newAssignment;
   }
 
-  private Set<String> getWorkflowAssignedInstances(String currentJobName,
+  private Set<String> getInstancesAssignedToOtherJobs(String currentJobName,
       WorkflowConfig workflowCfg) {
 
     Set<String> ret = new HashSet<String>();
@@ -282,7 +282,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
-    Set<String> excludedInstances = getWorkflowAssignedInstances(jobResource, workflowConfig);
+    Set<String> excludedInstances = getInstancesAssignedToOtherJobs(jobResource, workflowConfig);
 
     // Process all the current assignments of tasks.
     Set<Integer> allPartitions =

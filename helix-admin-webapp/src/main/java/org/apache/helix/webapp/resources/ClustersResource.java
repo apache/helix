@@ -47,7 +47,11 @@ import org.restlet.util.Series;
 
 public class ClustersResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(ClustersResource.class);
+<<<<<<< HEAD
  
+=======
+
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
   public ClustersResource() {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
     getVariants().add(new Variant(MediaType.APPLICATION_JSON));
@@ -139,3 +143,7 @@ public class ClustersResource extends ServerResource {
 
 
 }
+
+
+
+

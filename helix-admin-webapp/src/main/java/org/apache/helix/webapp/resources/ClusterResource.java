@@ -50,6 +50,10 @@ public class ClusterResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
+
+     Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getClusterRepresentation(clusterName);
@@ -99,6 +103,10 @@ public class ClusterResource extends ServerResource {
 
   @Override
   public Representation post(Representation entity) {
+
+  Headers h = new Headers();
+        h.addHeaders(getResponse());
+		
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =
@@ -159,9 +167,13 @@ public class ClusterResource extends ServerResource {
     }
     return null;
   }
-}
 
   
 
 
 }
+
+  
+
+
+

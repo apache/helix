@@ -48,7 +48,7 @@ import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
 public class ControllerResource extends ServerResource {
-
+ 
   public ControllerResource()
   {
     getVariants().add(new Variant(MediaType.TEXT_PLAIN));
@@ -90,6 +90,9 @@ public class ControllerResource extends ServerResource {
   @Override
   public Representation get() {
     StringRepresentation presentation = null;
+     Headers h = new Headers();
+        h.addHeaders(getResponse());
+
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       presentation = getControllerRepresentation(clusterName);
@@ -103,6 +106,9 @@ public class ControllerResource extends ServerResource {
 
   @Override
   public Representation post(Representation entity) {
+   Headers h = new Headers();
+        h.addHeaders(getResponse());
+
     try {
       String clusterName = (String) getRequest().getAttributes().get("clusterName");
       ZkClient zkClient =

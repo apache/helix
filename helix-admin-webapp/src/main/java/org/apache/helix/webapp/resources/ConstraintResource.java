@@ -58,6 +58,9 @@ public class ConstraintResource extends ServerResource {
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
 
+    Headers h = new Headers();
+        h.addHeaders(getResponse());
+
     try {
       ConstraintType constraintType = ConstraintType.valueOf(constraintTypeStr);
       ZkClient zkClient =
@@ -105,6 +108,9 @@ public class ConstraintResource extends ServerResource {
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
 
+    Headers h = new Headers();
+        h.addHeaders(getResponse());
+
     try {
       ZkClient zkClient =
           (ZkClient) getContext().getAttributes().get(RestAdminApplication.ZKCLIENT);
@@ -128,6 +134,9 @@ public class ConstraintResource extends ServerResource {
     String clusterName = getValue("clusterName");
     String constraintTypeStr = getValue("constraintType").toUpperCase();
     String constraintId = getValue("constraintId");
+
+Headers h = new Headers();
+        h.addHeaders(getResponse());
 
     try {
       ZkClient zkClient =

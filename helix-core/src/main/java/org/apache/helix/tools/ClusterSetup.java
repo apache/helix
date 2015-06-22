@@ -400,7 +400,7 @@ public class ClusterSetup {
       return;
     }
     try {
-      int replica = Integer.parseInt(idealState.getReplicas());
+      Integer.parseInt(idealState.getReplicas());
     } catch (Exception e) {
       _logger.error("", e);
       return;

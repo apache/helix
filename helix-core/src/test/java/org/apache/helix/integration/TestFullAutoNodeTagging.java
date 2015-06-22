@@ -28,8 +28,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.TestHelper.Verifier;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.ExternalView;
@@ -95,16 +95,16 @@ public class TestFullAutoNodeTagging extends ZkTestBase {
     }
 
     // Start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // Start participants
-    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    MockParticipant[] participants = new MockParticipant[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -193,16 +193,16 @@ public class TestFullAutoNodeTagging extends ZkTestBase {
     helixAdmin.setResourceIdealState(clusterName, RESOURCE_NAME, idealState);
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    MockParticipant[] participants = new MockParticipant[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -264,16 +264,16 @@ public class TestFullAutoNodeTagging extends ZkTestBase {
     helixAdmin.setResourceIdealState(clusterName, RESOURCE_NAME, idealState);
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[NUM_PARTICIPANTS];
+    MockParticipant[] participants = new MockParticipant[NUM_PARTICIPANTS];
     for (int i = 0; i < NUM_PARTICIPANTS; i++) {
       final String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
 
       // ensure that everything is valid if this is a tagged node that is starting

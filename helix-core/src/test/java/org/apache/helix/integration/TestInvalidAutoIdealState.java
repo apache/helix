@@ -28,8 +28,8 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -91,16 +91,16 @@ public class TestInvalidAutoIdealState extends ZkTestBase {
     admin.setResourceIdealState(clusterName, "TestDB", idealState);
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     boolean result =

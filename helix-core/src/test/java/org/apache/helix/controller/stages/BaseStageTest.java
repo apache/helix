@@ -31,18 +31,14 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.Mocks;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.api.Resource;
 import org.apache.helix.api.Scope;
 import org.apache.helix.api.config.ResourceConfig;
-import org.apache.helix.api.config.ResourceConfig.ResourceType;
 import org.apache.helix.api.config.UserConfig;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -169,12 +165,10 @@ public class BaseStageTest {
     Map<ResourceId, ResourceConfig> resourceMap = new HashMap<ResourceId, ResourceConfig>();
     for (IdealState idealState : idealStates) {
       ResourceId resourceId = idealState.getResourceId();
-      RebalancerConfig context = PartitionedRebalancerConfig.from(idealState);
-      Resource resource =
-          new Resource(resourceId, ResourceType.DATA, idealState, null, null, context, null,
-              new UserConfig(Scope.resource(resourceId)), idealState.getBucketSize(),
-              idealState.getBatchMessageMode());
-      resourceMap.put(resourceId, resource.getConfig());
+      ResourceConfig resourceConfig =
+          new ResourceConfig.Builder(resourceId).idealState(idealState)
+              .userConfig(new UserConfig(Scope.resource(resourceId))).build();
+      resourceMap.put(resourceId, resourceConfig);
     }
 
     return resourceMap;

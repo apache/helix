@@ -56,4 +56,9 @@ public interface HelixRole {
    */
   ClusterMessagingService getMessagingService();
 
+  /**
+   * get data accessor
+   * @return
+   */
+  HelixDataAccessor getAccessor();
 }

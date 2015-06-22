@@ -34,7 +34,7 @@ public class MyTask implements Task {
   private volatile boolean _canceled;
 
   public MyTask(TaskCallbackContext context) {
-    LOG.info("Job config" + context.getJobConfig().getJobConfigMap());
+    LOG.info("Job config" + context.getJobConfig().getJobCommandConfigMap());
     if (context.getTaskConfig() != null) {
       LOG.info("Task config: " + context.getTaskConfig().getConfigMap());
     }

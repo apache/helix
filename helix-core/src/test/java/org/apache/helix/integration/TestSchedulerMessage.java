@@ -115,7 +115,6 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       public HelixTaskResult handleMessage() throws InterruptedException {
         HelixTaskResult result = new HelixTaskResult();
         result.setSuccess(true);
-        String destName = _message.getTgtName();
         String partitionName = _message.getPartitionName();
         result.getTaskResultMap().put("Message", _message.getMsgId());
         synchronized (_results) {

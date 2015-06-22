@@ -147,6 +147,12 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
       int pId = partitions.get(0);
       if (includeSet.contains(pId)) {
         for (ParticipantId instance : instances) {
+          State pending =
+              currStateOutput.getPendingState(ResourceId.from(tgtIs.getResourceName()),
+                  PartitionId.from(pName), instance);
+          if (pending != null) {
+            continue;
+          }
           State s =
               currStateOutput.getCurrentState(ResourceId.from(tgtIs.getResourceName()),
                   PartitionId.from(pName), instance);

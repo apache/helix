@@ -24,12 +24,12 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
@@ -37,7 +37,7 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "ONLINE", "ERROR"
 })
-public class TaskStateModel extends StateModel {
+public class TaskStateModel extends TransitionHandler {
   private static Logger LOG = Logger.getLogger(TaskStateModel.class);
 
   private final String _workerId;

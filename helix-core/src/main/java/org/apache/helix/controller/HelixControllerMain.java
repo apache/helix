@@ -47,8 +47,10 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.manager.zk.HelixManagerShutdownHook;
-import org.apache.helix.participant.DistClusterControllerStateModelFactory;
+import org.apache.helix.participant.MultiClusterControllerTransitionHandlerFactory;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
@@ -132,7 +134,9 @@ public class HelixControllerMain {
   public static void addListenersToController(HelixManager manager,
       GenericHelixController controller) {
     try {
-      manager.addConfigChangeListener(controller);
+      manager.addInstanceConfigChangeListener(controller);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.RESOURCE);
+      manager.addConfigChangeListener(controller, ConfigScopeProperty.CONSTRAINT);
       manager.addLiveInstanceChangeListener(controller);
       manager.addIdealStateChangeListener(controller);
       // no need for controller to listen on external-view
@@ -161,21 +165,14 @@ public class HelixControllerMain {
             HelixManagerFactory.getZKHelixManager(clusterName, controllerName,
                 InstanceType.CONTROLLER_PARTICIPANT, zkConnectString);
 
-        DistClusterControllerStateModelFactory stateModelFactory =
-            new DistClusterControllerStateModelFactory(zkConnectString);
+        MultiClusterControllerTransitionHandlerFactory stateModelFactory =
+            new MultiClusterControllerTransitionHandlerFactory(zkConnectString);
 
-        // StateMachineEngine genericStateMachineHandler = new
-        // StateMachineEngine();
         StateMachineEngine stateMach = manager.getStateMachineEngine();
-        stateMach.registerStateModelFactory("LeaderStandby", stateModelFactory);
-        // manager.getMessagingService().registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
-        // genericStateMachineHandler);
+        stateMach.registerStateModelFactory(StateModelDefId.LeaderStandby, stateModelFactory);
         manager.connect();
       } else {
         logger.error("cluster controller mode:" + controllerMode + " NOT supported");
-        // throw new
-        // IllegalArgumentException("Unsupported cluster controller mode:" +
-        // controllerMode);
       }
     } catch (Exception e) {
       logger.error("Exception while starting controller", e);

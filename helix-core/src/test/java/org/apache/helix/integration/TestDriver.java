@@ -31,8 +31,8 @@ import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.strategy.DefaultTwoStateStrategy;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -187,8 +187,8 @@ public class TestDriver {
         LOG.warn("Dummy participant:" + instanceName + " has already started; skip starting it");
       } else {
         // StartCMResult result = TestHelper.startDummyProcess(ZK_ADDR, clusterName, instanceName);
-        MockParticipantManager participant =
-            new MockParticipantManager(zkAddr, clusterName, instanceName);
+        MockParticipant participant =
+            new MockParticipant(zkAddr, clusterName, instanceName);
         participant.syncStart();
         testInfo._managers.put(instanceName, participant);
         // testInfo._instanceStarted.countDown();
@@ -216,8 +216,8 @@ public class TestDriver {
       if (testInfo._managers.containsKey(controllerName)) {
         LOG.warn("Controller:" + controllerName + " has already started; skip starting it");
       } else {
-        ClusterControllerManager controller =
-            new ClusterControllerManager(zkAddr, clusterName, controllerName);
+        MockController controller =
+            new MockController(zkAddr, clusterName, controllerName);
         controller.syncStart();
         testInfo._managers.put(controllerName, controller);
       }
@@ -252,8 +252,8 @@ public class TestDriver {
     // stop controller first
     for (String instanceName : testInfo._managers.keySet()) {
       if (instanceName.startsWith(CONTROLLER_PREFIX)) {
-        ClusterControllerManager controller =
-            (ClusterControllerManager) testInfo._managers.get(instanceName);
+        MockController controller =
+            (MockController) testInfo._managers.get(instanceName);
         controller.syncStop();
       }
     }
@@ -262,8 +262,8 @@ public class TestDriver {
 
     for (String instanceName : testInfo._managers.keySet()) {
       if (!instanceName.startsWith(CONTROLLER_PREFIX)) {
-        MockParticipantManager participant =
-            (MockParticipantManager) testInfo._managers.get(instanceName);
+        MockParticipant participant =
+            (MockParticipant) testInfo._managers.get(instanceName);
         participant.syncStop();
       }
     }
@@ -282,8 +282,8 @@ public class TestDriver {
     TestInfo testInfo = _testInfoMap.get(uniqClusterName);
 
     String failHost = PARTICIPANT_PREFIX + "_" + (START_PORT + instanceId);
-    MockParticipantManager participant =
-        (MockParticipantManager) testInfo._managers.remove(failHost);
+    MockParticipant participant =
+        (MockParticipant) testInfo._managers.remove(failHost);
 
     // TODO need sync
     if (participant == null) {

@@ -28,7 +28,7 @@ import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ExternalCommand;
 import org.apache.helix.ScriptTestHelper;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -147,7 +147,7 @@ public class TestHelixAgent extends ZkTestBase {
     configAccessor.set(scope, cmdConfig.toKeyValueMap());
 
     // start controller
-    ClusterControllerManager controller = new ClusterControllerManager(zkAddr, clusterName, "controller_0");
+    MockController controller = new MockController(zkAddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start helix-agent

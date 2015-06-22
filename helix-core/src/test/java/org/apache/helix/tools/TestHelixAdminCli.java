@@ -31,8 +31,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -239,8 +239,8 @@ public class TestHelixAdminCli extends ZkTestBase {
     final int n = 6;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
+    MockParticipant[] participants = new MockParticipant[n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
 
     // activate clusters
@@ -310,7 +310,7 @@ public class TestHelixAdminCli extends ZkTestBase {
     Assert.assertTrue(verifyResult);
 
     // clean up
-    for (ClusterDistributedController controller : controllers) {
+    for (MockMultiClusterController controller : controllers) {
       controller.syncStop();
     }
     for (int i = 0; i < participants.length; i++) {
@@ -330,8 +330,8 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
+    MockParticipant[] participants = new MockParticipant[n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
         "-zkSvr " + _zkaddr + " -activateCluster " + clusterName + " " + grandClusterName + " true";
@@ -387,7 +387,7 @@ public class TestHelixAdminCli extends ZkTestBase {
   }
 
   private void setupCluster(String clusterName, String grandClusterName, final int n,
-      MockParticipantManager[] participants, ClusterDistributedController[] controllers)
+      MockParticipant[] participants, MockMultiClusterController[] controllers)
       throws Exception, InterruptedException {
     // add cluster
     String command = "-zkSvr " + _zkaddr + " -addCluster " + clusterName;
@@ -419,14 +419,14 @@ public class TestHelixAdminCli extends ZkTestBase {
     // start mock nodes
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_123" + i;
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
     // start controller nodes
     for (int i = 0; i < 2; i++) {
       controllers[i] =
-          new ClusterDistributedController(_zkaddr, grandClusterName, "controller_900" + i);
+          new MockMultiClusterController(_zkaddr, grandClusterName, "controller_900" + i);
       controllers[i].syncStart();
     }
 
@@ -443,8 +443,8 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
+    MockParticipant[] participants = new MockParticipant[n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
         "-zkSvr " + _zkaddr + " -activateCluster " + clusterName + " " + grandClusterName + " true";
@@ -522,8 +522,8 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
+    MockParticipant[] participants = new MockParticipant[n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
         "-zkSvr " + _zkaddr + " -activateCluster " + clusterName + " " + grandClusterName + " true";
@@ -538,10 +538,10 @@ public class TestHelixAdminCli extends ZkTestBase {
     command = "-zkSvr localhost:2183 -expandCluster " + clusterName;
     ClusterSetup.processCommandLineArgs(command.split("\\s+"));
 
-    MockParticipantManager[] newParticipants = new MockParticipantManager[4];
+    MockParticipant[] newParticipants = new MockParticipant[4];
     for (int i = 3; i <= 6; i++) {
       String instanceName = "localhost_123" + i + "1";
-      newParticipants[i - 3] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      newParticipants[i - 3] = new MockParticipant(_zkaddr, clusterName, instanceName);
       newParticipants[i - 3].syncStart();
     }
 
@@ -579,8 +579,8 @@ public class TestHelixAdminCli extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
-    ClusterDistributedController[] controllers = new ClusterDistributedController[2];
+    MockParticipant[] participants = new MockParticipant[n];
+    MockMultiClusterController[] controllers = new MockMultiClusterController[2];
     setupCluster(clusterName, grandClusterName, n, participants, controllers);
     String command =
         "-zkSvr " + _zkaddr + " -activateCluster " + clusterName + " " + grandClusterName + " true";

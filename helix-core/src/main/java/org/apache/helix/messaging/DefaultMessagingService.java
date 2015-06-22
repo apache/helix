@@ -40,11 +40,12 @@ import org.apache.helix.api.id.SessionId;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
-import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.log4j.Logger;
 
 public class DefaultMessagingService implements ClusterMessagingService {
@@ -223,7 +224,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
     ConfigAccessor configAccessor = _manager.getConfigAccessor();
     if (configAccessor != null) {
-      ConfigScope scope = null;
+      HelixConfigScope scope = null;
 
       // Read the participant config and cluster config for the per-message type thread pool size.
       // participant config will override the cluster config.
@@ -231,13 +232,16 @@ public class DefaultMessagingService implements ClusterMessagingService {
       if (_manager.getInstanceType() == InstanceType.PARTICIPANT
           || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
         scope =
-            new ConfigScopeBuilder().forCluster(_manager.getClusterName())
-                .forParticipant(_manager.getInstanceName()).build();
+            new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
+                .forCluster(_manager.getClusterName()).forParticipant(_manager.getInstanceName())
+                .build();
         threadpoolSizeStr = configAccessor.get(scope, key);
       }
 
       if (threadpoolSizeStr == null) {
-        scope = new ConfigScopeBuilder().forCluster(_manager.getClusterName()).build();
+        scope =
+            new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(
+                _manager.getClusterName()).build();
         threadpoolSizeStr = configAccessor.get(scope, key);
       }
     }

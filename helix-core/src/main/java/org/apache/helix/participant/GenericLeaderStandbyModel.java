@@ -25,8 +25,9 @@ import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.log4j.Logger;
@@ -34,14 +35,14 @@ import org.apache.log4j.Logger;
 @StateModelInfo(initialState = "OFFLINE", states = {
     "LEADER", "STANDBY"
 })
-public class GenericLeaderStandbyModel extends StateModel {
+public class GenericLeaderStandbyModel extends TransitionHandler {
   private static Logger LOG = Logger.getLogger(GenericLeaderStandbyModel.class);
 
   private final CustomCodeInvoker _particHolder;
   private final List<ChangeType> _notificationTypes;
 
   public GenericLeaderStandbyModel(CustomCodeCallbackHandler callback,
-      List<ChangeType> notificationTypes, String partitionKey) {
+      List<ChangeType> notificationTypes, PartitionId partitionKey) {
     _particHolder = new CustomCodeInvoker(callback, partitionKey);
     _notificationTypes = notificationTypes;
   }
@@ -63,7 +64,7 @@ public class GenericLeaderStandbyModel extends StateModel {
       if (notificationType == ChangeType.LIVE_INSTANCE) {
         manager.addLiveInstanceChangeListener(_particHolder);
       } else if (notificationType == ChangeType.CONFIG) {
-        manager.addConfigChangeListener(_particHolder);
+        manager.addInstanceConfigChangeListener(_particHolder);
       } else if (notificationType == ChangeType.EXTERNAL_VIEW) {
         manager.addExternalViewChangeListener(_particHolder);
       } else {

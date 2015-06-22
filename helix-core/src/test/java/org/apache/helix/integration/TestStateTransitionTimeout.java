@@ -30,10 +30,13 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.mock.participant.MockTransition;
@@ -41,7 +44,6 @@ import org.apache.helix.mock.participant.SleepTransition;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.participant.statemachine.Transition;
@@ -146,33 +148,34 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
     }
   }
 
-  public static class SleepStateModelFactory extends StateModelFactory<TimeOutStateModel> {
-    Set<String> partitionsToSleep = new HashSet<String>();
+  public static class SleepStateModelFactory extends
+      StateTransitionHandlerFactory<TimeOutStateModel> {
+    Set<PartitionId> partitionsToSleep = new HashSet<PartitionId>();
     int _sleepTime;
 
     public SleepStateModelFactory(int sleepTime) {
       _sleepTime = sleepTime;
     }
 
-    public void setPartitions(Collection<String> partitions) {
+    public void setPartitions(Collection<PartitionId> partitions) {
       partitionsToSleep.addAll(partitions);
     }
 
-    public void addPartition(String partition) {
+    public void addPartition(PartitionId partition) {
       partitionsToSleep.add(partition);
     }
 
     @Override
-    public TimeOutStateModel createNewStateModel(String stateUnitKey) {
+    public TimeOutStateModel createStateTransitionHandler(ResourceId resource, PartitionId partition) {
       return new TimeOutStateModel(new SleepTransition(_sleepTime),
-          partitionsToSleep.contains(stateUnitKey));
+          partitionsToSleep.contains(partition));
     }
   }
 
   @Test
   public void testStateTransitionTimeOut() throws Exception {
     Map<String, SleepStateModelFactory> factories = new HashMap<String, SleepStateModelFactory>();
-    // MockParticipantManager[] participants = new MockParticipantManager[NODE_NR];
+    // MockParticipant[] participants = new MockParticipant[NODE_NR];
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
     for (int i = 0; i < NODE_NR; i++) {
@@ -181,16 +184,17 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       factories.put(instanceName, factory);
       for (PartitionId p : idealState.getPartitionIdSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(ParticipantId.from(instanceName))) {
-          factory.addPartition(p.stringify());
+          factory.addPartition(p);
         }
       }
 
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
-      _participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", factory);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i].getStateMachineEngine().registerStateModelFactory(
+          StateModelDefId.from("MasterSlave"), factory);
       _participants[i].syncStart();
     }
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     boolean result =
@@ -205,7 +209,8 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       ParticipantId idealMaster = idealState.getPreferenceList(p).get(0);
       Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals(State.from("ERROR")));
 
-      TimeOutStateModel model = factories.get(idealMaster.stringify()).getStateModel(p.stringify());
+      TimeOutStateModel model =
+          factories.get(idealMaster.stringify()).getTransitionHandler(ResourceId.from(TEST_DB), p);
       Assert.assertEquals(model._errorCallcount, 1);
       Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
     }

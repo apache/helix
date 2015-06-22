@@ -36,10 +36,9 @@ import java.util.TreeSet;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.Scope;
 import org.apache.helix.api.State;
 import org.apache.helix.api.config.ClusterConfig;
-import org.apache.helix.api.config.UserConfig;
+import org.apache.helix.api.config.ParticipantConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.MessageId;
 import org.apache.helix.api.id.ParticipantId;
@@ -225,17 +224,10 @@ public class TestNewAutoRebalanceStrategy {
       ClusterId clusterId = ClusterId.from("clusterId");
       ClusterConfig.Builder clusterConfigBuilder =
           new ClusterConfig.Builder(clusterId).addStateModelDefinition(_stateModelDef);
-      for (State state : _stateModelDef.getTypedStatesPriorityList()) {
-        clusterConfigBuilder.addStateUpperBoundConstraint(Scope.cluster(clusterId),
-            _stateModelDef.getStateModelDefId(), state,
-            _stateModelDef.getNumParticipantsPerState(state));
-      }
       ClusterConfig clusterConfig = clusterConfigBuilder.build();
       for (String partition : _partitions) {
         PartitionId partitionId = PartitionId.from(partition);
         Set<ParticipantId> disabledParticipantsForPartition = Collections.emptySet();
-        Set<PartitionId> disabledPartitionIdSet = Collections.emptySet();
-        Set<String> tags = Collections.emptySet();
         Map<MessageId, Message> messageMap = Collections.emptyMap();
         Map<ResourceId, CurrentState> currentStateMap = Collections.emptyMap();
         Map<ParticipantId, Participant> liveParticipantMap =
@@ -243,10 +235,10 @@ public class TestNewAutoRebalanceStrategy {
         // set up some participants
         for (String nodeName : _liveNodes) {
           ParticipantId participantId = ParticipantId.from(nodeName);
+          ParticipantConfig participantConfig =
+              new ParticipantConfig.Builder(participantId).hostName("hostname").port(0).build();
           Participant participant =
-              new Participant(participantId, "hostname", 0, true, disabledPartitionIdSet, tags,
-                  null, currentStateMap, messageMap, new UserConfig(
-                      Scope.participant(participantId)), null);
+              new Participant(participantConfig, null, currentStateMap, messageMap, null);
           liveParticipantMap.put(participantId, participant);
         }
         List<ParticipantId> participantPreferenceList =

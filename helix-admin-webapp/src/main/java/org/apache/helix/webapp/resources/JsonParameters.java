@@ -96,8 +96,10 @@ public class JsonParameters {
   final Map<String, ZNRecord> _extraParameterMap = new HashMap<String, ZNRecord>();
 
   public JsonParameters(Representation entity) throws Exception {
-    Form form = new Form(entity);
+    this(new Form(entity));
+  }
 
+  public JsonParameters(Form form) throws Exception {
     // get parameters in String format
     String jsonPayload = form.getFirstValue(JSON_PARAMETERS, true);
     if (jsonPayload == null || jsonPayload.isEmpty()) {

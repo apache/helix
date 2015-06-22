@@ -68,6 +68,8 @@ public class ZkCacheEventThread extends Thread {
           interrupt();
         } catch (ZkInterruptedException e) {
           interrupt();
+        } catch (ThreadDeath death) {
+          throw death;
         } catch (Throwable e) {
           LOG.error("Error handling event " + zkEvent, e);
         }

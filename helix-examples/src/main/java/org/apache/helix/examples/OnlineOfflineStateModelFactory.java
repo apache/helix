@@ -20,11 +20,13 @@ package org.apache.helix.examples;
  */
 
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.model.Message;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 
-public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel> {
+public class OnlineOfflineStateModelFactory extends StateTransitionHandlerFactory<TransitionHandler> {
   int _delay;
 
   public OnlineOfflineStateModelFactory(int delay) {
@@ -32,13 +34,13 @@ public class OnlineOfflineStateModelFactory extends StateModelFactory<StateModel
   }
 
   @Override
-  public StateModel createNewStateModel(String stateUnitKey) {
+  public TransitionHandler createStateTransitionHandler(ResourceId resource, PartitionId stateUnitKey) {
     OnlineOfflineStateModel stateModel = new OnlineOfflineStateModel();
     stateModel.setDelay(_delay);
     return stateModel;
   }
 
-  public static class OnlineOfflineStateModel extends StateModel {
+  public static class OnlineOfflineStateModel extends TransitionHandler {
     int _transDelay = 0;
 
     public void setDelay(int delay) {

@@ -62,7 +62,7 @@ public class ContainerAdmin {
     if (participant != null && participant.isAlive()) {
       Message message = new Message(MessageType.SHUTDOWN, UUID.randomUUID().toString());
       message.setTgtName(participant.getId().toString());
-      message.setTgtSessionId(participant.getRunningInstance().getSessionId());
+      message.setTgtSessionId(participant.getLiveInstance().getSessionId());
       message.setMsgId(message.getId());
       dataAccessor.createProperty(
           dataAccessor.keyBuilder().message(participant.getId().toString(), message.getId()),

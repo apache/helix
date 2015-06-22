@@ -32,4 +32,10 @@ public interface HelixService {
    * stop helix service
    */
   void stop();
+
+  /**
+   * is service started
+   * @return
+   */
+  boolean isStarted();
 }

@@ -20,7 +20,7 @@ package org.apache.helix.task;
  */
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.task.TaskResult.Status;
 import org.apache.log4j.Logger;
 
@@ -30,7 +30,7 @@ import org.apache.log4j.Logger;
  */
 public class TaskRunner implements Runnable {
   private static final Logger LOG = Logger.getLogger(TaskRunner.class);
-  private final StateModel _taskStateModel;
+  private final TransitionHandler _taskStateModel;
   private final HelixManager _manager;
   private final String _taskName;
   private final String _taskPartition;
@@ -50,7 +50,7 @@ public class TaskRunner implements Runnable {
   // If true, indicates that the task has finished.
   private volatile boolean _done = false;
 
-  public TaskRunner(StateModel taskStateModel, Task task, String taskName, String taskPartition,
+  public TaskRunner(TransitionHandler taskStateModel, Task task, String taskName, String taskPartition,
       String instance, HelixManager manager, String sessionId) {
     _taskStateModel = taskStateModel;
     _task = task;
@@ -67,6 +67,8 @@ public class TaskRunner implements Runnable {
       signalStarted();
       try {
         _result = _task.run();
+      } catch (ThreadDeath death) {
+        throw death;
       } catch (Throwable t) {
         LOG.error("Problem running the task", t);
         _result = new TaskResult(Status.ERROR, null);

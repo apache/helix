@@ -26,7 +26,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyType;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;

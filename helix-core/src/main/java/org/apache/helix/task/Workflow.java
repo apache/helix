@@ -27,8 +27,6 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -85,30 +83,6 @@ public class Workflow {
 
   public WorkflowConfig getWorkflowConfig() {
     return _workflowConfig;
-  }
-
-  public Map<String, String> getResourceConfigMap() throws Exception {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.DAG, _workflowConfig.getJobDag().toJson());
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(_workflowConfig.getExpiry()));
-    cfgMap.put(WorkflowConfig.TARGET_STATE, _workflowConfig.getTargetState().name());
-
-    // Populate schedule if present
-    ScheduleConfig scheduleConfig = _workflowConfig.getScheduleConfig();
-    if (scheduleConfig != null) {
-      Date startTime = scheduleConfig.getStartTime();
-      if (startTime != null) {
-        String formattedTime = WorkflowConfig.DEFAULT_DATE_FORMAT.format(startTime);
-        cfgMap.put(WorkflowConfig.START_TIME, formattedTime);
-      }
-      if (scheduleConfig.isRecurring()) {
-        cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, scheduleConfig.getRecurrenceUnit().toString());
-        cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, scheduleConfig.getRecurrenceInterval()
-            .toString());
-      }
-    }
-
-    return cfgMap;
   }
 
   /**
@@ -188,7 +162,7 @@ public class Workflow {
       builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
       builder.addConfig(job.name, JobConfig.COMMAND, job.command);
       if (job.jobConfigMap != null) {
-        builder.addJobConfigMap(job.name, job.jobConfigMap);
+        builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
       }
       builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
       if (job.targetPartitionStates != null) {
@@ -281,17 +255,18 @@ public class Workflow {
       return this;
     }
 
-    public Builder addJobConfigMap(String job, Map<String, String> jobConfigMap) {
-      return addConfig(job, JobConfig.JOB_CONFIG_MAP, TaskUtil.serializeJobConfigMap(jobConfigMap));
+    public Builder addJobCommandConfigMap(String job, Map<String, String> jobConfigMap) {
+      return addConfig(job, JobConfig.JOB_COMMAND_CONFIG_MAP,
+          TaskUtil.serializeJobCommandConfigMap(jobConfigMap));
     }
 
-    public Builder addJobConfig(String job, JobConfig jobConfig) {
+    public Builder addJobConfig(String job, JobConfig.Builder jobConfigBuilder) {
+      JobConfig jobConfig = jobConfigBuilder.setWorkflow(_name).build();
       for (Map.Entry<String, String> e : jobConfig.getResourceConfigMap().entrySet()) {
         String key = e.getKey();
         String val = e.getValue();
         addConfig(job, key, val);
       }
-      jobConfig.getJobConfigMap().put(JobConfig.WORKFLOW_ID, _name);
       addTaskConfigs(job, jobConfig.getTaskConfigMap().values());
       return this;
     }
@@ -338,7 +313,7 @@ public class Workflow {
       }
 
       WorkflowConfig.Builder builder = new WorkflowConfig.Builder();
-      builder.setTaskDag(_dag);
+      builder.setJobDag(_dag);
       builder.setTargetState(TargetState.START);
       if (_scheduleConfig != null) {
         builder.setScheduleConfig(_scheduleConfig);

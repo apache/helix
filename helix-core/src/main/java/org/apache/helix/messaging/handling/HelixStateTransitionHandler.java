@@ -43,14 +43,14 @@ import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordDelta;
 import org.apache.helix.ZNRecordDelta.MergeOperation;
 import org.apache.helix.api.State;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SessionId;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.helix.participant.statemachine.StateTransitionError;
 import org.apache.helix.util.StatusUpdateUtil;
@@ -66,16 +66,16 @@ public class HelixStateTransitionHandler extends MessageHandler {
   }
 
   private static final Logger logger = Logger.getLogger(HelixStateTransitionHandler.class);
-  private final StateModel _stateModel;
+  private final TransitionHandler _stateModel;
   StatusUpdateUtil _statusUpdateUtil;
   private final StateModelParser _transitionMethodFinder;
   private final CurrentState _currentStateDelta;
   private final HelixManager _manager;
-  private final StateModelFactory<? extends StateModel> _stateModelFactory;
+  private final StateTransitionHandlerFactory<? extends TransitionHandler> _stateModelFactory;
   volatile boolean _isTimeout = false;
 
-  public HelixStateTransitionHandler(StateModelFactory<? extends StateModel> stateModelFactory,
-      StateModel stateModel, Message message, NotificationContext context,
+  public HelixStateTransitionHandler(StateTransitionHandlerFactory<? extends TransitionHandler> stateModelFactory,
+      TransitionHandler stateModel, Message message, NotificationContext context,
       CurrentState currentStateDelta) {
     super(message, context);
     _stateModel = stateModel;
@@ -206,7 +206,7 @@ public class HelixStateTransitionHandler extends MessageHandler {
         List<ZNRecordDelta> deltaList = new ArrayList<ZNRecordDelta>();
         deltaList.add(delta);
         _currentStateDelta.setDeltaList(deltaList);
-        _stateModelFactory.removeStateModel(partitionId.stringify());
+        _stateModelFactory.removeTransitionHandler(resource, partitionId);
       } else {
         // if the partition is not to be dropped, update _stateModel to the TO_STATE
         _stateModel.updateState(toState.toString());

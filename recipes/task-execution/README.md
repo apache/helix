@@ -85,7 +85,7 @@ See http://redis.io/topics/quickstart on how to install redis server
 Start redis e.g:
 ./redis-server --port 6379
 
-git clone https://git-wip-us.apache.org/repos/asf/incubator-helix.git
+git clone https://git-wip-us.apache.org/repos/asf/helix.git
 cd recipes/task-execution
 mvn clean install package -DskipTests
 cd target/task-execution-pkg/bin

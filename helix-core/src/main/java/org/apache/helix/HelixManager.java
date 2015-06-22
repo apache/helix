@@ -33,7 +33,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * Class that represents the Helix Agent.
  * First class Object any process will interact with<br/>
  * General flow <blockquote>
- * 
+ *
  * <pre>
  * manager = HelixManagerFactory.getZKHelixManager(
  *    clusterName, instanceName, ROLE, zkAddr);
@@ -49,7 +49,7 @@ import org.apache.helix.store.zk.ZkHelixPropertyStore;
  * FINALIZE -> will be invoked when listener is removed or session expires
  * manager.disconnect()
  * </pre>
- * 
+ *
  * </blockquote> Default implementations available
  * @see HelixStateMachineEngine HelixStateMachineEngine for participant
  * @see RoutingTableProvider RoutingTableProvider for spectator
@@ -98,14 +98,6 @@ public interface HelixManager {
   void addLiveInstanceChangeListener(LiveInstanceChangeListener listener) throws Exception;
 
   /**
-   * @see ConfigChangeListener#onConfigChange(List, NotificationContext)
-   * @param listener
-   * @deprecated replaced by addInstanceConfigChangeListener()
-   */
-  @Deprecated
-  void addConfigChangeListener(ConfigChangeListener listener) throws Exception;
-
-  /**
    * @see InstanceConfigChangeListener#onInstanceConfigChange(List, NotificationContext)
    * @param listener
    */
@@ -143,7 +135,7 @@ public interface HelixManager {
 
   /**
    * Add listener for controller change
-   * Used in distributed cluster controller
+   * Used in multi-cluster controller
    */
   void addControllerListener(ControllerChangeListener listener);
 

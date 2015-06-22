@@ -1,5 +1,9 @@
 package org.apache.helix.mock.participant;
 
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -19,12 +23,12 @@ package org.apache.helix.mock.participant;
  * under the License.
  */
 
-import org.apache.helix.participant.statemachine.StateModelFactory;
-
 // mock Bootstrap state model factory
-public class MockBootstrapModelFactory extends StateModelFactory<MockBootstrapStateModel> {
+public class MockBootstrapModelFactory extends
+    StateTransitionHandlerFactory<MockBootstrapStateModel> {
   @Override
-  public MockBootstrapStateModel createNewStateModel(String partitionKey) {
+  public MockBootstrapStateModel createStateTransitionHandler(ResourceId resource,
+      PartitionId partition) {
     MockBootstrapStateModel model = new MockBootstrapStateModel();
     return model;
   }

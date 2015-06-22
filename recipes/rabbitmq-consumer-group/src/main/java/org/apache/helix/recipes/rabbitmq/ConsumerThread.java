@@ -21,6 +21,9 @@ package org.apache.helix.recipes.rabbitmq;
 
 import java.io.IOException;
 
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
@@ -28,11 +31,11 @@ import com.rabbitmq.client.QueueingConsumer;
 
 public class ConsumerThread extends Thread {
   private static final String EXCHANGE_NAME = "topic_logs";
-  private final String _partition;
+  private final PartitionId _partition;
   private final String _mqServer;
-  private final String _consumerId;
+  private final ParticipantId _consumerId;
 
-  public ConsumerThread(String partition, String mqServer, String consumerId) {
+  public ConsumerThread(PartitionId partition, String mqServer, ParticipantId consumerId) {
     _partition = partition;
     _mqServer = mqServer;
     _consumerId = consumerId;
@@ -50,7 +53,7 @@ public class ConsumerThread extends Thread {
       channel.exchangeDeclare(EXCHANGE_NAME, "topic");
       String queueName = channel.queueDeclare().getQueue();
 
-      String bindingKey = _partition;
+      String bindingKey = _partition.toString();
       channel.queueBind(queueName, EXCHANGE_NAME, bindingKey);
 
       System.out.println(" [*] " + _consumerId + " Waiting for messages on " + bindingKey

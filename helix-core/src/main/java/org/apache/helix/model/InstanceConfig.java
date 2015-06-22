@@ -207,7 +207,12 @@ public class InstanceConfig extends HelixProperty {
    * @return a list of partition names
    */
   public List<String> getDisabledPartitions() {
-    return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    List<String> disabledPartitions =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    if (disabledPartitions == null) {
+      disabledPartitions = Collections.emptyList();
+    }
+    return disabledPartitions;
   }
 
   /**
@@ -286,7 +291,10 @@ public class InstanceConfig extends HelixProperty {
       for (String simpleField : _record.getSimpleFields().keySet()) {
         Optional<InstanceConfigProperty> enumField =
             Enums.getIfPresent(InstanceConfigProperty.class, simpleField);
-        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()) {
+        Optional<HelixPropertyAttribute> superEnumField =
+            Enums.getIfPresent(HelixPropertyAttribute.class, simpleField);
+        if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "") && !enumField.isPresent()
+            && !superEnumField.isPresent()) {
           userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
         }
       }
@@ -305,7 +313,7 @@ public class InstanceConfig extends HelixProperty {
         }
       }
     } catch (NoSuchMethodError e) {
-      LOG.error("Could not parse InstanceConfig", e);
+      LOG.error("Could not parse InstanceConfig for additional user config");
     }
     return userConfig;
   }

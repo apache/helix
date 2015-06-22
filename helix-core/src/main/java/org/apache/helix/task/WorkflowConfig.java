@@ -20,6 +20,8 @@ package org.apache.helix.task;
  */
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 
@@ -34,6 +36,7 @@ public class WorkflowConfig {
   public static final String START_TIME = "StartTime";
   public static final String RECURRENCE_UNIT = "RecurrenceUnit";
   public static final String RECURRENCE_INTERVAL = "RecurrenceInterval";
+  public static final String TERMINABLE = "Terminable";
 
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
@@ -47,13 +50,15 @@ public class WorkflowConfig {
   private final JobDag _jobDag;
   private final TargetState _targetState;
   private final long _expiry;
+  private final boolean _terminable;
   private final ScheduleConfig _scheduleConfig;
 
-  private WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry,
+  protected WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry, boolean terminable,
       ScheduleConfig scheduleConfig) {
     _jobDag = jobDag;
     _targetState = targetState;
     _expiry = expiry;
+    _terminable = terminable;
     _scheduleConfig = scheduleConfig;
   }
 
@@ -69,29 +74,63 @@ public class WorkflowConfig {
     return _expiry;
   }
 
+  public boolean isTerminable() {
+    return _terminable;
+  }
+
   public ScheduleConfig getScheduleConfig() {
     return _scheduleConfig;
+  }
+
+  public Map<String, String> getResourceConfigMap() throws Exception {
+    Map<String, String> cfgMap = new HashMap<String, String>();
+    cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
+    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(getExpiry()));
+    cfgMap.put(WorkflowConfig.TARGET_STATE, getTargetState().name());
+    cfgMap.put(WorkflowConfig.TERMINABLE, String.valueOf(isTerminable()));
+
+    // Populate schedule if present
+    ScheduleConfig scheduleConfig = getScheduleConfig();
+    if (scheduleConfig != null) {
+      Date startTime = scheduleConfig.getStartTime();
+      if (startTime != null) {
+        String formattedTime = WorkflowConfig.DEFAULT_DATE_FORMAT.format(startTime);
+        cfgMap.put(WorkflowConfig.START_TIME, formattedTime);
+      }
+      if (scheduleConfig.isRecurring()) {
+        cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, scheduleConfig.getRecurrenceUnit().toString());
+        cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, scheduleConfig.getRecurrenceInterval()
+            .toString());
+      }
+    }
+    return cfgMap;
   }
 
   public static class Builder {
     private JobDag _taskDag = JobDag.EMPTY_DAG;
     private TargetState _targetState = TargetState.START;
     private long _expiry = DEFAULT_EXPIRY;
+    private boolean _isTerminable = true;
     private ScheduleConfig _scheduleConfig;
 
     public WorkflowConfig build() {
       validate();
 
-      return new WorkflowConfig(_taskDag, _targetState, _expiry, _scheduleConfig);
+      return new WorkflowConfig(_taskDag, _targetState, _expiry, _isTerminable, _scheduleConfig);
     }
 
-    public Builder setTaskDag(JobDag v) {
+    public Builder setJobDag(JobDag v) {
       _taskDag = v;
       return this;
     }
 
     public Builder setExpiry(long v) {
       _expiry = v;
+      return this;
+    }
+
+    public Builder setTerminable(boolean isTerminable) {
+      _isTerminable = isTerminable;
       return this;
     }
 
@@ -114,10 +153,13 @@ public class WorkflowConfig {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
       }
       if (cfg.containsKey(DAG)) {
-        b.setTaskDag(JobDag.fromJson(cfg.get(DAG)));
+        b.setJobDag(JobDag.fromJson(cfg.get(DAG)));
       }
       if (cfg.containsKey(TARGET_STATE)) {
         b.setTargetState(TargetState.valueOf(cfg.get(TARGET_STATE)));
+      }
+      if (cfg.containsKey(TERMINABLE)) {
+        b.setTerminable(Boolean.parseBoolean(cfg.get(TERMINABLE)));
       }
 
       // Parse schedule-specific configs, if they exist

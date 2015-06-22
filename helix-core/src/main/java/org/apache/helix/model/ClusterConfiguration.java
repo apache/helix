@@ -29,6 +29,8 @@ import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Enums;
+import com.google.common.base.Optional;
 import com.google.common.collect.Maps;
 
 /**
@@ -86,8 +88,11 @@ public class ClusterConfiguration extends HelixProperty {
     UserConfig userConfig = UserConfig.from(this);
     try {
       for (String simpleField : _record.getSimpleFields().keySet()) {
+        Optional<HelixPropertyAttribute> superEnumField =
+            Enums.getIfPresent(HelixPropertyAttribute.class, simpleField);
         if (!simpleField.contains(NamespacedConfig.PREFIX_CHAR + "")
-            && !simpleField.equals(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN)) {
+            && !simpleField.equals(ZKHelixManager.ALLOW_PARTICIPANT_AUTO_JOIN)
+            && !superEnumField.isPresent()) {
           userConfig.setSimpleField(simpleField, _record.getSimpleField(simpleField));
         }
       }
@@ -134,10 +139,11 @@ public class ClusterConfiguration extends HelixProperty {
    * @param userConfig user-defined configuration properties
    * @return ClusterConfiguration
    */
-  public static ClusterConfiguration from(UserConfig userConfig) {
-    ClusterConfiguration clusterConfiguration =
-        new ClusterConfiguration(ClusterId.from(userConfig.getId()));
-    clusterConfiguration.addNamespacedConfig(userConfig);
+  public static ClusterConfiguration from(ClusterId clusterId, UserConfig userConfig) {
+    ClusterConfiguration clusterConfiguration = new ClusterConfiguration(clusterId);
+    if (userConfig != null) {
+      clusterConfiguration.addNamespacedConfig(userConfig);
+    }
     return clusterConfiguration;
   }
 }

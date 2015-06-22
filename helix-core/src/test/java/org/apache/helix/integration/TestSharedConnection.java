@@ -25,6 +25,7 @@ import java.util.Map;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConnection;
 import org.apache.helix.HelixController;
+import org.apache.helix.HelixManager;
 import org.apache.helix.HelixParticipant;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.State;
@@ -33,7 +34,7 @@ import org.apache.helix.api.id.ControllerId;
 import org.apache.helix.api.id.ParticipantId;
 import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.manager.zk.ZkHelixLeaderElection;
 import org.apache.helix.model.IdealState;
@@ -180,7 +181,7 @@ public class TestSharedConnection extends ZkTestBase {
     // Now verify that exactly one is leader
     int leaderCount = 0;
     for (HelixController controller : controllers) {
-      HelixConnectionAdaptor adaptor = new HelixConnectionAdaptor(controller);
+      HelixManager adaptor = new ZKHelixManager(controller);
       boolean result = ZkHelixLeaderElection.tryUpdateController(adaptor);
       if (result) {
         leaderCount++;

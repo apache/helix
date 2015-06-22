@@ -24,8 +24,10 @@ import java.util.Date;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.mock.participant.MockMSModelFactory;
@@ -57,7 +59,7 @@ public class TestBatchMessageWrapper extends ZkTestBase {
 
   class TestMockMSModelFactory extends MockMSModelFactory {
     @Override
-    public BatchMessageWrapper createBatchMessageWrapper(String resourceName) {
+    public BatchMessageWrapper createBatchMessageWrapper(ResourceId resource) {
       return new MockBatchMsgWrapper();
     }
   }
@@ -88,19 +90,19 @@ public class TestBatchMessageWrapper extends ZkTestBase {
     idealState.setBatchMessageMode(true);
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     TestMockMSModelFactory[] ftys = new TestMockMSModelFactory[n];
 
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
       ftys[i] = new TestMockMSModelFactory();
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
-      participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", ftys[i]);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
+      participants[i].getStateMachineEngine().registerStateModelFactory(StateModelDefId.MasterSlave, ftys[i]);
       participants[i].syncStart();
 
       // wait for each participant to complete state transitions, so we have deterministic results
@@ -117,7 +119,7 @@ public class TestBatchMessageWrapper extends ZkTestBase {
     }
 
     // check batch-msg-wrapper counts
-    MockBatchMsgWrapper wrapper = (MockBatchMsgWrapper) ftys[0].getBatchMessageWrapper("TestDB0");
+    MockBatchMsgWrapper wrapper = (MockBatchMsgWrapper) ftys[0].getBatchMessageWrapper(ResourceId.from("TestDB0"));
     // System.out.println("startCount: " + wrapper._startCount);
     Assert.assertEquals(wrapper._startCount, 3,
         "Expect 3 batch.start: O->S, S->M, and M->S for 1st participant");
@@ -125,7 +127,7 @@ public class TestBatchMessageWrapper extends ZkTestBase {
     Assert.assertEquals(wrapper._endCount, 3,
         "Expect 3 batch.end: O->S, S->M, and M->S for 1st participant");
 
-    wrapper = (MockBatchMsgWrapper) ftys[1].getBatchMessageWrapper("TestDB0");
+    wrapper = (MockBatchMsgWrapper) ftys[1].getBatchMessageWrapper(ResourceId.from("TestDB0"));
     // System.out.println("startCount: " + wrapper._startCount);
     Assert.assertEquals(wrapper._startCount, 2,
         "Expect 2 batch.start: O->S and S->M for 2nd participant");

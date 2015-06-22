@@ -23,10 +23,9 @@ import java.util.Date;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -47,15 +46,15 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, "localhost", "TestDB", 1, 20, 5, 3,
         "MasterSlave", true);
 
-    MockParticipantManager[] participants = new MockParticipantManager[5];
+    MockParticipant[] participants = new MockParticipant[5];
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     boolean result;
@@ -65,7 +64,7 @@ public class TestStandAloneCMSessionExpiry extends ZkTestBase {
     Assert.assertTrue(result);
 
     // participant session expiry
-    MockParticipantManager participantToExpire = participants[1];
+    MockParticipant participantToExpire = participants[1];
 
     System.out.println("Expire participant session");
     String oldSessionId = participantToExpire.getSessionId();

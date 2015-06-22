@@ -30,11 +30,12 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.api.id.StateModelDefId;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.TestTaskRebalancerStopResume.ReindexTask;
+import org.apache.helix.manager.zk.MockController;
+import org.apache.helix.manager.zk.MockParticipant;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.ScheduleConfig;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
@@ -63,8 +64,8 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
   private static final int n = 5;
   private static final int START_PORT = 12918;
   private final String CLUSTER_NAME = "TestIndependentTaskRebalancer";
-  private final MockParticipantManager[] _participants = new MockParticipantManager[n];
-  private ClusterControllerManager _controller;
+  private final MockParticipant[] _participants = new MockParticipant[n];
+  private MockController _controller;
   private Set<String> _invokedClasses = Sets.newHashSet();
   private Map<String, Integer> _runCounts = Maps.newHashMap();
 
@@ -103,8 +104,14 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
           return new TaskTwo(context, instanceName);
         }
       });
+      taskFactoryReg.put("SingleFailTask", new TaskFactory() {
+        @Override
+        public Task createNewTask(TaskCallbackContext context) {
+          return new SingleFailTask();
+        }
+      });
 
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -115,7 +122,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
 
     // Start controller
     String controllerName = "controller_0";
-    _controller = new ClusterControllerManager(_zkaddr, CLUSTER_NAME, controllerName);
+    _controller = new MockController(_zkaddr, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     // Start an admin connection
@@ -146,7 +153,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -174,7 +181,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.FAILURE_THRESHOLD, "" + 1);
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -201,7 +208,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -230,7 +237,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
         + (NUM_INSTANCES - 1)); // this ensures that every instance gets one chance
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -260,7 +267,7 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobConfigMap(jobName, jobConfigMap);
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
     long inFiveSeconds = System.currentTimeMillis() + (5 * 1000);
     workflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(inFiveSeconds)));
     _driver.start(workflowBuilder.build());
@@ -276,6 +283,33 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, jobName);
     long startTime = workflowCtx.getStartTime();
     Assert.assertTrue((startTime + 1000) >= inFiveSeconds);
+  }
+
+  @Test
+  public void testDelayedRetry() throws Exception {
+    // Create a single job with single task, set retry delay
+    int delay = 3000;
+    String jobName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+    Map<String, String> taskConfigMap = Maps.newHashMap();
+    TaskConfig taskConfig1 = new TaskConfig("SingleFailTask", taskConfigMap, false);
+    taskConfigs.add(taskConfig1);
+    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
+    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
+    workflowBuilder.addConfig(jobName, JobConfig.TASK_RETRY_DELAY, String.valueOf(delay));
+    Map<String, String> jobConfigMap = Maps.newHashMap();
+    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    SingleFailTask.hasFailed = false;
+    _driver.start(workflowBuilder.build());
+
+    // Ensure completion
+    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+
+    // Ensure a single retry happened
+    JobContext jobCtx = TaskUtil.getJobContext(_manager, jobName + "_" + jobName);
+    Assert.assertEquals(jobCtx.getPartitionNumAttempts(0), 2);
+    Assert.assertTrue(jobCtx.getFinishTime() - jobCtx.getStartTime() >= delay);
   }
 
   private class TaskOne extends ReindexTask {
@@ -324,6 +358,23 @@ public class TestIndependentTaskRebalancer extends ZkTestBase {
   private class TaskTwo extends TaskOne {
     public TaskTwo(TaskCallbackContext context, String instanceName) {
       super(context, instanceName);
+    }
+  }
+
+  private static class SingleFailTask implements Task {
+    public static boolean hasFailed = false;
+
+    @Override
+    public TaskResult run() {
+      if (!hasFailed) {
+        hasFailed = true;
+        return new TaskResult(Status.ERROR, null);
+      }
+      return new TaskResult(Status.COMPLETED, null);
+    }
+
+    @Override
+    public void cancel() {
     }
   }
 }

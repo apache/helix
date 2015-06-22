@@ -29,17 +29,18 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.HelixConnection;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixRole;
 import org.apache.helix.InstanceType;
 import org.apache.helix.api.Cluster;
 import org.apache.helix.api.Participant;
-import org.apache.helix.api.RunningInstance;
 import org.apache.helix.api.accessor.ClusterAccessor;
 import org.apache.helix.api.config.ContainerConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.Id;
-import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.manager.zk.ZKHelixManager;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ApplicationSpecFactory;
 import org.apache.helix.provisioning.HelixYarnUtil;
@@ -82,7 +83,7 @@ public class JobRunnerMain {
     final HelixConnection connection = launcher.pollForConnection();
     final ClusterId clusterId = ClusterId.from(appSpec.getAppName());
     // TODO: this is a hack -- TaskDriver should accept a connection instead of a manager
-    HelixManager manager = new HelixConnectionAdaptor(new HelixRole() {
+    HelixManager manager = new ZKHelixManager(new HelixRole() {
       @Override
       public HelixConnection getConnection() {
         return connection;
@@ -105,6 +106,11 @@ public class JobRunnerMain {
 
       @Override
       public ClusterMessagingService getMessagingService() {
+        return null;
+      }
+
+      @Override
+      public HelixDataAccessor getAccessor() {
         return null;
       }
     });
@@ -138,8 +144,8 @@ public class JobRunnerMain {
                 + containerConfig.getState());
           }
           if (participant.isAlive()) {
-            RunningInstance runningInstance = participant.getRunningInstance();
-            System.out.println("\tProcess: " + runningInstance.getPid());
+            LiveInstance runningInstance = participant.getLiveInstance();
+            System.out.println("\tProcess: " + runningInstance.getProcessId());
           }
         }
         System.out.println("----------------");

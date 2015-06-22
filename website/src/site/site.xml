@@ -65,18 +65,28 @@
     </menu>
 
     <menu name="Documentation">
-      <item name="0.6.3 (stable)" href="./0.6.3-docs/index.html"/>
+      <item name="0.6.4 (stable)" href="./0.6.4-docs/index.html"/>
+      <item name="0.6.5 (stable)" href="./0.6.5-docs/index.html"/>
+      <item name="0.7.1 (beta)" href="./0.7.1-docs/index.html"/>
+      <item name="0.6.3" href="./0.6.3-docs/index.html"/>
       <item name="0.7.0-incubating (alpha)" href="./0.7.0-incubating-docs/index.html"/>
       <item name="0.6.2-incubating" href="./0.6.2-incubating-docs/index.html"/>
       <item name="0.6.1-incubating" href="./0.6.1-incubating-docs/index.html"/>
       <item name="trunk" href="./trunk-docs/index.html"/>
     </menu>
 
-    <menu name="Helix 0.6.3">
-      <item name="Documentation" href="./0.6.3-docs/index.html"/>
-      <item name="Quick Start" href="./0.6.3-docs/Quickstart.html"/>
-      <item name="Tutorial" href="./0.6.3-docs/Tutorial.html"/>
-      <item name="Download" href="./0.6.3-docs/download.html"/>
+    <menu name="Helix 0.6.5">
+      <item name="Documentation" href="./0.6.5-docs/index.html"/>
+      <item name="Quick Start" href="./0.6.5-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.6.5-docs/Tutorial.html"/>
+      <item name="Download" href="./0.6.5-docs/download.html"/>
+    </menu>
+
+    <menu name="Helix 0.7.1 (beta)">
+      <item name="Documentation" href="./0.7.1-docs/index.html"/>
+      <item name="Quick Start" href="./0.7.1-docs/Quickstart.html"/>
+      <item name="Tutorial" href="./0.7.1-docs/Tutorial.html"/>
+      <item name="Download" href="./0.7.1-docs/download.html"/>
     </menu>
 
     <menu name="Get Involved">
@@ -133,7 +143,7 @@
       <slogan>A cluster management framework for partitioned and replicated distributed resources</slogan>
       <bottomNav>
         <column>Learn</column>
-        <column>Documentation|Helix 0.6.3</column>
+        <column>Documentation|Helix 0.6.5|Helix 0.7.1 (beta)</column>
         <column>Get Involved</column>
         <column>ASF</column>
       </bottomNav>

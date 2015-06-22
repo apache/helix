@@ -23,8 +23,8 @@ import java.util.Date;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.integration.manager.ClusterDistributedController;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockMultiClusterController;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.testutil.ZkTestBase;
@@ -49,8 +49,8 @@ public class TestAddClusterV2 extends ZkTestBase {
 
   protected static final String TEST_DB = "TestDB";
 
-  MockParticipantManager[] _participants = new MockParticipantManager[NODE_NR];
-  ClusterDistributedController[] _distControllers = new ClusterDistributedController[NODE_NR];
+  MockParticipant[] _participants = new MockParticipant[NODE_NR];
+  MockMultiClusterController[] _multiClusterControllers = new MockMultiClusterController[NODE_NR];
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -90,16 +90,16 @@ public class TestAddClusterV2 extends ZkTestBase {
     // start dummy participants for the first cluster
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = "localhost_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(_zkaddr, firstCluster, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, firstCluster, instanceName);
       _participants[i].syncStart();
     }
 
-    // start distributed cluster controllers
+    // start multi-cluster controllers
     for (int i = 0; i < NODE_NR; i++) {
       String controllerName = "controller_" + i;
-      _distControllers[i] =
-          new ClusterDistributedController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
-      _distControllers[i].syncStart();
+      _multiClusterControllers[i] =
+          new MockMultiClusterController(_zkaddr, CONTROLLER_CLUSTER, controllerName);
+      _multiClusterControllers[i].syncStart();
     }
 
     verifyClusters();
@@ -135,8 +135,8 @@ public class TestAddClusterV2 extends ZkTestBase {
     String leader = getCurrentLeader(CONTROLLER_CLUSTER);
     int leaderIdx = -1;
     for (int i = 0; i < NODE_NR; i++) {
-      if (!_distControllers[i].getInstanceName().equals(leader)) {
-        _distControllers[i].syncStop();
+      if (!_multiClusterControllers[i].getInstanceName().equals(leader)) {
+        _multiClusterControllers[i].syncStop();
         verifyClusters();
       } else {
         leaderIdx = i;
@@ -144,7 +144,7 @@ public class TestAddClusterV2 extends ZkTestBase {
     }
     Assert.assertNotSame(leaderIdx, -1);
 
-    _distControllers[leaderIdx].syncStop();
+    _multiClusterControllers[leaderIdx].syncStop();
 
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].syncStop();

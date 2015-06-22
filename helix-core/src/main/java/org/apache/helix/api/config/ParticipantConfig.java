@@ -1,15 +1,5 @@
 package org.apache.helix.api.config;
 
-import java.util.HashSet;
-import java.util.Set;
-
-import org.apache.helix.api.Scope;
-import org.apache.helix.api.id.ParticipantId;
-import org.apache.helix.api.id.PartitionId;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Sets;
-
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -29,14 +19,27 @@ import com.google.common.collect.Sets;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+
+import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.id.ParticipantId;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
+
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
 /**
  * Configuration properties of a Helix participant
  */
 public class ParticipantConfig {
-  private final ParticipantId _id;
-  private final String _hostName;
-  private final int _port;
-  private final boolean _isEnabled;
+  private final InstanceConfig _instanceConfig;
   private final Set<PartitionId> _disabledPartitions;
   private final Set<String> _tags;
   private final UserConfig _userConfig;
@@ -50,15 +53,14 @@ public class ParticipantConfig {
    * @param disabledPartitions set of partitions, if any to disable on this participant
    * @param tags tags to set for the participant
    */
-  public ParticipantConfig(ParticipantId id, String hostName, int port, boolean isEnabled,
-      Set<PartitionId> disabledPartitions, Set<String> tags, UserConfig userConfig) {
-    _id = id;
-    _hostName = hostName;
-    _port = port;
-    _isEnabled = isEnabled;
-    _disabledPartitions = ImmutableSet.copyOf(disabledPartitions);
-    _tags = ImmutableSet.copyOf(tags);
-    _userConfig = userConfig;
+  private ParticipantConfig(InstanceConfig instanceConfig) {
+    _instanceConfig = instanceConfig;
+    _disabledPartitions = Sets.newHashSet();
+    for (String partitionName : instanceConfig.getDisabledPartitions()) {
+      _disabledPartitions.add(PartitionId.from(partitionName));
+    }
+    _tags = Sets.newHashSet(instanceConfig.getTags());
+    _userConfig = instanceConfig.getUserConfig();
   }
 
   /**
@@ -66,7 +68,7 @@ public class ParticipantConfig {
    * @return host name, or null if not applicable
    */
   public String getHostName() {
-    return _hostName;
+    return _instanceConfig.getHostName();
   }
 
   /**
@@ -74,7 +76,8 @@ public class ParticipantConfig {
    * @return port number, or -1 if not applicable
    */
   public int getPort() {
-    return _port;
+    return _instanceConfig.getRecord()
+        .getIntField(InstanceConfigProperty.HELIX_PORT.toString(), -1);
   }
 
   /**
@@ -82,7 +85,7 @@ public class ParticipantConfig {
    * @return true if enabled or false otherwise
    */
   public boolean isEnabled() {
-    return _isEnabled;
+    return _instanceConfig.getInstanceEnabled();
   }
 
   /**
@@ -123,34 +126,33 @@ public class ParticipantConfig {
    * @return ParticipantId
    */
   public ParticipantId getId() {
-    return _id;
+    return _instanceConfig.getParticipantId();
+  }
+
+  /**
+   * Get the physical instance config
+   * @return InstanceConfig
+   */
+  public InstanceConfig getInstanceConfig() {
+    return _instanceConfig;
   }
 
   /**
    * Update context for a ParticipantConfig
    */
   public static class Delta {
-    private enum Fields {
-      HOST_NAME,
-      PORT,
-      ENABLED,
-      USER_CONFIG
-    }
-
-    private Set<Fields> _updateFields;
-    private Set<String> _removedTags;
-    private Set<PartitionId> _removedDisabledPartitions;
-    private Builder _builder;
+    private final InstanceConfig _updatedConfig;
+    private final Set<String> _removedTags;
+    private final Set<String> _removedDisabledPartitions;
 
     /**
      * Instantiate the delta for a participant config
      * @param participantId the participant to update
      */
     public Delta(ParticipantId participantId) {
-      _updateFields = Sets.newHashSet();
+      _updatedConfig = new InstanceConfig(participantId);
       _removedTags = Sets.newHashSet();
       _removedDisabledPartitions = Sets.newHashSet();
-      _builder = new Builder(participantId);
     }
 
     /**
@@ -159,8 +161,7 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta setHostName(String hostName) {
-      _builder.hostName(hostName);
-      _updateFields.add(Fields.HOST_NAME);
+      _updatedConfig.setHostName(hostName);
       return this;
     }
 
@@ -170,8 +171,7 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta setPort(int port) {
-      _builder.port(port);
-      _updateFields.add(Fields.PORT);
+      _updatedConfig.setPort(String.valueOf(port));
       return this;
     }
 
@@ -181,8 +181,7 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta setEnabled(boolean isEnabled) {
-      _builder.enabled(isEnabled);
-      _updateFields.add(Fields.ENABLED);
+      _updatedConfig.setInstanceEnabled(isEnabled);
       return this;
     }
 
@@ -191,9 +190,8 @@ public class ParticipantConfig {
      * @param userConfig user-specified properties
      * @return Delta
      */
-    public Delta setUserConfig(UserConfig userConfig) {
-      _builder.userConfig(userConfig);
-      _updateFields.add(Fields.USER_CONFIG);
+    public Delta addUserConfig(UserConfig userConfig) {
+      _updatedConfig.addNamespacedConfig(userConfig);
       return this;
     }
 
@@ -203,7 +201,8 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta addTag(String tag) {
-      _builder.addTag(tag);
+      _updatedConfig.addTag(tag);
+      _removedTags.remove(tag);
       return this;
     }
 
@@ -214,6 +213,7 @@ public class ParticipantConfig {
      */
     public Delta removeTag(String tag) {
       _removedTags.add(tag);
+      _updatedConfig.removeTag(tag);
       return this;
     }
 
@@ -223,7 +223,7 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta addDisabledPartition(PartitionId partitionId) {
-      _builder.addDisabledPartition(partitionId);
+      _updatedConfig.setParticipantEnabledForPartition(partitionId, false);
       return this;
     }
 
@@ -233,50 +233,50 @@ public class ParticipantConfig {
      * @return Delta
      */
     public Delta removeDisabledPartition(PartitionId partitionId) {
-      _removedDisabledPartitions.add(partitionId);
+      _removedDisabledPartitions.add(partitionId.stringify());
       return this;
     }
 
     /**
-     * Create a ParticipantConfig that is the combination of an existing ParticipantConfig and this
-     * delta
-     * @param orig the original ParticipantConfig
-     * @return updated ParticipantConfig
+     * Merge the participant delta in using a physical accessor
+     * @param accessor the physical accessor
      */
-    public ParticipantConfig mergeInto(ParticipantConfig orig) {
-      ParticipantConfig deltaConfig = _builder.build();
-      Builder builder =
-          new Builder(orig.getId()).hostName(orig.getHostName()).port(orig.getPort())
-              .enabled(orig.isEnabled()).userConfig(orig.getUserConfig());
-      for (Fields field : _updateFields) {
-        switch (field) {
-        case HOST_NAME:
-          builder.hostName(deltaConfig.getHostName());
-          break;
-        case PORT:
-          builder.port(deltaConfig.getPort());
-          break;
-        case ENABLED:
-          builder.enabled(deltaConfig.isEnabled());
-          break;
-        case USER_CONFIG:
-          builder.userConfig(deltaConfig.getUserConfig());
-          break;
+    public void merge(HelixDataAccessor accessor) {
+      // Update the InstanceConfig but in place so that tags and disabled partitions can be
+      // added/removed
+      DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+        @Override
+        public ZNRecord update(ZNRecord currentData) {
+          currentData.getSimpleFields().putAll(_updatedConfig.getRecord().getSimpleFields());
+          if (!_updatedConfig.getTags().isEmpty() || _removedTags.isEmpty()) {
+            List<String> tags =
+                currentData.getListField(InstanceConfigProperty.TAG_LIST.toString());
+            if (tags != null) {
+              tags.addAll(_updatedConfig.getTags());
+              tags.removeAll(_removedTags);
+              currentData.setListField(InstanceConfigProperty.TAG_LIST.toString(), tags);
+            }
+          }
+          if (!_updatedConfig.getDisabledPartitions().isEmpty()
+              || _removedDisabledPartitions.isEmpty()) {
+            List<String> disabledPartitions =
+                currentData
+                    .getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+            if (disabledPartitions != null) {
+              disabledPartitions.addAll(_updatedConfig.getDisabledPartitions());
+              disabledPartitions.removeAll(_removedDisabledPartitions);
+              currentData.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(),
+                  disabledPartitions);
+            }
+          }
+          return currentData;
         }
-      }
-      Set<String> tags = Sets.newHashSet(orig.getTags());
-      tags.addAll(deltaConfig.getTags());
-      tags.removeAll(_removedTags);
-      for (String tag : tags) {
-        builder.addTag(tag);
-      }
-      Set<PartitionId> disabledPartitions = Sets.newHashSet(orig.getDisabledPartitions());
-      disabledPartitions.addAll(deltaConfig.getDisabledPartitions());
-      disabledPartitions.removeAll(_removedDisabledPartitions);
-      for (PartitionId partitionId : disabledPartitions) {
-        builder.addDisabledPartition(partitionId);
-      }
-      return builder.build();
+      };
+      List<String> paths =
+          Arrays.asList(accessor.keyBuilder().instanceConfig(_updatedConfig.getId()).getPath());
+      List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
+      updaters.add(updater);
+      accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     }
   }
 
@@ -284,24 +284,14 @@ public class ParticipantConfig {
    * Assemble a participant
    */
   public static class Builder {
-    private final ParticipantId _id;
-    private String _hostName;
-    private int _port;
-    private boolean _isEnabled;
-    private final Set<PartitionId> _disabledPartitions;
-    private final Set<String> _tags;
-    private UserConfig _userConfig;
+    private final InstanceConfig _instanceConfig;
 
     /**
      * Build a participant with a given id
      * @param id participant id
      */
     public Builder(ParticipantId id) {
-      _id = id;
-      _disabledPartitions = new HashSet<PartitionId>();
-      _tags = new HashSet<String>();
-      _isEnabled = true;
-      _userConfig = new UserConfig(Scope.participant(id));
+      _instanceConfig = new InstanceConfig(id);
     }
 
     /**
@@ -310,7 +300,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder hostName(String hostName) {
-      _hostName = hostName;
+      _instanceConfig.setHostName(hostName);
       return this;
     }
 
@@ -320,7 +310,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder port(int port) {
-      _port = port;
+      _instanceConfig.setPort(String.valueOf(port));
       return this;
     }
 
@@ -330,7 +320,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder enabled(boolean isEnabled) {
-      _isEnabled = isEnabled;
+      _instanceConfig.setInstanceEnabled(isEnabled);
       return this;
     }
 
@@ -340,7 +330,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder addDisabledPartition(PartitionId partitionId) {
-      _disabledPartitions.add(partitionId);
+      _instanceConfig.setInstanceEnabledForPartition(partitionId.toString(), false);
       return this;
     }
 
@@ -350,7 +340,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder addTag(String tag) {
-      _tags.add(tag);
+      _instanceConfig.addTag(tag);
       return this;
     }
 
@@ -360,7 +350,7 @@ public class ParticipantConfig {
      * @return Builder
      */
     public Builder userConfig(UserConfig userConfig) {
-      _userConfig = userConfig;
+      _instanceConfig.addNamespacedConfig(userConfig);
       return this;
     }
 
@@ -369,8 +359,16 @@ public class ParticipantConfig {
      * @return instantiated Participant
      */
     public ParticipantConfig build() {
-      return new ParticipantConfig(_id, _hostName, _port, _isEnabled, _disabledPartitions, _tags,
-          _userConfig);
+      return new ParticipantConfig(_instanceConfig);
     }
+  }
+
+  /**
+   * Get a participant config from a physical instance config
+   * @param instanceConfig the populated config
+   * @return ParticipantConfig instance
+   */
+  public static ParticipantConfig from(InstanceConfig instanceConfig) {
+    return new ParticipantConfig(instanceConfig);
   }
 }

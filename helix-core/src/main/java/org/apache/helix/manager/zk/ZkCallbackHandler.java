@@ -37,7 +37,6 @@ import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
 import org.apache.helix.ExternalViewChangeListener;
@@ -68,18 +67,14 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
 /**
- * This is a copy of {@link CallbackHandler} We need to synchronize on ZkHelixConnection
- * instead ofHelixManager to avoid dead-lock.
- * Otherwise an example deadlock scenario would be:
+ * We need to synchronize on {@link ZkHelixConnection} instead of {@link HelixManager} to avoid
+ * dead-lock. Otherwise an example deadlock scenario would be:
  * 1) main-thread calls ZkHelixConnection#disconnect(), results in:
  * - ZkHelixController#reset(), holding ZkHelixConnection, waiting HelixConnectionAdaptor
  * 2) zk-event-thread calls CallbackHandler#handleChildChange(), results in:
  * - CallbackHandler#invoke(), holding HelixConnectionAdaptor, waiting ZkHelixConnection
- * TODO remove code duplication
  */
-public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
-
-{
+public class ZkCallbackHandler implements IZkChildListener, IZkDataListener {
   private static Logger logger = Logger.getLogger(ZkCallbackHandler.class);
 
   /**
@@ -121,7 +116,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
     }
 
     _role = role;
-    _manager = new HelixConnectionAdaptor(role);
+    _manager = new ZKHelixManager(role);
     _instanceName = role.getId().stringify();
     _connection = role.getConnection();
     _accessor = _connection.createDataAccessor(role.getClusterId());
@@ -171,15 +166,10 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
 
       } else if (_changeType == ChangeType.INSTANCE_CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
-        if (_listener instanceof ConfigChangeListener) {
-          ConfigChangeListener configChangeListener = (ConfigChangeListener) _listener;
-          List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
-          configChangeListener.onConfigChange(configs, changeContext);
-        } else if (_listener instanceof InstanceConfigChangeListener) {
-          InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
-          List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
-          listener.onInstanceConfigChange(configs, changeContext);
-        }
+        InstanceConfigChangeListener listener = (InstanceConfigChangeListener) _listener;
+        List<InstanceConfig> configs = _accessor.getChildValues(_propertyKey);
+        listener.onInstanceConfigChange(configs, changeContext);
+
       } else if (_changeType == CONFIG) {
         subscribeForChanges(changeContext, _path, true, true);
         ScopedConfigChangeListener listener = (ScopedConfigChangeListener) _listener;
@@ -342,6 +332,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.INIT);
+      changeContext.setPathChanged(_path);
       invoke(changeContext);
     } catch (Exception e) {
       String msg = "Exception while invoking init callback for listener:" + _listener;
@@ -356,6 +347,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
       if (dataPath != null && dataPath.startsWith(_path)) {
         NotificationContext changeContext = new NotificationContext(_manager);
         changeContext.setType(NotificationContext.Type.CALLBACK);
+        changeContext.setPathChanged(_path);
         invoke(changeContext);
       }
     } catch (Exception e) {
@@ -409,6 +401,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
         } else {
           changeContext.setType(NotificationContext.Type.CALLBACK);
         }
+        changeContext.setPathChanged(_path);
         invoke(changeContext);
       }
     } catch (Exception e) {
@@ -426,6 +419,7 @@ public class ZkCallbackHandler implements IZkChildListener, IZkDataListener
     try {
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.FINALIZE);
+      changeContext.setPathChanged(_path);
       invoke(changeContext);
     } catch (Exception e) {
       String msg = "Exception while resetting the listener:" + _listener;

@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.commons.cli.CommandLine;
@@ -46,9 +47,12 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -74,12 +78,13 @@ public class TaskDriver {
   private final String _clusterName;
 
   /** Commands which may be parsed from the first argument to main */
-  private enum DriverCommand {
+  public enum DriverCommand {
     start,
     stop,
     delete,
     resume,
-    list
+    list,
+    flush
   }
 
   public TaskDriver(HelixManager manager) {
@@ -122,16 +127,19 @@ public class TaskDriver {
         }
         break;
       case stop:
-        driver.setTaskTargetState(resource, TargetState.STOP);
+        driver.setWorkflowTargetState(resource, TargetState.STOP);
         break;
       case resume:
-        driver.setTaskTargetState(resource, TargetState.START);
+        driver.setWorkflowTargetState(resource, TargetState.START);
         break;
       case delete:
-        driver.setTaskTargetState(resource, TargetState.DELETE);
+        driver.setWorkflowTargetState(resource, TargetState.DELETE);
         break;
       case list:
         driver.list(resource);
+        break;
+      case flush:
+        driver.flushQueue(resource);
         break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
@@ -153,10 +161,10 @@ public class TaskDriver {
     String flowName = flow.getName();
 
     // first, add workflow config to ZK
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flowName),
-        flow.getResourceConfigMap());
+    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flowName), flow
+        .getWorkflowConfig().getResourceConfigMap());
 
-    // then schedule tasks
+    // then schedule jobs
     for (String job : flow.getJobConfigs().keySet()) {
       JobConfig.Builder builder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
       if (flow.getTaskConfigs() != null && flow.getTaskConfigs().containsKey(job)) {
@@ -164,6 +172,253 @@ public class TaskDriver {
       }
       scheduleJob(job, builder.build());
     }
+  }
+
+  /** Creates a new named job queue (workflow) */
+  public void createQueue(JobQueue queue) throws Exception {
+    String queueName = queue.getName();
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    HelixProperty property = new HelixProperty(queueName);
+    property.getRecord().getSimpleFields().putAll(queue.getResourceConfigMap());
+    boolean created =
+        accessor.createProperty(accessor.keyBuilder().resourceConfig(queueName), property);
+    if (!created) {
+      throw new IllegalArgumentException("Queue " + queueName + " already exists!");
+    }
+  }
+
+  /** Flushes a named job queue */
+  public void flushQueue(String queueName) throws Exception {
+    WorkflowConfig config = TaskUtil.getWorkflowCfg(_manager, queueName);
+    if (config == null) {
+      throw new IllegalArgumentException("Queue does not exist!");
+    }
+
+    // Remove all ideal states and resource configs to trigger a drop event
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    final Set<String> toRemove = Sets.newHashSet(config.getJobDag().getAllNodes());
+    for (String resourceName : toRemove) {
+      accessor.removeProperty(keyBuilder.idealStates(resourceName));
+      accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
+      // Delete context
+      String contextKey = Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName);
+      _manager.getHelixPropertyStore().remove(contextKey, AccessOption.PERSISTENT);
+    }
+
+    // Now atomically clear the DAG
+    String path = keyBuilder.resourceConfig(queueName).getPath();
+    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        for (String resourceName : toRemove) {
+          for (String child : jobDag.getDirectChildren(resourceName)) {
+            jobDag.getChildrenToParents().get(child).remove(resourceName);
+          }
+          for (String parent : jobDag.getDirectParents(resourceName)) {
+            jobDag.getParentsToChildren().get(parent).remove(resourceName);
+          }
+          jobDag.getChildrenToParents().remove(resourceName);
+          jobDag.getParentsToChildren().remove(resourceName);
+          jobDag.getAllNodes().remove(resourceName);
+        }
+        try {
+          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+        } catch (Exception e) {
+          throw new IllegalArgumentException(e);
+        }
+        return currentData;
+      }
+    };
+    accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+
+    // Now atomically clear the results
+    path =
+        Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
+    updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
+        if (states != null) {
+          states.keySet().removeAll(toRemove);
+        }
+        return currentData;
+      }
+    };
+    _manager.getHelixPropertyStore().update(path, updater, AccessOption.PERSISTENT);
+  }
+
+  /** Delete a job from an existing named queue, the queue has to be stopped prior to this call */
+  public void deleteJob(final String queueName, final String jobName) {
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    HelixProperty workflowConfig =
+        accessor.getProperty(accessor.keyBuilder().resourceConfig(queueName));
+    if (workflowConfig == null) {
+      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+    }
+    boolean isTerminable =
+        workflowConfig.getRecord().getBooleanField(WorkflowConfig.TERMINABLE, true);
+    if (isTerminable) {
+      throw new IllegalArgumentException(queueName + " is not a queue!");
+    }
+
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, queueName);
+    String workflowState =
+        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
+
+    if (workflowState.equals(TaskState.IN_PROGRESS)) {
+      throw new IllegalStateException("Queue " + queueName + " is still in progress!");
+    }
+
+    // Remove the job from the queue in the DAG
+    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        // Add the node to the existing DAG
+        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        Set<String> allNodes = jobDag.getAllNodes();
+        if (!allNodes.contains(namespacedJobName)) {
+          throw new IllegalStateException("Could not delete job from queue " + queueName + ", job "
+              + jobName + " not exists");
+        }
+
+        String parent = null;
+        String child = null;
+        // remove the node from the queue
+        for (String node : allNodes) {
+          if (!node.equals(namespacedJobName)) {
+            if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
+              parent = node;
+              jobDag.removeParentToChild(parent, namespacedJobName);
+            } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
+              child = node;
+              jobDag.removeParentToChild(namespacedJobName, child);
+            }
+          }
+        }
+
+        if (parent != null && child != null) {
+          jobDag.addParentToChild(parent, child);
+        }
+
+        jobDag.removeNode(namespacedJobName);
+
+        // Save the updated DAG
+        try {
+          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+        } catch (Exception e) {
+          throw new IllegalStateException("Could not remove job " + jobName + " from queue "
+              + queueName, e);
+        }
+        return currentData;
+      }
+    };
+
+    String path = accessor.keyBuilder().resourceConfig(queueName).getPath();
+    boolean status = accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+    if (!status) {
+      throw new IllegalArgumentException("Could not enqueue job");
+    }
+
+    // delete the ideal state and resource config for the job
+    _admin.dropResource(_clusterName, namespacedJobName);
+
+    // update queue's property to remove job from JOB_STATES if it is already started.
+    String queuePropertyPath =
+        Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
+    updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        if (currentData != null) {
+          Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
+          if (states != null && states.containsKey(namespacedJobName)) {
+            states.keySet().remove(namespacedJobName);
+          }
+        }
+        return currentData;
+      }
+    };
+    HelixPropertyStore<ZNRecord> propertyStore = _manager.getHelixPropertyStore();
+    propertyStore.update(queuePropertyPath, updater, AccessOption.PERSISTENT);
+
+    // Delete the job from property store
+    String jobPropertyPath =
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
+    propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
+  }
+
+  /** Adds a new job to the end an existing named queue */
+  public void enqueueJob(final String queueName, final String jobName, JobConfig.Builder jobBuilder)
+      throws Exception {
+    // Get the job queue config and capacity
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    HelixProperty workflowConfig =
+        accessor.getProperty(accessor.keyBuilder().resourceConfig(queueName));
+    if (workflowConfig == null) {
+      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+    }
+    boolean isTerminable =
+        workflowConfig.getRecord().getBooleanField(WorkflowConfig.TERMINABLE, true);
+    if (isTerminable) {
+      throw new IllegalArgumentException(queueName + " is not a queue!");
+    }
+    final int capacity =
+        workflowConfig.getRecord().getIntField(JobQueue.CAPACITY, Integer.MAX_VALUE);
+
+    // Create the job to ensure that it validates
+    JobConfig jobConfig = jobBuilder.setWorkflow(queueName).build();
+
+    // Add the job to the end of the queue in the DAG
+    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+      @Override
+      public ZNRecord update(ZNRecord currentData) {
+        // Add the node to the existing DAG
+        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        Set<String> allNodes = jobDag.getAllNodes();
+        if (allNodes.size() >= capacity) {
+          throw new IllegalStateException("Queue " + queueName + " is at capacity, will not add "
+              + jobName);
+        }
+        if (allNodes.contains(namespacedJobName)) {
+          throw new IllegalStateException("Could not add to queue " + queueName + ", job "
+              + jobName + " already exists");
+        }
+        jobDag.addNode(namespacedJobName);
+
+        // Add the node to the end of the queue
+        String candidate = null;
+        for (String node : allNodes) {
+          if (!node.equals(namespacedJobName) && jobDag.getDirectChildren(node).isEmpty()) {
+            candidate = node;
+            break;
+          }
+        }
+        if (candidate != null) {
+          jobDag.addParentToChild(candidate, namespacedJobName);
+        }
+
+        // Save the updated DAG
+        try {
+          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+        } catch (Exception e) {
+          throw new IllegalStateException(
+              "Could not add job " + jobName + " to queue " + queueName, e);
+        }
+        return currentData;
+      }
+    };
+    String path = accessor.keyBuilder().resourceConfig(queueName).getPath();
+    boolean status = accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
+    if (!status) {
+      throw new IllegalArgumentException("Could not enqueue job");
+    }
+    // Schedule the job
+    scheduleJob(namespacedJobName, jobConfig);
   }
 
   /** Posts new job to cluster */
@@ -191,7 +446,7 @@ public class TaskDriver {
 
     // Push out new ideal state based on number of target partitions
     CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
-    builder.setRebalancerMode(IdealState.RebalanceMode.USER_DEFINED);
+    builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
@@ -207,38 +462,38 @@ public class TaskDriver {
     _admin.setResourceIdealState(_clusterName, jobResource, is);
   }
 
-  /** Public method to resume a job/workflow */
-  public void resume(String resource) {
-    setTaskTargetState(resource, TargetState.START);
+  /** Public method to resume a workflow/queue */
+  public void resume(String workflow) {
+    setWorkflowTargetState(workflow, TargetState.START);
   }
 
-  /** Public method to stop a job/workflow */
-  public void stop(String resource) {
-    setTaskTargetState(resource, TargetState.STOP);
+  /** Public method to stop a workflow/queue */
+  public void stop(String workflow) {
+    setWorkflowTargetState(workflow, TargetState.STOP);
   }
 
-  /** Public method to delete a job/workflow */
-  public void delete(String resource) {
-    setTaskTargetState(resource, TargetState.DELETE);
+  /** Public method to delete a workflow/queue */
+  public void delete(String workflow) {
+    setWorkflowTargetState(workflow, TargetState.DELETE);
   }
 
-  /** Helper function to change target state for a given task */
-  private void setTaskTargetState(String jobResource, TargetState state) {
-    setSingleTaskTargetState(jobResource, state);
+  /** Helper function to change target state for a given workflow */
+  private void setWorkflowTargetState(String workflowName, TargetState state) {
+    setSingleWorkflowTargetState(workflowName, state);
 
     // For recurring schedules, child workflows must also be handled
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     List<String> resources = accessor.getChildNames(accessor.keyBuilder().resourceConfigs());
+    String prefix = workflowName + "_" + TaskConstants.SCHEDULED;
     for (String resource : resources) {
-      String prefix = resource + "_" + TaskConstants.SCHEDULED;
       if (resource.startsWith(prefix)) {
-        setSingleTaskTargetState(resource, state);
+        setSingleWorkflowTargetState(resource, state);
       }
     }
   }
 
-  /** Helper function to change target state for a given task */
-  private void setSingleTaskTargetState(String jobResource, final TargetState state) {
+  /** Helper function to change target state for a given workflow */
+  private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
@@ -254,31 +509,37 @@ public class TaskDriver {
     List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
     updaters.add(updater);
     List<String> paths = Lists.newArrayList();
-    paths.add(accessor.keyBuilder().resourceConfig(jobResource).getPath());
+    paths.add(accessor.keyBuilder().resourceConfig(workflowName).getPath());
     accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
     invokeRebalance();
   }
 
   public void list(String resource) {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, resource);
+    if (wCfg == null) {
+      LOG.error("Workflow " + resource + " does not exist!");
+      return;
+    }
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_manager, resource);
 
-    System.out.println("Workflow " + resource + " consists of the following tasks: "
+    LOG.info("Workflow " + resource + " consists of the following tasks: "
         + wCfg.getJobDag().getAllNodes());
-    TaskState workflowState = wCtx.getWorkflowState();
-    if (workflowState == null) {
-      workflowState = TaskState.IN_PROGRESS;
-    }
-    System.out.println("Current state of workflow is " + wCtx.getWorkflowState().name());
-    System.out.println("Job states are: ");
-    System.out.println("-------");
+    String workflowState =
+        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
+    LOG.info("Current state of workflow is " + workflowState);
+    LOG.info("Job states are: ");
+    LOG.info("-------");
     for (String job : wCfg.getJobDag().getAllNodes()) {
-      System.out.println("Job " + job + " is " + wCtx.getJobState(job));
-      System.out.println("-------");
+      TaskState jobState = (wCtx != null) ? wCtx.getJobState(job) : TaskState.NOT_STARTED;
+      LOG.info("Job " + job + " is " + jobState);
 
-      // fetch task information
+      // fetch job information
       JobConfig jCfg = TaskUtil.getJobCfg(_manager, job);
       JobContext jCtx = TaskUtil.getJobContext(_manager, job);
+      if (jCfg == null || jCtx == null) {
+        LOG.info("-------");
+        continue;
+      }
 
       // calculate taskPartitions
       List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
@@ -288,39 +549,21 @@ public class TaskDriver {
       for (Integer partition : partitions) {
         String taskId = jCtx.getTaskIdForPartition(partition);
         taskId = (taskId != null) ? taskId : jCtx.getTargetForPartition(partition);
-        System.out.println("Task: " + taskId);
+        LOG.info("Task: " + taskId);
         TaskConfig taskConfig = jCfg.getTaskConfig(taskId);
         if (taskConfig != null) {
-          System.out.println("Configuration: " + taskConfig.getConfigMap());
+          LOG.info("Configuration: " + taskConfig.getConfigMap());
         }
         TaskPartitionState state = jCtx.getPartitionState(partition);
-        if (state == null) {
-          state = TaskPartitionState.INIT;
-        }
-        System.out.println("State: " + state);
+        state = (state != null) ? state : TaskPartitionState.INIT;
+        LOG.info("State: " + state);
         String assignedParticipant = jCtx.getAssignedParticipant(partition);
         if (assignedParticipant != null) {
-          System.out.println("Assigned participant: " + assignedParticipant);
+          LOG.info("Assigned participant: " + assignedParticipant);
         }
-        System.out.println("-------");
+        LOG.info("-------");
       }
-
-      // group partitions by status
-      /*
-       * Map<TaskPartitionState, Integer> statusCount = new TreeMap<TaskPartitionState, Integer>();
-       * for (Integer i : partitions) {
-       * TaskPartitionState s = jCtx.getPartitionState(i);
-       * if (!statusCount.containsKey(s)) {
-       * statusCount.put(s, 0);
-       * }
-       * statusCount.put(s, statusCount.get(s) + 1);
-       * }
-       * for (TaskPartitionState s : statusCount.keySet()) {
-       * LOG.info(statusCount.get(s) + "/" + partitions.size() + " in state " + s.name());
-       * }
-       */
-
-      System.out.println("-------");
+      LOG.info("-------");
     }
   }
 

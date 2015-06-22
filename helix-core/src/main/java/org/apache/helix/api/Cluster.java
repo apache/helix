@@ -34,6 +34,7 @@ import org.apache.helix.api.id.ResourceId;
 import org.apache.helix.api.id.SpectatorId;
 import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.controller.context.ControllerContext;
+import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.StateModelDefinition;
@@ -79,6 +80,8 @@ public class Cluster {
 
   private final ClusterConfig _config;
 
+  private final ClusterDataCache _cache;
+
   /**
    * construct a cluster
    * @param id
@@ -98,7 +101,7 @@ public class Cluster {
       ControllerId leaderId, Map<ConstraintType, ClusterConstraints> constraintMap,
       Map<StateModelDefId, StateModelDefinition> stateModelMap,
       Map<ContextId, ControllerContext> contextMap, UserConfig userConfig, boolean isPaused,
-      boolean autoJoinAllowed) {
+      boolean autoJoinAllowed, ClusterDataCache cache) {
 
     // build the config
     // Guava's transform and "copy" functions really return views so the maps all reflect each other
@@ -139,6 +142,8 @@ public class Cluster {
     _leaderId = leaderId;
 
     _contextMap = ImmutableMap.copyOf(contextMap);
+
+    _cache = cache;
 
     // TODO impl this when we persist controllers and spectators on zookeeper
     _controllerMap = ImmutableMap.copyOf(controllerMap);
@@ -252,19 +257,6 @@ public class Cluster {
   }
 
   /**
-   * Get the maximum number of participants that can be in a state
-   * @param scope the scope for the bound
-   * @param stateModelDefId the state model of the state
-   * @param state the constrained state
-   * @return The upper bound, which can be "-1" if unspecified, a numerical upper bound, "R" for
-   *         number of replicas, or "N" for number of participants
-   */
-  public String getStateUpperBoundConstraint(Scope<?> scope, StateModelDefId stateModelDefId,
-      State state) {
-    return _config.getStateUpperBoundConstraint(scope, stateModelDefId, state);
-  }
-
-  /**
    * Get the limit of simultaneous execution of a transition
    * @param scope the scope under which the transition is constrained
    * @param stateModelDefId the state model of which the transition is a part
@@ -298,5 +290,14 @@ public class Cluster {
    */
   public ClusterConfig getConfig() {
     return _config;
+  }
+
+  /**
+   * Get a ClusterDataCache object which is a flattened version of the physical properties read to
+   * build this object.
+   * @return ClusterDataCache
+   */
+  public ClusterDataCache getCache() {
+    return _cache;
   }
 }

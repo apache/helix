@@ -38,7 +38,7 @@ public class TestBasicSpectator extends ZkStandAloneCMTestBase implements
   Map<String, Integer> _externalViewChanges = new HashMap<String, Integer>();
 
   @Test
-  public void TestSpectator() throws Exception {
+  public void testSpectator() throws Exception {
     HelixManager relayHelixManager =
         HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, null, InstanceType.SPECTATOR, _zkaddr);
 

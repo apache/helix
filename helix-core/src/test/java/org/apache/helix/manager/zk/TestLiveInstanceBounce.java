@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -40,7 +39,7 @@ public class TestLiveInstanceBounce extends ZkStandAloneCMTestBase {
         e.printStackTrace();
       }
       // restart the participant
-      _participants[i] = new MockParticipantManager(_zkaddr, CLUSTER_NAME, instanceName);
+      _participants[i] = new MockParticipant(_zkaddr, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
       Thread.sleep(100);
     }

@@ -1,0 +1,258 @@
+ -----
+ Release Notes for Apache Helix 0.7.1
+ -----
+
+~~ Licensed to the Apache Software Foundation (ASF) under one
+~~ or more contributor license agreements.  See the NOTICE file
+~~ distributed with this work for additional information
+~~ regarding copyright ownership.  The ASF licenses this file
+~~ to you under the Apache License, Version 2.0 (the
+~~ "License"); you may not use this file except in compliance
+~~ with the License.  You may obtain a copy of the License at
+~~
+~~   http://www.apache.org/licenses/LICENSE-2.0
+~~
+~~ Unless required by applicable law or agreed to in writing,
+~~ software distributed under the License is distributed on an
+~~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+~~ KIND, either express or implied.  See the License for the
+~~ specific language governing permissions and limitations
+~~ under the License.
+
+~~ NOTE: For help with the syntax of this file, see:
+~~ http://maven.apache.org/guides/mini/guide-apt-format.html
+
+Release Notes for Apache Helix 0.7.1
+
+  The Apache Helix team would like to announce the release of Apache Helix 0.7.1.
+
+  This is the seventh release under the Apache umbrella, and the third as a top-level project.
+
+  Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
+
+  * Automatic assignment of resource/partition to nodes
+
+  * Node failure detection and recovery
+
+  * Dynamic addition of Resources
+
+  * Dynamic addition of nodes to the cluster
+
+  * Pluggable distributed state machine to manage the state of a resource via state transitions
+
+  * Automatic load balancing and throttling of transitions
+
+  []
+
+* Changes
+
+** Sub-task
+
+    * [HELIX-171] - handleNewSession() should wait on all left-over tasks to be cancelled successfully before start new session
+
+    * [HELIX-178] - Flapping detection
+
+    * [HELIX-311] - Run stress tests on Riemann
+
+    * [HELIX-312] - Start Riemann as a thread within an existing Java process
+
+    * [HELIX-319] - Manage monitoring configs for Helix and apps
+
+    * [HELIX-329] - HelixAutoController isn't a very clear name, consider renaming
+
+    * [HELIX-353] - Write an independent task rebalancer
+
+    * [HELIX-360] - ClusterAccessor#initClusterStructure uses (incorrect) duplicated code
+
+    * [HELIX-373] - Make it easier to do crud operations on high-level config classes
+
+    * [HELIX-374] - Rebalancer config should be a complete user-specified concept
+
+    * [HELIX-376] - Remove HelixConnection/HelixManager duplicate code
+
+    * [HELIX-389] - Unify (Cluster|Resource|Participant)Accessor classes into a single Administrator class
+
+    * [HELIX-417] - Support arbitrary-named target partitions in the task framework
+
+    * [HELIX-422] - Simplify creation of single jobs
+
+    * [HELIX-437] - Configurations at task, job, and cluster level
+
+    * [HELIX-438] - Improve task framework retry logic
+
+    * [HELIX-439] - Support thresholding for job success/failure
+
+    * [HELIX-440] - Add scheduling layer to task framework
+
+    * [HELIX-455] - Add REST API for submitting jobs
+
+    * [HELIX-458] - Evaluate task recipe in a real YARN cluster
+
+    * [HELIX-459] - Job context should include the instance that completed the job
+
+    * [HELIX-468] - TaskDriver list should be more robust
+
+    * [HELIX-477] - Some YARN container start requests fail
+
+    * [HELIX-481] - Update cluster cache when the provisioning stage updates configs
+
+    * [HELIX-482] - Support "smarter" task failure strategies
+
+    * [HELIX-483] - Simplify logical config classes
+
+    * [HELIX-484] - Remove CallbackHandler/ZkCallbackHandler code duplication
+
+    * [HELIX-485] - Remove controller leader election duplicate code
+
+    * [HELIX-486] - Remove StateModelFactory/HelixStateModelFactory code duplication
+
+    * [HELIX-492] - Task should be its own rebalance mode
+
+    * [HELIX-497] - Support named queues of jobs
+
+    * [HELIX-499] - Helix controller should listen for resource config changes
+
+    * [HELIX-501] - Skip website module in build
+
+    * [HELIX-502] - App master and containers run out of memory
+
+    * [HELIX-503] - ivy files are out of sync with dependencies
+
+    * [HELIX-506] - Ensure that tasks are not placed on targets with pending transitions
+
+** Bug
+
+    * [HELIX-132] - current-state and external-view are not cleaned up when a resource has been removed
+
+    * [HELIX-164] - need a better name for STORAGE_DEFAULT_SM_SCHEMATA state model definition
+
+    * [HELIX-320] - Some files have unresolved conflicts in comments
+
+    * [HELIX-321] - Controller forgets that it's the leader
+
+    * [HELIX-343] - fix trivial bugs
+
+    * [HELIX-345] - Speed up the controller pipelines
+
+    * [HELIX-350] - cluster status monitor should not be reset in FINALIZE type pipeline
+
+    * [HELIX-356] - add a tool for grep zk transaction/snapshot logs based on time
+
+    * [HELIX-363] - hpost-review.sh stopped working after graduation
+
+    * [HELIX-364] - Controller current state change registration fails if two participants share a connection
+
+    * [HELIX-382] - GenericHelixController should implement InstanceConfigChangeListener instead of ConfigChangeListener
+
+    * [HELIX-383] - Javadoc for HelixManager references nonexistent start() method
+
+    * [HELIX-390] - Race condition: Checking HelixManager#isConnected is unreliable
+
+    * [HELIX-394] - Shutdown GenericHelixController#_eventThread when HelixManager disconnects
+
+    * [HELIX-395] - Remove old Helix alert/stat modules
+
+    * [HELIX-398] - Some helix-core tests are running again in the helix-admin-webapp set
+
+    * [HELIX-399] - Make TestConsecutiveZkSessionExpiry less flaky
+
+    * [HELIX-413] - ClusterStateVerifier should always return true if called with 0 resources
+
+    * [HELIX-423] - Code duplication in controller leader election
+
+    * [HELIX-425] - 0.7 does not honor partition transition throttling correctly
+
+    * [HELIX-429] - Upgrade restlet to 2.2.0
+
+    * [HELIX-430] - Restlet 2.2.0 causes failures
+
+    * [HELIX-433] - Untagging may fail in FULL_AUTO mode
+
+    * [HELIX-443] - Race condition in Helix register/unregister MessageHandlerFactory
+
+    * [HELIX-445] - NPE in ZkPathDataDumpTask
+
+    * [HELIX-448] - Call onCallback for CustomCodeCallbackHandler for FINALIZE type
+
+    * [HELIX-453] - On session expiry/recovery, not all message types are re-registered
+
+    * [HELIX-464] - rabbitmq recipe is broken
+
+    * [HELIX-465] - ZkCopy skips paths already exist in destination namespace
+
+    * [HELIX-466] - Speed up zkcopy by using asyn read/write
+
+    * [HELIX-471] - ResourceMonitor never unregistered even if the resource is dropped
+
+    * [HELIX-473] - TestLocalContainerProvider is slow and flaky
+
+    * [HELIX-476] - ZNRecordStreamingSerializer.deserialize throw NullPointerException when 'id' property is not the first item in JSON
+
+    * [HELIX-491] - ZKHelixManager#waitUntilConnected() bug
+
+    * [HELIX-495] - TestPreferenceListAsQueue is flaky
+
+    * [HELIX-498] - Remove "incubator" name from the pom files
+
+** Improvement
+    * [HELIX-22] - Remove dependency on josql
+
+    * [HELIX-327] - Simplify RebalancerConfig/RebalancerContext
+
+    * [HELIX-333] - Support remove in ControllerContextProvider
+
+    * [HELIX-334] - Refactor website code
+
+    * [HELIX-335] - Minor improvements to docs, link to pyhelix
+
+    * [HELIX-344] - Add app-specific ideal state validation
+
+    * [HELIX-348] - Simplify website layout
+
+    * [HELIX-349] - Coalesce different types of callbacks
+
+    * [HELIX-381] - ClusterStateVerifier should support verifying a subset of resources
+
+    * [HELIX-396] - Make REST api for /instances parseable
+
+    * [HELIX-397] - Add tagging information to the REST GET response on /resourceGroups
+
+    * [HELIX-444] - add per-participant partition count gauges to helix
+
+    * [HELIX-446] - Remove ZkPropertyTransfer and restlet dependency from helix-core
+
+    * [HELIX-452] - Increase frequency of status update cleanup
+
+    * [HELIX-470] - Add performant IPC (Helix actors)
+
+    * [HELIX-475] - Remove code duplication for Zk tests
+
+** New Feature
+
+    * [HELIX-130] - ZkDumper should provide a copy option
+
+    * [HELIX-245] - New Recipe: Auto-Scaling with Apache Helix and Apache Hadoop YARN
+
+    * [HELIX-336] - Add support for task framework
+
+    * [HELIX-378] - Add instance gauges to ClusterStatusMonitor
+
+    * [HELIX-461] - Add a partitions without top state metric
+
+    * [HELIX-463] - Add gauges for participant and controller message queue sizes
+
+** Task
+
+    * [HELIX-347] - Write a test for restarting nodes with a paused controller
+
+    * [HELIX-377] - Ensure admin APIs work well with tagging
+
+    * [HELIX-392] - Write a test to ensure that ZK connection loss is silent
+
+    * [HELIX-427] - Write a test for using preference lists as execution queues
+
+[]
+
+Cheers,
+--
+The Apache Helix Team

@@ -21,6 +21,9 @@ package org.apache.helix.integration;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
@@ -33,6 +36,11 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.PartitionId;
+import org.apache.helix.api.id.ResourceId;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.IdealState;
@@ -41,10 +49,7 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.testutil.ZkTestBase;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
@@ -59,13 +64,17 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
   private static final int PARALLELISM = 1;
 
   private List<String> _instanceList;
+  private Queue<List<String>> _prefListHistory;
   private String _clusterName;
   private String _stateModel;
   private HelixAdmin _admin;
+  private CountDownLatch _onlineLatch;
+  private CountDownLatch _offlineLatch;
 
   @BeforeMethod
   public void beforeMethod() {
     _instanceList = Lists.newLinkedList();
+    _prefListHistory = Lists.newLinkedList();
     _admin = _setupTool.getClusterManagementTool();
 
     // Create cluster
@@ -153,8 +162,8 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
       participants[i] =
           HelixManagerFactory.getZKHelixManager(_clusterName, instanceInfoArray[i],
               InstanceType.PARTICIPANT, _zkaddr);
-      participants[i].getStateMachineEngine().registerStateModelFactory(_stateModel,
-          new PrefListTaskOnlineOfflineStateModelFactory());
+      participants[i].getStateMachineEngine().registerStateModelFactory(
+          StateModelDefId.from(_stateModel), new PrefListTaskOnlineOfflineStateModelFactory());
       participants[i].connect();
     }
 
@@ -162,6 +171,9 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
     HelixManager controller =
         HelixManagerFactory.getZKHelixManager(_clusterName, null, InstanceType.CONTROLLER, _zkaddr);
     controller.connect();
+
+    // Disable controller immediately
+    _admin.enableCluster(_clusterName, false);
 
     // This resource only has 1 partition
     String partitionName = RESOURCE_NAME + "_" + 0;
@@ -188,26 +200,47 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_1", "localhost_2")));
 
-    // Now wait for the first instance to be done
-    Thread.sleep(WAIT_TIME);
-    Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
-        Arrays.asList("localhost_2", "")));
+    // Prepare for synchronization
+    _onlineLatch = new CountDownLatch(2);
+    _offlineLatch = new CountDownLatch(2);
+    _prefListHistory.clear();
 
-    // Add the first instance again; it should not exist
+    // Now reenable the controller
+    _admin.enableCluster(_clusterName, true);
+
+    // Now wait for both instances to be done
+    boolean countReached = _onlineLatch.await(10000, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(countReached);
+    List<String> top = _prefListHistory.poll();
+    Assert.assertTrue(top.equals(Arrays.asList("localhost_1", ""))
+        || top.equals(Arrays.asList("localhost_2", "")));
+    Assert.assertEquals(_prefListHistory.poll(), Arrays.asList("", ""));
+
+    // Wait for everything to be fully offline
+    countReached = _offlineLatch.await(10000, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(countReached);
+
+    // Add back the instances in the opposite order
+    _admin.enableCluster(_clusterName, false);
+    addInstanceToPreferences(participants[0].getHelixDataAccessor(),
+        participants[1].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
     addInstanceToPreferences(participants[0].getHelixDataAccessor(),
         participants[0].getInstanceName(), RESOURCE_NAME, Arrays.asList(partitionName));
     Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
         Arrays.asList("localhost_2", "localhost_1")));
 
-    // Now wait for the second instance to be done
-    Thread.sleep(WAIT_TIME);
-    Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
-        Arrays.asList("localhost_1", "")));
+    // Reset the latch
+    _onlineLatch = new CountDownLatch(2);
+    _prefListHistory.clear();
+    _admin.enableCluster(_clusterName, true);
 
-    // Now wait for the first instance to be done again
-    Thread.sleep(WAIT_TIME);
-    Assert.assertTrue(preferenceListIsCorrect(_admin, _clusterName, RESOURCE_NAME, partitionName,
-        Arrays.asList("", "")));
+    // Now wait both to be done again
+    countReached = _onlineLatch.await(10000, TimeUnit.MILLISECONDS);
+    Assert.assertTrue(countReached);
+    top = _prefListHistory.poll();
+    Assert.assertTrue(top.equals(Arrays.asList("localhost_1", ""))
+        || top.equals(Arrays.asList("localhost_2", "")));
+    Assert.assertEquals(_prefListHistory.poll(), Arrays.asList("", ""));
     Assert.assertEquals(_instanceList.size(), 0);
 
     // Cleanup
@@ -277,37 +310,32 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
    * @param resourceName
    * @param partitionName
    */
-  private static void removeInstanceFromPreferences(HelixDataAccessor accessor,
-      final String instanceName, final String resourceName, final String partitionName) {
-    // Updater for ideal state
+  private void removeInstanceFromPreferences(HelixDataAccessor accessor, final String instanceName,
+      final String resourceName, final String partitionName) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     String idealStatePath = keyBuilder.idealStates(resourceName).getPath();
-    DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        List<String> preferenceList = currentData.getListField(partitionName);
-        int numReplicas =
-            Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-        currentData.setListField(partitionName,
-            removeInstanceFromPreferenceList(preferenceList, instanceName, numReplicas));
-        return currentData;
-      }
-    };
-
-    // Updater for instance config
-    String instanceConfigPath = keyBuilder.instanceConfig(instanceName).getPath();
-    DataUpdater<ZNRecord> instanceConfigUpdater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        // currentData.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), false);
-        return currentData;
-      }
-    };
-    List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
-    updaters.add(idealStateUpdater);
-    updaters.add(instanceConfigUpdater);
-    accessor.updateChildren(Arrays.asList(idealStatePath, instanceConfigPath), updaters,
-        AccessOption.PERSISTENT);
+    synchronized (_prefListHistory) {
+      // Updater for ideal state
+      final List<String> prefList = Lists.newLinkedList();
+      DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
+        @Override
+        public ZNRecord update(ZNRecord currentData) {
+          List<String> preferenceList = currentData.getListField(partitionName);
+          int numReplicas =
+              Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+          List<String> newPrefList =
+              removeInstanceFromPreferenceList(preferenceList, instanceName, numReplicas);
+          currentData.setListField(partitionName, newPrefList);
+          prefList.clear();
+          prefList.addAll(newPrefList);
+          return currentData;
+        }
+      };
+      List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
+      updaters.add(idealStateUpdater);
+      accessor.updateChildren(Arrays.asList(idealStatePath), updaters, AccessOption.PERSISTENT);
+      _prefListHistory.add(prefList);
+    }
   }
 
   /**
@@ -318,41 +346,36 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
    * @param resourceName
    * @param partitions
    */
-  private static void addInstanceToPreferences(HelixDataAccessor accessor,
-      final String instanceName, final String resourceName, final List<String> partitions) {
-    // Updater for ideal state
+  private void addInstanceToPreferences(HelixDataAccessor accessor, final String instanceName,
+      final String resourceName, final List<String> partitions) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     String idealStatePath = keyBuilder.idealStates(resourceName).getPath();
-    DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        for (String partitionName : partitions) {
-          List<String> preferenceList = currentData.getListField(partitionName);
-          int numReplicas =
-              Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
-          currentData.setListField(partitionName,
-              addInstanceToPreferenceList(preferenceList, instanceName, numReplicas));
+    synchronized (_prefListHistory) {
+      // Updater for ideal state
+      final List<String> prefList = Lists.newLinkedList();
+      DataUpdater<ZNRecord> idealStateUpdater = new DataUpdater<ZNRecord>() {
+        @Override
+        public ZNRecord update(ZNRecord currentData) {
+          for (String partitionName : partitions) {
+            List<String> preferenceList = currentData.getListField(partitionName);
+            int numReplicas =
+                Integer.valueOf(currentData.getSimpleField(IdealStateProperty.REPLICAS.toString()));
+            List<String> newPrefList =
+                addInstanceToPreferenceList(preferenceList, instanceName, numReplicas);
+            currentData.setListField(partitionName, newPrefList);
+            prefList.clear();
+            prefList.addAll(newPrefList);
+          }
+          return currentData;
         }
-        return currentData;
-      }
-    };
+      };
 
-    // Updater for instance config
-    String instanceConfigPath = keyBuilder.instanceConfig(instanceName).getPath();
-    DataUpdater<ZNRecord> instanceConfigUpdater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        // currentData.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), true);
-        return currentData;
-      }
-    };
-
-    // Send update requests together
-    List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
-    updaters.add(idealStateUpdater);
-    updaters.add(instanceConfigUpdater);
-    accessor.updateChildren(Arrays.asList(idealStatePath, instanceConfigPath), updaters,
-        AccessOption.PERSISTENT);
+      // Send update requests together
+      List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
+      updaters.add(idealStateUpdater);
+      accessor.updateChildren(Arrays.asList(idealStatePath), updaters, AccessOption.PERSISTENT);
+      _prefListHistory.add(prefList);
+    }
   }
 
   /**
@@ -420,7 +443,7 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
    * should be run, and then the instance should be removed from the preference list for the task
    * (padded by spaces). All other transitions are no-ops.
    */
-  public class PrefListTaskOnlineOfflineStateModel extends StateModel {
+  public class PrefListTaskOnlineOfflineStateModel extends TransitionHandler {
     /**
      * Run the task. The parallelism of this is dictated by the constraints that are set.
      * @param message
@@ -456,6 +479,7 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
         newSize = _instanceList.size();
       }
       Assert.assertEquals(newSize, oldSize); // ensure nothing came in during this time
+      _onlineLatch.countDown();
     }
 
     public void onBecomeOfflineFromOnline(Message message, NotificationContext context) {
@@ -468,6 +492,7 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
       HelixManager manager = context.getManager();
       LOG.info("onBecomeDroppedFromOffline for " + message.getPartitionName() + " on "
           + manager.getInstanceName());
+      _offlineLatch.countDown();
     }
 
     public void onBecomeOfflineFromError(Message message, NotificationContext context) {
@@ -478,9 +503,10 @@ public class TestPreferenceListAsQueue extends ZkTestBase {
   }
 
   public class PrefListTaskOnlineOfflineStateModelFactory extends
-      StateModelFactory<PrefListTaskOnlineOfflineStateModel> {
+      StateTransitionHandlerFactory<PrefListTaskOnlineOfflineStateModel> {
     @Override
-    public PrefListTaskOnlineOfflineStateModel createNewStateModel(String partitionName) {
+    public PrefListTaskOnlineOfflineStateModel createStateTransitionHandler(ResourceId resource,
+        PartitionId partition) {
       return new PrefListTaskOnlineOfflineStateModel();
     }
   }

@@ -45,13 +45,12 @@ import org.apache.helix.api.config.ClusterConfig;
 import org.apache.helix.api.config.ResourceConfig;
 import org.apache.helix.api.id.ClusterId;
 import org.apache.helix.api.id.ControllerId;
+import org.apache.helix.api.id.PartitionId;
 import org.apache.helix.api.id.ResourceId;
-import org.apache.helix.controller.rebalancer.config.FullAutoRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.PartitionedRebalancerConfig;
-import org.apache.helix.controller.rebalancer.config.RebalancerConfig;
-import org.apache.helix.manager.zk.HelixConnectionAdaptor;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.manager.zk.ZkHelixConnection;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.builder.AutoRebalanceModeISBuilder;
 import org.apache.helix.provisioning.ApplicationSpec;
 import org.apache.helix.provisioning.ApplicationSpecFactory;
 import org.apache.helix.provisioning.HelixYarnUtil;
@@ -155,23 +154,17 @@ public class AppMasterLauncher {
       YarnProvisionerConfig provisionerConfig = new YarnProvisionerConfig(resourceId);
       provisionerConfig.setNumContainers(numContainers);
 
-      FullAutoRebalancerConfig.Builder rebalancerConfigBuilder =
-          new FullAutoRebalancerConfig.Builder(resourceId);
-      RebalancerConfig rebalancerConfig =
-          rebalancerConfigBuilder.stateModelDefId(statelessService.getStateModelDefId())//
-              .build();
+      AutoRebalanceModeISBuilder idealStateBuilder = new AutoRebalanceModeISBuilder(resourceId);
+      idealStateBuilder.setStateModelDefId(statelessService.getStateModelDefId());
+      idealStateBuilder.add(PartitionId.from(resourceId, "0"));
+      idealStateBuilder.setNumReplica(1);
       ResourceConfig.Builder resourceConfigBuilder =
           new ResourceConfig.Builder(ResourceId.from(resourceName));
       ResourceConfig resourceConfig =
-          resourceConfigBuilder
-              .provisionerConfig(provisionerConfig)
-              .rebalancerConfig(rebalancerConfig)
-              .userConfig(serviceConfig)
-              .idealState(
-                  PartitionedRebalancerConfig.rebalancerConfigToIdealState(rebalancerConfig, 0,
-                      false)) //
+          resourceConfigBuilder.provisionerConfig(provisionerConfig)
+              .idealState(idealStateBuilder.build()) //
               .build();
-      clusterAccessor.addResourceToCluster(resourceConfig);
+      clusterAccessor.addResource(resourceConfig);
     }
     // start controller
     ControllerId controllerId = ControllerId.from("controller1");
@@ -191,7 +184,7 @@ public class AppMasterLauncher {
               readFromHDFS(fs, taskConfig.name, yamlUri, applicationSpec,
                   appAttemptID.getApplicationId());
           Workflow workflow = Workflow.parse(is);
-          TaskDriver taskDriver = new TaskDriver(new HelixConnectionAdaptor(controller));
+          TaskDriver taskDriver = new TaskDriver(new ZKHelixManager(controller));
           taskDriver.start(workflow);
         }
       }

@@ -27,8 +27,8 @@ import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.testutil.ZkTestBase;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -50,13 +50,13 @@ public class TestResetClusterMetrics extends ZkTestBase {
         "OnlineOffline", RebalanceMode.FULL_AUTO, true);
 
     // Add a participant
-    MockParticipantManager participant =
-        new MockParticipantManager(_zkaddr, clusterName, "localhost_12918");
+    MockParticipant participant =
+        new MockParticipant(_zkaddr, clusterName, "localhost_12918");
     participant.syncStart();
 
     // Add a controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // Make sure everything gets assigned

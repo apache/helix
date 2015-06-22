@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -30,10 +31,10 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.manager.zk.MockParticipant;
+import org.apache.helix.manager.zk.MockController;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
@@ -45,6 +46,7 @@ import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 public class TestDrop extends ZkTestBase {
@@ -56,12 +58,12 @@ public class TestDrop extends ZkTestBase {
    * @param participants
    */
   private void assertEmptyCSandEV(String clusterName, String db,
-      MockParticipantManager[] participants) {
+      MockParticipant[] participants) {
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     Assert.assertNull(accessor.getProperty(keyBuilder.externalView(db)));
 
-    for (MockParticipantManager participant : participants) {
+    for (MockParticipant participant : participants) {
       String instanceName = participant.getInstanceName();
       String sessionId = participant.getSessionId();
       Assert.assertNull(accessor.getProperty(keyBuilder.currentState(instanceName, sessionId, db)));
@@ -77,7 +79,7 @@ public class TestDrop extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -89,15 +91,15 @@ public class TestDrop extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -132,7 +134,7 @@ public class TestDrop extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -144,8 +146,8 @@ public class TestDrop extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -157,10 +159,10 @@ public class TestDrop extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errTransitions));
       } else {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -206,7 +208,7 @@ public class TestDrop extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -218,8 +220,8 @@ public class TestDrop extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -231,10 +233,10 @@ public class TestDrop extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errTransitions));
       } else {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -314,7 +316,7 @@ public class TestDrop extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -340,8 +342,8 @@ public class TestDrop extends ZkTestBase {
     accessor.setProperty(keyBuilder.idealStates("TestDB0"), isBuilder.build());
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
@@ -352,10 +354,10 @@ public class TestDrop extends ZkTestBase {
       String instanceName = "localhost_" + (12918 + i);
 
       if (i == 0) {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
         participants[i].setTransition(new ErrTransition(errTransitions));
       } else {
-        participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+        participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       }
       participants[i].syncStart();
     }
@@ -400,7 +402,7 @@ public class TestDrop extends ZkTestBase {
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
 
     TestHelper.setupCluster(clusterName, _zkaddr, 12918, // participant port
         "localhost", // participant name prefix
@@ -412,15 +414,15 @@ public class TestDrop extends ZkTestBase {
         "MasterSlave", true); // do rebalance
 
     // start controller
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 
@@ -462,14 +464,27 @@ public class TestDrop extends ZkTestBase {
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
-  /**
-   * Drop a single partition in a resource of semi-auto mode
-   */
-  @Test
-  public void testDropSinglePartitionSemiAuto() throws Exception {
-    String className = TestHelper.getTestClassName();
-    String methodName = TestHelper.getTestMethodName();
-    String clusterName = className + "_" + methodName;
+  @DataProvider(name = "RebalanceModeProvider")
+  public static Object [][] rebalanceModes() {
+    IdealState.RebalanceMode modes [] = IdealState.RebalanceMode.values();
+    Object [][] args = new Object[modes.length][];
+    for (int i = 0; i < modes.length; i++) {
+      args[i] = new Object [] { modes[i] };
+    }
+    return args;
+  }
+
+
+  @Test(dataProvider = "RebalanceModeProvider")
+  public void testDropSinglePartition(IdealState.RebalanceMode mode)
+      throws Exception {
+    if (!mode.equals(IdealState.RebalanceMode.FULL_AUTO) &&
+        !mode.equals(IdealState.RebalanceMode.SEMI_AUTO) &&
+        !mode.equals(IdealState.RebalanceMode.CUSTOMIZED)) {
+      return;
+    }
+
+    String clusterName = TestHelper.getTestClassName() + "_" + TestHelper.getTestMethodName() + "_" + mode.name();
     int n = 2;
 
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
@@ -481,21 +496,21 @@ public class TestDrop extends ZkTestBase {
         4, // partitions per resource
         n, // number of nodes
         2, // replicas
-        "MasterSlave", true); // do rebalance
+        "MasterSlave", mode, true); // do rebalance
 
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    ClusterControllerManager controller =
-        new ClusterControllerManager(_zkaddr, clusterName, "controller_0");
+    MockController controller =
+        new MockController(_zkaddr, clusterName, "controller_0");
     controller.syncStart();
 
     // start participants
-    MockParticipantManager[] participants = new MockParticipantManager[n];
+    MockParticipant[] participants = new MockParticipant[n];
     for (int i = 0; i < n; i++) {
       String instanceName = "localhost_" + (12918 + i);
 
-      participants[i] = new MockParticipantManager(_zkaddr, clusterName, instanceName);
+      participants[i] = new MockParticipant(_zkaddr, clusterName, instanceName);
       participants[i].syncStart();
     }
 

@@ -20,7 +20,6 @@ package org.apache.helix.manager.zk;
  */
 
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.testng.Assert;
 
 public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
@@ -36,7 +35,7 @@ public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
     // 11 disconnects in 5 sec
     for (int i = 0; i < 11; i++) {
       Thread.sleep(200);
-      _controller.handleStateChanged(KeeperState.Disconnected);
+      // _controller.handleStateChanged(KeeperState.Disconnected);
       if (i < 10) {
         Assert.assertTrue(_controller.isConnected());
       } else {
@@ -51,7 +50,7 @@ public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
     // ZkStateChangeListener listener2 = new ZkStateChangeListener(_participants[0], 5000, 0);
     for (int i = 0; i < 2; i++) {
       Thread.sleep(200);
-      _participants[0].handleStateChanged(KeeperState.Disconnected);
+      // _participants[0].handleStateChanged(KeeperState.Disconnected);
       if (i < 1) {
         Assert.assertTrue(_participants[0].isConnected());
       } else {
@@ -66,22 +65,22 @@ public class TestZkStateChangeListener extends ZkStandAloneCMTestBase {
     // ZkStateChangeListener listener3 = new ZkStateChangeListener(_participants[1], 5000, 5);
     for (int i = 0; i < 3; i++) {
       Thread.sleep(200);
-      _participants[1].handleStateChanged(KeeperState.Disconnected);
+      // _participants[1].handleStateChanged(KeeperState.Disconnected);
       Assert.assertTrue(_participants[1].isConnected());
     }
     Thread.sleep(5000);
     // Old entries should be cleaned up
     for (int i = 0; i < 3; i++) {
       Thread.sleep(200);
-      _participants[1].handleStateChanged(KeeperState.Disconnected);
+      // _participants[1].handleStateChanged(KeeperState.Disconnected);
       Assert.assertTrue(_participants[1].isConnected());
     }
     for (int i = 0; i < 2; i++) {
       Thread.sleep(200);
-      _participants[1].handleStateChanged(KeeperState.Disconnected);
+      // _participants[1].handleStateChanged(KeeperState.Disconnected);
       Assert.assertTrue(_participants[1].isConnected());
     }
-    _participants[1].handleStateChanged(KeeperState.Disconnected);
+    // _participants[1].handleStateChanged(KeeperState.Disconnected);
     Assert.assertFalse(_participants[1].isConnected());
   }
 }

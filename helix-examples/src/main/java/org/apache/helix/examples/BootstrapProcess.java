@@ -36,6 +36,9 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
+import org.apache.helix.api.StateTransitionHandlerFactory;
+import org.apache.helix.api.TransitionHandler;
+import org.apache.helix.api.id.StateModelDefId;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandler;
@@ -43,8 +46,6 @@ import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
-import org.apache.helix.participant.statemachine.StateModel;
-import org.apache.helix.participant.statemachine.StateModelFactory;
 
 /**
  * This process does little more than handling the state transition messages.
@@ -77,21 +78,15 @@ public class BootstrapProcess {
   private final String zkConnectString;
   private final String clusterName;
   private final String instanceName;
-  private final String stateModelType;
   private HelixManager manager;
 
-  // private StateMachineEngine genericStateMachineHandler;
-
-  private StateModelFactory<StateModel> stateModelFactory;
-  private final int delay;
+  private StateTransitionHandlerFactory<TransitionHandler> stateModelFactory;
 
   public BootstrapProcess(String zkConnectString, String clusterName, String instanceName,
       String stateModel, int delay) {
     this.zkConnectString = zkConnectString;
     this.clusterName = clusterName;
     this.instanceName = instanceName;
-    stateModelType = stateModel;
-    this.delay = delay;
   }
 
   public void start() throws Exception {
@@ -100,11 +95,9 @@ public class BootstrapProcess {
             zkConnectString);
 
     stateModelFactory = new BootstrapHandler();
-    // genericStateMachineHandler = new StateMachineEngine();
-    // genericStateMachineHandler.registerStateModelFactory("MasterSlave", stateModelFactory);
 
     StateMachineEngine stateMach = manager.getStateMachineEngine();
-    stateMach.registerStateModelFactory("MasterSlave", stateModelFactory);
+    stateMach.registerStateModelFactory(StateModelDefId.MasterSlave, stateModelFactory);
 
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.toString(), stateMach);

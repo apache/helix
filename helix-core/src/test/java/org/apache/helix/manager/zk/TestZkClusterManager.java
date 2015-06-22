@@ -27,12 +27,9 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -59,16 +56,9 @@ public class TestZkClusterManager extends ZkTestBase {
   public void testController() throws Exception {
     final String clusterName = TestUtil.getTestName();
 
-    System.out.println("START " + clusterName + ".testController() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
-    // basic test
-    if (_zkclient.exists("/" + clusterName)) {
-      _zkclient.deleteRecursive("/" + clusterName);
-    }
-
-    ZKHelixManager controller =
-        new ZKHelixManager(clusterName, null, InstanceType.CONTROLLER, _zkaddr);
+    MockController controller = new MockController(_zkaddr, clusterName, "controller");
 
     try {
       controller.connect();
@@ -110,19 +100,17 @@ public class TestZkClusterManager extends ZkTestBase {
     controller.getMessagingService();
     controller.getClusterManagmentTool();
 
-    controller.handleNewSession();
+    controller.getConn().handleNewSession();
     controller.disconnect();
     AssertJUnit.assertFalse(controller.isConnected());
 
-    System.out.println("END " + clusterName + ".testController() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test
   public void testLiveInstanceInfoProvider() throws Exception {
     final String clusterName = TestUtil.getTestName();
-    System.out.println("START " + clusterName + ".testLiveInstanceInfoProvider() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
     class provider implements LiveInstanceInfoProvider {
       boolean _flag = false;
 
@@ -197,8 +185,7 @@ public class TestZkClusterManager extends ZkTestBase {
 
     // //////////////////////////////////
 
-    MockParticipantManager manager2 =
-        new MockParticipantManager(_zkaddr, clusterName, "localhost_3");
+    MockParticipant manager2 = new MockParticipant(_zkaddr, clusterName, "localhost_3");
 
     manager2.setLiveInstanceInfoProvider(new provider(true));
 
@@ -224,20 +211,13 @@ public class TestZkClusterManager extends ZkTestBase {
     Assert.assertFalse(liveInstance.getLiveInstance().equals("value"));
     Assert.assertFalse(sessionId.equals(liveInstance.getTypedSessionId().stringify()));
 
-    System.out.println("END " + clusterName + ".testLiveInstanceInfoProvider() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   @Test()
   public void testAdministrator() throws Exception {
     final String clusterName = TestUtil.getTestName();
-    System.out.println("START " + clusterName + ".testAdministrator() at "
-        + new Date(System.currentTimeMillis()));
-
-    // basic test
-    if (_zkclient.exists("/" + clusterName)) {
-      _zkclient.deleteRecursive("/" + clusterName);
-    }
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     ZKHelixManager admin =
         new ZKHelixManager(clusterName, null, InstanceType.ADMINISTRATOR, _zkaddr);
@@ -265,8 +245,7 @@ public class TestZkClusterManager extends ZkTestBase {
     admin.disconnect();
     AssertJUnit.assertFalse(admin.isConnected());
 
-    System.out.println("END " + clusterName + ".testAdministrator() at "
-        + new Date(System.currentTimeMillis()));
+    System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
   }
 
   private void setupInstances(String clusterName, int[] instances) {

@@ -39,6 +39,7 @@ import org.apache.helix.api.id.Id;
 import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.StatusDumpTask;
 import org.apache.log4j.Logger;
@@ -46,31 +47,32 @@ import org.apache.log4j.Logger;
 public class ZkHelixController implements HelixController {
   private static Logger LOG = Logger.getLogger(ZkHelixController.class);
 
-  final ZkHelixConnection _connection;
-  final ClusterId _clusterId;
-  final ControllerId _controllerId;
-  final GenericHelixController _pipeline;
-  final DefaultMessagingService _messagingService;
-  final List<HelixTimerTask> _timerTasks;
-  final ClusterAccessor _clusterAccessor;
-  final HelixDataAccessor _accessor;
-  final HelixManager _manager;
-  final ZkHelixLeaderElection _leaderElection;
+  private final ZkHelixConnection _connection;
+  private final ClusterId _clusterId;
+  private final ControllerId _controllerId;
+  private final DefaultMessagingService _messagingService;
+  private final List<HelixTimerTask> _timerTasks;
+  @SuppressWarnings("unused")
+  private final ClusterAccessor _clusterAccessor;
+  private final HelixDataAccessor _accessor;
+  private final HelixManager _manager;
+  private boolean _isStarted;
+
+  private GenericHelixController _pipeline;
+  private ZkHelixLeaderElection _leaderElection;
 
   public ZkHelixController(ZkHelixConnection connection, ClusterId clusterId,
       ControllerId controllerId) {
     _connection = connection;
     _clusterId = clusterId;
     _controllerId = controllerId;
-    _pipeline = new GenericHelixController();
     _clusterAccessor = connection.createClusterAccessor(clusterId);
     _accessor = connection.createDataAccessor(clusterId);
 
     _messagingService = (DefaultMessagingService) connection.createMessagingService(this);
     _timerTasks = new ArrayList<HelixTimerTask>();
 
-    _manager = new HelixConnectionAdaptor(this);
-    _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
+    _manager = new ZKHelixManager(this);
 
     _timerTasks.add(new StatusDumpTask(clusterId, _manager.getHelixDataAccessor()));
   }
@@ -104,35 +106,53 @@ public class ZkHelixController implements HelixController {
     onDisconnecting();
   }
 
-  void reset() {
-    /**
-     * reset all handlers, make sure cleanup completed for previous session
-     * disconnect if fail to cleanup
-     */
-    _connection.resetHandlers(this);
+  @Override
+  public boolean isStarted() {
+    return _isStarted;
+  }
 
+  void reset() {
+    // clean up old pipeline instance
+    if (_leaderElection != null) {
+      _connection.removeListener(this, _leaderElection, _accessor.keyBuilder().controller());
+    }
+    if (_pipeline != null) {
+      try {
+        _pipeline.shutdown();
+      } catch (InterruptedException e) {
+        LOG.info("Interrupted shutting down GenericHelixController", e);
+      } finally {
+        _pipeline = null;
+        _leaderElection = null;
+      }
+    }
+
+    // reset all handlers, make sure cleanup completed for previous session
+    // disconnect if fail to cleanup
+    _connection.resetHandlers(this);
   }
 
   void init() {
-    /**
-     * from here on, we are dealing with new session
-     * init handlers
-     */
+    // from here on, we are dealing with new session
+
+    // init handlers
     if (!ZKUtil.isClusterSetup(_clusterId.toString(), _connection._zkclient)) {
       throw new HelixException("Cluster structure is not set up for cluster: " + _clusterId);
     }
 
-    /**
-     * leader-election listener should be reset/init before all other controller listeners;
-     * it's ok to add a listener multiple times, since we check existence in
-     * ZkHelixConnection#addXXXListner()
-     */
-    _connection.addControllerListener(this, _leaderElection, _clusterId);
+    // Recreate the pipeline on a new connection
+    if (_pipeline == null) {
+      _pipeline = new GenericHelixController();
+      _leaderElection = new ZkHelixLeaderElection(this, _pipeline);
 
-    /**
-     * ok to init message handler and controller handlers twice
-     * the second init will be skipped (see CallbackHandler)
-     */
+      // leader-election listener should be reset/init before all other controller listeners;
+      // it's ok to add a listener multiple times, since we check existence in
+      // ZkHelixConnection#addXXXListner()
+      _connection.addControllerListener(this, _leaderElection, _clusterId);
+    }
+
+    // ok to init message handler and controller handlers twice
+    // the second init will be skipped (see CallbackHandler)
     _connection.initHandlers(this);
   }
 
@@ -140,6 +160,7 @@ public class ZkHelixController implements HelixController {
   public void onConnected() {
     reset();
     init();
+    _isStarted = true;
   }
 
   @Override
@@ -147,6 +168,8 @@ public class ZkHelixController implements HelixController {
     LOG.info("disconnecting " + _controllerId + "(" + getType() + ") from " + _clusterId);
 
     reset();
+
+    _isStarted = false;
   }
 
   @Override
@@ -216,7 +239,10 @@ public class ZkHelixController implements HelixController {
       /**
        * setup generic-controller
        */
-      _connection.addConfigChangeListener(this, pipeline, _clusterId);
+      _connection.addInstanceConfigChangeListener(this, pipeline, _clusterId);
+      _connection.addConfigChangeListener(this, pipeline, _clusterId, ConfigScopeProperty.RESOURCE);
+      _connection.addConfigChangeListener(this, pipeline, _clusterId,
+          ConfigScopeProperty.CONSTRAINT);
       _connection.addLiveInstanceChangeListener(this, pipeline, _clusterId);
       _connection.addIdealStateChangeListener(this, pipeline, _clusterId);
       _connection.addControllerListener(this, pipeline, _clusterId);
@@ -228,11 +254,13 @@ public class ZkHelixController implements HelixController {
   }
 
   void removeListenersFromController(GenericHelixController pipeline) {
-    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(_manager.getClusterName());
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(getClusterId().stringify());
     /**
      * reset generic-controller
      */
     _connection.removeListener(this, pipeline, keyBuilder.instanceConfigs());
+    _connection.removeListener(this, pipeline, keyBuilder.resourceConfigs());
+    _connection.removeListener(this, pipeline, keyBuilder.constraints());
     _connection.removeListener(this, pipeline, keyBuilder.liveInstances());
     _connection.removeListener(this, pipeline, keyBuilder.idealStates());
     _connection.removeListener(this, pipeline, keyBuilder.controller());
@@ -246,6 +274,11 @@ public class ZkHelixController implements HelixController {
 
   HelixManager getManager() {
     return _manager;
+  }
+
+  @Override
+  public HelixDataAccessor getAccessor() {
+    return _accessor;
   }
 
 }

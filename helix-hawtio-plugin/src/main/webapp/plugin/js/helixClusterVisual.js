@@ -5,6 +5,8 @@
  * The main entry point for the Helix simple visual board
  *
  */
+<<<<<<< HEAD
+=======
  
  /*
 Licensed to the Apache Software Foundation (ASF) under one
@@ -24,6 +26,7 @@ KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.
 */
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
 
 var Helix = (function(Helix) {
 

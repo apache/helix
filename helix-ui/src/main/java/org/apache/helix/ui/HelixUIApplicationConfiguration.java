@@ -39,8 +39,16 @@ public class HelixUIApplicationConfiguration extends Configuration {
     return viewRendererConfiguration;
   }
 
+  public void setAdminMode(boolean adminMode) {
+    this.adminMode = adminMode;
+  }
+
   public boolean isAdminMode() {
     return adminMode;
+  }
+
+  public void setZkAddresses(Set<String> zkAddresses) {
+    this.zkAddresses = zkAddresses;
   }
 
   public Set<String> getZkAddresses() {

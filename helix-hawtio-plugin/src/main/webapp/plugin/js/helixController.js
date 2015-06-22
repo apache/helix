@@ -10,6 +10,8 @@
  * using /clusters/{clusterName}/controller
  *
  */
+<<<<<<< HEAD
+=======
  
  /*
 Licensed to the Apache Software Foundation (ASF) under one
@@ -30,6 +32,7 @@ specific language governing permissions and limitations
 under the License.
 */
 
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
 var Helix = (function(Helix) {
 
     Helix.HelixControllerController = function($scope, $http) {
@@ -50,7 +53,10 @@ var Helix = (function(Helix) {
                 .success(function(data) {
                     $scope.data = data;
                     $scope.dataColor = null;
+<<<<<<< HEAD
+=======
 
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
                 })
         }
 		
@@ -64,14 +70,22 @@ var Helix = (function(Helix) {
                 })
         }
         
+<<<<<<< HEAD
+       //disable cluster
+       
+=======
        //disable cluster       
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
        $scope.disable = function(cluster) {
             
             $http.post("http://localhost:8100/clusters/" + cluster.clusterName + "/Controller",'jsonParameters={"command":"enableCluster","enabled":"false"}')
                 .success(function(data) {
                     $scope.data = data;
                     $scope.dataColor = "danger";
+<<<<<<< HEAD
+=======
 
+>>>>>>> d2626146ef74db5b8d2ac5e79224923d2f8574e5
                 })
         }
 

@@ -32,9 +32,11 @@ import org.apache.helix.ui.view.ResourceView;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import java.net.URI;
 import java.util.*;
 
-@Path("/dashboard")
+@Path("/")
 @Produces(MediaType.TEXT_HTML)
 public class DashboardResource {
   private static final List<String> REBALANCE_MODES = ImmutableList.of(
@@ -57,19 +59,25 @@ public class DashboardResource {
   }
 
   @GET
+  public Response getRoot() {
+    return Response.seeOther(URI.create("/dashboard")).build();
+  }
+
+  @GET
+  @Path("/dashboard")
   public LandingView getLandingView() {
     return new LandingView();
   }
 
   @GET
-  @Path("/{zkAddress}")
+  @Path("/dashboard/{zkAddress}")
   public ClusterView getClusterView(@PathParam("zkAddress") String zkAddress) throws Exception {
     clientCache.get(zkAddress); // n.b. will validate
     return getClusterView(zkAddress, null);
   }
 
   @GET
-  @Path("/{zkAddress}/{cluster}")
+  @Path("/dashboard/{zkAddress}/{cluster}")
   public ClusterView getClusterView(
           @PathParam("zkAddress") String zkAddress,
           @PathParam("cluster") String cluster) throws Exception {
@@ -114,7 +122,7 @@ public class DashboardResource {
   }
 
   @GET
-  @Path("/{zkAddress}/{cluster}/{resource}")
+  @Path("/dashboard/{zkAddress}/{cluster}/{resource}")
   public ResourceView getResourceView(
           @PathParam("zkAddress") String zkAddress,
           @PathParam("cluster") String cluster,

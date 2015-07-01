@@ -54,75 +54,52 @@ public class NettyHelixIPCCallbackHandler extends SimpleChannelInboundHandler<By
   @Override
   protected void channelRead0(ChannelHandlerContext ctx, ByteBuf byteBuf) throws Exception {
     try {
-      int idx = 0;
-
       // Message length
       int messageLength = byteBuf.readInt();
-      idx += 4;
 
       // Message version
       @SuppressWarnings("unused")
       int messageVersion = byteBuf.readInt();
-      idx += 4;
 
       // Message type
       int messageType = byteBuf.readInt();
-      idx += 4;
 
       // Message ID
       UUID messageId = new UUID(byteBuf.readLong(), byteBuf.readLong());
-      idx += 16;
 
       // Cluster
-      byteBuf.readerIndex(idx);
       int clusterSize = byteBuf.readInt();
-      idx += 4;
       checkLength("clusterSize", clusterSize, messageLength);
       String clusterName = toNonEmptyString(clusterSize, byteBuf);
-      idx += clusterSize;
 
       // Resource
-      byteBuf.readerIndex(idx);
       int resourceSize = byteBuf.readInt();
-      idx += 4;
       checkLength("resourceSize", resourceSize, messageLength);
       String resourceName = toNonEmptyString(resourceSize, byteBuf);
-      idx += resourceSize;
 
       // Partition
-      byteBuf.readerIndex(idx);
       int partitionSize = byteBuf.readInt();
-      idx += 4;
       checkLength("partitionSize", partitionSize, messageLength);
       String partitionName = toNonEmptyString(partitionSize, byteBuf);
-      idx += partitionSize;
 
       // State
-      byteBuf.readerIndex(idx);
       int stateSize = byteBuf.readInt();
-      idx += 4;
       checkLength("stateSize", stateSize, messageLength);
       String state = toNonEmptyString(stateSize, byteBuf);
-      idx += stateSize;
 
       // Source instance
-      byteBuf.readerIndex(idx);
       int srcInstanceSize = byteBuf.readInt();
-      idx += 4;
       checkLength("srcInstanceSize", srcInstanceSize, messageLength);
       String srcInstance = toNonEmptyString(srcInstanceSize, byteBuf);
-      idx += srcInstanceSize;
 
       // Destination instance
-      byteBuf.readerIndex(idx);
       int dstInstanceSize = byteBuf.readInt();
-      idx += 4;
       checkLength("dstInstanceSize", dstInstanceSize, messageLength);
       String dstInstance = toNonEmptyString(dstInstanceSize, byteBuf);
-      idx += dstInstanceSize;
 
-      // Position at message
-      byteBuf.readerIndex(idx + 4);
+      // Message
+      int messageSize = byteBuf.readInt();
+      ByteBuf message = byteBuf.slice(byteBuf.readerIndex(), messageSize);
 
       // Error check
       if (dstInstance == null) {
@@ -147,7 +124,7 @@ public class NettyHelixIPCCallbackHandler extends SimpleChannelInboundHandler<By
       }
 
       // Handle callback
-      callback.onMessage(scope, messageId, byteBuf);
+      callback.onMessage(scope, messageId, message);
 
       // Stats
       statRxMsg.mark();

@@ -117,7 +117,7 @@ under the License.
 
     <section name="Verifying Releases">
       <p>It is essential that you verify the integrity of the downloaded file using the PGP signature (<tt>.asc</tt> file) or a hash (<tt>.md5</tt> or <tt>.sha1</tt> file). Please read <a href="http://www.apache.org/info/verification.html">Verifying Apache Software Foundation Releases</a> for more information on why you should verify our releases.</p>
-      <p>The PGP signature can be verified using <a href="http://www.pgpi.org/">PGP</a> or <a href="http://www.gnupg.org/">GPG</a>. First download the <a href="http://www.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the <tt>*.asc</tt> signature files for the relevant distribution. Make sure you get these files from the main distribution site, rather than from a mirror. Then verify the signatures using one of the following sets of commands:
+      <p>The PGP signature can be verified using <a href="http://www.pgpi.org/">PGP</a> or <a href="http://www.gnupg.org/">GPG</a>. First download the <a href="http://archive.apache.org/dist/incubator/helix/KEYS">KEYS</a> as well as the <tt>*.asc</tt> signature files for the relevant distribution. Make sure you get these files from the main distribution site, rather than from a mirror. Then verify the signatures using one of the following sets of commands:
 
         <source>% pgpk -a KEYS
 % pgpv downloaded_file.asc</source>

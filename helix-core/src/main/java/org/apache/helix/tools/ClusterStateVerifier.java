@@ -320,8 +320,13 @@ public class ClusterStateVerifier {
       for (String resourceName : idealStates.keySet()) {
         ExternalView extView = extViews.get(resourceName);
         if (extView == null) {
-          LOG.info("externalView for " + resourceName + " is not available");
-          return false;
+          IdealState is = idealStates.get(resourceName);
+          if (is.isExternalViewDisabled()) {
+            continue;
+          } else {
+            LOG.info("externalView for " + resourceName + " is not available");
+            return false;
+          }
         }
 
         // step 0: remove empty map and DROPPED state from best possible state

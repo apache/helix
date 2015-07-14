@@ -533,6 +533,11 @@ public class TaskDriver {
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
+
+    if (jobConfig.isDisableExternalView()) {
+      builder.setDisableExternalView(jobConfig.isDisableExternalView());
+    }
+
     IdealState is = builder.build();
     for (int i = 0; i < numPartitions; i++) {
       is.getRecord().setListField(jobResource + "_" + i, new ArrayList<String>());

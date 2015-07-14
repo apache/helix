@@ -73,6 +73,10 @@ public class JobConfig {
   /** The individual task configurations, if any **/
   public static final String TASK_CONFIGS = "TaskConfigs";
 
+  /** Disable external view (not showing) for this job resource */
+  public static final String DISABLE_EXTERNALVIEW = "DisableExternalView";
+
+
   // // Default property values ////
 
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
@@ -81,6 +85,7 @@ public class JobConfig {
   public static final int DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE = 1;
   public static final int DEFAULT_FAILURE_THRESHOLD = 0;
   public static final int DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK = 0;
+  public static final boolean DEFAULT_DISABLE_EXTERNALVIEW = false;
 
   private final String _workflow;
   private final String _targetResource;
@@ -94,12 +99,14 @@ public class JobConfig {
   private final int _maxForcedReassignmentsPerTask;
   private final int _failureThreshold;
   private final long _retryDelay;
+  private final boolean _disableExternalView;
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
+      boolean disableExternalView,
       Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
@@ -113,6 +120,7 @@ public class JobConfig {
     _maxForcedReassignmentsPerTask = maxForcedReassignmentsPerTask;
     _failureThreshold = failureThreshold;
     _retryDelay = retryDelay;
+    _disableExternalView = disableExternalView;
     if (taskConfigMap != null) {
       _taskConfigMap = taskConfigMap;
     } else {
@@ -168,6 +176,10 @@ public class JobConfig {
     return _retryDelay;
   }
 
+  public boolean isDisableExternalView() {
+    return _disableExternalView;
+  }
+
   public Map<String, TaskConfig> getTaskConfigMap() {
     return _taskConfigMap;
   }
@@ -204,6 +216,7 @@ public class JobConfig {
     cfgMap.put(JobConfig.MAX_ATTEMPTS_PER_TASK, "" + _maxAttemptsPerTask);
     cfgMap.put(JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, "" + _maxForcedReassignmentsPerTask);
     cfgMap.put(JobConfig.FAILURE_THRESHOLD, "" + _failureThreshold);
+    cfgMap.put(JobConfig.DISABLE_EXTERNALVIEW, Boolean.toString(_disableExternalView));
     return cfgMap;
   }
 
@@ -224,6 +237,7 @@ public class JobConfig {
     private int _maxForcedReassignmentsPerTask = DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK;
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
     private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
+    private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
 
     public JobConfig build() {
       validate();
@@ -231,7 +245,7 @@ public class JobConfig {
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
-          _taskConfigMap);
+          _disableExternalView, _taskConfigMap);
     }
 
     /**
@@ -281,6 +295,9 @@ public class JobConfig {
       }
       if (cfg.containsKey(TASK_RETRY_DELAY)) {
         b.setTaskRetryDelay(Long.parseLong(cfg.get(TASK_RETRY_DELAY)));
+      }
+      if (cfg.containsKey(DISABLE_EXTERNALVIEW)) {
+        b.setDisableExternalView(Boolean.valueOf(cfg.get(DISABLE_EXTERNALVIEW)));
       }
       return b;
     }
@@ -342,6 +359,11 @@ public class JobConfig {
 
     public Builder setTaskRetryDelay(long v) {
       _retryDelay = v;
+      return this;
+    }
+
+    public Builder setDisableExternalView(boolean disableExternalView) {
+      _disableExternalView = disableExternalView;
       return this;
     }
 

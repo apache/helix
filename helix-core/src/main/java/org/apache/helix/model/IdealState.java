@@ -57,7 +57,8 @@ public class IdealState extends HelixProperty {
     REBALANCER_CLASS_NAME,
     HELIX_ENABLED,
     RESOURCE_GROUP_NAME,
-    GROUP_ROUTING_ENABLED
+    GROUP_ROUTING_ENABLED,
+    EXTERNAL_VIEW_DISABLED
   }
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
@@ -196,6 +197,24 @@ public class IdealState extends HelixProperty {
   public void enableGroupRouting(boolean enabled) {
     _record.setSimpleField(IdealStateProperty.GROUP_ROUTING_ENABLED.name(),
         Boolean.toString(enabled));
+  }
+
+  /**
+   * If the external view for this resource is disabled. by default, it is false.
+   *
+   * @return true if the external view should be disabled for this resource.
+   */
+  public boolean isExternalViewDisabled() {
+    return _record.getBooleanField(IdealStateProperty.EXTERNAL_VIEW_DISABLED.name(), false);
+  }
+
+  /**
+   * Disable (true) or enable (false) External View for this resource.
+   */
+  public void setDisableExternalView(boolean disableExternalView) {
+    _record
+        .setSimpleField(IdealStateProperty.EXTERNAL_VIEW_DISABLED.name(),
+            Boolean.toString(disableExternalView));
   }
 
   /**

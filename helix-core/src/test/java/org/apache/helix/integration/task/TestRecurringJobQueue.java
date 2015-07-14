@@ -32,9 +32,13 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.model.ExternalView;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -75,6 +79,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
   private HelixManager _manager;
   private TaskDriver _driver;
+  private ZKHelixDataAccessor _accessor;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -82,6 +87,9 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
     }
+
+    _accessor =
+        new ZKHelixDataAccessor(CLUSTER_NAME, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
 
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     setupTool.addCluster(CLUSTER_NAME, true);
@@ -151,7 +159,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
   private JobQueue buildRecurrentJobQueue(String jobQueueName, int delayStart) {
     Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
+    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(500000));
     cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(120));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
     Calendar cal = Calendar.getInstance();
@@ -264,7 +272,8 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", scheduledQueue, deletedJob1);
     TestUtil
-        .pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+        .pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS,
+            TaskState.COMPLETED);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + scheduledQueue);
@@ -282,7 +291,8 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // ensure job 2 is started
     TestUtil.pollForJobState(_manager, scheduledQueue,
-        String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS);
+        String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS,
+        TaskState.COMPLETED);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
@@ -372,6 +382,57 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     verifyJobDeleted(queueName,
         String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
   }
+
+  @Test
+  public void testJobsDisableExternalView() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue queue = buildRecurrentJobQueue(queueName);
+    _driver.createQueue(queue);
+
+    // create jobs
+    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+
+    JobConfig.Builder job1 =
+        new JobConfig.Builder().setCommand("Reindex").setJobCommandConfigMap(commandConfig)
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setTargetPartitionStates(Sets.newHashSet("SLAVE"))
+            .setDisableExternalView(true);
+
+    JobConfig.Builder job2 =
+        new JobConfig.Builder().setCommand("Reindex").setJobCommandConfigMap(commandConfig)
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setTargetPartitionStates(Sets.newHashSet("MASTER"));
+
+    // enqueue both jobs
+    _driver.enqueueJob(queueName, "job1", job1);
+    _driver.enqueueJob(queueName, "job2", job2);
+
+    WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
+    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+
+    // ensure job1 is started
+    String namedSpaceJob1 = String.format("%s_%s", scheduledQueue, "job1");
+    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob1, TaskState.IN_PROGRESS,
+        TaskState.COMPLETED);
+
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
+    // verify external view for job does not exists
+    ExternalView externalView = _accessor.getProperty(keyBuilder.externalView(namedSpaceJob1));
+    Assert.assertNull(externalView, "External View for " + namedSpaceJob1 + " shoudld not exist!");
+
+    // ensure job2 is completed
+    String namedSpaceJob2 = String.format("%s_%s", scheduledQueue, "job2");
+    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob2, TaskState.IN_PROGRESS,
+        TaskState.COMPLETED);
+
+    // verify external view for job does not exists
+    externalView = _accessor.getProperty(keyBuilder.externalView(namedSpaceJob2));
+    Assert.assertNotNull(externalView, "Can not find external View for " + namedSpaceJob2 + "!");
+  }
+
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();

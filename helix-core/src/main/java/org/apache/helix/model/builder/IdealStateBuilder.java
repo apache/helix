@@ -63,6 +63,11 @@ public abstract class IdealStateBuilder {
    */
   private String nodeGroup = "*";
 
+  /**
+   * Whether to disable external view for this resource
+   */
+  private Boolean disableExternalView = null;
+
   protected ZNRecord _record;
 
   /**
@@ -122,6 +127,14 @@ public abstract class IdealStateBuilder {
   }
 
   /**
+   * @param disableExternalView
+   */
+  public IdealStateBuilder setDisableExternalView(boolean disableExternalView) {
+    this.disableExternalView = disableExternalView;
+    return this;
+  }
+
+  /**
    * sub-class should implement this to set ideal-state mode
    * @return
    */
@@ -141,6 +154,9 @@ public abstract class IdealStateBuilder {
     idealstate.setStateModelFactoryName(stateModelFactoryName);
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
+    if (disableExternalView != null) {
+      idealstate.setDisableExternalView(disableExternalView);
+    }
 
     if (!idealstate.isValid()) {
       throw new HelixException("invalid ideal-state: " + idealstate);

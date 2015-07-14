@@ -18,7 +18,7 @@ package org.apache.helix.integration.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -62,8 +62,16 @@ public class TestUtil {
     Assert.assertEquals(ctx.getWorkflowState(), state);
   }
 
+  /**
+   * poll for job until it is at either state in targetStates.
+   * @param manager
+   * @param workflowResource
+   * @param jobName
+   * @param targetStates
+   * @throws InterruptedException
+   */
   public static void pollForJobState(HelixManager manager, String workflowResource, String jobName,
-      TaskState state) throws InterruptedException {
+      TaskState... targetStates) throws InterruptedException {
     // Get workflow config
     WorkflowConfig wfCfg = TaskUtil.getWorkflowCfg(manager, workflowResource);
     Assert.assertNotNull(wfCfg);
@@ -81,16 +89,17 @@ public class TestUtil {
       jobName = String.format("%s_%s", workflowResource, jobName);
     }
 
+    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
     // Wait for state
     long st = System.currentTimeMillis();
     do {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
     }
-    while ((ctx == null || ctx.getJobState(jobName) == null || ctx.getJobState(jobName) != state)
+    while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(ctx.getJobState(jobName)))
         && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
-    Assert.assertEquals(ctx.getJobState(jobName), state);
+    Assert.assertTrue(allowedStates.contains(ctx.getJobState(jobName)));
   }
 
   public static void pollForEmptyJobState(final HelixManager manager, final String workflowName,

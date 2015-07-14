@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -72,7 +73,6 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         event.getAttribute(AttributeName.CURRENT_STATE.toString());
 
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
-    List<PropertyKey> keys = new ArrayList<PropertyKey>();
 
     Map<String, ExternalView> curExtViews =
         dataAccessor.getChildValuesMap(keyBuilder.externalViews());
@@ -106,7 +106,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
       // Update cluster status monitor mbean
       ClusterStatusMonitor clusterStatusMonitor =
           (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
-      IdealState idealState = cache._idealStateMap.get(view.getResourceName());
+      IdealState idealState = cache._idealStateMap.get(resourceName);
       if (idealState != null) {
         if (clusterStatusMonitor != null
             && !idealState.getStateModelDefRef().equalsIgnoreCase(
@@ -131,24 +131,40 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
 
       // compare the new external view with current one, set only on different
       if (curExtView == null || !curExtView.getRecord().equals(view.getRecord())) {
-        keys.add(keyBuilder.externalView(resourceName));
+        // Add external view to the list which will be written to ZK later.
         newExtViews.add(view);
 
         // For SCHEDULER_TASK_RESOURCE resource group (helix task queue), we need to find out which
-        // task
-        // partitions are finished (COMPLETED or ERROR), update the status update of the original
-        // scheduler
-        // message, and then remove the partitions from the ideal state
+        // task partitions are finished (COMPLETED or ERROR), update the status update of the original
+        // scheduler message, and then remove the partitions from the ideal state
         if (idealState != null
             && idealState.getStateModelDefRef().equalsIgnoreCase(
-                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+            DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
           updateScheduledTaskStatus(view, manager, idealState);
         }
-
       }
     }
     // TODO: consider not setting the externalview of SCHEDULER_TASK_QUEUE at all.
     // Are there any entity that will be interested in its change?
+
+    // For the resource with DisableExternalView option turned on in IdealState
+    // We will not actually create or write the externalView to ZooKeeper.
+    List<PropertyKey> keys = new ArrayList<PropertyKey>();
+    for(Iterator<ExternalView> it = newExtViews.iterator(); it.hasNext(); ) {
+      ExternalView view = it.next();
+      String resourceName = view.getResourceName();
+      IdealState idealState = cache._idealStateMap.get(resourceName);
+      if (idealState != null && idealState.isExternalViewDisabled()) {
+        it.remove();
+        // remove the external view if the external view exists
+        if (curExtViews.containsKey(resourceName)) {
+          LOG.info("Remove externalView for resource: " + resourceName);
+          dataAccessor.removeProperty(keyBuilder.externalView(resourceName));
+        }
+      } else {
+        keys.add(keyBuilder.externalView(resourceName));
+      }
+    }
 
     // add/update external-views
     if (newExtViews.size() > 0) {

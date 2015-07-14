@@ -76,6 +76,7 @@ public class ZkUnitTestBase {
   public void beforeSuite() throws Exception {
     _zkServer = TestHelper.startZkServer(ZK_ADDR);
     AssertJUnit.assertTrue(_zkServer != null);
+    ZKClientPool.reset();
 
     // System.out.println("Number of open zkClient before ZkUnitTests: "
     // + ZkClient.getNumberOfConnections());

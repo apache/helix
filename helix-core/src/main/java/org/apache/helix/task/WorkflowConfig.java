@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 public class WorkflowConfig {
   /* Config fields */
   public static final String DAG = "Dag";
+  public static final String PARALLEL_JOBS = "ParallelJobs";
   public static final String TARGET_STATE = "TargetState";
   public static final String EXPIRY = "Expiry";
   public static final String START_TIME = "StartTime";
@@ -44,14 +45,19 @@ public class WorkflowConfig {
 
   /* Member variables */
   private final JobDag _jobDag;
+  // _parallelJobs would kind of break the job dependency,
+  // e.g: if job1 -> job2, but _parallelJobs == 2,
+  // then job1 and job2 could be scheduled at the same time
+  private final int _parallelJobs;
   private final TargetState _targetState;
   private final long _expiry;
   private final boolean _terminable;
   private final ScheduleConfig _scheduleConfig;
 
-  protected WorkflowConfig(JobDag jobDag, TargetState targetState, long expiry, boolean terminable,
-      ScheduleConfig scheduleConfig) {
+  protected WorkflowConfig(JobDag jobDag, int parallelJobs, TargetState targetState, long expiry,
+      boolean terminable, ScheduleConfig scheduleConfig) {
     _jobDag = jobDag;
+    _parallelJobs = parallelJobs;
     _targetState = targetState;
     _expiry = expiry;
     _terminable = terminable;
@@ -60,6 +66,10 @@ public class WorkflowConfig {
 
   public JobDag getJobDag() {
     return _jobDag;
+  }
+
+  public int getParallelJobs() {
+    return _parallelJobs;
   }
 
   public TargetState getTargetState() {
@@ -93,6 +103,7 @@ public class WorkflowConfig {
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
+    cfgMap.put(WorkflowConfig.PARALLEL_JOBS, String.valueOf(getParallelJobs()));
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(getExpiry()));
     cfgMap.put(WorkflowConfig.TARGET_STATE, getTargetState().name());
     cfgMap.put(WorkflowConfig.TERMINABLE, String.valueOf(isTerminable()));
@@ -116,6 +127,7 @@ public class WorkflowConfig {
 
   public static class Builder {
     private JobDag _taskDag = JobDag.EMPTY_DAG;
+    private int _parallelJobs = 1;
     private TargetState _targetState = TargetState.START;
     private long _expiry = DEFAULT_EXPIRY;
     private boolean _isTerminable = true;
@@ -124,11 +136,16 @@ public class WorkflowConfig {
     public WorkflowConfig build() {
       validate();
 
-      return new WorkflowConfig(_taskDag, _targetState, _expiry, _isTerminable, _scheduleConfig);
+      return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _isTerminable, _scheduleConfig);
     }
 
     public Builder setJobDag(JobDag v) {
       _taskDag = v;
+      return this;
+    }
+
+    public Builder setParallelJobs(int parallelJobs) {
+      _parallelJobs = parallelJobs;
       return this;
     }
 
@@ -170,6 +187,14 @@ public class WorkflowConfig {
       }
       if (cfg.containsKey(TERMINABLE)) {
         b.setTerminable(Boolean.parseBoolean(cfg.get(TERMINABLE)));
+      }
+      if (cfg.containsKey(PARALLEL_JOBS)) {
+        String value = cfg.get(PARALLEL_JOBS);
+        if (value == null) {
+          b.setParallelJobs(1);
+        } else {
+          b.setParallelJobs(Integer.parseInt(value));
+        }
       }
 
       // Parse schedule-specific configs, if they exist

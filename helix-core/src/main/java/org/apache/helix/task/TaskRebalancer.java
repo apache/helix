@@ -91,7 +91,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    * @param prevAssignment the previous task partition assignment
    * @param instances the instances
    * @param jobCfg the task configuration
-   * @param taskCtx the task context
+   * @param jobContext the task context
    * @param workflowCfg the workflow configuration
    * @param workflowCtx the workflow context
    * @param partitionSet the partitions to assign
@@ -134,12 +134,20 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       workflowCtx.setStartTime(System.currentTimeMillis());
     }
 
-    // Check parent dependencies
-    for (String parent : workflowCfg.getJobDag().getDirectParents(resourceName)) {
-      if (workflowCtx.getJobState(parent) == null
-          || !workflowCtx.getJobState(parent).equals(TaskState.COMPLETED)) {
-        return emptyAssignment(resourceName, currStateOutput);
+    // check ancestor job status
+    int notStartedCount = 0;
+    int inCompleteCount = 0;
+    for (String ancestor : workflowCfg.getJobDag().getAncestors(resourceName)) {
+      TaskState jobState = workflowCtx.getJobState(ancestor);
+      if (jobState == null || jobState == TaskState.NOT_STARTED) {
+        ++notStartedCount;
+      } else if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
+        ++inCompleteCount;
       }
+    }
+
+    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()) {
+      return emptyAssignment(resourceName, currStateOutput);
     }
 
     // Clean up if workflow marked for deletion
@@ -219,6 +227,32 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return newAssignment;
   }
 
+  private Set<String> getInstancesAssignedToOtherJobs(String currentJobName,
+      WorkflowConfig workflowCfg) {
+
+    Set<String> ret = new HashSet<String>();
+
+    for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
+      if (jobName.equals(currentJobName)) {
+        continue;
+      }
+
+      JobContext jobContext = TaskUtil.getJobContext(_manager, jobName);
+      if (jobContext == null) {
+        continue;
+      }
+      for (int partition : jobContext.getPartitionSet()) {
+        TaskPartitionState partitionState = jobContext.getPartitionState(partition);
+        if (partitionState == TaskPartitionState.INIT ||
+            partitionState == TaskPartitionState.RUNNING) {
+          ret.add(jobContext.getAssignedParticipant(partition));
+        }
+      }
+    }
+
+    return ret;
+  }
+
   private ResourceAssignment computeResourceMapping(String jobResource,
       WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevAssignment,
       Collection<String> liveInstances, CurrentStateOutput currStateOutput,
@@ -248,6 +282,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // Keeps a mapping of (partition) -> (instance, state)
     Map<Integer, PartitionAssignment> paMap = new TreeMap<Integer, PartitionAssignment>();
 
+    Set<String> excludedInstances = getInstancesAssignedToOtherJobs(jobResource, workflowConfig);
+
     // Process all the current assignments of tasks.
     Set<Integer> allPartitions =
         getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache);
@@ -255,6 +291,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         getTaskPartitionAssignments(liveInstances, prevAssignment, allPartitions);
     long currentTime = System.currentTimeMillis();
     for (String instance : taskAssignments.keySet()) {
+      if (excludedInstances.contains(instance)) {
+        continue;
+      }
+
       Set<Integer> pSet = taskAssignments.get(instance);
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
       // TASK_ERROR, ERROR.
@@ -430,7 +470,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
               workflowConfig, workflowCtx, allPartitions, cache);
       for (Map.Entry<String, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
         String instance = entry.getKey();
-        if (!tgtPartitionAssignments.containsKey(instance)) {
+        if (!tgtPartitionAssignments.containsKey(instance) || excludedInstances.contains(instance)) {
           continue;
         }
         // Contains the set of task partitions currently assigned to the instance.

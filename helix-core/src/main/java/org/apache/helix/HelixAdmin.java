@@ -236,6 +236,13 @@ public interface HelixAdmin {
   void addStateModelDef(String clusterName, String stateModelDef, StateModelDefinition record);
 
   /**
+   * Drop a state model definition
+   * @param clusterName
+   * @param stateModelDef
+   */
+  void dropStateModelDef(String clusterName, String stateModelDef);
+
+  /**
    * Drop a resource from a cluster
    * @param clusterName
    * @param resourceName

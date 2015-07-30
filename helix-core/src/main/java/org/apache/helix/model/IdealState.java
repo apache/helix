@@ -116,7 +116,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Set the rebalance mode of the ideal state
+   * Get the rebalance mode of the ideal state
    * @param mode {@link IdealStateModeProperty}
    */
   @Deprecated
@@ -127,7 +127,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Set the rebalance mode of the resource
+   * Get the rebalance mode of the resource
    * @param rebalancerType
    */
   public void setRebalanceMode(RebalanceMode rebalancerType) {
@@ -163,6 +163,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+<<<<<<< HEAD
    * Set the resource group name
    * @param resourceGroupName
    */
@@ -218,6 +219,8 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+=======
+>>>>>>> parent of a23beb7... [HELIX-599] Support creating/maintaining/routing resources with same names in different instance groups.
    * Set the maximum number of partitions of this resource that an instance can serve
    * @param max the maximum number of partitions supported
    */

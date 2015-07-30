@@ -62,8 +62,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
           resource.setBatchMessageMode(idealState.getBatchMessageMode());
-          resource.setResourceGroupName(idealState.getResourceGroupName());
-          resource.setResourceTag(idealState.getInstanceGroupTag());
         }
 
         for (String partition : partitionSet) {
@@ -104,12 +102,6 @@ public class ResourceComputationStage extends AbstractBaseStage {
             resource.setStateModelFactoryName(currentState.getStateModelFactoryName());
             resource.setBucketSize(currentState.getBucketSize());
             resource.setBatchMessageMode(currentState.getBatchMessageMode());
-
-            IdealState idealState = idealStates.get(resourceName);
-            if (idealState != null) {
-              resource.setResourceGroupName(idealState.getResourceGroupName());
-              resource.setResourceTag(idealState.getInstanceGroupTag());
-            }
           }
 
           if (currentState.getStateModelDefRef() == null) {

@@ -31,16 +31,6 @@ import org.apache.helix.ZNRecord;
  * of current states for the partitions in a resource
  */
 public class ExternalView extends HelixProperty {
-
-  /**
-   * Properties that are persisted and are queryable for an external view
-   */
-  public enum ExternalViewProperty {
-    INSTANCE_GROUP_TAG,
-    RESOURCE_GROUP_NAME,
-    GROUP_ROUTING_ENABLED
-  }
-
   /**
    * Instantiate an external view with the resource it corresponds to
    * @param resource the name of the resource
@@ -103,32 +93,6 @@ public class ExternalView extends HelixProperty {
    */
   public String getResourceName() {
     return _record.getId();
-  }
-
-  /**
-   * Get the resource group name
-   *
-   * @return the name of the resource group this resource belongs to.
-   */
-  public String getResourceGroupName() {
-    return _record.getSimpleField(ExternalViewProperty.RESOURCE_GROUP_NAME.toString());
-  }
-
-  /**
-   * Check whether the group routing is enabled for this resource.
-   *
-   * @return true if the group routing enabled for this resource; false otherwise
-   */
-  public boolean isGroupRoutingEnabled() {
-    return _record.getBooleanField(ExternalViewProperty.GROUP_ROUTING_ENABLED.name(), false);
-  }
-
-  /**
-   * Check for a group tag of this resource
-   * @return the group tag, or null if none is present
-   */
-  public String getInstanceGroupTag() {
-    return _record.getSimpleField(ExternalViewProperty.INSTANCE_GROUP_TAG.toString());
   }
 
   @Override

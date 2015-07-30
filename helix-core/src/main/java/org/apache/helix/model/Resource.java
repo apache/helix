@@ -38,8 +38,6 @@ public class Resource {
   private String _stateModelFactoryName;
   private int _bucketSize = 0;
   private boolean _batchMessageMode = false;
-  private String _resourceGroupName;
-  private String _resourceTag;
 
   /**
    * Instantiate a resource by its name
@@ -149,39 +147,6 @@ public class Resource {
    */
   public boolean getBatchMessageMode() {
     return _batchMessageMode;
-  }
-
-  /**
-   * Get the resource tag assigned to this resource
-   *
-   * @return the name of the tag
-   */
-  public String getResourceTag() {
-    return _resourceTag;
-  }
-
-  /**
-   * Set the resource tag
-   * @param resourceTag
-   */
-  public void setResourceTag(String resourceTag) {
-    _resourceTag = resourceTag;
-  }
-
-  /**
-   * Get resource group name
-   * @return the resource group name
-   */
-  public String getResourceGroupName() {
-    return _resourceGroupName;
-  }
-
-  /**
-   * Set resource group name
-   * @param resourceGroupName
-   */
-  public void setResourceGroupName(String resourceGroupName) {
-    _resourceGroupName = resourceGroupName;
   }
 
   @Override

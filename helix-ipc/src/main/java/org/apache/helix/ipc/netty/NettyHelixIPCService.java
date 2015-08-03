@@ -96,7 +96,6 @@ public class NettyHelixIPCService implements HelixIPCService {
 
   // Parameters for length header field of message (tells decoder to interpret but preserve length
   // field in message)
-  private static final int MAX_FRAME_LENGTH = 1024 * 1024;
   private static final int LENGTH_FIELD_OFFSET = 0;
   private static final int LENGTH_FIELD_LENGTH = 4;
   private static final int LENGTH_ADJUSTMENT = -4;
@@ -158,7 +157,7 @@ public class NettyHelixIPCService implements HelixIPCService {
             protected void initChannel(SocketChannel socketChannel) throws Exception {
               socketChannel.pipeline().addLast(
                   new LengthFieldBasedFrameDecoder(
-                      MAX_FRAME_LENGTH,
+                      config.getMaxFrameLength(),
                       LENGTH_FIELD_OFFSET,
                       LENGTH_FIELD_LENGTH,
                       LENGTH_ADJUSTMENT,
@@ -231,9 +230,6 @@ public class NettyHelixIPCService implements HelixIPCService {
         synchronized (channelMap) {
           channel = channels.get(idx);
           if (channel == null || !channel.isOpen()) {
-            if (channel != null && channel.isOpen()) {
-              channel.close();
-            }
             channel = clientBootstrap.connect(destination.getSocketAddress()).sync().channel();
             channels.set(idx, channel);
             statChannelOpen.inc();
@@ -302,6 +298,7 @@ public class NettyHelixIPCService implements HelixIPCService {
     private String instanceName;
     private int port;
     private int numConnections = 1;
+    private int maxFrameLength = 128 * 1024 * 1024;
 
     public Config setInstanceName(String instanceName) {
       this.instanceName = instanceName;
@@ -318,6 +315,11 @@ public class NettyHelixIPCService implements HelixIPCService {
       return this;
     }
 
+    public Config setMaxFrameLength(int maxFrameLength) {
+      this.maxFrameLength = maxFrameLength;
+      return this;
+    }
+
     public String getInstanceName() {
       return instanceName;
     }
@@ -328,6 +330,10 @@ public class NettyHelixIPCService implements HelixIPCService {
 
     public int getNumConnections() {
       return numConnections;
+    }
+
+    public int getMaxFrameLength() {
+      return maxFrameLength;
     }
   }
 }

@@ -45,7 +45,9 @@ public class NettyHelixIPCUtils {
   /** Given a byte buf w/ a certain reader index, encodes the next length bytes as a String */
   public static String toNonEmptyString(int length, ByteBuf byteBuf) {
     if (byteBuf.readableBytes() >= length) {
-      return byteBuf.toString(byteBuf.readerIndex(), length, Charset.defaultCharset());
+      String string =  byteBuf.toString(byteBuf.readerIndex(), length, Charset.defaultCharset());
+      byteBuf.readerIndex(byteBuf.readerIndex() + length);
+      return string;
     }
     return null;
   }

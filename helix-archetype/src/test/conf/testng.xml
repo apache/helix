@@ -21,7 +21,7 @@ under the License.
 <suite name="Suite" parallel="none">
   <test name="Test" preserve-order="true">
     <packages>
-    	<package name="org.apache.helix.*"/>
+      <package name="org.apache.helix.*"/>
     <!--
       <package name="org.apache.helix.messaging.handling"/>
       <package name="org.apache.helix.agent.file"/>
@@ -39,4 +39,4 @@ under the License.
       -->
     </packages>
   </test>
-</suite>	
+</suite>

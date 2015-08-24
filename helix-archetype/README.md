@@ -25,21 +25,13 @@ A maven archetype that sets up a sample [Apache Helix](http://helix.apache.org/)
 Generate
 --------
 
-First, clone this repository and install the archetype
-
-```
-git clone git@github.com:brandtg/helix-archetype.git
-cd helix-archetype
-mvn install
-```
-
-Then generate your application
+Then generate your application, substituting `project.version` as appropriate.
 
 ```
 mvn archetype:generate \
   -DarchetypeGroupId=org.apache.helix \
   -DarchetypeArtifactId=helix-archetype \
-  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DarchetypeVersion=${project.version} \
   -DgroupId=com.example \
   -DartifactId=my-app \
   -Dname=MyApp \
@@ -92,4 +84,10 @@ Rebalance the resource (should work...)
 
 ```
 java -jar target/my-app-1.0-SNAPSHOT.jar setup  --zkSvr localhost:2191 --rebalance TEST_CLUSTER test 1
+```
+
+Clean up temporary ZooKeeper files, after finished
+
+```
+rm -rf /tmp/zk
 ```

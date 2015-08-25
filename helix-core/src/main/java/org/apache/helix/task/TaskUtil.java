@@ -349,6 +349,7 @@ public class TaskUtil {
     IdealState is = accessor.getProperty(key);
     if (is != null) {
       accessor.updateProperty(key, is);
+      LOG.debug("invoke rebalance for " + key);
     }
   }
 

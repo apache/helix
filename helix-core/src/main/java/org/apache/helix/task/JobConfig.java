@@ -217,6 +217,7 @@ public class JobConfig {
     cfgMap.put(JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, "" + _maxForcedReassignmentsPerTask);
     cfgMap.put(JobConfig.FAILURE_THRESHOLD, "" + _failureThreshold);
     cfgMap.put(JobConfig.DISABLE_EXTERNALVIEW, Boolean.toString(_disableExternalView));
+    cfgMap.put(JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE, "" + _numConcurrentTasksPerInstance);
     return cfgMap;
   }
 

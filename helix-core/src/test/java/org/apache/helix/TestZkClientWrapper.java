@@ -85,6 +85,10 @@ public class TestZkClientWrapper extends ZkUnitTestBase {
       public void handleNewSession() throws Exception {
         System.out.println("In Old connection New session");
       }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+      }
     };
 
     _zkClient.subscribeStateChanges(listener);

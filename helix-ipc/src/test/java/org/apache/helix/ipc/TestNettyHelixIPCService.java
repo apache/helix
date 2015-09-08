@@ -127,10 +127,18 @@ public class TestNettyHelixIPCService extends ZkTestBase {
         new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
             .forCluster(firstNode.getClusterName()).forParticipant(firstNode.getInstanceName())
             .build(), HelixIPCService.IPC_PORT, String.valueOf(firstPort));
+    firstNode.getConfigAccessor().set(
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+            .forCluster(firstNode.getClusterName()).forParticipant(firstNode.getInstanceName())
+            .build(), HelixIPCService.IPC_HOST, "localhost");
     secondNode.getConfigAccessor().set(
         new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
             .forCluster(secondNode.getClusterName()).forParticipant(secondNode.getInstanceName())
             .build(), HelixIPCService.IPC_PORT, String.valueOf(secondPort));
+    secondNode.getConfigAccessor().set(
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
+            .forCluster(secondNode.getClusterName()).forParticipant(secondNode.getInstanceName())
+            .build(), HelixIPCService.IPC_HOST, "localhost");
   }
 
   @AfterClass

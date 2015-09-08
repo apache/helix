@@ -47,6 +47,7 @@ public abstract class AbstractHelixResolver implements HelixResolver {
   private static final int DEFAULT_THREAD_POOL_SIZE = 10;
   private static final long DEFAULT_LEASE_LENGTH_MS = 60 * 60 * 1000; // TODO: are these good
                                                                       // values?
+  private static final String IPC_HOST = "IPC_HOST";
   private static final String IPC_PORT = "IPC_PORT";
   private final Map<String, Spectator> _connections;
   private boolean _isConnected;
@@ -142,13 +143,13 @@ public abstract class AbstractHelixResolver implements HelixResolver {
     // Resolve those participants
     Set<HelixAddress> result = new HashSet<HelixAddress>();
     for (InstanceConfig participant : participants) {
+      String ipcHost = participant.getRecord().getSimpleField(IPC_HOST);
       String ipcPort = participant.getRecord().getSimpleField(IPC_PORT);
-      if (ipcPort == null) {
-        LOG.error("No ipc address registered for target instance " + participant.getInstanceName()
-            + ", skipping");
+      if (ipcHost == null || ipcPort == null) {
+        throw new IllegalStateException("Could not resolve " + participant);
       } else {
-        result.add(new HelixAddress(scope, participant.getInstanceName(), new InetSocketAddress(
-            participant.getHostName(), Integer.valueOf(ipcPort))));
+        result.add(new HelixAddress(scope, participant.getInstanceName(),
+            new InetSocketAddress(ipcHost, Integer.valueOf(ipcPort))));
       }
     }
 
@@ -175,13 +176,14 @@ public abstract class AbstractHelixResolver implements HelixResolver {
 
     if (scope.getSourceInstance() != null) {
       InstanceConfig config = routingTable.getInstanceConfig(scope.getSourceInstance());
+      String ipcHost = config.getRecord().getSimpleField(IPC_HOST);
       String ipcPort = config.getRecord().getSimpleField(IPC_PORT);
-      if (ipcPort == null) {
+      if (ipcPort == null || ipcHost == null) {
         throw new IllegalStateException("No IPC address registered for source instance "
             + scope.getSourceInstance());
       }
       return new HelixAddress(scope, scope.getSourceInstance(), new InetSocketAddress(
-          config.getHostName(), Integer.valueOf(ipcPort)));
+          ipcHost, Integer.valueOf(ipcPort)));
     }
 
     return null;

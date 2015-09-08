@@ -33,6 +33,7 @@ import java.util.UUID;
  */
 public interface HelixIPCService {
 
+  static final String IPC_HOST = "IPC_HOST";
   static final String IPC_PORT = "IPC_PORT";
 
   /** Starts service (must call before {@link #send}) */

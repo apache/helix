@@ -77,6 +77,7 @@ public class TestZKHelixResolver extends ZkTestBase {
       InstanceConfig config = new InstanceConfig(instanceName);
       config.setHostName(host);
       config.setPort(Integer.toString(port));
+      config.getRecord().setSimpleField("IPC_HOST", host);
       config.getRecord().setSimpleField("IPC_PORT", Integer.toString(ipcPort));
       admin.addInstance(CLUSTER_NAME, config);
       _socketMap.put(instanceName, new InetSocketAddress(host, ipcPort));

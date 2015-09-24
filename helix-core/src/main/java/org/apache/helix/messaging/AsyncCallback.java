@@ -104,7 +104,7 @@ public abstract class AsyncCallback {
     _messagesSent = generatedMessage;
   }
 
-  final void startTimer() {
+  final synchronized void startTimer() {
     if (_timer == null && _timeout > 0) {
       if (_startTimeStamp == 0) {
         _startTimeStamp = new Date().getTime();

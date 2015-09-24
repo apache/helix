@@ -95,6 +95,10 @@ public class ZkTestHelper {
 
         LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
       }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+      }
     };
 
     zkClient.subscribeStateChanges(listener);
@@ -145,6 +149,10 @@ public class ZkTestHelper {
 
         LOG.info("handleNewSession. sessionId: " + Long.toHexString(curZookeeper.getSessionId()));
         waitNewSession.countDown();
+      }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
       }
     };
 

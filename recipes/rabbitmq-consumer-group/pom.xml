@@ -83,9 +83,9 @@ under the License.
       </exclusions>
     </dependency>
     <dependency>
-      <groupId>com.github.sgroschupf</groupId>
+      <groupId>com.101tec</groupId>
       <artifactId>zkclient</artifactId>
-      <version>0.1</version>
+      <version>0.5</version>
     </dependency>
   </dependencies>
   <build>

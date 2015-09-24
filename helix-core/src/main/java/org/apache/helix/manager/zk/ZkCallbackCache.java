@@ -297,4 +297,7 @@ public class ZkCallbackCache<T> extends Cache<T> implements IZkChildListener, IZ
     }
   }
 
+  @Override
+  public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+  }
 }

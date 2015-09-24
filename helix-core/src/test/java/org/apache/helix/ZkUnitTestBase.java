@@ -225,6 +225,10 @@ public class ZkUnitTestBase {
       public void handleNewSession() throws Exception {
         LOG.info("In Old connection, new session");
       }
+
+      @Override
+      public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+      }
     };
     zkClient.subscribeStateChanges(listener);
     ZkConnection connection = ((ZkConnection) zkClient.getConnection());

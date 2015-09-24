@@ -130,6 +130,10 @@ public class TestZkFlapping extends ZkUnitTestBase {
     @Override
     public void handleNewSession() throws Exception {
     }
+
+    @Override
+    public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+    }
   }
 
   @Test

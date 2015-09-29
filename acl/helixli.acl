@@ -1,0 +1,3 @@
+owners: [ ghelgess, lxia, cji ]
+groups: [ nuage-reviewers ]
+paths: [ '.*' ]

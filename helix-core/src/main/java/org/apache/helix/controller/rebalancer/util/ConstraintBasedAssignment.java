@@ -57,6 +57,19 @@ public class ConstraintBasedAssignment {
       return listField;
     }
   }
+  
+  private static boolean isInstanceEligibleForState(String instanceName, 
+		Map<String, String> currentStateMap,
+		Map<String, LiveInstance> liveInstancesMap,
+		Set<String> disabledInstancesForPartition, boolean isResourceEnabled) {
+	boolean notInErrorState = currentStateMap == null
+				|| currentStateMap.get(instanceName) == null
+				|| !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
+
+	boolean enabled = !disabledInstancesForPartition.contains(instanceName) && isResourceEnabled;
+		
+	return liveInstancesMap.containsKey(instanceName) && notInErrorState && enabled;
+  }
 
   /**
    * compute best state for resource in AUTO ideal state mode
@@ -69,33 +82,27 @@ public class ConstraintBasedAssignment {
    * @param isResourceEnabled
    * @return
    */
-  public static Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
+  public static Map<String, String> computeCustomAutoBestStateForPartition(ClusterDataCache cache,
       StateModelDefinition stateModelDef, List<String> instancePreferenceList,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      boolean isResourceEnabled) {
+      Map<String, String> currentStateMap, Map<String, String> preferredStateMap, 
+      Set<String> disabledInstancesForPartition, boolean isResourceEnabled) {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
-
-    // if the ideal state is deleted, instancePreferenceList will be empty and
-    // we should drop all resources.
-    if (currentStateMap != null) {
-      for (String instance : currentStateMap.keySet()) {
-        if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
-          // if dropped (whether disabled or not), transit to DROPPED
-          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.name()))
-            && (disabledInstancesForPartition.contains(instance) || !isResourceEnabled)) {
-          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
-        }
-      }
-    }
+    instanceStateMap.putAll(preferredStateMap);
 
     // ideal state is deleted
     if (instancePreferenceList == null) {
       return instanceStateMap;
     }
+    
+	Map<String, List<String>> state2NodesMap = new HashMap<String, List<String>>();
+	for (Map.Entry<String, String> entry: preferredStateMap.entrySet()) {
+		List<String> nodes = null;
+		if (!state2NodesMap.containsKey(entry.getValue())) {
+			nodes = new ArrayList<String>();
+			state2NodesMap.put(entry.getValue(), nodes);
+		}
+		state2NodesMap.get(entry.getValue()).add(entry.getKey());
+	}
 
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     boolean assigned[] = new boolean[instancePreferenceList.size()];
@@ -120,18 +127,23 @@ public class ConstraintBasedAssignment {
       }
       if (stateCount > -1) {
         int count = 0;
+        
+		if (state2NodesMap.containsKey(state)) {
+			for (String instanceName: state2NodesMap.get(state)) {
+				if (isInstanceEligibleForState(instanceName, currentStateMap, liveInstancesMap, disabledInstancesForPartition, isResourceEnabled)) {
+					count += 1;
+					if (count == stateCount) {
+						break;
+					}
+				}
+			}
+		}
+		
         for (int i = 0; i < instancePreferenceList.size(); i++) {
           String instanceName = instancePreferenceList.get(i);
-
-          boolean notInErrorState =
-              currentStateMap == null || currentStateMap.get(instanceName) == null
-                  || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
-
-          boolean enabled =
-              !disabledInstancesForPartition.contains(instanceName) && isResourceEnabled;
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && enabled) {
-            instanceStateMap.put(instanceName, state);
+			if (count < stateCount && !assigned[i] && !preferredStateMap.containsKey(instanceName) &&
+					isInstanceEligibleForState(instanceName, currentStateMap, liveInstancesMap, disabledInstancesForPartition, isResourceEnabled)) {
+			instanceStateMap.put(instanceName, state);
             count = count + 1;
             assigned[i] = true;
             if (count == stateCount) {
@@ -142,5 +154,44 @@ public class ConstraintBasedAssignment {
       }
     }
     return instanceStateMap;
+  }
+
+  /**
+   * compute best state for resource in AUTO ideal state mode
+   * @param cache
+   * @param stateModelDef
+   * @param instancePreferenceList
+   * @param currentStateMap
+   *          : instance->state for each partition
+   * @param disabledInstancesForPartition
+   * @param isResourceEnabled
+   * @return
+   */
+  public static Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
+      StateModelDefinition stateModelDef, List<String> instancePreferenceList,
+      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
+      boolean isResourceEnabled) {
+
+    Map<String, String> instanceStateMap = new HashMap<String, String>();
+    // if the ideal state is deleted, instancePreferenceList will be empty and
+    // we should drop all resources.
+    if (currentStateMap != null) {
+      for (String instance : currentStateMap.keySet()) {
+        if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
+            && !disabledInstancesForPartition.contains(instance)) {
+          // if dropped (whether disabled or not), transit to DROPPED
+          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
+        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
+            HelixDefinedState.ERROR.name()))
+            && (disabledInstancesForPartition.contains(instance) || !isResourceEnabled)) {
+          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
+          instanceStateMap.put(instance, stateModelDef.getInitialState());
+        }
+      }
+    }
+    
+    return computeCustomAutoBestStateForPartition(cache, stateModelDef, 
+               instancePreferenceList, currentStateMap, instanceStateMap, 
+               disabledInstancesForPartition, isResourceEnabled);
   }
 }

@@ -57,6 +57,7 @@ public class IdealState extends HelixProperty {
     REBALANCER_CLASS_NAME,
     HELIX_ENABLED,
     RESOURCE_GROUP_NAME,
+    RESOURCE_TYPE,
     GROUP_ROUTING_ENABLED,
     EXTERNAL_VIEW_DISABLED
   }
@@ -163,12 +164,27 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-<<<<<<< HEAD
    * Set the resource group name
    * @param resourceGroupName
    */
   public void setResourceGroupName(String resourceGroupName) {
     _record.setSimpleField(IdealStateProperty.RESOURCE_GROUP_NAME.toString(), resourceGroupName);
+  }
+
+  /**
+   * Set the resource type
+   * @param resourceType
+   */
+  public void setResourceType(String resourceType) {
+    _record.setSimpleField(IdealStateProperty.RESOURCE_TYPE.toString(), resourceType);
+  }
+
+  /**
+   * Get the resource type
+   * @return the resource type, or null if none is being set
+   */
+  public String getResourceType() {
+    return _record.getSimpleField(IdealStateProperty.RESOURCE_TYPE.toString());
   }
 
   /**

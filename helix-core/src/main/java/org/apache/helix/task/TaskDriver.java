@@ -535,7 +535,7 @@ public class TaskDriver {
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
 
     if (jobConfig.isDisableExternalView()) {
-      builder.setDisableExternalView(jobConfig.isDisableExternalView());
+      builder.disableExternalView();
     }
 
     IdealState is = builder.build();

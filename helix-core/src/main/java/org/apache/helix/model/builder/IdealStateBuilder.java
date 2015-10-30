@@ -68,6 +68,23 @@ public abstract class IdealStateBuilder {
    */
   private Boolean disableExternalView = null;
 
+  /**
+   * Resource Group Name
+   */
+  private String resourceGroupName;
+
+  /**
+   * Whether enabling group routing.
+   */
+  private Boolean enableGroupRouting = null;
+
+
+  /**
+   * Resource Type
+   */
+  private String resourceType;
+
+
   protected ZNRecord _record;
 
   /**
@@ -127,10 +144,10 @@ public abstract class IdealStateBuilder {
   }
 
   /**
-   * @param disableExternalView
+   * Disable ExternalView for this resource
    */
-  public IdealStateBuilder setDisableExternalView(boolean disableExternalView) {
-    this.disableExternalView = disableExternalView;
+  public IdealStateBuilder disableExternalView() {
+    this.disableExternalView = true;
     return this;
   }
 
@@ -140,6 +157,34 @@ public abstract class IdealStateBuilder {
    */
   public IdealStateBuilder setRebalancerMode(IdealState.RebalanceMode rebalancerMode) {
     this.rebalancerMode = rebalancerMode;
+    return this;
+  }
+
+  /**
+   *
+   * @param resourceGroupName
+   * @return
+   */
+  public IdealStateBuilder setResourceGroupName(String resourceGroupName) {
+    this.resourceGroupName = resourceGroupName;
+    return this;
+  }
+
+  /**
+   * @param resourceType
+   * @return
+   */
+  public IdealStateBuilder setResourceType(String resourceType) {
+    this.resourceType = resourceType;
+    return this;
+  }
+
+  /**
+   * Enable Group Routing for this resource.
+   * @return
+   */
+  public IdealStateBuilder enableGroupRouting() {
+    this.enableGroupRouting = true;
     return this;
   }
 
@@ -156,6 +201,18 @@ public abstract class IdealStateBuilder {
     idealstate.setReplicas("" + numReplica);
     if (disableExternalView != null) {
       idealstate.setDisableExternalView(disableExternalView);
+    }
+
+    if (enableGroupRouting != null) {
+      idealstate.enableGroupRouting(enableGroupRouting);
+    }
+
+    if (resourceGroupName != null) {
+      idealstate.setResourceGroupName(resourceGroupName);
+    }
+
+    if (resourceType != null) {
+      idealstate.setResourceType(resourceType);
     }
 
     if (!idealstate.isValid()) {

@@ -20,6 +20,9 @@ package org.apache.helix.task;
  */
 
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -30,14 +33,38 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;
+  private final ScheduledExecutorService _taskExecutor;
+  private final static int TASK_THREADPOOL_SIZE = 40;
 
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
-    _manager = manager;
-    _taskFactoryRegistry = taskFactoryRegistry;
+    this(manager, taskFactoryRegistry,
+        Executors.newScheduledThreadPool(TASK_THREADPOOL_SIZE, new ThreadFactory() {
+          @Override public Thread newThread(Runnable r) {
+            return new Thread(r, "TaskStateModel-thread-pool");
+          }
+        }));
   }
 
-  @Override
-  public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
-    return new TaskStateModel(_manager, _taskFactoryRegistry);
+  public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry,
+      ScheduledExecutorService taskExecutor) {
+    _manager = manager;
+    _taskFactoryRegistry = taskFactoryRegistry;
+    _taskExecutor = taskExecutor;
+  }
+
+  @Override public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {
+    return new TaskStateModel(_manager, _taskFactoryRegistry, _taskExecutor);
+  }
+
+  public void shutdown() {
+    _taskExecutor.shutdown();
+  }
+
+  public boolean isShutdown() {
+    return _taskExecutor.isShutdown();
+  }
+
+  public boolean isTerminated() {
+    return _taskExecutor.isTerminated();
   }
 }

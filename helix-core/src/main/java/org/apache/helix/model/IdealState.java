@@ -31,9 +31,9 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
-import org.apache.helix.task.FixedTargetTaskRebalancer;
-import org.apache.helix.task.GenericTaskRebalancer;
+import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskRebalancer;
+import org.apache.helix.task.WorkflowRebalancer;
 import org.apache.log4j.Logger;
 
 /**
@@ -541,8 +541,8 @@ public class IdealState extends HelixProperty {
     default:
       String rebalancerName = getRebalancerClassName();
       if (rebalancerName != null) {
-        if (rebalancerName.equals(FixedTargetTaskRebalancer.class.getName())
-            || rebalancerName.equals(GenericTaskRebalancer.class.getName())) {
+        if (rebalancerName.equals(JobRebalancer.class.getName())
+            || rebalancerName.equals(WorkflowRebalancer.class.getName())) {
           property = RebalanceMode.TASK;
         } else {
           property = RebalanceMode.USER_DEFINED;

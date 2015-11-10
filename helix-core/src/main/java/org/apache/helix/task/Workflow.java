@@ -230,7 +230,7 @@ public class Workflow {
     protected Map<String, Map<String, String>> _jobConfigs;
     protected Map<String, List<TaskConfig>> _taskConfigs;
     protected ScheduleConfig _scheduleConfig;
-    protected long _expiry;
+    protected long _expiry = -1;
     protected Map<String, String> _cfgMap;
     protected int _parallelJobs = -1;
 
@@ -239,7 +239,7 @@ public class Workflow {
       _dag = new JobDag();
       _jobConfigs = new TreeMap<String, Map<String, String>>();
       _taskConfigs = new TreeMap<String, List<TaskConfig>>();
-      _expiry = WorkflowConfig.DEFAULT_EXPIRY;
+      _expiry = -1;
     }
 
     public Builder addConfig(String job, String key, String val) {
@@ -340,7 +340,7 @@ public class Workflow {
       if (_expiry > 0) {
         builder.setExpiry(_expiry);
       }
-      if (_parallelJobs != -1) {
+      if (_parallelJobs > 0) {
         builder.setParallelJobs(_parallelJobs);
       }
 

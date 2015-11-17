@@ -29,6 +29,7 @@ import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
+import org.apache.helix.model.ConfigEntry;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -108,9 +109,17 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       MappingCalculator mappingCalculator = null;
       switch (idealState.getRebalanceMode()) {
       case FULL_AUTO:
-        AutoRebalancer autoRebalancer = new AutoRebalancer();
-        rebalancer = autoRebalancer;
-        mappingCalculator = autoRebalancer;
+        boolean fullAutoDisabled = cache.getClusterConfig().getRecord().getBooleanField(
+            ConfigEntry.DISABLE_FULL_AUTO.name(), false);
+        if (!fullAutoDisabled) {
+          AutoRebalancer autoRebalancer = new AutoRebalancer();
+          rebalancer = autoRebalancer;
+          mappingCalculator = autoRebalancer;
+        } else {
+          SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
+          rebalancer = semiAutoRebalancer;
+          mappingCalculator = semiAutoRebalancer;
+        }
         break;
       case SEMI_AUTO:
         SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();

@@ -235,8 +235,6 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-=======
->>>>>>> parent of a23beb7... [HELIX-599] Support creating/maintaining/routing resources with same names in different instance groups.
    * Set the maximum number of partitions of this resource that an instance can serve
    * @param max the maximum number of partitions supported
    */

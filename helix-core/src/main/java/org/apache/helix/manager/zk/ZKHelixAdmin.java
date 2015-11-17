@@ -249,14 +249,16 @@ public class ZKHelixAdmin implements HelixAdmin {
       // check partitions exist. warn if not
       IdealState idealState = new IdealState(idealStateRecord);
       for (String partitionName : partitionNames) {
-        if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
-            .getPreferenceList(partitionName) == null)
-            || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED && idealState
-                .getPreferenceList(partitionName) == null)
-            || (idealState.getRebalanceMode() == RebalanceMode.TASK && idealState
-                .getPreferenceList(partitionName) == null)
-            || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
-                .getInstanceStateMap(partitionName) == null)) {
+        if ((idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO &&
+             idealState.getPreferenceList(partitionName) == null) ||
+            (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO &&
+             idealState.getPreferenceList(partitionName) == null) ||
+            (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED &&
+             idealState.getPreferenceList(partitionName) == null) ||
+            (idealState.getRebalanceMode() == RebalanceMode.TASK &&
+             idealState.getPreferenceList(partitionName) == null) ||
+            (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED &&
+             idealState.getInstanceStateMap(partitionName) == null)) {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName + ", partition: "
               + partitionName + ", partition does not exist in ideal state");
         }
@@ -927,8 +929,8 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (masterStateValue == null) {
       masterStateValue = slaveStateValue;
     }
-    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO
-        && idealState.getRebalanceMode() != RebalanceMode.USER_DEFINED) {
+    if (idealState.getRebalanceMode() != RebalanceMode.FULL_AUTO &&
+        idealState.getRebalanceMode() != RebalanceMode.USER_DEFINED) {
       ZNRecord newIdealState =
           DefaultIdealStateCalculator.calculateIdealState(instanceNames, partitions, replica,
               keyPrefix, masterStateValue, slaveStateValue);

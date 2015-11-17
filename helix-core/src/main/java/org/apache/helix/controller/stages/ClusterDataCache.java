@@ -54,6 +54,7 @@ public class ClusterDataCache {
 
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
+  HelixProperty _clusterConfig;
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, LiveInstance> _liveInstanceCacheMap;
   Map<String, IdealState> _idealStateMap;
@@ -194,11 +195,11 @@ public class ClusterDataCache {
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
     _idealStateRuleMap = Maps.newHashMap();
-    HelixProperty clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
-    if (clusterConfig != null) {
-      for (String simpleKey : clusterConfig.getRecord().getSimpleFields().keySet()) {
+    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
+    if (_clusterConfig != null) {
+      for (String simpleKey : _clusterConfig.getRecord().getSimpleFields().keySet()) {
         if (simpleKey.startsWith(IDEAL_STATE_RULE_PREFIX)) {
-          String simpleValue = clusterConfig.getRecord().getSimpleField(simpleKey);
+          String simpleValue = _clusterConfig.getRecord().getSimpleField(simpleKey);
           String[] rules = simpleValue.split("(?<!\\\\),");
           Map<String, String> singleRule = Maps.newHashMap();
           for (String rule : rules) {
@@ -225,6 +226,10 @@ public class ClusterDataCache {
 
     _init = false;
     return true;
+  }
+
+  public HelixProperty getClusterConfig() {
+    return _clusterConfig;
   }
 
   /**

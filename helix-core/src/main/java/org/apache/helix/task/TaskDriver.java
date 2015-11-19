@@ -206,14 +206,7 @@ public class TaskDriver {
 
   /** Creates a new named job queue (workflow) */
   public void createQueue(JobQueue queue) throws Exception {
-    String queueName = queue.getName();
-    HelixProperty property = new HelixProperty(queueName);
-    property.getRecord().getSimpleFields().putAll(queue.getResourceConfigMap());
-    boolean created =
-        _accessor.createProperty(_accessor.keyBuilder().resourceConfig(queueName), property);
-    if (!created) {
-      throw new IllegalArgumentException("Queue " + queueName + " already exists!");
-    }
+    start(queue);
   }
 
   /** Flushes a named job queue */

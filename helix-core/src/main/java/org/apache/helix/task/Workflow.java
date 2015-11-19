@@ -49,19 +49,19 @@ public class Workflow {
   public static final String UNSPECIFIED = "UNSPECIFIED";
 
   /** Workflow name */
-  private String _name;
+  protected String _name;
 
   /** Holds workflow-level configurations */
-  private WorkflowConfig _workflowConfig;
+  protected WorkflowConfig _workflowConfig;
 
   /** Contains the per-job configurations for all jobs specified in the provided dag */
-  private Map<String, Map<String, String>> _jobConfigs;
+  protected Map<String, Map<String, String>> _jobConfigs;
 
   /** Containers the per-job configurations of all individually-specified tasks */
-  private Map<String, List<TaskConfig>> _taskConfigs;
+  protected Map<String, List<TaskConfig>> _taskConfigs;
 
   /** Constructs and validates a workflow against a provided dag and config set */
-  private Workflow(String name, WorkflowConfig workflowConfig,
+  protected Workflow(String name, WorkflowConfig workflowConfig,
       Map<String, Map<String, String>> jobConfigs, Map<String, List<TaskConfig>> taskConfigs) {
     _name = name;
     _workflowConfig = workflowConfig;
@@ -225,12 +225,14 @@ public class Workflow {
 
   /** Build a workflow incrementally from dependencies and single configs, validate at build time */
   public static class Builder {
-    private String _name;
-    private JobDag _dag;
-    private Map<String, Map<String, String>> _jobConfigs;
-    private Map<String, List<TaskConfig>> _taskConfigs;
-    private ScheduleConfig _scheduleConfig;
-    private long _expiry;
+    protected String _name;
+    protected JobDag _dag;
+    protected Map<String, Map<String, String>> _jobConfigs;
+    protected Map<String, List<TaskConfig>> _taskConfigs;
+    protected ScheduleConfig _scheduleConfig;
+    protected long _expiry;
+    protected Map<String, String> _cfgMap;
+    protected int _parallelJobs = -1;
 
     public Builder(String name) {
       _name = name;
@@ -287,6 +289,11 @@ public class Workflow {
       return this;
     }
 
+    public Builder fromMap(Map<String, String> cfg) {
+      _cfgMap = cfg;
+      return this;
+    }
+
     public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
       _scheduleConfig = scheduleConfig;
       return this;
@@ -301,13 +308,30 @@ public class Workflow {
       return TaskUtil.getNamespacedJobName(_name, job);
     }
 
+    public Builder parallelJobs(int parallelJobs) {
+      _parallelJobs = parallelJobs;
+      return this;
+    }
+
     public Workflow build() {
+      WorkflowConfig.Builder builder = buildWorkflowConfig();
+      // calls validate internally
+      return new Workflow(_name, builder.build(), _jobConfigs, _taskConfigs);
+    }
+
+    protected WorkflowConfig.Builder buildWorkflowConfig() {
       for (String task : _jobConfigs.keySet()) {
         // addConfig(task, TaskConfig.WORKFLOW_ID, _name);
         _jobConfigs.get(task).put(JobConfig.WORKFLOW_ID, _name);
       }
 
-      WorkflowConfig.Builder builder = new WorkflowConfig.Builder();
+      WorkflowConfig.Builder builder;
+      if (_cfgMap != null) {
+        builder = WorkflowConfig.Builder.fromMap(_cfgMap);
+      } else {
+        builder = new WorkflowConfig.Builder();
+      }
+
       builder.setJobDag(_dag);
       builder.setTargetState(TargetState.START);
       if (_scheduleConfig != null) {
@@ -316,8 +340,11 @@ public class Workflow {
       if (_expiry > 0) {
         builder.setExpiry(_expiry);
       }
-      return new Workflow(_name, builder.build(), _jobConfigs, _taskConfigs); // calls validate
-                                                                              // internally
+      if (_parallelJobs != -1) {
+        builder.setParallelJobs(_parallelJobs);
+      }
+
+      return builder;
     }
   }
 }

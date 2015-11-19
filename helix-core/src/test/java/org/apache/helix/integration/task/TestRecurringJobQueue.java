@@ -179,7 +179,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     return cal.getTime();
   }
 
-  private JobQueue buildRecurrentJobQueue(String jobQueueName, int delayStart) {
+  private JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart) {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
     cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
@@ -191,11 +191,12 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     cfgMap.put(WorkflowConfig.START_TIME,
         WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
     //cfgMap.put(WorkflowConfig.START_TIME,
-        //WorkflowConfig.getDefaultDateFormat().format(getDateFromStartTime("00:00")));
-    return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
+    //WorkflowConfig.getDefaultDateFormat().format(getDateFromStartTime("00:00")));
+    return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
   }
 
-  private JobQueue buildRecurrentJobQueue(String jobQueueName) {
+
+  private JobQueue.Builder buildRecurrentJobQueue(String jobQueueName) {
     return buildRecurrentJobQueue(jobQueueName, 0);
   }
 
@@ -205,9 +206,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
-
+    JobQueue.Builder queueBuild = buildRecurrentJobQueue(queueName);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i <= 1; i++) {
@@ -218,9 +217,11 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
-      _driver.enqueueJob(queueName, jobName, job);
+      queueBuild.enqueueJob(jobName, job);
       currentJobNames.add(jobName);
     }
+
+    _driver.start(queueBuild.build());
 
     WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
 
@@ -234,8 +235,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     _driver.delete(queueName);
     Thread.sleep(500);
 
-    queue = buildRecurrentJobQueue(queueName, 5);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = buildRecurrentJobQueue(queueName, 5);
     currentJobNames.clear();
     for (int i = 0; i <= 1; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
@@ -245,9 +245,12 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
-      _driver.enqueueJob(queueName, jobName, job);
+      queueBuilder.enqueueJob(jobName, job);
       currentJobNames.add(jobName);
     }
+
+    _driver.createQueue(queueBuilder.build());
+
 
     wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
 
@@ -269,12 +272,12 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = buildRecurrentJobQueue(queueName, 5);
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    Thread.sleep(100);
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
@@ -285,9 +288,10 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
-      _driver.enqueueJob(queueName, jobName, job);
+      queueBuilder.enqueueJob(jobName, job);
       currentJobNames.add(i, jobName);
     }
+    _driver.createQueue(queueBuilder.build());
 
     WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
@@ -360,8 +364,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = buildRecurrentJobQueue(queueName);
 
     // create jobs
     List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
@@ -369,7 +372,6 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
 
     final int JOB_COUNTS = 3;
-
     for (int i = 0; i < JOB_COUNTS; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
@@ -384,8 +386,11 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     // enqueue all jobs except last one
     for (int i = 0; i < JOB_COUNTS - 1; ++i) {
       LOG.info("Enqueuing job: " + jobNames.get(i));
-      _driver.enqueueJob(queueName, jobNames.get(i), jobs.get(i));
+      queueBuilder.enqueueJob(jobNames.get(i), jobs.get(i));
     }
+
+    _driver.createQueue(queueBuilder.build());
+
     String currentLastJob = jobNames.get(JOB_COUNTS - 2);
 
     WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
@@ -398,6 +403,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     // enqueue the last job
     LOG.info("Enqueuing job: " + jobNames.get(JOB_COUNTS - 1));
     _driver.enqueueJob(queueName, jobNames.get(JOB_COUNTS - 1), jobs.get(JOB_COUNTS - 1));
+    _driver.stop(queueName);
 
     // remove the last job
     _driver.deleteJob(queueName, jobNames.get(JOB_COUNTS - 1));
@@ -413,8 +419,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = buildRecurrentJobQueue(queueName);
 
     // create jobs
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
@@ -431,8 +436,11 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
             .setTargetPartitionStates(Sets.newHashSet("MASTER"));
 
     // enqueue both jobs
-    _driver.enqueueJob(queueName, "job1", job1);
-    _driver.enqueueJob(queueName, "job2", job2);
+    queueBuilder.enqueueJob("job1", job1);
+    queueBuilder.enqueueJob("job2", job2);
+
+    _driver.createQueue(queueBuilder.build());
+
 
     WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();

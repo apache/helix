@@ -48,6 +48,7 @@ public class TaskRunner implements Runnable {
   // If true, indicates that the task has finished.
   private volatile boolean _done = false;
 
+
   public TaskRunner(Task task, String taskName, String taskPartition, String instance,
       HelixManager manager, String sessionId) {
     _task = task;
@@ -111,7 +112,9 @@ public class TaskRunner implements Runnable {
    * Signals the task to cancel itself.
    */
   public void cancel() {
-    _task.cancel();
+    if (!_done) {
+      _task.cancel();
+    }
   }
 
   /**

@@ -100,6 +100,20 @@ public class WorkflowConfig {
     return defaultDateFormat;
   }
 
+  /**
+   * Get the scheduled start time of the workflow.
+   *
+   * @return start time if the workflow schedule is set, null if no schedule config set.
+   */
+  public Date getStartTime() {
+    // Workflow with non-scheduled config is ready to schedule immediately.
+    if (_scheduleConfig == null) {
+      return null;
+    }
+
+    return _scheduleConfig.getStartTime();
+  }
+
   public Map<String, String> getResourceConfigMap() throws Exception {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());

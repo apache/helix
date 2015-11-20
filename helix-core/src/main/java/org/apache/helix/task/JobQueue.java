@@ -19,31 +19,26 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import org.apache.helix.HelixException;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
  * A named queue to which jobs can be added
  */
-public class JobQueue extends WorkflowConfig {
+public class JobQueue extends Workflow {
   /* Config fields */
   public static final String CAPACITY = "CAPACITY";
 
-  private final String _name;
   private final int _capacity;
 
-  private JobQueue(String name, int capacity, WorkflowConfig config) {
-    super(config.getJobDag(), config.getParallelJobs(), config.getTargetState(), config.getExpiry(),
-        config.isTerminable(), config.getScheduleConfig());
-    _name = name;
+  private JobQueue(String name, int capacity, WorkflowConfig workflowConfig,
+      Map<String, Map<String, String>> jobConfigs, Map<String, List<TaskConfig>> taskConfigs) {
+    super(name, workflowConfig, jobConfigs, taskConfigs);
     _capacity = capacity;
-  }
-
-  /**
-   * Get the name of this queue
-   * @return queue name
-   */
-  public String getName() {
-    return _name;
+    validate();
   }
 
   /**
@@ -54,31 +49,24 @@ public class JobQueue extends WorkflowConfig {
     return _capacity;
   }
 
-  @Override
   public Map<String, String> getResourceConfigMap() throws Exception {
-    Map<String, String> cfgMap = super.getResourceConfigMap();
+    Map<String, String> cfgMap = _workflowConfig.getResourceConfigMap();
     cfgMap.put(CAPACITY, String.valueOf(_capacity));
     return cfgMap;
   }
 
-  /** Supports creation of a single empty queue */
-  public static class Builder {
-    private WorkflowConfig.Builder _builder;
-    private final String _name;
+  /** Supports creation of a single queue */
+  public static class Builder extends Workflow.Builder {
     private int _capacity = Integer.MAX_VALUE;
+    private List<String> jobs;
 
     public Builder(String name) {
-      _builder = new WorkflowConfig.Builder();
-      _name = name;
-    }
-
-    public Builder parallelJobs(int parallelJobs) {
-      _builder.setParallelJobs(parallelJobs);
-      return this;
+      super(name);
+      jobs = new ArrayList<String>();
     }
 
     public Builder expiry(long expiry) {
-      _builder.setExpiry(expiry);
+      _expiry = expiry;
       return this;
     }
 
@@ -87,18 +75,32 @@ public class JobQueue extends WorkflowConfig {
       return this;
     }
 
+    @Override
     public Builder fromMap(Map<String, String> cfg) {
-      _builder = WorkflowConfig.Builder.fromMap(cfg);
+      super.fromMap(cfg);
       if (cfg.containsKey(CAPACITY)) {
         _capacity = Integer.parseInt(cfg.get(CAPACITY));
       }
       return this;
     }
 
+    public void enqueueJob(final String job, JobConfig.Builder jobBuilder) {
+      if (jobs.size() >= _capacity) {
+        throw new HelixException("Failed to push new job to jobQueue, it is already full");
+      }
+      addJobConfig(job, jobBuilder);
+      if (jobs.size() > 0) {
+        String previousJob = jobs.get(jobs.size() - 1);
+        addParentChildDependency(previousJob, job);
+      }
+      jobs.add(job);
+    }
+
     public JobQueue build() {
-      _builder.setTerminable(false);
-      WorkflowConfig workflowConfig = _builder.build();
-      return new JobQueue(_name, _capacity, workflowConfig);
+      WorkflowConfig.Builder builder = buildWorkflowConfig();
+      builder.setTerminable(false);
+      WorkflowConfig workflowConfig = builder.build();
+      return new JobQueue(_name, _capacity, workflowConfig, _jobConfigs, _taskConfigs);
     }
   }
 }

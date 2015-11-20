@@ -191,8 +191,8 @@ public class TaskDriver {
     String flowName = flow.getName();
 
     // first, add workflow config to ZK
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flowName), flow
-        .getWorkflowConfig().getResourceConfigMap());
+    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flowName),
+        flow.getWorkflowConfig().getResourceConfigMap());
 
     // then schedule jobs
     for (String job : flow.getJobConfigs().keySet()) {
@@ -206,14 +206,7 @@ public class TaskDriver {
 
   /** Creates a new named job queue (workflow) */
   public void createQueue(JobQueue queue) throws Exception {
-    String queueName = queue.getName();
-    HelixProperty property = new HelixProperty(queueName);
-    property.getRecord().getSimpleFields().putAll(queue.getResourceConfigMap());
-    boolean created =
-        _accessor.createProperty(_accessor.keyBuilder().resourceConfig(queueName), property);
-    if (!created) {
-      throw new IllegalArgumentException("Queue " + queueName + " already exists!");
-    }
+    start(queue);
   }
 
   /** Flushes a named job queue */
@@ -566,20 +559,35 @@ public class TaskDriver {
     setWorkflowTargetState(workflow, TargetState.DELETE);
   }
 
-  /** Helper function to change target state for a given workflow */
+  /**
+   * Helper function to change target state for a given workflow
+   */
   private void setWorkflowTargetState(String workflowName, TargetState state) {
     setSingleWorkflowTargetState(workflowName, state);
 
+    // TODO: this is the temporary fix for current task rebalance implementation.
+    // We should fix this in new task framework implementation.
+    List<String> resources = _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
+    for (String resource : resources) {
+      if (resource.startsWith(workflowName)) {
+        setSingleWorkflowTargetState(resource, state);
+      }
+    }
+
+    /* TODO: use this code for new task framework.
     // For recurring schedules, last scheduled incomplete workflow must also be handled
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflowName);
     String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
-    WorkflowContext lastScheduledWorkflowCtx =
-        TaskUtil.getWorkflowContext(_propertyStore, lastScheduledWorkflow);
-    if (lastScheduledWorkflowCtx != null &&
-        !(lastScheduledWorkflowCtx.getWorkflowState() == TaskState.COMPLETED
-          || lastScheduledWorkflowCtx.getWorkflowState() == TaskState.FAILED)) {
-      setSingleWorkflowTargetState(lastScheduledWorkflow, state);
+    if (lastScheduledWorkflow != null) {
+      WorkflowContext lastScheduledWorkflowCtx =
+          TaskUtil.getWorkflowContext(_propertyStore, lastScheduledWorkflow);
+      if (lastScheduledWorkflowCtx != null && !(
+          lastScheduledWorkflowCtx.getWorkflowState() == TaskState.COMPLETED
+              || lastScheduledWorkflowCtx.getWorkflowState() == TaskState.FAILED)) {
+        setSingleWorkflowTargetState(lastScheduledWorkflow, state);
+      }
     }
+    */
   }
 
   /** Helper function to change target state for a given workflow */

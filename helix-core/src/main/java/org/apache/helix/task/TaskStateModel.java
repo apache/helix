@@ -205,22 +205,22 @@ public class TaskStateModel extends StateModel {
 
   @Transition(to = "INIT", from = "COMPLETED")
   public void onBecomeInitFromCompleted(Message msg, NotificationContext context) {
-    _taskRunner = null;
+    reset();
   }
 
   @Transition(to = "INIT", from = "STOPPED")
   public void onBecomeInitFromStopped(Message msg, NotificationContext context) {
-    _taskRunner = null;
+    reset();
   }
 
   @Transition(to = "INIT", from = "TIMED_OUT")
   public void onBecomeInitFromTimedOut(Message msg, NotificationContext context) {
-    _taskRunner = null;
+    reset();
   }
 
   @Transition(to = "INIT", from = "TASK_ERROR")
   public void onBecomeInitFromTaskError(Message msg, NotificationContext context) {
-    _taskRunner = null;
+    reset();
   }
 
   @Override

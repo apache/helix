@@ -156,7 +156,9 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
 
     String queueName = TestHelper.getTestMethodName();
 
-    JobQueue queue = new JobQueue.Builder(queueName).parallelJobs(PARALLEL_COUNT).build();
+    JobQueue.Builder queueBuild = new JobQueue.Builder(queueName);
+    queueBuild.parallelJobs(PARALLEL_COUNT);
+    JobQueue queue = queueBuild.build();
     _driver.createQueue(queue);
 
     List<JobConfig.Builder> jobConfigBuilders = new ArrayList<JobConfig.Builder>();

@@ -26,8 +26,10 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.task.beans.JobBean;
@@ -192,10 +194,17 @@ public class Workflow {
    */
   public void validate() {
     // validate dag and configs
-    if (!_jobConfigs.keySet().containsAll(_workflowConfig.getJobDag().getAllNodes())) {
-      throw new IllegalArgumentException("Nodes specified in DAG missing from config");
-    } else if (!_workflowConfig.getJobDag().getAllNodes().containsAll(_jobConfigs.keySet())) {
-      throw new IllegalArgumentException("Given DAG lacks nodes with supplied configs");
+    Set<String> jobNamesInConfig = new HashSet<String>(_jobConfigs.keySet());
+    Set<String> jobNamesInDag = new HashSet<String>(_workflowConfig.getJobDag().getAllNodes());
+    if (!jobNamesInConfig.equals(jobNamesInDag)) {
+      Set<String> jobNamesInConfigButNotInDag = new HashSet<String>(jobNamesInConfig);
+      jobNamesInConfigButNotInDag.removeAll(jobNamesInDag);
+      Set<String> jobNamesInDagButNotInConfig = new HashSet<String>(jobNamesInDag);
+      jobNamesInDagButNotInConfig.removeAll(jobNamesInConfig);
+
+      throw new IllegalArgumentException(
+          "Job Names dismatch. Names in config but not in dag: " + jobNamesInConfigButNotInDag +
+          ", names in dag but not in config: " + jobNamesInDagButNotInConfig);
     }
 
     _workflowConfig.getJobDag().validate();

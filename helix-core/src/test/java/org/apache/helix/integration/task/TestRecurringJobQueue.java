@@ -22,6 +22,7 @@ package org.apache.helix.integration.task;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;;
@@ -157,10 +158,31 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     _manager.disconnect();
   }
 
+  private Date getDateFromStartTime(String startTime)
+  {
+    int splitIndex = startTime.indexOf(':');
+    int hourOfDay = 0, minutes = 0;
+    try
+    {
+      hourOfDay = Integer.parseInt(startTime.substring(0, splitIndex));
+      minutes = Integer.parseInt(startTime.substring(splitIndex + 1));
+    }
+    catch (NumberFormatException e)
+    {
+
+    }
+    Calendar cal = Calendar.getInstance();
+    cal.set(Calendar.HOUR_OF_DAY, hourOfDay);
+    cal.set(Calendar.MINUTE, minutes);
+    cal.set(Calendar.SECOND, 0);
+    cal.set(Calendar.MILLISECOND, 0);
+    return cal.getTime();
+  }
+
   private JobQueue buildRecurrentJobQueue(String jobQueueName, int delayStart) {
     Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(500000));
-    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(120));
+    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
+    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
@@ -168,6 +190,8 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     cal.set(Calendar.MILLISECOND, 0);
     cfgMap.put(WorkflowConfig.START_TIME,
         WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
+    //cfgMap.put(WorkflowConfig.START_TIME,
+        //WorkflowConfig.getDefaultDateFormat().format(getDateFromStartTime("00:00")));
     return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
   }
 
@@ -186,7 +210,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i <= 2; i++) {
+    for (int i = 0; i <= 1; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
       JobConfig.Builder job =
@@ -213,7 +237,7 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     queue = buildRecurrentJobQueue(queueName, 5);
     _driver.createQueue(queue);
     currentJobNames.clear();
-    for (int i = 0; i <= 2; i++) {
+    for (int i = 0; i <= 1; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
       JobConfig.Builder job =

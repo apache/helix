@@ -570,13 +570,15 @@ public class TaskDriver {
   private void setWorkflowTargetState(String workflowName, TargetState state) {
     setSingleWorkflowTargetState(workflowName, state);
 
-    // For recurring schedules, child workflows must also be handled
-    List<String> resources = _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
-    String prefix = workflowName + "_" + TaskConstants.SCHEDULED;
-    for (String resource : resources) {
-      if (resource.startsWith(prefix)) {
-        setSingleWorkflowTargetState(resource, state);
-      }
+    // For recurring schedules, last scheduled incomplete workflow must also be handled
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflowName);
+    String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
+    WorkflowContext lastScheduledWorkflowCtx =
+        TaskUtil.getWorkflowContext(_propertyStore, lastScheduledWorkflow);
+    if (lastScheduledWorkflowCtx != null &&
+        !(lastScheduledWorkflowCtx.getWorkflowState() == TaskState.COMPLETED
+          || lastScheduledWorkflowCtx.getWorkflowState() == TaskState.FAILED)) {
+      setSingleWorkflowTargetState(lastScheduledWorkflow, state);
     }
   }
 

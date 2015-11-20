@@ -39,8 +39,4 @@ public class TaskConstants {
    * The root property store path at which the {@link TaskRebalancer} stores context information.
    */
   public static final String REBALANCER_CONTEXT_ROOT = "/TaskRebalancer";
-  /**
-   * Resource prefix for scheduled workflows
-   */
-  public static final String SCHEDULED = "SCHEDULED";
 }

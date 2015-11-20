@@ -19,6 +19,8 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -579,8 +581,9 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         long timeToSchedule = period * offsetMultiplier + startTime.getTime();
 
         // Now clone the workflow if this clone has not yet been created
-        String newWorkflowName =
-            workflowResource + "_" + TaskConstants.SCHEDULED + "_" + offsetMultiplier;
+        DateFormat df = new SimpleDateFormat("yyyyMMdd'T'HHmmssZ");
+        // Now clone the workflow if this clone has not yet been created
+        String newWorkflowName = workflowResource + "_" + df.format(new java.util.Date(timeToSchedule));
         LOG.debug("Ready to start workflow " + newWorkflowName);
         if (!newWorkflowName.equals(lastScheduled)) {
           Workflow clonedWf =

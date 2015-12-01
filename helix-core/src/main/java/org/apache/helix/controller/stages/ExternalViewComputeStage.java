@@ -44,6 +44,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
@@ -104,20 +105,21 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
         }
       }
       // Update cluster status monitor mbean
-      ClusterStatusMonitor clusterStatusMonitor =
-          (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+      ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
       IdealState idealState = cache._idealStateMap.get(resourceName);
-      if (idealState != null) {
-        if (clusterStatusMonitor != null
-            && !idealState.getStateModelDefRef().equalsIgnoreCase(
-                DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+      ResourceConfig resourceConfig = cache.getResourceConfig(resourceName);
+      if (idealState != null && (resourceConfig == null || !resourceConfig
+          .isMonitoringDisabled())) {
+        if (clusterStatusMonitor != null && !idealState.getStateModelDefRef()
+            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
           StateModelDefinition stateModelDef =
               cache.getStateModelDef(idealState.getStateModelDefRef());
-          clusterStatusMonitor.setResourceStatus(view,
-              cache._idealStateMap.get(view.getResourceName()), stateModelDef);
+          clusterStatusMonitor
+              .setResourceStatus(view, cache._idealStateMap.get(view.getResourceName()),
+                  stateModelDef);
         }
       } else {
-        // Drop the metrics for the dropped resource
+        // Drop the metrics if the resource is dropped, or the MonitorDisabled is changed to true.
         clusterStatusMonitor.unregisterResource(view.getResourceName());
       }
 

@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
+import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -29,7 +30,6 @@ import org.apache.helix.controller.rebalancer.CustomRebalancer;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.SemiAutoRebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
-import org.apache.helix.model.ConfigEntry;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -110,7 +110,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       switch (idealState.getRebalanceMode()) {
       case FULL_AUTO:
         boolean fullAutoDisabled = cache.getClusterConfig().getRecord().getBooleanField(
-            ConfigEntry.DISABLE_FULL_AUTO.name(), false);
+            HelixConstants.ClusterConfigType.DISABLE_FULL_AUTO.name(), false);
         if (!fullAutoDisabled) {
           AutoRebalancer autoRebalancer = new AutoRebalancer();
           rebalancer = autoRebalancer;

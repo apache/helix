@@ -402,10 +402,10 @@ public class TaskUtil {
     Map<String, String> wfSimpleFields = workflowConfig.getRecord().getSimpleFields();
     JobDag jobDag = JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.DAG));
     Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
-    Workflow.Builder builder = new Workflow.Builder(newWorkflowName);
+    Workflow.Builder workflowBuilder = new Workflow.Builder(newWorkflowName);
 
     // Set the workflow expiry
-    builder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
+    workflowBuilder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
 
     // Set the schedule, if applicable
     ScheduleConfig scheduleConfig;
@@ -415,7 +415,7 @@ public class TaskUtil {
       scheduleConfig = parseScheduleFromConfigMap(wfSimpleFields);
     }
     if (scheduleConfig != null) {
-      builder.setScheduleConfig(scheduleConfig);
+      workflowBuilder.setScheduleConfig(scheduleConfig);
     }
 
     // Add each job back as long as the original exists
@@ -426,29 +426,30 @@ public class TaskUtil {
         String job = getDenamespacedJobName(origWorkflowName, namespacedJob);
         HelixProperty jobConfig = resourceConfigMap.get(namespacedJob);
         Map<String, String> jobSimpleFields = jobConfig.getRecord().getSimpleFields();
-        jobSimpleFields.put(JobConfig.WORKFLOW_ID, newWorkflowName); // overwrite workflow name
-        for (Map.Entry<String, String> e : jobSimpleFields.entrySet()) {
-          builder.addConfig(job, e.getKey(), e.getValue());
-        }
+
+        JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(jobSimpleFields);
+
+        jobCfgBuilder.setWorkflow(newWorkflowName); // overwrite workflow name
         Map<String, Map<String, String>> rawTaskConfigMap = jobConfig.getRecord().getMapFields();
         List<TaskConfig> taskConfigs = Lists.newLinkedList();
         for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
           TaskConfig taskConfig = TaskConfig.from(rawTaskConfig);
           taskConfigs.add(taskConfig);
         }
-        builder.addTaskConfigs(job, taskConfigs);
+        jobCfgBuilder.addTaskConfigs(taskConfigs);
+        workflowBuilder.addJobConfig(job, jobCfgBuilder);
 
         // Add dag dependencies
         Set<String> children = parentsToChildren.get(namespacedJob);
         if (children != null) {
           for (String namespacedChild : children) {
             String child = getDenamespacedJobName(origWorkflowName, namespacedChild);
-            builder.addParentChildDependency(job, child);
+            workflowBuilder.addParentChildDependency(job, child);
           }
         }
       }
     }
-    return builder.build();
+    return workflowBuilder.build();
   }
 
   private static Map<String, String> getResourceConfigMap(ConfigAccessor cfgAccessor,

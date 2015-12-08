@@ -162,12 +162,14 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     _manager.disconnect();
   }
 
-  @Test
-  public void stopAndResume() throws Exception {
+  @Test public void stopAndResume() throws Exception {
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
+
+    JobConfig.Builder jobBuilder =
+        JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(commandConfig);
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(JOB_RESOURCE,
-            commandConfig).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(JOB_RESOURCE, jobBuilder).build();
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);

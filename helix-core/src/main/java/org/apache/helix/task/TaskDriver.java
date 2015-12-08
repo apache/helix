@@ -55,6 +55,7 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
@@ -535,12 +536,12 @@ public class TaskDriver {
 
     // Set the job configuration
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
-    HelixProperty resourceConfig = new HelixProperty(jobName);
-    resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
+    ResourceConfig resourceConfig = new ResourceConfig(jobName);
+    resourceConfig.putSimpleConfigs(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
     if (taskConfigMap != null) {
       for (TaskConfig taskConfig : taskConfigMap.values()) {
-        resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
+        resourceConfig.putMapConfig(taskConfig.getId(), taskConfig.getConfigMap());
       }
     }
     if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), resourceConfig)) {

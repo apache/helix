@@ -23,6 +23,9 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
+import java.util.Collections;
+import java.util.Map;
+
 /**
  * Resource configurations
  */
@@ -71,6 +74,64 @@ public class ResourceConfig extends HelixProperty {
   public void setMonitoringDisabled(boolean monitoringDisabled) {
     _record
         .setBooleanField(ResourceConfigProperty.MONITORING_DISABLED.toString(), monitoringDisabled);
+  }
+
+  /**
+   * Put a set of simple configs.
+   *
+   * @param configsMap
+   */
+  public void putSimpleConfigs(Map<String, String> configsMap) {
+    getRecord().getSimpleFields().putAll(configsMap);
+  }
+
+  /**
+   * Get all simple configurations.
+   *
+   * @return all simple configurations.
+   */
+  public Map<String, String> getSimpleConfigs() {
+    return Collections.unmodifiableMap(getRecord().getSimpleFields());
+  }
+
+  /**
+   * Put a single simple config value.
+   *
+   * @param configKey
+   * @param configVal
+   */
+  public void putSimpleConfig(String configKey, String configVal) {
+    getRecord().getSimpleFields().put(configKey, configVal);
+  }
+
+  /**
+   * Get a single simple config value.
+   *
+   * @param configKey
+   * @return configuration value, or NULL if not exist.
+   */
+  public String getSimpleConfig(String configKey) {
+    return getRecord().getSimpleFields().get(configKey);
+  }
+
+  /**
+   * Put a single map config.
+   *
+   * @param configKey
+   * @param configValMap
+   */
+  public void putMapConfig(String configKey, Map<String, String> configValMap) {
+    getRecord().setMapField(configKey, configValMap);
+  }
+
+  /**
+   * Get a single map config.
+   *
+   * @param configKey
+   * @return configuration value map, or NULL if not exist.
+   */
+  public Map<String, String> getMapConfig(String configKey) {
+    return getRecord().getMapField(configKey);
   }
 
   @Override

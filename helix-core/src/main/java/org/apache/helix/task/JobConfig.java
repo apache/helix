@@ -36,49 +36,87 @@ import com.google.common.collect.Maps;
  * Provides a typed interface to job configurations.
  */
 public class JobConfig {
-  // // Property names ////
 
-  /** The name of the workflow to which the job belongs. */
-  public static final String WORKFLOW_ID = "WorkflowID";
-  /** The assignment strategy of this job */
-  public static final String ASSIGNMENT_STRATEGY = "AssignmentStrategy";
-  /** The name of the target resource. */
-  public static final String TARGET_RESOURCE = "TargetResource";
   /**
-   * The set of the target partition states. The value must be a comma-separated list of partition
-   * states.
+   * Do not use this value directly, always use the get/set methods in JobConfig and JobConfig.Builder.
    */
-  public static final String TARGET_PARTITION_STATES = "TargetPartitionStates";
-  /**
-   * The set of the target partition ids. The value must be a comma-separated list of partition ids.
-   */
-  public static final String TARGET_PARTITIONS = "TargetPartitions";
-  /** The command that is to be run by participants in the case of identical tasks. */
-  public static final String COMMAND = "Command";
-  /** The command configuration to be used by the tasks. */
-  public static final String JOB_COMMAND_CONFIG_MAP = "JobCommandConfig";
-  /** The timeout for a task. */
-  public static final String TIMEOUT_PER_TASK = "TimeoutPerPartition";
-  /** The maximum number of times the task rebalancer may attempt to execute a task. */
-  public static final String MAX_ATTEMPTS_PER_TASK = "MaxAttemptsPerTask";
-  /** The maximum number of times Helix will intentionally move a failing task */
-  public static final String MAX_FORCED_REASSIGNMENTS_PER_TASK = "MaxForcedReassignmentsPerTask";
-  /** The number of concurrent tasks that are allowed to run on an instance. */
-  public static final String NUM_CONCURRENT_TASKS_PER_INSTANCE = "ConcurrentTasksPerInstance";
-  /** The number of tasks within the job that are allowed to fail. */
-  public static final String FAILURE_THRESHOLD = "FailureThreshold";
-  /** The amount of time in ms to wait before retrying a task */
-  public static final String TASK_RETRY_DELAY = "TaskRetryDelay";
+  protected enum JobConfigProperty {
+    /**
+     * The name of the workflow to which the job belongs.
+     */
+    WORKFLOW_ID("WorkflowID"),
+    /**
+     * The assignment strategy of this job
+     */
+    ASSIGNMENT_STRATEGY("AssignmentStrategy"),
+    /**
+     * The name of the target resource.
+     */
+    TARGET_RESOURCE("TargetResource"),
+    /**
+     * The set of the target partition states. The value must be a comma-separated list of partition
+     * states.
+     */
+    TARGET_PARTITION_STATES("TargetPartitionStates"),
+    /**
+     * The set of the target partition ids. The value must be a comma-separated list of partition ids.
+     */
+    TARGET_PARTITIONS("TargetPartitions"),
+    /**
+     * The command that is to be run by participants in the case of identical tasks.
+     */
+    COMMAND("Command"),
+    /**
+     * The command configuration to be used by the tasks.
+     */
+    JOB_COMMAND_CONFIG_MAP("JobCommandConfig"),
+    /**
+     * The timeout for a task.
+     */
+    TIMEOUT_PER_TASK("TimeoutPerPartition"),
+    /**
+     * The maximum number of times the task rebalancer may attempt to execute a task.
+     */
+    MAX_ATTEMPTS_PER_TASK("MaxAttemptsPerTask"),
+    /**
+     * The maximum number of times Helix will intentionally move a failing task
+     */
+    MAX_FORCED_REASSIGNMENTS_PER_TASK("MaxForcedReassignmentsPerTask"),
+    /**
+     * The number of concurrent tasks that are allowed to run on an instance.
+     */
+    NUM_CONCURRENT_TASKS_PER_INSTANCE("ConcurrentTasksPerInstance"),
+    /**
+     * The number of tasks within the job that are allowed to fail.
+     */
+    FAILURE_THRESHOLD("FailureThreshold"),
+    /**
+     * The amount of time in ms to wait before retrying a task
+     */
+    TASK_RETRY_DELAY("TaskRetryDelay"),
 
-  /** The individual task configurations, if any **/
-  public static final String TASK_CONFIGS = "TaskConfigs";
+    /**
+     * The individual task configurations, if any *
+     */
+    TASK_CONFIGS("TaskConfigs"),
 
-  /** Disable external view (not showing) for this job resource */
-  public static final String DISABLE_EXTERNALVIEW = "DisableExternalView";
+    /**
+     * Disable external view (not showing) for this job resource
+     */
+    DISABLE_EXTERNALVIEW("DisableExternalView");
 
+    private final String _value;
 
-  // // Default property values ////
+    private JobConfigProperty(String val) {
+      _value = val;
+    }
 
+    public String value() {
+      return _value;
+    }
+  }
+
+  //Default property values
   public static final long DEFAULT_TIMEOUT_PER_TASK = 60 * 60 * 1000; // 1 hr.
   public static final long DEFAULT_TASK_RETRY_DELAY = -1; // no delay
   public static final int DEFAULT_MAX_ATTEMPTS_PER_TASK = 10;
@@ -106,8 +144,7 @@ public class JobConfig {
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
-      boolean disableExternalView,
-      Map<String, TaskConfig> taskConfigMap) {
+      boolean disableExternalView, Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -190,34 +227,39 @@ public class JobConfig {
 
   public Map<String, String> getResourceConfigMap() {
     Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(JobConfig.WORKFLOW_ID, _workflow);
+    cfgMap.put(JobConfigProperty.WORKFLOW_ID.value(), _workflow);
     if (_command != null) {
-      cfgMap.put(JobConfig.COMMAND, _command);
+      cfgMap.put(JobConfigProperty.COMMAND.value(), _command);
     }
     if (_jobCommandConfigMap != null) {
       String serializedConfig = TaskUtil.serializeJobCommandConfigMap(_jobCommandConfigMap);
       if (serializedConfig != null) {
-        cfgMap.put(JobConfig.JOB_COMMAND_CONFIG_MAP, serializedConfig);
+        cfgMap.put(JobConfigProperty.JOB_COMMAND_CONFIG_MAP.value(), serializedConfig);
       }
     }
     if (_targetResource != null) {
-      cfgMap.put(JobConfig.TARGET_RESOURCE, _targetResource);
+      cfgMap.put(JobConfigProperty.TARGET_RESOURCE.value(), _targetResource);
     }
     if (_targetPartitionStates != null) {
-      cfgMap.put(JobConfig.TARGET_PARTITION_STATES, Joiner.on(",").join(_targetPartitionStates));
+      cfgMap.put(JobConfigProperty.TARGET_PARTITION_STATES.value(),
+          Joiner.on(",").join(_targetPartitionStates));
     }
     if (_targetPartitions != null) {
-      cfgMap.put(JobConfig.TARGET_PARTITIONS, Joiner.on(",").join(_targetPartitions));
+      cfgMap
+          .put(JobConfigProperty.TARGET_PARTITIONS.value(), Joiner.on(",").join(_targetPartitions));
     }
     if (_retryDelay > 0) {
-      cfgMap.put(JobConfig.TASK_RETRY_DELAY, "" + _retryDelay);
+      cfgMap.put(JobConfigProperty.TASK_RETRY_DELAY.value(), "" + _retryDelay);
     }
-    cfgMap.put(JobConfig.TIMEOUT_PER_TASK, "" + _timeoutPerTask);
-    cfgMap.put(JobConfig.MAX_ATTEMPTS_PER_TASK, "" + _maxAttemptsPerTask);
-    cfgMap.put(JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, "" + _maxForcedReassignmentsPerTask);
-    cfgMap.put(JobConfig.FAILURE_THRESHOLD, "" + _failureThreshold);
-    cfgMap.put(JobConfig.DISABLE_EXTERNALVIEW, Boolean.toString(_disableExternalView));
-    cfgMap.put(JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE, "" + _numConcurrentTasksPerInstance);
+    cfgMap.put(JobConfigProperty.TIMEOUT_PER_TASK.value(), "" + _timeoutPerTask);
+    cfgMap.put(JobConfigProperty.MAX_ATTEMPTS_PER_TASK.value(), "" + _maxAttemptsPerTask);
+    cfgMap.put(JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK.value(),
+        "" + _maxForcedReassignmentsPerTask);
+    cfgMap.put(JobConfigProperty.FAILURE_THRESHOLD.value(), "" + _failureThreshold);
+    cfgMap.put(JobConfigProperty.DISABLE_EXTERNALVIEW.value(),
+        Boolean.toString(_disableExternalView));
+    cfgMap.put(JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value(),
+        "" + _numConcurrentTasksPerInstance);
     return cfgMap;
   }
 
@@ -251,54 +293,58 @@ public class JobConfig {
 
     /**
      * Convenience method to build a {@link JobConfig} from a {@code Map&lt;String, String&gt;}.
+     *
      * @param cfg A map of property names to their string representations.
      * @return A {@link Builder}.
      */
     public static Builder fromMap(Map<String, String> cfg) {
       Builder b = new Builder();
-      if (cfg.containsKey(WORKFLOW_ID)) {
-        b.setWorkflow(cfg.get(WORKFLOW_ID));
+      if (cfg.containsKey(JobConfigProperty.WORKFLOW_ID.value())) {
+        b.setWorkflow(cfg.get(JobConfigProperty.WORKFLOW_ID.value()));
       }
-      if (cfg.containsKey(TARGET_RESOURCE)) {
-        b.setTargetResource(cfg.get(TARGET_RESOURCE));
+      if (cfg.containsKey(JobConfigProperty.TARGET_RESOURCE.value())) {
+        b.setTargetResource(cfg.get(JobConfigProperty.TARGET_RESOURCE.value()));
       }
-      if (cfg.containsKey(TARGET_PARTITIONS)) {
-        b.setTargetPartitions(csvToStringList(cfg.get(TARGET_PARTITIONS)));
+      if (cfg.containsKey(JobConfigProperty.TARGET_PARTITIONS.value())) {
+        b.setTargetPartitions(csvToStringList(cfg.get(JobConfigProperty.TARGET_PARTITIONS.value())));
       }
-      if (cfg.containsKey(TARGET_PARTITION_STATES)) {
-        b.setTargetPartitionStates(new HashSet<String>(Arrays.asList(cfg.get(
-            TARGET_PARTITION_STATES).split(","))));
+      if (cfg.containsKey(JobConfigProperty.TARGET_PARTITION_STATES.value())) {
+        b.setTargetPartitionStates(new HashSet<String>(
+            Arrays.asList(cfg.get(JobConfigProperty.TARGET_PARTITION_STATES.value()).split(","))));
       }
-      if (cfg.containsKey(COMMAND)) {
-        b.setCommand(cfg.get(COMMAND));
+      if (cfg.containsKey(JobConfigProperty.COMMAND.value())) {
+        b.setCommand(cfg.get(JobConfigProperty.COMMAND.value()));
       }
-      if (cfg.containsKey(JOB_COMMAND_CONFIG_MAP)) {
-        Map<String, String> commandConfigMap =
-            TaskUtil.deserializeJobCommandConfigMap(cfg.get(JOB_COMMAND_CONFIG_MAP));
+      if (cfg.containsKey(JobConfigProperty.JOB_COMMAND_CONFIG_MAP.value())) {
+        Map<String, String> commandConfigMap = TaskUtil.deserializeJobCommandConfigMap(
+            cfg.get(JobConfigProperty.JOB_COMMAND_CONFIG_MAP.value()));
         b.setJobCommandConfigMap(commandConfigMap);
       }
-      if (cfg.containsKey(TIMEOUT_PER_TASK)) {
-        b.setTimeoutPerTask(Long.parseLong(cfg.get(TIMEOUT_PER_TASK)));
+      if (cfg.containsKey(JobConfigProperty.TIMEOUT_PER_TASK.value())) {
+        b.setTimeoutPerTask(Long.parseLong(cfg.get(JobConfigProperty.TIMEOUT_PER_TASK.value())));
       }
-      if (cfg.containsKey(NUM_CONCURRENT_TASKS_PER_INSTANCE)) {
-        b.setNumConcurrentTasksPerInstance(Integer.parseInt(cfg
-            .get(NUM_CONCURRENT_TASKS_PER_INSTANCE)));
+      if (cfg.containsKey(JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value())) {
+        b.setNumConcurrentTasksPerInstance(
+            Integer.parseInt(cfg.get(JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value())));
       }
-      if (cfg.containsKey(MAX_ATTEMPTS_PER_TASK)) {
-        b.setMaxAttemptsPerTask(Integer.parseInt(cfg.get(MAX_ATTEMPTS_PER_TASK)));
+      if (cfg.containsKey(JobConfigProperty.MAX_ATTEMPTS_PER_TASK.value())) {
+        b.setMaxAttemptsPerTask(
+            Integer.parseInt(cfg.get(JobConfigProperty.MAX_ATTEMPTS_PER_TASK.value())));
       }
-      if (cfg.containsKey(MAX_FORCED_REASSIGNMENTS_PER_TASK)) {
-        b.setMaxForcedReassignmentsPerTask(Integer.parseInt(cfg
-            .get(MAX_FORCED_REASSIGNMENTS_PER_TASK)));
+      if (cfg.containsKey(JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK.value())) {
+        b.setMaxForcedReassignmentsPerTask(
+            Integer.parseInt(cfg.get(JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK.value())));
       }
-      if (cfg.containsKey(FAILURE_THRESHOLD)) {
-        b.setFailureThreshold(Integer.parseInt(cfg.get(FAILURE_THRESHOLD)));
+      if (cfg.containsKey(JobConfigProperty.FAILURE_THRESHOLD.value())) {
+        b.setFailureThreshold(
+            Integer.parseInt(cfg.get(JobConfigProperty.FAILURE_THRESHOLD.value())));
       }
-      if (cfg.containsKey(TASK_RETRY_DELAY)) {
-        b.setTaskRetryDelay(Long.parseLong(cfg.get(TASK_RETRY_DELAY)));
+      if (cfg.containsKey(JobConfigProperty.TASK_RETRY_DELAY.value())) {
+        b.setTaskRetryDelay(Long.parseLong(cfg.get(JobConfigProperty.TASK_RETRY_DELAY.value())));
       }
-      if (cfg.containsKey(DISABLE_EXTERNALVIEW)) {
-        b.setDisableExternalView(Boolean.valueOf(cfg.get(DISABLE_EXTERNALVIEW)));
+      if (cfg.containsKey(JobConfigProperty.DISABLE_EXTERNALVIEW.value())) {
+        b.setDisableExternalView(
+            Boolean.valueOf(cfg.get(JobConfigProperty.DISABLE_EXTERNALVIEW.value())));
       }
       return b;
     }
@@ -384,38 +430,46 @@ public class JobConfig {
 
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
-        throw new IllegalArgumentException(String.format("%s cannot be null", TARGET_RESOURCE));
+        throw new IllegalArgumentException(
+            String.format("%s cannot be null", JobConfigProperty.TARGET_RESOURCE));
       }
-      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null
-          && _targetPartitionStates.isEmpty()) {
-        throw new IllegalArgumentException(String.format("%s cannot be an empty set",
-            TARGET_PARTITION_STATES));
+      if (_taskConfigMap.isEmpty() && _targetPartitionStates != null && _targetPartitionStates
+          .isEmpty()) {
+        throw new IllegalArgumentException(
+            String.format("%s cannot be an empty set", JobConfigProperty.TARGET_PARTITION_STATES));
       }
       if (_taskConfigMap.isEmpty() && _command == null) {
-        throw new IllegalArgumentException(String.format("%s cannot be null", COMMAND));
+        throw new IllegalArgumentException(
+            String.format("%s cannot be null", JobConfigProperty.COMMAND));
       }
       if (_timeoutPerTask < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            TIMEOUT_PER_TASK, _timeoutPerTask));
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.TIMEOUT_PER_TASK,
+                _timeoutPerTask));
       }
       if (_numConcurrentTasksPerInstance < 1) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            NUM_CONCURRENT_TASKS_PER_INSTANCE, _numConcurrentTasksPerInstance));
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE,
+                _numConcurrentTasksPerInstance));
       }
       if (_maxAttemptsPerTask < 1) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            MAX_ATTEMPTS_PER_TASK, _maxAttemptsPerTask));
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.MAX_ATTEMPTS_PER_TASK,
+                _maxAttemptsPerTask));
       }
       if (_maxForcedReassignmentsPerTask < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            MAX_FORCED_REASSIGNMENTS_PER_TASK, _maxForcedReassignmentsPerTask));
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK,
+                _maxForcedReassignmentsPerTask));
       }
       if (_failureThreshold < 0) {
-        throw new IllegalArgumentException(String.format("%s has invalid value %s",
-            FAILURE_THRESHOLD, _failureThreshold));
+        throw new IllegalArgumentException(String
+            .format("%s has invalid value %s", JobConfigProperty.FAILURE_THRESHOLD,
+                _failureThreshold));
       }
       if (_workflow == null) {
-        throw new IllegalArgumentException(String.format("%s cannot be null", WORKFLOW_ID));
+        throw new IllegalArgumentException(
+            String.format("%s cannot be null", JobConfigProperty.WORKFLOW_ID));
       }
     }
 

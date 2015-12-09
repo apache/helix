@@ -39,11 +39,11 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 /**
- * A rebalancer for when a task group must be assigned according to partitions/states on a target
- * resource. Here, tasks are colocated according to where a resource's partitions are, as well as
+ * A TaskAssignmentCalculator for when a task group must be assigned according to partitions/states on a target
+ * resource. Here, tasks are co-located according to where a resource's partitions are, as well as
  * (if desired) only where those partitions are in a given state.
  */
-public class FixedTargetTaskRebalancer extends TaskRebalancer {
+public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
@@ -68,7 +68,7 @@ public class FixedTargetTaskRebalancer extends TaskRebalancer {
   /**
    * Gets the ideal state of the target resource of this job
    * @param jobCfg job config containing target resource id
-   * @param cluster snapshot of the cluster containing the task and target resource
+   * @param cache snapshot of the cluster containing the task and target resource
    * @return target resource ideal state, or null
    */
   private static IdealState getTgtIdealState(JobConfig jobCfg, ClusterDataCache cache) {

@@ -188,20 +188,21 @@ public class TaskDriver {
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
 
-    String flowName = flow.getName();
-
-    // first, add workflow config to ZK
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flowName),
+    // first, add workflow config.
+    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flow.getName()),
         flow.getWorkflowConfig().getResourceConfigMap());
 
-    // then schedule jobs
+    // then add all job configs.
     for (String job : flow.getJobConfigs().keySet()) {
-      JobConfig.Builder builder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
+      JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(flow.getJobConfigs().get(job));
       if (flow.getTaskConfigs() != null && flow.getTaskConfigs().containsKey(job)) {
-        builder.addTaskConfigs(flow.getTaskConfigs().get(job));
+        jobCfgBuilder.addTaskConfigs(flow.getTaskConfigs().get(job));
       }
-      scheduleJob(job, builder.build());
+      addJobConfig(job, jobCfgBuilder.build());
     }
+
+    // Finally add workflow resource.
+    addWorkflowResource(flow.getName());
   }
 
   /** Creates a new named job queue (workflow) */
@@ -210,6 +211,7 @@ public class TaskDriver {
   }
 
   /** Flushes a named job queue */
+  // TODO: need to make sure the queue is stopped or completed before flush the queue.
   public void flushQueue(String queueName) throws Exception {
     WorkflowConfig config =
         TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
@@ -351,54 +353,57 @@ public class TaskDriver {
     _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
   }
 
-  /** Remove the job name from the DAG from the queue configuration */
+  /**
+   * Remove the job name from the DAG from the queue configuration
+   */
   private void removeJobFromDag(final String queueName, final String jobName) {
     final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
 
-    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+    DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
+        if (currentData == null) {
+          LOG.error("Could not update DAG for queue: " + queueName + " ZNRecord is null.");
+          return null;
+        }
         // Add the node to the existing DAG
         JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
         Set<String> allNodes = jobDag.getAllNodes();
         if (!allNodes.contains(namespacedJobName)) {
-          LOG.warn("Could not delete job from queue " + queueName + ", job " + jobName + " not exists");
-        } else {
-          String parent = null;
-          String child = null;
-          // remove the node from the queue
-          for (String node : allNodes) {
-            if (!node.equals(namespacedJobName)) {
-              if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
-                parent = node;
-                jobDag.removeParentToChild(parent, namespacedJobName);
-              } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
-                child = node;
-                jobDag.removeParentToChild(namespacedJobName, child);
-              }
-            }
+          LOG.warn(
+              "Could not delete job from queue " + queueName + ", job " + jobName + " not exists");
+          return currentData;
+        }
+        String parent = null;
+        String child = null;
+        // remove the node from the queue
+        for (String node : allNodes) {
+          if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
+            parent = node;
+            jobDag.removeParentToChild(parent, namespacedJobName);
+          } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
+            child = node;
+            jobDag.removeParentToChild(namespacedJobName, child);
           }
+        }
+        if (parent != null && child != null) {
+          jobDag.addParentToChild(parent, child);
+        }
+        jobDag.removeNode(namespacedJobName);
 
-          if (parent != null && child != null) {
-            jobDag.addParentToChild(parent, child);
-          }
-
-          jobDag.removeNode(namespacedJobName);
-
-          // Save the updated DAG
-          try {
-            currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
-          } catch (Exception e) {
-            throw new IllegalStateException("Could not remove job " + jobName + " from DAG of queue " + queueName, e);
-          }
+        // Save the updated DAG
+        try {
+          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+        } catch (Exception e) {
+          throw new IllegalStateException(
+              "Could not remove job " + jobName + " from DAG of queue " + queueName, e);
         }
         return currentData;
       }
     };
 
     String path = _accessor.keyBuilder().resourceConfig(queueName).getPath();
-    boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
-    if (!status) {
+    if (!_accessor.getBaseDataAccessor().update(path, dagRemover, AccessOption.PERSISTENT)) {
       throw new IllegalArgumentException(
           "Could not remove job " + jobName + " from DAG of queue " + queueName);
     }
@@ -449,8 +454,12 @@ public class TaskDriver {
     // Create the job to ensure that it validates
     JobConfig jobConfig = jobBuilder.setWorkflow(queueName).build();
 
-    // Add the job to the end of the queue in the DAG
     final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+
+    // add job config first.
+    addJobConfig(namespacedJobName, jobConfig);
+
+    // Add the job to the end of the queue in the DAG
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -495,22 +504,38 @@ public class TaskDriver {
       throw new IllegalArgumentException("Could not enqueue job");
     }
     // Schedule the job
-    scheduleJob(namespacedJobName, jobConfig);
+    TaskUtil.invokeRebalance(_accessor, queueName);
   }
 
-  /** Posts new job to cluster */
-  private void scheduleJob(String jobResource, JobConfig jobConfig) throws Exception {
-    // Set up job resource based on partitions from target resource
-    int numIndependentTasks = jobConfig.getTaskConfigMap().size();
-    int numPartitions =
-        (numIndependentTasks > 0) ? numIndependentTasks : _admin
-            .getResourceIdealState(_clusterName, jobConfig.getTargetResource()).getPartitionSet()
-            .size();
-    _admin.addResource(_clusterName, jobResource, numPartitions, TaskConstants.STATE_MODEL_NAME);
+  /** Posts new workflow resource to cluster */
+  private void addWorkflowResource(String workflow) {
+    // Add workflow resource
+    _admin.addResource(_clusterName, workflow, 1, TaskConstants.STATE_MODEL_NAME);
+
+    // Push out new ideal state for the workflow
+    CustomModeISBuilder IsBuilder = new CustomModeISBuilder(workflow);
+    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK)
+        .setNumReplica(1).setNumPartitions(1)
+        .setStateModel(TaskConstants.STATE_MODEL_NAME)
+        .setDisableExternalView(true);
+
+    IdealState is = IsBuilder.build();
+    is.getRecord().setListField(workflow, new ArrayList<String>());
+    is.getRecord().setMapField(workflow, new HashMap<String, String>());
+    is.setRebalancerClassName(WorkflowRebalancer.class.getName());
+    _admin.setResourceIdealState(_clusterName, workflow, is);
+
+  }
+
+  /**
+   * Add new job config to cluster
+   */
+  private void addJobConfig(String jobName, JobConfig jobConfig) {
+    LOG.info("Add job configuration " + jobName);
 
     // Set the job configuration
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
-    HelixProperty resourceConfig = new HelixProperty(jobResource);
+    HelixProperty resourceConfig = new HelixProperty(jobName);
     resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
     if (taskConfigMap != null) {
@@ -518,30 +543,10 @@ public class TaskDriver {
         resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
       }
     }
-    _accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
 
-    // Push out new ideal state based on number of target partitions
-    CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
-    builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
-    builder.setNumReplica(1);
-    builder.setNumPartitions(numPartitions);
-    builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
-
-    if (jobConfig.isDisableExternalView()) {
-      builder.setDisableExternalView(jobConfig.isDisableExternalView());
+    if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), resourceConfig)) {
+      LOG.error("Failed to add job configuration for job " + jobName);
     }
-
-    IdealState is = builder.build();
-    for (int i = 0; i < numPartitions; i++) {
-      is.getRecord().setListField(jobResource + "_" + i, new ArrayList<String>());
-      is.getRecord().setMapField(jobResource + "_" + i, new HashMap<String, String>());
-    }
-    if (taskConfigMap != null && !taskConfigMap.isEmpty()) {
-      is.setRebalancerClassName(GenericTaskRebalancer.class.getName());
-    } else {
-      is.setRebalancerClassName(FixedTargetTaskRebalancer.class.getName());
-    }
-    _admin.setResourceIdealState(_clusterName, jobResource, is);
   }
 
   /** Public method to resume a workflow/queue */
@@ -565,52 +570,47 @@ public class TaskDriver {
   private void setWorkflowTargetState(String workflowName, TargetState state) {
     setSingleWorkflowTargetState(workflowName, state);
 
-    // TODO: this is the temporary fix for current task rebalance implementation.
-    // We should fix this in new task framework implementation.
+    // TODO: just need to change the lastScheduledWorkflow.
     List<String> resources = _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
     for (String resource : resources) {
       if (resource.startsWith(workflowName)) {
         setSingleWorkflowTargetState(resource, state);
       }
     }
-
-    /* TODO: use this code for new task framework.
-    // For recurring schedules, last scheduled incomplete workflow must also be handled
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflowName);
-    String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
-    if (lastScheduledWorkflow != null) {
-      WorkflowContext lastScheduledWorkflowCtx =
-          TaskUtil.getWorkflowContext(_propertyStore, lastScheduledWorkflow);
-      if (lastScheduledWorkflowCtx != null && !(
-          lastScheduledWorkflowCtx.getWorkflowState() == TaskState.COMPLETED
-              || lastScheduledWorkflowCtx.getWorkflowState() == TaskState.FAILED)) {
-        setSingleWorkflowTargetState(lastScheduledWorkflow, state);
-      }
-    }
-    */
   }
 
   /** Helper function to change target state for a given workflow */
   private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
+    LOG.info("Set " + workflowName + " to target state " + state);
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
-        if (currentData != null){
+        if (currentData != null) {
           // Only update target state for non-completed workflows
           String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
           if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
             currentData.setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
+          } else {
+            LOG.info("TargetState DataUpdater: ignore to update target state " + finishTime);
           }
+        } else {
+          LOG.error("TargetState DataUpdater: Fails to update target state " + currentData);
         }
         return currentData;
       }
     };
     List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
-    updaters.add(updater);
     List<String> paths = Lists.newArrayList();
-    paths.add(_accessor.keyBuilder().resourceConfig(workflowName).getPath());
-    _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
-    invokeRebalance();
+
+    PropertyKey cfgKey = TaskUtil.getWorkflowConfigKey(_accessor, workflowName);
+    if (_accessor.getProperty(cfgKey) != null) {
+      paths.add(_accessor.keyBuilder().resourceConfig(workflowName).getPath());
+      updaters.add(updater);
+      _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
+      TaskUtil.invokeRebalance(_accessor, workflowName);
+    } else {
+      LOG.error("Configuration path " + cfgKey + " not found!");
+    }
   }
 
   public void list(String resource) {
@@ -663,21 +663,6 @@ public class TaskDriver {
         LOG.info("-------");
       }
       LOG.info("-------");
-    }
-  }
-
-  /**
-   * Hack to invoke rebalance until bug concerning resource config changes not driving rebalance is
-   * fixed
-   */
-  public void invokeRebalance() {
-    // find a task
-    for (String resource : _admin.getResourcesInCluster(_clusterName)) {
-      IdealState is = _admin.getResourceIdealState(_clusterName, resource);
-      if (is != null && is.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-        _accessor.updateProperty(_accessor.keyBuilder().idealStates(resource), is);
-        break;
-      }
     }
   }
 

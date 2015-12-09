@@ -48,7 +48,7 @@ import com.google.common.collect.Sets;
  * This class does an assignment based on an automatic rebalancing strategy, rather than requiring
  * assignment to target partitions and states of another resource
  */
-public class GenericTaskRebalancer extends TaskRebalancer {
+public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   /** Reassignment policy for this algorithm */
   private RetryPolicy _retryPolicy = new DefaultRetryReassigner();
 
@@ -103,7 +103,7 @@ public class GenericTaskRebalancer extends TaskRebalancer {
     // Compute the current assignment
     Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
     for (Partition partition : currStateOutput.getCurrentStateMappedPartitions(resourceId)) {
-      if (!filteredPartitionSet.contains(pId(partition.getPartitionName()))) {
+      if (!filteredPartitionSet.contains(TaskUtil.getPartitionId(partition.getPartitionName()))) {
         // not computing old partitions
         continue;
       }
@@ -130,7 +130,7 @@ public class GenericTaskRebalancer extends TaskRebalancer {
     Map<String, SortedSet<Integer>> taskAssignment = Maps.newHashMap();
     for (Map.Entry<String, List<String>> e : preferenceLists.entrySet()) {
       String partitionName = e.getKey();
-      partitionName = String.valueOf(pId(partitionName));
+      partitionName = String.valueOf(TaskUtil.getPartitionId(partitionName));
       List<String> preferenceList = e.getValue();
       for (String participantName : preferenceList) {
         if (!taskAssignment.containsKey(participantName)) {

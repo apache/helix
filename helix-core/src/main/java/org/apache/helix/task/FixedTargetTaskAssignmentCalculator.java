@@ -37,6 +37,7 @@ import org.apache.helix.model.ResourceAssignment;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
+import org.apache.log4j.Logger;
 
 /**
  * A TaskAssignmentCalculator for when a task group must be assigned according to partitions/states on a target
@@ -44,6 +45,7 @@ import com.google.common.collect.Sets;
  * (if desired) only where those partitions are in a given state.
  */
 public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
+  private static final Logger LOG = Logger.getLogger(FixedTargetTaskAssignmentCalculator.class);
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
@@ -58,6 +60,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
       Set<Integer> partitionSet, ClusterDataCache cache) {
     IdealState tgtIs = getTgtIdealState(jobCfg, cache);
     if (tgtIs == null) {
+      LOG.warn("Missing target resource for the scheduled job!");
       return Collections.emptyMap();
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
@@ -78,21 +81,22 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
 
   /**
    * Returns the set of all partition ids for a job.
-   * <p/>
    * If a set of partition ids was explicitly specified in the config, that is used. Otherwise, we
    * use the list of all partition ids from the target resource.
+   * return empty set if target resource does not exist.
    */
   private static Set<Integer> getAllTaskPartitions(IdealState tgtResourceIs, JobConfig jobCfg,
       JobContext taskCtx) {
-    if (tgtResourceIs == null) {
-      return null;
-    }
     Map<String, List<Integer>> currentTargets = taskCtx.getPartitionsByTarget();
     SortedSet<String> targetPartitions = Sets.newTreeSet();
     if (jobCfg.getTargetPartitions() != null) {
       targetPartitions.addAll(jobCfg.getTargetPartitions());
     } else {
-      targetPartitions.addAll(tgtResourceIs.getPartitionSet());
+      if (tgtResourceIs != null) {
+        targetPartitions.addAll(tgtResourceIs.getPartitionSet());
+      } else {
+        LOG.warn("Missing target resource for the scheduled job!");
+      }
     }
 
     Set<Integer> taskPartitions = Sets.newTreeSet();

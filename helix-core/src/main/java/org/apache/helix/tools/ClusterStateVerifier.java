@@ -31,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
+import org.I0Itec.zkclient.exception.ZkNodeExistsException;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
 import org.apache.commons.cli.GnuParser;
@@ -262,9 +263,9 @@ public class ClusterStateVerifier {
       }
 
       // filter out all resources that use Task state model
-      Iterator it = idealStates.entrySet().iterator();
+      Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();
       while (it.hasNext()) {
-        Map.Entry<String, IdealState> pair = (Map.Entry<String, IdealState>)it.next();
+        Map.Entry<String, IdealState> pair = it.next();
         if (pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
           it.remove();
         }
@@ -554,6 +555,13 @@ public class ClusterStateVerifier {
     return verifyByZkCallback(verifier, 30000);
   }
 
+  /**
+   * This function should be always single threaded
+   *
+   * @param verifier
+   * @param timeout
+   * @return
+   */
   public static boolean verifyByZkCallback(ZkVerifier verifier, long timeout) {
     long startTime = System.currentTimeMillis();
     CountDownLatch countDown = new CountDownLatch(1);
@@ -562,7 +570,12 @@ public class ClusterStateVerifier {
 
     // add an ephemeral node to /{clusterName}/CONFIGS/CLUSTER/verify
     // so when analyze zk log, we know when a test ends
-    zkClient.createEphemeral("/" + clusterName + "/CONFIGS/CLUSTER/verify");
+    try {
+      zkClient.createEphemeral("/" + clusterName + "/CONFIGS/CLUSTER/verify");
+    } catch (ZkNodeExistsException ex) {
+      LOG.error("There is already a verification in progress", ex);
+      throw ex;
+    }
 
     ExtViewVeriferZkListener listener = new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 

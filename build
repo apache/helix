@@ -18,4 +18,6 @@
 # specific language governing permissions and limitations
 # under the License.
 #
-mvn clean install -Dmaven.test.skip.exec=true
+
+# skip tests but keep compile with default build command.
+mvn clean install -DskipTests=true

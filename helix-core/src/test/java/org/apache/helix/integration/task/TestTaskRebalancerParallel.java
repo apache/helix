@@ -26,40 +26,27 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.AccessOption;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
-import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskPartitionState;
-import org.apache.helix.task.TaskResult;
-import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
-import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
 
 public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
   private static final int n = 5;
@@ -105,10 +92,10 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
 
       final long delay = (i + 1) * 1000L;
       Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-      taskFactoryReg.put("Reindex", new TaskFactory() {
+      taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
         @Override
         public Task createNewTask(TaskCallbackContext context) {
-          return new ReindexTask(delay);
+          return new MockTask(context);
         }
       });
 
@@ -164,7 +151,7 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
     List<JobConfig.Builder> jobConfigBuilders = new ArrayList<JobConfig.Builder>();
     for (String testDbName : testDbNames) {
       jobConfigBuilders.add(
-          new JobConfig.Builder().setCommand("Reindex").setTargetResource(testDbName)
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(testDbName)
               .setTargetPartitionStates(Collections.singleton("SLAVE")));
     }
 
@@ -172,45 +159,6 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
       _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
 
-    Assert.assertTrue(TestUtil.pollForWorkflowParallelState(_manager, queueName));
-  }
-
-  public static class ReindexTask implements Task {
-    private final long _delay;
-    private volatile boolean _canceled;
-
-    public ReindexTask(long delay) {
-      _delay = delay;
-    }
-
-    @Override
-    public TaskResult run() {
-      long expiry = System.currentTimeMillis() + _delay;
-      long timeLeft;
-      while (System.currentTimeMillis() < expiry) {
-        if (_canceled) {
-          timeLeft = expiry - System.currentTimeMillis();
-          return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
-              : timeLeft));
-        }
-        sleep(50);
-      }
-      timeLeft = expiry - System.currentTimeMillis();
-      return new TaskResult(TaskResult.Status.COMPLETED,
-          String.valueOf(timeLeft < 0 ? 0 : timeLeft));
-    }
-
-    @Override
-    public void cancel() {
-      _canceled = true;
-    }
-
-    private static void sleep(long d) {
-      try {
-        Thread.sleep(d);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
+    Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_manager, queueName));
   }
 }

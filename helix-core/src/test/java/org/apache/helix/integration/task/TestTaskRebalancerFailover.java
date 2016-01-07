@@ -82,10 +82,10 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
     setup.rebalanceStorageCluster(_clusterName, WorkflowGenerator.DEFAULT_TGT_DB, _r);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("DummyTask", new TaskFactory() {
+    taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
       @Override
       public Task createNewTask(TaskCallbackContext context) {
-        return new DummyTask(context);
+        return new MockTask(context);
       }
     });
 
@@ -143,7 +143,7 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
     // Enqueue jobs
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job =
-        new JobConfig.Builder().setCommand("DummyTask")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
@@ -151,7 +151,7 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
 
     // check all tasks completed on MASTER
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
@@ -178,9 +178,9 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job);
 
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.IN_PROGRESS);
     _participants[0].syncStop();
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
 
     // tasks previously assigned to localhost_12918 should be re-scheduled on new master
     ctx = TaskUtil.getJobContext(_manager, namespacedJob2);

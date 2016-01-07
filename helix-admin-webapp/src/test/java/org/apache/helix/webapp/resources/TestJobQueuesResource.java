@@ -29,7 +29,7 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.integration.task.DummyTask;
+import org.apache.helix.integration.task.MockTask;
 import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.Task;
@@ -42,9 +42,6 @@ import org.apache.helix.task.beans.WorkflowBean;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.webapp.AdminTestBase;
 import org.apache.helix.webapp.AdminTestHelper;
-import org.apache.helix.webapp.resources.ClusterRepresentationUtil;
-import org.apache.helix.webapp.resources.JsonParameters;
-import org.apache.helix.webapp.resources.ResourceUtil;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -81,7 +78,7 @@ public class TestJobQueuesResource extends AdminTestBase {
     taskFactoryReg.put("DummyTask", new TaskFactory() {
       @Override
       public Task createNewTask(TaskCallbackContext context) {
-        return new DummyTask(context);
+        return new MockTask(context);
       }
     });
 

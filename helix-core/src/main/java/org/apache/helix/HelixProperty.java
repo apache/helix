@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.log4j.Logger;
 
 /**
@@ -127,9 +128,7 @@ public class HelixProperty {
     }
 
     try {
-      Constructor<T> constructor = clazz.getConstructor(new Class[] {
-        ZNRecord.class
-      });
+      Constructor<T> constructor = clazz.getConstructor(ZNRecord.class);
       return constructor.newInstance(record);
     } catch (Exception e) {
       LOG.error("Exception convert znrecord: " + record + " to class: " + clazz, e);
@@ -226,6 +225,10 @@ public class HelixProperty {
    */
   public boolean isValid() {
     return true;
+  }
+
+  public byte[] serialize(ZkSerializer serializer) {
+    return serializer.serialize(_record);
   }
 
   @Override

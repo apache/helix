@@ -448,7 +448,7 @@ public class ClusterSetup {
   /**
    * set configs
    * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
-   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
+   * @param scopeArgsCsv scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
    * @param keyValuePairs csv-formatted key-value pairs. e.g. k1=v1,k2=v2
    */
   public void setConfig(ConfigScopeProperty type, String scopeArgsCsv, String keyValuePairs) {
@@ -463,7 +463,7 @@ public class ClusterSetup {
   /**
    * remove configs
    * @param type config-scope type, e.g. CLUSTER, RESOURCE, etc.
-   * @param scopesStr scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
+   * @param scopeArgsCsv csv-formatted scope-args, e.g myCluster,testDB
    * @param keysCsv csv-formatted keys. e.g. k1,k2
    */
   public void removeConfig(ConfigScopeProperty type, String scopeArgsCsv, String keysCsv) {
@@ -559,8 +559,7 @@ public class ClusterSetup {
 
     ConstraintType type = ConstraintType.valueOf(constraintType);
     ClusterConstraints constraints = _admin.getConstraints(clusterName, type);
-    ZNRecordSerializer serializer = new ZNRecordSerializer();
-    return new String(serializer.serialize(constraints.getRecord()));
+    return new String(constraints.serialize(new ZNRecordSerializer()));
   }
 
   /**
@@ -1160,7 +1159,7 @@ public class ClusterSetup {
       InstanceConfig config =
           setupTool.getClusterManagementTool().getInstanceConfig(clusterName, instanceName);
 
-      String result = new String(new ZNRecordSerializer().serialize(config.getRecord()));
+      String result = new String(config.serialize(new ZNRecordSerializer()));
       System.out.println("InstanceConfig: " + result);
       return 0;
     } else if (cmd.hasOption(listResourceInfo)) {
@@ -1175,7 +1174,7 @@ public class ClusterSetup {
 
       if (idealState != null) {
         System.out.println("IdealState for " + resourceName + ":");
-        System.out.println(new String(new ZNRecordSerializer().serialize(idealState.getRecord())));
+        System.out.println(new String(idealState.serialize(new ZNRecordSerializer())));
       } else {
         System.out.println("No idealState for " + resourceName);
       }
@@ -1184,8 +1183,7 @@ public class ClusterSetup {
 
       if (externalView != null) {
         System.out.println("ExternalView for " + resourceName + ":");
-        System.out
-            .println(new String(new ZNRecordSerializer().serialize(externalView.getRecord())));
+        System.out.println(new String(externalView.serialize(new ZNRecordSerializer())));
       } else {
         System.out.println("No externalView for " + resourceName);
       }

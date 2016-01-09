@@ -39,6 +39,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -61,6 +62,8 @@ public class ClusterDataCache {
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
   Map<String, InstanceConfig> _instanceConfigCacheMap;
+  Map<String, ResourceConfig> _resourceConfigMap;
+  Map<String, ResourceConfig> _resourceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
@@ -89,19 +92,21 @@ public class ClusterDataCache {
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
+      _resourceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
     }
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
+    _resourceConfigMap = Maps.newHashMap(_resourceConfigCacheMap);
+
+    _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
+    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     if (LOG.isTraceEnabled()) {
       for (LiveInstance instance : _liveInstanceMap.values()) {
         LOG.trace("live instance: " + instance.getInstanceName() + " " + instance.getSessionId());
       }
     }
-
-    _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
-    _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
 
     Map<String, Map<String, Message>> msgMap = new HashMap<String, Map<String, Message>>();
     List<PropertyKey> newMessageKeys = Lists.newLinkedList();
@@ -216,10 +221,9 @@ public class ClusterDataCache {
     LOG.info("END: ClusterDataCache.refresh(), took " + (endTime - startTime) + " ms");
 
     if (LOG.isDebugEnabled()) {
-      int numPaths =
-          _liveInstanceMap.size() + _idealStateMap.size() + _stateModelDefMap.size()
-              + _instanceConfigMap.size() + _constraintMap.size() + newMessageKeys.size()
-              + currentStateKeys.size();
+      int numPaths = _liveInstanceMap.size() + _idealStateMap.size() + _stateModelDefMap.size()
+          + _instanceConfigMap.size() + _resourceConfigMap.size() + _constraintMap.size()
+          + newMessageKeys.size() + currentStateKeys.size();
       LOG.debug("Paths read: " + numPaths);
     }
 
@@ -341,6 +345,24 @@ public class ClusterDataCache {
     return _instanceConfigMap;
   }
 
+  /**
+   * Returns the instance config map
+   *
+   * @return
+   */
+  public Map<String, ResourceConfig> getResourceConfigMap() {
+    return _resourceConfigMap;
+  }
+
+  /**
+   * Returns the instance config map
+   *
+   * @return
+   */
+  public ResourceConfig getResourceConfig(String resource) {
+    return _resourceConfigMap.get(resource);
+  }
+
   public synchronized void setInstanceConfigs(List<InstanceConfig> instanceConfigs) {
     Map<String, InstanceConfig> instanceConfigMap = Maps.newHashMap();
     for (InstanceConfig instanceConfig : instanceConfigs) {
@@ -424,6 +446,7 @@ public class ClusterDataCache {
     sb.append("idealStateMap:" + _idealStateMap).append("\n");
     sb.append("stateModelDefMap:" + _stateModelDefMap).append("\n");
     sb.append("instanceConfigMap:" + _instanceConfigMap).append("\n");
+    sb.append("resourceConfigMap:" + _resourceConfigMap).append("\n");
     sb.append("messageMap:" + _messageMap).append("\n");
 
     return sb.toString();

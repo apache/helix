@@ -79,8 +79,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     List<ZNRecord> list = new ArrayList<ZNRecord>();
     list.add(new ZNRecord("id1"));
     list.add(new ZNRecord("id2"));
-    String path =
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
+    String path = PropertyPathBuilder.instanceConfig(clusterName);
     ZKUtil.createChildren(_zkClient, path, list);
     list = ZKUtil.getChildren(_zkClient, path);
     AssertJUnit.assertEquals(2, list.size());
@@ -95,9 +94,7 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @Test()
   public void testUpdateIfExists() {
-    String path =
-        PropertyPathBuilder
-            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), "id3");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id3");
     ZNRecord record = new ZNRecord("id4");
     ZKUtil.updateIfExists(_zkClient, path, record, false);
     AssertJUnit.assertFalse(_zkClient.exists(path));
@@ -110,9 +107,7 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @Test()
   public void testSubtract() {
-    String path =
-        PropertyPathBuilder
-            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), "id5");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id5");
     ZNRecord record = new ZNRecord("id5");
     record.setSimpleField("key1", "value1");
     _zkClient.createPersistent(path, record);
@@ -123,17 +118,13 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @Test()
   public void testNullChildren() {
-    String path =
-        PropertyPathBuilder
-            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), "id6");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id6");
     ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
 
   @Test()
   public void testCreateOrUpdate() {
-    String path =
-        PropertyPathBuilder
-            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), "id7");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id7");
     ZNRecord record = new ZNRecord("id7");
     ZKUtil.createOrUpdate(_zkClient, path, record, true, true);
     record = _zkClient.<ZNRecord> readData(path);
@@ -142,9 +133,7 @@ public class TestZKUtil extends ZkUnitTestBase {
 
   @Test()
   public void testCreateOrReplace() {
-    String path =
-        PropertyPathBuilder
-            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), "id8");
+    String path = PropertyPathBuilder.instanceConfig(clusterName, "id8");
     ZNRecord record = new ZNRecord("id8");
     ZKUtil.createOrReplace(_zkClient, path, record, true);
     record = _zkClient.<ZNRecord> readData(path);

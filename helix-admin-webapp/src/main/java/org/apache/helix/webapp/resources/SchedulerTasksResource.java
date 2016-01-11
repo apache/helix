@@ -148,9 +148,8 @@ public class SchedulerTasksResource extends ServerResource {
           schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
-      resultMap.put("StatusUpdatePath", PropertyPathBuilder
-          .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),
-              schedulerMessage.getMsgId()));
+      resultMap.put("StatusUpdatePath", PropertyPathBuilder.controllerStatusUpdate(
+          clusterName, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
       resultMap.put("MsgId", schedulerMessage.getMsgId());
 

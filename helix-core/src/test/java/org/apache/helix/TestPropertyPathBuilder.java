@@ -27,25 +27,22 @@ public class TestPropertyPathBuilder {
   @Test
   public void testGetPath() {
     String actual;
-    actual = PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, "test_cluster");
+    actual = PropertyPathBuilder.idealState("test_cluster");
     AssertJUnit.assertEquals(actual, "/test_cluster/IDEALSTATES");
-    actual = PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, "test_cluster", "resource");
+    actual = PropertyPathBuilder.idealState("test_cluster", "resource");
     AssertJUnit.assertEquals(actual, "/test_cluster/IDEALSTATES/resource");
 
-    actual = PropertyPathBuilder.getPath(PropertyType.INSTANCES, "test_cluster", "instanceName1");
+    actual = PropertyPathBuilder.instance("test_cluster", "instanceName1");
     AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1");
 
-    actual =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, "test_cluster", "instanceName1");
+    actual = PropertyPathBuilder.instanceCurrentState("test_cluster", "instanceName1");
     AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/CURRENTSTATES");
-    actual =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, "test_cluster", "instanceName1", "sessionId");
-    AssertJUnit.assertEquals(actual,
-        "/test_cluster/INSTANCES/instanceName1/CURRENTSTATES/sessionId");
+    actual = PropertyPathBuilder.instanceCurrentState("test_cluster", "instanceName1", "sessionId");
+    AssertJUnit.assertEquals(actual, "/test_cluster/INSTANCES/instanceName1/CURRENTSTATES/sessionId");
 
-    actual = PropertyPathBuilder.getPath(PropertyType.CONTROLLER, "test_cluster");
+    actual = PropertyPathBuilder.controller("test_cluster");
     AssertJUnit.assertEquals(actual, "/test_cluster/CONTROLLER");
-    actual = PropertyPathBuilder.getPath(PropertyType.MESSAGES_CONTROLLER, "test_cluster");
+    actual = PropertyPathBuilder.controllerMessage("test_cluster");
     AssertJUnit.assertEquals(actual, "/test_cluster/CONTROLLER/MESSAGES");
 
   }

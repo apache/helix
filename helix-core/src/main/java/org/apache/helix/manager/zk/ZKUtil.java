@@ -46,24 +46,20 @@ public final class ZKUtil {
       return false;
     }
     ArrayList<String> requiredPaths = new ArrayList<String>();
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName));
-    requiredPaths.add(PropertyPathBuilder
-        .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.CLUSTER.toString(), clusterName));
-    requiredPaths.add(
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString()));
-    requiredPaths.add(
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.RESOURCE.toString()));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.LIVEINSTANCES, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.STATEMODELDEFS, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathBuilder
-        .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.HISTORY, clusterName));
+    requiredPaths.add(PropertyPathBuilder.idealState(clusterName));
+    requiredPaths.add(PropertyPathBuilder.clusterConfig(clusterName));
+    requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName));
+    requiredPaths.add(PropertyPathBuilder.resourceConfig(clusterName));
+    requiredPaths.add(PropertyPathBuilder.propertyStore(clusterName));
+    requiredPaths.add(PropertyPathBuilder.liveInstance(clusterName));
+    requiredPaths.add(PropertyPathBuilder.instance(clusterName));
+    requiredPaths.add(PropertyPathBuilder.externalView(clusterName));
+    requiredPaths.add(PropertyPathBuilder.controller(clusterName));
+    requiredPaths.add(PropertyPathBuilder.stateModelDef(clusterName));
+    requiredPaths.add(PropertyPathBuilder.controllerMessage(clusterName));
+    requiredPaths.add(PropertyPathBuilder.controllerError(clusterName));
+    requiredPaths.add(PropertyPathBuilder.controllerStatusUpdate(clusterName));
+    requiredPaths.add(PropertyPathBuilder.controllerHistory(clusterName));
     boolean isValid = true;
 
     BaseDataAccessor<Object> baseAccessor = new ZkBaseDataAccessor<Object>(zkClient);
@@ -83,13 +79,11 @@ public final class ZKUtil {
       InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
       ArrayList<String> requiredPaths = new ArrayList<String>();
-      requiredPaths.add(PropertyPathBuilder
-          .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
-      requiredPaths.add(PropertyPathBuilder
-          .getPath(PropertyType.MESSAGES, clusterName, instanceName));
-      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, instanceName));
-      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.STATUSUPDATES, clusterName, instanceName));
-      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.ERRORS, clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceConfig(clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceMessage(clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceCurrentState(clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceStatusUpdate(clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.instanceError(clusterName, instanceName));
       boolean isValid = true;
 
       for (String path : requiredPaths) {

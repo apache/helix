@@ -55,8 +55,7 @@ public class TestNullReplica extends ZkIntegrationTestBase {
         3, // replicas
         "MasterSlave", true); // do rebalance
     // set replica in ideal state to null
-    String idealStatePath =
-        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    String idealStatePath = PropertyPathBuilder.idealState(clusterName, "TestDB0");
     ZNRecord idealState = _gZkClient.readData(idealStatePath);
     idealState.getSimpleFields().remove(IdealState.IdealStateProperty.REPLICAS.toString());
     _gZkClient.writeData(idealStatePath, idealState);

@@ -70,9 +70,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
         for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
-          String path =
-              PropertyPathBuilder
-                  .getPath(PropertyType.CURRENTSTATES, _clusterName, "localhost_8901", "session_0", "TestDB" + k);
+          String path = PropertyPathBuilder.instanceCurrentState(
+              _clusterName, "localhost_8901", "session_0", "TestDB" + k);
           ZNRecord record = new ZNRecord("TestDB" + k);
 
           paths.add(path);
@@ -114,9 +113,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
         updaters.clear();
 
         for (int i = 0; i < 10; i++) {
-          String path =
-              PropertyPathBuilder
-                  .getPath(PropertyType.CURRENTSTATES, _clusterName, "localhost_8901", "session_0", "TestDB" + i);
+          String path = PropertyPathBuilder.instanceCurrentState(
+              _clusterName, "localhost_8901", "session_0", "TestDB" + i);
 
           ZNRecord newRecord = new ZNRecord("TestDB" + i);
           newRecord.setSimpleField("" + j, "" + j);
@@ -170,8 +168,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
         for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
-          String path =
-              PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, _clusterName, "TestDB" + k);
+          String path = PropertyPathBuilder.externalView(_clusterName, "TestDB" + k);
           ZNRecord record = new ZNRecord("TestDB" + k);
 
           paths.add(path);
@@ -197,9 +194,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
-    String curStatePath =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 

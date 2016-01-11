@@ -237,8 +237,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // assert interrupt exception error in old session
     String errPath =
-        PropertyPathBuilder
-            .getPath(PropertyType.ERRORS, clusterName, "localhost_12918", oldSessionId, "TestDB0", "TestDB0_0");
+        PropertyPathBuilder.instanceError(clusterName, "localhost_12918", oldSessionId, "TestDB0", "TestDB0_0");
     ZNRecord error = _gZkClient.readData(errPath);
     Assert
         .assertNotNull(

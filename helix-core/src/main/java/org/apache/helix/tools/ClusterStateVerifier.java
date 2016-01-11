@@ -579,7 +579,7 @@ public class ClusterStateVerifier {
 
     ExtViewVeriferZkListener listener = new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 
-    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
     zkClient.subscribeChildChanges(extViewPath, listener);
     for (String child : zkClient.getChildren(extViewPath)) {
       String childPath = extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;

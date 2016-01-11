@@ -354,8 +354,7 @@ public class TestDriver {
           + ", walk " + step + " steps(" + percentage + "%)");
       nextIS = nextIdealState(initIS, destIS, step);
       // testInfo._idealStateMap.put(dbName, nextIS);
-      String idealStatePath =
-          PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, TEST_DB_PREFIX + i);
+      String idealStatePath = PropertyPathBuilder.idealState(clusterName, TEST_DB_PREFIX + i);
       ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);
       TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(beginTime), arg);
       commandList.add(command);

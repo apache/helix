@@ -52,8 +52,7 @@ public class TestCarryOverBadCurState extends ZkIntegrationTestBase {
 
     // add a bad current state
     ZNRecord badCurState = new ZNRecord("TestDB0");
-    String path =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_12918", "session_0", "TestDB0");
+    String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_12918", "session_0", "TestDB0");
     _gZkClient.createPersistent(path, true);
     _gZkClient.writeData(path, badCurState);
 

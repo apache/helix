@@ -113,10 +113,8 @@ public class TestEnableCompression extends ZkIntegrationTestBase {
     System.out.println("compressed paths:" + compressedPaths);
     // ONLY IDEALSTATE and EXTERNAL VIEW must be compressed
     Assert.assertEquals(compressedPaths.size(), 2);
-    String idealstatePath =
-        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
-    String externalViewPath =
-        PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, resourceName);
+    String idealstatePath = PropertyPathBuilder.idealState(clusterName, resourceName);
+    String externalViewPath = PropertyPathBuilder.externalView(clusterName, resourceName);
     Assert.assertTrue(compressedPaths.contains(idealstatePath));
     Assert.assertTrue(compressedPaths.contains(externalViewPath));
 

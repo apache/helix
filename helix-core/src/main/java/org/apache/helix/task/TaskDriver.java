@@ -112,7 +112,7 @@ public class TaskDriver {
   public TaskDriver(ZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor, String clusterName) {
     this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
         new ConfigAccessor(client), new ZkHelixPropertyStore<ZNRecord>(baseAccessor,
-            PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName), null), clusterName);
+            PropertyPathBuilder.propertyStore(clusterName), null), clusterName);
   }
 
   public TaskDriver(HelixAdmin admin, HelixDataAccessor accessor, ConfigAccessor cfgAccessor,

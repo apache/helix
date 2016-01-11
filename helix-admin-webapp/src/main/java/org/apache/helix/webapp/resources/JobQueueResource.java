@@ -95,7 +95,7 @@ public class JobQueueResource extends ServerResource {
     HelixProperty jobQueueConfig = accessor.getProperty(keyBuilder.resourceConfig(jobQueueName));
 
     // Get job queue context
-    String path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName);
+    String path = PropertyPathBuilder.propertyStore(clusterName);
     HelixPropertyStore<ZNRecord> propertyStore =
         new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
     WorkflowContext ctx = TaskUtil.getWorkflowContext(propertyStore, jobQueueName);

@@ -150,8 +150,7 @@ public class ZkUnitTestBase {
   public void verifyInstance(ZkClient zkClient, String clusterName, String instance,
       boolean wantExists) {
     // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
-    String instanceConfigsPath =
-        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
+    String instanceConfigsPath = PropertyPathBuilder.instanceConfig(clusterName);
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = PropertyPathBuilder.instance(clusterName, instance);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));

@@ -85,7 +85,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
     final AtomicBoolean success = new AtomicBoolean(true);
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      String msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, instanceName);
+      String msgPath = PropertyPathBuilder.instanceMessage(clusterName, instanceName);
 
       _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener() {
 

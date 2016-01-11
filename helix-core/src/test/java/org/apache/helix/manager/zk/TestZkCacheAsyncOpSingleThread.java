@@ -49,9 +49,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     ZkBaseDataAccessor<ZNRecord> extBaseAccessor = new ZkBaseDataAccessor<ZNRecord>(extZkclient);
 
     // init zkCacheBaseDataAccessor
-    String curStatePath =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
@@ -70,9 +69,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     List<String> paths = new ArrayList<String>();
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 0; i < 10; i++) {
-      String path =
-          PropertyPathBuilder
-              .getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -129,8 +126,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     paths.clear();
     records.clear();
     for (int i = 0; i < 10; i++) {
-      String path =
-          PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+      String path = PropertyPathBuilder.externalView(clusterName, "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -152,8 +148,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     // remove 10 external views by external accessor
     paths.clear();
     for (int i = 0; i < 10; i++) {
-      String path =
-          PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+      String path = PropertyPathBuilder.externalView(clusterName, "TestDB" + i);
 
       paths.add(path);
     }
@@ -184,9 +179,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
 
     // init zkCacheDataAccessor
-    String curStatePath =
-        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String curStatePath = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.externalView(clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
@@ -205,9 +199,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     List<String> paths = new ArrayList<String>();
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 0; i < 10; i++) {
-      String path =
-          PropertyPathBuilder
-              .getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901", "session_0", "TestDB" + i);
+      String path = PropertyPathBuilder.instanceCurrentState(clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -258,8 +250,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     records.clear();
     for (int j = 0; j < 10; j++) {
       for (int i = 0; i < 10; i++) {
-        String path =
-            PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+        String path = PropertyPathBuilder.externalView(clusterName, "TestDB" + i);
         ZNRecord record = new ZNRecord("TestDB" + i);
         record.setSimpleField("setKey", "" + j);
 

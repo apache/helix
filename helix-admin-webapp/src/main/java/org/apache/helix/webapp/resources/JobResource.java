@@ -122,7 +122,7 @@ public class JobResource extends ServerResource {
 
     // Get job queue context
     JobContext ctx = null;
-    String path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName);
+    String path = PropertyPathBuilder.propertyStore(clusterName);
     HelixPropertyStore<ZNRecord> propertyStore =
         new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
 

@@ -563,8 +563,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
             = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
             keyBuilder.idealStates().getPath(),
             keyBuilder.externalViews().getPath(),
-            PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
-                + TaskConstants.REBALANCER_CONTEXT_ROOT);
+            PropertyPathBuilder.propertyStore(CLUSTER_NAME) + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {
           List<String> childNames = accessor.getBaseDataAccessor().getChildNames(path, 0);

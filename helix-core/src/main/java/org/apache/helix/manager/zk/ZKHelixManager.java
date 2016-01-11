@@ -644,7 +644,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     checkConnected();
 
     if (_helixPropertyStore == null) {
-      String path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, _clusterName);
+      String path = PropertyPathBuilder.propertyStore(_clusterName);
       String fallbackPath = String.format("/%s/%s", _clusterName, "HELIX_PROPERTYSTORE");
       _helixPropertyStore =
           new AutoFallbackPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(_zkclient),

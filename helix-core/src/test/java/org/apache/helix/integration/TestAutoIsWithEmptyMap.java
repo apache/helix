@@ -54,7 +54,7 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
         "LeaderStandby", false); // do not rebalance
 
     // calculate and set custom ideal state
-    String idealPath = PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    String idealPath = PropertyPathBuilder.idealState(clusterName, "TestDB0");
     ZNRecord curIdealState = _gZkClient.readData(idealPath);
 
     List<String> instanceNames = new ArrayList<String>(5);

@@ -61,7 +61,7 @@ public class TestStartMultipleControllersWithSameName extends ZkIntegrationTestB
     }
 
     Thread.sleep(500); // wait leader election finishes
-    String liPath = PropertyPathBuilder.getPath(PropertyType.LIVEINSTANCES, clusterName);
+    String liPath = PropertyPathBuilder.liveInstance(clusterName);
     int listenerNb = ZkTestHelper.numberOfListeners(ZK_ADDR, liPath);
     // System.out.println("listenerNb: " + listenerNb);
     Assert.assertEquals(listenerNb, 1, "Only one controller should succeed in becoming leader");

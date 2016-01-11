@@ -182,7 +182,7 @@ public class TestDistControllerElection extends ZkUnitTestBase {
     context.setType(NotificationContext.Type.INIT);
     election.onControllerChange(context);
 
-    path = PropertyPathBuilder.getPath(PropertyType.LEADER, clusterName);
+    path = PropertyPathBuilder.controllerLeader(clusterName);
     ZNRecord leaderRecord = _gZkClient.<ZNRecord> readData(path, true);
     AssertJUnit.assertNull(leaderRecord);
     // AssertJUnit.assertNull(election.getController());

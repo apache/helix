@@ -50,7 +50,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
@@ -102,7 +101,7 @@ public class ZkUnitTestBase {
   }
 
   protected String getCurrentLeader(ZkClient zkClient, String clusterName) {
-    String leaderPath = HelixUtil.getControllerPropertyPath(clusterName, PropertyType.LEADER);
+    String leaderPath = PropertyPathBuilder.controllerLeader(clusterName);
     ZNRecord leaderRecord = zkClient.<ZNRecord> readData(leaderPath);
     if (leaderRecord == null) {
       return null;
@@ -154,14 +153,14 @@ public class ZkUnitTestBase {
     String instanceConfigsPath =
         PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
-    String instancePath = HelixUtil.getInstancePath(clusterName, instance);
+    String instancePath = PropertyPathBuilder.instance(clusterName, instance);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instancePath));
   }
 
   public void verifyResource(ZkClient zkClient, String clusterName, String resource,
       boolean wantExists) {
-    String resourcePath = HelixUtil.getIdealStatePath(clusterName) + "/" + resource;
+    String resourcePath = PropertyPathBuilder.idealState(clusterName, resource);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(resourcePath));
   }
 

@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Random;
 import java.util.TreeMap;
 
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -40,7 +41,6 @@ import org.apache.helix.model.IdealState.IdealStateProperty;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.util.HelixUtil;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -70,7 +70,7 @@ public class MockController {
     // message.setPartitionId(partitionId);
     message.setPartitionName(partitionKey);
 
-    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
+    String path = PropertyPathBuilder.instanceMessage(clusterName, instanceName, message.getId());
     ObjectMapper mapper = new ObjectMapper();
     StringWriter sw = new StringWriter();
     mapper.writeValueUsingView(sw, message, Message.class);
@@ -78,7 +78,7 @@ public class MockController {
     client.delete(path);
 
     Thread.sleep(10000);
-    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
+    ZNRecord record = client.readData(PropertyPathBuilder.liveInstance(clusterName, instanceName));
     message.setTgtSessionId(record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString())
         .toString());
     client.createPersistent(path, message);

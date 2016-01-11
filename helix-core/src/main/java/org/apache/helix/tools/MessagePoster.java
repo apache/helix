@@ -21,6 +21,7 @@ package org.apache.helix.tools;
 
 import java.util.UUID;
 
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
@@ -28,17 +29,15 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
-import org.apache.helix.util.HelixUtil;
 
 public class MessagePoster {
   public void post(String zkServer, Message message, String clusterName, String instanceName) {
     ZkClient client = new ZkClient(zkServer);
     client.setZkSerializer(new ZNRecordSerializer());
-    String path = HelixUtil.getMessagePath(clusterName, instanceName) + "/" + message.getId();
+    String path = PropertyPathBuilder.instanceMessage(clusterName, instanceName, message.getId());
     client.delete(path);
-    ZNRecord record = client.readData(HelixUtil.getLiveInstancePath(clusterName, instanceName));
-    message.setTgtSessionId(record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString())
-        .toString());
+    ZNRecord record = client.readData(PropertyPathBuilder.liveInstance(clusterName, instanceName));
+    message.setTgtSessionId(record.getSimpleField(LiveInstanceProperty.SESSION_ID.toString()));
     message.setTgtName(record.getId());
     // System.out.println(message);
     client.createPersistent(path, message.getRecord());

@@ -22,7 +22,7 @@ package org.apache.helix.integration;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
@@ -66,7 +66,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     String msgPath =
-        PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
+        PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
     result = checkHandlers(controller.getHandlers(), msgPath);
     Assert.assertTrue(result);
 
@@ -79,7 +79,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
-    msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12922");
+    msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12922");
     result = checkHandlers(controller.getHandlers(), msgPath);
     Assert.assertTrue(result);
 
@@ -140,7 +140,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
 
     // check if controller_0 has message listener for localhost_12918
     String msgPath =
-        PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
+        PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12918");
     int numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
     // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller
@@ -155,7 +155,7 @@ public class TestAddNodeAfterControllerStart extends ZkIntegrationTestBase {
             ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     // check if controller_0 has message listener for localhost_12919
-    msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, "localhost_12919");
+    msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, "localhost_12919");
     numberOfListeners = ZkTestHelper.numberOfListeners(ZK_ADDR, msgPath);
     // System.out.println("numberOfListeners(" + msgPath + "): " + numberOfListeners);
     Assert.assertEquals(numberOfListeners, 2); // 1 of participant, and 1 of controller

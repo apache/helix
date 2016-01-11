@@ -27,14 +27,12 @@ import java.util.concurrent.Callable;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -73,8 +71,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
         for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
           String path =
-              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
-                  "localhost_8901", "session_0", "TestDB" + k);
+              PropertyPathBuilder
+                  .getPath(PropertyType.CURRENTSTATES, _clusterName, "localhost_8901", "session_0", "TestDB" + k);
           ZNRecord record = new ZNRecord("TestDB" + k);
 
           paths.add(path);
@@ -117,8 +115,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
         for (int i = 0; i < 10; i++) {
           String path =
-              PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, _clusterName,
-                  "localhost_8901", "session_0", "TestDB" + i);
+              PropertyPathBuilder
+                  .getPath(PropertyType.CURRENTSTATES, _clusterName, "localhost_8901", "session_0", "TestDB" + i);
 
           ZNRecord newRecord = new ZNRecord("TestDB" + i);
           newRecord.setSimpleField("" + j, "" + j);
@@ -173,7 +171,7 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
         for (int i = 0; i < 5; i++) {
           int k = j * 5 + i;
           String path =
-              PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, _clusterName, "TestDB" + k);
+              PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, _clusterName, "TestDB" + k);
           ZNRecord record = new ZNRecord("TestDB" + k);
 
           paths.add(path);
@@ -200,8 +198,8 @@ public class TestWtCacheAsyncOpMultiThread extends ZkUnitTestBase {
 
     // init zkCacheDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 

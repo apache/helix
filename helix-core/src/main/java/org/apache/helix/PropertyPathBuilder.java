@@ -51,8 +51,8 @@ import org.apache.log4j.Logger;
 /**
  * Utility mapping properties to their Zookeeper locations
  */
-public class PropertyPathConfig {
-  private static Logger logger = Logger.getLogger(PropertyPathConfig.class);
+public class PropertyPathBuilder {
+  private static Logger logger = Logger.getLogger(PropertyPathBuilder.class);
 
   static final Map<PropertyType, Map<Integer, String>> templateMap =
       new HashMap<PropertyType, Map<Integer, String>>();

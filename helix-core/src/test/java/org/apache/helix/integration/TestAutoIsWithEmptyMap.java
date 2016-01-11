@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -54,7 +54,7 @@ public class TestAutoIsWithEmptyMap extends ZkIntegrationTestBase {
         "LeaderStandby", false); // do not rebalance
 
     // calculate and set custom ideal state
-    String idealPath = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+    String idealPath = PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
     ZNRecord curIdealState = _gZkClient.readData(idealPath);
 
     List<String> instanceNames = new ArrayList<String>(5);

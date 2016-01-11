@@ -34,7 +34,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
@@ -573,7 +573,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
             = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
             keyBuilder.idealStates().getPath(),
             keyBuilder.externalViews().getPath(),
-            PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
+            PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
                 + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {

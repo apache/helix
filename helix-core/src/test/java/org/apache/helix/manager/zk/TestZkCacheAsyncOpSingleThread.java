@@ -26,16 +26,12 @@ import java.util.List;
 
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordUpdater;
 import org.apache.helix.ZkUnitTestBase;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkCacheBaseDataAccessor;
-import org.apache.helix.manager.zk.ZkClient;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
@@ -54,8 +50,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // init zkCacheBaseDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
@@ -75,8 +71,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901",
-              "session_0", "TestDB" + i);
+          PropertyPathBuilder
+              .getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -134,7 +130,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     records.clear();
     for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+          PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -157,7 +153,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     paths.clear();
     for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+          PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
 
       paths.add(path);
     }
@@ -189,8 +185,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
 
     // init zkCacheDataAccessor
     String curStatePath =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
-    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901");
+    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
 
     ZkBaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
 
@@ -210,8 +206,8 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     List<ZNRecord> records = new ArrayList<ZNRecord>();
     for (int i = 0; i < 10; i++) {
       String path =
-          PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901",
-              "session_0", "TestDB" + i);
+          PropertyPathBuilder
+              .getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_8901", "session_0", "TestDB" + i);
       ZNRecord record = new ZNRecord("TestDB" + i);
 
       paths.add(path);
@@ -263,7 +259,7 @@ public class TestZkCacheAsyncOpSingleThread extends ZkUnitTestBase {
     for (int j = 0; j < 10; j++) {
       for (int i = 0; i < 10; i++) {
         String path =
-            PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
+            PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, "TestDB" + i);
         ZNRecord record = new ZNRecord("TestDB" + i);
         record.setSimpleField("setKey", "" + j);
 

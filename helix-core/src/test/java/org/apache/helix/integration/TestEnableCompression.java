@@ -6,10 +6,9 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.serialize.BytesPushThroughSerializer;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZkClient;
@@ -115,9 +114,9 @@ public class TestEnableCompression extends ZkIntegrationTestBase {
     // ONLY IDEALSTATE and EXTERNAL VIEW must be compressed
     Assert.assertEquals(compressedPaths.size(), 2);
     String idealstatePath =
-        PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
+        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
     String externalViewPath =
-        PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName, resourceName);
+        PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName, resourceName);
     Assert.assertTrue(compressedPaths.contains(idealstatePath));
     Assert.assertTrue(compressedPaths.contains(externalViewPath));
 

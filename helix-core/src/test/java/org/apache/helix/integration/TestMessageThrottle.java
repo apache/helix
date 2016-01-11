@@ -25,7 +25,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.I0Itec.zkclient.IZkChildListener;
 import org.apache.helix.HelixAdmin;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -85,7 +85,7 @@ public class TestMessageThrottle extends ZkIntegrationTestBase {
     final AtomicBoolean success = new AtomicBoolean(true);
     for (int i = 0; i < 5; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      String msgPath = PropertyPathConfig.getPath(PropertyType.MESSAGES, clusterName, instanceName);
+      String msgPath = PropertyPathBuilder.getPath(PropertyType.MESSAGES, clusterName, instanceName);
 
       _gZkClient.subscribeChildChanges(msgPath, new IZkChildListener() {
 

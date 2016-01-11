@@ -49,7 +49,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.ClusterConstraints;
@@ -100,8 +100,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
     String instanceConfigsPath =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString());
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
     String nodeId = instanceConfig.getId();
     String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
 
@@ -120,8 +119,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void dropInstance(String clusterName, InstanceConfig instanceConfig) {
     String instanceConfigsPath =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString());
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
     String nodeId = instanceConfig.getId();
     String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
     String instancePath = HelixUtil.getInstancePath(clusterName, nodeId);
@@ -146,8 +144,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public InstanceConfig getInstanceConfig(String clusterName, String instanceName) {
     String instanceConfigPath =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+        PropertyPathBuilder
+            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
     if (!_zkClient.exists(instanceConfigPath)) {
       throw new HelixException("instance" + instanceName + " does not exist in cluster "
           + clusterName);
@@ -164,8 +162,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void enableInstance(final String clusterName, final String instanceName,
       final boolean enabled) {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+        PropertyPathBuilder
+            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     if (!baseAccessor.exists(path, 0)) {
@@ -191,7 +189,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void enableResource(final String clusterName, final String resourceName,
       final boolean enabled) {
-    String path = PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
+    String path = PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
     if (!baseAccessor.exists(path, 0)) {
       throw new HelixException("Cluster " + clusterName + ", resource: " + resourceName
@@ -215,8 +213,8 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void enablePartition(final boolean enabled, final String clusterName,
       final String instanceName, final String resourceName, final List<String> partitionNames) {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+        PropertyPathBuilder
+            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
 
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_zkClient);
 
@@ -228,7 +226,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // check resource exists
     String idealStatePath =
-        PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
+        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, resourceName);
 
     ZNRecord idealStateRecord = null;
     try {
@@ -521,20 +519,18 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(HelixUtil.getIdealStatePath(clusterName));
     // CONFIGURATIONS
     path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.CLUSTER.toString(), clusterName);
+        PropertyPathBuilder
+            .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.CLUSTER.toString(), clusterName);
     _zkClient.createPersistent(path, true);
     _zkClient.writeData(path, new ZNRecord(clusterName));
     path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString());
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString());
     _zkClient.createPersistent(path);
     path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.RESOURCE.toString());
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.RESOURCE.toString());
     _zkClient.createPersistent(path);
     // PROPERTY STORE
-    path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
+    path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName);
     _zkClient.createPersistent(path);
     // LIVE INSTANCES
     _zkClient.createPersistent(HelixUtil.getLiveInstancesPath(clusterName));
@@ -547,19 +543,19 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     // controller
     _zkClient.createPersistent(HelixUtil.getControllerPath(clusterName));
-    path = PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName);
+    path = PropertyPathBuilder.getPath(PropertyType.HISTORY, clusterName);
     final ZNRecord emptyHistory = new ZNRecord(PropertyType.HISTORY.toString());
     final List<String> emptyList = new ArrayList<String>();
     emptyHistory.setListField(clusterName, emptyList);
     _zkClient.createPersistent(path, emptyHistory);
 
-    path = PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName);
+    path = PropertyPathBuilder.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName);
     _zkClient.createPersistent(path);
 
-    path = PropertyPathConfig.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName);
+    path = PropertyPathBuilder.getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName);
     _zkClient.createPersistent(path);
 
-    path = PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName);
+    path = PropertyPathBuilder.getPath(PropertyType.ERRORS_CONTROLLER, clusterName);
     _zkClient.createPersistent(path);
   }
 
@@ -605,7 +601,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void addResource(String clusterName, String resourceName, IdealState idealstate) {
     String stateModelRef = idealstate.getStateModelDefRef();
     String stateModelDefPath =
-        PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
+        PropertyPathBuilder.getPath(PropertyType.STATEMODELDEFS, clusterName, stateModelRef);
     if (!_zkClient.exists(stateModelDefPath)) {
       throw new HelixException("State model " + stateModelRef
           + " not found in the cluster STATEMODELDEFS path");

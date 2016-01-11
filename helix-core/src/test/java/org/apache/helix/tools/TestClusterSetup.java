@@ -27,7 +27,7 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -41,7 +41,6 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
@@ -435,8 +434,8 @@ public class TestClusterSetup extends ZkUnitTestBase {
 
     Assert.assertNull(accessor.getProperty(keyBuilder.instanceConfig("localhost_12918")),
         "Instance config should be dropped");
-    Assert.assertFalse(_gZkClient.exists(PropertyPathConfig.getPath(PropertyType.INSTANCES,
-        clusterName, "localhost_12918")), "Instance/host should be dropped");
+    Assert.assertFalse(_gZkClient.exists(
+        PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, "localhost_12918")), "Instance/host should be dropped");
 
     System.out.println("END " + clusterName + " at " + new Date(System.currentTimeMillis()));
 

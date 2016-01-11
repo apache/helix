@@ -81,7 +81,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     config.setPort("9999");
     tool.addInstance(clusterName, config);
     tool.enableInstance(clusterName, "host1_9999", true);
-    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, "host1_9999");
+    String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, "host1_9999");
     AssertJUnit.assertTrue(_gZkClient.exists(path));
 
     try {
@@ -115,7 +115,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     ZNRecord stateModelRecord = new ZNRecord("id1");
     try {
       tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));
-      path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
+      path = PropertyPathBuilder.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
       AssertJUnit.assertTrue(_gZkClient.exists(path));
       Assert.fail("should fail");
     } catch (HelixException e) {
@@ -336,7 +336,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       }
       tool.addInstance(clusterName, config);
       tool.enableInstance(clusterName, instanceName, true);
-      String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, instanceName);
+      String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
       AssertJUnit.assertTrue(_gZkClient.exists(path));
     }
 

@@ -23,7 +23,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -95,7 +95,7 @@ public class JobQueueResource extends ServerResource {
     HelixProperty jobQueueConfig = accessor.getProperty(keyBuilder.resourceConfig(jobQueueName));
 
     // Get job queue context
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
+    String path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName);
     HelixPropertyStore<ZNRecord> propertyStore =
         new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
     WorkflowContext ctx = TaskUtil.getWorkflowContext(propertyStore, jobQueueName);

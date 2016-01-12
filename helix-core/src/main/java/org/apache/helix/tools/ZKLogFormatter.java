@@ -22,7 +22,6 @@ package org.apache.helix.tools;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.BufferedWriter;
-import java.io.ByteArrayInputStream;
 import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,7 +39,6 @@ import java.util.zip.Checksum;
 import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 import org.apache.jute.BinaryInputArchive;
-import org.apache.jute.InputArchive;
 import org.apache.jute.Record;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.KeeperException.NoNodeException;
@@ -250,9 +248,8 @@ public class ZKLogFormatter {
       if (crcValue != crc.getValue()) {
         throw new IOException("CRC doesn't match " + crcValue + " vs " + crc.getValue());
       }
-      InputArchive iab = BinaryInputArchive.getArchive(new ByteArrayInputStream(bytes));
       TxnHeader hdr = new TxnHeader();
-      Record txn = SerializeUtils.deserializeTxn(iab, hdr);
+      Record txn = SerializeUtils.deserializeTxn(bytes, hdr);
       if (bw != null) {
         bw.write(formatTransaction(hdr, txn));
         bw.newLine();

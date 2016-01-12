@@ -916,4 +916,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     checkConnected();
     return _participantHealthInfoCollector;
   }
+
+  @Override
+  public void handleSessionEstablishmentError(Throwable var1) throws Exception {
+  }
 }

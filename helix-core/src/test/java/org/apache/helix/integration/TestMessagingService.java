@@ -33,6 +33,7 @@ import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
 
@@ -336,11 +337,17 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
         _participants[0].getMessagingService().sendAndWait(cr, msg, callback5, 10000);
     AssertJUnit.assertTrue(callback5.getMessageReplied().size() == _replica - 1);
 
-    cr.setDataSource(DataSource.IDEALSTATES);
+    cr.setMaxRecipient(1);
     AsyncCallback callback6 = new MockAsyncCallback();
-    int messageSent6 =
-        _participants[0].getMessagingService().sendAndWait(cr, msg, callback6, 10000);
-    AssertJUnit.assertTrue(callback6.getMessageReplied().size() == _replica - 1);
+    int messageSent6 = _participants[0].getMessagingService().sendAndWait(cr, msg, callback6, 10000);
+    Assert.assertEquals(callback6.getMessageReplied().size(), 1);
+
+    cr.setMaxRecipient(null);
+    cr.setDataSource(DataSource.IDEALSTATES);
+    AsyncCallback callback7 = new MockAsyncCallback();
+    int messageSent7 =
+        _participants[0].getMessagingService().sendAndWait(cr, msg, callback7, 10000);
+    AssertJUnit.assertTrue(callback7.getMessageReplied().size() == _replica - 1);
   }
 
   @Test()

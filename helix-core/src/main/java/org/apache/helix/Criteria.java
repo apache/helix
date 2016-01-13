@@ -61,6 +61,12 @@ public class Criteria {
    */
   boolean selfExcluded = true;
   /**
+   * How many copies of messages to be sent.
+   * E.g. if maxRecipient == 1 and partitionState is SLAVE,
+   *      then the message is sent to only one SLAVE rather than all SLAVES
+   */
+  Integer maxRecipient = null;
+  /**
    * Determine if use external view or ideal state as source of truth
    */
   DataSource _dataSource = DataSource.EXTERNALVIEW;
@@ -184,6 +190,15 @@ public class Criteria {
    */
   public String getPartitionState() {
     return partitionState;
+  }
+
+  public Integer getMaxRecipient() {
+    return maxRecipient;
+  }
+
+  public Criteria setMaxRecipient(Integer maxRecipient) {
+    this.maxRecipient = maxRecipient;
+    return this;
   }
 
   /**

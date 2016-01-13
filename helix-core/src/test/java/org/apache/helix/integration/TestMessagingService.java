@@ -286,7 +286,7 @@ public class TestMessagingService extends ZkStandAloneCMTestBase {
     for (int i = 0; i < NODE_NR; i++) {
       TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
       String hostDest = "localhost_" + (START_PORT + i);
-      _participants[0].getMessagingService().registerMessageHandlerFactory(
+      _participants[i].getMessagingService().registerMessageHandlerFactory(
           factory.getMessageType(), factory);
 
     }

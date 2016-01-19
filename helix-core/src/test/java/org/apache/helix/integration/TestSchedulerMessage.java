@@ -185,7 +185,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testSchedulerZeroMsg")
   public void testSchedulerMsg() throws Exception {
     Logger.getRootLogger().setLevel(Level.INFO);
     _factory._results.clear();
@@ -325,13 +325,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test()
+  @Test
   public void testSchedulerZeroMsg() throws Exception {
-    TestMessagingHandlerFactory factory = new TestMessagingHandlerFactory();
+    _factory._results.clear();
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          factory.getMessageType(), factory);
+          _factory.getMessageType(), _factory);
 
       manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
@@ -344,7 +344,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(factory.getMessageType(), "Template");
+    Message msg = new Message(_factory.getMessageType(), "Template");
     msg.setTgtSessionId("*");
     msg.setMsgState(MessageState.NEW);
 
@@ -376,7 +376,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
     Thread.sleep(3000);
 
-    Assert.assertEquals(0, factory._results.size());
+    Assert.assertEquals(0, _factory._results.size());
     PropertyKey controllerTaskStatus =
         keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
             schedulerMessage.getMsgId());
@@ -389,13 +389,13 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
     Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount").equals("0"));
     int count = 0;
-    for (Set<String> val : factory._results.values()) {
+    for (Set<String> val : _factory._results.values()) {
       count += val.size();
     }
     Assert.assertEquals(count, 0);
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testSchedulerMsg")
   public void testSchedulerMsg3() throws Exception {
     _factory._results.clear();
     Thread.sleep(2000);
@@ -517,7 +517,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test()
+  @Test(dependsOnMethods = "testSchedulerMsg3")
   public void testSchedulerMsg4() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;

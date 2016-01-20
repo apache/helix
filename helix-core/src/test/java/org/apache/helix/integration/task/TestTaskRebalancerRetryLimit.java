@@ -116,13 +116,13 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    _manager.disconnect();
     _controller.syncStop();
     for (int i = 0; i < _n; i++) {
       if (_participants[i] != null && _participants[i].isConnected()) {
         _participants[i].syncStop();
       }
     }
-    _manager.disconnect();
   }
 
   @Test public void test() throws Exception {

@@ -150,11 +150,11 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    _manager.disconnect();
     _controller.syncStop();
     for (int i = 0; i < n; i++) {
       _participants[i].syncStop();
     }
-    _manager.disconnect();
   }
 
   @Test public void stopAndResume() throws Exception {
@@ -306,14 +306,14 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TaskTestUtil.pollForJobState(_manager, queueName,
-        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.IN_PROGRESS);
+    TaskTestUtil
+        .pollForJobState(_manager, queueName, String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_manager, queueName,
-        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
+    TaskTestUtil
+        .pollForJobState(_manager, queueName, String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
     TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
@@ -334,8 +334,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     // add job 3 back
     JobConfig.Builder job =
         new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-            .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
+            .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(Sets.newHashSet("SLAVE"));
     LOG.info("Enqueuing job: " + deletedJob2);
     _driver.enqueueJob(queueName, deletedJob2, job);
     currentJobNames.add(deletedJob2);

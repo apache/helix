@@ -136,14 +136,13 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    _manager.disconnect();
     _controller.syncStop();
     // _controller = null;
     for (int i = 0; i < n; i++) {
       _participants[i].syncStop();
       // _participants[i] = null;
     }
-
-    _manager.disconnect();
   }
 
   @Test

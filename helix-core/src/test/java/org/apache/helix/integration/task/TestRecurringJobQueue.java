@@ -21,17 +21,13 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
-import org.apache.helix.ExternalViewChangeListener;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -40,7 +36,6 @@ import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.ExternalView;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -150,11 +145,11 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    _manager.disconnect();
     _controller.syncStop();
     for (int i = 0; i < n; i++) {
       _participants[i].syncStop();
     }
-    _manager.disconnect();
   }
 
 
@@ -370,73 +365,6 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     // verify
     verifyJobDeleted(queueName,
         String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
-  }
-
-  @Test
-  public void testJobsDisableExternalView() throws Exception {
-    String queueName = TestHelper.getTestMethodName();
-
-    ExternviewChecker externviewChecker = new ExternviewChecker();
-    _manager.addExternalViewChangeListener(externviewChecker);
-
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName);
-
-    JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-        .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
-
-    JobConfig.Builder job2 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-        .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setDisableExternalView(true);
-
-    JobConfig.Builder job3 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-        .setTargetPartitionStates(Sets.newHashSet("MASTER")).setDisableExternalView(false);
-
-    // enqueue both jobs
-    queueBuilder.enqueueJob("job1", job1);
-    queueBuilder.enqueueJob("job2", job2);
-    queueBuilder.enqueueJob("job3", job3);
-
-    _driver.createQueue(queueBuilder.build());
-
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
-    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-
-    // ensure all jobs are completed
-    String namedSpaceJob3 = String.format("%s_%s", scheduledQueue, "job3");
-    TaskTestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob3, TaskState.COMPLETED);
-
-    Set<String> seenExternalViews = externviewChecker.getSeenExternalViews();
-    String namedSpaceJob1 = String.format("%s_%s", scheduledQueue, "job1");
-    String namedSpaceJob2 = String.format("%s_%s", scheduledQueue, "job2");
-
-    Assert.assertTrue(seenExternalViews.contains(namedSpaceJob1),
-        "Can not find external View for " + namedSpaceJob1 + "!");
-    Assert.assertTrue(!seenExternalViews.contains(namedSpaceJob2),
-        "External View for " + namedSpaceJob2 + " shoudld not exist!");
-    Assert.assertTrue(seenExternalViews.contains(namedSpaceJob3),
-        "Can not find external View for " + namedSpaceJob3 + "!");
-
-    _manager
-        .removeListener(new PropertyKey.Builder(CLUSTER_NAME).externalViews(), externviewChecker);
-  }
-
-  private static class ExternviewChecker implements ExternalViewChangeListener {
-    private Set<String> _seenExternalViews = new HashSet<String>();
-
-    @Override public void onExternalViewChange(List<ExternalView> externalViewList,
-        NotificationContext changeContext) {
-      for (ExternalView view : externalViewList) {
-        _seenExternalViews.add(view.getResourceName());
-      }
-    }
-
-    public Set<String> getSeenExternalViews() {
-      return _seenExternalViews;
-    }
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

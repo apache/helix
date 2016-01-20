@@ -35,10 +35,8 @@ import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -48,8 +46,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +56,6 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
   private static final int num_dbs = 5;
   private static final int START_PORT = 12918;
   private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
-  private static final String TIMEOUT_CONFIG = "Timeout";
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
@@ -139,11 +134,11 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
 
   @AfterClass
   public void afterClass() throws Exception {
+    _manager.disconnect();
     _controller.syncStop();
     for (int i = 0; i < num_nodes; i++) {
       _participants[i].syncStop();
     }
-    _manager.disconnect();
   }
 
   @Test public void testJobFailsWithMissingTarget() throws Exception {

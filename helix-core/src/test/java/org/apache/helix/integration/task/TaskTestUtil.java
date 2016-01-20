@@ -247,6 +247,22 @@ public class TaskTestUtil {
     return buildRecurrentJobQueue(jobQueueName, 0);
   }
 
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart) {
+    Map<String, String> cfgMap = new HashMap<String, String>();
+    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
+    Calendar cal = Calendar.getInstance();
+    cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
+    cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + delayStart % 60);
+    cal.set(Calendar.MILLISECOND, 0);
+    cfgMap.put(WorkflowConfig.START_TIME,
+        WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
+    return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
+  }
+
+  public static JobQueue.Builder buildJobQueue(String jobQueueName) {
+    return buildJobQueue(jobQueueName, 0);
+  }
+
   public static boolean pollForParticipantParallelState() {
     return false;
   }

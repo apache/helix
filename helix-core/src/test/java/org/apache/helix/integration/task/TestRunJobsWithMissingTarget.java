@@ -146,28 +146,12 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     _manager.disconnect();
   }
 
-  private JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart) {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
-    Calendar cal = Calendar.getInstance();
-    cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
-    cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + delayStart % 60);
-    cal.set(Calendar.MILLISECOND, 0);
-    cfgMap.put(WorkflowConfig.START_TIME,
-        WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
-    return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
-  }
-
-  private JobQueue.Builder buildJobQueue(String jobQueueName) {
-    return buildJobQueue(jobQueueName, 0);
-  }
-
   @Test public void testJobFailsWithMissingTarget() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = buildJobQueue(queueName);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < num_dbs; i++) {
@@ -192,7 +176,7 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = buildJobQueue(queueName);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < num_dbs; i++) {

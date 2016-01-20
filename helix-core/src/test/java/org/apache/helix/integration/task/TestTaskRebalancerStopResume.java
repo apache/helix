@@ -20,7 +20,6 @@ package org.apache.helix.integration.task;
  */
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -269,23 +268,24 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = new JobQueue.Builder(queueName).build();
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
+      JobConfig.Builder jobBuilder =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
-      _driver.enqueueJob(queueName, jobName, job);
+      queueBuilder.enqueueJob(jobName, jobBuilder);
       currentJobNames.add(i, jobName);
     }
+
+    _driver.createQueue(queueBuilder.build());
 
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
@@ -365,25 +365,13 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     }
   }
 
-  private JobQueue buildRecurrentJobQueue(String jobQueueName)
-  {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(50000));
-    cfgMap.put(WorkflowConfig.START_TIME,
-        WorkflowConfig.getDefaultDateFormat().format(Calendar.getInstance().getTime()));
-    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
-    cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
-    return (new JobQueue.Builder(jobQueueName).fromMap(cfgMap)).build();
-  }
-
   @Test
   public void stopDeleteJobAndResumeRecurrentQueue() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName);
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
@@ -398,9 +386,11 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
-      _driver.enqueueJob(queueName, jobName, job);
+      queueBuilder.enqueueJob(jobName, job);
       currentJobNames.add(i, jobName);
     }
+
+    _driver.createQueue(queueBuilder.build());
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
@@ -471,31 +461,31 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue queue = buildRecurrentJobQueue(queueName);
-    _driver.createQueue(queue);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildRecurrentJobQueue(queueName);
 
-    // create jobs
     List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
     List<String> jobNames = new ArrayList<String>();
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
 
-    final int JOB_COUNTS = 3;
 
+    int JOB_COUNTS = 3;
     for (int i = 0; i < JOB_COUNTS; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
 
       JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
           .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
           .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       jobs.add(job);
-      jobNames.add(targetPartition.toLowerCase() + "Job" + i);
+      jobNames.add(jobName);
     }
 
-    // enqueue all jobs except last one
-    for (int i = 0; i < JOB_COUNTS - 1; ++i) {
-      LOG.info("Enqueuing job: " + jobNames.get(i));
-      _driver.enqueueJob(queueName, jobNames.get(i), jobs.get(i));
+    for (int i = 0; i < JOB_COUNTS -1; i++) {
+      queueBuilder.enqueueJob(jobNames.get(i), jobs.get(i));
     }
+
+    _driver.createQueue(queueBuilder.build());
+
     String currentLastJob = jobNames.get(JOB_COUNTS - 2);
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);

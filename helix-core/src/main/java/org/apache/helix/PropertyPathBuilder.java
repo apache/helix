@@ -314,6 +314,10 @@ public class PropertyPathBuilder {
     return String.format("/%s/CONTROLLER/MESSAGES", clusterName);
   }
 
+  public static String controllerMessage(String clusterName, String messageId) {
+    return String.format("/%s/CONTROLLER/MESSAGES/%s", clusterName, messageId);
+  }
+
   public static String controllerStatusUpdate(String clusterName) {
     return String.format("/%s/CONTROLLER/STATUSUPDATES", clusterName);
   }

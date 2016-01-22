@@ -38,6 +38,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestSchedulerMsgUsingQueue extends ZkStandAloneCMTestBase {
   TestSchedulerMessage.TestMessagingHandlerFactory _factory =
       new TestSchedulerMessage.TestMessagingHandlerFactory();
@@ -91,8 +92,7 @@ public class TestSchedulerMsgUsingQueue extends ZkStandAloneCMTestBase {
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
-        schedulerMessage);
+    helixDataAccessor.createControllerMessage(schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);

@@ -58,6 +58,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
   public static class MockAsyncCallback extends AsyncCallback {
@@ -232,8 +233,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    helixDataAccessor.createProperty(keyBuilder.controllerMessage(schedulerMessage.getMsgId()),
-        schedulerMessage);
+    helixDataAccessor.createControllerMessage(schedulerMessage);
 
     for (int i = 0; i < 30; i++) {
       Thread.sleep(2000);

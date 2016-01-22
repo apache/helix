@@ -23,6 +23,11 @@ import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.StateModelDefinition;
+
 
 /**
  * Interface used to interact with Helix Data Types like IdealState, Config,
@@ -30,15 +35,10 @@ import org.I0Itec.zkclient.DataUpdater;
  * type. See {@link PropertyKey.Builder} to get more information on building a propertyKey.
  */
 public interface HelixDataAccessor {
-  /**
-   * Create a helix property only if it does not exist.
-   * @param key
-   * @param value
-   * @return true if creation was successful. False if already exists or if it
-   *         failed to create
-   */
-
-  <T extends HelixProperty> boolean createProperty(PropertyKey key, T value);
+  boolean createStateModelDef(StateModelDefinition stateModelDef);
+  boolean createControllerMessage(Message message);
+  boolean createControllerLeader(LiveInstance leader);
+  boolean createPause(PauseSignal pauseSignal);
 
   /**
    * Set a property, overwrite if it exists and creates if not exists. This api

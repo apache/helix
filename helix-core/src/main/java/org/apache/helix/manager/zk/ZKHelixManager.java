@@ -73,6 +73,7 @@ import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooKeeper.States;
 
+
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = Logger.getLogger(ZKHelixManager.class);
 
@@ -458,11 +459,9 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * Add Helix built-in state model definitions if not exist
    */
   private void addBuiltInStateModelDefinitions() {
-    PropertyKey.Builder keyBuilder = _dataAccessor.keyBuilder();
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
-      PropertyKey key = keyBuilder.stateModelDef(def.getStateModelDefinition().getId());
       // creation succeeds only if not exist
-      _dataAccessor.createProperty(key, def.getStateModelDefinition());
+      _dataAccessor.createStateModelDef(def.getStateModelDefinition());
     }
   }
 

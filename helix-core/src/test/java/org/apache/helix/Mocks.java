@@ -38,13 +38,17 @@ import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MessageTask;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
 import org.apache.helix.participant.statemachine.Transition;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.zookeeper.data.Stat;
+
 
 public class Mocks {
   public static class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
@@ -471,6 +475,26 @@ public class Mocks {
     Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
     @Override
+    public boolean createStateModelDef(StateModelDefinition stateModelDef) {
+      return false;
+    }
+
+    @Override
+    public boolean createControllerMessage(Message message) {
+      return false;
+    }
+
+    @Override
+    public boolean createControllerLeader(LiveInstance leader) {
+      return false;
+    }
+
+    @Override
+    public boolean createPause(PauseSignal pauseSignal) {
+      return false;
+    }
+
+    @Override
     public boolean setProperty(PropertyKey key, HelixProperty value) {
       String path = key.getPath();
       data.put(path, value.getRecord());
@@ -567,12 +591,6 @@ public class Mocks {
     public <T extends HelixProperty> Map<String, T> getChildValuesMap(PropertyKey key) {
       List<T> list = getChildValues(key);
       return HelixProperty.convertListToMap(list);
-    }
-
-    @Override
-    public <T extends HelixProperty> boolean createProperty(PropertyKey key, T value) {
-      // TODO Auto-generated method stub
-      return false;
     }
 
     @Override

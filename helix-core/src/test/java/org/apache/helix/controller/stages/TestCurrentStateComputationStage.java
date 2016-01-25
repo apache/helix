@@ -22,17 +22,13 @@ package org.apache.helix.controller.stages;
 import java.util.Map;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.CurrentStateComputationStage;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
 
 public class TestCurrentStateComputationStage extends BaseStageTest {
 
@@ -74,8 +70,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     message.setTgtName("localhost_3");
     message.setTgtSessionId("session_3");
 
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.message("localhost_" + 3, message.getId()), message);
+    accessor.setInstanceMessage("localhost_" + 3, message);
 
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -97,11 +92,8 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
     stateWithDeadSession.setStateModelDefRef("MasterSlave");
     stateWithDeadSession.setState("testResourceName_1", "MASTER");
 
-    accessor.setProperty(keyBuilder.currentState("localhost_3", "session_3", "testResourceName"),
-        stateWithLiveSession);
-    accessor.setProperty(
-        keyBuilder.currentState("localhost_3", "session_dead", "testResourceName"),
-        stateWithDeadSession);
+    accessor.setInstanceCurrentState("localhost_3", "session_3", stateWithLiveSession);
+    accessor.setInstanceCurrentState("localhost_3", "session_dead", stateWithDeadSession);
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
     CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
@@ -109,7 +101,5 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         output3.getCurrentState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3");
     AssertJUnit.assertEquals(currentState, "OFFLINE");
-
   }
-
 }

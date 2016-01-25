@@ -366,8 +366,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
     HelixDataAccessor helixDataAccessor = manager.getHelixDataAccessor();
     Builder keyBuilder = helixDataAccessor.keyBuilder();
-    PropertyKey controllerMessageKey = keyBuilder.controllerMessage(schedulerMessage.getMsgId());
-    helixDataAccessor.setProperty(controllerMessageKey, schedulerMessage);
+    helixDataAccessor.setControllerMessage(schedulerMessage);
 
     Thread.sleep(3000);
 

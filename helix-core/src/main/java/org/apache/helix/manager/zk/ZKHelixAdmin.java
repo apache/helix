@@ -294,7 +294,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (enabled) {
       accessor.removeProperty(keyBuilder.pause());
     } else {
-      accessor.createPause(new PauseSignal("pause"));
+      accessor.createControllerPause(new PauseSignal("pause"));
     }
   }
 
@@ -682,9 +682,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void setResourceIdealState(String clusterName, String resourceName, IdealState idealState) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+    accessor.setIdealState(idealState);
   }
 
   @Override
@@ -722,8 +720,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.stateModelDef(stateModel.getId()), stateModel);
+    accessor.setStateModelDef(stateModel);
   }
 
   @Override
@@ -799,9 +796,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    Builder keyBuilder = accessor.keyBuilder();
-
-    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
+    accessor.setIdealState(idealState);
   }
 
   @Override
@@ -1106,7 +1101,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.addTag(tag);
-    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+    accessor.setInstanceConfig(config);
   }
 
   @Override
@@ -1125,7 +1120,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.removeTag(tag);
-    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+    accessor.setInstanceConfig(config);
   }
 
   @Override

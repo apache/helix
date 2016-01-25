@@ -30,7 +30,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
@@ -48,6 +47,7 @@ import org.restlet.representation.Representation;
 import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
+
 
 /**
  * This resource can be used to send scheduler tasks to the controller.
@@ -144,8 +144,7 @@ public class SchedulerTasksResource extends ServerResource {
         schedulerMessage.getRecord().setSimpleField(
             DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, taskQueueName);
       }
-      accessor.setProperty(accessor.keyBuilder().controllerMessage(schedulerMessage.getMsgId()),
-          schedulerMessage);
+      accessor.setControllerMessage(schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathBuilder.controllerStatusUpdate(

@@ -37,6 +37,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.log4j.Logger;
 
+
 /**
  * This provides the ability for users to run a custom code in exactly one
  * process using a LeaderStandBy state model. <br/>
@@ -154,7 +155,7 @@ public class HelixCustomCodeRunner {
 
       List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());
       while (idealStates == null || !idealStates.contains(_resourceName)) {
-        accessor.setProperty(keyBuilder.idealStates(_resourceName), idealState);
+        accessor.setIdealState(idealState);
         idealStates = accessor.getChildNames(keyBuilder.idealStates());
       }
 

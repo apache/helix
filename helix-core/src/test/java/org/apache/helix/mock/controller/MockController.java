@@ -30,7 +30,6 @@ import java.util.TreeMap;
 
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -44,6 +43,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.codehaus.jackson.map.ObjectMapper;
+
 
 public class MockController {
   private final ZkClient client;
@@ -88,13 +88,12 @@ public class MockController {
       String dbName, long randomSeed) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(client));
-    Builder keyBuilder = accessor.keyBuilder();
 
     ExternalView externalView =
         new ExternalView(computeRoutingTable(instanceNames, partitions, replicas, dbName,
             randomSeed));
 
-    accessor.setProperty(keyBuilder.externalView(dbName), externalView);
+    accessor.setExternalView(externalView);
   }
 
   public ZNRecord computeRoutingTable(List<String> instanceNames, int partitions, int replicas,

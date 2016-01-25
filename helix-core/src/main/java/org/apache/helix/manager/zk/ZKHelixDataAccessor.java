@@ -42,10 +42,20 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.Error;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HealthStat;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
@@ -57,7 +67,6 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   private final String _clusterName;
   private final Builder _propertyKeyBuilder;
   private final GroupCommit _groupCommit = new GroupCommit();
-  String _zkPropertyTransferSvcUrl = null;
 
   public ZKHelixDataAccessor(String clusterName, BaseDataAccessor<ZNRecord> baseDataAccessor) {
     this(clusterName, null, baseDataAccessor);
@@ -79,25 +88,157 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
   }
 
   @Override
-  public boolean createControllerMessage(Message message) {
-    return _baseDataAccessor.create(PropertyPathBuilder.controllerMessage(_clusterName, message.getMsgId()),
-        message.getRecord(), AccessOption.PERSISTENT);
-  }
-
-  @Override
   public boolean createControllerLeader(LiveInstance leader) {
     return _baseDataAccessor.create(PropertyPathBuilder.controllerLeader(_clusterName), leader.getRecord(),
         AccessOption.EPHEMERAL);
   }
 
   @Override
-  public boolean createPause(PauseSignal pauseSignal) {
+  public boolean createControllerMessage(Message message) {
+    return _baseDataAccessor.create(PropertyPathBuilder.controllerMessage(_clusterName, message.getMsgId()),
+        message.getRecord(), AccessOption.PERSISTENT);
+  }
+  @Override
+  public boolean createControllerPause(PauseSignal pauseSignal) {
     return _baseDataAccessor.create(
-        PropertyPathBuilder.pause(_clusterName), pauseSignal.getRecord(), AccessOption.PERSISTENT);
+        PropertyPathBuilder.controllerPause(_clusterName), pauseSignal.getRecord(), AccessOption.PERSISTENT);
   }
 
   @Override
-  public <T extends HelixProperty> boolean setProperty(PropertyKey key, T value) {
+  public boolean setIdealState(IdealState idealState) {
+    return setPropertyForMultiBuckets(PropertyPathBuilder.idealState(_clusterName, idealState.getId()), idealState);
+  }
+
+  @Override
+  public boolean setStateModelDef(StateModelDefinition stateModelDef) {
+    return _baseDataAccessor.set(PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId()),
+        stateModelDef.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setExternalView(ExternalView externalView) {
+    return setPropertyForMultiBuckets(
+        PropertyPathBuilder.externalView(_clusterName, externalView.getId()), externalView);
+  }
+
+  @Override
+  public boolean setLiveInstance(LiveInstance liveInstance) {
+    return _baseDataAccessor.set(PropertyPathBuilder.liveInstance(_clusterName, liveInstance.getId()),
+        liveInstance.getRecord(), AccessOption.EPHEMERAL);
+  }
+
+  @Override
+  public boolean setInstanceMessage(String instanceName, Message message) {
+    return _baseDataAccessor.set(PropertyPathBuilder.instanceMessage(_clusterName, instanceName, message.getId()),
+        message.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setInstanceCurrentState(String instanceName, String sessionId, CurrentState currentState) {
+    return _baseDataAccessor.set(
+        PropertyPathBuilder.instanceCurrentState(_clusterName, instanceName, sessionId, currentState.getId()),
+        currentState.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setInstanceError(String instanceName, String sessionId, String resourceName, Error error) {
+    return _baseDataAccessor.set(
+        PropertyPathBuilder.instanceError(_clusterName, instanceName, sessionId, resourceName, error.getId()),
+        error.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setInstanceStatusUpdate(
+      String instanceName, String resourceName, String partitionName, StatusUpdate statusUpdate) {
+    return _baseDataAccessor.set(
+        PropertyPathBuilder.instanceStatusUpdate(_clusterName, instanceName, resourceName, partitionName,
+            statusUpdate.getId()),
+        statusUpdate.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setInstanceHealthReport(String instanceName, HealthStat healthStat) {
+    return _baseDataAccessor.set(
+        PropertyPathBuilder.instanceHealthReport(_clusterName, instanceName, healthStat.getId()),
+        healthStat.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setClusterConfig(HelixProperty clusterConfig) {
+    return _baseDataAccessor.set(PropertyPathBuilder.clusterConfig(_clusterName), clusterConfig.getRecord(),
+        AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setConstraintConfig(ClusterConstraints clusterConstraints) {
+    return _baseDataAccessor.set(PropertyPathBuilder.constraintConfig(_clusterName, clusterConstraints.getId()),
+        clusterConstraints.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setInstanceConfig(InstanceConfig instanceConfig) {
+    return _baseDataAccessor.set(PropertyPathBuilder.instanceConfig(_clusterName, instanceConfig.getId()),
+        instanceConfig.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setResourceConfig(ResourceConfig resourceConfig) {
+    return _baseDataAccessor.set(PropertyPathBuilder.resourceConfig(_clusterName, resourceConfig.getId()),
+        resourceConfig.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setControllerMessage(Message message) {
+    return _baseDataAccessor.set(PropertyPathBuilder.controllerMessage(_clusterName, message.getId()),
+        message.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setControllerStatusUpdate(String subPath, StatusUpdate statusUpdate) {
+    return _baseDataAccessor.set(
+        PropertyPathBuilder.controllerStatusUpdate(_clusterName, subPath, statusUpdate.getId()),
+        statusUpdate.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setControllerError(Error error) {
+    return _baseDataAccessor.set(PropertyPathBuilder.controllerError(_clusterName, error.getId()), error.getRecord(),
+        AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean setControllerHistory(LeaderHistory history) {
+    return _baseDataAccessor.set(PropertyPathBuilder.controllerHistory(_clusterName), history.getRecord(),
+        AccessOption.PERSISTENT);
+  }
+
+  private boolean setPropertyForMultiBuckets(String path, HelixProperty property) {
+    if (property.getBucketSize() <=0) {
+      return _baseDataAccessor.set(path, property.getRecord(), AccessOption.PERSISTENT);
+    } else {
+      // set parent node
+      ZNRecord metaRecord = new ZNRecord(property.getId());
+      metaRecord.setSimpleFields(property.getRecord().getSimpleFields());
+      boolean success = _baseDataAccessor.set(path, metaRecord, AccessOption.PERSISTENT);
+      if (success) {
+        ZNRecordBucketizer bucketizer = new ZNRecordBucketizer(property.getBucketSize());
+
+        Map<String, ZNRecord> map = bucketizer.bucketize(property.getRecord());
+        List<String> paths = new ArrayList<String>();
+        List<ZNRecord> bucketizedRecords = new ArrayList<ZNRecord>();
+        for (String bucketName : map.keySet()) {
+          paths.add(path + "/" + bucketName);
+          bucketizedRecords.add(map.get(bucketName));
+        }
+
+        // TODO: set success accordingly
+        _baseDataAccessor.setChildren(paths, bucketizedRecords, AccessOption.PERSISTENT);
+      }
+      return success;
+    }
+  }
+
+  private <T extends HelixProperty> boolean setProperty(PropertyKey key, T value) {
     PropertyType type = key.getType();
     if (!value.isValid()) {
       throw new HelixException("The ZNRecord for " + type + " is not valid.");

@@ -39,7 +39,6 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -60,6 +59,7 @@ import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
+
 
 // TODO merge code with ZkIntegrationTestBase
 public class ZkUnitTestBase {
@@ -252,29 +252,26 @@ public class ZkUnitTestBase {
   }
 
   protected void setupStateModel(String clusterName) {
-    ZKHelixDataAccessor accessor =
+    HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
 
     StateModelDefinition masterSlave =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-    accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), masterSlave);
+    accessor.setStateModelDef(masterSlave);
 
     StateModelDefinition leaderStandby =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForLeaderStandby());
-    accessor.setProperty(keyBuilder.stateModelDef(leaderStandby.getId()), leaderStandby);
+    accessor.setStateModelDef(leaderStandby);
 
     StateModelDefinition onlineOffline =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
-    accessor.setProperty(keyBuilder.stateModelDef(onlineOffline.getId()), onlineOffline);
-
+    accessor.setStateModelDef(onlineOffline);
   }
 
   protected List<IdealState> setupIdealState(String clusterName, int[] nodes, String[] resources,
       int partitions, int replicas) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    Builder keyBuilder = accessor.keyBuilder();
 
     List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
@@ -300,7 +297,7 @@ public class ZkUnitTestBase {
       idealStates.add(idealState);
 
       // System.out.println(idealState);
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setIdealState(idealState);
     }
     return idealStates;
   }
@@ -315,7 +312,7 @@ public class ZkUnitTestBase {
       LiveInstance liveInstance = new LiveInstance(instance);
       liveInstance.setSessionId("session_" + liveInstances[i]);
       liveInstance.setHelixVersion("0.0.0");
-      accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
+      accessor.setLiveInstance(liveInstance);
     }
   }
 

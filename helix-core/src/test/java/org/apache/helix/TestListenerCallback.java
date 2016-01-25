@@ -25,8 +25,10 @@ import java.util.List;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestListenerCallback extends ZkUnitTestBase {
   class TestListener implements InstanceConfigChangeListener, ScopedConfigChangeListener {
@@ -95,7 +97,7 @@ public class TestListenerCallback extends ZkUnitTestBase {
     HelixProperty value = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener._instanceConfigChanged = false;
-    accessor.setProperty(keyBuilder.instanceConfig(instanceName), value);
+    accessor.setInstanceConfig((InstanceConfig) value);
     Thread.sleep(1000); // wait zk callback
     Assert.assertTrue(listener._instanceConfigChanged,
         "Should get instanceConfig callback invoked since we change instanceConfig");
@@ -103,23 +105,23 @@ public class TestListenerCallback extends ZkUnitTestBase {
     value = accessor.getProperty(keyBuilder.clusterConfig());
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener._configChanged = false;
-    accessor.setProperty(keyBuilder.clusterConfig(), value);
+    accessor.setClusterConfig(value);
     Thread.sleep(1000); // wait zk callback
     Assert.assertTrue(listener._configChanged,
         "Should get clusterConfig callback invoked since we change clusterConfig");
 
     String resourceName = "TestDB_0";
-    value = new HelixProperty(resourceName);
+    value = new ResourceConfig(resourceName);
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener._configChanged = false;
-    accessor.setProperty(keyBuilder.resourceConfig(resourceName), value);
+    accessor.setResourceConfig((ResourceConfig) value);
     Thread.sleep(1000); // wait zk callback
     Assert.assertTrue(listener._configChanged,
         "Should get resourceConfig callback invoked since we add resourceConfig");
 
     value._record.setSimpleField("" + System.currentTimeMillis(), "newValue");
     listener._configChanged = false;
-    accessor.setProperty(keyBuilder.resourceConfig(resourceName), value);
+    accessor.setResourceConfig((ResourceConfig) value);
     Thread.sleep(1000); // wait zk callback
     Assert.assertTrue(listener._configChanged,
         "Should get resourceConfig callback invoked since we change resourceConfig");

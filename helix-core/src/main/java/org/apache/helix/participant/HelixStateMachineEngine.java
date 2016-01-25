@@ -45,6 +45,7 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.log4j.Logger;
 
+
 public class HelixStateMachineEngine implements StateMachineEngine {
   private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
 
@@ -116,18 +117,16 @@ public class HelixStateMachineEngine implements StateMachineEngine {
         nopMsg.setSrcName(_manager.getInstanceName());
 
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-        Builder keyBuilder = accessor.keyBuilder();
-
-        if (_manager.getInstanceType() == InstanceType.CONTROLLER
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        if (_manager.getInstanceType() == InstanceType.CONTROLLER ||
+            _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
           nopMsg.setTgtName("Controller");
-          accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
+          accessor.setControllerMessage(nopMsg);
         }
 
-        if (_manager.getInstanceType() == InstanceType.PARTICIPANT
-            || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+        if (_manager.getInstanceType() == InstanceType.PARTICIPANT ||
+            _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
           nopMsg.setTgtName(_manager.getInstanceName());
-          accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
+          accessor.setInstanceMessage(nopMsg.getTgtName(), nopMsg);
         }
         logger.info("Send NO_OP message to " + nopMsg.getTgtName() + ", msgId: " + nopMsg.getId());
       } catch (Exception e) {

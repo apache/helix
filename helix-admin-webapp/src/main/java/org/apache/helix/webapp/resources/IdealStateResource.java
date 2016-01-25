@@ -40,6 +40,7 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
+
 /**
  * Class for server-side resource at
  * <code>"/clusters/{clusterName}/resourceGroups/{resourceName}/idealState"
@@ -154,8 +155,7 @@ public class IdealStateResource extends ServerResource {
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setProperty(accessor.keyBuilder().idealStates(resourceName), new IdealState(
-            newIdealState));
+        accessor.setIdealState(new IdealState(newIdealState));
 
       } else if (command.equalsIgnoreCase(ClusterSetup.rebalance)) {
         int replicas = Integer.parseInt(jsonParameters.getParameter(JsonParameters.REPLICAS));

@@ -25,9 +25,9 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.HealthStat;
 import org.apache.log4j.Logger;
+
 
 public class ParticipantHealthReportCollectorImpl implements ParticipantHealthReportCollector {
   private final LinkedList<HealthReportProvider> _healthReportProviderList =
@@ -69,15 +69,6 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
   }
 
   @Override
-  public void reportHealthReportMessage(ZNRecord healthCheckInfoUpdate) {
-    HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.healthReport(_instanceName, healthCheckInfoUpdate.getId()),
-        new HealthStat(healthCheckInfoUpdate));
-
-  }
-
-  @Override
   public synchronized void transmitHealthReports() {
     synchronized (_healthReportProviderList) {
       for (HealthReportProvider provider : _healthReportProviderList) {
@@ -95,9 +86,7 @@ public class ParticipantHealthReportCollectorImpl implements ParticipantHealthRe
           record.setSimpleField(HealthStat.TIMESTAMP_NAME, "" + System.currentTimeMillis());
 
           HelixDataAccessor accessor = _helixManager.getHelixDataAccessor();
-          Builder keyBuilder = accessor.keyBuilder();
-          accessor.setProperty(keyBuilder.healthReport(_instanceName, record.getId()),
-              new HealthStat(record));
+          accessor.setInstanceHealthReport(_instanceName, new HealthStat(record));
 
           provider.resetStats();
         } catch (Exception e) {

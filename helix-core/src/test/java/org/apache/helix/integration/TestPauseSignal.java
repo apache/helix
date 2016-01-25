@@ -37,6 +37,7 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestPauseSignal extends ZkIntegrationTestBase {
   @Test()
   public void testPauseSignal() throws Exception {
@@ -85,7 +86,7 @@ public class TestPauseSignal extends ZkIntegrationTestBase {
     String cmd = "-zkSvr " + ZK_ADDR + " -enableCluster " + clusterName + " false";
     ClusterSetup.processCommandLineArgs(cmd.split(" "));
 
-    tmpAccessor.setProperty(tmpAccessor.keyBuilder().pause(), new PauseSignal("pause"));
+    tmpAccessor.createControllerPause(new PauseSignal("pause"));
     zkClient.close();
 
     // wait for controller to be signaled by pause

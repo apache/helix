@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
 import org.apache.helix.tools.ClusterSetup;
@@ -48,6 +47,7 @@ import org.restlet.representation.Representation;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
 
 public class TestClusterManagementWebapp extends AdminTestBase {
   @Test
@@ -562,7 +562,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     System.out.println(sw.toString());
 
     // verify pause znode exists
-    String pausePath = PropertyPathBuilder.pause(clusterName);
+    String pausePath = PropertyPathBuilder.controllerPause(clusterName);
     System.out.println("pausePath: " + pausePath);
     boolean exists = _gZkClient.exists(pausePath);
     Assert.assertTrue(exists, pausePath + " should exist");

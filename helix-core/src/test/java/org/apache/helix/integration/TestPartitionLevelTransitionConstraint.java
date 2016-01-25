@@ -48,6 +48,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBase {
 
   private static Logger LOG = Logger.getLogger(TestPartitionLevelTransitionConstraint.class);
@@ -119,13 +120,13 @@ public class TestPartitionLevelTransitionConstraint extends ZkIntegrationTestBas
     BaseDataAccessor<ZNRecord> baseAccessor = new ZkBaseDataAccessor<ZNRecord>(_gZkClient);
     HelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, baseAccessor);
     StateModelDefinition stateModelDef = defineStateModel();
-    accessor.setProperty(accessor.keyBuilder().stateModelDef("Bootstrap"), stateModelDef);
+    accessor.setStateModelDef(stateModelDef);
     IdealState idealState = accessor.getProperty(accessor.keyBuilder().idealStates("TestDB0"));
     idealState.setStateModelDefRef("Bootstrap");
     idealState.setReplicas("2");
     idealState.getRecord().setListField("TestDB0_0",
         Arrays.asList("localhost_12919", "localhost_12918"));
-    accessor.setProperty(accessor.keyBuilder().idealStates("TestDB0"), idealState);
+    accessor.setIdealState(idealState);
 
     // setup partition-level constraint
     ConstraintItemBuilder constraintItemBuilder = new ConstraintItemBuilder();

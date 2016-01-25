@@ -23,10 +23,20 @@ import java.util.List;
 import java.util.Map;
 
 import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.model.ClusterConstraints;
+import org.apache.helix.model.CurrentState;
+import org.apache.helix.model.Error;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HealthStat;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.model.StatusUpdate;
 
 
 /**
@@ -35,21 +45,34 @@ import org.apache.helix.model.StateModelDefinition;
  * type. See {@link PropertyKey.Builder} to get more information on building a propertyKey.
  */
 public interface HelixDataAccessor {
+  // would fail if already exits
   boolean createStateModelDef(StateModelDefinition stateModelDef);
-  boolean createControllerMessage(Message message);
   boolean createControllerLeader(LiveInstance leader);
-  boolean createPause(PauseSignal pauseSignal);
+  boolean createControllerMessage(Message message);
+  boolean createControllerPause(PauseSignal pauseSignal);
 
-  /**
-   * Set a property, overwrite if it exists and creates if not exists. This api
-   * assumes the node exists and only tries to update it only if the call fail
-   * it will create the node. So there is a performance cost if always ends up
-   * creating the node.
-   * @param key
-   * @param value
-   * @true if the operation was successful
-   */
-  <T extends HelixProperty> boolean setProperty(PropertyKey key, T value);
+  // would overwrite if already exists, create if not exists
+  boolean setIdealState(IdealState idealState);
+  boolean setStateModelDef(StateModelDefinition stateModelDef);
+  boolean setExternalView(ExternalView externalView);
+  boolean setLiveInstance(LiveInstance liveInstance);
+
+  boolean setInstanceMessage(String instanceName, Message message);
+  boolean setInstanceCurrentState(String instanceName, String sessionId, CurrentState currentState);
+  boolean setInstanceError(String instanceName, String sessionId, String resourceName, Error error);
+  boolean setInstanceStatusUpdate(
+      String instanceName, String sessionId, String resourceName, StatusUpdate statusUpdate);
+  boolean setInstanceHealthReport(String instanceName, HealthStat healthStat);
+
+  boolean setClusterConfig(HelixProperty clusterConfig);
+  boolean setConstraintConfig(ClusterConstraints clusterConstraints);
+  boolean setInstanceConfig(InstanceConfig instanceConfig);
+  boolean setResourceConfig(ResourceConfig resourceConfig);
+
+  boolean setControllerMessage(Message message);
+  boolean setControllerStatusUpdate(String subPath, StatusUpdate statusUpdate);
+  boolean setControllerError(Error error);
+  boolean setControllerHistory(LeaderHistory history);
 
   /**
    * Updates a property using newvalue.merge(oldvalue)

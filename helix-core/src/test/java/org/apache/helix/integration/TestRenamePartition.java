@@ -39,6 +39,7 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestRenamePartition extends ZkIntegrationTestBase {
   // map from clusterName to participants
   final Map<String, MockParticipantManager[]> _participantMap =
@@ -73,7 +74,7 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
 
     List<String> prioList = idealState.getRecord().getListFields().remove("TestDB0_0");
     idealState.getRecord().getListFields().put("TestDB0_100", prioList);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setIdealState(idealState);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(
@@ -115,13 +116,13 @@ public class TestRenamePartition extends ZkIntegrationTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setIdealState(idealState);
 
     startAndVerify(clusterName);
 
     Map<String, String> stateMap = idealState.getRecord().getMapFields().remove("TestDB0_0");
     idealState.getRecord().getMapFields().put("TestDB0_100", stateMap);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setIdealState(idealState);
 
     boolean result =
         ClusterStateVerifier.verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(

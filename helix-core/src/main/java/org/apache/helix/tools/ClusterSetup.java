@@ -64,6 +64,7 @@ import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
+
 public class ClusterSetup {
   private static Logger logger = Logger.getLogger(ClusterSetup.class);
   public static final String zkServerAddress = "zkSvr";
@@ -301,8 +302,7 @@ public class ClusterSetup {
         accessor.getChildValues(accessor.keyBuilder().idealStates());
     for (IdealState idealState : existingIdealStates) {
       swapInstanceInIdealState(idealState, oldInstanceName, newInstanceName);
-      accessor.setProperty(accessor.keyBuilder().idealStates(idealState.getResourceName()),
-          idealState);
+      accessor.setIdealState(idealState);
     }
   }
 

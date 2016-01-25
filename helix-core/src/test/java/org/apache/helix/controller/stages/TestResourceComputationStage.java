@@ -26,12 +26,7 @@ import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -40,6 +35,7 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
 
 public class TestResourceComputationStage extends BaseStageTest {
   /**
@@ -63,8 +59,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     idealState.setStateModelDefRef("MasterSlave");
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+    accessor.setIdealState(idealState);
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
@@ -128,8 +123,7 @@ public class TestResourceComputationStage extends BaseStageTest {
       idealState.setStateModelDefRef("MasterSlave");
 
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setIdealState(idealState);
 
       idealStates.add(idealState);
     }
@@ -141,8 +135,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     liveInstance.setSessionId(sessionId);
 
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.liveInstance(instanceName), liveInstance);
+    accessor.setLiveInstance(liveInstance);
 
     String oldResource = "testResourceOld";
     CurrentState currentState = new CurrentState(oldResource);
@@ -150,8 +143,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     currentState.setState("testResourceOld_1", "SLAVE");
     currentState.setState("testResourceOld_2", "MASTER");
     currentState.setStateModelDefRef("MasterSlave");
-    accessor.setProperty(keyBuilder.currentState(instanceName, sessionId, oldResource),
-        currentState);
+    accessor.setInstanceCurrentState(instanceName, sessionId, currentState);
 
     ResourceComputationStage stage = new ResourceComputationStage();
     runStage(event, new ReadClusterDataStage());

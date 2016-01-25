@@ -32,13 +32,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.Pipeline;
-import org.apache.helix.controller.stages.AttributeName;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.controller.stages.MessageSelectionStageOutput;
-import org.apache.helix.controller.stages.MessageThrottleStage;
-import org.apache.helix.controller.stages.MessageThrottleStageOutput;
-import org.apache.helix.controller.stages.ReadClusterDataStage;
-import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ClusterConstraints;
@@ -51,6 +44,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestMessageThrottleStage extends ZkUnitTestBase {
   private static final Logger LOG = Logger.getLogger(TestMessageThrottleStage.class.getName());
@@ -207,8 +201,7 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     ConstraintItem constraint5 = new ConstraintItem(record.getMapField("constraint5"));
 
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
-        new ClusterConstraints(record));
+    accessor.setConstraintConfig(new ClusterConstraints(record));
 
     // ClusterConstraints constraint =
     // accessor.getProperty(ClusterConstraints.class,

@@ -48,6 +48,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
 
+
 /**
  * Utility mapping properties to their Zookeeper locations
  */
@@ -238,6 +239,10 @@ public class PropertyPathBuilder {
     return String.format("/%s/INSTANCES", clusterName);
   }
 
+  public static String propertyStore(String clusterName) {
+    return String.format("/%s/PROPERTYSTORE", clusterName);
+  }
+
   @Deprecated
   public static String instanceProperty(String clusterName, String instanceName, PropertyType type, String key) {
     return String.format("/%s/INSTANCES/%s/%s/%s", clusterName, instanceName, type, key);
@@ -282,12 +287,22 @@ public class PropertyPathBuilder {
     return String.format("/%s/INSTANCES/%s/STATUSUPDATES", clusterName, instanceName);
   }
 
-  public static String propertyStore(String clusterName) {
-    return String.format("/%s/PROPERTYSTORE", clusterName);
+  public static String instanceStatusUpdate(
+      String clusterName, String instanceName, String sessionId, String resourceName, String partitionName) {
+    return String.format("/%s/INSTANCES/%s/STATUSUPDATES/%s/%s/%s",
+        clusterName, instanceName, sessionId, resourceName, partitionName);
+  }
+
+  public static String instanceHealthReport(String clusterName, String instanceName, String reportName) {
+    return String.format("/%s/INSTANCES/%s/HEALTHREPORT/%s", clusterName, instanceName, reportName);
   }
 
   public static String clusterConfig(String clusterName) {
     return String.format("/%s/CONFIGS/CLUSTER/%s", clusterName, clusterName);
+  }
+
+  public static String constraintConfig(String clusterName, String constraintType) {
+    return String.format("/%s/CONFIGS/CONSTRAINT/%s", clusterName, constraintType);
   }
 
   public static String instanceConfig(String clusterName) {
@@ -300,6 +315,10 @@ public class PropertyPathBuilder {
 
   public static String resourceConfig(String clusterName) {
     return String.format("/%s/CONFIGS/RESOURCE", clusterName);
+  }
+
+  public static String resourceConfig(String clusterName, String resourceName) {
+    return String.format("/%s/CONFIGS/RESOURCE/%s", clusterName, resourceName);
   }
 
   public static String controller(String clusterName) {
@@ -330,11 +349,15 @@ public class PropertyPathBuilder {
     return String.format("/%s/CONTROLLER/ERRORS", clusterName);
   }
 
+  public static String controllerError(String clusterName, String errorId) {
+    return String.format("/%s/CONTROLLER/ERRORS/%s", clusterName, errorId);
+  }
+
   public static String controllerHistory(String clusterName) {
     return String.format("/%s/CONTROLLER/HISTORY", clusterName);
   }
 
-  public static String pause(String clusterName) {
+  public static String controllerPause(String clusterName) {
     return String.format("/%s/CONTROLLER/PAUSE", clusterName);
   }
 }

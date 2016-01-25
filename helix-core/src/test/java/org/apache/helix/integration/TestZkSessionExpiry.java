@@ -27,7 +27,6 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.ZkUnitTestBase;
@@ -40,6 +39,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestZkSessionExpiry extends ZkUnitTestBase {
   final static String DUMMY_MSG_TYPE = "DUMMY";
@@ -166,8 +166,7 @@ public class TestZkSessionExpiry extends ZkUnitTestBase {
 
     final Message aMsg = newMsg();
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.message(manager.getInstanceName(), aMsg.getId()), aMsg);
+    accessor.setInstanceMessage(manager.getInstanceName(), aMsg);
     boolean result = TestHelper.verify(new TestHelper.Verifier() {
 
       @Override

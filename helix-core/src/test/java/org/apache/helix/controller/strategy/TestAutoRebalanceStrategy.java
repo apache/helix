@@ -35,7 +35,6 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.Mocks.MockAccessor;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
@@ -52,6 +51,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
+
 
 public class TestAutoRebalanceStrategy {
   private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
@@ -217,11 +217,10 @@ public class TestAutoRebalanceStrategy {
       final Map<String, Map<String, String>> mapResult = new HashMap<String, Map<String, String>>();
       ClusterDataCache cache = new ClusterDataCache();
       MockAccessor accessor = new MockAccessor();
-      Builder keyBuilder = accessor.keyBuilder();
       for (String node : _liveNodes) {
         LiveInstance liveInstance = new LiveInstance(node);
         liveInstance.setSessionId("testSession");
-        accessor.setProperty(keyBuilder.liveInstance(node), liveInstance);
+        accessor.setLiveInstance(liveInstance);
       }
       cache.refresh(accessor);
       for (String partition : _partitions) {

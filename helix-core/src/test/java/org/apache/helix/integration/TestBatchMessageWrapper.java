@@ -39,6 +39,7 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestBatchMessageWrapper extends ZkUnitTestBase {
   class MockBatchMsgWrapper extends BatchMessageWrapper {
     int _startCount = 0;
@@ -88,7 +89,7 @@ public class TestBatchMessageWrapper extends ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
+    accessor.setIdealState(idealState);
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");

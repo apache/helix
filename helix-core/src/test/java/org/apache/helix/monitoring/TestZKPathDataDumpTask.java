@@ -38,6 +38,7 @@ import org.apache.helix.model.StatusUpdate;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestZKPathDataDumpTask extends ZkUnitTestBase {
 
   @Test
@@ -80,19 +81,17 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
     PropertyKey errorKey = keyBuilder.stateTransitionErrors("localhost_12918");
 
     // add participant status updates and errors
-    statusUpdateKey =
-        keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
-    accessor.setProperty(statusUpdateKey, new StatusUpdate(new ZNRecord("statusUpdate")));
-    errorKey =
-        keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
-    accessor.setProperty(errorKey, new Error(new ZNRecord("error")));
+    statusUpdateKey = keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
+    accessor.setInstanceStatusUpdate(
+        "localhost_12918", "session_0", "TestDB0", new StatusUpdate(new ZNRecord("TestDB0_0")));
+    errorKey = keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
+    accessor.setInstanceError("localhost_12918", "session_0", "TestDB0", new Error(new ZNRecord("TestDB0_0")));
 
     // add controller status updates and errors
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setControllerStatusUpdate("session_0", new StatusUpdate(new ZNRecord("TestDB")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB_error");
-    accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
+    accessor.setControllerError(new Error(new ZNRecord("TestDB_error")));
 
     // run dump task, should remove existing statusUpdate/error paths
     task.run();
@@ -154,19 +153,17 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
     Assert.assertTrue(baseAccessor.exists(errorKey.getPath(), 0));
 
     // add participant status updates and errors
-    statusUpdateKey =
-        keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
-    accessor.setProperty(statusUpdateKey, new StatusUpdate(new ZNRecord("statusUpdate")));
-    errorKey =
-        keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
-    accessor.setProperty(errorKey, new Error(new ZNRecord("error")));
+    statusUpdateKey = keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
+    accessor.setInstanceStatusUpdate(
+        "localhost_12918", "session_0", "TestDB0", new StatusUpdate(new ZNRecord("TestDB0_0")));
+    errorKey = keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_0");
+    accessor.setInstanceError("localhost_12918", "session_0", "TestDB0", new Error(new ZNRecord("TestDB0_0")));
 
     // add controller status updates and errors (one of each, should not trigger anything)
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setControllerStatusUpdate("session_0", new StatusUpdate(new ZNRecord("TestDB")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB_error");
-    accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
+    accessor.setControllerError(new Error(new ZNRecord("TestDB_error")));
 
     // run dump task, should not remove anything because the threshold is not exceeded
     task.run();
@@ -176,17 +173,15 @@ public class TestZKPathDataDumpTask extends ZkUnitTestBase {
     Assert.assertTrue(baseAccessor.exists(errorKey.getPath(), 0));
 
     // add a second set of all status updates and errors
-    statusUpdateKey =
-        keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_1");
-    accessor.setProperty(statusUpdateKey, new StatusUpdate(new ZNRecord("statusUpdate")));
-    errorKey =
-        keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_1");
-    accessor.setProperty(errorKey, new Error(new ZNRecord("error")));
+    statusUpdateKey = keyBuilder.stateTransitionStatus("localhost_12918", "session_0", "TestDB0", "TestDB0_1");
+    accessor.setInstanceStatusUpdate(
+        "localhost_12918", "session_0", "TestDB0", new StatusUpdate(new ZNRecord("TestDB0_1")));
+    errorKey = keyBuilder.stateTransitionError("localhost_12918", "session_0", "TestDB0", "TestDB0_1");
+    accessor.setInstanceError("localhost_12918", "session_0", "TestDB0", new Error(new ZNRecord("TestDB0_1")));
     controllerStatusUpdateKey = keyBuilder.controllerTaskStatus("session_0", "TestDB1");
-    accessor.setProperty(controllerStatusUpdateKey, new StatusUpdate(new ZNRecord(
-        "controllerStatusUpdate")));
+    accessor.setControllerStatusUpdate("session_0", new StatusUpdate(new ZNRecord("TestDB1")));
     controllerErrorKey = keyBuilder.controllerTaskError("TestDB1_error");
-    accessor.setProperty(controllerErrorKey, new Error(new ZNRecord("controllerError")));
+    accessor.setControllerError(new Error(new ZNRecord("TestDB1_error")));
 
     // run dump task, should remove everything since capacities are exceeded
     task.run();

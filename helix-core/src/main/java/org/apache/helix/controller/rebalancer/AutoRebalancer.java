@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
@@ -159,9 +158,8 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     }
     if (preferenceListChanged && _manager != null) {
       HelixDataAccessor dataAccessor = _manager.getHelixDataAccessor();
-      PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
       currentIdealState.getRecord().setListFields(newIdealState.getRecord().getListFields());
-      dataAccessor.setProperty(keyBuilder.idealStates(resourceName), currentIdealState);
+      dataAccessor.setIdealState(currentIdealState);
     }
 
     return newIdealState;

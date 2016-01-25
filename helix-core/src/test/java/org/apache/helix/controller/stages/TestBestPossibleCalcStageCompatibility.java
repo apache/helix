@@ -25,13 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.helix.ZNRecord;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateModeProperty;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
+
 
 @SuppressWarnings("deprecation")
 /**
@@ -130,10 +130,7 @@ public class TestBestPossibleCalcStageCompatibility extends BaseStageTest {
       idealStates.add(idealState);
 
       // System.out.println(idealState);
-
-      Builder keyBuilder = accessor.keyBuilder();
-
-      accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
+      accessor.setIdealState(idealState);
     }
     return idealStates;
   }

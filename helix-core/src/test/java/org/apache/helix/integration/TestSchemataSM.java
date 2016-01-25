@@ -38,6 +38,7 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+
 public class TestSchemataSM extends ZkIntegrationTestBase {
   @Test
   public void testSchemataSM() throws Exception {
@@ -68,7 +69,7 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
     idealState.getRecord().setListField("TestSchemata0_0",
         Arrays.asList(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString()));
-    accessor.setProperty(key, idealState);
+    accessor.setIdealState(idealState);
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller");

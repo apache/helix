@@ -31,14 +31,13 @@ import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
-import org.apache.helix.model.ClusterConstraints;
-import org.apache.helix.model.Message;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
+
 
 public class TestConstraint extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestConstraint.class);
@@ -50,7 +49,7 @@ public class TestConstraint extends ZkUnitTestBase {
 
     String clusterName = "CLUSTER_" + className + "_msg";
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    ZNRecord record = new ZNRecord("testMsgConstraint");
+    ZNRecord record = new ZNRecord(ConstraintType.MESSAGE_CONSTRAINT.name());
 
     // constraint0:
     // "MESSAGE_TYPE=STATE_TRANSITION,CONSTRAINT_VALUE=ANY"
@@ -111,8 +110,7 @@ public class TestConstraint extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()),
-        new ClusterConstraints(record));
+    accessor.setConstraintConfig(new ClusterConstraints(record));
 
     record =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.MESSAGE_CONSTRAINT.toString()))
@@ -160,7 +158,7 @@ public class TestConstraint extends ZkUnitTestBase {
 
     String clusterName = "CLUSTER_" + className + "_state";
     TestHelper.setupEmptyCluster(_gZkClient, clusterName);
-    ZNRecord record = new ZNRecord("testStateConstraint");
+    ZNRecord record = new ZNRecord(ConstraintType.STATE_CONSTRAINT.name());
 
     // constraint0:
     // "STATE=MASTER,CONSTRAINT_VALUE=1"
@@ -189,8 +187,7 @@ public class TestConstraint extends ZkUnitTestBase {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor(_gZkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    accessor.setProperty(keyBuilder.constraint(ConstraintType.STATE_CONSTRAINT.toString()),
-        new ClusterConstraints(record));
+    accessor.setConstraintConfig(new ClusterConstraints(record));
 
     record =
         accessor.getProperty(keyBuilder.constraint(ConstraintType.STATE_CONSTRAINT.toString()))

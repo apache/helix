@@ -148,7 +148,6 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     newIdealState.setRebalanceMode(RebalanceMode.FULL_AUTO);
     newIdealState.getRecord().setListFields(newMapping.getListFields());
 
-
     boolean preferenceListChanged = false;
     for (String partition : partitions) {
       List<String> oldList = currentIdealState.getPreferenceList(partition);
@@ -158,13 +157,12 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
         break;
       }
     }
-    if (preferenceListChanged) {
+    if (preferenceListChanged && _manager != null) {
       HelixDataAccessor dataAccessor = _manager.getHelixDataAccessor();
       PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
       currentIdealState.getRecord().setListFields(newIdealState.getRecord().getListFields());
       dataAccessor.setProperty(keyBuilder.idealStates(resourceName), currentIdealState);
     }
-
 
     return newIdealState;
   }

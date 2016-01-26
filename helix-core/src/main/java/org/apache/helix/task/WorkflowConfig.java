@@ -18,13 +18,14 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+import org.apache.helix.HelixException;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
@@ -44,7 +45,9 @@ public class WorkflowConfig {
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
 
   /* Member variables */
+  // TODO: jobDag should not be in the workflowConfig.
   private final JobDag _jobDag;
+
   // _parallelJobs would kind of break the job dependency,
   // e.g: if job1 -> job2, but _parallelJobs == 2,
   // then job1 and job2 could be scheduled at the same time
@@ -114,9 +117,13 @@ public class WorkflowConfig {
     return _scheduleConfig.getStartTime();
   }
 
-  public Map<String, String> getResourceConfigMap() throws Exception {
+  public Map<String, String> getResourceConfigMap() {
     Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
+    try {
+      cfgMap.put(WorkflowConfig.DAG, getJobDag().toJson());
+    } catch (IOException ex) {
+      throw new HelixException("Invalid job dag configuration!", ex);
+    }
     cfgMap.put(WorkflowConfig.PARALLEL_JOBS, String.valueOf(getParallelJobs()));
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(getExpiry()));
     cfgMap.put(WorkflowConfig.TARGET_STATE, getTargetState().name());
@@ -151,6 +158,17 @@ public class WorkflowConfig {
       validate();
 
       return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _isTerminable, _scheduleConfig);
+    }
+
+    public Builder() {}
+
+    public Builder(WorkflowConfig workflowConfig) {
+      _taskDag = workflowConfig.getJobDag();
+      _parallelJobs = workflowConfig.getParallelJobs();
+      _targetState = workflowConfig.getTargetState();
+      _expiry = workflowConfig.getExpiry();
+      _isTerminable = workflowConfig.isTerminable();
+      _scheduleConfig = workflowConfig.getScheduleConfig();
     }
 
     public Builder setJobDag(JobDag v) {

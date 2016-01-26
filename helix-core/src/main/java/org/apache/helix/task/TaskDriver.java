@@ -42,6 +42,7 @@ import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.HelixProperty;
@@ -183,8 +184,11 @@ public class TaskDriver {
     helixMgr.disconnect();
   }
 
-  /** Schedules a new workflow */
-  public void start(Workflow flow) throws Exception {
+  /** Schedules a new workflow
+   *
+   * @param flow
+   */
+  public void start(Workflow flow) {
     // TODO: check that namespace for workflow is available
     LOG.info("Starting workflow " + flow.getName());
     flow.validate();
@@ -206,14 +210,65 @@ public class TaskDriver {
     addWorkflowResource(flow.getName());
   }
 
-  /** Creates a new named job queue (workflow) */
-  public void createQueue(JobQueue queue) throws Exception {
+  /**
+   * Update the configuration of a non-terminable workflow (queue).
+   * The terminable workflow's configuration is not allowed
+   * to change once created.
+   * Note:
+   * For recurrent workflow, the current running schedule will not be effected,
+   * the new configuration will be applied to the next scheduled runs of the workflow.
+   * For non-recurrent workflow, the new configuration may (or may not) be applied
+   * on the current running jobs, but it will be applied on the following unscheduled jobs.
+   *
+   * Example:
+   *
+   * WorkflowConfig currentWorkflowConfig = TaskUtil.getWorkflowCfg(_manager, workflow);
+   * WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(currentWorkflowConfig);
+
+   * // make needed changes to the config here
+   * configBuilder.setXXX();
+   *
+   * // update workflow configuration
+   * _driver.updateWorkflow(workflow, configBuilder.build());
+   *
+   * @param workflow
+   * @param newWorkflowConfig
+   */
+  public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
+    WorkflowConfig currentConfig =
+        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, workflow);
+    if (currentConfig == null) {
+      throw new HelixException("Workflow " + workflow + " does not exist!");
+    }
+
+    if (currentConfig.isTerminable()) {
+      throw new HelixException(
+          "Workflow " + workflow + " is terminable, not allow to change its configuration!");
+    }
+
+    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, workflow),
+        newWorkflowConfig.getResourceConfigMap());
+
+    TaskUtil.invokeRebalance(_accessor, workflow);
+  }
+
+  /**
+   * Creates a new named job queue (workflow)
+   *
+   * @param queue
+   */
+  public void createQueue(JobQueue queue) {
     start(queue);
   }
 
-  /** Flushes a named job queue */
+  /**
+   * Flushes a named job queue
+   *
+   * @param queueName
+   * @throws Exception
+   */
   // TODO: need to make sure the queue is stopped or completed before flush the queue.
-  public void flushQueue(String queueName) throws Exception {
+  public void flushQueue(String queueName) {
     WorkflowConfig config =
         TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
     if (config == null) {
@@ -275,7 +330,13 @@ public class TaskDriver {
     _propertyStore.update(path, updater, AccessOption.PERSISTENT);
   }
 
-  /** Delete a job from an existing named queue, the queue has to be stopped prior to this call */
+  /**
+   * Delete a job from an existing named queue,
+   * the queue has to be stopped prior to this call
+   *
+   * @param queueName
+   * @param jobName
+   */
   public void deleteJob(final String queueName, final String jobName) {
     WorkflowConfig workflowCfg =
         TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
@@ -315,8 +376,12 @@ public class TaskDriver {
     }
   }
 
-
-  /** delete a job from a scheduled (non-recurrent) queue.*/
+  /**
+   * delete a job from a scheduled (non-recurrent) queue.
+   *
+   * @param queueName
+   * @param jobName
+   */
   private void deleteJobFromScheduledQueue(final String queueName, final String jobName) {
     WorkflowConfig workflowCfg =
         TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
@@ -354,9 +419,7 @@ public class TaskDriver {
     _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
   }
 
-  /**
-   * Remove the job name from the DAG from the queue configuration
-   */
+  /** Remove the job name from the DAG from the queue configuration */
   private void removeJobFromDag(final String queueName, final String jobName) {
     final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
 
@@ -410,8 +473,7 @@ public class TaskDriver {
     }
   }
 
-  /** update queue's property to remove job from JOB_STATES if it is already started.
-   */
+  /** update queue's property to remove job from JOB_STATES if it is already started. */
   private void removeJobStateFromQueue(final String queueName, final String jobName) {
     final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
     String queuePropertyPath =
@@ -435,9 +497,16 @@ public class TaskDriver {
     }
   }
 
-  /** Adds a new job to the end an existing named queue */
-  public void enqueueJob(final String queueName, final String jobName, JobConfig.Builder jobBuilder)
-      throws Exception {
+  /**
+   * Adds a new job to the end an existing named queue.
+   *
+   * @param queueName
+   * @param jobName
+   * @param jobBuilder
+   * @throws Exception
+   */
+  public void enqueueJob(final String queueName, final String jobName,
+      JobConfig.Builder jobBuilder) {
     // Get the job queue config and capacity
     HelixProperty workflowConfig =
         _accessor.getProperty(_accessor.keyBuilder().resourceConfig(queueName));
@@ -468,12 +537,12 @@ public class TaskDriver {
         JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
         Set<String> allNodes = jobDag.getAllNodes();
         if (allNodes.size() >= capacity) {
-          throw new IllegalStateException("Queue " + queueName + " is at capacity, will not add "
-              + jobName);
+          throw new IllegalStateException(
+              "Queue " + queueName + " is at capacity, will not add " + jobName);
         }
         if (allNodes.contains(namespacedJobName)) {
-          throw new IllegalStateException("Could not add to queue " + queueName + ", job "
-              + jobName + " already exists");
+          throw new IllegalStateException(
+              "Could not add to queue " + queueName + ", job " + jobName + " already exists");
         }
         jobDag.addNode(namespacedJobName);
 
@@ -493,8 +562,8 @@ public class TaskDriver {
         try {
           currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
         } catch (Exception e) {
-          throw new IllegalStateException(
-              "Could not add job " + jobName + " to queue " + queueName, e);
+          throw new IllegalStateException("Could not add job " + jobName + " to queue " + queueName,
+              e);
         }
         return currentData;
       }
@@ -550,17 +619,29 @@ public class TaskDriver {
     }
   }
 
-  /** Public method to resume a workflow/queue */
+  /**
+   * Public method to resume a workflow/queue.
+   *
+   * @param workflow
+   */
   public void resume(String workflow) {
     setWorkflowTargetState(workflow, TargetState.START);
   }
 
-  /** Public method to stop a workflow/queue */
+  /**
+   * Public method to stop a workflow/queue.
+   *
+   * @param workflow
+   */
   public void stop(String workflow) {
     setWorkflowTargetState(workflow, TargetState.STOP);
   }
 
-  /** Public method to delete a workflow/queue */
+  /**
+   * Public method to delete a workflow/queue.
+   *
+   * @param workflow
+   */
   public void delete(String workflow) {
     setWorkflowTargetState(workflow, TargetState.DELETE);
   }

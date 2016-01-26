@@ -19,12 +19,14 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -141,7 +143,7 @@ public class JobDag {
     return ret;
   }
 
-  public String toJson() throws Exception {
+  public String toJson() throws IOException {
     return new ObjectMapper().writeValueAsString(this);
   }
 

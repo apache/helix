@@ -49,22 +49,26 @@ public class TaskTestUtil {
    * Polls {@link org.apache.helix.task.JobContext} for given task resource until a timeout is
    * reached.
    * If the task has not reached target state by then, an error is thrown
+   *
    * @param workflowResource Resource to poll for completeness
    * @throws InterruptedException
    */
   public static void pollForWorkflowState(HelixManager manager, String workflowResource,
-      TaskState state) throws InterruptedException {
+      TaskState... targetStates) throws InterruptedException {
     // Wait for completion.
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
+    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
     do {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
-    } while ((ctx == null || ctx.getWorkflowState() == null || ctx.getWorkflowState() != state)
-        && System.currentTimeMillis() < st + _default_timeout);
+    } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
+        .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + _default_timeout);
 
     Assert.assertNotNull(ctx);
-    Assert.assertEquals(ctx.getWorkflowState(), state);
+    TaskState workflowState = ctx.getWorkflowState();
+    Assert.assertTrue(allowedStates.contains(workflowState),
+        "expect workflow states: " + allowedStates + " actual workflow state: " + workflowState);
   }
 
   /**
@@ -101,10 +105,13 @@ public class TaskTestUtil {
       Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
     }
-    while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(ctx.getJobState(jobName)))
+    while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(
+        ctx.getJobState(jobName)))
         && System.currentTimeMillis() < st + _default_timeout);
-    Assert.assertNotNull(ctx);
-    Assert.assertTrue(allowedStates.contains(ctx.getJobState(jobName)));
+    Assert.assertNotNull(ctx, "Empty job context");
+    TaskState jobState = ctx.getJobState(jobName);
+    Assert.assertTrue(allowedStates.contains(jobState),
+        "expect job states: " + allowedStates + " actual job state: " + jobState);
   }
 
   public static void pollForEmptyJobState(final HelixManager manager, final String workflowName,
@@ -127,8 +134,8 @@ public class TaskTestUtil {
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
     do {
-      Thread.sleep(100);
       ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+      Thread.sleep(100);
     } while (ctx == null && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
     return ctx;
@@ -228,9 +235,14 @@ public class TaskTestUtil {
   }
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart) {
+    return buildRecurrentJobQueue(jobQueueName, delayStart, 60);
+  }
+
+  public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
+      int recurrenInSeconds) {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
-    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(60));
+    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(recurrenInSeconds));
     cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
@@ -238,8 +250,6 @@ public class TaskTestUtil {
     cal.set(Calendar.MILLISECOND, 0);
     cfgMap.put(WorkflowConfig.START_TIME,
         WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
-    //cfgMap.put(WorkflowConfig.START_TIME,
-    //WorkflowConfig.getDefaultDateFormat().format(getDateFromStartTime("00:00")));
     return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
   }
 
@@ -261,9 +271,5 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName) {
     return buildJobQueue(jobQueueName, 0);
-  }
-
-  public static boolean pollForParticipantParallelState() {
-    return false;
   }
 }

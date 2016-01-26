@@ -68,7 +68,8 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
   private HelixManager _manager;
   private TaskDriver _driver;
 
-  @BeforeClass public void beforeClass() throws Exception {
+  @BeforeClass
+  public void beforeClass() throws Exception {
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -141,7 +142,8 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     }
   }
 
-  @Test public void testJobFailsWithMissingTarget() throws Exception {
+  @Test
+  public void testJobFailsWithMissingTarget() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -166,7 +168,8 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.FAILED);
   }
 
-  @Test public void testJobFailsWithMissingTargetInRunning() throws Exception {
+  @Test
+  public void testJobFailsWithMissingTargetInRunning() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue

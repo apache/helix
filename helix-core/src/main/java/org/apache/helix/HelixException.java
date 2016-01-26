@@ -33,4 +33,8 @@ public class HelixException extends RuntimeException {
   public HelixException(Throwable cause) {
     super(cause);
   }
+
+  public HelixException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

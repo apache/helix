@@ -74,13 +74,17 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
    */
   protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg) {
     boolean incomplete = false;
+    int failedJobs = 0;
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
       if (jobState == TaskState.FAILED) {
-        ctx.setWorkflowState(TaskState.FAILED);
-        return true;
+        failedJobs ++;
+        if (failedJobs > cfg.getFailureThreshold()) {
+          ctx.setWorkflowState(TaskState.FAILED);
+          return true;
+        }
       }
-      if (jobState != TaskState.COMPLETED) {
+      if (jobState != TaskState.COMPLETED && jobState != TaskState.FAILED) {
         incomplete = true;
       }
     }
@@ -136,29 +140,76 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx) {
     int notStartedCount = 0;
-    int inCompleteCount = 0;
     int failedCount = 0;
 
-    for (String ancestor : workflowCfg.getJobDag().getAncestors(job)) {
-      TaskState jobState = workflowCtx.getJobState(ancestor);
+    for (String parent : workflowCfg.getJobDag().getDirectParents(job)) {
+      TaskState jobState = workflowCtx.getJobState(parent);
       if (jobState == null || jobState == TaskState.NOT_STARTED) {
         ++notStartedCount;
-      } else if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
-        ++inCompleteCount;
-      } else if (jobState == TaskState.FAILED) {
+      }
+      if (jobState == TaskState.FAILED) {
         ++failedCount;
       }
     }
 
-    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()
-        || failedCount > 0) {
-      LOG.debug(String.format(
-          "Job %s is not ready to start, notStartedParent(s)=%d, inCompleteParent(s)=%d, failedParent(s)=%d.",
-          job, notStartedCount, inCompleteCount, failedCount));
+    if (notStartedCount > 0) {
+      LOG.debug(String
+          .format("Job %s is not ready to start, notStartedParent(s)=%d.", job, notStartedCount));
+      return false;
+    }
+
+    JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
+    if (failedCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
+      markJobFailed(job, null, workflowCfg, workflowCtx);
+      LOG.debug(
+          String.format("Job %s is not ready to start, failedCount(s)=%d.", job, failedCount));
+      return false;
+    }
+
+    int inCompleteCount = getInCompleteJobCount(workflowCfg, workflowCtx);
+    if (inCompleteCount >= workflowCfg.getParallelJobs()) {
+      LOG.debug(String
+          .format("Job %s is not ready to schedule, inCompleteJobs(s)=%d.", job, inCompleteCount));
       return false;
     }
 
     return true;
+  }
+
+  protected boolean isJobStarted(String job, WorkflowContext workflowContext) {
+    TaskState jobState = workflowContext.getJobState(job);
+    return (jobState != null && jobState != TaskState.NOT_STARTED);
+  }
+
+  /**
+   * Count the number of jobs in a workflow that are in progress.
+   *
+   * @param workflowCfg
+   * @param workflowCtx
+   * @return
+   */
+  protected int getInCompleteJobCount(WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
+    int inCompleteCount = 0;
+    for (String jobName : workflowCfg.getJobDag().getAllNodes()) {
+      TaskState jobState = workflowCtx.getJobState(jobName);
+      if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
+        ++inCompleteCount;
+      }
+    }
+
+    return inCompleteCount;
+  }
+
+  protected void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext) {
+    long currentTime = System.currentTimeMillis();
+    workflowContext.setJobState(jobName, TaskState.FAILED);
+    if (jobContext != null) {
+      jobContext.setFinishTime(currentTime);
+    }
+    if (isWorkflowFinished(workflowContext, workflowConfig)) {
+      workflowContext.setFinishTime(currentTime);
+    }
   }
 
   /**

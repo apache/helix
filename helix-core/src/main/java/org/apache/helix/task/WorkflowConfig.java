@@ -40,9 +40,11 @@ public class WorkflowConfig {
   public static final String RECURRENCE_UNIT = "RecurrenceUnit";
   public static final String RECURRENCE_INTERVAL = "RecurrenceInterval";
   public static final String TERMINABLE = "Terminable";
+  public static final String FAILURE_THRESHOLD = "FailureThreshold";
 
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
+  public static final int DEFAULT_FAILURE_THRESHOLD = 0;
 
   /* Member variables */
   // TODO: jobDag should not be in the workflowConfig.
@@ -56,13 +58,15 @@ public class WorkflowConfig {
   private final long _expiry;
   private final boolean _terminable;
   private final ScheduleConfig _scheduleConfig;
+  private final int _failureThreshold;
 
   protected WorkflowConfig(JobDag jobDag, int parallelJobs, TargetState targetState, long expiry,
-      boolean terminable, ScheduleConfig scheduleConfig) {
+      int failureThreshold, boolean terminable, ScheduleConfig scheduleConfig) {
     _jobDag = jobDag;
     _parallelJobs = parallelJobs;
     _targetState = targetState;
     _expiry = expiry;
+    _failureThreshold = failureThreshold;
     _terminable = terminable;
     _scheduleConfig = scheduleConfig;
   }
@@ -81,6 +85,10 @@ public class WorkflowConfig {
 
   public long getExpiry() {
     return _expiry;
+  }
+
+  public int getFailureThreshold() {
+    return _failureThreshold;
   }
 
   public boolean isTerminable() {
@@ -128,6 +136,7 @@ public class WorkflowConfig {
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(getExpiry()));
     cfgMap.put(WorkflowConfig.TARGET_STATE, getTargetState().name());
     cfgMap.put(WorkflowConfig.TERMINABLE, String.valueOf(isTerminable()));
+    cfgMap.put(WorkflowConfig.FAILURE_THRESHOLD, String.valueOf(getFailureThreshold()));
 
     // Populate schedule if present
     ScheduleConfig scheduleConfig = getScheduleConfig();
@@ -151,13 +160,15 @@ public class WorkflowConfig {
     private int _parallelJobs = 1;
     private TargetState _targetState = TargetState.START;
     private long _expiry = DEFAULT_EXPIRY;
+    private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
     private boolean _isTerminable = true;
     private ScheduleConfig _scheduleConfig;
 
     public WorkflowConfig build() {
       validate();
 
-      return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _isTerminable, _scheduleConfig);
+      return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _failureThreshold,
+          _isTerminable, _scheduleConfig);
     }
 
     public Builder() {}
@@ -191,6 +202,11 @@ public class WorkflowConfig {
       return this;
     }
 
+    public Builder setFailureThreshold(int failureThreshold) {
+      _failureThreshold = failureThreshold;
+      return this;
+    }
+
     public Builder setTerminable(boolean isTerminable) {
       _isTerminable = isTerminable;
       return this;
@@ -210,6 +226,9 @@ public class WorkflowConfig {
       Builder b = new Builder();
       if (cfg.containsKey(EXPIRY)) {
         b.setExpiry(Long.parseLong(cfg.get(EXPIRY)));
+      }
+      if (cfg.containsKey(FAILURE_THRESHOLD)) {
+        b.setFailureThreshold(Integer.parseInt(cfg.get(FAILURE_THRESHOLD)));
       }
       if (cfg.containsKey(DAG)) {
         b.setJobDag(JobDag.fromJson(cfg.get(DAG)));

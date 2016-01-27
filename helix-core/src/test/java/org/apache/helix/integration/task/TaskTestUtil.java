@@ -258,7 +258,7 @@ public class TaskTestUtil {
     return buildRecurrentJobQueue(jobQueueName, 0);
   }
 
-  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart) {
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart, int failureThreshold) {
     Map<String, String> cfgMap = new HashMap<String, String>();
     cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
     Calendar cal = Calendar.getInstance();
@@ -267,10 +267,13 @@ public class TaskTestUtil {
     cal.set(Calendar.MILLISECOND, 0);
     cfgMap.put(WorkflowConfig.START_TIME,
         WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
+    if (failureThreshold > 0) {
+      cfgMap.put(WorkflowConfig.FAILURE_THRESHOLD, String.valueOf(failureThreshold));
+    }
     return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName) {
-    return buildJobQueue(jobQueueName, 0);
+    return buildJobQueue(jobQueueName, 0, 0);
   }
 }

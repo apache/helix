@@ -39,7 +39,7 @@ public class MockTask implements Task {
     if (cfg == null) {
       cfg = Collections.emptyMap();
     }
-    _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 200L;
+    _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 100L;
   }
 
   @Override

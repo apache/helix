@@ -37,6 +37,8 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
@@ -50,8 +52,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
-  private static final Logger LOG = Logger.getLogger(TestRunJobsWithMissingTarget.class);
+public class TestJobFailureDependence extends ZkIntegrationTestBase {
+  private static final Logger LOG = Logger.getLogger(TestJobFailureDependence.class);
   private static final int num_nodes = 5;
   private static final int num_dbs = 5;
   private static final int START_PORT = 12918;
@@ -140,11 +142,38 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     for (int i = 0; i < num_nodes; i++) {
       _participants[i].syncStop();
     }
-    _setupTool.deleteCluster(CLUSTER_NAME);
   }
 
   @Test
-  public void testJobFailsWithMissingTarget() throws Exception {
+  public void testJobDependantFailure() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    // Create and Enqueue jobs
+    List<String> currentJobNames = new ArrayList<String>();
+    for (int i = 0; i < num_dbs; i++) {
+      JobConfig.Builder jobConfig =
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+              .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
+      String jobName = "job" + _test_dbs.get(i);
+      queueBuilder.enqueueJob(jobName, jobConfig);
+      currentJobNames.add(jobName);
+    }
+
+    _driver.start(queueBuilder.build());
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+
+    // all jobs after failed job should fail too.
+    for (int i = 2; i < num_dbs; i++) {
+      String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
+      TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
+    }
+  }
+
+  @Test
+  public void testJobDependantWorkflowFailure() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -154,26 +183,53 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < num_dbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(
-              _test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
       String jobName = "job" + _test_dbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
     _driver.start(queueBuilder.build());
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
 
-    String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(2));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
+    String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
+    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
     TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
-
-    _driver.delete(queueName);
   }
 
   @Test
-  public void testJobContinueUponParentJobFailure() throws Exception {
+  public void testIgnoreJobDependantFailure() throws Exception {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
+    // Create and Enqueue jobs
+    List<String> currentJobNames = new ArrayList<String>();
+    for (int i = 0; i < num_dbs; i++) {
+      JobConfig.Builder jobConfig =
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+              .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
+      String jobName = "job" + _test_dbs.get(i);
+      queueBuilder.enqueueJob(jobName, jobConfig);
+      currentJobNames.add(jobName);
+    }
+
+    _driver.start(queueBuilder.build());
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+    String namedSpaceJob2 = String.format("%s_%s", queueName, currentJobNames.get(2));
+    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob2, TaskState.FAILED);
+
+    // all jobs after failed job should complete.
+    for (int i = 3; i < num_dbs; i++) {
+      String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
+      TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.COMPLETED);
+    }
+  }
+
+  @Test
+  public void testWorkflowFailureJobThreshold() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
@@ -199,35 +255,29 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
         String.format("%s_%s", queueName, currentJobNames.get(currentJobNames.size() - 1));
     TaskTestUtil.pollForJobState(_driver, queueName, lastJob, TaskState.COMPLETED);
 
-    _driver.delete(queueName);
-  }
+    _driver.flushQueue(queueName);
 
-  @Test
-  public void testJobFailsWithMissingTargetInRunning() throws Exception {
-    String queueName = TestHelper.getTestMethodName();
+    WorkflowConfig currentWorkflowConfig = _driver.getWorkflowConfig(queueName);
+    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(currentWorkflowConfig);
 
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
-    // Create and Enqueue jobs
-    List<String> currentJobNames = new ArrayList<String>();
+    configBuilder.setFailureThreshold(0);
+    _driver.updateWorkflow(queueName, configBuilder.build());
+    _driver.stop(queueName);
+
     for (int i = 0; i < num_dbs; i++) {
       JobConfig.Builder jobConfig =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
-              .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
+              .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
       String jobName = "job" + _test_dbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
-      currentJobNames.add(jobName);
+      _driver.enqueueJob(queueName, jobName, jobConfig);
     }
 
-    _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(0));
+    _driver.resume(queueName);
 
-    String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(0));
+    namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
     TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
-
-    _driver.delete(queueName);
   }
 }
 

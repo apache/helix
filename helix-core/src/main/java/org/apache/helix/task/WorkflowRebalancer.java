@@ -30,7 +30,13 @@ import org.apache.log4j.Logger;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TimeZone;
 
 /**
  * Custom rebalancer implementation for the {@code Workflow} in task state model.
@@ -63,7 +69,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
-      cleanupWorkflow(workflow, workflowCfg, workflowCtx);
+      cleanupWorkflow(workflow, workflowCfg);
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
@@ -91,7 +97,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
         LOG.info("Workflow " + workflow + " passed expiry time, cleaning up the workflow context.");
-        cleanupWorkflow(workflow, workflowCfg, workflowCtx);
+        cleanupWorkflow(workflow, workflowCfg);
       } else {
         // schedule future cleanup work
         long cleanupTime = workflowCtx.getFinishTime() + expiryTime;
@@ -113,7 +119,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
         scheduleWorkflowIfReady(workflow, workflowCfg, workflowCtx);
     if (isReady) {
       // Schedule jobs from this workflow.
-      scheduleJobs(workflowCfg, workflowCtx);
+      scheduleJobs(workflow, workflowCfg, workflowCtx);
     } else {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
@@ -126,23 +132,32 @@ public class WorkflowRebalancer extends TaskRebalancer {
    * Figure out whether the jobs in the workflow should be run,
    * and if it's ready, then just schedule it
    */
-  private void scheduleJobs(WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
+  private void scheduleJobs(String workflow, WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
       LOG.debug("Jobs from recurring workflow are not schedule-able");
       return;
     }
 
+    int scheduledJobs = 0;
     for (String job : workflowCfg.getJobDag().getAllNodes()) {
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
         LOG.debug("Job " + job + " is already started or completed.");
         continue;
       }
+
+      if (scheduledJobs >= workflowCfg.getParallelJobs()) {
+        LOG.debug(String.format("Workflow %s already have enough job in progress, "
+                + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
+        break;
+      }
+
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx)) {
         JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
         scheduleSingleJob(job, jobConfig);
+        scheduledJobs++;
       }
     }
   }
@@ -382,8 +397,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
    * Cleans up workflow configs and workflow contexts associated with this workflow,
    * including all job-level configs and context, plus workflow-level information.
    */
-  private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg,
-      WorkflowContext workflowCtx) {
+  private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg) {
     LOG.info("Cleaning up workflow: " + workflow);
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 

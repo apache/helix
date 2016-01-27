@@ -86,22 +86,28 @@ public class JobRebalancer extends TaskRebalancer {
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
+    // Stop current run of the job if workflow or job is already in final state (failed or completed)
+    TaskState workflowState = workflowCtx.getWorkflowState();
     TaskState jobState = workflowCtx.getJobState(jobName);
     // The job is already in a final state (completed/failed).
-    if (jobState == TaskState.FAILED || jobState == TaskState.COMPLETED) {
-      LOG.info("Job " + jobName + " is failed or already completed, clean up IS.");
+    if (workflowState == TaskState.FAILED || workflowState == TaskState.COMPLETED ||
+        jobState == TaskState.FAILED || jobState == TaskState.COMPLETED) {
+      LOG.info(String.format(
+          "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
+          workflowResource, jobName, workflowState, jobState));
       cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _scheduledRebalancer.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
-      LOG.info("Job is not ready to be scheduled since workflow is not ready " + jobName);
+      LOG.info("Job is not ready to be run since workflow is not ready " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
-    if (!isJobReadyToSchedule(jobName, workflowCfg, workflowCtx)) {
-      LOG.info("Job is not ready to be scheduled " + jobName);
+    if (!isJobStarted(jobName, workflowCtx) && !isJobReadyToSchedule(jobName, workflowCfg,
+        workflowCtx)) {
+      LOG.info("Job is not ready to run " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -427,16 +433,6 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     return ra;
-  }
-
-  private void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
-      WorkflowContext workflowContext) {
-    long currentTime = System.currentTimeMillis();
-    workflowContext.setJobState(jobName, TaskState.FAILED);
-    jobContext.setFinishTime(currentTime);
-    if (isWorkflowFinished(workflowContext, workflowConfig)) {
-      workflowContext.setFinishTime(currentTime);
-    }
   }
 
   private void markJobComplete(String jobName, JobContext jobContext,

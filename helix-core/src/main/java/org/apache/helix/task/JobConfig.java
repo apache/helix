@@ -96,6 +96,11 @@ public class JobConfig {
     TASK_RETRY_DELAY("TaskRetryDelay"),
 
     /**
+     * Whether failure of directly dependent jobs should fail this job.
+     */
+    IGNORE_DEPENDENT_JOB_FAILURE("IgnoreDependentJobFailure"),
+
+    /**
      * The individual task configurations, if any *
      */
     TASK_CONFIGS("TaskConfigs"),
@@ -124,6 +129,7 @@ public class JobConfig {
   public static final int DEFAULT_FAILURE_THRESHOLD = 0;
   public static final int DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK = 0;
   public static final boolean DEFAULT_DISABLE_EXTERNALVIEW = false;
+  public static final boolean DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE = false;
 
   private final String _workflow;
   private final String _targetResource;
@@ -138,13 +144,14 @@ public class JobConfig {
   private final int _failureThreshold;
   private final long _retryDelay;
   private final boolean _disableExternalView;
+  private final boolean _ignoreDependentJobFailure;
   private final Map<String, TaskConfig> _taskConfigMap;
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
-      boolean disableExternalView, Map<String, TaskConfig> taskConfigMap) {
+      boolean disableExternalView, boolean ignoreDependentJobFailure, Map<String, TaskConfig> taskConfigMap) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -158,6 +165,7 @@ public class JobConfig {
     _failureThreshold = failureThreshold;
     _retryDelay = retryDelay;
     _disableExternalView = disableExternalView;
+    _ignoreDependentJobFailure = ignoreDependentJobFailure;
     if (taskConfigMap != null) {
       _taskConfigMap = taskConfigMap;
     } else {
@@ -217,6 +225,8 @@ public class JobConfig {
     return _disableExternalView;
   }
 
+  public boolean isIgnoreDependentJobFailure() { return _ignoreDependentJobFailure; }
+
   public Map<String, TaskConfig> getTaskConfigMap() {
     return _taskConfigMap;
   }
@@ -260,6 +270,8 @@ public class JobConfig {
         Boolean.toString(_disableExternalView));
     cfgMap.put(JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value(),
         "" + _numConcurrentTasksPerInstance);
+    cfgMap.put(JobConfigProperty.IGNORE_DEPENDENT_JOB_FAILURE.value(),
+        Boolean.toString(_ignoreDependentJobFailure));
     return cfgMap;
   }
 
@@ -281,6 +293,7 @@ public class JobConfig {
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
     private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
     private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
+    private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
 
     public JobConfig build() {
       validate();
@@ -288,7 +301,7 @@ public class JobConfig {
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
-          _disableExternalView, _taskConfigMap);
+          _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap);
     }
 
     /**
@@ -345,6 +358,10 @@ public class JobConfig {
       if (cfg.containsKey(JobConfigProperty.DISABLE_EXTERNALVIEW.value())) {
         b.setDisableExternalView(
             Boolean.valueOf(cfg.get(JobConfigProperty.DISABLE_EXTERNALVIEW.value())));
+      }
+      if (cfg.containsKey(JobConfigProperty.IGNORE_DEPENDENT_JOB_FAILURE.value())) {
+        b.setIgnoreDependentJobFailure(
+            Boolean.valueOf(cfg.get(JobConfigProperty.IGNORE_DEPENDENT_JOB_FAILURE.value())));
       }
       return b;
     }
@@ -411,6 +428,11 @@ public class JobConfig {
 
     public Builder setDisableExternalView(boolean disableExternalView) {
       _disableExternalView = disableExternalView;
+      return this;
+    }
+
+    public Builder setIgnoreDependentJobFailure(boolean ignoreDependentJobFailure) {
+      _ignoreDependentJobFailure = ignoreDependentJobFailure;
       return this;
     }
 

@@ -77,11 +77,11 @@ public class ExampleProcess {
             zkConnectString);
 
     if ("MasterSlave".equalsIgnoreCase(stateModelType)) {
-      stateModelFactory = new MasterSlaveStateModelFactory(delay);
+      stateModelFactory = new MasterSlaveStateModelFactory(this.instanceName, delay);
     } else if ("OnlineOffline".equalsIgnoreCase(stateModelType)) {
-      stateModelFactory = new OnlineOfflineStateModelFactory(delay);
+      stateModelFactory = new OnlineOfflineStateModelFactory(this.instanceName, delay);
     } else if ("LeaderStandby".equalsIgnoreCase(stateModelType)) {
-      stateModelFactory = new LeaderStandbyStateModelFactory(delay);
+      stateModelFactory = new LeaderStandbyStateModelFactory(this.instanceName, delay);
     }
     // genericStateMachineHandler = new StateMachineEngine();
     // genericStateMachineHandler.registerStateModelFactory(stateModelType,

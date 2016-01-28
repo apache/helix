@@ -27,7 +27,6 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 @SuppressWarnings("rawtypes")
 public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> {
   int _delay;
-
   String _instanceName = "";
 
   public MasterSlaveStateModelFactory(int delay) {
@@ -37,6 +36,11 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
   public MasterSlaveStateModelFactory(String instanceName) {
     _instanceName = instanceName;
     _delay = 10;
+  }
+
+  public MasterSlaveStateModelFactory(String instanceName, int delay) {
+    _instanceName = instanceName;
+    _delay = delay;
   }
 
   public MasterSlaveStateModelFactory() {
@@ -74,7 +78,6 @@ public class MasterSlaveStateModelFactory extends StateModelFactory<StateModel> 
     }
 
     public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
-
       System.out.println(_instanceName + " transitioning from " + message.getFromState() + " to "
           + message.getToState() + " for " + partitionName);
       sleep();

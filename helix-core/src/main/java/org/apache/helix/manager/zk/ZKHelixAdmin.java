@@ -605,8 +605,7 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void addResource(String clusterName, String resourceName, int partitions,
       String stateModelRef, String rebalancerMode, int bucketSize) {
-    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize,
-        -1);
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize, -1);
 
   }
 
@@ -985,8 +984,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         ClusterConstraints constraints =
-            currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(
-                currentData);
+            currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(currentData);
 
         constraints.addConstraintItem(constraintId, constraintItem);
         return constraints.getRecord();
@@ -1120,6 +1118,25 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.removeTag(tag);
+    accessor.setInstanceConfig(config);
+  }
+
+  @Override
+  public void setInstanceZoneId(String clusterName, String instanceName, String zoneId) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+      throw new HelixException("cluster " + clusterName + " instance " + instanceName
+          + " is not setup yet");
+    }
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+    config.setZoneId(zoneId);
     accessor.setInstanceConfig(config);
   }
 

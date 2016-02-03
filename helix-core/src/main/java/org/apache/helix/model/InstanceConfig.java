@@ -39,6 +39,7 @@ public class InstanceConfig extends HelixProperty {
   public enum InstanceConfigProperty {
     HELIX_HOST,
     HELIX_PORT,
+    HELIX_ZONE_ID,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
     TAG_LIST
@@ -92,6 +93,14 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setPort(String port) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
+  }
+
+  public String getZoneId() {
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name());
+  }
+
+  public void setZoneId(String zoneId) {
+    _record.setSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name(), zoneId);
   }
 
   /**

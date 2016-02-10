@@ -128,7 +128,9 @@ public class Workflow {
     return parse(new StringReader(yaml));
   }
 
-  /** Helper function to parse workflow from a generic {@link Reader} */
+  /**
+   * Helper function to parse workflow from a generic {@link Reader}
+   */
   private static Workflow parse(Reader reader) throws Exception {
     Yaml yaml = new Yaml(new Constructor(WorkflowBean.class));
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
@@ -146,29 +148,32 @@ public class Workflow {
           }
         }
 
-        builder.addConfig(job.name, JobConfig.WORKFLOW_ID, wf.name);
-        builder.addConfig(job.name, JobConfig.COMMAND, job.command);
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.WORKFLOW_ID.value(), wf.name);
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.COMMAND.value(), job.command);
         if (job.jobConfigMap != null) {
           builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
         }
-        builder.addConfig(job.name, JobConfig.TARGET_RESOURCE, job.targetResource);
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_RESOURCE.value(),
+            job.targetResource);
         if (job.targetPartitionStates != null) {
-          builder.addConfig(job.name, JobConfig.TARGET_PARTITION_STATES,
+          builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_PARTITION_STATES.value(),
               Joiner.on(",").join(job.targetPartitionStates));
         }
         if (job.targetPartitions != null) {
-          builder.addConfig(job.name, JobConfig.TARGET_PARTITIONS,
+          builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_PARTITIONS.value(),
               Joiner.on(",").join(job.targetPartitions));
         }
-        builder.addConfig(job.name, JobConfig.MAX_ATTEMPTS_PER_TASK,
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.MAX_ATTEMPTS_PER_TASK.value(),
             String.valueOf(job.maxAttemptsPerTask));
-        builder.addConfig(job.name, JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK,
+        builder.addConfig(job.name,
+            JobConfig.JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK.value(),
             String.valueOf(job.maxForcedReassignmentsPerTask));
-        builder.addConfig(job.name, JobConfig.NUM_CONCURRENT_TASKS_PER_INSTANCE,
+        builder.addConfig(job.name,
+            JobConfig.JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value(),
             String.valueOf(job.numConcurrentTasksPerInstance));
-        builder.addConfig(job.name, JobConfig.TIMEOUT_PER_TASK,
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.TIMEOUT_PER_TASK.value(),
             String.valueOf(job.timeoutPerPartition));
-        builder.addConfig(job.name, JobConfig.FAILURE_THRESHOLD,
+        builder.addConfig(job.name, JobConfig.JobConfigProperty.FAILURE_THRESHOLD.value(),
             String.valueOf(job.failureThreshold));
         if (job.tasks != null) {
           List<TaskConfig> taskConfigs = Lists.newArrayList();
@@ -242,7 +247,7 @@ public class Workflow {
       _expiry = -1;
     }
 
-    public Builder addConfig(String job, String key, String val) {
+    private Builder addConfig(String job, String key, String val) {
       job = namespacify(job);
       _dag.addNode(job);
       if (!_jobConfigs.containsKey(job)) {
@@ -252,8 +257,8 @@ public class Workflow {
       return this;
     }
 
-    public Builder addJobCommandConfigMap(String job, Map<String, String> jobConfigMap) {
-      return addConfig(job, JobConfig.JOB_COMMAND_CONFIG_MAP,
+    private Builder addJobCommandConfigMap(String job, Map<String, String> jobConfigMap) {
+      return addConfig(job, JobConfig.JobConfigProperty.JOB_COMMAND_CONFIG_MAP.value(),
           TaskUtil.serializeJobCommandConfigMap(jobConfigMap));
     }
 
@@ -268,7 +273,7 @@ public class Workflow {
       return this;
     }
 
-    public Builder addTaskConfigs(String job, Collection<TaskConfig> taskConfigs) {
+    private Builder addTaskConfigs(String job, Collection<TaskConfig> taskConfigs) {
       job = namespacify(job);
       _dag.addNode(job);
       if (!_taskConfigs.containsKey(job)) {
@@ -322,7 +327,7 @@ public class Workflow {
     protected WorkflowConfig.Builder buildWorkflowConfig() {
       for (String task : _jobConfigs.keySet()) {
         // addConfig(task, TaskConfig.WORKFLOW_ID, _name);
-        _jobConfigs.get(task).put(JobConfig.WORKFLOW_ID, _name);
+        _jobConfigs.get(task).put(JobConfig.JobConfigProperty.WORKFLOW_ID.value(), _name);
       }
 
       WorkflowConfig.Builder builder;

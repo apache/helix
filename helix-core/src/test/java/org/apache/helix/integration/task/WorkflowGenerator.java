@@ -56,58 +56,34 @@ public class WorkflowGenerator {
     DEFAULT_COMMAND_CONFIG = Collections.unmodifiableMap(tmpMap);
   }
 
-  public static Workflow.Builder generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(
-      String jobName, Map<String, String> commandConfig, String... cfgs) {
-    if (cfgs.length % 2 != 0) {
-      throw new IllegalArgumentException(
-          "Additional configs should have even number of keys and values");
-    }
-    Workflow.Builder bldr = generateSingleJobWorkflowBuilder(jobName, commandConfig, DEFAULT_JOB_CONFIG);
-    for (int i = 0; i < cfgs.length; i += 2) {
-      bldr.addConfig(jobName, cfgs[i], cfgs[i + 1]);
-    }
-
-    return bldr;
+  private static final JobConfig.Builder DEFAULT_JOB_BUILDER;
+  static {
+    JobConfig.Builder builder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
+    builder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+    DEFAULT_JOB_BUILDER = builder;
   }
 
   public static Workflow.Builder generateDefaultSingleJobWorkflowBuilder(String jobName) {
-    return generateSingleJobWorkflowBuilder(jobName, DEFAULT_COMMAND_CONFIG, DEFAULT_JOB_CONFIG);
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+    return generateSingleJobWorkflowBuilder(jobName, jobBuilder);
   }
 
   public static Workflow.Builder generateSingleJobWorkflowBuilder(String jobName,
-      Map<String, String> commandConfig, Map<String, String> config) {
-    Workflow.Builder builder = new Workflow.Builder(jobName);
-    for (String key : config.keySet()) {
-      builder.addConfig(jobName, key, config.get(key));
-    }
-    if (commandConfig != null) {
-      ObjectMapper mapper = new ObjectMapper();
-      try {
-        String serializedMap = mapper.writeValueAsString(commandConfig);
-        builder.addConfig(jobName, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
-      } catch (IOException e) {
-        LOG.error("Error serializing " + commandConfig, e);
-      }
-    }
-    return builder;
+      JobConfig.Builder jobBuilder) {
+    return new Workflow.Builder(jobName).addJobConfig(jobName, jobBuilder);
   }
 
   public static Workflow.Builder generateDefaultRepeatedJobWorkflowBuilder(String workflowName) {
     Workflow.Builder builder = new Workflow.Builder(workflowName);
     builder.addParentChildDependency(JOB_NAME_1, JOB_NAME_2);
 
-    for (String key : DEFAULT_JOB_CONFIG.keySet()) {
-      builder.addConfig(JOB_NAME_1, key, DEFAULT_JOB_CONFIG.get(key));
-      builder.addConfig(JOB_NAME_2, key, DEFAULT_JOB_CONFIG.get(key));
-    }
-    ObjectMapper mapper = new ObjectMapper();
-    try {
-      String serializedMap = mapper.writeValueAsString(DEFAULT_COMMAND_CONFIG);
-      builder.addConfig(JOB_NAME_1, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
-      builder.addConfig(JOB_NAME_2, JobConfig.JOB_COMMAND_CONFIG_MAP, serializedMap);
-    } catch (IOException e) {
-      LOG.error("Error serializing " + DEFAULT_COMMAND_CONFIG, e);
-    }
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
+
+    builder.addJobConfig(JOB_NAME_1, jobBuilder);
+    builder.addJobConfig(JOB_NAME_2, jobBuilder);
+
     return builder;
   }
 }

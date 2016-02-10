@@ -140,8 +140,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _runCounts.clear();
   }
 
-  @Test
-  public void testDifferentTasks() throws Exception {
+  @Test public void testDifferentTasks() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
@@ -150,11 +149,12 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, true);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    Map<String, String> jobConfigMap = Maps.newHashMap();
-    jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    Map<String, String> jobCommandMap = Maps.newHashMap();
+    jobCommandMap.put("Timeout", "1000");
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
+            .setJobCommandConfigMap(jobCommandMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -166,8 +166,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
-  public void testThresholdFailure() throws Exception {
+  @Test public void testThresholdFailure() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
@@ -177,12 +176,12 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    workflowBuilder.addConfig(jobName, JobConfig.FAILURE_THRESHOLD, "" + 1);
     Map<String, String> jobConfigMap = Maps.newHashMap();
     jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setCommand("DummyCommand").setFailureThreshold(1)
+            .addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobConfigMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -194,8 +193,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
-  public void testOptionalTaskFailure() throws Exception {
+  @Test public void testOptionalTaskFailure() throws Exception {
     // Create a job with two different tasks
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
@@ -205,11 +203,14 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    Map<String, String> jobConfigMap = Maps.newHashMap();
-    jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    Map<String, String> jobCommandMap = Maps.newHashMap();
+    jobCommandMap.put("Timeout", "1000");
+
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
+            .setJobCommandConfigMap(jobCommandMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
+
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -221,24 +222,23 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test
-  public void testReassignment() throws Exception {
+  @Test public void testReassignment() throws Exception {
     final int NUM_INSTANCES = 2;
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    Map<String, String> taskConfigMap =
-        Maps.newHashMap(ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_'
-            + START_PORT));
+    Map<String, String> taskConfigMap = Maps.newHashMap(
+        ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + START_PORT));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    workflowBuilder.addConfig(jobName, JobConfig.MAX_FORCED_REASSIGNMENTS_PER_TASK, ""
-        + (NUM_INSTANCES - 1)); // this ensures that every instance gets one chance
-    Map<String, String> jobConfigMap = Maps.newHashMap();
-    jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    Map<String, String> jobCommandMap = Maps.newHashMap();
+    jobCommandMap.put("Timeout", "1000");
+
+    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+        .setMaxForcedReassignmentsPerTask(NUM_INSTANCES - 1).addTaskConfigs(taskConfigs)
+        .setJobCommandConfigMap(jobCommandMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
+
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -251,8 +251,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     // Ensure that this was tried on two different instances, the first of which exhausted the
     // attempts number, and the other passes on the first try
     Assert.assertEquals(_runCounts.size(), NUM_INSTANCES);
-    Assert.assertTrue(_runCounts.values().contains(
-        JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK / NUM_INSTANCES));
+    Assert.assertTrue(
+        _runCounts.values().contains(JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK / NUM_INSTANCES));
     Assert.assertTrue(_runCounts.values().contains(1));
   }
 
@@ -264,11 +264,14 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Map<String, String> taskConfigMap = Maps.newHashMap();
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    Map<String, String> jobConfigMap = Maps.newHashMap();
-    jobConfigMap.put("Timeout", "1000");
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    Map<String, String> jobCommandMap = Maps.newHashMap();
+    jobCommandMap.put("Timeout", "1000");
+
+    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+        .addTaskConfigs(taskConfigs)
+        .setJobCommandConfigMap(jobCommandMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
+
     long inFiveSeconds = System.currentTimeMillis() + (5 * 1000);
     workflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(inFiveSeconds)));
     _driver.start(workflowBuilder.build());
@@ -295,11 +298,13 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Map<String, String> taskConfigMap = Maps.newHashMap();
     TaskConfig taskConfig1 = new TaskConfig("SingleFailTask", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
-    workflowBuilder.addTaskConfigs(jobName, taskConfigs);
-    workflowBuilder.addConfig(jobName, JobConfig.COMMAND, "DummyCommand");
-    workflowBuilder.addConfig(jobName, JobConfig.TASK_RETRY_DELAY, String.valueOf(delay));
-    Map<String, String> jobConfigMap = Maps.newHashMap();
-    workflowBuilder.addJobCommandConfigMap(jobName, jobConfigMap);
+    Map<String, String> jobCommandMap = Maps.newHashMap();
+
+    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
+        .setTaskRetryDelay(delay).addTaskConfigs(taskConfigs)
+        .setJobCommandConfigMap(jobCommandMap);
+    workflowBuilder.addJobConfig(jobName, jobBuilder);
+
     SingleFailTask.hasFailed = false;
     _driver.start(workflowBuilder.build());
 

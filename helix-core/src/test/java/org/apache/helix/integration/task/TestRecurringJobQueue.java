@@ -215,12 +215,12 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     for (int i = 0; i <= 1; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
+      JobConfig.Builder jobConfig =
           new JobConfig.Builder().setCommand("Reindex")
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
-      queueBuild.enqueueJob(jobName, job);
+      queueBuild.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 

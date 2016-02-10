@@ -163,9 +163,11 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     String jobName = "Expiry";
     long expiry = 1000;
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
-    Workflow flow =
-        WorkflowGenerator
-            .generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobName, commandConfig)
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(commandConfig);
+
+    Workflow flow = WorkflowGenerator
+            .generateSingleJobWorkflowBuilder(jobName, jobBuilder)
             .setExpiry(expiry).build();
 
     _driver.start(flow);
@@ -204,9 +206,12 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     final String jobResource = "basic" + jobCompletionTime;
     Map<String, String> commandConfig =
         ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(jobCompletionTime));
+
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(commandConfig);
+
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
-            commandConfig).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
     _driver.start(flow);
 
     // Wait for job completion
@@ -220,18 +225,20 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     }
   }
 
-  @Test
-  public void partitionSet() throws Exception {
+  @Test public void partitionSet() throws Exception {
     final String jobResource = "partitionSet";
     ImmutableList<String> targetPartitions =
         ImmutableList.of("TestDB_1", "TestDB_2", "TestDB_3", "TestDB_5", "TestDB_8", "TestDB_13");
 
     // construct and submit our basic workflow
     Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(100));
+
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(commandConfig).setMaxAttemptsPerTask(1)
+        .setTargetPartitions(targetPartitions);
+
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
-            commandConfig, JobConfig.MAX_ATTEMPTS_PER_TASK, String.valueOf(1),
-            JobConfig.TARGET_PARTITIONS, Joiner.on(",").join(targetPartitions)).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
     _driver.start(flow);
 
     // wait for job completeness/timeout
@@ -268,13 +275,15 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     }
   }
 
-  @Test
-  public void timeouts() throws Exception {
+  @Test public void timeouts() throws Exception {
     final String jobResource = "timeouts";
+
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
+        .setMaxAttemptsPerTask(2).setTimeoutPerTask(100);
+
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
-            WorkflowGenerator.DEFAULT_COMMAND_CONFIG, JobConfig.MAX_ATTEMPTS_PER_TASK,
-            String.valueOf(2), JobConfig.TIMEOUT_PER_TASK, String.valueOf(100)).build();
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
     _driver.start(flow);
 
     // Wait until the job reports failure.

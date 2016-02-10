@@ -125,18 +125,15 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
     _manager.disconnect();
   }
 
-  @Test
-  public void test() throws Exception {
+  @Test public void test() throws Exception {
     String jobResource = TestHelper.getTestMethodName();
+
+    JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
+    jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
+        .setMaxAttemptsPerTask(2).setCommand("ErrorTask").setFailureThreshold(Integer.MAX_VALUE);
+
     Workflow flow =
-        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilderWithExtraConfigs(jobResource,
-            WorkflowGenerator.DEFAULT_COMMAND_CONFIG, JobConfig.MAX_ATTEMPTS_PER_TASK,
-            String.valueOf(2)).build();
-    Map<String, Map<String, String>> jobConfigs = flow.getJobConfigs();
-    for (Map<String, String> jobConfig : jobConfigs.values()) {
-      jobConfig.put(JobConfig.FAILURE_THRESHOLD, String.valueOf(Integer.MAX_VALUE));
-      jobConfig.put(JobConfig.COMMAND, "ErrorTask");
-    }
+        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
 
     _driver.start(flow);
 
@@ -151,7 +148,6 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
         Assert.assertEquals(ctx.getPartitionNumAttempts(i), 2);
       }
     }
-
   }
 
   private static class ErrorTask implements Task {

@@ -27,12 +27,13 @@ import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskResult;
 
-public class DummyTask implements Task {
+public class MockTask implements Task {
+  public static final String TASK_COMMAND = "Reindex";
   private static final String TIMEOUT_CONFIG = "Timeout";
   private final long _delay;
   private volatile boolean _canceled;
 
-  public DummyTask(TaskCallbackContext context) {
+  public MockTask(TaskCallbackContext context) {
     JobConfig jobCfg = context.getJobConfig();
     Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
     if (cfg == null) {

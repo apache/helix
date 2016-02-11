@@ -19,7 +19,6 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.Collections;
 import java.util.Map;
 import java.util.TreeMap;
@@ -27,7 +26,6 @@ import java.util.TreeMap;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.Workflow;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
 
 /**
  * Convenience class for generating various test workflows
@@ -44,7 +42,7 @@ public class WorkflowGenerator {
     Map<String, String> tmpMap = new TreeMap<String, String>();
     tmpMap.put("TargetResource", DEFAULT_TGT_DB);
     tmpMap.put("TargetPartitionStates", "MASTER");
-    tmpMap.put("Command", "Reindex");
+    tmpMap.put("Command", MockTask.TASK_COMMAND);
     tmpMap.put("TimeoutPerPartition", String.valueOf(10 * 1000));
     DEFAULT_JOB_CONFIG = Collections.unmodifiableMap(tmpMap);
   }

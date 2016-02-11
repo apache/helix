@@ -19,7 +19,6 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -45,7 +44,6 @@ import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskPartitionState;
-import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
@@ -98,10 +96,10 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("Reindex", new TaskFactory() {
+    taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
       @Override
       public Task createNewTask(TaskCallbackContext context) {
-        return new ReindexTask(context);
+        return new MockTask(context);
       }
     });
 
@@ -171,7 +169,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
             .setExpiry(expiry).build();
 
     _driver.start(flow);
-    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
 
     // Running workflow should have config and context viewable through accessor
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -185,7 +183,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertNotSame(accessor.getProperty(workflowCfgKey), null);
 
     // Wait for job to finish and expire
-    TestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
     Thread.sleep(expiry);
     TaskUtil.invokeRebalance(_manager.getHelixDataAccessor(), flow.getName());
     Thread.sleep(expiry);
@@ -215,7 +213,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // Wait for job completion
-    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
 
     // Ensure all partitions are completed individually
     JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
@@ -242,7 +240,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // wait for job completeness/timeout
-    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
 
     // see if resulting context completed successfully for our partition set
     String namespacedName = TaskUtil.getNamespacedJobName(jobResource);
@@ -267,11 +265,11 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     new TaskDriver(_manager).start(flow);
 
     // Wait until the workflow completes
-    TestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
 
     // Assert completion for all tasks within two minutes
     for (String task : flow.getJobConfigs().keySet()) {
-      TestUtil.pollForJobState(_manager, workflowName, task, TaskState.COMPLETED);
+      TaskTestUtil.pollForJobState(_manager, workflowName, task, TaskState.COMPLETED);
     }
   }
 
@@ -287,7 +285,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // Wait until the job reports failure.
-    TestUtil.pollForWorkflowState(_manager, jobResource, TaskState.FAILED);
+    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.FAILED);
 
     // Check that all partitions timed out up to maxAttempts
     JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
@@ -314,10 +312,10 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Set<String> master = Sets.newHashSet("MASTER");
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job1 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     JobConfig.Builder job2 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     _driver.enqueueJob(queueName, "masterJob", job1);
     _driver.enqueueJob(queueName, "slaveJob", job2);
@@ -325,8 +323,8 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = TaskUtil.getJobContext(_manager, namespacedJob1);
     JobContext slaveJobContext = TaskUtil.getJobContext(_manager, namespacedJob2);
 
@@ -351,49 +349,5 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertFalse(dag.getChildrenToParents().containsKey(namespacedJob2));
     Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob1));
     Assert.assertFalse(dag.getParentsToChildren().containsKey(namespacedJob2));
-  }
-
-  private static class ReindexTask implements Task {
-    private final long _delay;
-    private volatile boolean _canceled;
-
-    public ReindexTask(TaskCallbackContext context) {
-      JobConfig jobCfg = context.getJobConfig();
-      Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
-      if (cfg == null) {
-        cfg = Collections.emptyMap();
-      }
-      _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 200L;
-    }
-
-    @Override
-    public TaskResult run() {
-      long expiry = System.currentTimeMillis() + _delay;
-      long timeLeft;
-      while (System.currentTimeMillis() < expiry) {
-        if (_canceled) {
-          timeLeft = expiry - System.currentTimeMillis();
-          return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
-              : timeLeft));
-        }
-        sleep(50);
-      }
-      timeLeft = expiry - System.currentTimeMillis();
-      return new TaskResult(TaskResult.Status.COMPLETED,
-          String.valueOf(timeLeft < 0 ? 0 : timeLeft));
-    }
-
-    @Override
-    public void cancel() {
-      _canceled = true;
-    }
-
-    private static void sleep(long d) {
-      try {
-        Thread.sleep(d);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
   }
 }

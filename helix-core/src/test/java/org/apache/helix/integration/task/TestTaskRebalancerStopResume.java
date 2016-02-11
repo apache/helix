@@ -21,7 +21,6 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -41,7 +40,6 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -53,7 +51,6 @@ import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
-import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
@@ -62,7 +59,6 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
-import org.apache.helix.util.PathUtils;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
@@ -108,12 +104,12 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     setupTool.rebalanceStorageCluster(CLUSTER_NAME, TGT_DB, NUM_REPLICAS);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("Reindex", new TaskFactory() {
-      @Override
-      public Task createNewTask(TaskCallbackContext context) {
-        return new ReindexTask(context);
-      }
-    });
+    taskFactoryReg
+        .put(MockTask.TASK_COMMAND, new TaskFactory() {
+          @Override public Task createNewTask(TaskCallbackContext context) {
+            return new MockTask(context);
+          }
+        });
 
     // start dummy participants
     for (int i = 0; i < n; i++) {
@@ -173,15 +169,15 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);
-    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.IN_PROGRESS);
 
     LOG.info("Pausing job");
     _driver.stop(JOB_RESOURCE);
-    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.STOPPED);
 
     LOG.info("Resuming job");
     _driver.resume(JOB_RESOURCE);
-    TestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, JOB_RESOURCE, TaskState.COMPLETED);
   }
 
   @Test
@@ -191,15 +187,15 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     LOG.info("Starting flow " + workflow);
     _driver.start(flow);
-    TestUtil.pollForWorkflowState(_manager, workflow, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_manager, workflow, TaskState.IN_PROGRESS);
 
     LOG.info("Pausing workflow");
     _driver.stop(workflow);
-    TestUtil.pollForWorkflowState(_manager, workflow, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, workflow, TaskState.STOPPED);
 
     LOG.info("Resuming workflow");
     _driver.resume(workflow);
-    TestUtil.pollForWorkflowState(_manager, workflow, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_manager, workflow, TaskState.COMPLETED);
   }
 
   @Test
@@ -214,7 +210,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     // Enqueue jobs
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job: " + job1Name);
@@ -222,32 +218,32 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.IN_PROGRESS);
 
     // stop job1
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.STOPPED);
-    TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // Ensure job2 is not started
     TimeUnit.MILLISECONDS.sleep(200);
     String namespacedJob2 = String.format("%s_%s", queueName, job2Name);
-    TestUtil.pollForEmptyJobState(_manager, queueName, job2Name);
+    TaskTestUtil.pollForEmptyJobState(_manager, queueName, job2Name);
 
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
 
     // Ensure successful completion
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = TaskUtil.getJobContext(_manager, namespacedJob1);
     JobContext slaveJobContext = TaskUtil.getJobContext(_manager, namespacedJob2);
 
@@ -282,7 +278,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
       JobConfig.Builder job =
-          new JobConfig.Builder().setCommand("Reindex")
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
@@ -294,13 +290,13 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", queueName, deletedJob1);
-    TestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.STOPPED);
-    TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceDeletedJob1, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob1);
@@ -310,22 +306,20 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TestUtil.pollForJobState(_manager, queueName,
+    TaskTestUtil.pollForJobState(_manager, queueName,
         String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager,
-        queueName,
-        String.format("%s_%s", queueName, currentJobNames.get(1)),
-        TaskState.STOPPED);
-    TestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
+    TaskTestUtil.pollForJobState(_manager, queueName,
+        String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
     String deletedJob2 = currentJobNames.get(2);
     String namedSpaceDeletedJob2 = String.format("%s_%s", queueName, deletedJob2);
-    TestUtil.pollForEmptyJobState(_manager, queueName, namedSpaceDeletedJob2);
+    TaskTestUtil.pollForEmptyJobState(_manager, queueName, namedSpaceDeletedJob2);
 
     // delete not-started job (job 3) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob2);
@@ -339,7 +333,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     // add job 3 back
     JobConfig.Builder job =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
     LOG.info("Enqueuing job: " + deletedJob2);
@@ -350,7 +344,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
-      TestUtil.pollForJobState(_manager, queueName, namedSpaceJobName, TaskState.COMPLETED);
+      TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceJobName, TaskState.COMPLETED);
 
       JobContext jobContext = TaskUtil.getJobContext(_manager, namedSpaceJobName);
       long jobStart = jobContext.getStartTime();
@@ -398,7 +392,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
       JobConfig.Builder job =
-          new JobConfig.Builder().setCommand("Reindex")
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
               .setJobCommandConfigMap(commandConfig)
               .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
               .setTargetPartitionStates(Sets.newHashSet(targetPartition));
@@ -408,19 +402,20 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
       currentJobNames.add(i, jobName);
     }
 
-    WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
 
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", scheduledQueue, deletedJob1);
-    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+    TaskTestUtil
+        .pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + scheduledQueue);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
-    TestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
+    TaskTestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob1);
@@ -431,20 +426,20 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TestUtil.pollForJobState(_manager, scheduledQueue,
+    TaskTestUtil.pollForJobState(_manager, scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TestUtil.pollForJobState(_manager, scheduledQueue,
+    TaskTestUtil.pollForJobState(_manager, scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.STOPPED);
-    TestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
+    TaskTestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
     String deletedJob2 = currentJobNames.get(2);
     String namedSpaceDeletedJob2 = String.format("%s_%s", scheduledQueue, deletedJob2);
-    TestUtil.pollForEmptyJobState(_manager, scheduledQueue, namedSpaceDeletedJob2);
+    TaskTestUtil.pollForEmptyJobState(_manager, scheduledQueue, namedSpaceDeletedJob2);
 
     // delete not-started job (job 3) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob2);
@@ -460,7 +455,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", scheduledQueue, currentJobNames.get(i));
-      TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
+      TaskTestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
 
       JobContext jobContext = TaskUtil.getJobContext(_manager, namedSpaceJobName);
       long jobStart = jobContext.getStartTime();
@@ -489,10 +484,9 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     for (int i = 0; i < JOB_COUNTS; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
-          new JobConfig.Builder().setCommand("Reindex").setJobCommandConfigMap(commandConfig)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+          .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       jobs.add(job);
       jobNames.add(targetPartition.toLowerCase() + "Job" + i);
     }
@@ -504,12 +498,12 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     }
     String currentLastJob = jobNames.get(JOB_COUNTS - 2);
 
-    WorkflowContext wCtx = TestUtil.pollForWorkflowContext(_manager, queueName);
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
 
     // ensure all jobs are finished
     String namedSpaceJob = String.format("%s_%s", scheduledQueue, currentLastJob);
-    TestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
 
     // enqueue the last job
     LOG.info("Enqueuing job: " + jobNames.get(JOB_COUNTS - 1));
@@ -537,7 +531,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     // Enqueue 2 jobs
     Set<String> master = Sets.newHashSet("MASTER");
     JobConfig.Builder job1 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(master);
     String job1Name = "masterJob";
     LOG.info("Enqueuing job1: " + job1Name);
@@ -545,17 +539,17 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     Set<String> slave = Sets.newHashSet("SLAVE");
     JobConfig.Builder job2 =
-        new JobConfig.Builder().setCommand("Reindex")
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
             .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB).setTargetPartitionStates(slave);
     String job2Name = "slaveJob";
     LOG.info("Enqueuing job2: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
 
     String namespacedJob2 = String.format("%s_%s", queueName,  job2Name);
-    TestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
 
     // Stop queue
     _driver.stop(queueName);
@@ -605,7 +599,7 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
 
     Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(jobName)));
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(jobName)));
-    TestUtil.pollForEmptyJobState(_manager, queueName, jobName);
+    TaskTestUtil.pollForEmptyJobState(_manager, queueName, jobName);
   }
 
   private void verifyJobNotInQueue(String queueName, String namedSpacedJobName) {
@@ -614,49 +608,5 @@ public class TestTaskRebalancerStopResume extends ZkIntegrationTestBase {
     Assert.assertFalse(dag.getAllNodes().contains(namedSpacedJobName));
     Assert.assertFalse(dag.getChildrenToParents().containsKey(namedSpacedJobName));
     Assert.assertFalse(dag.getParentsToChildren().containsKey(namedSpacedJobName));
-  }
-
-  public static class ReindexTask implements Task {
-    private final long _delay;
-    private volatile boolean _canceled;
-
-    public ReindexTask(TaskCallbackContext context) {
-      JobConfig jobCfg = context.getJobConfig();
-      Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
-      if (cfg == null) {
-        cfg = Collections.emptyMap();
-      }
-      _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 200L;
-    }
-
-    @Override
-    public TaskResult run() {
-      long expiry = System.currentTimeMillis() + _delay;
-      long timeLeft;
-      while (System.currentTimeMillis() < expiry) {
-        if (_canceled) {
-          timeLeft = expiry - System.currentTimeMillis();
-          return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
-              : timeLeft));
-        }
-        sleep(50);
-      }
-      timeLeft = expiry - System.currentTimeMillis();
-      return new TaskResult(TaskResult.Status.COMPLETED,
-          String.valueOf(timeLeft < 0 ? 0 : timeLeft));
-    }
-
-    @Override
-    public void cancel() {
-      _canceled = true;
-    }
-
-    private static void sleep(long d) {
-      try {
-        Thread.sleep(d);
-      } catch (InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
   }
 }

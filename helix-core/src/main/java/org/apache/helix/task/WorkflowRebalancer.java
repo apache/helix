@@ -77,17 +77,15 @@ public class WorkflowRebalancer extends TaskRebalancer {
     }
 
     long currentTime = System.currentTimeMillis();
-    // Check if workflow is completed and mark it if it is completed.
-    if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
-      if (isWorkflowComplete(workflowCtx, workflowCfg)) {
-        workflowCtx.setWorkflowState(TaskState.COMPLETED);
-        workflowCtx.setFinishTime(currentTime);
-        TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
-      }
+    // Check if workflow has been finished and mark it if it is.
+    if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED
+        && isWorkflowFinished(workflowCtx, workflowCfg)) {
+      workflowCtx.setFinishTime(currentTime);
+      TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
     }
 
     if (workflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
-      LOG.info("Workflow " + workflow + " is completed.");
+      LOG.info("Workflow " + workflow + " is finished.");
       long expiryTime = workflowCfg.getExpiry();
       // Check if this workflow has been finished past its expiry.
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
@@ -162,10 +160,19 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     // Set up job resource based on partitions from target resource
     int numIndependentTasks = jobConfig.getTaskConfigMap().size();
-    int numPartitions = (numIndependentTasks > 0) ?
-        numIndependentTasks :
-        admin.getResourceIdealState(_manager.getClusterName(), jobConfig.getTargetResource())
-            .getPartitionSet().size();
+
+    int numPartitions = numIndependentTasks;
+    if (numPartitions == 0) {
+      IdealState targetIs =
+          admin.getResourceIdealState(_manager.getClusterName(), jobConfig.getTargetResource());
+      if (targetIs == null) {
+        LOG.warn("Target resource does not exist for job " + jobResource);
+        // do not need to fail here, the job will be marked as failure immediately when job starts running.
+      } else {
+        numPartitions = targetIs.getPartitionSet().size();
+      }
+    }
+
     admin.addResource(_manager.getClusterName(), jobResource, numPartitions,
         TaskConstants.STATE_MODEL_NAME);
 

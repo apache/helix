@@ -62,22 +62,33 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       CurrentStateOutput currStateOutput);
 
   /**
-   * Checks if the workflow has completed.
+   * Checks if the workflow has finished (either completed or failed).
+   * Set the state in workflow context properly.
    *
    * @param ctx Workflow context containing job states
    * @param cfg Workflow config containing set of jobs
-   * @return returns true if all tasks are {@link TaskState#COMPLETED}, false otherwise.
+   * @return returns true if the workflow either completed (all tasks are {@link TaskState#COMPLETED})
+   * or failed (any task is {@link TaskState#FAILED}, false otherwise.
    */
-  protected boolean isWorkflowComplete(WorkflowContext ctx, WorkflowConfig cfg) {
-    if (!cfg.isTerminable()) {
-      return false;
-    }
+  protected boolean isWorkflowFinished(WorkflowContext ctx, WorkflowConfig cfg) {
+    boolean incomplete = false;
     for (String job : cfg.getJobDag().getAllNodes()) {
-      if (ctx.getJobState(job) != TaskState.COMPLETED) {
-        return false;
+      TaskState jobState = ctx.getJobState(job);
+      if (jobState == TaskState.FAILED) {
+        ctx.setWorkflowState(TaskState.FAILED);
+        return true;
+      }
+      if (jobState != TaskState.COMPLETED) {
+        incomplete = true;
       }
     }
-    return true;
+
+    if (!incomplete && cfg.isTerminable()) {
+      ctx.setWorkflowState(TaskState.COMPLETED);
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -124,6 +135,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       WorkflowContext workflowCtx) {
     int notStartedCount = 0;
     int inCompleteCount = 0;
+    int failedCount = 0;
 
     for (String ancestor : workflowCfg.getJobDag().getAncestors(job)) {
       TaskState jobState = workflowCtx.getJobState(ancestor);
@@ -131,13 +143,16 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         ++notStartedCount;
       } else if (jobState == TaskState.IN_PROGRESS || jobState == TaskState.STOPPED) {
         ++inCompleteCount;
+      } else if (jobState == TaskState.FAILED) {
+        ++failedCount;
       }
     }
 
-    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()) {
-      LOG.debug(String
-          .format("Job %s is not ready to start, notStartedParent(s)=%d, inCompleteParent(s)=%d.",
-              job, notStartedCount, inCompleteCount));
+    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()
+        || failedCount > 0) {
+      LOG.debug(String.format(
+          "Job %s is not ready to start, notStartedParent(s)=%d, inCompleteParent(s)=%d, failedParent(s)=%d.",
+          job, notStartedCount, inCompleteCount, failedCount));
       return false;
     }
 

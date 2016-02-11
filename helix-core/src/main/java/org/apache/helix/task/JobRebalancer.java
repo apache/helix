@@ -31,7 +31,6 @@ import org.apache.log4j.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -206,9 +205,23 @@ public class JobRebalancer extends TaskRebalancer {
     TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalulator(jobCfg);
     Set<Integer> allPartitions =
         taskAssignmentCal.getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache);
+
+    if (allPartitions == null || allPartitions.isEmpty()) {
+      // Empty target partitions, mark the job as FAILED.
+      LOG.warn(
+          "Missing task partition mapping for job " + jobResource + ", marked the job as FAILED!");
+      markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
+      markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
+      return new ResourceAssignment(jobResource);
+    }
+
     Map<String, SortedSet<Integer>> taskAssignments =
         getTaskPartitionAssignments(liveInstances, prevAssignment, allPartitions);
     long currentTime = System.currentTimeMillis();
+
+    LOG.debug("All partitions: " + allPartitions + " taskAssignment: " + taskAssignments
+        + " excludedInstances: " + excludedInstances);
+
     for (String instance : taskAssignments.keySet()) {
       if (excludedInstances.contains(instance)) {
         continue;
@@ -322,13 +335,7 @@ public class JobRebalancer extends TaskRebalancer {
             }
 
             if (!successOptional) {
-              long finishTime = currentTime;
-              workflowCtx.setJobState(jobResource, TaskState.FAILED);
-              if (workflowConfig.isTerminable()) {
-                workflowCtx.setWorkflowState(TaskState.FAILED);
-                workflowCtx.setFinishTime(finishTime);
-              }
-              jobCtx.setFinishTime(finishTime);
+              markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
               markAllPartitionsError(jobCtx, currState, false);
               addAllPartitions(allPartitions, partitionsToDropFromIs);
 
@@ -367,13 +374,7 @@ public class JobRebalancer extends TaskRebalancer {
     scheduleForNextTask(jobResource, jobCtx, currentTime);
 
     if (isJobComplete(jobCtx, allPartitions, skippedPartitions, jobCfg)) {
-      workflowCtx.setJobState(jobResource, TaskState.COMPLETED);
-      jobCtx.setFinishTime(currentTime);
-      if (isWorkflowComplete(workflowCtx, workflowConfig)) {
-        workflowCtx.setWorkflowState(TaskState.COMPLETED);
-        workflowCtx.setFinishTime(currentTime);
-      }
-
+      markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
       // remove IdealState of this job
       TaskUtil.cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     }
@@ -426,6 +427,26 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     return ra;
+  }
+
+  private void markJobFailed(String jobName, JobContext jobContext, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext) {
+    long currentTime = System.currentTimeMillis();
+    workflowContext.setJobState(jobName, TaskState.FAILED);
+    jobContext.setFinishTime(currentTime);
+    if (isWorkflowFinished(workflowContext, workflowConfig)) {
+      workflowContext.setFinishTime(currentTime);
+    }
+  }
+
+  private void markJobComplete(String jobName, JobContext jobContext,
+      WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
+    long currentTime = System.currentTimeMillis();
+    workflowContext.setJobState(jobName, TaskState.COMPLETED);
+    jobContext.setFinishTime(currentTime);
+    if (isWorkflowFinished(workflowContext, workflowConfig)) {
+      workflowContext.setFinishTime(currentTime);
+    }
   }
 
   private void scheduleForNextTask(String job, JobContext jobCtx, long now) {

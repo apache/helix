@@ -604,7 +604,6 @@ public class TaskDriver {
     LOG.info("Add job configuration " + jobName);
 
     // Set the job configuration
-    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
     ResourceConfig resourceConfig = new ResourceConfig(jobName);
     resourceConfig.putSimpleConfigs(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
@@ -707,6 +706,22 @@ public class TaskDriver {
     } else {
       LOG.error("Configuration path " + cfgKey + " not found!");
     }
+  }
+
+  public WorkflowConfig getWorkflowConfig(String workflow) {
+    return TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, workflow);
+  }
+
+  public WorkflowContext getWorkflowContext(String workflow) {
+    return TaskUtil.getWorkflowContext(_propertyStore, workflow);
+  }
+
+  public JobConfig getJobConfig(String job) {
+    return TaskUtil.getJobCfg(_accessor, job);
+  }
+
+  public JobContext getJobContext(String job) {
+    return TaskUtil.getJobContext(_propertyStore, job);
   }
 
   public void list(String resource) {

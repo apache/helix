@@ -31,7 +31,6 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
 /**
  * Custom rebalancer implementation for the {@code Workflow} in task state model.
  */
@@ -180,7 +179,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
     // Set the job configuration
-    ResourceConfig resourceConfig = new ResourceConfig(jobResource);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    HelixProperty resourceConfig = new HelixProperty(jobResource);
     resourceConfig.getRecord().getSimpleFields().putAll(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
     if (taskConfigMap != null) {
@@ -188,7 +188,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
         resourceConfig.getRecord().setMapField(taskConfig.getId(), taskConfig.getConfigMap());
       }
     }
-    accessor.setResourceConfig(resourceConfig);
+    accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
 
     // Push out new ideal state based on number of target partitions
     CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);

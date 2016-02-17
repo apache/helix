@@ -28,6 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
@@ -47,7 +48,6 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
-
 
 public class TestClusterSetup extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestClusterSetup.class);
@@ -400,7 +400,7 @@ public class TestClusterSetup extends ZkUnitTestBase {
     LiveInstance liveInstance = new LiveInstance("localhost_12918");
     liveInstance.setSessionId("session_0");
     liveInstance.setHelixVersion("version_0");
-    accessor.setLiveInstance(liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance("localhost_12918"), liveInstance);
 
     // drop without stop the process, should throw exception
     try {

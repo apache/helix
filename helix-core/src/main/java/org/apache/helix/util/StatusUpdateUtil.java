@@ -44,7 +44,6 @@ import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.log4j.Logger;
 
-
 /**
  * Util class to create statusUpdates ZK records and error ZK records. These message
  * records are for diagnostics only, and they are stored on the "StatusUpdates" and
@@ -489,7 +488,7 @@ public class StatusUpdateUtil {
       // ../{sessionId}/{subPath}
       // accessor.setProperty(PropertyType.ERRORS_CONTROLLER, record,
       // statusUpdateSubPath);
-      accessor.setControllerError(new Error(record));
+      accessor.setProperty(keyBuilder.controllerTaskError(statusUpdateSubPath), new Error(record));
     } else {
       // accessor.updateProperty(PropertyType.ERRORS,
       // record,

@@ -19,10 +19,14 @@ package org.apache.helix.healthcheck;
  * under the License.
  */
 
+import org.apache.helix.ZNRecord;
+
 public interface ParticipantHealthReportCollector {
   void addHealthReportProvider(HealthReportProvider provider);
 
   void removeHealthReportProvider(HealthReportProvider provider);
+
+  void reportHealthReportMessage(ZNRecord healthReport);
 
   void transmitHealthReports();
 }

@@ -43,7 +43,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.log4j.Logger;
 
-
 public class DefaultMessagingService implements ClusterMessagingService {
   private final HelixManager _manager;
   private final CriteriaEvaluator _evaluator;
@@ -111,14 +110,18 @@ public class DefaultMessagingService implements ClusterMessagingService {
         }
 
         HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+        Builder keyBuilder = accessor.keyBuilder();
+
         if (receiverType == InstanceType.CONTROLLER) {
           // _manager.getDataAccessor().setProperty(PropertyType.MESSAGES_CONTROLLER,
           // tempMessage,
           // tempMessage.getId());
-          accessor.setControllerMessage(tempMessage);
+          accessor.setProperty(keyBuilder.controllerMessage(tempMessage.getId()), tempMessage);
         }
+
         if (receiverType == InstanceType.PARTICIPANT) {
-          accessor.setInstanceMessage(tempMessage.getTgtName(), tempMessage);
+          accessor.setProperty(keyBuilder.message(tempMessage.getTgtName(), tempMessage.getId()),
+              tempMessage);
         }
       }
     }
@@ -267,15 +270,18 @@ public class DefaultMessagingService implements ClusterMessagingService {
       nopMsg.setSrcName(_manager.getInstanceName());
 
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-      if (_manager.getInstanceType() == InstanceType.CONTROLLER ||
-          _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+      Builder keyBuilder = accessor.keyBuilder();
+
+      if (_manager.getInstanceType() == InstanceType.CONTROLLER
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
         nopMsg.setTgtName("Controller");
-        accessor.setControllerMessage(nopMsg);
+        accessor.setProperty(keyBuilder.controllerMessage(nopMsg.getId()), nopMsg);
       }
-      if (_manager.getInstanceType() == InstanceType.PARTICIPANT ||
-          _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+
+      if (_manager.getInstanceType() == InstanceType.PARTICIPANT
+          || _manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
         nopMsg.setTgtName(_manager.getInstanceName());
-        accessor.setInstanceMessage(nopMsg.getTgtName(), nopMsg);
+        accessor.setProperty(keyBuilder.message(nopMsg.getTgtName(), nopMsg.getId()), nopMsg);
       }
     } catch (Exception e) {
       _logger.error(e);

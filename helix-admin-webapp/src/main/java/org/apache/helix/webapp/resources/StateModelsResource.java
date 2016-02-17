@@ -100,7 +100,8 @@ public class StateModelsResource extends ServerResource {
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setStateModelDef(new StateModelDefinition(newStateModel));
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()),
+            new StateModelDefinition(newStateModel));
         getResponse().setEntity(getStateModelsRepresentation());
       } else {
         throw new HelixException("Unsupported command: " + command + ". Should be one of ["

@@ -47,7 +47,6 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestDrop extends ZkIntegrationTestBase {
 
   /**
@@ -336,7 +335,8 @@ public class TestDrop extends ZkIntegrationTestBase {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
-    accessor.setIdealState(isBuilder.build());
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), isBuilder.build());
 
     // start controller
     ClusterControllerManager controller =

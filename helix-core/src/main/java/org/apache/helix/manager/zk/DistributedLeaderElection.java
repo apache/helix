@@ -156,6 +156,6 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       history = new LeaderHistory(PropertyType.HISTORY.toString());
     }
     history.updateHistory(manager.getClusterName(), manager.getInstanceName());
-    accessor.setControllerHistory(history);
+    accessor.setProperty(keyBuilder.controllerLeaderHistory(), history);
   }
 }

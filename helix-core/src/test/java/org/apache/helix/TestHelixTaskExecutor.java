@@ -22,6 +22,7 @@ package org.apache.helix;
 import org.apache.helix.Mocks.MockHelixTaskExecutor;
 import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.Mocks.MockStateModel;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.AsyncCallbackService;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTask;
@@ -33,7 +34,6 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-
 
 public class TestHelixTaskExecutor {
 
@@ -57,7 +57,8 @@ public class TestHelixTaskExecutor {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-    accessor.setStateModelDef(stateModelDef);
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();

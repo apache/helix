@@ -43,7 +43,6 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestRebalancePipeline extends ZkUnitTestBase {
   private static final Logger LOG = Logger.getLogger(TestRebalancePipeline.class.getName());
   final String _className = getShortClassName();
@@ -374,11 +373,12 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
       String resourceKey, String sessionId, String state) {
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
 
     CurrentState curState = new CurrentState(resourceGroupName);
     curState.setState(resourceKey, state);
     curState.setSessionId(sessionId);
     curState.setStateModelDefRef("MasterSlave");
-    accessor.setInstanceCurrentState(instance, sessionId, curState);
+    accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName), curState);
   }
 }

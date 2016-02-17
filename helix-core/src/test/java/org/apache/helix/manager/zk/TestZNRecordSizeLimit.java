@@ -27,13 +27,18 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZNRecordStreamingSerializer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestZNRecordSizeLimit extends ZkUnitTestBase {
   private static Logger LOG = Logger.getLogger(TestZNRecordSizeLimit.class);
@@ -112,7 +117,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
         new ZKHelixDataAccessor(className, new ZkBaseDataAccessor(zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    IdealState idealState = new IdealState("TestDB1");
+    IdealState idealState = new IdealState("currentState");
     idealState.setStateModelDefRef("MasterSlave");
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
@@ -120,7 +125,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 1024; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    boolean succeed = accessor.setIdealState(idealState);
+    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
     Assert.assertFalse(succeed);
     HelixProperty property =
         accessor.getProperty(keyBuilder.stateTransitionStatus("localhost_12918", "session_1",
@@ -136,7 +141,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 900; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    succeed = accessor.setIdealState(idealState);
+    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     Assert.assertTrue(succeed);
     record = accessor.getProperty(keyBuilder.idealStates("TestDB1")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);
@@ -236,7 +241,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     Builder keyBuilder = accessor.keyBuilder();
 
     // ZNRecord statusUpdates = new ZNRecord("statusUpdates");
-    IdealState idealState = new IdealState("TestDB_1");
+    IdealState idealState = new IdealState("currentState");
     idealState.setStateModelDefRef("MasterSlave");
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
@@ -244,13 +249,13 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 1024; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    boolean succeed = accessor.setIdealState(idealState);
+    boolean succeed = accessor.setProperty(keyBuilder.idealStates("TestDB_1"), idealState);
     Assert.assertFalse(succeed);
     HelixProperty property = accessor.getProperty(keyBuilder.idealStates("TestDB_1"));
     Assert.assertNull(property);
 
     // legal sized data gets written to zk
-    idealState = new IdealState("TestDB_2");
+    idealState.getRecord().getSimpleFields().clear();
     idealState.setStateModelDefRef("MasterSlave");
     idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
     idealState.setNumPartitions(10);
@@ -258,7 +263,7 @@ public class TestZNRecordSizeLimit extends ZkUnitTestBase {
     for (int i = 0; i < 900; i++) {
       idealState.getRecord().setSimpleField(i + "", bufStr);
     }
-    succeed = accessor.setIdealState(idealState);
+    succeed = accessor.setProperty(keyBuilder.idealStates("TestDB_2"), idealState);
     Assert.assertTrue(succeed);
     record = accessor.getProperty(keyBuilder.idealStates("TestDB_2")).getRecord();
     Assert.assertTrue(serializer.serialize(record).length > 900 * 1024);

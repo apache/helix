@@ -43,7 +43,6 @@ import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestBucketizedResource extends ZkIntegrationTestBase {
 
   private void setupCluster(String clusterName, List<String> instanceNames, String dbName,
@@ -54,6 +53,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
 
     // add a bucketized resource
     ZKHelixDataAccessor accessor = new ZKHelixDataAccessor(clusterName, _baseAccessor);
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     ZNRecord idealStateRec =
         DefaultIdealStateCalculator.calculateIdealState(instanceNames, partitions, replica - 1,
             dbName,
@@ -63,7 +63,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     idealState.setStateModelDefRef("MasterSlave");
     idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
     idealState.setReplicas(Integer.toString(replica));
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates(dbName), idealState);
 
   }
 
@@ -288,7 +288,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
     idealState.setStateModelDefRef("MasterSlave");
     idealState.setRebalanceMode(IdealState.RebalanceMode.CUSTOMIZED);
     idealState.setReplicas(Integer.toString(r));
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates(newDbName), idealState);
     result =
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));

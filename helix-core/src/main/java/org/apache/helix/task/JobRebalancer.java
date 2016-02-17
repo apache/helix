@@ -40,7 +40,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-
 /**
  * Custom rebalancer implementation for the {@code Job} in task model.
  */
@@ -134,7 +133,8 @@ public class JobRebalancer extends TaskRebalancer {
         taskIs.getRecord().getMapFields().remove(pName(jobName, pId));
       }
       HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-      accessor.setIdealState(taskIs);
+      PropertyKey propertyKey = accessor.keyBuilder().idealStates(jobName);
+      accessor.setProperty(propertyKey, taskIs);
     }
 
     // Update rebalancer context, previous ideal state.

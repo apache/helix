@@ -27,6 +27,7 @@ import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
 import org.apache.helix.HelixConstants.ChangeType;
 import org.apache.helix.NotificationContext.Type;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -39,7 +40,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
   private static Logger LOG = Logger.getLogger(TestHelixCustomCodeRunner.class);
@@ -116,11 +116,12 @@ public class TestHelixCustomCodeRunner extends ZkIntegrationTestBase {
     // add a new live instance
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(_clusterName, new ZkBaseDataAccessor<ZNRecord>(_gZkClient));
+    Builder keyBuilder = accessor.keyBuilder();
 
     LiveInstance newLiveIns = new LiveInstance("newLiveInstance");
     newLiveIns.setHelixVersion("0.6.0");
     newLiveIns.setSessionId("randomSessionId");
-    accessor.setLiveInstance(newLiveIns);
+    accessor.setProperty(keyBuilder.liveInstance("newLiveInstance"), newLiveIns);
 
     Thread.sleep(1000); // wait for the CALLBACK type callback to finish
     Assert.assertTrue(_callback._isCallbackInvoked);

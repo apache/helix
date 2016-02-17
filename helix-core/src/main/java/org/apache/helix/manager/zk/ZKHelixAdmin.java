@@ -294,7 +294,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (enabled) {
       accessor.removeProperty(keyBuilder.pause());
     } else {
-      accessor.createControllerPause(new PauseSignal("pause"));
+      accessor.createPause(new PauseSignal("pause"));
     }
   }
 
@@ -681,7 +681,9 @@ public class ZKHelixAdmin implements HelixAdmin {
   public void setResourceIdealState(String clusterName, String resourceName, IdealState idealState) {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    accessor.setIdealState(idealState);
+    Builder keyBuilder = accessor.keyBuilder();
+
+    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
   }
 
   @Override
@@ -719,7 +721,8 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    accessor.setStateModelDef(stateModel);
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef(stateModel.getId()), stateModel);
   }
 
   @Override
@@ -795,7 +798,9 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     ZKHelixDataAccessor accessor =
         new ZKHelixDataAccessor(grandCluster, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
-    accessor.setIdealState(idealState);
+    Builder keyBuilder = accessor.keyBuilder();
+
+    accessor.setProperty(keyBuilder.idealStates(idealState.getResourceName()), idealState);
   }
 
   @Override
@@ -1099,7 +1104,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.addTag(tag);
-    accessor.setInstanceConfig(config);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
   }
 
   @Override
@@ -1118,7 +1123,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.removeTag(tag);
-    accessor.setInstanceConfig(config);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
   }
 
   @Override
@@ -1137,7 +1142,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.setZoneId(zoneId);
-    accessor.setInstanceConfig(config);
+    accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
   }
 
   @Override

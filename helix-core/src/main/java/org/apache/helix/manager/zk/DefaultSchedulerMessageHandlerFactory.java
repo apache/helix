@@ -48,7 +48,6 @@ import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 
-
 /*
  * The current implementation supports throttling on STATE-TRANSITION type of message, transition SCHEDULED-COMPLETED.
  *
@@ -112,7 +111,10 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
                   originalMessage.getMsgId())).getRecord();
 
       statusUpdate.getMapFields().putAll(_resultSummaryMap);
-      accessor.setControllerStatusUpdate(MessageType.SCHEDULER_MSG.name(), new StatusUpdate(statusUpdate));
+      accessor.setProperty(
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+              originalMessage.getMsgId()), new StatusUpdate(statusUpdate));
+
     }
   }
 
@@ -327,7 +329,8 @@ public class DefaultSchedulerMessageHandlerFactory implements MessageHandlerFact
 
       statusUpdate.getMapFields().put("SentMessageCount", sendSummary);
 
-      accessor.setControllerStatusUpdate(MessageType.SCHEDULER_MSG.name(), new StatusUpdate(statusUpdate));
+      accessor.setProperty(keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+          _message.getMsgId()), new StatusUpdate(statusUpdate));
 
       result.getTaskResultMap().put("ControllerResult",
           "msg " + _message.getMsgId() + " from " + _message.getMsgSrc() + " processed");

@@ -37,7 +37,6 @@ import org.testng.annotations.Test;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
-
 public class TestResourceValidationStage {
   private static final String PARTICIPANT = "localhost_1234";
   private static final String STATE = "OFFLINE";
@@ -153,7 +152,7 @@ public class TestResourceValidationStage {
     idealState.setReplicas("1");
     idealState.getRecord().setListField(resourceId + "_0", ImmutableList.of(PARTICIPANT));
     idealState.getRecord().setMapField(resourceId + "_0", ImmutableMap.of(PARTICIPANT, STATE));
-    accessor.setIdealState(idealState);
+    accessor.setProperty(accessor.keyBuilder().idealStates(resourceId), idealState);
   }
 
   private void createISSpec(HelixDataAccessor accessor, String specId, String stateModelDefRef,
@@ -168,15 +167,15 @@ public class TestResourceValidationStage {
         IdealStateProperty.REBALANCE_MODE.toString() + "=" + rebalanceMode.toString() + ","
             + IdealStateProperty.STATE_MODEL_DEF_REF.toString() + "=" + stateModelDefRef;
     property.getRecord().setSimpleField(key, value);
-    accessor.setClusterConfig(property);
+    accessor.setProperty(propertyKey, property);
   }
 
   private void addStateModels(HelixDataAccessor accessor) {
     StateModelDefinition masterSlave =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-    accessor.setStateModelDef(masterSlave);
+    accessor.setProperty(accessor.keyBuilder().stateModelDef(masterSlave.getId()), masterSlave);
     StateModelDefinition onlineOffline =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
-    accessor.setStateModelDef(onlineOffline);
+    accessor.setProperty(accessor.keyBuilder().stateModelDef(onlineOffline.getId()), onlineOffline);
   }
 }

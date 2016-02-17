@@ -21,9 +21,13 @@ package org.apache.helix;
 
 import java.util.Date;
 
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.Mocks.MockManager;
 import org.apache.helix.Mocks.MockStateModel;
 import org.apache.helix.Mocks.MockStateModelAnnotated;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.messaging.handling.HelixStateTransitionHandler;
 import org.apache.helix.messaging.handling.HelixTask;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
@@ -35,7 +39,6 @@ import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.testng.AssertJUnit;
 import org.testng.annotations.Test;
-
 
 public class TestHelixTaskHandler {
   @Test()
@@ -60,7 +63,8 @@ public class TestHelixTaskHandler {
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-    accessor.setStateModelDef(stateModelDef);
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     context = new NotificationContext(manager);
     CurrentState currentStateDelta = new CurrentState("TestDB");
@@ -100,7 +104,8 @@ public class TestHelixTaskHandler {
 
     StateModelDefinition stateModelDef =
         new StateModelDefinition(StateModelConfigGenerator.generateConfigForMasterSlave());
-    accessor.setStateModelDef(stateModelDef);
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.stateModelDef("MasterSlave"), stateModelDef);
 
     context = new NotificationContext(manager);
 

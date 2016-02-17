@@ -38,7 +38,6 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase {
   @Test
   public void testBasic() throws Exception {
@@ -87,7 +86,7 @@ public class TestAddStateModelFactoryAfterConnect extends ZkIntegrationTestBase 
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB1"));
     idealState.setStateModelFactoryName("TestDB1_Factory");
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB1"), idealState);
     setupTool.rebalanceStorageCluster(clusterName, "TestDB1", 3);
 
     // assert that we have received OFFLINE->SLAVE messages for all partitions

@@ -39,7 +39,6 @@ import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestDisable extends ZkIntegrationTestBase {
 
   @Test
@@ -70,7 +69,7 @@ public class TestDisable extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // start controller
     ClusterControllerManager controller =
@@ -237,7 +236,7 @@ public class TestDisable extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setRebalanceMode(RebalanceMode.CUSTOMIZED);
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // start controller
     ClusterControllerManager controller =

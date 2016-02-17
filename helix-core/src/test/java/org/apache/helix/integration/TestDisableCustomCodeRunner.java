@@ -46,7 +46,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
 
   private static final int N = 2;
@@ -191,7 +190,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     LiveInstance fakeInstance = new LiveInstance("fakeInstance");
     fakeInstance.setSessionId("fakeSessionId");
     fakeInstance.setHelixVersion("0.6");
-    accessor.setLiveInstance(fakeInstance);
+    accessor.setProperty(keyBuilder.liveInstance("fakeInstance"), fakeInstance);
     Thread.sleep(1000);
 
     for (Map.Entry<String, DummyCallback> e : callbacks.entrySet()) {
@@ -240,7 +239,7 @@ public class TestDisableCustomCodeRunner extends ZkUnitTestBase {
     }
 
     // Add a fake instance should invoke custom-code runner
-    accessor.setLiveInstance(fakeInstance);
+    accessor.setProperty(keyBuilder.liveInstance("fakeInstance"), fakeInstance);
     Thread.sleep(1000);
     for (String instance : callbacks.keySet()) {
       DummyCallback callback = callbacks.get(instance);

@@ -37,21 +37,11 @@ import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.messaging.handling.HelixTaskResult;
 import org.apache.helix.messaging.handling.MessageHandlerFactory;
 import org.apache.helix.messaging.handling.MessageTask;
-import org.apache.helix.model.ClusterConstraints;
-import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.Error;
-import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HealthStat;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
-import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
@@ -465,6 +455,7 @@ public class Mocks {
       // TODO Auto-generated method stub
       return null;
     }
+
   }
 
   public static class MockAccessor implements HelixDataAccessor {
@@ -489,118 +480,24 @@ public class Mocks {
     }
 
     @Override
-    public boolean createControllerLeader(LiveInstance leader) {
-      return false;
-    }
-
-    @Override
     public boolean createControllerMessage(Message message) {
       return false;
     }
 
     @Override
-    public boolean createControllerPause(PauseSignal pauseSignal) {
+    public boolean createControllerLeader(LiveInstance leader) {
       return false;
     }
 
     @Override
-    public boolean setIdealState(IdealState idealState) {
-      return setProperty(PropertyPathBuilder.idealState(_clusterName, idealState.getId()), idealState);
+    public boolean createPause(PauseSignal pauseSignal) {
+      return false;
     }
 
     @Override
-    public boolean setStateModelDef(StateModelDefinition stateModelDef) {
-      return setProperty(PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId()), stateModelDef);
-    }
-
-    @Override
-    public boolean setExternalView(ExternalView externalView) {
-      return setProperty(PropertyPathBuilder.externalView(_clusterName, externalView.getId()), externalView);
-    }
-
-    @Override
-    public boolean setLiveInstance(LiveInstance liveInstance) {
-      return setProperty(PropertyPathBuilder.liveInstance(_clusterName, liveInstance.getId()), liveInstance);
-    }
-
-    @Override
-    public boolean setInstanceMessage(String instanceName, Message message) {
-      return setProperty(PropertyPathBuilder.instanceMessage(_clusterName, instanceName, message.getId()), message);
-    }
-
-    @Override
-    public boolean setInstanceCurrentState(String instanceName, String sessionId, CurrentState currentState) {
-      return setProperty(
-          PropertyPathBuilder.instanceCurrentState(_clusterName, instanceName, sessionId, currentState.getId()),
-          currentState);
-    }
-
-    @Override
-    public boolean setInstanceError(String instanceName, String sessionId, String resourceName, Error error) {
-      return setProperty(
-          PropertyPathBuilder.instanceError(_clusterName, instanceName, sessionId, resourceName, error.getId()), error);
-    }
-
-    @Override
-    public boolean setInstanceStatusUpdate(
-        String instanceName, String sessionId, String resourceName, StatusUpdate statusUpdate) {
-      return setProperty(
-          PropertyPathBuilder.instanceStatusUpdate(_clusterName, instanceName, sessionId, resourceName,
-              statusUpdate.getId()),
-          statusUpdate);
-    }
-
-    @Override
-    public boolean setInstanceHealthReport(String instanceName, HealthStat healthStat) {
-      return setProperty(PropertyPathBuilder.instanceHealthReport(_clusterName, instanceName, healthStat.getId()),
-          healthStat);
-    }
-
-    @Override
-    public boolean setClusterConfig(HelixProperty clusterConfig) {
-      return setProperty(PropertyPathBuilder.clusterConfig(_clusterName), clusterConfig);
-    }
-
-    @Override
-    public boolean setConstraintConfig(ClusterConstraints clusterConstraints) {
-      return setProperty(PropertyPathBuilder.constraintConfig(_clusterName, clusterConstraints.getId()),
-          clusterConstraints);
-    }
-
-    @Override
-    public boolean setInstanceConfig(InstanceConfig instanceConfig) {
-      return setProperty(PropertyPathBuilder.instanceConfig(_clusterName, instanceConfig.getId()),
-          instanceConfig);
-    }
-
-    @Override
-    public boolean setResourceConfig(ResourceConfig resourceConfig) {
-      return setProperty(PropertyPathBuilder.resourceConfig(_clusterName, resourceConfig.getId()), resourceConfig);
-    }
-
-    @Override
-    public boolean setControllerMessage(Message message) {
-      return setProperty(PropertyPathBuilder.controllerMessage(_clusterName, message.getId()), message);
-    }
-
-    @Override
-    public boolean setControllerStatusUpdate(String subPath, StatusUpdate statusUpdate) {
-      return setProperty(PropertyPathBuilder.controllerStatusUpdate(_clusterName, subPath, statusUpdate.getId()),
-          statusUpdate);
-    }
-
-    @Override
-    public boolean setControllerError(Error error) {
-      return setProperty(PropertyPathBuilder.controllerError(_clusterName, error.getId()), error);
-    }
-
-    @Override
-    public boolean setControllerHistory(LeaderHistory history) {
-      return setProperty(PropertyPathBuilder.controllerHistory(_clusterName), history);
-    }
-
-    private boolean setProperty(String path, HelixProperty property) {
-      data.put(path, property.getRecord());
+    public boolean setProperty(PropertyKey key, HelixProperty value) {
+      String path = key.getPath();
+      data.put(path, value.getRecord());
       return true;
     }
 

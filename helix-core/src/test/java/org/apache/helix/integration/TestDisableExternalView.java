@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import java.util.Arrays;
 import java.util.Date;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
@@ -30,13 +31,12 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
+import com.google.common.collect.Lists;
 
 /**
  * Test disable external-view in resource ideal state -
@@ -139,7 +139,7 @@ public class TestDisableExternalView extends ZkIntegrationTestBase {
     // touch liveinstance to trigger externalview compute stage
     String instance = PARTICIPANT_PREFIX + "_" + START_PORT;
     HelixProperty liveInstance = accessor.getProperty(keyBuilder.liveInstance(instance));
-    accessor.setLiveInstance((LiveInstance) liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance(instance), liveInstance);
 
     // verify the external view for the db got removed
     for (int i = 0; i < 10; i++) {

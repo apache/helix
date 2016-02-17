@@ -40,7 +40,6 @@ import org.restlet.representation.StringRepresentation;
 import org.restlet.representation.Variant;
 import org.restlet.resource.ServerResource;
 
-
 public class StateModelResource extends ServerResource {
   private final static Logger LOG = Logger.getLogger(StateModelResource.class);
 
@@ -100,7 +99,8 @@ public class StateModelResource extends ServerResource {
         HelixDataAccessor accessor =
             ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
 
-        accessor.setStateModelDef(new StateModelDefinition(newStateModel));
+        accessor.setProperty(accessor.keyBuilder().stateModelDef(newStateModel.getId()),
+            new StateModelDefinition(newStateModel));
       } else {
         throw new HelixException("Unsupported command: " + command + ". Should be one of ["
             + ClusterSetup.addStateModelDef + "]");

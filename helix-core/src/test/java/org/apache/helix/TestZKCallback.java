@@ -24,6 +24,19 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.helix.ConfigChangeListener;
+import org.apache.helix.CurrentStateChangeListener;
+import org.apache.helix.ExternalViewChangeListener;
+import org.apache.helix.HelixConstants;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.IdealStateChangeListener;
+import org.apache.helix.InstanceType;
+import org.apache.helix.LiveInstanceChangeListener;
+import org.apache.helix.MessageListener;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
@@ -38,7 +51,6 @@ import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
 
 public class TestZKCallback extends ZkUnitTestBase {
   private final String clusterName = CLUSTER_PREFIX + "_" + getShortClassName();
@@ -134,9 +146,10 @@ public class TestZKCallback extends ZkUnitTestBase {
 
     testListener.Reset();
     HelixDataAccessor accessor = testHelixManager.getHelixDataAccessor();
+    Builder keyBuilder = accessor.keyBuilder();
 
     ExternalView extView = new ExternalView("db-12345");
-    accessor.setExternalView(extView);
+    accessor.setProperty(keyBuilder.externalView("db-12345"), extView);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.externalViewChangeReceived);
     testListener.Reset();
@@ -144,7 +157,8 @@ public class TestZKCallback extends ZkUnitTestBase {
     CurrentState curState = new CurrentState("db-12345");
     curState.setSessionId("sessionId");
     curState.setStateModelDefRef("StateModelDef");
-    accessor.setInstanceCurrentState("localhost_8900", testHelixManager.getSessionId(), curState);
+    accessor.setProperty(keyBuilder.currentState("localhost_8900", testHelixManager.getSessionId(),
+        curState.getId()), curState);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.currentStateChangeReceived);
     testListener.Reset();
@@ -153,7 +167,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     idealState.setNumPartitions(400);
     idealState.setReplicas(Integer.toString(2));
     idealState.setStateModelDefRef("StateModeldef");
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("db-1234"), idealState);
     Thread.sleep(100);
     AssertJUnit.assertTrue(testListener.idealStateChangeReceived);
     testListener.Reset();
@@ -180,7 +194,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     message.setTgtName("testTarget");
     message.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
 
-    accessor.setInstanceMessage("localhost_8900", message);
+    accessor.setProperty(keyBuilder.message("localhost_8900", message.getId()), message);
     Thread.sleep(500);
     AssertJUnit.assertTrue(testListener.messageChangeReceived);
 
@@ -188,7 +202,7 @@ public class TestZKCallback extends ZkUnitTestBase {
     LiveInstance liveInstance = new LiveInstance("localhost_9801");
     liveInstance.setSessionId(UUID.randomUUID().toString());
     liveInstance.setHelixVersion(UUID.randomUUID().toString());
-    accessor.setLiveInstance(liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance("localhost_9801"), liveInstance);
     Thread.sleep(500);
     AssertJUnit.assertTrue(testListener.liveInstanceChangeReceived);
     testListener.Reset();

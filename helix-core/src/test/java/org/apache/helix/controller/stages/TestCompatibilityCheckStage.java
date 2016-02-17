@@ -24,14 +24,16 @@ import java.util.List;
 
 import org.apache.helix.Mocks;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.stages.CompatibilityCheckStage;
+import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestCompatibilityCheckStage extends BaseStageTest {
   private void prepare(String controllerVersion, String participantVersion) {
@@ -53,7 +55,8 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     IdealState idealState = new IdealState(record);
     idealState.setStateModelDefRef("MasterSlave");
 
-    accessor.setIdealState(idealState);
+    Builder keyBuilder = accessor.keyBuilder();
+    accessor.setProperty(keyBuilder.idealStates(resourceName), idealState);
 
     // set live instances
     record = new ZNRecord("localhost_0");
@@ -62,7 +65,7 @@ public class TestCompatibilityCheckStage extends BaseStageTest {
     }
     LiveInstance liveInstance = new LiveInstance(record);
     liveInstance.setSessionId("session_0");
-    accessor.setLiveInstance(liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance("localhost_0"), liveInstance);
 
     if (controllerVersion != null) {
       ((Mocks.MockManager) manager).setVersion(controllerVersion);

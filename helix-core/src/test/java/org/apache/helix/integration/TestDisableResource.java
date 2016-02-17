@@ -42,7 +42,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestDisableResource extends ZkUnitTestBase {
   private static final int N = 2;
   private static final int PARTITION_NUM = 1;
@@ -182,7 +181,7 @@ public class TestDisableResource extends ZkUnitTestBase {
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setPartitionState("TestDB0_0", "localhost_12918", "SLAVE");
     idealState.setPartitionState("TestDB0_0", "localhost_12919", "SLAVE");
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller");

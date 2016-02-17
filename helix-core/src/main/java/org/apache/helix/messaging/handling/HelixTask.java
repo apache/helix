@@ -38,7 +38,6 @@ import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
-
 public class HelixTask implements MessageTask {
   private static Logger logger = Logger.getLogger(HelixTask.class);
   private final Message _message;
@@ -205,9 +204,12 @@ public class HelixTask implements MessageTask {
       replyMessage.setSrcInstanceType(_manager.getInstanceType());
 
       if (message.getSrcInstanceType() == InstanceType.PARTICIPANT) {
-        accessor.setInstanceMessage(message.getMsgSrc(), replyMessage);
+        Builder keyBuilder = accessor.keyBuilder();
+        accessor.setProperty(keyBuilder.message(message.getMsgSrc(), replyMessage.getMsgId()),
+            replyMessage);
       } else if (message.getSrcInstanceType() == InstanceType.CONTROLLER) {
-        accessor.setControllerMessage(replyMessage);
+        Builder keyBuilder = accessor.keyBuilder();
+        accessor.setProperty(keyBuilder.controllerMessage(replyMessage.getMsgId()), replyMessage);
       }
       _statusUpdateUtil.logInfo(message, HelixTask.class,
           "1 msg replied to " + replyMessage.getTgtName(), accessor);

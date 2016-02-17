@@ -37,7 +37,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 /**
  * @see HELIX-552
  *      StateModelFactory#_stateModelMap should use both resourceName and partitionKey to map a
@@ -72,7 +71,7 @@ public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
     idealState.setPartitionState("0", "localhost_12919", "ONLINE");
     idealState.setPartitionState("1", "localhost_12918", "ONLINE");
     idealState.setPartitionState("1", "localhost_12919", "ONLINE");
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     ClusterControllerManager controller =
         new ClusterControllerManager(ZK_ADDR, clusterName, "controller_0");
@@ -100,7 +99,7 @@ public class TestResourceWithSamePartitionKey extends ZkUnitTestBase {
     newIdealState.setPartitionState("0", "localhost_12919", "ONLINE");
     newIdealState.setPartitionState("1", "localhost_12918", "ONLINE");
     newIdealState.setPartitionState("1", "localhost_12919", "ONLINE");
-    accessor.setIdealState(newIdealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB1"), newIdealState);
 
     result =
         ClusterStateVerifier

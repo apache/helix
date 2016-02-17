@@ -49,6 +49,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -64,7 +65,6 @@ import org.apache.log4j.Logger;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-
 
 /**
  * CLI for scheduling/canceling workflows
@@ -604,6 +604,7 @@ public class TaskDriver {
     LOG.info("Add job configuration " + jobName);
 
     // Set the job configuration
+    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
     ResourceConfig resourceConfig = new ResourceConfig(jobName);
     resourceConfig.putSimpleConfigs(jobConfig.getResourceConfigMap());
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
@@ -612,7 +613,7 @@ public class TaskDriver {
         resourceConfig.putMapConfig(taskConfig.getId(), taskConfig.getConfigMap());
       }
     }
-    if (!_accessor.setResourceConfig(resourceConfig)) {
+    if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), resourceConfig)) {
       LOG.error("Failed to add job configuration for job " + jobName);
     }
   }

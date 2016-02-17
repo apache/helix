@@ -34,7 +34,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-
 public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
   @Test
   public void testStateMismatch() throws InterruptedException {
@@ -79,7 +78,8 @@ public class TestMessagePartitionStateMismatch extends ZkStandAloneCMTestBase {
             message.setStateModelDef("MasterSlave");
             message.setStateModelFactoryName("DEFAULT");
           }
-          accessor.setInstanceMessage(instanceName, message);
+          accessor.setProperty(accessor.keyBuilder().message(instanceName, message.getMsgId()),
+              message);
         }
       }
     }

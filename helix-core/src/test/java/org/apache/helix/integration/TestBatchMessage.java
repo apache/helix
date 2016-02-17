@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.I0Itec.zkclient.IZkChildListener;
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixProperty.HelixPropertyAttribute;
@@ -42,7 +43,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
 
 public class TestBatchMessage extends ZkIntegrationTestBase {
   class TestZkChildListener implements IZkChildListener {
@@ -83,7 +83,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // register a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
@@ -168,7 +168,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // registry a message listener so we know how many message generated
     TestZkChildListener listener = new TestZkChildListener();
@@ -222,7 +222,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     Builder keyBuilder = accessor.keyBuilder();
     IdealState idealState = accessor.getProperty(keyBuilder.idealStates("TestDB0"));
     idealState.setBatchMessageMode(true);
-    accessor.setIdealState(idealState);
+    accessor.setProperty(keyBuilder.idealStates("TestDB0"), idealState);
 
     // get MASTER for errPartition
     String errPartition = "TestDB0_0";
@@ -326,7 +326,7 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
     // change localhost_12918 version to 0.5, so batch-message-mode will be ignored
     LiveInstance liveInstance = accessor.getProperty(keyBuilder.liveInstance("localhost_12918"));
     liveInstance.setHelixVersion("0.5");
-    accessor.setLiveInstance(liveInstance);
+    accessor.setProperty(keyBuilder.liveInstance("localhost_12918"), liveInstance);
 
     // resume controller
     // --enableCluster <clusterName true/false>

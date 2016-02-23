@@ -222,7 +222,8 @@ public class TaskDriver {
    *
    * Example:
    *
-   * WorkflowConfig currentWorkflowConfig = TaskUtil.getWorkflowCfg(_manager, workflow);
+   * _driver = new TaskDriver ...
+   * WorkflowConfig currentWorkflowConfig = _driver.getWorkflowCfg(_manager, workflow);
    * WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(currentWorkflowConfig);
 
    * // make needed changes to the config here
@@ -236,7 +237,7 @@ public class TaskDriver {
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
     WorkflowConfig currentConfig =
-        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, workflow);
+        TaskUtil.getWorkflowCfg(_accessor, workflow);
     if (currentConfig == null) {
       throw new HelixException("Workflow " + workflow + " does not exist!");
     }
@@ -270,7 +271,7 @@ public class TaskDriver {
   // TODO: need to make sure the queue is stopped or completed before flush the queue.
   public void flushQueue(String queueName) {
     WorkflowConfig config =
-        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
+        TaskUtil.getWorkflowCfg(_accessor, queueName);
     if (config == null) {
       throw new IllegalArgumentException("Queue does not exist!");
     }
@@ -339,7 +340,7 @@ public class TaskDriver {
    */
   public void deleteJob(final String queueName, final String jobName) {
     WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
+        TaskUtil.getWorkflowCfg(_accessor, queueName);
 
     if (workflowCfg == null) {
       throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
@@ -384,7 +385,7 @@ public class TaskDriver {
    */
   private void deleteJobFromScheduledQueue(final String queueName, final String jobName) {
     WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, queueName);
+        TaskUtil.getWorkflowCfg(_accessor, queueName);
 
     if (workflowCfg == null) {
       throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
@@ -696,7 +697,7 @@ public class TaskDriver {
   }
 
   public WorkflowConfig getWorkflowConfig(String workflow) {
-    return TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, workflow);
+    return TaskUtil.getWorkflowCfg(_accessor, workflow);
   }
 
   public WorkflowContext getWorkflowContext(String workflow) {
@@ -712,7 +713,7 @@ public class TaskDriver {
   }
 
   public void list(String resource) {
-    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_cfgAccessor, _accessor, _clusterName, resource);
+    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_accessor, resource);
     if (wCfg == null) {
       LOG.error("Workflow " + resource + " does not exist!");
       return;

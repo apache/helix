@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
@@ -40,7 +39,6 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
@@ -98,21 +96,19 @@ public class TaskUtil {
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
    *
-   * @param cfgAccessor      Config accessor to access Helix configs
-   * @param accessor         Accessor to access Helix configs
-   * @param clusterName      Cluster name
-   * @param workflowResource The name of the workflow resource.
+   * @param accessor  Accessor to access Helix configs
+   * @param workflow The name of the workflow.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
    * workflow, null otherwise.
    */
-  public static WorkflowConfig getWorkflowCfg(ConfigAccessor cfgAccessor,
-      HelixDataAccessor accessor, String clusterName, String workflowResource) {
-    Map<String, String> workflowCfg =
-        getResourceConfigMap(cfgAccessor, accessor, clusterName, workflowResource);
+  public static WorkflowConfig getWorkflowCfg(HelixDataAccessor accessor, String workflow) {
+    HelixProperty workflowCfg = getResourceConfig(accessor, workflow);
     if (workflowCfg == null) {
       return null;
     }
-    WorkflowConfig.Builder b = WorkflowConfig.Builder.fromMap(workflowCfg);
+
+    WorkflowConfig.Builder b =
+        WorkflowConfig.Builder.fromMap(workflowCfg.getRecord().getSimpleFields());
 
     return b.build();
   }
@@ -121,13 +117,12 @@ public class TaskUtil {
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
    *
    * @param manager          Helix manager object used to connect to Helix.
-   * @param workflowResource The name of the workflow resource.
+   * @param workflow The name of the workflow resource.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
    * workflow, null otherwise.
    */
-  public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflowResource) {
-    return getWorkflowCfg(manager.getConfigAccessor(), manager.getHelixDataAccessor(),
-        manager.getClusterName(), workflowResource);
+  public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflow) {
+    return getWorkflowCfg(manager.getHelixDataAccessor(), workflow);
   }
 
   /**
@@ -452,18 +447,6 @@ public class TaskUtil {
     return workflowBuilder.build();
   }
 
-  private static Map<String, String> getResourceConfigMap(ConfigAccessor cfgAccessor,
-      HelixDataAccessor accessor, String clusterName, String resource) {
-    HelixConfigScope scope = getResourceConfigScope(clusterName, resource);
-
-    List<String> cfgKeys = cfgAccessor.getKeys(scope);
-    if (cfgKeys == null || cfgKeys.isEmpty()) {
-      return null;
-    }
-
-    return getResourceConfig(accessor, resource).getRecord().getSimpleFields();
-  }
-
   private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.resourceConfig(resource));
@@ -522,7 +505,7 @@ public class TaskUtil {
     return Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resource);
   }
 
-  public static PropertyKey getWorkflowConfigKey(HelixDataAccessor accessor, String resource) {
-    return accessor.keyBuilder().resourceConfig(resource);
+  public static PropertyKey getWorkflowConfigKey(HelixDataAccessor accessor, String workflow) {
+    return accessor.keyBuilder().resourceConfig(workflow);
   }
 }

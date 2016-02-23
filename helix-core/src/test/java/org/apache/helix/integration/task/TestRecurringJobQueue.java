@@ -47,6 +47,8 @@ import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
@@ -365,6 +367,20 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     // verify
     verifyJobDeleted(queueName,
         String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
+  }
+
+  @Test
+  public void testGetNoExistWorkflowConfig() {
+    String randomName = "randomJob";
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(randomName);
+    Assert.assertNull(workflowConfig);
+    JobConfig jobConfig = _driver.getJobConfig(randomName);
+    Assert.assertNull(jobConfig);
+    WorkflowContext workflowContext = _driver.getWorkflowContext(randomName);
+    Assert.assertNull(workflowContext);
+    JobContext jobContext = _driver.getJobContext(randomName);
+    Assert.assertNull(jobContext);
+
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

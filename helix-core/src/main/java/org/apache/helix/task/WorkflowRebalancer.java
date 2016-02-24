@@ -75,11 +75,6 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     if (targetState == TargetState.STOP) {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
-      // Workflow has been stopped if all jobs are stopped
-      // TODO: what should we do if workflowCtx is not set yet?
-      if (workflowCtx != null && isWorkflowStopped(workflowCtx, workflowCfg)) {
-        workflowCtx.setWorkflowState(TaskState.STOPPED);
-      }
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
@@ -339,25 +334,24 @@ public class WorkflowRebalancer extends TaskRebalancer {
     }
 
     // Create a new workflow with a new name
-    HelixProperty workflowConfig = resourceConfigMap.get(origWorkflowName);
-    Map<String, String> wfSimpleFields = workflowConfig.getRecord().getSimpleFields();
-    JobDag jobDag = JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.DAG));
-    Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(newWorkflowName);
-
-    // Set the workflow expiry
-    workflowBuilder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
+    Map<String, String> workflowConfigsMap =
+        resourceConfigMap.get(origWorkflowName).getRecord().getSimpleFields();
+    WorkflowConfig.Builder workflowConfigBlder = WorkflowConfig.Builder.fromMap(workflowConfigsMap);
 
     // Set the schedule, if applicable
-    ScheduleConfig scheduleConfig;
     if (newStartTime != null) {
-      scheduleConfig = ScheduleConfig.oneTimeDelayedStart(newStartTime);
-    } else {
-      scheduleConfig = TaskUtil.parseScheduleFromConfigMap(wfSimpleFields);
+      ScheduleConfig scheduleConfig = ScheduleConfig.oneTimeDelayedStart(newStartTime);
+      workflowConfigBlder.setScheduleConfig(scheduleConfig);
     }
-    if (scheduleConfig != null) {
-      workflowBuilder.setScheduleConfig(scheduleConfig);
-    }
+    workflowConfigBlder.setTerminable(true);
+
+    WorkflowConfig workflowConfig = workflowConfigBlder.build();
+
+    JobDag jobDag = workflowConfig.getJobDag();
+    Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
+
+    Workflow.Builder workflowBuilder = new Workflow.Builder(newWorkflowName);
+    workflowBuilder.setWorkflowConfig(workflowConfig);
 
     // Add each job back as long as the original exists
     Set<String> namespacedJobs = jobDag.getAllNodes();
@@ -454,10 +448,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
     // Remove DAG references in workflow
     PropertyKey workflowKey = TaskUtil.getWorkflowConfigKey(accessor, workflow);
     DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
-          JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+          JobDag jobDag = JobDag.fromJson(
+              currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
           for (String child : jobDag.getDirectChildren(job)) {
             jobDag.getChildrenToParents().get(child).remove(job);
           }
@@ -468,7 +462,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
           jobDag.getParentsToChildren().remove(job);
           jobDag.getAllNodes().remove(job);
           try {
-            currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+            currentData
+                .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
           } catch (Exception e) {
             LOG.error("Could not update DAG for job: " + job, e);
           }

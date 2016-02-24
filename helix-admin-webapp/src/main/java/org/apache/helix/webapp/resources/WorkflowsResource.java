@@ -96,8 +96,8 @@ public class WorkflowsResource extends ServerResource {
       Map.Entry<String, HelixProperty> e = it.next();
       HelixProperty resource = e.getValue();
       Map<String, String> simpleFields = resource.getRecord().getSimpleFields();
-      if (!simpleFields.containsKey(WorkflowConfig.TARGET_STATE)
-          || !simpleFields.containsKey(WorkflowConfig.DAG)) {
+      if (!simpleFields.containsKey(WorkflowConfig.WorkflowConfigProperty.TargetState.name())
+          || !simpleFields.containsKey(WorkflowConfig.WorkflowConfigProperty.Dag.name())) {
         it.remove();
       }
     }

@@ -673,19 +673,21 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     // Create a new workflow with a new name
     HelixProperty workflowConfig = resourceConfigMap.get(origWorkflowName);
     Map<String, String> wfSimpleFields = workflowConfig.getRecord().getSimpleFields();
-    JobDag jobDag = JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.DAG));
+    JobDag jobDag =
+        JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
     Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
     Workflow.Builder builder = new Workflow.Builder(newWorkflowName);
 
     // Set the workflow expiry
-    builder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
+    builder.setExpiry(
+        Long.parseLong(wfSimpleFields.get(WorkflowConfig.WorkflowConfigProperty.Expiry.name())));
 
     // Set the schedule, if applicable
     ScheduleConfig scheduleConfig;
     if (newStartTime != null) {
       scheduleConfig = ScheduleConfig.oneTimeDelayedStart(newStartTime);
     } else {
-      scheduleConfig = TaskUtil.parseScheduleFromConfigMap(wfSimpleFields);
+      scheduleConfig = WorkflowConfig.parseScheduleFromConfigMap(wfSimpleFields);
     }
     if (scheduleConfig != null) {
       builder.setScheduleConfig(scheduleConfig);
@@ -699,7 +701,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
         String job = TaskUtil.getDenamespacedJobName(origWorkflowName, namespacedJob);
         HelixProperty jobConfig = resourceConfigMap.get(namespacedJob);
         Map<String, String> jobSimpleFields = jobConfig.getRecord().getSimpleFields();
-        jobSimpleFields.put(JobConfig.JobConfigProperty.WORKFLOW_ID.value(), newWorkflowName); // overwrite workflow name
+        jobSimpleFields.put(JobConfig.JobConfigProperty.WorkflowID.name(), newWorkflowName); // overwrite workflow name
         for (Map.Entry<String, String> e : jobSimpleFields.entrySet()) {
           builder.addConfig(job, e.getKey(), e.getValue());
         }
@@ -746,7 +748,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     long currentTime = now;
     Date scheduledTime = SCHEDULED_TIMES.get(jobResource);
     if (scheduledTime != null && currentTime > scheduledTime.getTime()) {
-      LOG.debug("Remove schedule timer for" + jobResource + " time: " + SCHEDULED_TIMES.get(jobResource));
+      LOG.debug(
+          "Remove schedule timer for" + jobResource + " time: " + SCHEDULED_TIMES.get(jobResource));
       SCHEDULED_TIMES.remove(jobResource);
     }
 
@@ -831,7 +834,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
   private static void markForDeletion(HelixManager mgr, String resourceName) {
     mgr.getConfigAccessor().set(
         TaskUtil.getResourceConfigScope(mgr.getClusterName(), resourceName),
-        WorkflowConfig.TARGET_STATE, TargetState.DELETE.name());
+        WorkflowConfig.WorkflowConfigProperty.TargetState.name(), TargetState.DELETE.name());
   }
 
   /**
@@ -848,7 +851,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
-        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        JobDag jobDag = JobDag
+            .fromJson(currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
         for (String child : jobDag.getDirectChildren(resourceName)) {
           jobDag.getChildrenToParents().get(child).remove(resourceName);
         }
@@ -859,7 +863,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
         jobDag.getParentsToChildren().remove(resourceName);
         jobDag.getAllNodes().remove(resourceName);
         try {
-          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+          currentData
+              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
           LOG.equals("Could not update DAG for job: " + resourceName);
         }

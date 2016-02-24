@@ -22,20 +22,19 @@ import java.util.Arrays;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.ScheduleConfig;
+import org.apache.helix.task.TargetState;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
@@ -121,8 +120,7 @@ public class TaskTestUtil {
     final String namespacedJobName = String.format("%s_%s", workflowName, jobName);
     boolean succeed = TestHelper.verify(new TestHelper.Verifier() {
 
-      @Override
-      public boolean verify() throws Exception {
+      @Override public boolean verify() throws Exception {
         WorkflowContext ctx = driver.getWorkflowContext(workflowName);
         return ctx == null || ctx.getJobState(namespacedJobName) == null;
       }
@@ -242,36 +240,46 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
       int recurrenInSeconds) {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
-    cfgMap.put(WorkflowConfig.RECURRENCE_INTERVAL, String.valueOf(recurrenInSeconds));
-    cfgMap.put(WorkflowConfig.RECURRENCE_UNIT, "SECONDS");
+    return buildRecurrentJobQueue(jobQueueName, delayStart, recurrenInSeconds, null);
+  }
+
+  public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName, int delayStart,
+      int recurrenInSeconds, TargetState targetState) {
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    workflowCfgBuilder.setExpiry(120000);
+    if (targetState != null) {
+      workflowCfgBuilder.setTargetState(TargetState.STOP);
+    }
+
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
     cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + delayStart % 60);
     cal.set(Calendar.MILLISECOND, 0);
-    cfgMap.put(WorkflowConfig.START_TIME,
-        WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
-    return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
+    ScheduleConfig scheduleConfig =
+        ScheduleConfig.recurringFromDate(cal.getTime(), TimeUnit.SECONDS, recurrenInSeconds);
+    workflowCfgBuilder.setScheduleConfig(scheduleConfig);
+    return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
   }
 
   public static JobQueue.Builder buildRecurrentJobQueue(String jobQueueName) {
     return buildRecurrentJobQueue(jobQueueName, 0);
   }
 
-  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart, int failureThreshold) {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(WorkflowConfig.EXPIRY, String.valueOf(120000));
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
+      int failureThreshold) {
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
+    workflowCfgBuilder.setExpiry(120000);
+
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
     cal.set(Calendar.SECOND, cal.get(Calendar.SECOND) + delayStart % 60);
     cal.set(Calendar.MILLISECOND, 0);
-    cfgMap.put(WorkflowConfig.START_TIME,
-        WorkflowConfig.getDefaultDateFormat().format(cal.getTime()));
+    workflowCfgBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(cal.getTime()));
+
     if (failureThreshold > 0) {
-      cfgMap.put(WorkflowConfig.FAILURE_THRESHOLD, String.valueOf(failureThreshold));
+      workflowCfgBuilder.setFailureThreshold(failureThreshold);
     }
-    return new JobQueue.Builder(jobQueueName).fromMap(cfgMap);
+    return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName) {

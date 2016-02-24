@@ -40,14 +40,13 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.TargetState;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
-import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
@@ -237,11 +236,9 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setJobCommandConfigMap(commandConfig)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+          .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       String jobName = targetPartition.toLowerCase() + "Job" + i;
       LOG.info("Enqueuing job: " + jobName);
       queueBuilder.enqueueJob(jobName, job);
@@ -331,10 +328,9 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     for (int i = 0; i < JOB_COUNTS; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
 
-      JobConfig.Builder job =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setJobCommandConfigMap(commandConfig)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      JobConfig.Builder job = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setJobCommandConfigMap(commandConfig).setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+          .setTargetPartitionStates(Sets.newHashSet(targetPartition));
       jobs.add(job);
       jobNames.add(targetPartition.toLowerCase() + "Job" + i);
     }
@@ -367,6 +363,42 @@ public class TestRecurringJobQueue extends ZkIntegrationTestBase {
     // verify
     verifyJobDeleted(queueName,
         String.format("%s_%s", scheduledQueue, jobNames.get(JOB_COUNTS - 1)));
+  }
+
+  @Test
+  public void testCreateStoppedQueue() throws InterruptedException {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 600000,
+        TargetState.STOP);
+    // Create and Enqueue jobs
+    List<String> currentJobNames = new ArrayList<String>();
+    for (int i = 0; i <= 1; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder jobConfig =
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
+      queueBuild.enqueueJob(jobName, jobConfig);
+      currentJobNames.add(jobName);
+    }
+
+    _driver.createQueue(queueBuild.build());
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
+    Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
+
+    _driver.resume(queueName);
+
+    //TaskTestUtil.pollForWorkflowState(_driver, queueName, );
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+
+    // ensure current schedule is started
+    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
   }
 
   @Test

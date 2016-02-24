@@ -34,6 +34,7 @@ import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
+import org.apache.helix.task.TargetState;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskDriver;
@@ -50,10 +51,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -63,7 +62,6 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
   private static final int START_PORT = 12918;
   private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   private static final String TIMEOUT_CONFIG = "Timeout";
-  private static final String TGT_DB = "TestDB";
   private static final int NUM_PARTITIONS = 20;
   private static final int NUM_REPLICAS = 3;
   private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
@@ -92,8 +90,9 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
     }
 
     // Set up target db
-    setupTool.addResourceToCluster(CLUSTER_NAME, TGT_DB, NUM_PARTITIONS, MASTER_SLAVE_STATE_MODEL);
-    setupTool.rebalanceStorageCluster(CLUSTER_NAME, TGT_DB, NUM_REPLICAS);
+    setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_PARTITIONS,
+        MASTER_SLAVE_STATE_MODEL);
+    setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, NUM_REPLICAS);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
@@ -151,27 +150,13 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
   }
 
   @Test
-  public void testUpdateQueueConfig() throws InterruptedException {
+  public void testUpdateRunningQueue() throws InterruptedException {
     String queueName = TestHelper.getTestMethodName();
 
     // Create a queue
     LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 600000);
-    // Create and Enqueue jobs
-    List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i <= 1; i++) {
-      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
-
-      JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
-              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
-      String jobName = targetPartition.toLowerCase() + "Job" + i;
-      queueBuild.enqueueJob(jobName, jobConfig);
-      currentJobNames.add(jobName);
-    }
-
-    _driver.start(queueBuild.build());
+    JobQueue queue = createDefaultRecurrentJobQueue(queueName, 2);
+    _driver.start(queue);
 
     WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
 
@@ -208,6 +193,76 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
         (startTime.get(Calendar.HOUR_OF_DAY) == configStartTime.get(Calendar.HOUR_OF_DAY) &&
             startTime.get(Calendar.MINUTE) == configStartTime.get(Calendar.MINUTE) &&
             startTime.get(Calendar.SECOND) == configStartTime.get(Calendar.SECOND)));
+  }
+
+  @Test
+  public void testUpdateStoppedQueue() throws InterruptedException {
+    String queueName = TestHelper.getTestMethodName();
+
+    // Create a queue
+    LOG.info("Starting job-queue: " + queueName);
+    JobQueue queue = createDefaultRecurrentJobQueue(queueName, 2);
+    _driver.start(queue);
+
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+
+    // ensure current schedule is started
+    String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.IN_PROGRESS);
+
+    _driver.stop(queueName);
+
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
+    Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
+
+    WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowConfig);
+    Calendar startTime = Calendar.getInstance();
+    startTime.set(Calendar.SECOND, startTime.get(Calendar.SECOND) + 1);
+
+    ScheduleConfig scheduleConfig =
+        ScheduleConfig.recurringFromDate(startTime.getTime(), TimeUnit.MINUTES, 2);
+
+    configBuilder.setScheduleConfig(scheduleConfig);
+
+    _driver.updateWorkflow(queueName, configBuilder.build());
+
+    workflowConfig = _driver.getWorkflowConfig(queueName);
+    Assert.assertEquals(workflowConfig.getTargetState(), TargetState.STOP);
+
+    _driver.resume(queueName);
+
+    // ensure current schedule is completed
+    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
+
+    Thread.sleep(1000);
+
+    wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
+    scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+    WorkflowConfig wCfg = _driver.getWorkflowConfig(scheduledQueue);
+
+    Calendar configStartTime = Calendar.getInstance();
+    configStartTime.setTime(wCfg.getStartTime());
+
+    Assert.assertTrue(
+        (startTime.get(Calendar.HOUR_OF_DAY) == configStartTime.get(Calendar.HOUR_OF_DAY) &&
+            startTime.get(Calendar.MINUTE) == configStartTime.get(Calendar.MINUTE) &&
+            startTime.get(Calendar.SECOND) == configStartTime.get(Calendar.SECOND)));
+  }
+
+  private JobQueue createDefaultRecurrentJobQueue(String queueName, int numJobs) {
+    JobQueue.Builder queueBuild = TaskTestUtil.buildRecurrentJobQueue(queueName, 0, 600000);
+    for (int i = 0; i <= numJobs; i++) {
+      String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
+
+      JobConfig.Builder jobConfig =
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+              .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+              .setTargetPartitionStates(Sets.newHashSet(targetPartition));
+      String jobName = targetPartition.toLowerCase() + "Job" + i;
+      queueBuild.enqueueJob(jobName, jobConfig);
+    }
+
+    return queueBuild.build();
   }
 }
 

@@ -41,6 +41,7 @@ import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -136,14 +137,16 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
     }
   }
 
-  @Test
-  public void test() throws Exception {
+  @Test public void test() throws Exception {
     final int PARALLEL_COUNT = 2;
 
     String queueName = TestHelper.getTestMethodName();
 
-    JobQueue.Builder queueBuild = new JobQueue.Builder(queueName);
-    queueBuild.parallelJobs(PARALLEL_COUNT);
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder();
+    cfgBuilder.setParallelJobs(PARALLEL_COUNT);
+
+    JobQueue.Builder queueBuild =
+        new JobQueue.Builder(queueName).setWorkflowConfig(cfgBuilder.build());
     JobQueue queue = queueBuild.build();
     _driver.createQueue(queue);
 

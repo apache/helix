@@ -29,35 +29,25 @@ import java.util.Map;
  * A named queue to which jobs can be added
  */
 public class JobQueue extends Workflow {
-  /* Config fields */
-  public static final String CAPACITY = "CAPACITY";
 
-  private final int _capacity;
-
-  private JobQueue(String name, int capacity, WorkflowConfig workflowConfig,
+  private JobQueue(String name, WorkflowConfig workflowConfig,
       Map<String, Map<String, String>> jobConfigs, Map<String, List<TaskConfig>> taskConfigs) {
     super(name, workflowConfig, jobConfigs, taskConfigs);
-    _capacity = capacity;
-    validate();
   }
 
   /**
    * Determine the number of jobs that this queue can accept before rejecting further jobs
+   * This method is deprecated, please use:
+   * JobQueue.getWorkflowConfig().getCapacity();
    * @return queue capacity
    */
+  @Deprecated
   public int getCapacity() {
-    return _capacity;
-  }
-
-  public Map<String, String> getResourceConfigMap() throws Exception {
-    Map<String, String> cfgMap = _workflowConfig.getResourceConfigMap();
-    cfgMap.put(CAPACITY, String.valueOf(_capacity));
-    return cfgMap;
+    return _workflowConfig.getCapacity();
   }
 
   /** Supports creation of a single queue */
   public static class Builder extends Workflow.Builder {
-    private int _capacity = Integer.MAX_VALUE;
     private List<String> jobs;
 
     public Builder(String name) {
@@ -65,42 +55,74 @@ public class JobQueue extends Workflow {
       jobs = new ArrayList<String>();
     }
 
-    public Builder expiry(long expiry) {
-      _expiry = expiry;
-      return this;
-    }
-
-    public Builder capacity(int capacity) {
-      _capacity = capacity;
-      return this;
-    }
-
+    /**
+     * Do not use this method, use workflowConfigBuilder.setCapacity() instead.
+     * If you set capacity via this method, the number given here
+     * will override capacity number set from other places.
+     * @param capacity
+     * @return
+     */
     @Override
-    public Builder fromMap(Map<String, String> cfg) {
-      super.fromMap(cfg);
-      if (cfg.containsKey(CAPACITY)) {
-        _capacity = Integer.parseInt(cfg.get(CAPACITY));
-      }
+    public Builder setCapacity(int capacity) {
+      super.setCapacity(capacity);
       return this;
     }
 
-    public void enqueueJob(final String job, JobConfig.Builder jobBuilder) {
-      if (jobs.size() >= _capacity) {
-        throw new HelixException("Failed to push new job to jobQueue, it is already full");
+    public Builder enqueueJob(final String job, JobConfig.Builder jobBuilder) {
+      if (_workflowConfigBuilder != null) {
+        if (jobs.size() >= _workflowConfigBuilder.getCapacity()) {
+          throw new HelixException("Failed to push new job to jobQueue, it is already full");
+        }
       }
-      addJobConfig(job, jobBuilder);
+
+      addJob(job, jobBuilder);
       if (jobs.size() > 0) {
         String previousJob = jobs.get(jobs.size() - 1);
         addParentChildDependency(previousJob, job);
       }
       jobs.add(job);
+      return this;
     }
 
+    /**
+     * Please use setWorkflowConfigMap() instead.
+     * @param workflowCfgMap
+     * @return
+     */
+    @Override
+    public Builder fromMap(Map<String, String> workflowCfgMap) {
+      return setWorkflowConfigMap(workflowCfgMap);
+    }
+
+    @Override
+    public Builder setWorkflowConfigMap(Map<String, String> workflowCfgMap) {
+      super.setWorkflowConfigMap(workflowCfgMap);
+      return this;
+    }
+
+    @Override
+    public Builder setWorkflowConfig(WorkflowConfig workflowConfig) {
+      super.setWorkflowConfig(workflowConfig);
+      return this;
+    }
+
+    @Override
+    public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
+      super.setScheduleConfig(scheduleConfig);
+      return this;
+    }
+
+    @Override
+    public Builder setExpiry(long expiry) {
+      super.setExpiry(expiry);
+      return this;
+    }
+
+    @Override
     public JobQueue build() {
-      WorkflowConfig.Builder builder = buildWorkflowConfig();
-      builder.setTerminable(false);
-      WorkflowConfig workflowConfig = builder.build();
-      return new JobQueue(_name, _capacity, workflowConfig, _jobConfigs, _taskConfigs);
+      buildConfig();
+      _workflowConfigBuilder.setTerminable(false);
+      return new JobQueue(_name, _workflowConfigBuilder.build(), _jobConfigs, _taskConfigs);
     }
   }
 }

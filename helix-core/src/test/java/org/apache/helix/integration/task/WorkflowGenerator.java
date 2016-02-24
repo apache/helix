@@ -31,8 +31,6 @@ import org.apache.log4j.Logger;
  * Convenience class for generating various test workflows
  */
 public class WorkflowGenerator {
-  private static final Logger LOG = Logger.getLogger(WorkflowGenerator.class);
-
   public static final String DEFAULT_TGT_DB = "TestDB";
   public static final String JOB_NAME_1 = "SomeJob1";
   public static final String JOB_NAME_2 = "SomeJob2";
@@ -52,13 +50,6 @@ public class WorkflowGenerator {
     Map<String, String> tmpMap = new TreeMap<String, String>();
     tmpMap.put("Timeout", String.valueOf(2000));
     DEFAULT_COMMAND_CONFIG = Collections.unmodifiableMap(tmpMap);
-  }
-
-  private static final JobConfig.Builder DEFAULT_JOB_BUILDER;
-  static {
-    JobConfig.Builder builder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
-    builder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
-    DEFAULT_JOB_BUILDER = builder;
   }
 
   public static Workflow.Builder generateDefaultSingleJobWorkflowBuilder(String jobName) {

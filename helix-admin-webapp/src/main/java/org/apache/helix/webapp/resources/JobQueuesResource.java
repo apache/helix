@@ -103,9 +103,11 @@ public class JobQueuesResource extends ServerResource {
       Map.Entry<String, HelixProperty> e = it.next();
       HelixProperty resource = e.getValue();
       Map<String, String> simpleFields = resource.getRecord().getSimpleFields();
-      boolean isTerminable = resource.getRecord().getBooleanField(WorkflowConfig.TERMINABLE, true);
-      if (!simpleFields.containsKey(WorkflowConfig.TARGET_STATE)
-          || !simpleFields.containsKey(WorkflowConfig.DAG) || isTerminable) {
+      boolean isTerminable = resource.getRecord()
+          .getBooleanField(WorkflowConfig.WorkflowConfigProperty.Terminable.name(), true);
+      if (!simpleFields.containsKey(WorkflowConfig.WorkflowConfigProperty.TargetState.name())
+          || !simpleFields.containsKey(WorkflowConfig.WorkflowConfigProperty.Dag.name())
+          || isTerminable) {
         it.remove();
       }
     }

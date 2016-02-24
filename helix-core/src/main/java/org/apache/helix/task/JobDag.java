@@ -26,7 +26,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -153,6 +152,10 @@ public class JobDag {
     } catch (Exception e) {
       throw new IllegalArgumentException("Unable to parse json " + json + " into job dag");
     }
+  }
+
+  public int size() {
+    return _allNodes.size();
   }
 
   /**

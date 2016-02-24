@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.task.beans.JobBean;
 import org.apache.helix.task.beans.TaskBean;
 import org.apache.helix.task.beans.WorkflowBean;
@@ -87,6 +88,14 @@ public class Workflow {
   }
 
   /**
+   * @return Resource configuration key/value map.
+   * @throws HelixException
+   */
+  public Map<String, String> getResourceConfigMap() throws HelixException {
+    return _workflowConfig.getResourceConfigMap();
+  }
+
+  /**
    * Parses the YAML description from a file into a {@link Workflow} object.
    * @param file An abstract path name to the file containing the workflow description.
    * @return A {@link Workflow} object.
@@ -134,7 +143,7 @@ public class Workflow {
   private static Workflow parse(Reader reader) throws Exception {
     Yaml yaml = new Yaml(new Constructor(WorkflowBean.class));
     WorkflowBean wf = (WorkflowBean) yaml.load(reader);
-    Builder builder = new Builder(wf.name);
+    Builder workflowBuilder = new Builder(wf.name);
 
     if (wf != null && wf.jobs != null) {
       for (JobBean job : wf.jobs) {
@@ -144,53 +153,55 @@ public class Workflow {
 
         if (job.parents != null) {
           for (String parent : job.parents) {
-            builder.addParentChildDependency(parent, job.name);
+            workflowBuilder.addParentChildDependency(parent, job.name);
           }
         }
 
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.WORKFLOW_ID.value(), wf.name);
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.COMMAND.value(), job.command);
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.WorkflowID.name(), wf.name);
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.Command.name(), job.command);
         if (job.jobConfigMap != null) {
-          builder.addJobCommandConfigMap(job.name, job.jobConfigMap);
+          workflowBuilder.addJobCommandConfigMap(job.name, job.jobConfigMap);
         }
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_RESOURCE.value(),
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetResource.name(),
             job.targetResource);
         if (job.targetPartitionStates != null) {
-          builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_PARTITION_STATES.value(),
+          workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetPartitionStates.name(),
               Joiner.on(",").join(job.targetPartitionStates));
         }
         if (job.targetPartitions != null) {
-          builder.addConfig(job.name, JobConfig.JobConfigProperty.TARGET_PARTITIONS.value(),
+          workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetPartitions.name(),
               Joiner.on(",").join(job.targetPartitions));
         }
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.MAX_ATTEMPTS_PER_TASK.value(),
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.MaxAttemptsPerTask.name(),
             String.valueOf(job.maxAttemptsPerTask));
-        builder.addConfig(job.name,
-            JobConfig.JobConfigProperty.MAX_FORCED_REASSIGNMENTS_PER_TASK.value(),
+        workflowBuilder.addConfig(job.name,
+            JobConfig.JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
             String.valueOf(job.maxForcedReassignmentsPerTask));
-        builder.addConfig(job.name,
-            JobConfig.JobConfigProperty.NUM_CONCURRENT_TASKS_PER_INSTANCE.value(),
+        workflowBuilder.addConfig(job.name,
+            JobConfig.JobConfigProperty.ConcurrentTasksPerInstance.name(),
             String.valueOf(job.numConcurrentTasksPerInstance));
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.TIMEOUT_PER_TASK.value(),
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TimeoutPerPartition.name(),
             String.valueOf(job.timeoutPerPartition));
-        builder.addConfig(job.name, JobConfig.JobConfigProperty.FAILURE_THRESHOLD.value(),
+        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.FailureThreshold.name(),
             String.valueOf(job.failureThreshold));
         if (job.tasks != null) {
           List<TaskConfig> taskConfigs = Lists.newArrayList();
           for (TaskBean task : job.tasks) {
             taskConfigs.add(TaskConfig.from(task));
           }
-          builder.addTaskConfigs(job.name, taskConfigs);
+          workflowBuilder.addTaskConfigs(job.name, taskConfigs);
         }
       }
     }
 
+    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
     if (wf.schedule != null) {
-      builder.setScheduleConfig(ScheduleConfig.from(wf.schedule));
+      workflowCfgBuilder.setScheduleConfig(ScheduleConfig.from(wf.schedule));
     }
-    builder.setExpiry(wf.expiry);
+    workflowCfgBuilder.setExpiry(wf.expiry);
+    workflowBuilder.setWorkflowConfig(workflowCfgBuilder.build());
 
-    return builder.build();
+    return workflowBuilder.build();
   }
 
   /**
@@ -212,6 +223,13 @@ public class Workflow {
           ", names in dag but not in config: " + jobNamesInDagButNotInConfig);
     }
 
+    int capacity = _workflowConfig.getCapacity();
+    int dagSize = _workflowConfig.getJobDag().size();
+    if (capacity > 0 && dagSize > capacity) {
+      throw new IllegalArgumentException(String.format(
+          "Failed to build workflow %s, number of jobs are more than its capacity! capacity(%d), jobs(%d)",
+          _name, capacity, dagSize));
+    }
     _workflowConfig.getJobDag().validate();
 
     for (String node : _jobConfigs.keySet()) {
@@ -234,17 +252,13 @@ public class Workflow {
     protected JobDag _dag;
     protected Map<String, Map<String, String>> _jobConfigs;
     protected Map<String, List<TaskConfig>> _taskConfigs;
-    protected ScheduleConfig _scheduleConfig;
-    protected long _expiry = -1;
-    protected Map<String, String> _cfgMap;
-    protected int _parallelJobs = -1;
+    protected WorkflowConfig.Builder _workflowConfigBuilder;
 
     public Builder(String name) {
       _name = name;
       _dag = new JobDag();
       _jobConfigs = new TreeMap<String, Map<String, String>>();
       _taskConfigs = new TreeMap<String, List<TaskConfig>>();
-      _expiry = -1;
     }
 
     protected Builder addConfig(String job, String key, String val) {
@@ -258,11 +272,22 @@ public class Workflow {
     }
 
     private Builder addJobCommandConfigMap(String job, Map<String, String> jobConfigMap) {
-      return addConfig(job, JobConfig.JobConfigProperty.JOB_COMMAND_CONFIG_MAP.value(),
+      return addConfig(job, JobConfig.JobConfigProperty.JobCommandConfig.name(),
           TaskUtil.serializeJobCommandConfigMap(jobConfigMap));
     }
 
+    /**
+     * Please use addJob() instead.
+     * @param job
+     * @param jobConfigBuilder
+     * @return
+     */
+    @Deprecated
     public Builder addJobConfig(String job, JobConfig.Builder jobConfigBuilder) {
+      return addJob(job, jobConfigBuilder);
+    }
+
+    public Builder addJob(String job, JobConfig.Builder jobConfigBuilder) {
       JobConfig jobConfig = jobConfigBuilder.setWorkflow(_name).build();
       for (Map.Entry<String, String> e : jobConfig.getResourceConfigMap().entrySet()) {
         String key = e.getKey();
@@ -294,18 +319,53 @@ public class Workflow {
       return this;
     }
 
-    public Builder fromMap(Map<String, String> cfg) {
-      _cfgMap = cfg;
+    /**
+     * Please use setWorkflowConfigMap() instead.
+     * @param workflowCfgMap
+     * @return
+     */
+    public Builder fromMap(Map<String, String> workflowCfgMap) {
+      return setWorkflowConfigMap(workflowCfgMap);
+    }
+
+    public Builder setWorkflowConfigMap(Map<String, String> workflowCfgMap) {
+      if (workflowCfgMap != null && !workflowCfgMap.isEmpty()) {
+        if (_workflowConfigBuilder == null) {
+          _workflowConfigBuilder = WorkflowConfig.Builder.fromMap(workflowCfgMap);
+        } else {
+          _workflowConfigBuilder.setConfigMap(workflowCfgMap);
+        }
+      }
+      return this;
+    }
+
+    public Builder setWorkflowConfig(WorkflowConfig workflowConfig) {
+      _workflowConfigBuilder = new WorkflowConfig.Builder(workflowConfig);
       return this;
     }
 
     public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
-      _scheduleConfig = scheduleConfig;
+      if (_workflowConfigBuilder == null) {
+        _workflowConfigBuilder = new WorkflowConfig.Builder();
+      }
+      _workflowConfigBuilder.setScheduleConfig(scheduleConfig);
       return this;
     }
 
     public Builder setExpiry(long expiry) {
-      _expiry = expiry;
+      if (_workflowConfigBuilder == null) {
+        _workflowConfigBuilder = new WorkflowConfig.Builder();
+      }
+      _workflowConfigBuilder.setExpiry(expiry);
+      return this;
+    }
+
+    @Deprecated
+    public Builder setCapacity(int capacity) {
+      if (_workflowConfigBuilder == null) {
+        _workflowConfigBuilder = new WorkflowConfig.Builder();
+      }
+      _workflowConfigBuilder.setCapacity(capacity);
       return this;
     }
 
@@ -313,43 +373,19 @@ public class Workflow {
       return TaskUtil.getNamespacedJobName(_name, job);
     }
 
-    public Builder parallelJobs(int parallelJobs) {
-      _parallelJobs = parallelJobs;
-      return this;
-    }
-
     public Workflow build() {
-      WorkflowConfig.Builder builder = buildWorkflowConfig();
-      // calls validate internally
-      return new Workflow(_name, builder.build(), _jobConfigs, _taskConfigs);
+      buildConfig();
+      return new Workflow(_name, _workflowConfigBuilder.build(), _jobConfigs, _taskConfigs);
     }
 
-    protected WorkflowConfig.Builder buildWorkflowConfig() {
+    protected void buildConfig() {
       for (String task : _jobConfigs.keySet()) {
-        // addConfig(task, TaskConfig.WORKFLOW_ID, _name);
-        _jobConfigs.get(task).put(JobConfig.JobConfigProperty.WORKFLOW_ID.value(), _name);
+        _jobConfigs.get(task).put(JobConfig.JobConfigProperty.WorkflowID.name(), _name);
       }
-
-      WorkflowConfig.Builder builder;
-      if (_cfgMap != null) {
-        builder = WorkflowConfig.Builder.fromMap(_cfgMap);
-      } else {
-        builder = new WorkflowConfig.Builder();
+      if (_workflowConfigBuilder == null) {
+        _workflowConfigBuilder = new WorkflowConfig.Builder();
       }
-
-      builder.setJobDag(_dag);
-      builder.setTargetState(TargetState.START);
-      if (_scheduleConfig != null) {
-        builder.setScheduleConfig(_scheduleConfig);
-      }
-      if (_expiry > 0) {
-        builder.setExpiry(_expiry);
-      }
-      if (_parallelJobs > 0) {
-        builder.setParallelJobs(_parallelJobs);
-      }
-
-      return builder;
+      _workflowConfigBuilder.setJobDag(_dag);
     }
   }
 }

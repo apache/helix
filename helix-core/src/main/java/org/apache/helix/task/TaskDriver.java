@@ -45,7 +45,6 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
@@ -292,7 +291,8 @@ public class TaskDriver {
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
-        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        JobDag jobDag = JobDag.fromJson(
+            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
         for (String resourceName : toRemove) {
           for (String child : jobDag.getDirectChildren(resourceName)) {
             jobDag.getChildrenToParents().get(child).remove(resourceName);
@@ -305,7 +305,8 @@ public class TaskDriver {
           jobDag.getAllNodes().remove(resourceName);
         }
         try {
-          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+          currentData
+              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
           throw new IllegalArgumentException(e);
         }
@@ -432,7 +433,8 @@ public class TaskDriver {
           return null;
         }
         // Add the node to the existing DAG
-        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        JobDag jobDag = JobDag.fromJson(
+            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
         Set<String> allNodes = jobDag.getAllNodes();
         if (!allNodes.contains(namespacedJobName)) {
           LOG.warn(
@@ -458,7 +460,8 @@ public class TaskDriver {
 
         // Save the updated DAG
         try {
-          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+          currentData
+              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
           throw new IllegalStateException(
               "Could not remove job " + jobName + " from DAG of queue " + queueName, e);
@@ -509,18 +512,16 @@ public class TaskDriver {
   public void enqueueJob(final String queueName, final String jobName,
       JobConfig.Builder jobBuilder) {
     // Get the job queue config and capacity
-    HelixProperty workflowConfig =
-        _accessor.getProperty(_accessor.keyBuilder().resourceConfig(queueName));
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowCfg(_accessor, queueName);
     if (workflowConfig == null) {
-      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+      throw new IllegalArgumentException("Queue " + queueName + " config does not yet exist!");
     }
-    boolean isTerminable =
-        workflowConfig.getRecord().getBooleanField(WorkflowConfig.TERMINABLE, true);
+    boolean isTerminable = workflowConfig.isTerminable();
     if (isTerminable) {
       throw new IllegalArgumentException(queueName + " is not a queue!");
     }
-    final int capacity =
-        workflowConfig.getRecord().getIntField(JobQueue.CAPACITY, Integer.MAX_VALUE);
+
+    final int capacity = workflowConfig.getCapacity();
 
     // Create the job to ensure that it validates
     JobConfig jobConfig = jobBuilder.setWorkflow(queueName).build();
@@ -535,9 +536,10 @@ public class TaskDriver {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         // Add the node to the existing DAG
-        JobDag jobDag = JobDag.fromJson(currentData.getSimpleField(WorkflowConfig.DAG));
+        JobDag jobDag = JobDag.fromJson(
+            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
         Set<String> allNodes = jobDag.getAllNodes();
-        if (allNodes.size() >= capacity) {
+        if (capacity > 0 && allNodes.size() >= capacity) {
           throw new IllegalStateException(
               "Queue " + queueName + " is at capacity, will not add " + jobName);
         }
@@ -561,7 +563,8 @@ public class TaskDriver {
 
         // Save the updated DAG
         try {
-          currentData.setSimpleField(WorkflowConfig.DAG, jobDag.toJson());
+          currentData
+              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
           throw new IllegalStateException("Could not add job " + jobName + " to queue " + queueName,
               e);
@@ -689,7 +692,8 @@ public class TaskDriver {
           // Only update target state for non-completed workflows
           String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
           if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
-            currentData.setSimpleField(WorkflowConfig.TARGET_STATE, state.name());
+            currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
+                state.name());
           } else {
             LOG.info("TargetState DataUpdater: ignore to update target state " + finishTime);
           }

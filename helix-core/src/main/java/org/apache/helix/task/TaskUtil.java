@@ -20,14 +20,9 @@ package org.apache.helix.task;
  */
 
 import java.io.IOException;
-import java.text.ParseException;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
@@ -36,7 +31,6 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -46,7 +40,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 /**
@@ -317,34 +310,6 @@ public class TaskUtil {
     } else {
       LOG.warn("Can't find ideal state or ideal state is not for right type for " + resource);
     }
-  }
-
-  /**
-   * Get a ScheduleConfig from a workflow config string map
-   *
-   * @param cfg the string map
-   * @return a ScheduleConfig if one exists, otherwise null
-   */
-  public static ScheduleConfig parseScheduleFromConfigMap(Map<String, String> cfg) {
-    // Parse schedule-specific configs, if they exist
-    Date startTime = null;
-    if (cfg.containsKey(WorkflowConfig.START_TIME)) {
-      try {
-        startTime = WorkflowConfig.getDefaultDateFormat().parse(cfg.get(WorkflowConfig.START_TIME));
-      } catch (ParseException e) {
-        LOG.error("Unparseable date " + cfg.get(WorkflowConfig.START_TIME), e);
-        return null;
-      }
-    }
-    if (cfg.containsKey(WorkflowConfig.RECURRENCE_UNIT) && cfg
-        .containsKey(WorkflowConfig.RECURRENCE_INTERVAL)) {
-      return ScheduleConfig
-          .recurringFromDate(startTime, TimeUnit.valueOf(cfg.get(WorkflowConfig.RECURRENCE_UNIT)),
-              Long.parseLong(cfg.get(WorkflowConfig.RECURRENCE_INTERVAL)));
-    } else if (startTime != null) {
-      return ScheduleConfig.oneTimeDelayedStart(startTime);
-    }
-    return null;
   }
 
   private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {

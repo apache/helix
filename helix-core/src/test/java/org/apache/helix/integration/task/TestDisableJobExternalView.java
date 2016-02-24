@@ -175,7 +175,7 @@ public class TestDisableJobExternalView extends ZkIntegrationTestBase {
 
     // ensure all jobs are completed
     String namedSpaceJob3 = String.format("%s_%s", queueName, "job3");
-    TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceJob3, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob3, TaskState.COMPLETED);
 
     Set<String> seenExternalViews = externviewChecker.getSeenExternalViews();
     String namedSpaceJob1 = String.format("%s_%s", queueName, "job1");

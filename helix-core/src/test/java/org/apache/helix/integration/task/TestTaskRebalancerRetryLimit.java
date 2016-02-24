@@ -138,9 +138,9 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // Wait until the job completes.
-    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
 
-    JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
+    JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
     for (int i = 0; i < _p; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
       if (state != null) {

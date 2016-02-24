@@ -168,7 +168,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
             .setExpiry(expiry).build();
 
     _driver.start(flow);
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
 
     // Running workflow should have config and context viewable through accessor
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -182,7 +182,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertNotSame(accessor.getProperty(workflowCfgKey), null);
 
     // Wait for job to finish and expire
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
     Thread.sleep(expiry);
     TaskUtil.invokeRebalance(_manager.getHelixDataAccessor(), flow.getName());
     Thread.sleep(expiry);
@@ -212,10 +212,10 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // Wait for job completion
-    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
 
     // Ensure all partitions are completed individually
-    JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
+    JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
     for (int i = 0; i < NUM_PARTITIONS; i++) {
       Assert.assertEquals(ctx.getPartitionState(i), TaskPartitionState.COMPLETED);
       Assert.assertEquals(ctx.getPartitionNumAttempts(i), 1);
@@ -239,13 +239,13 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // wait for job completeness/timeout
-    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
 
     // see if resulting context completed successfully for our partition set
     String namespacedName = TaskUtil.getNamespacedJobName(jobResource);
 
-    JobContext ctx = TaskUtil.getJobContext(_manager, namespacedName);
-    WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_manager, jobResource);
+    JobContext ctx = _driver.getJobContext(namespacedName);
+    WorkflowContext workflowContext = _driver.getWorkflowContext(jobResource);
     Assert.assertNotNull(ctx);
     Assert.assertNotNull(workflowContext);
     Assert.assertEquals(workflowContext.getJobState(namespacedName), TaskState.COMPLETED);
@@ -264,11 +264,11 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     new TaskDriver(_manager).start(flow);
 
     // Wait until the workflow completes
-    TaskTestUtil.pollForWorkflowState(_manager, workflowName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, workflowName, TaskState.COMPLETED);
 
     // Assert completion for all tasks within two minutes
     for (String task : flow.getJobConfigs().keySet()) {
-      TaskTestUtil.pollForJobState(_manager, workflowName, task, TaskState.COMPLETED);
+      TaskTestUtil.pollForJobState(_driver, workflowName, task, TaskState.COMPLETED);
     }
   }
 
@@ -284,10 +284,10 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(flow);
 
     // Wait until the job reports failure.
-    TaskTestUtil.pollForWorkflowState(_manager, jobResource, TaskState.FAILED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.FAILED);
 
     // Check that all partitions timed out up to maxAttempts
-    JobContext ctx = TaskUtil.getJobContext(_manager, TaskUtil.getNamespacedJobName(jobResource));
+    JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
     int maxAttempts = 0;
     for (int i = 0; i < NUM_PARTITIONS; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
@@ -322,10 +322,10 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
-    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
-    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
-    JobContext masterJobContext = TaskUtil.getJobContext(_manager, namespacedJob1);
-    JobContext slaveJobContext = TaskUtil.getJobContext(_manager, namespacedJob2);
+    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
+    JobContext masterJobContext = _driver.getJobContext(namespacedJob1);
+    JobContext slaveJobContext = _driver.getJobContext(namespacedJob2);
 
     // Ensure correct ordering
     long job1Finish = masterJobContext.getFinishTime();
@@ -340,7 +340,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob1)));
     Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob2)));
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob2)));
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, queueName);
+    WorkflowConfig workflowCfg = _driver.getWorkflowConfig(queueName);
     JobDag dag = workflowCfg.getJobDag();
     Assert.assertFalse(dag.getAllNodes().contains(namespacedJob1));
     Assert.assertFalse(dag.getAllNodes().contains(namespacedJob2));

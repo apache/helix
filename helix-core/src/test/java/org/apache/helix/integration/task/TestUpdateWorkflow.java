@@ -19,13 +19,10 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.ZkIntegrationTestBase;
@@ -35,7 +32,6 @@ import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
 import org.apache.helix.task.Task;
@@ -44,8 +40,6 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
-import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
@@ -58,7 +52,6 @@ import org.testng.annotations.Test;
 
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -180,9 +173,9 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
 
     _driver.start(queueBuild.build());
 
-    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
+    WorkflowContext wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
 
-    WorkflowConfig workflowConfig = TaskUtil.getWorkflowCfg(_manager, queueName);
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queueName);
     WorkflowConfig.Builder configBuilder = new WorkflowConfig.Builder(workflowConfig);
 
     Calendar startTime = Calendar.getInstance();
@@ -195,18 +188,18 @@ public class TestUpdateWorkflow extends ZkIntegrationTestBase {
 
     // ensure current schedule is started
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    TaskTestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.IN_PROGRESS);
 
     _driver.updateWorkflow(queueName, configBuilder.build());
 
     // ensure current schedule is completed
-    TaskTestUtil.pollForWorkflowState(_manager, scheduledQueue, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
 
     Thread.sleep(1000);
 
-    wCtx = TaskTestUtil.pollForWorkflowContext(_manager, queueName);
+    wCtx = TaskTestUtil.pollForWorkflowContext(_driver, queueName);
     scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_manager, scheduledQueue);
+    WorkflowConfig wCfg = _driver.getWorkflowConfig(scheduledQueue);
 
     Calendar configStartTime = Calendar.getInstance();
     configStartTime.setTime(wCfg.getStartTime());

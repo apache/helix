@@ -151,13 +151,13 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
 
     // check all tasks completed on MASTER
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
-    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob1, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     ExternalView ev =
         accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
-    JobContext ctx = TaskUtil.getJobContext(_manager, namespacedJob1);
+    JobContext ctx = _driver.getJobContext(namespacedJob1);
     Set<String> failOverPartitions = Sets.newHashSet();
     for (int p = 0; p < _p; p++) {
       String instanceName = ctx.getAssignedParticipant(p);
@@ -178,12 +178,12 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job);
 
-    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.IN_PROGRESS);
     _participants[0].syncStop();
-    TaskTestUtil.pollForJobState(_manager, queueName, namespacedJob2, TaskState.COMPLETED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
 
     // tasks previously assigned to localhost_12918 should be re-scheduled on new master
-    ctx = TaskUtil.getJobContext(_manager, namespacedJob2);
+    ctx = _driver.getJobContext(namespacedJob2);
     ev = accessor.getProperty(keyBuilder.externalView(WorkflowGenerator.DEFAULT_TGT_DB));
     for (int p = 0; p < _p; p++) {
       String partitionName = ctx.getTargetForPartition(p);
@@ -204,7 +204,7 @@ public class TestTaskRebalancerFailover extends ZkUnitTestBase {
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob1)));
     Assert.assertNull(accessor.getProperty(keyBuilder.idealStates(namespacedJob2)));
     Assert.assertNull(accessor.getProperty(keyBuilder.resourceConfig(namespacedJob2)));
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, queueName);
+    WorkflowConfig workflowCfg = _driver.getWorkflowConfig(queueName);
     JobDag dag = workflowCfg.getJobDag();
     Assert.assertFalse(dag.getAllNodes().contains(namespacedJob1));
     Assert.assertFalse(dag.getAllNodes().contains(namespacedJob2));

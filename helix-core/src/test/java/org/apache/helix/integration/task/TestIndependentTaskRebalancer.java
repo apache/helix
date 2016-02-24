@@ -45,7 +45,6 @@ import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskResult.Status;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.tools.ClusterSetup;
@@ -157,8 +156,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -184,8 +183,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -213,8 +212,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -241,8 +240,8 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure that the class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -276,13 +275,13 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure that the class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
 
     // Check that the workflow only started after the start time (with a 1 second buffer)
-    WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, jobName);
+    WorkflowContext workflowCtx = _driver.getWorkflowContext(jobName);
     long startTime = workflowCtx.getStartTime();
     Assert.assertTrue((startTime + 1000) >= inFiveSeconds);
   }
@@ -308,10 +307,10 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure completion
-    TaskTestUtil.pollForWorkflowState(_manager, jobName, TaskState.COMPLETED);
+    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
 
     // Ensure a single retry happened
-    JobContext jobCtx = TaskUtil.getJobContext(_manager, jobName + "_" + jobName);
+    JobContext jobCtx = _driver.getJobContext(jobName + "_" + jobName);
     Assert.assertEquals(jobCtx.getPartitionNumAttempts(0), 2);
     Assert.assertTrue(jobCtx.getFinishTime() - jobCtx.getStartTime() >= delay);
   }

@@ -90,7 +90,7 @@ public class JobRebalancer extends TaskRebalancer {
     // The job is already in a final state (completed/failed).
     if (jobState == TaskState.FAILED || jobState == TaskState.COMPLETED) {
       LOG.info("Job " + jobName + " is failed or already completed, clean up IS.");
-      TaskUtil.cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
+      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _scheduledRebalancer.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
@@ -340,7 +340,7 @@ public class JobRebalancer extends TaskRebalancer {
               addAllPartitions(allPartitions, partitionsToDropFromIs);
 
               // remove IdealState of this job
-              TaskUtil.cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+              cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
               return buildEmptyAssignment(jobResource, currStateOutput);
             } else {
               skippedPartitions.add(pId);
@@ -376,7 +376,7 @@ public class JobRebalancer extends TaskRebalancer {
     if (isJobComplete(jobCtx, allPartitions, skippedPartitions, jobCfg)) {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
       // remove IdealState of this job
-      TaskUtil.cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     }
 
     // Make additional task assignments if needed.

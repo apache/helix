@@ -32,6 +32,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
@@ -53,7 +54,7 @@ public class TaskTestUtil {
    * @param workflowResource Resource to poll for completeness
    * @throws InterruptedException
    */
-  public static void pollForWorkflowState(HelixManager manager, String workflowResource,
+  public static void pollForWorkflowState(TaskDriver driver, String workflowResource,
       TaskState... targetStates) throws InterruptedException {
     // Wait for completion.
     long st = System.currentTimeMillis();
@@ -61,7 +62,7 @@ public class TaskTestUtil {
     Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
     do {
       Thread.sleep(100);
-      ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+      ctx = driver.getWorkflowContext(workflowResource);
     } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
         .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + _default_timeout);
 
@@ -73,23 +74,23 @@ public class TaskTestUtil {
 
   /**
    * poll for job until it is at either state in targetStates.
-   * @param manager
+   * @param driver
    * @param workflowResource
    * @param jobName
    * @param targetStates
    * @throws InterruptedException
    */
-  public static void pollForJobState(HelixManager manager, String workflowResource, String jobName,
+  public static void pollForJobState(TaskDriver driver, String workflowResource, String jobName,
       TaskState... targetStates) throws InterruptedException {
     // Get workflow config
-    WorkflowConfig wfCfg = TaskUtil.getWorkflowCfg(manager, workflowResource);
+    WorkflowConfig wfCfg = driver.getWorkflowConfig(workflowResource);
     Assert.assertNotNull(wfCfg);
     WorkflowContext ctx;
     if (wfCfg.isRecurring()) {
       // if it's recurring, need to reconstruct workflow and job name
       do {
         Thread.sleep(100);
-        ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+        ctx = driver.getWorkflowContext(workflowResource);
       } while ((ctx == null || ctx.getLastScheduledSingleWorkflow() == null));
       Assert.assertNotNull(ctx);
       Assert.assertNotNull(ctx.getLastScheduledSingleWorkflow());
@@ -103,7 +104,7 @@ public class TaskTestUtil {
     long st = System.currentTimeMillis();
     do {
       Thread.sleep(100);
-      ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+      ctx = driver.getWorkflowContext(workflowResource);
     }
     while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(
         ctx.getJobState(jobName)))
@@ -114,27 +115,27 @@ public class TaskTestUtil {
         "expect job states: " + allowedStates + " actual job state: " + jobState);
   }
 
-  public static void pollForEmptyJobState(final HelixManager manager, final String workflowName,
+  public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,
       final String jobName) throws Exception {
     final String namespacedJobName = String.format("%s_%s", workflowName, jobName);
     boolean succeed = TestHelper.verify(new TestHelper.Verifier() {
 
       @Override
       public boolean verify() throws Exception {
-        WorkflowContext ctx = TaskUtil.getWorkflowContext(manager, workflowName);
+        WorkflowContext ctx = driver.getWorkflowContext(workflowName);
         return ctx == null || ctx.getJobState(namespacedJobName) == null;
       }
     }, _default_timeout);
     Assert.assertTrue(succeed);
   }
 
-  public static WorkflowContext pollForWorkflowContext(HelixManager manager, String workflowResource)
+  public static WorkflowContext pollForWorkflowContext(TaskDriver driver, String workflowResource)
       throws InterruptedException {
     // Wait for completion.
     long st = System.currentTimeMillis();
     WorkflowContext ctx;
     do {
-      ctx = TaskUtil.getWorkflowContext(manager, workflowResource);
+      ctx = driver.getWorkflowContext(workflowResource);
       Thread.sleep(100);
     } while (ctx == null && System.currentTimeMillis() < st + _default_timeout);
     Assert.assertNotNull(ctx);
@@ -143,15 +144,15 @@ public class TaskTestUtil {
 
   // 1. Different jobs in a same work flow is in RUNNING at the same time
   // 2. No two jobs in the same work flow is in RUNNING at the same instance
-  public static boolean pollForWorkflowParallelState(HelixManager manager, String workflowName)
+  public static boolean pollForWorkflowParallelState(TaskDriver driver, String workflowName)
       throws InterruptedException {
 
-    WorkflowConfig workflowConfig = TaskUtil.getWorkflowCfg(manager, workflowName);
+    WorkflowConfig workflowConfig = driver.getWorkflowConfig(workflowName);
     Assert.assertNotNull(workflowConfig);
 
     WorkflowContext workflowContext = null;
     while (workflowContext == null) {
-      workflowContext = TaskUtil.getWorkflowContext(manager, workflowName);
+      workflowContext = driver.getWorkflowContext(workflowName);
       Thread.sleep(100);
     }
 
@@ -162,7 +163,7 @@ public class TaskTestUtil {
       finished = true;
       int runningCount = 0;
 
-      workflowContext = TaskUtil.getWorkflowContext(manager, workflowName);
+      workflowContext = driver.getWorkflowContext(workflowName);
       for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
         TaskState jobState = workflowContext.getJobState(jobName);
         if (jobState == TaskState.IN_PROGRESS) {
@@ -177,9 +178,9 @@ public class TaskTestUtil {
 
       List<JobContext> jobContextList = new ArrayList<JobContext>();
       for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
-        JobContext jobContext = TaskUtil.getJobContext(manager, jobName);
+        JobContext jobContext = driver.getJobContext(jobName);
         if (jobContext != null) {
-          jobContextList.add(TaskUtil.getJobContext(manager, jobName));
+          jobContextList.add(driver.getJobContext(jobName));
         }
       }
 

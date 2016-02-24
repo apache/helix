@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import com.google.common.collect.Lists;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.*;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -264,8 +265,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
         String newWorkflowName = workflow + "_" + df.format(new Date(timeToSchedule));
         LOG.debug("Ready to start workflow " + newWorkflowName);
         if (!newWorkflowName.equals(lastScheduled)) {
-          Workflow clonedWf = TaskUtil
-              .cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
+          Workflow clonedWf =
+              cloneWorkflow(_manager, workflow, newWorkflowName, new Date(timeToSchedule));
           TaskDriver driver = new TaskDriver(_manager);
           try {
             // Start the cloned workflow
@@ -298,6 +299,86 @@ public class WorkflowRebalancer extends TaskRebalancer {
   }
 
   /**
+   * Create a new workflow based on an existing one
+   *
+   * @param manager          connection to Helix
+   * @param origWorkflowName the name of the existing workflow
+   * @param newWorkflowName  the name of the new workflow
+   * @param newStartTime     a provided start time that deviates from the desired start time
+   * @return the cloned workflow, or null if there was a problem cloning the existing one
+   */
+  public static Workflow cloneWorkflow(HelixManager manager, String origWorkflowName,
+      String newWorkflowName, Date newStartTime) {
+    // Read all resources, including the workflow and jobs of interest
+    HelixDataAccessor accessor = manager.getHelixDataAccessor();
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    Map<String, HelixProperty> resourceConfigMap =
+        accessor.getChildValuesMap(keyBuilder.resourceConfigs());
+    if (!resourceConfigMap.containsKey(origWorkflowName)) {
+      LOG.error("No such workflow named " + origWorkflowName);
+      return null;
+    }
+    if (resourceConfigMap.containsKey(newWorkflowName)) {
+      LOG.error("Workflow with name " + newWorkflowName + " already exists!");
+      return null;
+    }
+
+    // Create a new workflow with a new name
+    HelixProperty workflowConfig = resourceConfigMap.get(origWorkflowName);
+    Map<String, String> wfSimpleFields = workflowConfig.getRecord().getSimpleFields();
+    JobDag jobDag = JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.DAG));
+    Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(newWorkflowName);
+
+    // Set the workflow expiry
+    workflowBuilder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
+
+    // Set the schedule, if applicable
+    ScheduleConfig scheduleConfig;
+    if (newStartTime != null) {
+      scheduleConfig = ScheduleConfig.oneTimeDelayedStart(newStartTime);
+    } else {
+      scheduleConfig = TaskUtil.parseScheduleFromConfigMap(wfSimpleFields);
+    }
+    if (scheduleConfig != null) {
+      workflowBuilder.setScheduleConfig(scheduleConfig);
+    }
+
+    // Add each job back as long as the original exists
+    Set<String> namespacedJobs = jobDag.getAllNodes();
+    for (String namespacedJob : namespacedJobs) {
+      if (resourceConfigMap.containsKey(namespacedJob)) {
+        // Copy over job-level and task-level configs
+        String job = TaskUtil.getDenamespacedJobName(origWorkflowName, namespacedJob);
+        HelixProperty jobConfig = resourceConfigMap.get(namespacedJob);
+        Map<String, String> jobSimpleFields = jobConfig.getRecord().getSimpleFields();
+
+        JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(jobSimpleFields);
+
+        jobCfgBuilder.setWorkflow(newWorkflowName); // overwrite workflow name
+        Map<String, Map<String, String>> rawTaskConfigMap = jobConfig.getRecord().getMapFields();
+        List<TaskConfig> taskConfigs = Lists.newLinkedList();
+        for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
+          TaskConfig taskConfig = TaskConfig.from(rawTaskConfig);
+          taskConfigs.add(taskConfig);
+        }
+        jobCfgBuilder.addTaskConfigs(taskConfigs);
+        workflowBuilder.addJobConfig(job, jobCfgBuilder);
+
+        // Add dag dependencies
+        Set<String> children = parentsToChildren.get(namespacedJob);
+        if (children != null) {
+          for (String namespacedChild : children) {
+            String child = TaskUtil.getDenamespacedJobName(origWorkflowName, namespacedChild);
+            workflowBuilder.addParentChildDependency(job, child);
+          }
+        }
+      }
+    }
+    return workflowBuilder.build();
+  }
+
+  /**
    * Cleans up workflow configs and workflow contexts associated with this workflow,
    * including all job-level configs and context, plus workflow-level information.
    */
@@ -319,7 +400,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     // clean up workflow-level info if this was the last in workflow
     if (workflowcfg.isTerminable() || workflowcfg.getTargetState() == TargetState.DELETE) {
       // clean up IS & EV
-      TaskUtil.cleanupIdealStateExtView(_manager.getHelixDataAccessor(), workflow);
+      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), workflow);
 
       // delete workflow config
       PropertyKey workflowCfgKey = TaskUtil.getWorkflowConfigKey(accessor, workflow);
@@ -354,7 +435,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
     // Remove any idealstate and externalView.
-    TaskUtil.cleanupIdealStateExtView(accessor, job);
+    cleanupIdealStateExtView(accessor, job);
 
     // Remove DAG references in workflow
     PropertyKey workflowKey = TaskUtil.getWorkflowConfigKey(accessor, workflow);

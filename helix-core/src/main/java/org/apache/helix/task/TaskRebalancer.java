@@ -29,8 +29,10 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -169,6 +171,40 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     Date startTime = workflowCfg.getStartTime();
     // Workflow with non-scheduled config or passed start time is ready to schedule.
     return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
+  }
+
+  /**
+   * Cleans up IdealState and external view associated with a job/workflow resource.
+   */
+  protected static void cleanupIdealStateExtView(HelixDataAccessor accessor, final String resourceName) {
+    LOG.info("Cleaning up idealstate and externalView for job: " + resourceName);
+
+    // Delete the ideal state itself.
+    PropertyKey isKey = accessor.keyBuilder().idealStates(resourceName);
+    if (accessor.getProperty(isKey) != null) {
+      if (!accessor.removeProperty(isKey)) {
+        LOG.error(String.format(
+            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
+            resourceName, isKey));
+      }
+    } else {
+      LOG.warn(String.format("Idealstate for resource %s does not exist.", resourceName));
+    }
+
+    // Delete dead external view
+    // because job is already completed, there is no more current state change
+    // thus dead external views removal will not be triggered
+    PropertyKey evKey = accessor.keyBuilder().externalView(resourceName);
+    if (accessor.getProperty(evKey) != null) {
+      if (!accessor.removeProperty(evKey)) {
+        LOG.error(String.format(
+            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
+            resourceName, evKey));
+      }
+    }
+
+    LOG.info(String
+        .format("Successfully clean up idealstate/externalView for resource %s.", resourceName));
   }
 
   @Override public IdealState computeNewIdealState(String resourceName,

@@ -19,7 +19,10 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.task.TaskResult.Status;
 import org.apache.log4j.Logger;
 
@@ -168,13 +171,43 @@ public class TaskRunner implements Runnable {
    */
   private void requestStateTransition(TaskPartitionState state) {
     boolean success =
-        TaskUtil.setRequestedState(_manager.getHelixDataAccessor(), _instance, _sessionId,
-            _taskName, _taskPartition, state);
+        setRequestedState(_manager.getHelixDataAccessor(), _instance, _sessionId, _taskName,
+            _taskPartition, state);
     if (!success) {
       LOG.error(String
           .format(
               "Failed to set the requested state to %s for instance %s, session id %s, task partition %s.",
               state, _instance, _sessionId, _taskPartition));
+    }
+  }
+
+  /**
+   * Request a state change for a specific task.
+   *
+   * @param accessor  connected Helix data accessor
+   * @param instance  the instance serving the task
+   * @param sessionId the current session of the instance
+   * @param resource  the job name
+   * @param partition the task partition name
+   * @param state     the requested state
+   * @return true if the request was persisted, false otherwise
+   */
+  private static boolean setRequestedState(HelixDataAccessor accessor, String instance,
+      String sessionId, String resource, String partition, TaskPartitionState state) {
+    LOG.debug(
+        String.format("Requesting a state transition to %s for partition %s.", state, partition));
+    try {
+      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+      PropertyKey key = keyBuilder.currentState(instance, sessionId, resource);
+      CurrentState currStateDelta = new CurrentState(resource);
+      currStateDelta.setRequestedState(partition, state.name());
+
+      return accessor.updateProperty(key, currStateDelta);
+    } catch (Exception e) {
+      LOG.error(String
+          .format("Error when requesting a state transition to %s for partition %s.", state,
+              partition), e);
+      return false;
     }
   }
 }

@@ -55,15 +55,17 @@ import com.google.common.collect.Maps;
 public class TaskUtil {
   private static final Logger LOG = Logger.getLogger(TaskUtil.class);
   public static final String CONTEXT_NODE = "Context";
+
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
+   * This method is internal API, please use TaskDriver.getJobConfig();
    *
    * @param accessor    Accessor to access Helix configs
    * @param jobResource The name of the job resource
    * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
    * otherwise.
    */
-  public static JobConfig getJobCfg(HelixDataAccessor accessor, String jobResource) {
+  protected static JobConfig getJobCfg(HelixDataAccessor accessor, String jobResource) {
     HelixProperty jobResourceConfig = getResourceConfig(accessor, jobResource);
     if (jobResourceConfig == null) {
       return null;
@@ -83,25 +85,27 @@ public class TaskUtil {
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
+   * This method is internal API, please use TaskDriver.getJobConfig();
    *
    * @param manager     HelixManager object used to connect to Helix.
    * @param jobResource The name of the job resource.
    * @return A {@link JobConfig} object if Helix contains valid configurations for the job, null
    * otherwise.
    */
-  public static JobConfig getJobCfg(HelixManager manager, String jobResource) {
+  protected static JobConfig getJobCfg(HelixManager manager, String jobResource) {
     return getJobCfg(manager.getHelixDataAccessor(), jobResource);
   }
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
+   * This method is internal API, please use TaskDriver.getWorkflowConfig();
    *
    * @param accessor  Accessor to access Helix configs
    * @param workflow The name of the workflow.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
    * workflow, null otherwise.
    */
-  public static WorkflowConfig getWorkflowCfg(HelixDataAccessor accessor, String workflow) {
+  protected static WorkflowConfig getWorkflowCfg(HelixDataAccessor accessor, String workflow) {
     HelixProperty workflowCfg = getResourceConfig(accessor, workflow);
     if (workflowCfg == null) {
       return null;
@@ -115,44 +119,15 @@ public class TaskUtil {
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
+   * This method is internal API, please use TaskDriver.getWorkflowConfig();
    *
    * @param manager          Helix manager object used to connect to Helix.
    * @param workflow The name of the workflow resource.
    * @return A {@link WorkflowConfig} object if Helix contains valid configurations for the
    * workflow, null otherwise.
    */
-  public static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflow) {
+  protected static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflow) {
     return getWorkflowCfg(manager.getHelixDataAccessor(), workflow);
-  }
-
-  /**
-   * Request a state change for a specific task.
-   *
-   * @param accessor  connected Helix data accessor
-   * @param instance  the instance serving the task
-   * @param sessionId the current session of the instance
-   * @param resource  the job name
-   * @param partition the task partition name
-   * @param state     the requested state
-   * @return true if the request was persisted, false otherwise
-   */
-  public static boolean setRequestedState(HelixDataAccessor accessor, String instance,
-      String sessionId, String resource, String partition, TaskPartitionState state) {
-    LOG.debug(
-        String.format("Requesting a state transition to %s for partition %s.", state, partition));
-    try {
-      PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      PropertyKey key = keyBuilder.currentState(instance, sessionId, resource);
-      CurrentState currStateDelta = new CurrentState(resource);
-      currStateDelta.setRequestedState(partition, state.name());
-
-      return accessor.updateProperty(key, currStateDelta);
-    } catch (Exception e) {
-      LOG.error(String
-          .format("Error when requesting a state transition to %s for partition %s.", state,
-              partition), e);
-      return false;
-    }
   }
 
   /**
@@ -162,13 +137,14 @@ public class TaskUtil {
    * @param resource    the resource name
    * @return instantiated {@link HelixConfigScope}
    */
-  public static HelixConfigScope getResourceConfigScope(String clusterName, String resource) {
+  protected static HelixConfigScope getResourceConfigScope(String clusterName, String resource) {
     return new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.RESOURCE)
         .forCluster(clusterName).forResource(resource).build();
   }
 
   /**
-   * Get the runtime context of a single job
+   * Get the runtime context of a single job.
+   * This method is internal API, please use TaskDriver.getJobContext();
    *
    * @param propertyStore Property store for the cluster
    * @param jobResource   The name of the job
@@ -183,31 +159,34 @@ public class TaskUtil {
   }
 
   /**
-   * Get the runtime context of a single job
+   * Get the runtime context of a single job.
+   * This method is internal API, please use TaskDriver.getJobContext();
    *
    * @param manager     a connection to Helix
    * @param jobResource the name of the job
    * @return the {@link JobContext}, or null if none is available
    */
-  public static JobContext getJobContext(HelixManager manager, String jobResource) {
+  protected static JobContext getJobContext(HelixManager manager, String jobResource) {
     return getJobContext(manager.getHelixPropertyStore(), jobResource);
   }
 
   /**
    * Set the runtime context of a single job
+   * This method is internal API;
    *
    * @param manager     a connection to Helix
    * @param jobResource the name of the job
    * @param ctx         the up-to-date {@link JobContext} for the job
    */
-  public static void setJobContext(HelixManager manager, String jobResource, JobContext ctx) {
+  protected static void setJobContext(HelixManager manager, String jobResource, JobContext ctx) {
     manager.getHelixPropertyStore()
         .set(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
             ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
   /**
-   * Get the runtime context of a single workflow
+   * Get the runtime context of a single workflow.
+   * This method is internal API, please use TaskDriver.getWorkflowContext();
    *
    * @param propertyStore    Property store of the cluster
    * @param workflowResource The name of the workflow
@@ -222,13 +201,14 @@ public class TaskUtil {
   }
 
   /**
-   * Get the runtime context of a single workflow
+   * Get the runtime context of a single workflow.
+   * This method is internal API, please use TaskDriver.getWorkflowContext();
    *
    * @param manager          a connection to Helix
    * @param workflowResource the name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
-  public static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
+  protected static WorkflowContext getWorkflowContext(HelixManager manager, String workflowResource) {
     return getWorkflowContext(manager.getHelixPropertyStore(), workflowResource);
   }
 
@@ -367,123 +347,9 @@ public class TaskUtil {
     return null;
   }
 
-  /**
-   * Create a new workflow based on an existing one
-   *
-   * @param manager          connection to Helix
-   * @param origWorkflowName the name of the existing workflow
-   * @param newWorkflowName  the name of the new workflow
-   * @param newStartTime     a provided start time that deviates from the desired start time
-   * @return the cloned workflow, or null if there was a problem cloning the existing one
-   */
-  public static Workflow cloneWorkflow(HelixManager manager, String origWorkflowName,
-      String newWorkflowName, Date newStartTime) {
-    // Read all resources, including the workflow and jobs of interest
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
-    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Map<String, HelixProperty> resourceConfigMap =
-        accessor.getChildValuesMap(keyBuilder.resourceConfigs());
-    if (!resourceConfigMap.containsKey(origWorkflowName)) {
-      LOG.error("No such workflow named " + origWorkflowName);
-      return null;
-    }
-    if (resourceConfigMap.containsKey(newWorkflowName)) {
-      LOG.error("Workflow with name " + newWorkflowName + " already exists!");
-      return null;
-    }
-
-    // Create a new workflow with a new name
-    HelixProperty workflowConfig = resourceConfigMap.get(origWorkflowName);
-    Map<String, String> wfSimpleFields = workflowConfig.getRecord().getSimpleFields();
-    JobDag jobDag = JobDag.fromJson(wfSimpleFields.get(WorkflowConfig.DAG));
-    Map<String, Set<String>> parentsToChildren = jobDag.getParentsToChildren();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(newWorkflowName);
-
-    // Set the workflow expiry
-    workflowBuilder.setExpiry(Long.parseLong(wfSimpleFields.get(WorkflowConfig.EXPIRY)));
-
-    // Set the schedule, if applicable
-    ScheduleConfig scheduleConfig;
-    if (newStartTime != null) {
-      scheduleConfig = ScheduleConfig.oneTimeDelayedStart(newStartTime);
-    } else {
-      scheduleConfig = parseScheduleFromConfigMap(wfSimpleFields);
-    }
-    if (scheduleConfig != null) {
-      workflowBuilder.setScheduleConfig(scheduleConfig);
-    }
-
-    // Add each job back as long as the original exists
-    Set<String> namespacedJobs = jobDag.getAllNodes();
-    for (String namespacedJob : namespacedJobs) {
-      if (resourceConfigMap.containsKey(namespacedJob)) {
-        // Copy over job-level and task-level configs
-        String job = getDenamespacedJobName(origWorkflowName, namespacedJob);
-        HelixProperty jobConfig = resourceConfigMap.get(namespacedJob);
-        Map<String, String> jobSimpleFields = jobConfig.getRecord().getSimpleFields();
-
-        JobConfig.Builder jobCfgBuilder = JobConfig.Builder.fromMap(jobSimpleFields);
-
-        jobCfgBuilder.setWorkflow(newWorkflowName); // overwrite workflow name
-        Map<String, Map<String, String>> rawTaskConfigMap = jobConfig.getRecord().getMapFields();
-        List<TaskConfig> taskConfigs = Lists.newLinkedList();
-        for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
-          TaskConfig taskConfig = TaskConfig.from(rawTaskConfig);
-          taskConfigs.add(taskConfig);
-        }
-        jobCfgBuilder.addTaskConfigs(taskConfigs);
-        workflowBuilder.addJobConfig(job, jobCfgBuilder);
-
-        // Add dag dependencies
-        Set<String> children = parentsToChildren.get(namespacedJob);
-        if (children != null) {
-          for (String namespacedChild : children) {
-            String child = getDenamespacedJobName(origWorkflowName, namespacedChild);
-            workflowBuilder.addParentChildDependency(job, child);
-          }
-        }
-      }
-    }
-    return workflowBuilder.build();
-  }
-
   private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.resourceConfig(resource));
-  }
-
-  /**
-   * Cleans up IdealState and external view associated with a job/workflow resource.
-   */
-  public static void cleanupIdealStateExtView(HelixDataAccessor accessor, final String resourceName) {
-    LOG.info("Cleaning up idealstate and externalView for job: " + resourceName);
-
-    // Delete the ideal state itself.
-    PropertyKey isKey = accessor.keyBuilder().idealStates(resourceName);
-    if (accessor.getProperty(isKey) != null) {
-      if (!accessor.removeProperty(isKey)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
-            resourceName, isKey));
-      }
-    } else {
-      LOG.warn(String.format("Idealstate for resource %s does not exist.", resourceName));
-    }
-
-    // Delete dead external view
-    // because job is already completed, there is no more current state change
-    // thus dead external views removal will not be triggered
-    PropertyKey evKey = accessor.keyBuilder().externalView(resourceName);
-    if (accessor.getProperty(evKey) != null) {
-      if (!accessor.removeProperty(evKey)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
-            resourceName, evKey));
-      }
-    }
-
-    LOG.info(String
-        .format("Successfully clean up idealstate/externalView for resource %s.", resourceName));
   }
 
   /**

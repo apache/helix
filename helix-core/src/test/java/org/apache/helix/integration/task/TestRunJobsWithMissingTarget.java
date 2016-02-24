@@ -153,7 +153,8 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < num_dbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(
+              _test_dbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
       String jobName = "job" + _test_dbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
@@ -164,8 +165,8 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
-    TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceJob1, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.FAILED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
+    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
   }
 
   @Test
@@ -190,7 +191,7 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(0));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(0));
-    TaskTestUtil.pollForJobState(_manager, queueName, namedSpaceJob1, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_manager, queueName, TaskState.FAILED);
+    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
+    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
   }
 }

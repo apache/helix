@@ -158,6 +158,6 @@ public class TestTaskRebalancerParallel extends ZkIntegrationTestBase {
       _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
 
-    Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_manager, queueName));
+    Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }
 }

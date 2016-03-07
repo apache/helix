@@ -162,17 +162,17 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
       currentJobNames.add(jobName);
     }
 
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(1));
     _driver.start(queueBuilder.build());
 
-    String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(2));
+    String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(1));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
     TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
 
     _driver.delete(queueName);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testJobFailsWithMissingTarget")
   public void testJobContinueUponParentJobFailure() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 
@@ -191,7 +191,6 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(1));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
@@ -202,7 +201,7 @@ public class TestRunJobsWithMissingTarget extends ZkIntegrationTestBase {
     _driver.delete(queueName);
   }
 
-  @Test
+  @Test(dependsOnMethods = "testJobContinueUponParentJobFailure")
   public void testJobFailsWithMissingTargetInRunning() throws Exception {
     String queueName = TestHelper.getTestMethodName();
 

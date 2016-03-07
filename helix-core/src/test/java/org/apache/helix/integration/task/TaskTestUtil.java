@@ -112,7 +112,8 @@ public class TaskTestUtil {
     Assert.assertNotNull(ctx, "Empty job context");
     TaskState jobState = ctx.getJobState(jobName);
     Assert.assertTrue(allowedStates.contains(jobState),
-        "expect job states: " + allowedStates + " actual job state: " + jobState);
+        "expect job " + jobName + " is in states: " + allowedStates + " actual job state: "
+            + jobState + " all other job states in the workflow: " + ctx.getJobStates().entrySet());
   }
 
   public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,

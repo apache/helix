@@ -19,6 +19,7 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -80,6 +81,18 @@ public class WorkflowContext extends HelixProperty {
     }
 
     return TaskState.valueOf(s);
+  }
+
+  public Map<String, TaskState> getJobStates() {
+    Map<String, TaskState> jobStates = new HashMap<String, TaskState>();
+    Map<String, String> stateFieldMap = _record.getMapField(JOB_STATES);
+    if (stateFieldMap != null) {
+      for (Map.Entry<String, String> state : stateFieldMap.entrySet()) {
+        jobStates.put(state.getKey(), TaskState.valueOf(state.getValue()));
+      }
+    }
+
+    return jobStates;
   }
 
   public void setStartTime(long t) {

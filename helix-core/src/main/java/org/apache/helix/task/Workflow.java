@@ -247,7 +247,7 @@ public class Workflow {
       _expiry = -1;
     }
 
-    private Builder addConfig(String job, String key, String val) {
+    protected Builder addConfig(String job, String key, String val) {
       job = namespacify(job);
       _dag.addNode(job);
       if (!_jobConfigs.containsKey(job)) {
@@ -273,7 +273,7 @@ public class Workflow {
       return this;
     }
 
-    private Builder addTaskConfigs(String job, Collection<TaskConfig> taskConfigs) {
+    protected Builder addTaskConfigs(String job, Collection<TaskConfig> taskConfigs) {
       job = namespacify(job);
       _dag.addNode(job);
       if (!_taskConfigs.containsKey(job)) {

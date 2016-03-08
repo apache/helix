@@ -573,6 +573,10 @@ public class TaskDriver {
     if (!status) {
       throw new IllegalArgumentException("Could not enqueue job");
     }
+
+    // This is to make it back-compatible with old Helix task driver.
+    addWorkflowResourceIfNecessary(queueName);
+
     // Schedule the job
     TaskUtil.invokeRebalance(_accessor, queueName);
   }
@@ -582,20 +586,34 @@ public class TaskDriver {
     // Add workflow resource
     _admin.addResource(_clusterName, workflow, 1, TaskConstants.STATE_MODEL_NAME);
 
-    // Push out new ideal state for the workflow
+    IdealState is = buildWorkflowIdealState(workflow);
+    _admin.setResourceIdealState(_clusterName, workflow, is);
+
+  }
+
+  /**
+   * Posts new workflow resource to cluster if it does not exist
+   */
+  private void addWorkflowResourceIfNecessary(String workflow) {
+    IdealState is = _admin.getResourceIdealState(_clusterName, workflow);
+    if (is == null) {
+      addWorkflowResource(workflow);
+    }
+  }
+
+  private IdealState buildWorkflowIdealState(String workflow) {
     CustomModeISBuilder IsBuilder = new CustomModeISBuilder(workflow);
-    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK)
-        .setNumReplica(1).setNumPartitions(1)
-        .setStateModel(TaskConstants.STATE_MODEL_NAME)
-        .disableExternalView();
+    IsBuilder.setRebalancerMode(IdealState.RebalanceMode.TASK).setNumReplica(1)
+        .setNumPartitions(1).setStateModel(TaskConstants.STATE_MODEL_NAME).disableExternalView();
 
     IdealState is = IsBuilder.build();
     is.getRecord().setListField(workflow, new ArrayList<String>());
     is.getRecord().setMapField(workflow, new HashMap<String, String>());
     is.setRebalancerClassName(WorkflowRebalancer.class.getName());
-    _admin.setResourceIdealState(_clusterName, workflow, is);
 
+    return is;
   }
+
 
   /**
    * Add new job config to cluster

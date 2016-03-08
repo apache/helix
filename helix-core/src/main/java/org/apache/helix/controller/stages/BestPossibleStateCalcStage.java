@@ -133,7 +133,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
               Rebalancer.class.cast(HelixUtil.loadClass(getClass(), rebalancerClassName)
                   .newInstance());
         } catch (Exception e) {
-          logger.warn("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
+          logger.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
         }
         if (rebalancer != null) {
           try {

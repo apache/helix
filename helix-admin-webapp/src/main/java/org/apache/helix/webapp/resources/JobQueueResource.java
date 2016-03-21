@@ -21,15 +21,10 @@ package org.apache.helix.webapp.resources;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.store.HelixPropertyStore;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
@@ -91,14 +86,14 @@ public class JobQueueResource extends ServerResource {
         ClusterRepresentationUtil.getClusterDataAccessor(zkClient, clusterName);
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
 
-    // Get job queue config
-    HelixProperty jobQueueConfig = accessor.getProperty(keyBuilder.resourceConfig(jobQueueName));
+    TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
 
+    // Get job queue config
+    // TODO: fix this to use workflowConfig.
+    ResourceConfig jobQueueConfig = accessor.getProperty(keyBuilder.resourceConfig(jobQueueName));
+    
     // Get job queue context
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
-    HelixPropertyStore<ZNRecord> propertyStore =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
-    WorkflowContext ctx = TaskUtil.getWorkflowContext(propertyStore, jobQueueName);
+    WorkflowContext ctx = taskDriver.getWorkflowContext(jobQueueName);
 
     // Create the result
     ZNRecord hostedEntitiesRecord = new ZNRecord(jobQueueName);

@@ -733,6 +733,22 @@ public class TaskDriver {
     return TaskUtil.getJobContext(_propertyStore, job);
   }
 
+  public static JobContext getJobContext(HelixManager manager, String job) {
+    return TaskUtil.getJobContext(manager, job);
+  }
+
+  public static WorkflowConfig getWorkflowConfig(HelixManager manager, String workflow) {
+    return TaskUtil.getWorkflowCfg(manager, workflow);
+  }
+
+  public static WorkflowContext getWorkflowContext(HelixManager manager, String workflow) {
+    return TaskUtil.getWorkflowContext(manager, workflow);
+  }
+
+  public static JobConfig getJobConfig(HelixManager manager, String job) {
+    return TaskUtil.getJobCfg(manager, job);
+  }
+
   public void list(String resource) {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_accessor, resource);
     if (wCfg == null) {

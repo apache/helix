@@ -25,10 +25,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.store.HelixPropertyStore;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
@@ -119,14 +116,10 @@ public class JobResource extends ServerResource {
     // Get job queue config
     String namespacedJobName = TaskUtil.getNamespacedJobName(jobQueueName, jobName);
     HelixProperty jobConfig = accessor.getProperty(keyBuilder.resourceConfig(namespacedJobName));
+    TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
 
     // Get job queue context
-    JobContext ctx = null;
-    String path = PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName);
-    HelixPropertyStore<ZNRecord> propertyStore =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
-
-    ctx = TaskUtil.getJobContext(propertyStore, namespacedJobName);
+    JobContext ctx = taskDriver.getJobContext(namespacedJobName);
 
     // Create the result
     ZNRecord hostedEntitiesRecord = new ZNRecord(namespacedJobName);

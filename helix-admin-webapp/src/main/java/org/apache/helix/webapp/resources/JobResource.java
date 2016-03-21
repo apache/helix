@@ -22,13 +22,8 @@ package org.apache.helix.webapp.resources;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.store.HelixPropertyStore;
-import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskUtil;
@@ -120,13 +115,10 @@ public class JobResource extends ServerResource {
     String namespacedJobName = TaskUtil.getNamespacedJobName(jobQueueName, jobName);
     HelixProperty jobConfig = accessor.getProperty(keyBuilder.resourceConfig(namespacedJobName));
 
-    // Get job queue context
-    JobContext ctx = null;
-    String path = PropertyPathBuilder.propertyStore(clusterName);
-    HelixPropertyStore<ZNRecord> propertyStore =
-        new ZkHelixPropertyStore<ZNRecord>(new ZkBaseDataAccessor<ZNRecord>(zkClient), path, null);
+    TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
 
-    ctx = TaskUtil.getJobContext(propertyStore, namespacedJobName);
+    // Get job queue context
+    JobContext ctx = taskDriver.getJobContext(namespacedJobName);
 
     // Create the result
     ZNRecord hostedEntitiesRecord = new ZNRecord(namespacedJobName);

@@ -51,7 +51,7 @@ public class TaskUtil {
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
-   * This method is internal API, please use TaskDriver.getJobConfig();
+   * This method is internal API, please use the corresponding one in TaskDriver.getJobConfig();
    *
    * @param accessor    Accessor to access Helix configs
    * @param jobResource The name of the job resource
@@ -78,7 +78,7 @@ public class TaskUtil {
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
-   * This method is internal API, please use TaskDriver.getJobConfig();
+   * This method is internal API, please use the corresponding one in TaskDriver.getJobConfig();
    *
    * @param manager     HelixManager object used to connect to Helix.
    * @param jobResource The name of the job resource.
@@ -91,7 +91,7 @@ public class TaskUtil {
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
-   * This method is internal API, please use TaskDriver.getWorkflowConfig();
+   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowConfig();
    *
    * @param accessor  Accessor to access Helix configs
    * @param workflow The name of the workflow.
@@ -112,7 +112,7 @@ public class TaskUtil {
 
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
-   * This method is internal API, please use TaskDriver.getWorkflowConfig();
+   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowConfig();
    *
    * @param manager          Helix manager object used to connect to Helix.
    * @param workflow The name of the workflow resource.
@@ -143,7 +143,7 @@ public class TaskUtil {
    * @param jobResource   The name of the job
    * @return the {@link JobContext}, or null if none is available
    */
-  public static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
+  protected static JobContext getJobContext(HelixPropertyStore<ZNRecord> propertyStore,
       String jobResource) {
     ZNRecord r = propertyStore
         .get(Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, CONTEXT_NODE),
@@ -179,13 +179,13 @@ public class TaskUtil {
 
   /**
    * Get the runtime context of a single workflow.
-   * This method is internal API, please use TaskDriver.getWorkflowContext();
+   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
    *
    * @param propertyStore    Property store of the cluster
    * @param workflowResource The name of the workflow
    * @return the {@link WorkflowContext}, or null if none is available
    */
-  public static WorkflowContext getWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
+  protected static WorkflowContext getWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
       String workflowResource) {
     ZNRecord r = propertyStore.get(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource, CONTEXT_NODE),
@@ -195,7 +195,7 @@ public class TaskUtil {
 
   /**
    * Get the runtime context of a single workflow.
-   * This method is internal API, please use TaskDriver.getWorkflowContext();
+   * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
    *
    * @param manager          a connection to Helix
    * @param workflowResource the name of the workflow
@@ -212,7 +212,7 @@ public class TaskUtil {
    * @param workflowResource the name of the workflow
    * @param ctx              the up-to-date {@link WorkflowContext} for the workflow
    */
-  public static void setWorkflowContext(HelixManager manager, String workflowResource,
+  protected static void setWorkflowContext(HelixManager manager, String workflowResource,
       WorkflowContext ctx) {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource, CONTEXT_NODE),
@@ -298,7 +298,7 @@ public class TaskUtil {
    * @param accessor Helix data accessor
    * @param resource the name of the resource changed to triggering the execution
    */
-  public static void invokeRebalance(HelixDataAccessor accessor, String resource) {
+  protected static void invokeRebalance(HelixDataAccessor accessor, String resource) {
     // The pipeline is idempotent, so touching an ideal state is enough to trigger a pipeline run
     LOG.info("invoke rebalance for " + resource);
     PropertyKey key = accessor.keyBuilder().idealStates(resource);

@@ -183,7 +183,7 @@ public class TestTaskRebalancer extends ZkIntegrationTestBase {
 
     // Wait for job to finish and expire
     TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
-    Thread.sleep(expiry);
+    Thread.sleep(expiry + 100);
 
     // Ensure workflow config and context were cleaned up by now
     Assert.assertFalse(_manager.getHelixPropertyStore().exists(workflowPropStoreKey,

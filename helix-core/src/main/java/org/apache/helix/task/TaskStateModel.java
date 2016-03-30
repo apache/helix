@@ -255,7 +255,7 @@ public class TaskStateModel extends StateModel {
     // Report a target if that was used to assign the partition
     String target = ctx.getTargetForPartition(pId);
     if (taskConfig == null && target != null) {
-      taskConfig = TaskConfig.from(target);
+      taskConfig = TaskConfig.Builder.from(target);
     }
 
     // Populate a task callback context

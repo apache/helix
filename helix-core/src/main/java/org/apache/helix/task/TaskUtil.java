@@ -69,7 +69,7 @@ public class TaskUtil {
         jobResourceConfig.getRecord().getMapFields();
     Map<String, TaskConfig> taskConfigMap = Maps.newHashMap();
     for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
-      TaskConfig taskConfig = TaskConfig.from(rawTaskConfig);
+      TaskConfig taskConfig = TaskConfig.Builder.from(rawTaskConfig);
       taskConfigMap.put(taskConfig.getId(), taskConfig);
     }
     b.addTaskConfigMap(taskConfigMap);

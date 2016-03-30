@@ -187,7 +187,7 @@ public class Workflow {
         if (job.tasks != null) {
           List<TaskConfig> taskConfigs = Lists.newArrayList();
           for (TaskBean task : job.tasks) {
-            taskConfigs.add(TaskConfig.from(task));
+            taskConfigs.add(TaskConfig.Builder.from(task));
           }
           workflowBuilder.addTaskConfigs(job.name, taskConfigs);
         }

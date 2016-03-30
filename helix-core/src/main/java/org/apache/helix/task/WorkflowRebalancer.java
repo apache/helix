@@ -368,7 +368,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
         Map<String, Map<String, String>> rawTaskConfigMap = jobConfig.getRecord().getMapFields();
         List<TaskConfig> taskConfigs = Lists.newLinkedList();
         for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
-          TaskConfig taskConfig = TaskConfig.from(rawTaskConfig);
+          TaskConfig taskConfig = TaskConfig.Builder.from(rawTaskConfig);
           taskConfigs.add(taskConfig);
         }
         jobCfgBuilder.addTaskConfigs(taskConfigs);

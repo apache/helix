@@ -70,8 +70,8 @@ public class WorkflowGenerator {
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(DEFAULT_COMMAND_CONFIG);
 
-    builder.addJobConfig(JOB_NAME_1, jobBuilder);
-    builder.addJobConfig(JOB_NAME_2, jobBuilder);
+    builder.addJob(JOB_NAME_1, jobBuilder);
+    builder.addJob(JOB_NAME_2, jobBuilder);
 
     return builder;
   }

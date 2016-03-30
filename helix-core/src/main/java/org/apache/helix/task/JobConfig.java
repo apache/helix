@@ -30,7 +30,10 @@ import java.util.Set;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import org.apache.helix.task.beans.JobBean;
+import org.apache.helix.task.beans.TaskBean;
 
 /**
  * Provides a typed interface to job configurations.
@@ -483,6 +486,43 @@ public class JobConfig {
         throw new IllegalArgumentException(
             String.format("%s cannot be null", JobConfigProperty.WorkflowID));
       }
+    }
+
+    public static Builder from(JobBean jobBean) {
+      Builder b = new Builder();
+
+      b.setMaxAttemptsPerTask(jobBean.maxAttemptsPerTask)
+          .setMaxForcedReassignmentsPerTask(jobBean.maxForcedReassignmentsPerTask)
+          .setNumConcurrentTasksPerInstance(jobBean.numConcurrentTasksPerInstance)
+          .setTimeoutPerTask(jobBean.timeoutPerPartition)
+          .setFailureThreshold(jobBean.failureThreshold).setTaskRetryDelay(jobBean.taskRetryDelay)
+          .setDisableExternalView(jobBean.disableExternalView)
+          .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure);
+
+      if (jobBean.jobCommandConfigMap != null) {
+        b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);
+      }
+      if (jobBean.command != null) {
+        b.setCommand(jobBean.command);
+      }
+      if (jobBean.targetResource != null) {
+        b.setTargetResource(jobBean.targetResource);
+      }
+      if (jobBean.targetPartitionStates != null) {
+        b.setTargetPartitionStates(new HashSet<String>(jobBean.targetPartitionStates));
+      }
+      if (jobBean.targetPartitions != null) {
+        b.setTargetPartitions(jobBean.targetPartitions);
+      }
+      if (jobBean.tasks != null) {
+        List<TaskConfig> taskConfigs = Lists.newArrayList();
+        for (TaskBean task : jobBean.tasks) {
+          taskConfigs.add(TaskConfig.Builder.from(task));
+        }
+        b.addTaskConfigs(taskConfigs);
+      }
+
+      return b;
     }
 
     private static List<String> csvToStringList(String csv) {

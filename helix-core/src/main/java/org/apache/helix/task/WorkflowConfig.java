@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixException;
+import org.apache.helix.task.beans.WorkflowBean;
 import org.apache.log4j.Logger;
 
 /**
@@ -375,6 +376,16 @@ public class WorkflowConfig {
 
     public JobDag getJobDag() {
       return _taskDag;
+    }
+
+    public static Builder from(WorkflowBean workflowBean) {
+      WorkflowConfig.Builder b = new WorkflowConfig.Builder();
+      if (workflowBean.schedule != null) {
+        b.setScheduleConfig(ScheduleConfig.from(workflowBean.schedule));
+      }
+      b.setExpiry(workflowBean.expiry);
+
+      return b;
     }
 
     private void validate() {

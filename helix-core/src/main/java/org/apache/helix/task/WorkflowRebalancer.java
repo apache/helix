@@ -372,7 +372,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
           taskConfigs.add(taskConfig);
         }
         jobCfgBuilder.addTaskConfigs(taskConfigs);
-        workflowBuilder.addJobConfig(job, jobCfgBuilder);
+        workflowBuilder.addJob(job, jobCfgBuilder);
 
         // Add dag dependencies
         Set<String> children = parentsToChildren.get(namespacedJob);

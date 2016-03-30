@@ -152,7 +152,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
             .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -179,7 +179,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setCommand("DummyCommand").setFailureThreshold(1)
             .addTaskConfigs(taskConfigs).setJobCommandConfigMap(jobConfigMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
@@ -207,7 +207,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
             .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
 
     _driver.start(workflowBuilder.build());
 
@@ -235,7 +235,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
         .setMaxForcedReassignmentsPerTask(NUM_INSTANCES - 1).addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
 
     _driver.start(workflowBuilder.build());
 
@@ -268,7 +268,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
         .addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
 
     long inFiveSeconds = System.currentTimeMillis() + (5 * 1000);
     workflowBuilder.setScheduleConfig(ScheduleConfig.oneTimeDelayedStart(new Date(inFiveSeconds)));
@@ -301,7 +301,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
         .setTaskRetryDelay(delay).addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJobConfig(jobName, jobBuilder);
+    workflowBuilder.addJob(jobName, jobBuilder);
 
     SingleFailTask.hasFailed = false;
     _driver.start(workflowBuilder.build());

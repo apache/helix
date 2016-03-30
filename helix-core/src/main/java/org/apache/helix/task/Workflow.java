@@ -34,13 +34,9 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.task.beans.JobBean;
-import org.apache.helix.task.beans.TaskBean;
 import org.apache.helix.task.beans.WorkflowBean;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 
 /**
  * Houses a job dag and config set to fully describe a job workflow
@@ -150,56 +146,18 @@ public class Workflow {
         if (job.name == null) {
           throw new IllegalArgumentException("A job must have a name.");
         }
-
+        JobConfig.Builder jobConfigBuilder = JobConfig.Builder.from(job);
+        jobConfigBuilder.setWorkflow(wf.name);
+        workflowBuilder.addJob(job.name, jobConfigBuilder);
         if (job.parents != null) {
           for (String parent : job.parents) {
             workflowBuilder.addParentChildDependency(parent, job.name);
           }
         }
-
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.WorkflowID.name(), wf.name);
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.Command.name(), job.command);
-        if (job.jobConfigMap != null) {
-          workflowBuilder.addJobCommandConfigMap(job.name, job.jobConfigMap);
-        }
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetResource.name(),
-            job.targetResource);
-        if (job.targetPartitionStates != null) {
-          workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetPartitionStates.name(),
-              Joiner.on(",").join(job.targetPartitionStates));
-        }
-        if (job.targetPartitions != null) {
-          workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TargetPartitions.name(),
-              Joiner.on(",").join(job.targetPartitions));
-        }
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.MaxAttemptsPerTask.name(),
-            String.valueOf(job.maxAttemptsPerTask));
-        workflowBuilder.addConfig(job.name,
-            JobConfig.JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
-            String.valueOf(job.maxForcedReassignmentsPerTask));
-        workflowBuilder.addConfig(job.name,
-            JobConfig.JobConfigProperty.ConcurrentTasksPerInstance.name(),
-            String.valueOf(job.numConcurrentTasksPerInstance));
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.TimeoutPerPartition.name(),
-            String.valueOf(job.timeoutPerPartition));
-        workflowBuilder.addConfig(job.name, JobConfig.JobConfigProperty.FailureThreshold.name(),
-            String.valueOf(job.failureThreshold));
-        if (job.tasks != null) {
-          List<TaskConfig> taskConfigs = Lists.newArrayList();
-          for (TaskBean task : job.tasks) {
-            taskConfigs.add(TaskConfig.Builder.from(task));
-          }
-          workflowBuilder.addTaskConfigs(job.name, taskConfigs);
-        }
       }
     }
 
-    WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
-    if (wf.schedule != null) {
-      workflowCfgBuilder.setScheduleConfig(ScheduleConfig.from(wf.schedule));
-    }
-    workflowCfgBuilder.setExpiry(wf.expiry);
-    workflowBuilder.setWorkflowConfig(workflowCfgBuilder.build());
+    workflowBuilder.setWorkflowConfig(WorkflowConfig.Builder.from(wf).build());
 
     return workflowBuilder.build();
   }

@@ -19,129 +19,27 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Sets;
-import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
-import org.apache.helix.task.Task;
-import org.apache.helix.task.TaskCallbackContext;
-import org.apache.helix.task.TaskDriver;
-import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
-import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.log4j.Logger;
-import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import com.google.common.collect.Sets;
 
-public class TestJobFailureDependence extends ZkIntegrationTestBase {
+public class TestJobFailureDependence extends TaskTestBase {
   private static final Logger LOG = Logger.getLogger(TestJobFailureDependence.class);
-  private static final int num_nodes = 5;
-  private static final int num_dbs = 5;
-  private static final int START_PORT = 12918;
-  private static final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
-  private static final int NUM_PARTITIONS = 20;
-  private static final int NUM_REPLICAS = 3;
-  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
-  private final MockParticipantManager[] _participants = new MockParticipantManager[num_nodes];
-  private ClusterControllerManager _controller;
-  private ClusterSetup _setupTool;
-
-  private List<String> _test_dbs = new ArrayList<String>();
-
-  private HelixManager _manager;
-  private TaskDriver _driver;
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    String namespace = "/" + CLUSTER_NAME;
-    if (_gZkClient.exists(namespace)) {
-      _gZkClient.deleteRecursive(namespace);
-    }
-
-    _setupTool = new ClusterSetup(ZK_ADDR);
-    _setupTool.addCluster(CLUSTER_NAME, true);
-    for (int i = 0; i < num_nodes; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
-    }
-
-    // Set up target dbs
-    for (int i = 0; i < num_dbs; i++) {
-      String db = "TestDB" + i;
-      _setupTool
-          .addResourceToCluster(CLUSTER_NAME, db, NUM_PARTITIONS + 10 * i, MASTER_SLAVE_STATE_MODEL,
-              IdealState.RebalanceMode.FULL_AUTO.toString());
-      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, NUM_REPLICAS);
-      _test_dbs.add(db);
-    }
-
-    Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
-      @Override public Task createNewTask(TaskCallbackContext context) {
-        return new MockTask(context);
-      }
-    });
-
-    // start dummy participants
-    for (int i = 0; i < num_nodes; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
-
-      // Register a Task state model factory.
-      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-      stateMachine.registerStateModelFactory("Task",
-          new TaskStateModelFactory(_participants[i], taskFactoryReg));
-
-      _participants[i].syncStart();
-    }
-
-    // start controller
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
-
-    // create cluster manager
-    _manager = HelixManagerFactory
-        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
-    _manager.connect();
-
-    _driver = new TaskDriver(_manager);
-
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
-
-    result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
-  }
-
-  @AfterClass
-  public void afterClass() throws Exception {
-    _manager.disconnect();
-    _controller.syncStop();
-    for (int i = 0; i < num_nodes; i++) {
-      _participants[i].syncStop();
-    }
+    _numDbs = 5;
+    super.beforeClass();
   }
 
   @Test
@@ -153,20 +51,20 @@ public class TestJobFailureDependence extends ZkIntegrationTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i < num_dbs; i++) {
+    for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
-      String jobName = "job" + _test_dbs.get(i);
+      String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
 
     // all jobs after failed job should fail too.
-    for (int i = 2; i < num_dbs; i++) {
+    for (int i = 2; i < _numDbs; i++) {
       String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
       TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
     }
@@ -181,17 +79,17 @@ public class TestJobFailureDependence extends ZkIntegrationTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i < num_dbs; i++) {
+    for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
-      String jobName = "job" + _test_dbs.get(i);
+      String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
@@ -207,22 +105,22 @@ public class TestJobFailureDependence extends ZkIntegrationTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 100);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i < num_dbs; i++) {
+    for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
-      String jobName = "job" + _test_dbs.get(i);
+      String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(2));
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
     String namedSpaceJob2 = String.format("%s_%s", queueName, currentJobNames.get(2));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob2, TaskState.FAILED);
 
     // all jobs after failed job should complete.
-    for (int i = 3; i < num_dbs; i++) {
+    for (int i = 3; i < _numDbs; i++) {
       String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
       TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.COMPLETED);
     }
@@ -237,17 +135,17 @@ public class TestJobFailureDependence extends ZkIntegrationTestBase {
     JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    for (int i = 0; i < num_dbs; i++) {
+    for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
-      String jobName = "job" + _test_dbs.get(i);
+      String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       currentJobNames.add(jobName);
     }
 
     _driver.start(queueBuilder.build());
-    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _test_dbs.get(1));
+    _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
     TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
@@ -264,11 +162,11 @@ public class TestJobFailureDependence extends ZkIntegrationTestBase {
     _driver.updateWorkflow(queueName, configBuilder.build());
     _driver.stop(queueName);
 
-    for (int i = 0; i < num_dbs; i++) {
+    for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
-          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_test_dbs.get(i))
+          new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
-      String jobName = "job" + _test_dbs.get(i);
+      String jobName = "job" + _testDbs.get(i);
       queueBuilder.enqueueJob(jobName, jobConfig);
       _driver.enqueueJob(queueName, jobName, jobConfig);
     }

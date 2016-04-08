@@ -34,10 +34,12 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import org.apache.helix.task.beans.JobBean;
 import org.apache.helix.task.beans.TaskBean;
+import org.apache.helix.HelixProperty;
 
 /**
  * Provides a typed interface to job configurations.
  */
+// TODO: extends JobConfig from ResourceConfig
 public class JobConfig {
 
   /**
@@ -266,6 +268,12 @@ public class JobConfig {
     cfgMap.put(JobConfigProperty.IgnoreDependentJobFailure.name(),
         Boolean.toString(_ignoreDependentJobFailure));
     return cfgMap;
+  }
+
+  public static JobConfig fromHelixProperty(HelixProperty property)
+      throws IllegalArgumentException {
+    Map<String, String> configs = property.getRecord().getSimpleFields();
+    return Builder.fromMap(configs).build();
   }
 
   /**

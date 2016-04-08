@@ -28,11 +28,13 @@ import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 import org.apache.helix.HelixException;
 import org.apache.helix.task.beans.WorkflowBean;
+import org.apache.helix.HelixProperty;
 import org.apache.log4j.Logger;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
  */
+// TODO: extends WorkflowConfig from ResourceConfig
 public class WorkflowConfig {
   private static final Logger LOG = Logger.getLogger(WorkflowConfig.class);
 
@@ -217,6 +219,16 @@ public class WorkflowConfig {
     return null;
   }
 
+  public static WorkflowConfig fromHelixProperty(HelixProperty property)
+      throws IllegalArgumentException {
+    Map<String, String> configs = property.getRecord().getSimpleFields();
+    if (!configs.containsKey(WorkflowConfigProperty.Dag.name())) {
+      throw new IllegalArgumentException(
+          String.format("%s is an invalid WorkflowConfig", property.getId()));
+    }
+    return Builder.fromMap(configs).build();
+  }
+
   public static class Builder {
     private JobDag _taskDag = JobDag.EMPTY_DAG;
     private int _parallelJobs = 1;
@@ -399,5 +411,4 @@ public class WorkflowConfig {
       }
     }
   }
-
 }

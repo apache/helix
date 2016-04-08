@@ -763,6 +763,28 @@ public class TaskDriver {
     return TaskUtil.getJobCfg(manager, job);
   }
 
+  /**
+   * Batch get the configurations of all workflows in this cluster.
+   *
+   * @return
+   */
+  public Map<String, WorkflowConfig> getWorkflows() {
+    Map<String, WorkflowConfig> workflowConfigMap = new HashMap<String, WorkflowConfig>();
+    Map<String, ResourceConfig> resourceConfigMap =
+        _accessor.getChildValuesMap(_accessor.keyBuilder().resourceConfigs());
+
+    for (Map.Entry<String, ResourceConfig> resource : resourceConfigMap.entrySet()) {
+      try {
+        WorkflowConfig config = WorkflowConfig.fromHelixProperty(resource.getValue());
+        workflowConfigMap.put(resource.getKey(), config);
+      } catch (IllegalArgumentException ex) {
+        // ignore if it is not a workflow config.
+      }
+    }
+
+    return workflowConfigMap;
+  }
+
   public void list(String resource) {
     WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_accessor, resource);
     if (wCfg == null) {

@@ -58,17 +58,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
-  private static final int n = 5;
-  private static final int START_PORT = 12918;
-  private final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
-  private final MockParticipantManager[] _participants = new MockParticipantManager[n];
-  private ClusterControllerManager _controller;
+public class TestIndependentTaskRebalancer extends TaskTestBase {
   private Set<String> _invokedClasses = Sets.newHashSet();
   private Map<String, Integer> _runCounts = Maps.newHashMap();
 
-  private HelixManager _manager;
-  private TaskDriver _driver;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -80,14 +73,14 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     // Setup cluster and instances
     ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
     setupTool.addCluster(CLUSTER_NAME, true);
-    for (int i = 0; i < n; i++) {
-      String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+    for (int i = 0; i < _numNodes; i++) {
+      String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
       setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
 
     // start dummy participants
-    for (int i = 0; i < n; i++) {
-      final String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+    for (int i = 0; i < _numNodes; i++) {
+      final String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
 
       // Set task callbacks
       Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
@@ -226,7 +219,7 @@ public class TestIndependentTaskRebalancer extends ZkIntegrationTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
     Map<String, String> taskConfigMap = Maps.newHashMap(
-        ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + START_PORT));
+        ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + _startPort));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();

@@ -22,11 +22,9 @@ package org.apache.helix.integration.task;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.participant.StateMachineEngine;
@@ -45,35 +43,26 @@ import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
-import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 /**
  * Test task will be retried up to MaxAttemptsPerTask {@see HELIX-562}
  */
-public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
-  private final String _clusterName = TestHelper.getTestClassName();
-  private static final int _n = 5;
-  private static final int _p = 20;
-  private static final int _r = 3;
-  private final MockParticipantManager[] _participants = new MockParticipantManager[_n];
-  private ClusterControllerManager _controller;
-  private HelixManager _manager;
-  private TaskDriver _driver;
+public class TestTaskRebalancerRetryLimit extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
     ClusterSetup setup = new ClusterSetup(_gZkClient);
-    setup.addCluster(_clusterName, true);
-    for (int i = 0; i < _n; i++) {
+    setup.addCluster(CLUSTER_NAME, true);
+    for (int i = 0; i < _numNodes; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      setup.addInstanceToCluster(_clusterName, instanceName);
+      setup.addInstanceToCluster(CLUSTER_NAME, instanceName);
     }
 
     // Set up target db
-    setup.addResourceToCluster(_clusterName, WorkflowGenerator.DEFAULT_TGT_DB, _p, "MasterSlave");
-    setup.rebalanceStorageCluster(_clusterName, WorkflowGenerator.DEFAULT_TGT_DB, _r);
+    setup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions, "MasterSlave");
+    setup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
 
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put("ErrorTask", new TaskFactory() {
@@ -84,9 +73,9 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
     });
 
     // start dummy participants
-    for (int i = 0; i < _n; i++) {
+    for (int i = 0; i < _numNodes; i++) {
       String instanceName = "localhost_" + (12918 + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, instanceName);
+      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
       // Register a Task state model factory.
       StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
@@ -97,12 +86,12 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
 
     // start controller
     String controllerName = "controller";
-    _controller = new ClusterControllerManager(ZK_ADDR, _clusterName, controllerName);
+    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
 
     // create cluster manager
     _manager =
-        HelixManagerFactory.getZKHelixManager(_clusterName, "Admin", InstanceType.ADMINISTRATOR,
+        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR,
             ZK_ADDR);
     _manager.connect();
     _driver = new TaskDriver(_manager);
@@ -110,20 +99,10 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
     boolean result =
         ClusterStateVerifier
             .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                _clusterName));
+                CLUSTER_NAME));
     Assert.assertTrue(result);
   }
 
-  @AfterClass
-  public void afterClass() throws Exception {
-    _manager.disconnect();
-    _controller.syncStop();
-    for (int i = 0; i < _n; i++) {
-      if (_participants[i] != null && _participants[i].isConnected()) {
-        _participants[i].syncStop();
-      }
-    }
-  }
 
   @Test public void test() throws Exception {
     String jobResource = TestHelper.getTestMethodName();
@@ -141,7 +120,7 @@ public class TestTaskRebalancerRetryLimit extends ZkIntegrationTestBase {
     TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
 
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
-    for (int i = 0; i < _p; i++) {
+    for (int i = 0; i < _numParitions; i++) {
       TaskPartitionState state = ctx.getPartitionState(i);
       if (state != null) {
         Assert.assertEquals(state, TaskPartitionState.TASK_ERROR);

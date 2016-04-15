@@ -67,4 +67,20 @@ public interface StateMachineEngine extends MessageHandlerFactory {
    */
   public boolean removeStateModelFactory(String stateModelDef,
       StateModelFactory<? extends StateModel> factory, String factoryName);
+
+  /**
+   * Get a default state model factory for a state model definition.
+   * @param stateModelName
+   * @return
+   */
+  public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName);
+
+  /**
+   * Get a default state model factory for a state model definition.
+   * @param stateModelName
+   * @param factoryName
+   * @return
+   */
+  public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName,
+      String factoryName);
 }

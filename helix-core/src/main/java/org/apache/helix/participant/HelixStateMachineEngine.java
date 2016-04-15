@@ -63,10 +63,12 @@ public class HelixStateMachineEngine implements StateMachineEngine {
     _stateModelDefs = new ConcurrentHashMap<String, StateModelDefinition>();
   }
 
+  @Override
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName) {
     return getStateModelFactory(stateModelName, HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
   }
 
+  @Override
   public StateModelFactory<? extends StateModel> getStateModelFactory(String stateModelName,
       String factoryName) {
     if (!_stateModelFactoryMap.containsKey(stateModelName)) {

@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.helix.messaging.handling.BatchMessageWrapper;
 
@@ -167,7 +168,6 @@ public abstract class StateModelFactory<T extends StateModel> {
 
   /**
    * get resource set
-   * @param resourceName
    * @return resource name set
    */
   public Set<String> getResourceSet() {
@@ -229,4 +229,14 @@ public abstract class StateModelFactory<T extends StateModel> {
     return _batchMsgWrapperMap.get(resourceName);
   }
 
+  /**
+   * Get the customized thread pool to handle all state transition messages for the given resource.
+   * If this method return null, Helix will use the shared thread pool to handle all messages.
+   *
+   * @param resourceName
+   * @return
+   */
+  public ExecutorService getExecutorService(String resourceName) {
+    return null;
+  }
 }

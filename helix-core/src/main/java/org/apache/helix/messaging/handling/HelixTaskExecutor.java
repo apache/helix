@@ -55,6 +55,8 @@ import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
+import org.apache.helix.participant.statemachine.StateModel;
+import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
@@ -110,7 +112,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
 
-  final Map<String, Integer> _resourceThreadpoolSizeMap;
+  /* Resources whose configuration for dedicate thread pool has been checked.*/
+  final Set<String> _resourcesThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
@@ -120,7 +123,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
-    _resourceThreadpoolSizeMap = new ConcurrentHashMap<String, Integer>();
+    _resourcesThreadpoolChecked =
+        Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
@@ -174,10 +178,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     // start a thread which monitors the completions of task
   }
 
-  void checkResourceConfig(String resourceName, HelixManager manager) {
-    if (!_resourceThreadpoolSizeMap.containsKey(resourceName)) {
+  /** Dedicated Thread pool can be provided in configuration or by client.
+   *  This method is to check it and update the thread pool if necessary.
+   */
+  private void updateStateTransitionMessageThreadPool(Message message, HelixManager manager) {
+    if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
+      return;
+    }
+
+    String resourceName = message.getResourceName();
+    if (!_resourcesThreadpoolChecked.contains(resourceName)) {
       int threadpoolSize = -1;
       ConfigAccessor configAccessor = manager.getConfigAccessor();
+      // Changes to this configuration on thread pool size will only take effect after the participant get restarted.
       if (configAccessor != null) {
         HelixConfigScope scope =
             new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE)
@@ -189,16 +202,39 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             threadpoolSize = Integer.parseInt(threadpoolSizeStr);
           }
         } catch (Exception e) {
-          LOG.error("", e);
+          LOG.error(
+              "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
+      String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
       if (threadpoolSize > 0) {
-        String key = MessageType.STATE_TRANSITION.toString() + "." + resourceName;
         _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
-        LOG.info("Added per resource threadpool for resource: " + resourceName + " with size: "
+        LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
             + threadpoolSize);
+      } else {
+        // if threadpool is not configured
+        // check whether client specifies customized threadpool.
+        String factoryName = message.getStateModelFactoryName();
+        String stateModelName = message.getStateModelDef();
+        if (factoryName == null) {
+          factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+        }
+
+        StateModelFactory<? extends StateModel> stateModelFactory =
+            manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
+        if (stateModelFactory != null) {
+          ExecutorService executor = stateModelFactory.getExecutorService(resourceName);
+          if (executor != null) {
+            _executorMap.put(key, executor);
+            LOG.info("Added client specified dedicate threadpool for resource: " + key);
+          }
+        } else {
+          LOG.error(String.format(
+              "Fail to get dedicate threadpool defined in stateModelFactory %s: using factoryName: %s for resource %s. No stateModelFactory was found!",
+              stateModelName, factoryName, resourceName));
+        }
       }
-      _resourceThreadpoolSizeMap.put(resourceName, threadpoolSize);
+      _resourcesThreadpoolChecked.add(resourceName);
     }
   }
 
@@ -270,9 +306,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     NotificationContext notificationContext = task.getNotificationContext();
 
     try {
-      if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
-        checkResourceConfig(message.getResourceName(), notificationContext.getManager());
-      }
+      // Check to see if dedicate thread pool for handling state transition messages is configured or provided.
+      updateStateTransitionMessageThreadPool(message, notificationContext.getManager());
 
       LOG.info("Scheduling message: " + taskId);
       // System.out.println("sched msg: " + message.getPartitionName() + "-"
@@ -351,13 +386,14 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           _taskMap.remove(taskId);
           return true;
         } else {
-          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "fail to cancel task: "
-              + taskId, notificationContext.getManager().getHelixDataAccessor());
+          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
+              "fail to cancel task: " + taskId,
+              notificationContext.getManager().getHelixDataAccessor());
         }
       } else {
-        _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class, "fail to cancel task: "
-            + taskId + ", future not found", notificationContext.getManager()
-            .getHelixDataAccessor());
+        _statusUpdateUtil.logWarning(message, HelixTaskExecutor.class,
+            "fail to cancel task: " + taskId + ", future not found",
+            notificationContext.getManager().getHelixDataAccessor());
       }
     }
     return false;
@@ -367,8 +403,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public void finishTask(MessageTask task) {
     Message message = task.getMessage();
     String taskId = task.getTaskId();
-    LOG.info("message finished: " + taskId + ", took "
-        + (new Date().getTime() - message.getExecuteStartTimeStamp()));
+    LOG.info("message finished: " + taskId + ", took " + (new Date().getTime() - message
+        .getExecuteStartTimeStamp()));
 
     synchronized (_lock) {
       if (_taskMap.containsKey(taskId)) {

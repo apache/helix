@@ -35,7 +35,7 @@ import org.apache.log4j.Logger;
  * Provides a typed interface to workflow level configurations. Validates the configurations.
  */
 // TODO: extends WorkflowConfig from ResourceConfig
-public class WorkflowConfig {
+public class  WorkflowConfig {
   private static final Logger LOG = Logger.getLogger(WorkflowConfig.class);
 
   /**

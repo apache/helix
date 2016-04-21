@@ -113,7 +113,12 @@ public class JobConfig {
     /**
      * Disable external view (not showing) for this job resource
      */
-    DisableExternalView
+    DisableExternalView,
+
+    /**
+     * The type of the job
+     */
+    JobType
   }
 
   //Default property values
@@ -128,6 +133,7 @@ public class JobConfig {
 
   private final String _workflow;
   private final String _targetResource;
+  private final String _jobType;
   private final List<String> _targetPartitions;
   private final Set<String> _targetPartitionStates;
   private final String _command;
@@ -146,7 +152,8 @@ public class JobConfig {
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
-      boolean disableExternalView, boolean ignoreDependentJobFailure, Map<String, TaskConfig> taskConfigMap) {
+      boolean disableExternalView, boolean ignoreDependentJobFailure,
+      Map<String, TaskConfig> taskConfigMap, String jobType) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -166,6 +173,7 @@ public class JobConfig {
     } else {
       _taskConfigMap = Collections.emptyMap();
     }
+    _jobType = jobType;
   }
 
   public String getWorkflow() {
@@ -267,7 +275,14 @@ public class JobConfig {
         "" + _numConcurrentTasksPerInstance);
     cfgMap.put(JobConfigProperty.IgnoreDependentJobFailure.name(),
         Boolean.toString(_ignoreDependentJobFailure));
+   if (_jobType != null) {
+     cfgMap.put(JobConfigProperty.JobType.name(), _jobType);
+   }
     return cfgMap;
+  }
+
+  public String getJobType() {
+    return _jobType;
   }
 
   public static JobConfig fromHelixProperty(HelixProperty property)
@@ -282,6 +297,7 @@ public class JobConfig {
   public static class Builder {
     private String _workflow;
     private String _targetResource;
+    private String _jobType;
     private List<String> _targetPartitions;
     private Set<String> _targetPartitionStates;
     private String _command;
@@ -302,7 +318,7 @@ public class JobConfig {
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
-          _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap);
+          _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType);
     }
 
     /**
@@ -363,6 +379,9 @@ public class JobConfig {
       if (cfg.containsKey(JobConfigProperty.IgnoreDependentJobFailure.name())) {
         b.setIgnoreDependentJobFailure(
             Boolean.valueOf(cfg.get(JobConfigProperty.IgnoreDependentJobFailure.name())));
+      }
+      if (cfg.containsKey(JobConfigProperty.JobType.name())) {
+        b.setJobType(cfg.get(JobConfigProperty.JobType.name()));
       }
       return b;
     }
@@ -451,6 +470,11 @@ public class JobConfig {
       return this;
     }
 
+    public Builder setJobType(String jobType) {
+      _jobType = jobType;
+      return this;
+    }
+
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
@@ -529,7 +553,9 @@ public class JobConfig {
         }
         b.addTaskConfigs(taskConfigs);
       }
-
+      if (jobBean.jobType != null) {
+        b.setJobType(jobBean.jobType);
+      }
       return b;
     }
 

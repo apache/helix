@@ -31,4 +31,5 @@ public class WorkflowBean {
   public List<JobBean> jobs;
   public ScheduleBean schedule;
   public long expiry = WorkflowConfig.DEFAULT_EXPIRY;
+  public String workflowType;
 }

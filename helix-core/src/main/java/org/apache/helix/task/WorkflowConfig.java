@@ -56,7 +56,8 @@ public class WorkflowConfig {
     Terminable,
     FailureThreshold,
     /* this is for non-terminable workflow. */
-    capacity
+    capacity,
+    WorkflowType
   }
 
   /* Default values */
@@ -77,9 +78,11 @@ public class WorkflowConfig {
   private final ScheduleConfig _scheduleConfig;
   private final int _failureThreshold;
   private final int _capacity;
+  private final String _workflowType;
 
   protected WorkflowConfig(JobDag jobDag, int parallelJobs, TargetState targetState, long expiry,
-      int failureThreshold, boolean terminable, ScheduleConfig scheduleConfig, int capacity) {
+      int failureThreshold, boolean terminable, ScheduleConfig scheduleConfig, int capacity,
+      String workflowType) {
     _jobDag = jobDag;
     _parallelJobs = parallelJobs;
     _targetState = targetState;
@@ -88,6 +91,7 @@ public class WorkflowConfig {
     _terminable = terminable;
     _scheduleConfig = scheduleConfig;
     _capacity = capacity;
+    _workflowType = workflowType;
   }
 
   public JobDag getJobDag() {
@@ -116,6 +120,10 @@ public class WorkflowConfig {
    * @return queue capacity
    */
   public int getCapacity() { return _capacity; }
+
+  public String getWorkflowType() {
+    return _workflowType;
+  }
 
   public boolean isTerminable() {
     return _terminable;
@@ -184,6 +192,9 @@ public class WorkflowConfig {
             scheduleConfig.getRecurrenceInterval().toString());
       }
     }
+    if (_workflowType != null) {
+      cfgMap.put(WorkflowConfigProperty.WorkflowType.name(), _workflowType);
+    }
     return cfgMap;
   }
 
@@ -238,12 +249,13 @@ public class WorkflowConfig {
     private boolean _isTerminable = true;
     private int _capacity = Integer.MAX_VALUE;
     private ScheduleConfig _scheduleConfig;
+    private String _workflowType;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _failureThreshold,
-          _isTerminable, _scheduleConfig, _capacity);
+          _isTerminable, _scheduleConfig, _capacity, _workflowType);
     }
 
     public Builder() {}
@@ -286,6 +298,11 @@ public class WorkflowConfig {
 
     public Builder setCapacity(int capacity) {
       _capacity = capacity;
+      return this;
+    }
+
+    public Builder setWorkFlowType(String workflowType) {
+      _workflowType = workflowType;
       return this;
     }
 
@@ -354,6 +371,10 @@ public class WorkflowConfig {
       ScheduleConfig scheduleConfig = parseScheduleFromConfigMap(cfg);
       if (scheduleConfig != null) {
         setScheduleConfig(scheduleConfig);
+      }
+
+      if (cfg.containsKey(WorkflowConfigProperty.WorkflowType.name())) {
+        setWorkFlowType(cfg.get(WorkflowConfigProperty.WorkflowType.name()));
       }
       return this;
     }

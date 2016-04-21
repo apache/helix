@@ -31,6 +31,7 @@ public class JobBean {
   public String name;
   public List<String> parents;
   public String targetResource;
+  public String jobType;
   public List<String> targetPartitionStates;
   public List<String> targetPartitions;
   public String command;

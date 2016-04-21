@@ -18,13 +18,10 @@ package org.apache.helix.integration.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
-import org.apache.helix.task.TaskDriver;
+import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
@@ -36,33 +33,28 @@ import java.util.List;
 import java.util.Map;
 
 public class TestRetrieveWorkflows extends TaskTestBase {
-  @Test
-  public void testGetAllWorkflows() throws Exception {
+  @Test public void testGetAllWorkflows() throws Exception {
     List<Workflow> workflowList = new ArrayList<Workflow>();
-    for (int i = 0; i < 4; i++) {
-      Workflow workflow = WorkflowGenerator.generateDefaultRepeatedJobWorkflowBuilder(TestHelper.getTestMethodName() + i).build();
+    for (int i = 0; i < 2; i++) {
+      Workflow workflow = WorkflowGenerator
+          .generateDefaultRepeatedJobWorkflowBuilder(TestHelper.getTestMethodName() + i).build();
       _driver.start(workflow);
       workflowList.add(workflow);
     }
 
     for (Workflow workflow : workflowList) {
-      //TaskTestUtil.pollForWorkflowState(_driver, workflow.getName(), TaskState.COMPLETED);
+      TaskTestUtil.pollForWorkflowState(_driver, workflow.getName(), TaskState.COMPLETED);
     }
 
-    _manager = HelixManagerFactory
-        .getZKHelixManager("ESPRESSO_TEST_NUAGE", "Admin", InstanceType.ADMINISTRATOR, "zk-ei1-espresso.stg.linkedin.com:12913");
-    _manager.connect();
-    TaskDriver taskDriver = new TaskDriver(_manager);
-
-    Map<String, WorkflowConfig> workflowConfigMap = taskDriver.getWorkflows();
+    Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows();
     Assert.assertEquals(workflowConfigMap.size(), workflowList.size());
 
-    for(Map.Entry<String, WorkflowConfig> workflow :  workflowConfigMap.entrySet()) {
+    for (Map.Entry<String, WorkflowConfig> workflow : workflowConfigMap.entrySet()) {
       WorkflowConfig workflowConfig = workflow.getValue();
       WorkflowContext workflowContext = _driver.getWorkflowContext(workflow.getKey());
       Assert.assertNotNull(workflowContext);
 
-      for(String job : workflowConfig.getJobDag().getAllNodes()) {
+      for (String job : workflowConfig.getJobDag().getAllNodes()) {
         JobConfig jobConfig = _driver.getJobConfig(job);
         JobContext jobContext = _driver.getJobContext(job);
 

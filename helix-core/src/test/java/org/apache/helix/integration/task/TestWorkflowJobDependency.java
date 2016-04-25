@@ -33,7 +33,7 @@ import org.testng.annotations.Test;
 import com.google.common.collect.Sets;
 
 public class TestWorkflowJobDependency extends TaskTestBase {
-  private static final Logger LOG = Logger.getLogger(TestGenericWorkflow.class);
+  private static final Logger LOG = Logger.getLogger(TestWorkflowJobDependency.class);
 
   @BeforeClass
   public void beforeClass() throws Exception {

@@ -99,7 +99,6 @@ public class JobConfig {
      * The amount of time in ms to wait before retrying a task
      */
     TaskRetryDelay,
-
     /**
      * Whether failure of directly dependent jobs should fail this job.
      */

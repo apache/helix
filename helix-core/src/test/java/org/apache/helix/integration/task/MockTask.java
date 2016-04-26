@@ -19,27 +19,45 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
+import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskResult;
 
 public class MockTask implements Task {
   public static final String TASK_COMMAND = "Reindex";
-  private static final String TIMEOUT_CONFIG = "Timeout";
+  public static final String TIMEOUT_CONFIG = "Timeout";
+  public static final String TASK_RESULT_STATUS = "TaskResultStatus";
+  public static final String THROW_EXCEPTION = "ThrowException";
   private final long _delay;
   private volatile boolean _canceled;
+  private TaskResult.Status _taskResultStatus;
+  private boolean _throwException;
 
   public MockTask(TaskCallbackContext context) {
-    JobConfig jobCfg = context.getJobConfig();
-    Map<String, String> cfg = jobCfg.getJobCommandConfigMap();
+    Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
     if (cfg == null) {
-      cfg = Collections.emptyMap();
+      cfg = new HashMap<String, String>();
     }
+
+    TaskConfig taskConfig = context.getTaskConfig();
+    Map<String, String> taskCfg = taskConfig.getConfigMap();
+    if (taskCfg != null) {
+      cfg.putAll(taskCfg);
+    }
+
     _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 100L;
+    _taskResultStatus = cfg.containsKey(TASK_RESULT_STATUS) ?
+        TaskResult.Status.valueOf(cfg.get(TASK_RESULT_STATUS)) :
+        TaskResult.Status.COMPLETED;
+    _throwException = cfg.containsKey(THROW_EXCEPTION) ?
+        Boolean.valueOf(cfg.containsKey(THROW_EXCEPTION)) :
+        false;
   }
 
   @Override
@@ -55,7 +73,12 @@ public class MockTask implements Task {
       sleep(50);
     }
     timeLeft = expiry - System.currentTimeMillis();
-    return new TaskResult(TaskResult.Status.COMPLETED, String.valueOf(timeLeft < 0 ? 0 : timeLeft));
+
+    if (_throwException) {
+      throw new RuntimeException("Test failed");
+    }
+
+    return new TaskResult(_taskResultStatus, String.valueOf(timeLeft < 0 ? 0 : timeLeft));
   }
 
   @Override

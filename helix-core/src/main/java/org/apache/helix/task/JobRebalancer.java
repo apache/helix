@@ -314,15 +314,17 @@ public class JobRebalancer extends TaskRebalancer {
           break;
         case TIMED_OUT:
         case TASK_ERROR:
+        case TASK_ABORTED:
         case ERROR: {
           donePartitions.add(pId); // The task may be rescheduled on a different instance.
           LOG.debug(String.format(
-              "Task partition %s has error state %s. Marking as such in rebalancer context.",
-              pName, currState));
+              "Task partition %s has error state %s. Marking as such in rebalancer context.", pName,
+              currState));
           markPartitionError(jobCtx, pId, currState, true);
           // The error policy is to fail the task as soon a single partition fails for a specified
-          // maximum number of attempts.
-          if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()) {
+          // maximum number of attempts or task is in ABORTED state.
+          if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask() ||
+              currState.equals(TaskPartitionState.TASK_ABORTED)) {
             // If the user does not require this task to succeed in order for the job to succeed,
             // then we don't have to fail the job right now
             boolean successOptional = false;
@@ -352,6 +354,8 @@ public class JobRebalancer extends TaskRebalancer {
               skippedPartitions.add(pId);
               partitionsToDropFromIs.add(pId);
             }
+
+            LOG.debug("skippedPartitions:" + skippedPartitions);
           } else {
             // Mark the task to be started at some later time (if enabled)
             markPartitionDelayed(jobCfg, jobCtx, pId);
@@ -391,7 +395,7 @@ public class JobRebalancer extends TaskRebalancer {
       // any new assignments.
       // This includes all completed, failed, delayed, and already assigned partitions.
       Set<Integer> excludeSet = Sets.newTreeSet(assignedPartitions);
-      addCompletedPartitions(excludeSet, jobCtx, allPartitions);
+      addCompletedTasks(excludeSet, jobCtx, allPartitions);
       addGiveupPartitions(excludeSet, jobCtx, allPartitions, jobCfg);
       excludeSet.addAll(skippedPartitions);
       excludeSet.addAll(getNonReadyPartitions(jobCtx, currentTime));
@@ -529,7 +533,7 @@ public class JobRebalancer extends TaskRebalancer {
     }
   }
 
-  private static void addCompletedPartitions(Set<Integer> set, JobContext ctx,
+  private static void addCompletedTasks(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds) {
     for (Integer pId : pIds) {
       TaskPartitionState state = ctx.getPartitionState(pId);
@@ -540,6 +544,11 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {
+    TaskPartitionState state = ctx.getPartitionState(pId);
+    if (state != null && (state.equals(TaskPartitionState.TASK_ABORTED) | state
+        .equals(TaskPartitionState.ERROR))) {
+      return true;
+    }
     return ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask();
   }
 

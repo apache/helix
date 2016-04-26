@@ -33,8 +33,10 @@ public enum TaskPartitionState {
   COMPLETED,
   /** Indicates that the task timed out. */
   TIMED_OUT,
-  /** Indicates an error occurred during task execution. */
+  /** Indicates an error occurred during task execution, but the task can be retried. */
   TASK_ERROR,
+  /** Indicates an error occurred during task execution, and the task should not be retried. */
+  TASK_ABORTED,
   /** Helix's own internal error state. */
   ERROR,
   /** A Helix internal state. */

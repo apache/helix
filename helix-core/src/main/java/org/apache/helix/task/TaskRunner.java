@@ -71,8 +71,8 @@ public class TaskRunner implements Runnable {
       } catch (ThreadDeath death) {
         throw death;
       } catch (Throwable t) {
-        LOG.error("Problem running the task", t);
-        _result = new TaskResult(Status.ERROR, null);
+        LOG.error("Problem running the task, report task as FAILED.", t);
+        _result = new TaskResult(Status.FAILED, null);
       }
 
       switch (_result.getStatus()) {
@@ -88,8 +88,14 @@ public class TaskRunner implements Runnable {
       case ERROR:
         requestStateTransition(TaskPartitionState.TASK_ERROR);
         break;
+      case FAILED:
+        requestStateTransition(TaskPartitionState.TASK_ERROR);
+        break;
+      case FATAL_FAILED:
+        requestStateTransition(TaskPartitionState.TASK_ABORTED);
+        break;
       default:
-        throw new AssertionError("Unknown result type.");
+        throw new AssertionError("Unknown task result type: " + _result.getStatus().name());
       }
     } catch (Exception e) {
       requestStateTransition(TaskPartitionState.TASK_ERROR);

@@ -19,8 +19,6 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,10 +32,12 @@ public class MockTask implements Task {
   public static final String TIMEOUT_CONFIG = "Timeout";
   public static final String TASK_RESULT_STATUS = "TaskResultStatus";
   public static final String THROW_EXCEPTION = "ThrowException";
+  public static final String FAILURE_COUNT_BEFORE_SUCCESS = "FailureCountBeforeSuccess";
   private final long _delay;
   private volatile boolean _canceled;
   private TaskResult.Status _taskResultStatus;
   private boolean _throwException;
+  private int _expectedToSuccess;
 
   public MockTask(TaskCallbackContext context) {
     Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
@@ -58,6 +58,9 @@ public class MockTask implements Task {
     _throwException = cfg.containsKey(THROW_EXCEPTION) ?
         Boolean.valueOf(cfg.containsKey(THROW_EXCEPTION)) :
         false;
+    _expectedToSuccess =
+        cfg.containsKey(FAILURE_COUNT_BEFORE_SUCCESS) ? Integer.parseInt(cfg.get(
+            FAILURE_COUNT_BEFORE_SUCCESS)) : 0;
   }
 
   @Override
@@ -74,7 +77,8 @@ public class MockTask implements Task {
     }
     timeLeft = expiry - System.currentTimeMillis();
 
-    if (_throwException) {
+    if (_throwException || _expectedToSuccess > 0) {
+      _expectedToSuccess--;
       throw new RuntimeException("Test failed");
     }
 

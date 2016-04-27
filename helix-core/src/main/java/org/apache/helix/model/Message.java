@@ -64,6 +64,8 @@ public class Message extends HelixProperty {
     MSG_STATE,
     PARTITION_NAME,
     RESOURCE_NAME,
+    RESOURCE_GROUP_NAME,
+    RESOURCE_TAG,
     FROM_STATE,
     TO_STATE,
     STATE_MODEL_DEF,
@@ -394,6 +396,42 @@ public class Message extends HelixProperty {
    */
   public String getResourceName() {
     return _record.getSimpleField(Attributes.RESOURCE_NAME.toString());
+  }
+
+  /**
+   * Set the resource group associated with this message
+   *
+   * @param resourceGroupName resource group name to set
+   */
+  public void setResourceGroupName(String resourceGroupName) {
+    _record.setSimpleField(Attributes.RESOURCE_GROUP_NAME.toString(), resourceGroupName);
+  }
+
+  /**
+   * Get the resource group name associated with this message
+   *
+   * @return resource group name
+   */
+  public String getResourceGroupName() {
+    return _record.getSimpleField(Attributes.RESOURCE_GROUP_NAME.toString());
+  }
+
+  /**
+   * Set the resource tag associated with this message
+   *
+   * @param resourceTag resource tag to set
+   */
+  public void setResourceTag(String resourceTag) {
+    _record.setSimpleField(Attributes.RESOURCE_TAG.toString(), resourceTag);
+  }
+
+  /**
+   * Get the resource tag associated with this message
+   *
+   * @return resource tag
+   */
+  public String getResourceTag() {
+    return _record.getSimpleField(Attributes.RESOURCE_TAG.toString());
   }
 
   /**

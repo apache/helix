@@ -119,7 +119,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the rebalance mode of the ideal state
+   * Set the rebalance mode of the ideal state
    * @param mode {@link IdealStateModeProperty}
    */
   @Deprecated
@@ -130,7 +130,7 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the rebalance mode of the resource
+   * Set the rebalance mode of the resource
    * @param rebalancerType
    */
   public void setRebalanceMode(RebalanceMode rebalancerType) {

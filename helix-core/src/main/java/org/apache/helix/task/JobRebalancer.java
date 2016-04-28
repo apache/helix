@@ -421,6 +421,7 @@ public class JobRebalancer extends TaskRebalancer {
             excludeSet.add(pId);
             jobCtx.setAssignedParticipant(pId, instance);
             jobCtx.setPartitionState(pId, TaskPartitionState.INIT);
+            jobCtx.setPartitionStartTime(pId, System.currentTimeMillis());
             LOG.debug(String.format("Setting task partition %s state to %s on instance %s.", pName,
                 TaskPartitionState.RUNNING, instance));
           }

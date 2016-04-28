@@ -59,7 +59,7 @@ public class JobContext extends HelixProperty {
   public long getStartTime() {
     String tStr = _record.getSimpleField(ContextProperties.START_TIME.toString());
     if (tStr == null) {
-      return -1;
+      return WorkflowContext.UNSTARTED;
     }
     return Long.parseLong(tStr);
   }
@@ -121,6 +121,23 @@ public class JobContext extends HelixProperty {
     return Integer.parseInt(nStr);
   }
 
+  public void setPartitionStartTime(int p, long t) {
+    Map<String, String> map = getMapField(p);
+    map.put(ContextProperties.START_TIME.toString(), String.valueOf(t));
+  }
+
+  public long getPartitionStartTime(int p) {
+    Map<String, String> map = getMapField(p);
+    if (map == null) {
+      return WorkflowContext.UNSTARTED;
+    }
+    String tStr = map.get(ContextProperties.START_TIME.toString());
+    if (tStr == null) {
+      return WorkflowContext.UNSTARTED;
+    }
+    return Long.parseLong(tStr);
+  }
+
   public void setPartitionFinishTime(int p, long t) {
     Map<String, String> map = getMapField(p);
     map.put(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
@@ -129,11 +146,11 @@ public class JobContext extends HelixProperty {
   public long getPartitionFinishTime(int p) {
     Map<String, String> map = getMapField(p);
     if (map == null) {
-      return -1;
+      return WorkflowContext.UNFINISHED;
     }
     String tStr = map.get(ContextProperties.FINISH_TIME.toString());
     if (tStr == null) {
-      return -1;
+      return WorkflowContext.UNFINISHED;
     }
     return Long.parseLong(tStr);
   }

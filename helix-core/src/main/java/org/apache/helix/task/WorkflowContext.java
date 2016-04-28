@@ -36,6 +36,7 @@ public class WorkflowContext extends HelixProperty {
   public static final String FINISH_TIME = "FINISH_TIME";
   public static final String JOB_STATES = "JOB_STATES";
   public static final String LAST_SCHEDULED_WORKFLOW = "LAST_SCHEDULED_WORKFLOW";
+  public static final int UNSTARTED = -1;
   public static final int UNFINISHED = -1;
 
   public WorkflowContext(ZNRecord record) {

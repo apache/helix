@@ -19,97 +19,33 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.TestHelper;
-import org.apache.helix.integration.manager.ClusterControllerManager;
-import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.Task;
-import org.apache.helix.task.TaskCallbackContext;
-import org.apache.helix.task.TaskDriver;
-import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskStateModelFactory;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
-import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
-import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
+
+import com.google.common.collect.ImmutableMap;
 
 /**
  * Test task will be retried up to MaxAttemptsPerTask {@see HELIX-562}
  */
 public class TestTaskRebalancerRetryLimit extends TaskTestBase {
 
-  @BeforeClass
-  public void beforeClass() throws Exception {
-    ClusterSetup setup = new ClusterSetup(_gZkClient);
-    setup.addCluster(CLUSTER_NAME, true);
-    for (int i = 0; i < _numNodes; i++) {
-      String instanceName = "localhost_" + (12918 + i);
-      setup.addInstanceToCluster(CLUSTER_NAME, instanceName);
-    }
-
-    // Set up target db
-    setup.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions, "MasterSlave");
-    setup.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
-
-    Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
-    taskFactoryReg.put("ErrorTask", new TaskFactory() {
-      @Override
-      public Task createNewTask(TaskCallbackContext context) {
-        return new ErrorTask();
-      }
-    });
-
-    // start dummy participants
-    for (int i = 0; i < _numNodes; i++) {
-      String instanceName = "localhost_" + (12918 + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
-
-      // Register a Task state model factory.
-      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-      stateMachine.registerStateModelFactory("Task", new TaskStateModelFactory(_participants[i],
-          taskFactoryReg));
-      _participants[i].syncStart();
-    }
-
-    // start controller
-    String controllerName = "controller";
-    _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
-
-    // create cluster manager
-    _manager =
-        HelixManagerFactory.getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR,
-            ZK_ADDR);
-    _manager.connect();
-    _driver = new TaskDriver(_manager);
-
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR,
-                CLUSTER_NAME));
-    Assert.assertTrue(result);
-  }
-
-
   @Test public void test() throws Exception {
     String jobResource = TestHelper.getTestMethodName();
 
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
-        .setMaxAttemptsPerTask(2).setCommand("ErrorTask").setFailureThreshold(Integer.MAX_VALUE);
+        .setMaxAttemptsPerTask(2).setCommand(MockTask.TASK_COMMAND)
+        .setFailureThreshold(Integer.MAX_VALUE)
+        .setJobCommandConfigMap(ImmutableMap.of(MockTask.THROW_EXCEPTION, "true"));
 
     Workflow flow =
         WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
@@ -126,20 +62,6 @@ public class TestTaskRebalancerRetryLimit extends TaskTestBase {
         Assert.assertEquals(state, TaskPartitionState.TASK_ERROR);
         Assert.assertEquals(ctx.getPartitionNumAttempts(i), 2);
       }
-    }
-  }
-
-  private static class ErrorTask implements Task {
-    public ErrorTask() {
-    }
-
-    @Override
-    public TaskResult run() {
-      throw new RuntimeException("IGNORABLE exception: test throw exception from task");
-    }
-
-    @Override
-    public void cancel() {
     }
   }
 }

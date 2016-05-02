@@ -269,6 +269,7 @@ public class  WorkflowConfig {
       _scheduleConfig = workflowConfig.getScheduleConfig();
       _capacity = workflowConfig.getCapacity();
       _failureThreshold = workflowConfig.getFailureThreshold();
+      _workflowType =workflowConfig.getWorkflowType();
     }
 
     protected Builder setJobDag(JobDag v) {

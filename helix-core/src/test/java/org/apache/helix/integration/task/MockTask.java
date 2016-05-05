@@ -32,12 +32,14 @@ public class MockTask implements Task {
   public static final String TIMEOUT_CONFIG = "Timeout";
   public static final String TASK_RESULT_STATUS = "TaskResultStatus";
   public static final String THROW_EXCEPTION = "ThrowException";
+  public static final String ERROR_MESSAGE = "ErrorMessage";
   public static final String FAILURE_COUNT_BEFORE_SUCCESS = "FailureCountBeforeSuccess";
   private final long _delay;
   private volatile boolean _canceled;
   private TaskResult.Status _taskResultStatus;
   private boolean _throwException;
   private int _expectedToSuccess;
+  private String _errorMsg;
 
   public MockTask(TaskCallbackContext context) {
     Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
@@ -59,8 +61,10 @@ public class MockTask implements Task {
         Boolean.valueOf(cfg.containsKey(THROW_EXCEPTION)) :
         false;
     _expectedToSuccess =
-        cfg.containsKey(FAILURE_COUNT_BEFORE_SUCCESS) ? Integer.parseInt(cfg.get(
-            FAILURE_COUNT_BEFORE_SUCCESS)) : 0;
+        cfg.containsKey(FAILURE_COUNT_BEFORE_SUCCESS) ? Integer.parseInt(
+            cfg.get(FAILURE_COUNT_BEFORE_SUCCESS)) : 0;
+
+    _errorMsg = cfg.containsKey(ERROR_MESSAGE) ? cfg.get(ERROR_MESSAGE) : null;
   }
 
   @Override
@@ -77,12 +81,21 @@ public class MockTask implements Task {
     }
     timeLeft = expiry - System.currentTimeMillis();
 
-    if (_throwException || _expectedToSuccess > 0) {
+    if (_throwException) {
       _expectedToSuccess--;
-      throw new RuntimeException("Test failed");
+      if (_errorMsg == null) {
+        _errorMsg = "Test failed";
+      }
+      throw new RuntimeException(_errorMsg != null ? _errorMsg : "Test failed");
     }
 
-    return new TaskResult(_taskResultStatus, String.valueOf(timeLeft < 0 ? 0 : timeLeft));
+    if (_expectedToSuccess > 0){
+      _expectedToSuccess--;
+      throw new RuntimeException(_errorMsg != null ? _errorMsg : "Test failed");
+    }
+
+    return new TaskResult(_taskResultStatus,
+        _errorMsg != null ? _errorMsg : String.valueOf(timeLeft < 0 ? 0 : timeLeft));
   }
 
   @Override

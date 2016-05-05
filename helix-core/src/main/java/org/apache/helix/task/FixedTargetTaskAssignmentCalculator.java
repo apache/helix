@@ -31,6 +31,7 @@ import java.util.TreeSet;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
@@ -65,7 +66,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
     return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet,
-        jobContext);
+        jobContext, cache);
   }
 
   /**
@@ -130,7 +131,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
    */
   private static Map<String, SortedSet<Integer>> getTgtPartitionAssignment(
       CurrentStateOutput currStateOutput, Iterable<String> instances, IdealState tgtIs,
-      Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx) {
+      Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx, ClusterDataCache cache) {
     Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
     for (String instance : instances) {
       result.put(instance, new TreeSet<Integer>());
@@ -151,6 +152,19 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
           if (pendingMessage != null) {
             continue;
           }
+
+          InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instance);
+
+          if (instanceConfig == null) {
+            LOG.error("Instance config not found for instance : " + instance);
+            continue;
+          }
+
+          if (!instanceConfig.getInstanceEnabled()) {
+            LOG.debug("Instance has been disabled, ignore instance : " + instance);
+            continue;
+          }
+
           String s =
               currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName),
                   instance);

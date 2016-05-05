@@ -51,6 +51,7 @@ public class TaskTestBase extends ZkIntegrationTestBase {
   protected int _numDbs = 1;
 
   protected Boolean _partitionVary = true;
+  protected Boolean _instanceGroupTag = false;
 
   protected ClusterControllerManager _controller;
 
@@ -76,6 +77,9 @@ public class TaskTestBase extends ZkIntegrationTestBase {
     for (int i = 0; i < _numNodes; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
+      if (_instanceGroupTag) {
+        _setupTool.addInstanceTag(CLUSTER_NAME, storageNodeName, "TESTTAG" + i);
+      }
     }
 
     // Set up target db
@@ -90,7 +94,16 @@ public class TaskTestBase extends ZkIntegrationTestBase {
         _testDbs.add(db);
       }
     } else {
-      _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions, MASTER_SLAVE_STATE_MODEL);
+      if (_instanceGroupTag) {
+        _setupTool
+            .addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions,
+                "OnlineOffline", IdealState.RebalanceMode.FULL_AUTO.name());
+        IdealState idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB);
+        idealState.setInstanceGroupTag("TESTTAG0");
+        _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
+      } else {
+        _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions, MASTER_SLAVE_STATE_MODEL);
+      }
       _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
     }
 

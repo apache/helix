@@ -87,7 +87,7 @@ public class TaskStateModel extends StateModel {
   }
 
   @Transition(to = "COMPLETED", from = "RUNNING")
-  public void onBecomeCompletedFromRunning(Message msg, NotificationContext context) {
+  public String onBecomeCompletedFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
     if (_taskRunner == null) {
       throw new IllegalStateException(String.format(
@@ -102,6 +102,8 @@ public class TaskStateModel extends StateModel {
     }
 
     timeout_task.cancel(false);
+
+    return r.getInfo();
   }
 
   @Transition(to = "TIMED_OUT", from = "RUNNING")

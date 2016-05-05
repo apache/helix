@@ -214,8 +214,9 @@ public class JobRebalancer extends TaskRebalancer {
 
     if (allPartitions == null || allPartitions.isEmpty()) {
       // Empty target partitions, mark the job as FAILED.
-      LOG.warn(
-          "Missing task partition mapping for job " + jobResource + ", marked the job as FAILED!");
+      String failureMsg = "Empty task partition mapping for job " + jobResource + ", marked the job as FAILED!";
+      LOG.info(failureMsg);
+      jobCtx.setInfo(failureMsg);
       markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
       markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
       return new ResourceAssignment(jobResource);
@@ -265,6 +266,12 @@ public class JobRebalancer extends TaskRebalancer {
             TaskPartitionState.valueOf(currStateOutput.getCurrentState(jobResource, new Partition(
                 pName), instance));
         jobCtx.setPartitionState(pId, currState);
+
+        String taskMsg = currStateOutput.getInfo(jobResource, new Partition(
+            pName), instance);
+        if (taskMsg != null) {
+          jobCtx.setPartitionInfo(pId, taskMsg);
+        }
 
         // Process any requested state transitions.
         String requestedStateStr =
@@ -318,8 +325,8 @@ public class JobRebalancer extends TaskRebalancer {
         case ERROR: {
           donePartitions.add(pId); // The task may be rescheduled on a different instance.
           LOG.debug(String.format(
-              "Task partition %s has error state %s. Marking as such in rebalancer context.", pName,
-              currState));
+              "Task partition %s has error state %s with msg %s. Marking as such in rebalancer context.", pName,
+              currState, taskMsg));
           markPartitionError(jobCtx, pId, currState, true);
           // The error policy is to fail the task as soon a single partition fails for a specified
           // maximum number of attempts or task is in ABORTED state.

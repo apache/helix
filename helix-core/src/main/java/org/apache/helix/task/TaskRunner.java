@@ -72,7 +72,7 @@ public class TaskRunner implements Runnable {
         throw death;
       } catch (Throwable t) {
         LOG.error("Problem running the task, report task as FAILED.", t);
-        _result = new TaskResult(Status.FAILED, null);
+        _result = new TaskResult(Status.FAILED, "Exception happened in running task: " + t.getMessage());
       }
 
       switch (_result.getStatus()) {
@@ -98,6 +98,9 @@ public class TaskRunner implements Runnable {
         throw new AssertionError("Unknown task result type: " + _result.getStatus().name());
       }
     } catch (Exception e) {
+      LOG.error("Problem running the task, report task as FAILED.", e);
+      _result =
+          new TaskResult(Status.FAILED, "Exception happened in running task: " + e.getMessage());
       requestStateTransition(TaskPartitionState.TASK_ERROR);
     } finally {
       synchronized (_doneSync) {

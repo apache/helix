@@ -45,7 +45,8 @@ public class JobContext extends HelixProperty {
     TARGET,
     TASK_ID,
     ASSIGNED_PARTICIPANT,
-    NEXT_RETRY_TIME
+    NEXT_RETRY_TIME,
+    INFO
   }
 
   public JobContext(ZNRecord record) {
@@ -76,8 +77,18 @@ public class JobContext extends HelixProperty {
     return Long.parseLong(tStr);
   }
 
+  public void setInfo(String info) {
+    if (info != null) {
+      _record.setSimpleField(ContextProperties.INFO.toString(), info);
+    }
+  }
+
+  public String getInfo() {
+    return _record.getSimpleField(ContextProperties.INFO.toString());
+  }
+
   public void setPartitionState(int p, TaskPartitionState s) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.STATE.toString(), s.name());
   }
 
@@ -95,7 +106,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionNumAttempts(int p, int n) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.NUM_ATTEMPTS.toString(), String.valueOf(n));
   }
 
@@ -122,7 +133,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionStartTime(int p, long t) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.START_TIME.toString(), String.valueOf(t));
   }
 
@@ -139,7 +150,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionFinishTime(int p, long t) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.FINISH_TIME.toString(), String.valueOf(t));
   }
 
@@ -156,13 +167,23 @@ public class JobContext extends HelixProperty {
   }
 
   public void setPartitionTarget(int p, String targetPName) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.TARGET.toString(), targetPName);
   }
 
   public String getTargetForPartition(int p) {
     Map<String, String> map = getMapField(p);
     return (map != null) ? map.get(ContextProperties.TARGET.toString()) : null;
+  }
+
+  public void setPartitionInfo(int p, String info) {
+    Map<String, String> map = getMapField(p, true);
+    map.put(ContextProperties.INFO.toString(), info);
+  }
+
+  public String getPartitionInfo(int p) {
+    Map<String, String> map = getMapField(p);
+    return (map != null) ? map.get(ContextProperties.INFO.toString()) : null;
   }
 
   public Map<String, List<Integer>> getPartitionsByTarget() {
@@ -194,7 +215,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setTaskIdForPartition(int p, String taskId) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.TASK_ID.toString(), taskId);
   }
 
@@ -216,7 +237,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setAssignedParticipant(int p, String participantName) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.ASSIGNED_PARTICIPANT.toString(), participantName);
   }
 
@@ -226,7 +247,7 @@ public class JobContext extends HelixProperty {
   }
 
   public void setNextRetryTime(int p, long t) {
-    Map<String, String> map = getMapField(p);
+    Map<String, String> map = getMapField(p, true);
     map.put(ContextProperties.NEXT_RETRY_TIME.toString(), String.valueOf(t));
   }
 
@@ -242,10 +263,20 @@ public class JobContext extends HelixProperty {
     return Long.parseLong(tStr);
   }
 
+  /**
+   * Get MapField for the given partition.
+   *
+   * @param p
+   * @return mapField for the partition, NULL if the partition has not scheduled yet.
+   */
   public Map<String, String> getMapField(int p) {
+    return getMapField(p, false);
+  }
+
+  private Map<String, String> getMapField(int p, boolean createIfNotPresent) {
     String pStr = String.valueOf(p);
     Map<String, String> map = _record.getMapField(pStr);
-    if (map == null) {
+    if (map == null && createIfNotPresent) {
       map = new TreeMap<String, String>();
       _record.setMapField(pStr, map);
     }

@@ -168,8 +168,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
           String s =
               currStateOutput.getCurrentState(tgtIs.getResourceName(), new Partition(pName),
                   instance);
-          String state = (s == null ? null : s.toString());
-          if (tgtStates == null || tgtStates.contains(state)) {
+          if (s != null && (tgtStates == null || tgtStates.contains(s))) {
             result.get(instance).add(pId);
           }
         }

@@ -21,38 +21,42 @@ package org.apache.helix.integration.task;
 
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobContext;
-import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestTaskWithInstanceDisabled extends TaskTestBase {
-  @Override
+public class TestTaskAssignment extends TaskTestBase {
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 1;
     _numNodes = 2;
     _numParitions = 1;
-    _numReplicas = 2;
-    _partitionVary = false;
+    _numReplicas = 1;
+    _instanceGroupTag = true;
     super.beforeClass();
   }
+
   @Test
-  public void testTaskWithInstanceDisabled() throws InterruptedException {
+  public void testTaskAssignment() throws InterruptedException {
     _setupTool.getClusterManagementTool()
         .enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + 0), false);
     String jobResource = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
         .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB);
+
     Workflow flow =
         WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
     _driver.start(flow);
 
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
-    JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
-    Assert.assertEquals(ctx.getAssignedParticipant(0), PARTICIPANT_PREFIX + "_" + (_startPort + 1));
+    // Wait 1 sec. The task should not be complete since it is not assigned.
+    Thread.sleep(1000L);
+
+    // The task is not assigned so the task state should be null in this case.
+    Assert.assertNull(
+        _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource)).getPartitionState(0));
+
   }
 }

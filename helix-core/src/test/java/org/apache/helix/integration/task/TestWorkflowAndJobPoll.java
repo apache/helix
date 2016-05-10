@@ -20,39 +20,43 @@ package org.apache.helix.integration.task;
  */
 
 import org.apache.helix.TestHelper;
-import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestTaskWithInstanceDisabled extends TaskTestBase {
-  @Override
+public class TestWorkflowAndJobPoll extends TaskTestBase {
+
   @BeforeClass
   public void beforeClass() throws Exception {
     _numDbs = 1;
-    _numNodes = 2;
+    _numNodes = 1;
     _numParitions = 1;
-    _numReplicas = 2;
-    _partitionVary = false;
+    _numReplicas = 1;
     super.beforeClass();
   }
-  @Test
-  public void testTaskWithInstanceDisabled() throws InterruptedException {
-    _setupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, PARTICIPANT_PREFIX + "_" + (_startPort + 0), false);
-    String jobResource = TestHelper.getTestMethodName();
-    JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
-        .setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB);
-    Workflow flow =
-        WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
-    _driver.start(flow);
 
-    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
-    JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
-    Assert.assertEquals(ctx.getAssignedParticipant(0), PARTICIPANT_PREFIX + "_" + (_startPort + 1));
+  @Test public void testWorkflowPoll() throws InterruptedException {
+    String jobResource = TestHelper.getTestMethodName();
+    Workflow.Builder builder =
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilder(jobResource);
+    _driver.start(builder.build());
+
+    TaskState polledState =
+        _driver.pollForWorkflowState(jobResource, 4000L, TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(TaskState.COMPLETED, polledState);
+  }
+
+  @Test public void testJobPoll() throws InterruptedException {
+    String jobResource = TestHelper.getTestMethodName();
+    Workflow.Builder builder =
+        WorkflowGenerator.generateDefaultSingleJobWorkflowBuilder(jobResource);
+    _driver.start(builder.build());
+
+    TaskState polledState = _driver
+        .pollForJobState(jobResource, String.format("%s_%s", jobResource, jobResource), 4000L,
+            TaskState.COMPLETED, TaskState.FAILED);
+    Assert.assertEquals(TaskState.COMPLETED, polledState);
   }
 }

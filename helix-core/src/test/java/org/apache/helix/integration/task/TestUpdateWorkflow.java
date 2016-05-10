@@ -63,12 +63,12 @@ public class TestUpdateWorkflow extends TaskTestBase {
 
     // ensure current schedule is started
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.IN_PROGRESS);
 
     _driver.updateWorkflow(queueName, configBuilder.build());
 
     // ensure current schedule is completed
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
 
     Thread.sleep(1000);
 
@@ -98,7 +98,7 @@ public class TestUpdateWorkflow extends TaskTestBase {
 
     // ensure current schedule is started
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.IN_PROGRESS);
 
     _driver.stop(queueName);
 
@@ -122,7 +122,7 @@ public class TestUpdateWorkflow extends TaskTestBase {
     _driver.resume(queueName);
 
     // ensure current schedule is completed
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
 
     Thread.sleep(1000);
 

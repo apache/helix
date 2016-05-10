@@ -18,7 +18,7 @@ package org.apache.helix.integration.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-import java.util.Arrays;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -44,76 +44,6 @@ import org.testng.Assert;
  */
 public class TaskTestUtil {
   private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
-
-  /**
-   * Polls {@link org.apache.helix.task.JobContext} for given task resource until a timeout is
-   * reached.
-   * If the task has not reached target state by then, an error is thrown
-   *
-   * @param workflowResource Resource to poll for completeness
-   * @throws InterruptedException
-   */
-  public static void pollForWorkflowState(TaskDriver driver, String workflowResource,
-      TaskState... targetStates) throws InterruptedException {
-    // Wait for completion.
-    long st = System.currentTimeMillis();
-    WorkflowContext ctx;
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
-    do {
-      Thread.sleep(100);
-      ctx = driver.getWorkflowContext(workflowResource);
-    } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
-        .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + _default_timeout);
-
-    Assert.assertNotNull(ctx);
-    TaskState workflowState = ctx.getWorkflowState();
-    Assert.assertTrue(allowedStates.contains(workflowState),
-        "expect workflow states: " + allowedStates + " actual workflow state: " + workflowState);
-  }
-
-  /**
-   * poll for job until it is at either state in targetStates.
-   * @param driver
-   * @param workflowResource
-   * @param jobName
-   * @param targetStates
-   * @throws InterruptedException
-   */
-  public static void pollForJobState(TaskDriver driver, String workflowResource, String jobName,
-      TaskState... targetStates) throws InterruptedException {
-    // Get workflow config
-    WorkflowConfig wfCfg = driver.getWorkflowConfig(workflowResource);
-    Assert.assertNotNull(wfCfg);
-    WorkflowContext ctx;
-    if (wfCfg.isRecurring()) {
-      // if it's recurring, need to reconstruct workflow and job name
-      do {
-        Thread.sleep(100);
-        ctx = driver.getWorkflowContext(workflowResource);
-      } while ((ctx == null || ctx.getLastScheduledSingleWorkflow() == null));
-      Assert.assertNotNull(ctx);
-      Assert.assertNotNull(ctx.getLastScheduledSingleWorkflow());
-      jobName = jobName.substring(workflowResource.length() + 1);
-      workflowResource = ctx.getLastScheduledSingleWorkflow();
-      jobName = String.format("%s_%s", workflowResource, jobName);
-    }
-
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
-    // Wait for state
-    long st = System.currentTimeMillis();
-    do {
-      Thread.sleep(100);
-      ctx = driver.getWorkflowContext(workflowResource);
-    }
-    while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(
-        ctx.getJobState(jobName)))
-        && System.currentTimeMillis() < st + _default_timeout);
-    Assert.assertNotNull(ctx, "Empty job context");
-    TaskState jobState = ctx.getJobState(jobName);
-    Assert.assertTrue(allowedStates.contains(jobState),
-        "expect job " + jobName + " is in states: " + allowedStates + " actual job state: "
-            + jobState + " all other job states in the workflow: " + ctx.getJobStates().entrySet());
-  }
 
   public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,
       final String jobName) throws Exception {

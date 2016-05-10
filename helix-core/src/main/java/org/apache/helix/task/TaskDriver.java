@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +84,10 @@ public class TaskDriver {
 
   /** Field for specifying a workflow file when starting a job */
   private static final String WORKFLOW_FILE_OPTION = "file";
+
+  /** Default time out for monitoring workflow or job state */
+  private final static int _defaultTimeout = 2 * 60 * 1000; /* 2 mins */
+
 
   private final HelixDataAccessor _accessor;
   private final ConfigAccessor _cfgAccessor;
@@ -822,6 +827,124 @@ public class TaskDriver {
       }
       LOG.info("-------");
     }
+  }
+
+  /**
+   * This call will be blocked until either workflow reaches to one of the state specified
+   * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
+   * Otherwise, it will return current workflow state
+   *
+   * @param workflowName The workflow to be monitored
+   * @param timeout A long integer presents the time out, in milliseconds
+   * @param targetStates Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current workflow state
+   * @throws InterruptedException
+   */
+  public TaskState pollForWorkflowState(String workflowName, long timeout,
+      TaskState... targetStates) throws InterruptedException {
+    // Wait for completion.
+    long st = System.currentTimeMillis();
+    WorkflowContext ctx;
+    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
+
+    long timeToSleep = timeout > 100L ? 100L : timeout;
+    do {
+      Thread.sleep(timeToSleep);
+      ctx = getWorkflowContext(workflowName);
+    } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
+        .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + timeout);
+
+    if (ctx == null || !allowedStates.contains(ctx.getWorkflowState())) {
+      throw new HelixException(String
+          .format("Workflow \"%s\" context is empty or not in states: \"%s\"", workflowName,
+              targetStates));
+    }
+
+    return ctx.getWorkflowState();
+  }
+
+  /**
+   * This is a wrapper function that set default time out for monitoring workflow in 2 MINUTES.
+   * If timeout happens, then it will throw a HelixException, Otherwise, it will return
+   * current job state.
+   *
+   * @param workflowName The workflow to be monitored
+   * @param targetStates Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current workflow state
+   * @throws InterruptedException
+   */
+  public TaskState pollForWorkflowState(String workflowName, TaskState... targetStates)
+      throws InterruptedException {
+    return pollForWorkflowState(workflowName, _defaultTimeout, targetStates);
+  }
+
+  /**
+   * This call will be blocked until either specified job reaches to one of the state
+   * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
+   * Otherwise, it will return current job state
+   *
+   * @param workflowName The workflow that contains the job to monitor
+   * @param jobName The specified job to monitor
+   * @param timeout A long integer presents the time out, in milliseconds
+   * @param states Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current job state
+   * @throws Exception
+   */
+  public TaskState pollForJobState(String workflowName, String jobName, long timeout,
+      TaskState... states) throws InterruptedException {
+    // Get workflow config
+    WorkflowConfig workflowConfig = getWorkflowConfig(workflowName);
+
+    if (workflowConfig == null) {
+      throw new HelixException(String.format("Workflow \"%s\" does not exists!", workflowName));
+    }
+
+    long timeToSleep = timeout > 100L ? 100L : timeout;
+
+    WorkflowContext ctx;
+    if (workflowConfig.isRecurring()) {
+      // if it's recurring, need to reconstruct workflow and job name
+      do {
+        Thread.sleep(timeToSleep);
+        ctx = getWorkflowContext(workflowName);
+      } while ((ctx == null || ctx.getLastScheduledSingleWorkflow() == null));
+
+      jobName = jobName.substring(workflowName.length() + 1);
+      workflowName = ctx.getLastScheduledSingleWorkflow();
+      jobName = TaskUtil.getNamespacedJobName(workflowName, jobName);
+    }
+
+    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(states));
+    // Wait for state
+    long st = System.currentTimeMillis();
+    do {
+      Thread.sleep(timeToSleep);
+      ctx = getWorkflowContext(workflowName);
+    } while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates
+        .contains(ctx.getJobState(jobName))) && System.currentTimeMillis() < st + timeout);
+
+    if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
+      throw new HelixException(
+          String.format("Job \"%s\" context is null or not in states: \"%s\"", jobName, states));
+    }
+
+    return ctx.getJobState(jobName);
+  }
+
+  /**
+   * This is a wrapper function for monitoring job state with default timeout 2 MINUTES.
+   * If timeout happens, then it will throw a HelixException, Otherwise, it will return
+   * current job state
+   *
+   * @param workflowName The workflow that contains the job to monitor
+   * @param jobName The specified job to monitor
+   * @param states Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current job state
+   * @throws Exception
+   */
+  public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
+      throws InterruptedException {
+    return pollForJobState(workflowName, jobName, _defaultTimeout, states);
   }
 
   /** Constructs options set for all basic control messages */

@@ -65,7 +65,7 @@ public class TestGenericJobs extends TaskTestBase {
 
     String namedSpaceJob =
         String.format("%s_%s", queueName, currentJobNames.get(currentJobNames.size() - 1));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namedSpaceJob, TaskState.COMPLETED);
   }
 }
 

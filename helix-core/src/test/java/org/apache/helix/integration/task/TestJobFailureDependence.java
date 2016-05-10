@@ -66,7 +66,7 @@ public class TestJobFailureDependence extends TaskTestBase {
     // all jobs after failed job should fail too.
     for (int i = 2; i < _numDbs; i++) {
       String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
-      TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
+      _driver.pollForJobState(queueName, namedSpaceJob, TaskState.FAILED);
     }
   }
 
@@ -92,8 +92,8 @@ public class TestJobFailureDependence extends TaskTestBase {
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
   }
 
   @Test
@@ -117,12 +117,12 @@ public class TestJobFailureDependence extends TaskTestBase {
     _driver.start(queueBuilder.build());
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(2));
     String namedSpaceJob2 = String.format("%s_%s", queueName, currentJobNames.get(2));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob2, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob2, TaskState.FAILED);
 
     // all jobs after failed job should complete.
     for (int i = 3; i < _numDbs; i++) {
       String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(i));
-      TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.COMPLETED);
+      _driver.pollForJobState(queueName, namedSpaceJob, TaskState.COMPLETED);
     }
   }
 
@@ -148,10 +148,10 @@ public class TestJobFailureDependence extends TaskTestBase {
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
     String lastJob =
         String.format("%s_%s", queueName, currentJobNames.get(currentJobNames.size() - 1));
-    TaskTestUtil.pollForJobState(_driver, queueName, lastJob, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, lastJob, TaskState.COMPLETED);
 
     _driver.flushQueue(queueName);
 
@@ -174,8 +174,8 @@ public class TestJobFailureDependence extends TaskTestBase {
     _driver.resume(queueName);
 
     namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
   }
 }
 

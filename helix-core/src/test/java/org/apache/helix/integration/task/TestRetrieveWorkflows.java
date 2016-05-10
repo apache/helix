@@ -43,7 +43,7 @@ public class TestRetrieveWorkflows extends TaskTestBase {
     }
 
     for (Workflow workflow : workflowList) {
-      TaskTestUtil.pollForWorkflowState(_driver, workflow.getName(), TaskState.COMPLETED);
+      _driver.pollForWorkflowState(workflow.getName(), TaskState.COMPLETED);
     }
 
     Map<String, WorkflowConfig> workflowConfigMap = _driver.getWorkflows();

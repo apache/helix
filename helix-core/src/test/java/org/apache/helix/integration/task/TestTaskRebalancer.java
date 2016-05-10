@@ -72,7 +72,7 @@ public class TestTaskRebalancer extends TaskTestBase {
             .setExpiry(expiry).build();
 
     _driver.start(flow);
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
 
     // Running workflow should have config and context viewable through accessor
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
@@ -86,7 +86,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     Assert.assertNotSame(accessor.getProperty(workflowCfgKey), null);
 
     // Wait for job to finish and expire
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
     Thread.sleep(expiry + 100);
 
     // Ensure workflow config and context were cleaned up by now
@@ -114,7 +114,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     _driver.start(flow);
 
     // Wait for job completion
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
 
     // Ensure all partitions are completed individually
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
@@ -141,7 +141,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     _driver.start(flow);
 
     // wait for job completeness/timeout
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
 
     // see if resulting context completed successfully for our partition set
     String namespacedName = TaskUtil.getNamespacedJobName(jobResource);
@@ -166,11 +166,11 @@ public class TestTaskRebalancer extends TaskTestBase {
     new TaskDriver(_manager).start(flow);
 
     // Wait until the workflow completes
-    TaskTestUtil.pollForWorkflowState(_driver, workflowName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     // Assert completion for all tasks within two minutes
     for (String task : flow.getJobConfigs().keySet()) {
-      TaskTestUtil.pollForJobState(_driver, workflowName, task, TaskState.COMPLETED);
+      _driver.pollForJobState(workflowName, task, TaskState.COMPLETED);
     }
   }
 
@@ -186,7 +186,7 @@ public class TestTaskRebalancer extends TaskTestBase {
     _driver.start(flow);
 
     // Wait until the job reports failure.
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.FAILED);
+    _driver.pollForWorkflowState(jobResource, TaskState.FAILED);
 
     // Check that all partitions timed out up to maxAttempts
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
@@ -224,8 +224,8 @@ public class TestTaskRebalancer extends TaskTestBase {
     // Ensure successful completion
     String namespacedJob1 = queueName + "_masterJob";
     String namespacedJob2 = queueName + "_slaveJob";
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);
     JobContext slaveJobContext = _driver.getJobContext(namespacedJob2);
 

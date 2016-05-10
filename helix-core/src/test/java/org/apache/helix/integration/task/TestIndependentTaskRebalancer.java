@@ -149,8 +149,9 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
+
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -176,8 +177,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -205,8 +206,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
     // Ensure that each class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -233,8 +234,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.IN_PROGRESS);
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
     // Ensure that the class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -268,7 +269,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
     // Ensure that the class was invoked
     Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
@@ -300,7 +302,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure completion
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
     // Ensure a single retry happened
     JobContext jobCtx = _driver.getJobContext(jobName + "_" + jobName);

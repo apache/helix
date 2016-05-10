@@ -55,20 +55,7 @@ public class TaskTestUtil {
    */
   public static void pollForWorkflowState(TaskDriver driver, String workflowResource,
       TaskState... targetStates) throws InterruptedException {
-    // Wait for completion.
-    long st = System.currentTimeMillis();
-    WorkflowContext ctx;
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
-    do {
-      Thread.sleep(100);
-      ctx = driver.getWorkflowContext(workflowResource);
-    } while ((ctx == null || ctx.getWorkflowState() == null || !allowedStates
-        .contains(ctx.getWorkflowState())) && System.currentTimeMillis() < st + _default_timeout);
-
-    Assert.assertNotNull(ctx);
-    TaskState workflowState = ctx.getWorkflowState();
-    Assert.assertTrue(allowedStates.contains(workflowState),
-        "expect workflow states: " + allowedStates + " actual workflow state: " + workflowState);
+    driver.pollForWorkflowState(workflowResource, _default_timeout, targetStates);
   }
 
   /**
@@ -81,38 +68,7 @@ public class TaskTestUtil {
    */
   public static void pollForJobState(TaskDriver driver, String workflowResource, String jobName,
       TaskState... targetStates) throws InterruptedException {
-    // Get workflow config
-    WorkflowConfig wfCfg = driver.getWorkflowConfig(workflowResource);
-    Assert.assertNotNull(wfCfg);
-    WorkflowContext ctx;
-    if (wfCfg.isRecurring()) {
-      // if it's recurring, need to reconstruct workflow and job name
-      do {
-        Thread.sleep(100);
-        ctx = driver.getWorkflowContext(workflowResource);
-      } while ((ctx == null || ctx.getLastScheduledSingleWorkflow() == null));
-      Assert.assertNotNull(ctx);
-      Assert.assertNotNull(ctx.getLastScheduledSingleWorkflow());
-      jobName = jobName.substring(workflowResource.length() + 1);
-      workflowResource = ctx.getLastScheduledSingleWorkflow();
-      jobName = String.format("%s_%s", workflowResource, jobName);
-    }
-
-    Set<TaskState> allowedStates = new HashSet<TaskState>(Arrays.asList(targetStates));
-    // Wait for state
-    long st = System.currentTimeMillis();
-    do {
-      Thread.sleep(100);
-      ctx = driver.getWorkflowContext(workflowResource);
-    }
-    while ((ctx == null || ctx.getJobState(jobName) == null || !allowedStates.contains(
-        ctx.getJobState(jobName)))
-        && System.currentTimeMillis() < st + _default_timeout);
-    Assert.assertNotNull(ctx, "Empty job context");
-    TaskState jobState = ctx.getJobState(jobName);
-    Assert.assertTrue(allowedStates.contains(jobState),
-        "expect job " + jobName + " is in states: " + allowedStates + " actual job state: "
-            + jobState + " all other job states in the workflow: " + ctx.getJobStates().entrySet());
+      driver.pollForJobState(workflowResource, jobName,_default_timeout, targetStates);
   }
 
   public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,

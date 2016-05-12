@@ -48,7 +48,7 @@ public class TestJobAndWorkflowType extends TaskTestBase {
     // Start workflow
     _driver.start(builder.build());
 
-    TaskTestUtil.pollForWorkflowState(_driver, jobName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
     String fetchedJobType =
         _driver.getJobConfig(String.format("%s_%s", jobName, jobName)).getJobType();
     String fetchedWorkflowType =

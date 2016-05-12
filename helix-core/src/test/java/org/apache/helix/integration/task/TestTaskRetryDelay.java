@@ -49,7 +49,7 @@ public class TestTaskRetryDelay extends TaskTestBase {
     _driver.start(flow);
 
     // Wait until the job completes.
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
 
     long startTime = _driver.getWorkflowContext(jobResource).getStartTime();
     long finishedTime = _driver.getWorkflowContext(jobResource).getFinishTime();
@@ -70,7 +70,7 @@ public class TestTaskRetryDelay extends TaskTestBase {
     _driver.start(flow);
 
     // Wait until the job completes.
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
 
     long startTime = _driver.getWorkflowContext(jobResource).getStartTime();
     long finishedTime = _driver.getWorkflowContext(jobResource).getFinishTime();

@@ -64,8 +64,8 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
     _driver.start(queueBuilder.build());
 
     String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(1));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob, TaskState.FAILED);
+    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
 
     _driver.delete(queueName);
   }
@@ -91,10 +91,10 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
     _driver.start(queueBuilder.build());
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
     String lastJob =
         String.format("%s_%s", queueName, currentJobNames.get(currentJobNames.size() - 1));
-    TaskTestUtil.pollForJobState(_driver, queueName, lastJob, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, lastJob, TaskState.COMPLETED);
 
     _driver.delete(queueName);
   }
@@ -121,8 +121,8 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(0));
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(0));
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob1, TaskState.FAILED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.FAILED);
+    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
 
     _driver.delete(queueName);
   }

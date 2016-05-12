@@ -65,7 +65,7 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     _driver.start(workflow);
 
     // Wait until the workflow completes
-    TaskTestUtil.pollForWorkflowState(_driver, workflowName, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
     WorkflowContext workflowContext = _driver.getWorkflowContext(workflowName);
     long startTime = workflowContext.getStartTime();
     long finishTime = workflowContext.getFinishTime();

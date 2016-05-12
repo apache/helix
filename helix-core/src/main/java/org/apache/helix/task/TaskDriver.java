@@ -84,6 +84,10 @@ public class TaskDriver {
   /** Field for specifying a workflow file when starting a job */
   private static final String WORKFLOW_FILE_OPTION = "file";
 
+  /** Default time out for monitoring workflow or job state */
+  private final static int _defaultTimeout = 2 * 60 * 1000; /* 2 mins */
+
+
   private final HelixDataAccessor _accessor;
   private final ConfigAccessor _cfgAccessor;
   private final HelixPropertyStore<ZNRecord> _propertyStore;
@@ -874,6 +878,21 @@ public class TaskDriver {
   }
 
   /**
+   * This is a wrapper function that set default time out for monitoring workflow in 2 MINUTES.
+   * If timeout happens, then it will throw a HelixException, Otherwise, it will return
+   * current job state.
+   *
+   * @param workflowName The workflow to be monitored
+   * @param targetStates Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current workflow state
+   * @throws InterruptedException
+   */
+  public TaskState pollForWorkflowState(String workflowName, TaskState... targetStates)
+      throws InterruptedException {
+    return pollForWorkflowState(workflowName, _defaultTimeout, targetStates);
+  }
+
+  /**
    * This call will be blocked until either specified job reaches to one of the state
    * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
    * Otherwise, it will return current job state
@@ -924,6 +943,22 @@ public class TaskDriver {
     }
 
     return ctx.getJobState(jobName);
+  }
+
+  /**
+   * This is a wrapper function for monitoring job state with default timeout 2 MINUTES.
+   * If timeout happens, then it will throw a HelixException, Otherwise, it will return
+   * current job state
+   *
+   * @param workflowName The workflow that contains the job to monitor
+   * @param jobName The specified job to monitor
+   * @param states Specified states that user would like to stop monitoring
+   * @return A TaskState, which is current job state
+   * @throws Exception
+   */
+  public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
+      throws InterruptedException {
+    return pollForJobState(workflowName, jobName, _defaultTimeout, states);
   }
 
   /** Constructs options set for all basic control messages */

@@ -51,7 +51,7 @@ public class TestTaskWithInstanceDisabled extends TaskTestBase {
         WorkflowGenerator.generateSingleJobWorkflowBuilder(jobResource, jobBuilder).build();
     _driver.start(flow);
 
-    TaskTestUtil.pollForWorkflowState(_driver, jobResource, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(jobResource, TaskState.COMPLETED);
     JobContext ctx = _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource));
     Assert.assertEquals(ctx.getAssignedParticipant(0), PARTICIPANT_PREFIX + "_" + (_startPort + 1));
   }

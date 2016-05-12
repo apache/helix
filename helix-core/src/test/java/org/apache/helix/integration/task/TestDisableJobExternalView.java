@@ -72,7 +72,7 @@ public class TestDisableJobExternalView extends TaskTestBase {
 
     // ensure all jobs are completed
     String namedSpaceJob3 = String.format("%s_%s", queueName, "job3");
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJob3, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namedSpaceJob3, TaskState.COMPLETED);
 
     Set<String> seenExternalViews = externviewChecker.getSeenExternalViews();
     String namedSpaceJob1 = String.format("%s_%s", queueName, "job1");

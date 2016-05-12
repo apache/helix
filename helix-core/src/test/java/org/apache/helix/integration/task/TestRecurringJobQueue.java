@@ -71,8 +71,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // ensure job 1 is started before stop it
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
     String namedSpaceJob1 = String.format("%s_%s", scheduledQueue, currentJobNames.get(0));
-    TaskTestUtil
-        .pollForJobState(_driver, scheduledQueue, namedSpaceJob1, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(scheduledQueue, namedSpaceJob1, TaskState.IN_PROGRESS);
 
     _driver.stop(queueName);
     _driver.delete(queueName);
@@ -100,13 +99,11 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // ensure jobs are started and completed
     scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
     namedSpaceJob1 = String.format("%s_%s", scheduledQueue, currentJobNames.get(0));
-    TaskTestUtil
-        .pollForJobState(_driver, scheduledQueue, namedSpaceJob1, TaskState.COMPLETED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceJob1, TaskState.COMPLETED);
 
     scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
     String namedSpaceJob2 = String.format("%s_%s", scheduledQueue, currentJobNames.get(1));
-    TaskTestUtil
-        .pollForJobState(_driver, scheduledQueue, namedSpaceJob2, TaskState.COMPLETED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceJob2, TaskState.COMPLETED);
   }
 
   @Test
@@ -140,15 +137,14 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", scheduledQueue, deletedJob1);
-    TaskTestUtil
-        .pollForJobState(_driver, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS,
-            TaskState.COMPLETED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS,
+        TaskState.COMPLETED);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + scheduledQueue);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.STOPPED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob1);
@@ -159,16 +155,16 @@ public class TestRecurringJobQueue extends TaskTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue,
+    _driver.pollForJobState(scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS,
         TaskState.COMPLETED);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue,
+    _driver.pollForJobState(scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.STOPPED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
     String deletedJob2 = currentJobNames.get(2);
@@ -189,7 +185,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", scheduledQueue, currentJobNames.get(i));
-      TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
+      _driver.pollForJobState(scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
 
       JobContext jobContext = _driver.getJobContext(namedSpaceJobName);
       long jobStart = jobContext.getStartTime();
@@ -238,7 +234,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     // ensure all jobs are finished
     String namedSpaceJob = String.format("%s_%s", scheduledQueue, currentLastJob);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
 
     // enqueue the last job
     LOG.info("Enqueuing job: " + jobNames.get(JOB_COUNTS - 1));
@@ -286,7 +282,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     // ensure current schedule is started
     String scheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.COMPLETED);
   }
 
   @Test

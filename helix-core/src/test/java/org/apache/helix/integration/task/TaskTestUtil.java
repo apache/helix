@@ -18,7 +18,7 @@ package org.apache.helix.integration.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-import java.util.Arrays;
+
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -44,32 +44,6 @@ import org.testng.Assert;
  */
 public class TaskTestUtil {
   private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
-
-  /**
-   * Polls {@link org.apache.helix.task.JobContext} for given task resource until a timeout is
-   * reached.
-   * If the task has not reached target state by then, an error is thrown
-   *
-   * @param workflowResource Resource to poll for completeness
-   * @throws InterruptedException
-   */
-  public static void pollForWorkflowState(TaskDriver driver, String workflowResource,
-      TaskState... targetStates) throws InterruptedException {
-    driver.pollForWorkflowState(workflowResource, _default_timeout, targetStates);
-  }
-
-  /**
-   * poll for job until it is at either state in targetStates.
-   * @param driver
-   * @param workflowResource
-   * @param jobName
-   * @param targetStates
-   * @throws InterruptedException
-   */
-  public static void pollForJobState(TaskDriver driver, String workflowResource, String jobName,
-      TaskState... targetStates) throws InterruptedException {
-      driver.pollForJobState(workflowResource, jobName,_default_timeout, targetStates);
-  }
 
   public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,
       final String jobName) throws Exception {

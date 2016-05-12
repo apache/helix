@@ -65,15 +65,15 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     LOG.info("Starting flow " + flow.getName());
     _driver.start(flow);
-    TaskTestUtil.pollForWorkflowState(_driver, JOB_RESOURCE, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(JOB_RESOURCE, TaskState.IN_PROGRESS);
 
     LOG.info("Pausing job");
     _driver.stop(JOB_RESOURCE);
-    TaskTestUtil.pollForWorkflowState(_driver, JOB_RESOURCE, TaskState.STOPPED);
+    _driver.pollForWorkflowState(JOB_RESOURCE, TaskState.STOPPED);
 
     LOG.info("Resuming job");
     _driver.resume(JOB_RESOURCE);
-    TaskTestUtil.pollForWorkflowState(_driver, JOB_RESOURCE, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(JOB_RESOURCE, TaskState.COMPLETED);
   }
 
   @Test
@@ -83,15 +83,15 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     LOG.info("Starting flow " + workflow);
     _driver.start(flow);
-    TaskTestUtil.pollForWorkflowState(_driver, workflow, TaskState.IN_PROGRESS);
+    _driver.pollForWorkflowState(workflow, TaskState.IN_PROGRESS);
 
     LOG.info("Pausing workflow");
     _driver.stop(workflow);
-    TaskTestUtil.pollForWorkflowState(_driver, workflow, TaskState.STOPPED);
+    _driver.pollForWorkflowState(workflow, TaskState.STOPPED);
 
     LOG.info("Resuming workflow");
     _driver.resume(workflow);
-    TaskTestUtil.pollForWorkflowState(_driver, workflow, TaskState.COMPLETED);
+    _driver.pollForWorkflowState(workflow, TaskState.COMPLETED);
   }
 
   @Test
@@ -121,13 +121,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.IN_PROGRESS);
 
     // stop job1
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.STOPPED);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.STOPPED);
+    _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // Ensure job2 is not started
     TimeUnit.MILLISECONDS.sleep(200);
@@ -138,8 +138,8 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.resume(queueName);
 
     // Ensure successful completion
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
     JobContext masterJobContext = _driver.getJobContext(namespacedJob1);
     JobContext slaveJobContext = _driver.getJobContext(namespacedJob2);
 
@@ -187,13 +187,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", queueName, deletedJob1);
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(queueName, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceDeletedJob1, TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.STOPPED);
+    _driver.pollForJobState(queueName, namedSpaceDeletedJob1, TaskState.STOPPED);
+    _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob1);
@@ -203,15 +203,15 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TaskTestUtil
-        .pollForJobState(_driver, queueName, String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.IN_PROGRESS);
+    _driver.pollForJobState(queueName, String.format("%s_%s", queueName, currentJobNames.get(1)),
+        TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil
-        .pollForJobState(_driver, queueName, String.format("%s_%s", queueName, currentJobNames.get(1)), TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, queueName, TaskState.STOPPED);
+    _driver.pollForJobState(queueName, String.format("%s_%s", queueName, currentJobNames.get(1)),
+        TaskState.STOPPED);
+    _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
     String deletedJob2 = currentJobNames.get(2);
@@ -240,7 +240,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", queueName, currentJobNames.get(i));
-      TaskTestUtil.pollForJobState(_driver, queueName, namedSpaceJobName, TaskState.COMPLETED);
+      _driver.pollForJobState(queueName, namedSpaceJobName, TaskState.COMPLETED);
 
       JobContext jobContext = _driver.getJobContext(namedSpaceJobName);
       long jobStart = jobContext.getStartTime();
@@ -294,14 +294,13 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     // ensure job 1 is started before deleting it
     String deletedJob1 = currentJobNames.get(0);
     String namedSpaceDeletedJob1 = String.format("%s_%s", scheduledQueue, deletedJob1);
-    TaskTestUtil
-        .pollForJobState(_driver, scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(scheduledQueue, namedSpaceDeletedJob1, TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + scheduledQueue);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.STOPPED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceDeletedJob1, TaskState.STOPPED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.STOPPED);
 
     // delete the in-progress job (job 1) and verify it being deleted
     _driver.deleteJob(queueName, deletedJob1);
@@ -312,15 +311,15 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.resume(queueName);
 
     // ensure job 2 is started
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue,
+    _driver.pollForJobState(scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.IN_PROGRESS);
 
     // stop the queue
     LOG.info("Pausing job-queue: " + queueName);
     _driver.stop(queueName);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue,
+    _driver.pollForJobState(scheduledQueue,
         String.format("%s_%s", scheduledQueue, currentJobNames.get(1)), TaskState.STOPPED);
-    TaskTestUtil.pollForWorkflowState(_driver, scheduledQueue, TaskState.STOPPED);
+    _driver.pollForWorkflowState(scheduledQueue, TaskState.STOPPED);
 
     // Ensure job 3 is not started before deleting it
     String deletedJob2 = currentJobNames.get(2);
@@ -341,7 +340,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     long preJobFinish = 0;
     for (int i = 0; i < currentJobNames.size(); i++) {
       String namedSpaceJobName = String.format("%s_%s", scheduledQueue, currentJobNames.get(i));
-      TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
+      _driver.pollForJobState(scheduledQueue, namedSpaceJobName, TaskState.COMPLETED);
 
       JobContext jobContext = _driver.getJobContext(namedSpaceJobName);
       long jobStart = jobContext.getStartTime();
@@ -389,7 +388,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
 
     // ensure all jobs are finished
     String namedSpaceJob = String.format("%s_%s", scheduledQueue, currentLastJob);
-    TaskTestUtil.pollForJobState(_driver, scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
+    _driver.pollForJobState(scheduledQueue, namedSpaceJob, TaskState.COMPLETED);
 
     // enqueue the last job
     LOG.info("Enqueuing job: " + jobNames.get(JOB_COUNTS - 1));
@@ -432,10 +431,10 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     _driver.enqueueJob(queueName, job2Name, job2);
 
     String namespacedJob1 = String.format("%s_%s", queueName,  job1Name);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
 
     String namespacedJob2 = String.format("%s_%s", queueName,  job2Name);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
 
     // Stop queue
     _driver.stop(queueName);

@@ -60,7 +60,7 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
 
     // check all tasks completed on MASTER
     String namespacedJob1 = String.format("%s_%s", queueName, job1Name);
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob1, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob1, TaskState.COMPLETED);
 
     HelixDataAccessor accessor = _manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
@@ -87,9 +87,9 @@ public class TestTaskRebalancerFailover extends TaskTestBase {
     LOG.info("Enqueuing job: " + job2Name);
     _driver.enqueueJob(queueName, job2Name, job);
 
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.IN_PROGRESS);
+    _driver.pollForJobState(queueName, namespacedJob2, TaskState.IN_PROGRESS);
     _participants[0].syncStop();
-    TaskTestUtil.pollForJobState(_driver, queueName, namespacedJob2, TaskState.COMPLETED);
+    _driver.pollForJobState(queueName, namespacedJob2, TaskState.COMPLETED);
 
     // tasks previously assigned to localhost_12918 should be re-scheduled on new master
     ctx = _driver.getJobContext(namespacedJob2);

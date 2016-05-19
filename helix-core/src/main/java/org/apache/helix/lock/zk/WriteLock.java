@@ -179,7 +179,7 @@ class WriteLock extends ProtocolSupport {
       List<String> names = zookeeper.getChildren(dir, false);
       for (String name : names) {
         if (name.startsWith(prefix)) {
-          id = name;
+          id = dir + "/" + name;
           if (LOG.isDebugEnabled()) {
             LOG.debug("Found id created last time: " + id);
           }
@@ -230,14 +230,15 @@ class WriteLock extends ProtocolSupport {
               ZNodeName lastChildName = lessThanMe.last();
               lastChildId = lastChildName.getName();
               if (LOG.isDebugEnabled()) {
-                LOG.debug("watching less than me node: " + lastChildId);
+                LOG.debug("watching less than me node: " + lastChildId + ", my id: " + idName.getName());
               }
               Stat stat = zookeeper.exists(lastChildId, new LockWatcher());
               if (stat != null) {
                 return Boolean.FALSE;
               } else {
                 LOG.warn("Could not find the" + " stats for less than me: "
-                    + lastChildName.getName());
+                    + lastChildName.getName() + ", will retry");
+                id = null;
               }
             } else {
               if (isOwner()) {

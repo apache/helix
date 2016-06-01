@@ -196,7 +196,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
     // disable a resource
     _gSetupTool.enableResource(CLUSTER_NAME, TEST_DB, "cluster_2", false);
 
-    Thread.sleep(500);
+    Thread.sleep(2000);
 
     Set<InstanceConfig> selectedNodes = _routingTableProvider
         .getInstancesForResourceGroup(TEST_DB, "ONLINE", Arrays.asList("cluster_2", "cluster_3"));
@@ -209,7 +209,7 @@ public class TestResourceGroupEndtoEnd extends ZkIntegrationTestBase {
 
     // enable a resource
     _gSetupTool.enableResource(CLUSTER_NAME, TEST_DB, "cluster_2", true);
-    Thread.sleep(500);
+    Thread.sleep(2000);
 
     selectedNodes = _routingTableProvider
         .getInstancesForResourceGroup(TEST_DB, "ONLINE", Arrays.asList("cluster_2", "cluster_3"));

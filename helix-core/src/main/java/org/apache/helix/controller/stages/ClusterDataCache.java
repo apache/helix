@@ -390,6 +390,22 @@ public class ClusterDataCache {
     return disabledInstancesSet;
   }
 
+
+  /**
+   * This method allows one to fetch the set of nodes that are disabled
+   * @return
+   */
+  public Set<String> getDisabledInstances() {
+    Set<String> disabledInstancesSet = new HashSet<String>();
+    for (String instance : _instanceConfigMap.keySet()) {
+      InstanceConfig config = _instanceConfigMap.get(instance);
+      if (config.getInstanceEnabled() == false) {
+        disabledInstancesSet.add(instance);
+      }
+    }
+    return disabledInstancesSet;
+  }
+
   /**
    * Returns the number of replicas for a given resource.
    * @param resourceName

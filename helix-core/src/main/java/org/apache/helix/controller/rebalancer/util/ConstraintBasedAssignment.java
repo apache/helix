@@ -75,24 +75,26 @@ public class ConstraintBasedAssignment {
       boolean isResourceEnabled) {
     Map<String, String> instanceStateMap = new HashMap<String, String>();
 
-    // if the ideal state is deleted, instancePreferenceList will be empty and
-    // we should drop all resources.
     if (currentStateMap != null) {
       for (String instance : currentStateMap.keySet()) {
-        if ((instancePreferenceList == null || !instancePreferenceList.contains(instance))
-            && !disabledInstancesForPartition.contains(instance)) {
-          // if dropped (whether disabled or not), transit to DROPPED
+        if (instancePreferenceList == null || !instancePreferenceList.contains(instance)) {
+          // The partition is dropped from preference list.
+          // Transit to DROPPED no matter the instance is disabled or not.
           instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else if ((currentStateMap.get(instance) == null || !currentStateMap.get(instance).equals(
-            HelixDefinedState.ERROR.name()))
-            && (disabledInstancesForPartition.contains(instance) || !isResourceEnabled)) {
+        } else {
           // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          instanceStateMap.put(instance, stateModelDef.getInitialState());
+          if (disabledInstancesForPartition.contains(instance) || !isResourceEnabled) {
+            if (currentStateMap.get(instance) == null || !currentStateMap.get(instance)
+                .equals(HelixDefinedState.ERROR.name())) {
+              instanceStateMap.put(instance, stateModelDef.getInitialState());
+            }
+          }
         }
       }
     }
 
-    // ideal state is deleted
+    // if the ideal state is deleted, instancePreferenceList will be empty and
+    // we should drop all resources.
     if (instancePreferenceList == null) {
       return instanceStateMap;
     }

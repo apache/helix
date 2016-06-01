@@ -43,67 +43,12 @@ public class MockMSStateModel extends StateModel {
     _transition = transition;
   }
 
-  // overwrite default error->dropped transition
-  @Transition(to = "DROPPED", from = "ERROR")
-  public void onBecomeDroppedFromError(Message message, NotificationContext context)
+  @Transition(to = "*", from = "*")
+  public void generalTransitionHandle(Message message, NotificationContext context)
       throws InterruptedException {
-    LOG.info("Become DROPPED from ERROR");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-    }
-  }
-
-  @Transition(to = "SLAVE", from = "OFFLINE")
-  public void onBecomeSlaveFromOffline(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become SLAVE from OFFLINE");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-
-    }
-  }
-
-  @Transition(to = "MASTER", from = "SLAVE")
-  public void onBecomeMasterFromSlave(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become MASTER from SLAVE");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-    }
-  }
-
-  @Transition(to = "SLAVE", from = "MASTER")
-  public void onBecomeSlaveFromMaster(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become SLAVE from MASTER");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-    }
-  }
-
-  @Transition(to = "OFFLINE", from = "SLAVE")
-  public void onBecomeOfflineFromSlave(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become OFFLINE from SLAVE");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-    }
-  }
-
-  @Transition(to = "DROPPED", from = "OFFLINE")
-  public void onBecomeDroppedFromOffline(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become DROPPED from OFFLINE");
-    if (_transition != null) {
-      _transition.doTransition(message, context);
-    }
-  }
-
-  @Transition(to = "OFFLINE", from = "ERROR")
-  public void onBecomeOfflineFromError(Message message, NotificationContext context)
-      throws InterruptedException {
-    LOG.info("Become OFFLINE from ERROR");
-    // System.err.println("Become OFFLINE from ERROR");
+    LOG.info(String
+        .format("Resource %s partition %s becomes %s from %s", message.getResourceName(),
+            message.getPartitionName(), message.getToState(), message.getFromState()));
     if (_transition != null) {
       _transition.doTransition(message, context);
     }

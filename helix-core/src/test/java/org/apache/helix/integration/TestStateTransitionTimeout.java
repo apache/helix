@@ -99,14 +99,6 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       _sleep = sleep;
     }
 
-    @Override
-    @Transition(to = "SLAVE", from = "OFFLINE")
-    public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
-      LOG.info("Become SLAVE from OFFLINE");
-
-    }
-
-    @Override
     @Transition(to = "MASTER", from = "SLAVE")
     public void onBecomeMasterFromSlave(Message message, NotificationContext context)
         throws InterruptedException {
@@ -114,26 +106,6 @@ public class TestStateTransitionTimeout extends ZkStandAloneCMTestBase {
       if (_transition != null && _sleep) {
         _transition.doTransition(message, context);
       }
-    }
-
-    @Override
-    @Transition(to = "SLAVE", from = "MASTER")
-    public void onBecomeSlaveFromMaster(Message message, NotificationContext context) {
-      LOG.info("Become SLAVE from MASTER");
-    }
-
-    @Override
-    @Transition(to = "OFFLINE", from = "SLAVE")
-    public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
-      LOG.info("Become OFFLINE from SLAVE");
-
-    }
-
-    @Override
-    @Transition(to = "DROPPED", from = "OFFLINE")
-    public void onBecomeDroppedFromOffline(Message message, NotificationContext context) {
-      LOG.info("Become DROPPED from OFFLINE");
-
     }
 
     @Override

@@ -84,6 +84,9 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     stateCountMap = stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
+    allNodes.removeAll(clusterData.getDisabledInstances());
+    liveNodes.retainAll(allNodes);
+
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
 

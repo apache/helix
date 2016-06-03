@@ -213,7 +213,7 @@ public class TestSemiAutoRebalance extends ZkIntegrationTestBase {
     String instance = participant.getInstanceName();
     participant.syncStart();
 
-    Thread.sleep(1000);
+    Thread.sleep(2000);
 
     ExternalView externalView = _accessor.getProperty(_keyBuilder.externalView(DB_NAME));
     // Everything back to the initial state

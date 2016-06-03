@@ -244,7 +244,7 @@ public class TestClusterStatusMonitorLifecycle extends ZkIntegrationTestBase {
     setupTool.rebalanceResource(_firstClusterName, "TestDB1",
         Integer.parseInt(idealState.getReplicas()));
 
-    Thread.sleep(1000);
+    Thread.sleep(2000);
     Assert.assertEquals(nMbeansUnregistered, listener._nMbeansUnregistered - 16);
     Assert.assertEquals(nMbeansRegistered, listener._nMbeansRegistered - 20);
 

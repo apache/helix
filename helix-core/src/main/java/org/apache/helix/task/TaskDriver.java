@@ -85,7 +85,7 @@ public class TaskDriver {
   private static final String WORKFLOW_FILE_OPTION = "file";
 
   /** Default time out for monitoring workflow or job state */
-  private final static int _defaultTimeout = 2 * 60 * 1000; /* 2 mins */
+  private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
 
 
   private final HelixDataAccessor _accessor;

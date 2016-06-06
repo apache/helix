@@ -41,6 +41,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.task.JobConfig;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -427,6 +428,28 @@ public class ClusterDataCache {
       return _constraintMap.get(type.toString());
     }
     return null;
+  }
+
+  /**
+   * Return all the nodes that are enabled and tagged same as the job.
+   * @param allInstances List of instances to filter with instance tag
+   * @param instanceTag The instance group tag
+   * @return A new set contains instance name and that are marked enabled and have same
+   *         tag with job. The original set will not be changed during the filtering
+   */
+  public Set<String> getAllEnabledInstanceWithTag(final Set<String> allInstances,
+      String instanceTag) {
+    Set<String> enabledTagInstances = new HashSet<String>();
+    for (String instance : allInstances) {
+      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
+
+      if (instanceConfig != null && instanceConfig.getInstanceEnabled() && instanceConfig
+          .containsTag(instanceTag)) {
+        enabledTagInstances.add(instance);
+      }
+    }
+
+    return enabledTagInstances;
   }
 
   /**

@@ -208,6 +208,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
     builder.setNumPartitions(numPartitions);
     builder.setStateModel(TaskConstants.STATE_MODEL_NAME);
 
+    if (jobConfig.getInstanceGroupTag() != null) {
+      builder.setNodeGroup(jobConfig.getInstanceGroupTag());
+    }
+
     if (jobConfig.isDisableExternalView()) {
       builder.setDisableExternalView(true);
     }

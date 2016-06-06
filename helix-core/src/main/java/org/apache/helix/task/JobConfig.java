@@ -117,7 +117,12 @@ public class JobConfig {
     /**
      * The type of the job
      */
-    JobType
+    JobType,
+
+    /**
+     * The instance group that task assign to
+     */
+    InstanceGroupTag
   }
 
   //Default property values
@@ -133,6 +138,7 @@ public class JobConfig {
   private final String _workflow;
   private final String _targetResource;
   private final String _jobType;
+  private final String _instanceGroupTag;
   private final List<String> _targetPartitions;
   private final Set<String> _targetPartitionStates;
   private final String _command;
@@ -152,7 +158,7 @@ public class JobConfig {
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
-      Map<String, TaskConfig> taskConfigMap, String jobType) {
+      Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -173,6 +179,7 @@ public class JobConfig {
       _taskConfigMap = Collections.emptyMap();
     }
     _jobType = jobType;
+    _instanceGroupTag = instanceGroupTag;
   }
 
   public String getWorkflow() {
@@ -274,14 +281,21 @@ public class JobConfig {
         "" + _numConcurrentTasksPerInstance);
     cfgMap.put(JobConfigProperty.IgnoreDependentJobFailure.name(),
         Boolean.toString(_ignoreDependentJobFailure));
-   if (_jobType != null) {
-     cfgMap.put(JobConfigProperty.JobType.name(), _jobType);
-   }
+    if (_jobType != null) {
+      cfgMap.put(JobConfigProperty.JobType.name(), _jobType);
+    }
+    if (_instanceGroupTag != null) {
+      cfgMap.put(JobConfigProperty.InstanceGroupTag.name(), _instanceGroupTag);
+    }
     return cfgMap;
   }
 
   public String getJobType() {
     return _jobType;
+  }
+
+  public String getInstanceGroupTag() {
+    return _instanceGroupTag;
   }
 
   public static JobConfig fromHelixProperty(HelixProperty property)
@@ -297,6 +311,7 @@ public class JobConfig {
     private String _workflow;
     private String _targetResource;
     private String _jobType;
+    private String _instanceGroupTag;
     private List<String> _targetPartitions;
     private Set<String> _targetPartitionStates;
     private String _command;
@@ -317,7 +332,8 @@ public class JobConfig {
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
-          _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType);
+          _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
+          _instanceGroupTag);
     }
 
     /**
@@ -381,6 +397,9 @@ public class JobConfig {
       }
       if (cfg.containsKey(JobConfigProperty.JobType.name())) {
         b.setJobType(cfg.get(JobConfigProperty.JobType.name()));
+      }
+      if (cfg.containsKey(JobConfigProperty.InstanceGroupTag.name())) {
+        b.setInstanceGroupTag(cfg.get(JobConfigProperty.InstanceGroupTag.name()));
       }
       return b;
     }
@@ -474,6 +493,11 @@ public class JobConfig {
       return this;
     }
 
+    public Builder setInstanceGroupTag(String instanceGroupTag) {
+      _instanceGroupTag = instanceGroupTag;
+      return this;
+    }
+
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
@@ -554,6 +578,9 @@ public class JobConfig {
       }
       if (jobBean.jobType != null) {
         b.setJobType(jobBean.jobType);
+      }
+      if (jobBean.instanceGroupTag != null) {
+        b.setInstanceGroupTag(jobBean.instanceGroupTag);
       }
       return b;
     }

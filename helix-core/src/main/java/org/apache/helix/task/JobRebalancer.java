@@ -128,11 +128,19 @@ public class JobRebalancer extends TaskRebalancer {
     // is stored in zk.
     // Fetch the previous resource assignment from the property store. This is required because of
     // HELIX-230.
+    Set<String> liveInstances = jobCfg.getInstanceGroupTag() == null
+        ? clusterData.getLiveInstances().keySet()
+        : clusterData.getAllEnabledInstanceWithTag(clusterData.getLiveInstances().keySet(),
+            jobCfg.getInstanceGroupTag());
+
+    if (liveInstances.isEmpty()) {
+      LOG.error("No available instance found for job!");
+    }
+
     Set<Integer> partitionsToDrop = new TreeSet<Integer>();
     ResourceAssignment newAssignment =
-        computeResourceMapping(jobName, workflowCfg, jobCfg, prevAssignment, clusterData
-            .getLiveInstances().keySet(), currStateOutput, workflowCtx, jobCtx, partitionsToDrop,
-            clusterData);
+        computeResourceMapping(jobName, workflowCfg, jobCfg, prevAssignment, liveInstances,
+            currStateOutput, workflowCtx, jobCtx, partitionsToDrop, clusterData);
 
     if (!partitionsToDrop.isEmpty()) {
       for (Integer pId : partitionsToDrop) {

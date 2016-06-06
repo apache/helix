@@ -19,8 +19,14 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobQueue;
+import org.apache.helix.task.TaskConfig;
+import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.testng.Assert;
@@ -57,6 +63,37 @@ public class TestTaskAssignment extends TaskTestBase {
     // The task is not assigned so the task state should be null in this case.
     Assert.assertNull(
         _driver.getJobContext(TaskUtil.getNamespacedJobName(jobResource)).getPartitionState(0));
+  }
 
+  @Test
+  public void testGenericTaskInstanceGroup() throws InterruptedException {
+    // Disable the only instance can be assigned.
+    String queueName = TestHelper.getTestMethodName();
+    String jobName = "Job4InstanceGroup";
+    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
+    JobConfig.Builder jobConfig = new JobConfig.Builder();
+
+    List<TaskConfig> taskConfigs = new ArrayList<TaskConfig>();
+    int num_tasks = 3;
+    for (int j = 0; j < num_tasks; j++) {
+      taskConfigs.add(
+          new TaskConfig.Builder().setTaskId("task_" + j).setCommand(MockTask.TASK_COMMAND)
+              .build());
+    }
+
+    jobConfig.addTaskConfigs(taskConfigs);
+    jobConfig.setInstanceGroupTag("TESTTAG1");
+
+    queueBuilder.enqueueJob(jobName, jobConfig);
+    _driver.start(queueBuilder.build());
+
+    // Wait 1 sec. The task should not be complete since it is not assigned.
+    Thread.sleep(1000L);
+
+    // The task is not assigned so the task state should be null in this case.
+    String namedSpaceJob = TaskUtil.getNamespacedJobName(queueName, jobName);
+
+    Assert.assertEquals(_driver.getJobContext(namedSpaceJob).getAssignedParticipant(0),
+        _participants[1].getInstanceName());
   }
 }

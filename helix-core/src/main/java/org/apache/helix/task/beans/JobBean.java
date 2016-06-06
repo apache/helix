@@ -32,6 +32,7 @@ public class JobBean {
   public List<String> parents;
   public String targetResource;
   public String jobType;
+  public String instanceGroupTag;
   public List<String> targetPartitionStates;
   public List<String> targetPartitions;
   public String command;

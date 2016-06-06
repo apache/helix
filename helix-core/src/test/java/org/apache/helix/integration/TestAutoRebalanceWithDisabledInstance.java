@@ -66,7 +66,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     // disable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
-    Thread.sleep(400);
+    Thread.sleep(2000);
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertTrue(assignedPartitions.isEmpty());
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
@@ -74,7 +74,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
-    Thread.sleep(400);
+    Thread.sleep(2000);
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(assignedPartitions.isEmpty());
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
@@ -92,7 +92,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     participant.syncStart();
 
-    Thread.sleep(400);
+    Thread.sleep(2000);
     Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertTrue(assignedPartitions.isEmpty());
     Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
@@ -101,7 +101,7 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
 
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
-    Thread.sleep(400);
+    Thread.sleep(2000);
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertFalse(assignedPartitions.isEmpty());
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);

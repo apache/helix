@@ -35,8 +35,10 @@ import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
 import com.google.common.collect.BiMap;
@@ -50,6 +52,8 @@ import com.google.common.collect.Sets;
  * assignment to target partitions and states of another resource
  */
 public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
+  private static final Logger LOG = Logger.getLogger(GenericTaskAssignmentCalculator.class);
+
   /** Reassignment policy for this algorithm */
   private RetryPolicy _retryPolicy = new DefaultRetryReassigner();
 

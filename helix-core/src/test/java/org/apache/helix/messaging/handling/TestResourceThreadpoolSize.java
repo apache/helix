@@ -33,6 +33,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -79,13 +80,13 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB1", 3);
 
     // add db with customized thread pool
-    IdealState idealState = new AutoRebalanceModeISBuilder("TestDB2").setStateModel("OnlineOffline")
+    IdealState idealState = new FullAutoModeISBuilder("TestDB2").setStateModel("OnlineOffline")
         .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
     _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, "TestDB2", idealState);
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB2", 1);
 
     // add db with configured pool size
-    idealState = new AutoRebalanceModeISBuilder("TestDB3").setStateModel("OnlineOffline")
+    idealState = new FullAutoModeISBuilder("TestDB3").setStateModel("OnlineOffline")
         .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
     _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, "TestDB3", idealState);
     setResourceThreadPoolSize("TestDB3", configuredPoolSize);

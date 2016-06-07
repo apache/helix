@@ -25,8 +25,8 @@ import org.testng.annotations.Test;
 
 public class TestIdealStateBuilder {
   @Test
-  public void testAutoISBuilder() {
-    AutoModeISBuilder builder = new AutoModeISBuilder("test-db");
+  public void testSemiAutoISBuilder() {
+    SemiAutoModeISBuilder builder = new SemiAutoModeISBuilder("test-db");
     builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
     builder.assignPreferenceList("test-db_0", "node_0", "node_1").assignPreferenceList("test-db_1",
         "node_1", "node_0");
@@ -43,8 +43,8 @@ public class TestIdealStateBuilder {
   }
 
   @Test
-  public void testAutoRebalanceISModeBuilder() {
-    AutoRebalanceModeISBuilder builder = new AutoRebalanceModeISBuilder("test-db");
+  public void testFullAutoModeISModeBuilder() {
+    FullAutoModeISBuilder builder = new FullAutoModeISBuilder("test-db");
     builder.setStateModel("MasterSlave").setNumPartitions(2).setNumReplica(2);
     builder.add("test-db_0").add("test-db_1");
 

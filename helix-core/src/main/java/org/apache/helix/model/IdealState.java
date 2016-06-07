@@ -53,10 +53,11 @@ public class IdealState extends HelixProperty {
     @Deprecated
     IDEAL_STATE_MODE,
     REBALANCE_MODE,
+    REBALANCER_CLASS_NAME,
     REBALANCE_TIMER_PERIOD,
+    REBALANCE_STRATEGY,
     MAX_PARTITIONS_PER_INSTANCE,
     INSTANCE_GROUP_TAG,
-    REBALANCER_CLASS_NAME,
     HELIX_ENABLED,
     RESOURCE_GROUP_NAME,
     RESOURCE_TYPE,
@@ -163,6 +164,26 @@ public class IdealState extends HelixProperty {
    */
   public String getRebalancerClassName() {
     return _record.getSimpleField(IdealStateProperty.REBALANCER_CLASS_NAME.toString());
+  }
+
+  /**
+   * Specify the strategy for Helix to use to compute the partition-instance assignment,
+   * i,e, the custom rebalance strategy that implements {@link org.apache.helix.controller.strategy.RebalanceStrategy}
+   *
+   * @param rebalanceStrategy
+   * @return
+   */
+  public void setRebalanceStrategy(String rebalanceStrategy) {
+    _record.setSimpleField(IdealStateProperty.REBALANCE_STRATEGY.name(), rebalanceStrategy);
+  }
+
+  /**
+   * Get the rebalance strategy for this resource.
+   *
+   * @return rebalance strategy, or null if not specified.
+   */
+  public String getRebalanceStrategy() {
+    return _record.getSimpleField(IdealStateProperty.REBALANCE_STRATEGY.name());
   }
 
   /**

@@ -52,6 +52,17 @@ public abstract class IdealStateBuilder {
    * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
    */
   protected IdealState.RebalanceMode rebalancerMode;
+
+  /**
+   * Customized rebalancer class.
+   */
+  private String rebalancerClassName;
+
+  /**
+   * Custom rebalance strategy
+   */
+  private String rebalanceStrategy;
+
   /**
    * A constraint that limits the maximum number of partitions per Node.
    */
@@ -161,6 +172,25 @@ public abstract class IdealStateBuilder {
   }
 
   /**
+   * Set custom rebalancer class name.
+   * @return IdealStateBuilder
+   */
+  public IdealStateBuilder setRebalancerClass(String rebalancerClassName) {
+    this.rebalancerClassName = rebalancerClassName;
+    return this;
+  }
+
+  /**
+   * Set custom rebalance strategy name.
+   * @param rebalanceStrategy
+   * @return
+   */
+  public IdealStateBuilder setRebalanceStrategy(String rebalanceStrategy) {
+    this.rebalanceStrategy = rebalanceStrategy;
+    return this;
+  }
+
+  /**
    *
    * @param resourceGroupName
    * @return
@@ -198,6 +228,14 @@ public abstract class IdealStateBuilder {
     idealstate.setStateModelFactoryName(stateModelFactoryName);
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
+
+    if (rebalancerClassName != null) {
+      idealstate.setRebalancerClassName(rebalancerClassName);
+    }
+
+    if (rebalanceStrategy != null) {
+      idealstate.setRebalanceStrategy(rebalanceStrategy);
+    }
 
     if (maxPartitionsPerNode > 0) {
       idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);

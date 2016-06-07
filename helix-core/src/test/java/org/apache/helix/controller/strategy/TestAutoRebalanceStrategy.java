@@ -116,8 +116,7 @@ public class TestAutoRebalanceStrategy {
     StateModelDefinition stateModelDef = getIncompleteStateModelDef(name, stateNames[0], states);
 
     new AutoRebalanceTester(partitions, states, liveNodes, currentMapping, allNodes, maxPerNode,
-        stateModelDef, new AutoRebalanceStrategy.DefaultPlacementScheme())
-        .runRepeatedly(numIterations);
+        stateModelDef).runRepeatedly(numIterations);
   }
 
   /**
@@ -157,13 +156,11 @@ public class TestAutoRebalanceStrategy {
     private List<String> _allNodes;
     private int _maxPerNode;
     private StateModelDefinition _stateModelDef;
-    private ReplicaPlacementScheme _placementScheme;
     private Random _random;
 
     public AutoRebalanceTester(List<String> partitions, LinkedHashMap<String, Integer> states,
         List<String> liveNodes, Map<String, Map<String, String>> currentMapping,
-        List<String> allNodes, int maxPerNode, StateModelDefinition stateModelDef,
-        ReplicaPlacementScheme placementScheme) {
+        List<String> allNodes, int maxPerNode, StateModelDefinition stateModelDef) {
       _partitions = partitions;
       _states = states;
       _liveNodes = liveNodes;
@@ -182,7 +179,6 @@ public class TestAutoRebalanceStrategy {
       }
       _maxPerNode = maxPerNode;
       _stateModelDef = stateModelDef;
-      _placementScheme = placementScheme;
       _random = new Random();
     }
 
@@ -193,9 +189,10 @@ public class TestAutoRebalanceStrategy {
      */
     public void runRepeatedly(int numIterations) {
       logger.info("~~~~ Initial State ~~~~~");
+      RebalanceStrategy strategy =
+          new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode);
       ZNRecord initialResult =
-          new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
-              _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+          strategy.computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
       _currentMapping = getMapping(initialResult.getListFields());
       logger.info(_currentMapping);
       getRunResult(_currentMapping, initialResult.getListFields());
@@ -500,8 +497,8 @@ public class TestAutoRebalanceStrategy {
       _liveSet.add(node);
       _nonLiveSet.remove(node);
 
-      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
-          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode).
+          computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     /**
@@ -534,8 +531,8 @@ public class TestAutoRebalanceStrategy {
         }
       }
 
-      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
-          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     /**
@@ -560,8 +557,8 @@ public class TestAutoRebalanceStrategy {
       _liveNodes.add(node);
       _liveSet.add(node);
 
-      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode,
-          _placementScheme).computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+      return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode)
+          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
     }
 
     private <T> T getRandomSetElement(Set<T> source) {

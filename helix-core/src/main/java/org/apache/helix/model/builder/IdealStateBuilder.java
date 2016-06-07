@@ -52,6 +52,17 @@ public abstract class IdealStateBuilder {
    * Helix rebalancer strategies. AUTO, SEMI_AUTO, CUSTOMIZED
    */
   protected IdealState.RebalanceMode rebalancerMode;
+
+  /**
+   * Customized rebalancer class.
+   */
+  private String rebalancerClassName;
+
+  /**
+   * Custom rebalance strategy
+   */
+  private String rebalanceStrategy;
+
   /**
    * A constraint that limits the maximum number of partitions per Node.
    */
@@ -67,6 +78,16 @@ public abstract class IdealStateBuilder {
    * Whether to disable external view for this resource
    */
   private Boolean disableExternalView = null;
+
+  /**
+   * Resource group name.
+   */
+  private String resourceGroupName;
+
+  /**
+   * Whether the resource group routing should be enabled in routingProvider.
+   */
+  private Boolean enableGroupRouting;
 
   protected ZNRecord _record;
 
@@ -144,6 +165,44 @@ public abstract class IdealStateBuilder {
   }
 
   /**
+   * Set custom rebalancer class name.
+   * @return IdealStateBuilder
+   */
+  public IdealStateBuilder setRebalancerClass(String rebalancerClassName) {
+    this.rebalancerClassName = rebalancerClassName;
+    return this;
+  }
+
+  /**
+   * Set custom rebalance strategy name.
+   * @param rebalanceStrategy
+   * @return
+   */
+  public IdealStateBuilder setRebalanceStrategy(String rebalanceStrategy) {
+    this.rebalanceStrategy = rebalanceStrategy;
+    return this;
+  }
+
+  /**
+   *
+   * @param resourceGroupName
+   * @return
+   */
+  public IdealStateBuilder setResourceGroupName(String resourceGroupName) {
+    this.resourceGroupName = resourceGroupName;
+    return this;
+  }
+
+  /**
+   * Enable Group Routing for this resource.
+   * @return
+   */
+  public IdealStateBuilder enableGroupRouting() {
+    this.enableGroupRouting = true;
+    return this;
+  }
+
+  /**
    * @return
    */
   public IdealState build() {
@@ -154,8 +213,29 @@ public abstract class IdealStateBuilder {
     idealstate.setStateModelFactoryName(stateModelFactoryName);
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
+
+    if (rebalancerClassName != null) {
+      idealstate.setRebalancerClassName(rebalancerClassName);
+    }
+
+    if (rebalanceStrategy != null) {
+      idealstate.setRebalanceStrategy(rebalanceStrategy);
+    }
+
+    if (maxPartitionsPerNode > 0) {
+      idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
+    }
+
     if (disableExternalView != null) {
       idealstate.setDisableExternalView(disableExternalView);
+    }
+
+    if (resourceGroupName != null) {
+      idealstate.setResourceGroupName(resourceGroupName);
+    }
+
+    if (enableGroupRouting != null) {
+      idealstate.enableGroupRouting(enableGroupRouting);
     }
 
     if (!idealstate.isValid()) {

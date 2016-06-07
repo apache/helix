@@ -36,15 +36,14 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
 
-public class AutoRebalanceStrategy {
-
+public class AutoRebalanceStrategy implements RebalanceStrategy {
   private static Logger logger = Logger.getLogger(AutoRebalanceStrategy.class);
-
-  private final String _resourceName;
-  private final List<String> _partitions;
-  private final LinkedHashMap<String, Integer> _states;
-  private final int _maximumPerNode;
   private final ReplicaPlacementScheme _placementScheme;
+
+  private String _resourceName;
+  private List<String> _partitions;
+  private LinkedHashMap<String, Integer> _states;
+  private int _maximumPerNode;
 
   private Map<String, Node> _nodeMap;
   private List<Node> _liveNodesList;
@@ -56,24 +55,26 @@ public class AutoRebalanceStrategy {
   private Set<Replica> _orphaned;
 
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
-      final LinkedHashMap<String, Integer> states, int maximumPerNode,
-      ReplicaPlacementScheme placementScheme) {
-    _resourceName = resourceName;
-    _partitions = partitions;
-    _states = states;
-    _maximumPerNode = maximumPerNode;
-    if (placementScheme != null) {
-      _placementScheme = placementScheme;
-    } else {
-      _placementScheme = new DefaultPlacementScheme();
-    }
+      final LinkedHashMap<String, Integer> states, int maximumPerNode) {
+    init(resourceName, partitions, states, maximumPerNode);
+    _placementScheme = new DefaultPlacementScheme();
   }
 
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states) {
-    this(resourceName, partitions, states, Integer.MAX_VALUE, new DefaultPlacementScheme());
+    this(resourceName, partitions, states, Integer.MAX_VALUE);
   }
 
+  @Override
+  public void init(String resourceName, final List<String> partitions,
+      final LinkedHashMap<String, Integer> states, int maximumPerNode) {
+    _resourceName = resourceName;
+    _partitions = partitions;
+    _states = states;
+    _maximumPerNode = maximumPerNode;
+  }
+
+  @Override
   public ZNRecord computePartitionAssignment(final List<String> liveNodes,
       final Map<String, Map<String, String>> currentMapping, final List<String> allNodes) {
     int numReplicas = countStateReplicas();
@@ -546,7 +547,6 @@ public class AutoRebalanceStrategy {
 
   /**
    * Counts the total number of replicas given a state-count mapping
-   * @param states
    * @return
    */
   private int countStateReplicas() {

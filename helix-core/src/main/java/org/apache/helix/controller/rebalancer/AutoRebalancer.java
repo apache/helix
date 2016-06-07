@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
@@ -35,8 +36,7 @@ import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.DefaultPlacementScheme;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
+import org.apache.helix.controller.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
@@ -44,6 +44,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -59,14 +60,14 @@ import org.apache.log4j.Logger;
 public class AutoRebalancer implements Rebalancer, MappingCalculator {
   // These should be final, but are initialized in init rather than a constructor
   private HelixManager _manager;
-  private AutoRebalanceStrategy _algorithm;
+  private RebalanceStrategy _rebalanceStrategy;
 
   private static final Logger LOG = Logger.getLogger(AutoRebalancer.class);
 
   @Override
   public void init(HelixManager manager) {
     this._manager = manager;
-    this._algorithm = null;
+    this._rebalanceStrategy = null;
   }
 
   @Override
@@ -127,13 +128,32 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
-    ReplicaPlacementScheme placementScheme = new DefaultPlacementScheme();
-    placementScheme.init(_manager);
-    _algorithm =
-        new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition,
-            placementScheme);
+    String rebalanceStrategyName = currentIdealState.getRebalanceStrategy();
+    if (rebalanceStrategyName == null || rebalanceStrategyName.equalsIgnoreCase("default")) {
+      _rebalanceStrategy =
+          new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition);
+    } else {
+      try {
+        _rebalanceStrategy = RebalanceStrategy.class
+            .cast(HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
+        _rebalanceStrategy.init(resourceName, partitions, stateCountMap, maxPartition);
+      } catch (ClassNotFoundException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      } catch (InstantiationException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      } catch (IllegalAccessException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      }
+    }
+
     ZNRecord newMapping =
-        _algorithm.computePartitionAssignment(liveNodes, currentMapping, allNodes);
+        _rebalanceStrategy.computePartitionAssignment(liveNodes, currentMapping, allNodes);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);

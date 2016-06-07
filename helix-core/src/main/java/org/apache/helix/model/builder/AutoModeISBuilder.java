@@ -24,6 +24,10 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+/**
+ * This is the deprecated IS builder for SEMI-AUTO rebalance mode. Please use SemiAutoISBuilder instead.
+ */
+@Deprecated
 public class AutoModeISBuilder extends IdealStateBuilder {
   public AutoModeISBuilder(String resourceName) {
     super(resourceName);

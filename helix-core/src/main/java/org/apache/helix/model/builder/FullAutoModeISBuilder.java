@@ -24,11 +24,10 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import java.util.ArrayList;
 
 /**
- * Please use FullAutoModeISBuilder instead.
+ * IS Builder for resource in Full-Auto rebalance mode.
  */
-@Deprecated
-public class AutoRebalanceModeISBuilder extends IdealStateBuilder {
-  public AutoRebalanceModeISBuilder(String resourceName) {
+public class FullAutoModeISBuilder extends IdealStateBuilder {
+  public FullAutoModeISBuilder(String resourceName) {
     super(resourceName);
     setRebalancerMode(RebalanceMode.FULL_AUTO);
   }
@@ -38,7 +37,7 @@ public class AutoRebalanceModeISBuilder extends IdealStateBuilder {
    * for this partition at runtime.
    * @param partitionName
    */
-  public AutoRebalanceModeISBuilder add(String partitionName) {
+  public FullAutoModeISBuilder add(String partitionName) {
     if (_record.getListField(partitionName) == null) {
       _record.setListField(partitionName, new ArrayList<String>());
     }

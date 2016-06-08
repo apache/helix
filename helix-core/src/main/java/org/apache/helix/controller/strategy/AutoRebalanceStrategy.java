@@ -123,7 +123,7 @@ public class AutoRebalanceStrategy {
 
     // compute orphaned replicas that are not assigned to any node
     _orphaned = computeOrphaned();
-    if (logger.isInfoEnabled()) {
+    if (_orphaned.size() > 0 && logger.isInfoEnabled()) {
       logger.info("orphan = " + _orphaned);
     }
 
@@ -195,7 +195,7 @@ public class AutoRebalanceStrategy {
       }
     }
     if (_orphaned.size() > 0 && logger.isInfoEnabled()) {
-      logger.info("could not assign nodes to partitions: " + _orphaned);
+      logger.warn("could not assign nodes to partitions: " + _orphaned);
     }
   }
 
@@ -438,8 +438,8 @@ public class AutoRebalanceStrategy {
           Replica replica = new Replica(partition, replicaId);
           if (!_preferredAssignment.containsKey(replica)) {
 
-            logger.info("partitions: " + _partitions);
-            logger.info("currentMapping.keySet: " + currentMapping.keySet());
+            logger.warn("partitions: " + _partitions);
+            logger.warn("currentMapping.keySet: " + currentMapping.keySet());
             throw new IllegalArgumentException("partition: " + replica + " is in currentMapping but not in partitions");
           }
 

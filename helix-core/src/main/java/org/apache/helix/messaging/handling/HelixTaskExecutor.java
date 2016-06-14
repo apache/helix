@@ -552,7 +552,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       SessionId tgtSessionId = message.getTypedTgtSessionId();
 
       // sessionId mismatch normally means message comes from expired session, just remove it
-      if (!sessionId.equals(tgtSessionId.toString()) && !tgtSessionId.toString().equals("*")) {
+      if (tgtSessionId == null ||
+		      (!sessionId.equals(tgtSessionId.toString()) && !tgtSessionId.toString().equals("*"))) {
         String warningMessage =
             "SessionId does NOT match. expected sessionId: " + sessionId
                 + ", tgtSessionId in message: " + tgtSessionId + ", messageId: "

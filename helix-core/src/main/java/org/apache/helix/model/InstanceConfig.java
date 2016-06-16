@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.log4j.Logger;
@@ -42,8 +43,10 @@ public class InstanceConfig extends HelixProperty {
     HELIX_ZONE_ID,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
-    TAG_LIST
+    TAG_LIST,
+    INSTANCE_WEIGHT
   }
+  public static final int WEIGHT_NOT_SET = -1;
 
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -101,6 +104,25 @@ public class InstanceConfig extends HelixProperty {
 
   public void setZoneId(String zoneId) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name(), zoneId);
+  }
+
+  public int getWeight() {
+    String w = _record.getSimpleField(InstanceConfigProperty.INSTANCE_WEIGHT.name());
+    if (w != null) {
+      try {
+        int weight = Integer.valueOf(w);
+        return weight;
+      } catch (NumberFormatException e) {
+      }
+    }
+    return WEIGHT_NOT_SET;
+  }
+
+  public void setWeight(int weight) {
+    if (weight <= 0) {
+      throw new IllegalArgumentException("Instance weight can not be equal or less than 0!");
+    }
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_WEIGHT.name(), String.valueOf(weight));
   }
 
   /**

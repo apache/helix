@@ -1,4 +1,4 @@
-package org.apache.helix.controller.strategy;
+package org.apache.helix.controller.rebalancer.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -20,6 +20,7 @@ package org.apache.helix.controller.strategy;
  */
 
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.stages.ClusterDataCache;
 
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,8 +30,11 @@ import java.util.Map;
  * Assignment strategy interface that computes the assignment of partition->instance.
  */
 public interface RebalanceStrategy {
+  String DEFAULT_REBALANCE_STRATEGY = "DEFAULT";
+
   /**
    * Perform the necessary initialization for the rebalance strategy object.
+   *
    * @param resourceName
    * @param partitions
    * @param states
@@ -47,6 +51,7 @@ public interface RebalanceStrategy {
    * @param allNodes
    * @return
    */
-  ZNRecord computePartitionAssignment(final List<String> liveNodes,
-      final Map<String, Map<String, String>> currentMapping, final List<String> allNodes);
+  ZNRecord computePartitionAssignment(final List<String> allNodes,
+      final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
+      ClusterDataCache clusterData);
 }

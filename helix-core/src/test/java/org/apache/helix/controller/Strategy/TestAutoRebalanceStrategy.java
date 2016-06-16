@@ -1,4 +1,4 @@
-package org.apache.helix.controller.strategy;
+package org.apache.helix.controller.Strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -38,9 +38,10 @@ import org.apache.helix.Mocks.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.AutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy.ReplicaPlacementScheme;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.StateModelConfigGenerator;
@@ -192,7 +193,7 @@ public class TestAutoRebalanceStrategy {
       RebalanceStrategy strategy =
           new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode);
       ZNRecord initialResult =
-          strategy.computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+          strategy.computePartitionAssignment(_allNodes, _liveNodes, _currentMapping, null);
       _currentMapping = getMapping(initialResult.getListFields());
       logger.info(_currentMapping);
       getRunResult(_currentMapping, initialResult.getListFields());
@@ -498,7 +499,7 @@ public class TestAutoRebalanceStrategy {
       _nonLiveSet.remove(node);
 
       return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode).
-          computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+          computePartitionAssignment(_allNodes, _liveNodes, _currentMapping, null);
     }
 
     /**
@@ -532,7 +533,7 @@ public class TestAutoRebalanceStrategy {
       }
 
       return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+          .computePartitionAssignment(_allNodes, _liveNodes, _currentMapping, null);
     }
 
     /**
@@ -558,7 +559,7 @@ public class TestAutoRebalanceStrategy {
       _liveSet.add(node);
 
       return new AutoRebalanceStrategy(RESOURCE_NAME, _partitions, _states, _maxPerNode)
-          .computePartitionAssignment(_liveNodes, _currentMapping, _allNodes);
+          .computePartitionAssignment(_allNodes, _liveNodes, _currentMapping, null);
     }
 
     private <T> T getRandomSetElement(Set<T> source) {
@@ -606,7 +607,7 @@ public class TestAutoRebalanceStrategy {
         AutoRebalancer.stateCount(STATE_MODEL, liveNodes.size(), REPLICA_COUNT);
     ZNRecord znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     Map<String, List<String>> preferenceLists = znRecord.getListFields();
     for (String partition : currentMapping.keySet()) {
       // make sure these are all MASTER
@@ -624,7 +625,7 @@ public class TestAutoRebalanceStrategy {
     }
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     for (String partition : currentMapping.keySet()) {
       List<String> preferenceList = preferenceLists.get(partition);
@@ -642,7 +643,7 @@ public class TestAutoRebalanceStrategy {
     }
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     Set<String> firstNodes = Sets.newHashSet();
     for (String partition : currentMapping.keySet()) {
@@ -664,7 +665,7 @@ public class TestAutoRebalanceStrategy {
     currentMapping.get(PARTITIONS[1]).put(NODES[1], "MASTER");
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     boolean newNodeUsed = false;
     for (String partition : currentMapping.keySet()) {
@@ -692,7 +693,7 @@ public class TestAutoRebalanceStrategy {
     currentMapping.get(PARTITIONS[2]).put(NODES[2], "SLAVE");
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     firstNodes.clear();
     Set<String> secondNodes = Sets.newHashSet();
@@ -720,7 +721,7 @@ public class TestAutoRebalanceStrategy {
     currentMapping.get(PARTITIONS[2]).put(NODES[2], "MASTER");
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     for (String partition : currentMapping.keySet()) {
       List<String> preferenceList = preferenceLists.get(partition);
@@ -751,7 +752,7 @@ public class TestAutoRebalanceStrategy {
     currentMapping.get(PARTITIONS[2]).put(NODES[2], "MASTER");
     znRecord =
         new AutoRebalanceStrategy(RESOURCE_NAME, partitions, stateCount)
-            .computePartitionAssignment(liveNodes, currentMapping, allNodes);
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
     preferenceLists = znRecord.getListFields();
     firstNodes.clear();
     for (String partition : currentMapping.keySet()) {

@@ -361,6 +361,12 @@ public class ClusterSetup {
   }
 
   public void addResourceToCluster(String clusterName, String resourceName, int numResources,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy) {
+    _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
+        rebalanceStrategy);
+  }
+
+  public void addResourceToCluster(String clusterName, String resourceName, int numResources,
       String stateModelRef, String rebalancerMode, int bucketSize) {
     _admin.addResource(clusterName, resourceName, numResources, stateModelRef, rebalancerMode,
         bucketSize);

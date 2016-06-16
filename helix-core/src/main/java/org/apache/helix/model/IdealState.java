@@ -168,7 +168,7 @@ public class IdealState extends HelixProperty {
 
   /**
    * Specify the strategy for Helix to use to compute the partition-instance assignment,
-   * i,e, the custom rebalance strategy that implements {@link org.apache.helix.controller.strategy.RebalanceStrategy}
+   * i,e, the custom rebalance strategy that implements {@link org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy}
    *
    * @param rebalanceStrategy
    * @return

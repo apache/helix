@@ -52,6 +52,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
@@ -591,6 +592,13 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void addResource(String clusterName, String resourceName, int partitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy) {
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode,
+        rebalanceStrategy, 0, -1);
+  }
+
+  @Override
   public void addResource(String clusterName, String resourceName, IdealState idealstate) {
     String stateModelRef = idealstate.getStateModelDefRef();
     String stateModelDefPath = PropertyPathBuilder.stateModelDef(clusterName, stateModelRef);
@@ -612,13 +620,22 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void addResource(String clusterName, String resourceName, int partitions,
       String stateModelRef, String rebalancerMode, int bucketSize) {
-    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize, -1);
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize,
+        -1);
 
   }
 
   @Override
   public void addResource(String clusterName, String resourceName, int partitions,
       String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance) {
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode,
+        RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY, bucketSize, maxPartitionsPerInstance);
+  }
+
+  @Override
+  public void addResource(String clusterName, String resourceName, int partitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy, int bucketSize,
+      int maxPartitionsPerInstance) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
@@ -629,6 +646,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     RebalanceMode mode =
         idealState.rebalanceModeFromString(rebalancerMode, RebalanceMode.SEMI_AUTO);
     idealState.setRebalanceMode(mode);
+    idealState.setRebalanceStrategy(rebalanceStrategy);
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     if (maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE) {

@@ -39,10 +39,14 @@ public class InstanceConfig extends HelixProperty {
   public enum InstanceConfigProperty {
     HELIX_HOST,
     HELIX_PORT,
+    HELIX_ZONE_ID,
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
-    TAG_LIST
+    TAG_LIST,
+    INSTANCE_WEIGHT,
+    DOMAIN
   }
+  public static final int WEIGHT_NOT_SET = -1;
 
   private static final Logger _logger = Logger.getLogger(InstanceConfig.class.getName());
 
@@ -92,6 +96,50 @@ public class InstanceConfig extends HelixProperty {
    */
   public void setPort(String port) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
+  }
+
+  public String getZoneId() {
+    return _record.getSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name());
+  }
+
+  public void setZoneId(String zoneId) {
+    _record.setSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name(), zoneId);
+  }
+
+  /**
+   * Domain represents a hierarchy identifier for an instance.
+   * @return
+   */
+  public String getDomain() {
+    return _record.getSimpleField(InstanceConfigProperty.DOMAIN.name());
+  }
+
+  /**
+   * Domain represents a hierarchy identifier for an instance.
+   * Example:  "cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001".
+   * @return
+   */
+  public void setDomain(String domain) {
+    _record.setSimpleField(InstanceConfigProperty.DOMAIN.name(), domain);
+  }
+
+  public int getWeight() {
+    String w = _record.getSimpleField(InstanceConfigProperty.INSTANCE_WEIGHT.name());
+    if (w != null) {
+      try {
+        int weight = Integer.valueOf(w);
+        return weight;
+      } catch (NumberFormatException e) {
+      }
+    }
+    return WEIGHT_NOT_SET;
+  }
+
+  public void setWeight(int weight) {
+    if (weight <= 0) {
+      throw new IllegalArgumentException("Instance weight can not be equal or less than 0!");
+    }
+    _record.setSimpleField(InstanceConfigProperty.INSTANCE_WEIGHT.name(), String.valueOf(weight));
   }
 
   /**

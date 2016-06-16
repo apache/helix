@@ -31,6 +31,7 @@ import org.apache.helix.mock.participant.DummyProcess.DummyOnlineOfflineStateMod
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.mock.participant.MockSchemataModelFactory;
 import org.apache.helix.mock.participant.MockTransition;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.log4j.Logger;
 
@@ -73,14 +74,17 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
   public void run() {
     try {
       StateMachineEngine stateMach = getStateMachineEngine();
-      stateMach.registerStateModelFactory("MasterSlave", _msModelFactory);
+      stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.MasterSlave.name(),
+          _msModelFactory);
 
       DummyLeaderStandbyStateModelFactory lsModelFactory =
           new DummyLeaderStandbyStateModelFactory(10);
       DummyOnlineOfflineStateModelFactory ofModelFactory =
           new DummyOnlineOfflineStateModelFactory(10);
-      stateMach.registerStateModelFactory("LeaderStandby", lsModelFactory);
-      stateMach.registerStateModelFactory("OnlineOffline", ofModelFactory);
+      stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.LeaderStandby.name(),
+          lsModelFactory);
+      stateMach.registerStateModelFactory(BuiltInStateModelDefinitions.OnlineOffline.name(),
+          ofModelFactory);
 
       MockSchemataModelFactory schemataFactory = new MockSchemataModelFactory();
       stateMach.registerStateModelFactory("STORAGE_DEFAULT_SM_SCHEMATA", schemataFactory);

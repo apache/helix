@@ -38,6 +38,7 @@ import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
 
 import java.util.Arrays;
 
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.Error;
@@ -186,7 +187,7 @@ public class PropertyKey {
      * @return {@link PropertyKey}
      */
     public PropertyKey clusterConfig() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfig.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString(), _clusterName);
     }
 

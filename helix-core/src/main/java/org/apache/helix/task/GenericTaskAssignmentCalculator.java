@@ -32,8 +32,8 @@ import java.util.TreeSet;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.strategy.RebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
@@ -126,7 +126,8 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
     List<String> allNodes =
         Lists.newArrayList(getEligibleInstances(jobCfg, currStateOutput, instances, cache));
     Collections.sort(allNodes);
-    ZNRecord record = strategy.computePartitionAssignment(allNodes, currentMapping, allNodes);
+    ZNRecord record =
+        strategy.computePartitionAssignment(allNodes, allNodes, currentMapping, cache);
     Map<String, List<String>> preferenceLists = record.getListFields();
 
     // Convert to an assignment keyed on participant

@@ -32,6 +32,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.CurrentState;
@@ -56,6 +57,7 @@ public class ClusterDataCache {
 
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
 
+  private ClusterConfig _clusterConfig;
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, LiveInstance> _liveInstanceCacheMap;
   Map<String, IdealState> _idealStateMap;
@@ -200,11 +202,11 @@ public class ClusterDataCache {
     _currentStateMap = Collections.unmodifiableMap(allCurStateMap);
 
     _idealStateRuleMap = Maps.newHashMap();
-    HelixProperty clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
-    if (clusterConfig != null) {
-      for (String simpleKey : clusterConfig.getRecord().getSimpleFields().keySet()) {
+    _clusterConfig = accessor.getProperty(keyBuilder.clusterConfig());
+    if (_clusterConfig != null) {
+      for (String simpleKey : _clusterConfig.getRecord().getSimpleFields().keySet()) {
         if (simpleKey.startsWith(IDEAL_STATE_RULE_PREFIX)) {
-          String simpleValue = clusterConfig.getRecord().getSimpleField(simpleKey);
+          String simpleValue = _clusterConfig.getRecord().getSimpleField(simpleKey);
           String[] rules = simpleValue.split("(?<!\\\\),");
           Map<String, String> singleRule = Maps.newHashMap();
           for (String rule : rules) {
@@ -230,6 +232,10 @@ public class ClusterDataCache {
 
     _init = false;
     return true;
+  }
+
+  public ClusterConfig getClusterConfig() {
+    return _clusterConfig;
   }
 
   /**

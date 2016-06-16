@@ -114,6 +114,18 @@ public interface HelixAdmin {
       String stateModelRef, String rebalancerMode);
 
   /**
+   * Add a resource to a cluster
+   * @param clusterName
+   * @param resourceName
+   * @param numPartitions
+   * @param stateModelRef
+   * @param rebalancerMode
+   * @param rebalanceStrategy
+   */
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy);
+
+  /**
    * Add a resource to a cluster, using a bucket size > 1
    * @param clusterName
    * @param resourceName
@@ -137,6 +149,22 @@ public interface HelixAdmin {
    */
   void addResource(String clusterName, String resourceName, int numPartitions,
       String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance);
+
+
+  /**
+   * Add a resource to a cluster, using a bucket size > 1
+   * @param clusterName
+   * @param resourceName
+   * @param numPartitions
+   * @param stateModelRef
+   * @param rebalancerMode
+   * @param rebalanceStrategy
+   * @param bucketSize
+   * @param maxPartitionsPerInstance
+   */
+  void addResource(String clusterName, String resourceName, int numPartitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy, int bucketSize,
+      int maxPartitionsPerInstance);
 
   /**
    * Add an instance to a cluster
@@ -410,6 +438,8 @@ public interface HelixAdmin {
    * @param tag
    */
   void removeInstanceTag(String clusterName, String instanceName, String tag);
+
+  void setInstanceZoneId(String clusterName, String instanceName, String zoneId);
 
   /**
    * Release resources

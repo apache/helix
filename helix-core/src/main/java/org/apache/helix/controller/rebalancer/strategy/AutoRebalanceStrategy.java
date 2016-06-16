@@ -1,4 +1,4 @@
-package org.apache.helix.controller.strategy;
+package org.apache.helix.controller.rebalancer.strategy;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -34,6 +34,7 @@ import java.util.TreeSet;
 
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.log4j.Logger;
 
 public class AutoRebalanceStrategy implements RebalanceStrategy {
@@ -75,8 +76,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
   }
 
   @Override
-  public ZNRecord computePartitionAssignment(final List<String> liveNodes,
-      final Map<String, Map<String, String>> currentMapping, final List<String> allNodes) {
+  public ZNRecord computePartitionAssignment(final List<String> allNodes, final List<String> liveNodes,
+      final Map<String, Map<String, String>> currentMapping, ClusterDataCache clusterData) {
     int numReplicas = countStateReplicas();
     ZNRecord znRecord = new ZNRecord(_resourceName);
     if (liveNodes.size() == 0) {

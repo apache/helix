@@ -46,5 +46,4 @@ public interface Rebalancer {
    */
   IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       final CurrentStateOutput currentStateOutput, final ClusterDataCache clusterData);
-
 }

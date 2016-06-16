@@ -52,6 +52,7 @@ import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathConfig;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
@@ -607,6 +608,13 @@ public class ZKHelixAdmin implements HelixAdmin {
   }
 
   @Override
+  public void addResource(String clusterName, String resourceName, int partitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy) {
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode,
+        rebalanceStrategy, 0, -1);
+  }
+
+  @Override
   public void addResource(String clusterName, String resourceName, IdealState idealstate) {
     String stateModelRef = idealstate.getStateModelDefRef();
     String stateModelDefPath =
@@ -629,14 +637,21 @@ public class ZKHelixAdmin implements HelixAdmin {
   @Override
   public void addResource(String clusterName, String resourceName, int partitions,
       String stateModelRef, String rebalancerMode, int bucketSize) {
-    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize,
-        -1);
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode, bucketSize, -1);
 
   }
 
   @Override
   public void addResource(String clusterName, String resourceName, int partitions,
       String stateModelRef, String rebalancerMode, int bucketSize, int maxPartitionsPerInstance) {
+    addResource(clusterName, resourceName, partitions, stateModelRef, rebalancerMode,
+        RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY, bucketSize, maxPartitionsPerInstance);
+  }
+
+  @Override
+  public void addResource(String clusterName, String resourceName, int partitions,
+      String stateModelRef, String rebalancerMode, String rebalanceStrategy, int bucketSize,
+      int maxPartitionsPerInstance) {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
@@ -647,6 +662,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     RebalanceMode mode =
         idealState.rebalanceModeFromString(rebalancerMode, RebalanceMode.SEMI_AUTO);
     idealState.setRebalanceMode(mode);
+    idealState.setRebalanceStrategy(rebalanceStrategy);
     idealState.setReplicas("" + 0);
     idealState.setStateModelFactoryName(HelixConstants.DEFAULT_STATE_MODEL_FACTORY);
     if (maxPartitionsPerInstance > 0 && maxPartitionsPerInstance < Integer.MAX_VALUE) {
@@ -1014,8 +1030,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       @Override
       public ZNRecord update(ZNRecord currentData) {
         ClusterConstraints constraints =
-            currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(
-                currentData);
+            currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(currentData);
 
         constraints.addConstraintItem(constraintId, constraintItem);
         return constraints.getRecord();
@@ -1150,6 +1165,26 @@ public class ZKHelixAdmin implements HelixAdmin {
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.removeTag(tag);
     accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+  }
+
+  @Override
+  public void setInstanceZoneId(String clusterName, String instanceName, String zoneId) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+
+    if (!ZKUtil.isInstanceSetup(_zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+      throw new HelixException("cluster " + clusterName + " instance " + instanceName
+          + " is not setup yet");
+    }
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    Builder keyBuilder = accessor.keyBuilder();
+
+    PropertyKey configKey = keyBuilder.instanceConfig(instanceName);
+    InstanceConfig config = accessor.getProperty(configKey);
+    config.setZoneId(zoneId);
+    accessor.setProperty(configKey, config);
   }
 
   @Override

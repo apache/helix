@@ -35,8 +35,8 @@ import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.strategy.RebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
@@ -79,8 +79,8 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
     String replicas = currentIdealState.getReplicas();
 
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    stateCountMap = stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
+    LinkedHashMap<String, Integer> stateCountMap =
+        stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     allNodes.removeAll(clusterData.getDisabledInstances());
@@ -129,7 +129,8 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
 
     String rebalanceStrategyName = currentIdealState.getRebalanceStrategy();
-    if (rebalanceStrategyName == null || rebalanceStrategyName.equalsIgnoreCase("default")) {
+    if (rebalanceStrategyName == null || rebalanceStrategyName
+        .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
       _rebalanceStrategy =
           new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition);
     } else {
@@ -152,8 +153,8 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
       }
     }
 
-    ZNRecord newMapping =
-        _rebalanceStrategy.computePartitionAssignment(liveNodes, currentMapping, allNodes);
+    ZNRecord newMapping = _rebalanceStrategy
+        .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);

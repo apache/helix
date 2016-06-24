@@ -37,6 +37,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
   private List<String> _disabledPartitions;
   private boolean _isUp;
   private boolean _isEnabled;
+  private long _totalMessageReceived;
 
   /**
    * Initialize the bean
@@ -50,6 +51,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     _disabledPartitions = Collections.emptyList();
     _isUp = false;
     _isEnabled = false;
+    _totalMessageReceived = 0;
   }
 
   @Override
@@ -66,6 +68,11 @@ public class InstanceMonitor implements InstanceMonitorMBean {
   @Override
   public long getEnabled() {
     return _isEnabled ? 1 : 0;
+  }
+
+  @Override
+  public long getTotalMessageReceived() {
+    return _totalMessageReceived;
   }
 
   /**
@@ -119,6 +126,14 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     }
     _isUp = isLive;
     _isEnabled = isEnabled;
+  }
+
+  /**
+   * Update message received for this instance
+   * @param messageReceived received message numbers
+   */
+  public synchronized void updateMessageCount(long messageReceived) {
+    _totalMessageReceived += messageReceived;
   }
 
 }

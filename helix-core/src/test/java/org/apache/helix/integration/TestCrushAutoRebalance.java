@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.MultiRoundCrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -98,7 +99,9 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
 
   @DataProvider(name = "rebalanceStrategies")
   public static String [][] rebalanceStrategies() {
-    return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()}};
+    return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()},
+        {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()}
+    };
   }
 
   @Test(dataProvider = "rebalanceStrategies")

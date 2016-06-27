@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
@@ -141,6 +142,60 @@ public class Topology {
   }
 
   /**
+   * Returns all leaf nodes that belong in the tree. Returns itself if this node is a leaf.
+   *
+   * @return
+   */
+  public static List<Node> getAllLeafNodes(Node root) {
+    List<Node> nodes = new ArrayList<Node>();
+    if (root.isLeaf()) {
+      nodes.add(root);
+    } else {
+      for (Node child : root.getChildren()) {
+        nodes.addAll(getAllLeafNodes(child));
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Clone a node tree structure, with node weight updated using specified new weight,
+   * and all nodes in @failedNodes as failed.
+   *
+   * @param root          origin root of the tree
+   * @param newNodeWeight map of node name to its new weight. If absent, keep its original weight.
+   * @param failedNodes   set of nodes that need to be failed.
+   * @return new root node.
+   */
+  public static Node clone(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
+    Node newRoot = cloneTree(root, newNodeWeight, failedNodes);
+    computeWeight(newRoot);
+    return newRoot;
+  }
+
+  private static Node cloneTree(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
+    Node newRoot = new Node(root);
+    if (newNodeWeight.containsKey(root.getName())) {
+      newRoot.setWeight(newNodeWeight.get(root.getName()));
+    }
+    if (failedNodes.contains(root.getName())) {
+      newRoot.setFailed(true);
+      newRoot.setWeight(0);
+    }
+
+    List<Node> children = root.getChildren();
+    if (children != null) {
+      for (int i = 0; i < children.size(); i++) {
+        Node newChild = cloneTree(children.get(i), newNodeWeight, failedNodes);
+        newChild.setParent(root);
+        newRoot.addChild(newChild);
+      }
+    }
+
+    return newRoot;
+  }
+
+  /**
    * Creates a tree representing the cluster structure using default cluster topology definition
    * (i,e no topology definition given and no domain id set).
    */
@@ -172,7 +227,7 @@ public class Topology {
       if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
         weight = DEFAULT_NODE_WEIGHT;
       }
-      addEndNode(root, ins, pathValueMap, weight, _liveInstances);
+      root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
     }
 
     return root;
@@ -278,6 +333,16 @@ public class Topology {
   private long computeId(String name) {
     byte[] h = _md.digest(name.getBytes());
     return bstrTo32bit(h);
+  }
+
+  private static void computeWeight(Node node) {
+    int weight = 0;
+    for (Node child : node.getChildren()) {
+      if (!child.isFailed()) {
+        weight += child.getWeight();
+      }
+    }
+    node.setWeight(weight);
   }
 
   private long bstrTo32bit(byte[] bstr) {

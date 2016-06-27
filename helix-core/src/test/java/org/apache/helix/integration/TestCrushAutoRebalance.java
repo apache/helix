@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
+import org.apache.helix.controller.rebalancer.strategy.MultiRoundCrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
@@ -31,6 +32,7 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
@@ -60,7 +62,6 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    List<MockParticipantManager> participants = new ArrayList<MockParticipantManager>();
     System.out.println("START " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
 
     String namespace = "/" + CLUSTER_NAME;
@@ -87,7 +88,7 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
       MockParticipantManager participant =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, node);
       participant.syncStart();
-      participants.add(participant);
+      _participants.add(participant);
     }
 
     // start controller
@@ -96,8 +97,17 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     _controller.syncStart();
   }
 
-  @Test()
-  public void testZoneIsolation() throws Exception {
+  @DataProvider(name = "rebalanceStrategies")
+  public static String [][] rebalanceStrategies() {
+    return new String[][] { {"CrushRebalanceStrategy", CrushRebalanceStrategy.class.getName()},
+        {"MultiRoundCrushRebalanceStrategy", MultiRoundCrushRebalanceStrategy.class.getName()}
+    };
+  }
+
+  @Test(dataProvider = "rebalanceStrategies")
+  public void testZoneIsolation(String rebalanceStrategyName, String rebalanceStrategyClass)
+      throws Exception {
+    System.out.println("Test " + rebalanceStrategyName);
     List<String> testDBs = new ArrayList<String>();
     String[] testModels = { BuiltInStateModelDefinitions.OnlineOffline.name(),
         BuiltInStateModelDefinitions.MasterSlave.name(),
@@ -105,9 +115,9 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     };
     int i = 0;
     for (String stateModel : testModels) {
-      String db = "Test-DB" + i++;
+      String db = "Test-DB-" + rebalanceStrategyName + "-" + i++;
       _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS, stateModel,
-          RebalanceMode.FULL_AUTO + "", CrushRebalanceStrategy.class.getName());
+          RebalanceMode.FULL_AUTO + "", rebalanceStrategyClass);
       _setupTool.rebalanceStorageCluster(CLUSTER_NAME, db, _replica);
       testDBs.add(db);
       _allDBs.add(db);
@@ -126,16 +136,17 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
-  @Test()
-  public void testZoneIsolationWithInstanceTag() throws Exception {
+  @Test(dataProvider = "rebalanceStrategies")
+  public void testZoneIsolationWithInstanceTag(
+      String rebalanceStrategyName, String rebalanceStrategyClass) throws Exception {
     List<String> testDBs = new ArrayList<String>();
     Set<String> tags = new HashSet<String>(_nodeToTagMap.values());
     int i = 0;
     for (String tag : tags) {
-      String db = "Test-DB-Tag" + i++;
+      String db = "Test-DB-Tag-" + rebalanceStrategyName + "-" + i++;
       _setupTool.addResourceToCluster(CLUSTER_NAME, db, _PARTITIONS,
           BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO + "",
-          CrushRebalanceStrategy.class.getName());
+          rebalanceStrategyClass);
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       is.setInstanceGroupTag(tag);
       _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, db, is);
@@ -207,7 +218,7 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     for (MockParticipantManager participant : _participants) {
       participant.syncStop();
     }
-
+    _setupTool.deleteCluster(CLUSTER_NAME);
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));
   }
 }

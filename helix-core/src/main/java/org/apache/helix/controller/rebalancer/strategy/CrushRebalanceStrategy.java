@@ -28,7 +28,6 @@ import org.apache.helix.controller.rebalancer.strategy.crushMapping.JenkinsHash;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 
 import java.util.ArrayList;
@@ -92,8 +91,6 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
 
     ZNRecord result = new ZNRecord(_resourceName);
     result.setListFields(newPreferences);
-    result.setSimpleField(IdealState.IdealStateProperty.NUM_PARTITIONS.toString(),
-        String.valueOf(_partitions));
 
     return result;
   }
@@ -149,8 +146,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
       }
     } else {
       // pick end node directly
-      List<Node> nodes = placementAlgorithm
-          .select(topNode, input, rf, endNodeType, nodeAlreadySelected(new HashSet(selectedNodes)));
+      List<Node> nodes = placementAlgorithm.select(topNode, input, rf, endNodeType,
+          nodeAlreadySelected(new HashSet(selectedNodes)));
       selectedNodes.addAll(nodes);
     }
   }
@@ -164,7 +161,6 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
 
   /**
    * Counts the total number of replicas given a state-count mapping
-   *
    * @return
    */
   private int countStateReplicas(Map<String, Integer> stateCountMap) {

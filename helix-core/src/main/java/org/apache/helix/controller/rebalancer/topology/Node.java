@@ -112,7 +112,7 @@ public class Node implements Comparable<Node> {
    * Returns all child nodes that match the type. Returns itself if this node matches it. If no
    * child matches the type, an empty list is returned.
    */
-  public List<Node> findChildren(String type) {
+  protected List<Node> findChildren(String type) {
     List<Node> nodes = new ArrayList<Node>();
     if (_type.equalsIgnoreCase(type)) {
       nodes.add(this);

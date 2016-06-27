@@ -22,9 +22,11 @@ package org.apache.helix.controller.rebalancer.topology;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.model.InstanceConfig;
@@ -75,7 +77,71 @@ public class Topology {
     return _root;
   }
 
-  public void createClusterTopology() {
+  public List<Node> getFaultZones() {
+    if (_root != null) {
+      return _root.findChildren(getFaultZoneType());
+    }
+    return Collections.emptyList();
+  }
+
+  /**
+   * Returns all leaf nodes that belong in the tree. Returns itself if this node is a leaf.
+   *
+   * @return
+   */
+  public static List<Node> getAllLeafNodes(Node root) {
+    List<Node> nodes = new ArrayList<Node>();
+    if (root.isLeaf()) {
+      nodes.add(root);
+    } else {
+      for (Node child : root.getChildren()) {
+        nodes.addAll(getAllLeafNodes(child));
+      }
+    }
+    return nodes;
+  }
+
+  /**
+   * Clone a node tree structure, with node weight updated using specified new weight,
+   * and all nodes in @failedNodes as failed.
+   *
+   * @param root          origin root of the tree
+   * @param newNodeWeight map of node name to its new weight. If absent, keep its original weight.
+   * @param failedNodes   set of nodes that need to be failed.
+   * @return new root node.
+   */
+  public static Node clone(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
+    Node newRoot = cloneTree(root, newNodeWeight, failedNodes);
+    computeWeight(newRoot);
+    return newRoot;
+  }
+
+  private static Node cloneTree(Node root, Map<String, Integer> newNodeWeight, Set<String> failedNodes) {
+    Node newRoot = new Node(root);
+    if (newNodeWeight.containsKey(root.getName())) {
+      newRoot.setWeight(newNodeWeight.get(root.getName()));
+    }
+    if (failedNodes.contains(root.getName())) {
+      newRoot.setFailed(true);
+      newRoot.setWeight(0);
+    }
+
+    List<Node> newChildren = new ArrayList<Node>();
+    newRoot.setChildren(newChildren);
+
+    List<Node> children = root.getChildren();
+    if (children != null) {
+      for (int i = 0; i < children.size(); i++) {
+        Node newChild = cloneTree(children.get(i), newNodeWeight, failedNodes);
+        newChild.setParent(root);
+        newChildren.add(newChild);
+      }
+    }
+
+    return newRoot;
+  }
+
+  private void createClusterTopology() {
     Map<String, List<String>> zoneInstances = new HashMap<String, List<String>>();
     Map<String, Integer> instanceWeights = new HashMap<String, Integer>();
     for (String ins : _allInstances) {
@@ -161,10 +227,12 @@ public class Topology {
     return bstrTo32bit(h);
   }
 
-  private void computeWeight(Node node) {
+  private static void computeWeight(Node node) {
     int weight = 0;
     for (Node child : node.getChildren()) {
-      weight += child.getWeight();
+      if (!child.isFailed()) {
+        weight += child.getWeight();
+      }
     }
     node.setWeight(weight);
   }

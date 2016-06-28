@@ -19,13 +19,11 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 
 public class JobMonitor implements JobMonitorMBean {

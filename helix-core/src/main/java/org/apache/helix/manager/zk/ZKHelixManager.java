@@ -808,6 +808,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
         LOG.error("instanceName: " + _instanceName + " is flapping. disconnect it. "
             + " maxDisconnectThreshold: " + _maxDisconnectThreshold + " disconnects in "
             + _flappingTimeWindowMs + "ms.");
+
+        // Only disable the instance when it's instance type is PARTICIPANT
+        if (_instanceType.equals(InstanceType.PARTICIPANT)) {
+          LOG.warn("instanceName: " + _instanceName
+              + " is flapping. Since it is a participant, disable it.");
+          getClusterManagmentTool().enableInstance(_clusterName, _instanceName, false);
+        }
         disconnect();
       }
       break;

@@ -109,8 +109,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       MappingCalculator mappingCalculator = null;
       switch (idealState.getRebalanceMode()) {
       case FULL_AUTO:
-        boolean fullAutoDisabled = cache.getClusterConfig().getRecord().getBooleanField(
-            HelixConstants.ClusterConfigType.DISABLE_FULL_AUTO.name(), false);
+        boolean fullAutoDisabled = cache.getClusterConfig().isFullAutoDisabled();
         if (!fullAutoDisabled) {
           AutoRebalancer autoRebalancer = new AutoRebalancer();
           rebalancer = autoRebalancer;

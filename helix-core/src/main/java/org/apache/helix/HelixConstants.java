@@ -43,9 +43,14 @@ public interface HelixConstants {
     ANY_LIVEINSTANCE
   }
 
+  /**
+   * Please use ClusterConfig instead
+   */
+  @Deprecated
   enum ClusterConfigType {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
-    DISABLE_FULL_AUTO // override all resources in the cluster to use SEMI-AUTO instead of FULL-AUTO
+    DISABLE_FULL_AUTO, // override all resources in the cluster to use SEMI-AUTO instead of FULL-AUTO
+    PERSIST_BEST_POSSIBLE_ASSIGNMENT
   }
 
   String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";

@@ -332,6 +332,17 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Set the current mapping of a partition
+   *
+   * @param partitionName    the name of the partition
+   * @param instanceStateMap instance->state mapping for this partition.
+   * @return the instances where the replicas live and the state of each
+   */
+  public void setInstanceStateMap(String partitionName, Map<String, String> instanceStateMap) {
+    _record.setMapField(partitionName, instanceStateMap);
+  }
+
+  /**
    * Get the instances who host replicas of a partition
    * @param partitionName the partition to look up
    * @return set of instance names

@@ -29,7 +29,6 @@ import java.util.Set;
 
 import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.model.ClusterConfig;
@@ -42,7 +41,6 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.task.JobConfig;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -56,7 +54,6 @@ import com.google.common.collect.Sets;
 public class ClusterDataCache {
 
   private static final String IDEAL_STATE_RULE_PREFIX = "IdealStateRule!";
-
   private ClusterConfig _clusterConfig;
   Map<String, LiveInstance> _liveInstanceMap;
   Map<String, LiveInstance> _liveInstanceCacheMap;

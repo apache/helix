@@ -58,6 +58,7 @@ import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -983,6 +984,7 @@ public class ZKHelixAdmin implements HelixAdmin {
       // for now keep mapField in SEMI_AUTO mode and remove listField in CUSTOMIZED mode
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
         idealState.getRecord().setListFields(newIdealState.getListFields());
+        // TODO: need consider to remove this.
         idealState.getRecord().setMapFields(newIdealState.getMapFields());
       }
       if (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED) {

@@ -32,7 +32,8 @@ public class ClusterConfig extends HelixProperty {
   public enum ClusterConfigProperty {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
     TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
-    FAULT_ZONE_TYPE // the type in which isolation should be applied on when Helix places the replicas from same partition.
+    FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
+    PERSIST_BEST_POSSIBLE_ASSIGNMENT
   }
 
   /**
@@ -55,6 +56,15 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Whether to persist best possible assignment in a resource's idealstate.
+   *
+   * @return
+   */
+  public Boolean isPersistBestPossibleAssignment() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.toString(), false);
+  }
+
+  /**
    *
    * @return
    */

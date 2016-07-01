@@ -177,7 +177,7 @@ public class PropertyKey {
      */
 
     public PropertyKey clusterConfigs() {
-      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, HelixProperty.class,
+      return new PropertyKey(CONFIGS, ConfigScopeProperty.CLUSTER, ClusterConfig.class,
           _clusterName, ConfigScopeProperty.CLUSTER.toString());
     }
 

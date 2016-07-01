@@ -32,7 +32,7 @@ import org.apache.log4j.Logger;
  */
 public class ResourceConfig extends HelixProperty {
   /**
-   * Configurable characteristics of an instance
+   * Configurable characteristics of a resource
    */
   public enum ResourceConfigProperty {
     MONITORING_DISABLED, // Resource-level config, do not create Mbean and report any status for the resource.

@@ -49,7 +49,6 @@ public interface HelixConstants {
   @Deprecated
   enum ClusterConfigType {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
-    DISABLE_FULL_AUTO // override all resources in the cluster to use SEMI-AUTO instead of FULL-AUTO
   }
 
   String DEFAULT_STATE_MODEL_FACTORY = "DEFAULT";

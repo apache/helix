@@ -22,6 +22,7 @@ package org.apache.helix.controller.rebalancer.strategy;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.JenkinsHash;
@@ -70,7 +71,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ClusterDataCache clusterData) throws HelixException {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
-    _clusterTopo = new Topology(allNodes, liveNodes, instanceConfigMap);
+    _clusterTopo =
+        new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
     Node topNode = _clusterTopo.getRootNode();
 
     Map<String, List<String>> newPreferences = new HashMap<String, List<String>>();

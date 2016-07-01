@@ -20,7 +20,10 @@ package org.apache.helix.controller.rebalancer.topology;
  */
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Node implements Comparable<Node> {
   private String _name;
@@ -28,7 +31,7 @@ public class Node implements Comparable<Node> {
   private long _id;
   private long _weight;
 
-  private List<Node> _children;
+  private LinkedHashMap<String, Node> _children = new LinkedHashMap<String, Node>();
   private Node _parent;
 
   private boolean _failed;
@@ -77,6 +80,8 @@ public class Node implements Comparable<Node> {
     _weight = weight;
   }
 
+  public void addWeight(long weight) { _weight += weight; }
+
   public boolean isFailed() {
     return _failed;
   }
@@ -89,11 +94,35 @@ public class Node implements Comparable<Node> {
   }
 
   public List<Node> getChildren() {
-    return _children;
+    return new ArrayList<Node>(_children.values());
   }
 
-  public void setChildren(List<Node> children) {
-    _children = children;
+  /**
+   * Add a child, if there exists a child with the same name, will replace it.
+   *
+   * @param child
+   */
+  public void addChild(Node child) {
+    _children.put(child.getName(), child);
+  }
+
+  /**
+   * Has child with given name.
+   * @param name
+   * @return
+   */
+  public boolean hasChild(String name) {
+    return _children.containsKey(name);
+  }
+
+  /**
+   * Get child node with given name.
+   *
+   * @param name
+   * @return
+   */
+  public Node getChild(String name) {
+    return _children.get(name);
   }
 
   public boolean isLeaf() {
@@ -117,7 +146,7 @@ public class Node implements Comparable<Node> {
     if (_type.equalsIgnoreCase(type)) {
       nodes.add(this);
     } else if (!isLeaf()) {
-      for (Node child: _children) {
+      for (Node child: _children.values()) {
         nodes.addAll(child.findChildren(type));
       }
     }
@@ -133,26 +162,11 @@ public class Node implements Comparable<Node> {
     if (_type.equalsIgnoreCase(type)) {
       count++;
     } else if (!isLeaf()) {
-      for (Node child: _children) {
+      for (Node child: _children.values()) {
         count += child.getChildrenCount(type);
       }
     }
     return count;
-  }
-
-  /**
-   * Finds a parent that matches the given type. If the node itself matches it, it is returned. If
-   * there is no matching parent in the hierarchy, null is returned.
-   */
-  public Node findParent(String type) {
-    Node node = this;
-    while (node != null) {
-      if (_type.equalsIgnoreCase(type)) {
-        return node;
-      }
-      node = node.getParent(); // keep walking up the tree
-    }
-    return null; // no match was found
   }
 
   /**

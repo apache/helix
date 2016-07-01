@@ -44,7 +44,8 @@ public class InstanceConfig extends HelixProperty {
     HELIX_ENABLED,
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
-    INSTANCE_WEIGHT
+    INSTANCE_WEIGHT,
+    DOMAIN
   }
   public static final int WEIGHT_NOT_SET = -1;
 
@@ -98,12 +99,35 @@ public class InstanceConfig extends HelixProperty {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
   }
 
+  /**
+   * Set the zone identifier for this instance.
+   * This is deprecated, please use domain to set hierarchy tag for an instance.
+   * @return
+   */
+  @Deprecated
   public String getZoneId() {
     return _record.getSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name());
   }
 
   public void setZoneId(String zoneId) {
     _record.setSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name(), zoneId);
+  }
+
+  /**
+   * Domain represents a hierarchy identifier for an instance.
+   * @return
+   */
+  public String getDomain() {
+    return _record.getSimpleField(InstanceConfigProperty.DOMAIN.name());
+  }
+
+  /**
+   * Domain represents a hierarchy identifier for an instance.
+   * Example:  "cluster=myCluster,zone=myZone1,rack=myRack,host=hostname,instance=instance001".
+   * @return
+   */
+  public void setDomain(String domain) {
+    _record.setSimpleField(InstanceConfigProperty.DOMAIN.name(), domain);
   }
 
   public int getWeight() {

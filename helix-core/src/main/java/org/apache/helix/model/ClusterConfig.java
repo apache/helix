@@ -32,7 +32,9 @@ public class ClusterConfig extends HelixProperty {
   public enum ClusterConfigProperty {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
     DISABLE_FULL_AUTO, // override all resources in the cluster to use SEMI-AUTO instead of FULL-AUTO
-    PERSIST_BEST_POSSIBLE_ASSIGNMENT
+    PERSIST_BEST_POSSIBLE_ASSIGNMENT,
+    TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
+    FAULT_ZONE_TYPE // the type in which isolation should be applied on when Helix places the replicas from same partition.
   }
 
   /**

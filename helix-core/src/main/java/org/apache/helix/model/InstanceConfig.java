@@ -98,6 +98,12 @@ public class InstanceConfig extends HelixProperty {
     _record.setSimpleField(InstanceConfigProperty.HELIX_PORT.toString(), port);
   }
 
+  /**
+   * Set the zone identifier for this instance.
+   * This is deprecated, please use domain to set hierarchy tag for an instance.
+   * @return
+   */
+  @Deprecated
   public String getZoneId() {
     return _record.getSimpleField(InstanceConfigProperty.HELIX_ZONE_ID.name());
   }

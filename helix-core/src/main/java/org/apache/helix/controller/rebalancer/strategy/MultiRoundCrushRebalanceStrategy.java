@@ -77,7 +77,8 @@ public class MultiRoundCrushRebalanceStrategy implements RebalanceStrategy {
       final List<String> liveNodes, final Map<String, Map<String, String>> currentMapping,
       ClusterDataCache clusterData) throws HelixException {
     Map<String, InstanceConfig> instanceConfigMap = clusterData.getInstanceConfigMap();
-    _clusterTopo = new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
+    _clusterTopo =
+        new Topology(allNodes, liveNodes, instanceConfigMap, clusterData.getClusterConfig());
     Node root = _clusterTopo.getRootNode();
 
     Map<String, List<Node>> zoneMapping = new HashMap<String, List<Node>>();

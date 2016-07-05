@@ -133,7 +133,27 @@ public class TaskStateModel extends StateModel {
     }
 
     TaskResult r = _taskRunner.waitTillDone();
-    if (r.getStatus() != TaskResult.Status.ERROR) {
+    if (r.getStatus() != TaskResult.Status.ERROR && r.getStatus() != TaskResult.Status.FAILED) {
+      throw new IllegalStateException(String.format(
+          "Partition %s received a state transition to %s but the result status code is %s.",
+          msg.getPartitionName(), msg.getToState(), r.getStatus()));
+    }
+
+    timeout_task.cancel(false);
+
+    return r.getInfo();
+  }
+
+  @Transition(to = "TASK_ABORTED", from = "RUNNING")
+  public String onBecomeTaskAbortedFromRunning(Message msg, NotificationContext context) {
+    String taskPartition = msg.getPartitionName();
+    if (_taskRunner == null) {
+      throw new IllegalStateException(String.format(
+          "Invalid state transition. There is no running task for partition %s.", taskPartition));
+    }
+
+    TaskResult r = _taskRunner.waitTillDone();
+    if (r.getStatus() != TaskResult.Status.FATAL_FAILED) {
       throw new IllegalStateException(String.format(
           "Partition %s received a state transition to %s but the result status code is %s.",
           msg.getPartitionName(), msg.getToState(), r.getStatus()));
@@ -189,6 +209,11 @@ public class TaskStateModel extends StateModel {
     reset();
   }
 
+  @Transition(to = "DROPPED", from = "TASK_ABORTED")
+  public void onBecomeDroppedFromTaskAborted(Message msg, NotificationContext context) {
+    reset();
+  }
+
   @Transition(to = "INIT", from = "RUNNING")
   public void onBecomeInitFromRunning(Message msg, NotificationContext context) {
     String taskPartition = msg.getPartitionName();
@@ -220,6 +245,11 @@ public class TaskStateModel extends StateModel {
 
   @Transition(to = "INIT", from = "TASK_ERROR")
   public void onBecomeInitFromTaskError(Message msg, NotificationContext context) {
+    reset();
+  }
+
+  @Transition(to = "INIT", from = "TASK_ABORTED")
+  public void onBecomeInitFromTaskAborted(Message msg, NotificationContext context) {
     reset();
   }
 

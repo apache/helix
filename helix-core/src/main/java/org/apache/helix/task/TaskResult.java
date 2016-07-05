@@ -34,8 +34,14 @@ public class TaskResult {
      * called.
      */
     CANCELED,
-    /** The task encountered an error from which it could not recover. */
-    ERROR
+    /** The task encountered an error from which it can not recover.
+     * This is equivalent to {@link org.apache.helix.task.TaskResult.Status#FAILED}.*/
+    @Deprecated
+    ERROR,
+    /** The task encountered an error which can not be recovered from this run, but it may still succeed by retrying the task. */
+    FAILED,
+    /** The task encountered an error, which will not be recoverable even with retrying the task */
+    FATAL_FAILED
   }
 
   private final Status _status;

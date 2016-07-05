@@ -42,7 +42,6 @@ import com.google.common.collect.Sets;
 
 public class TestRecurringJobQueue extends TaskTestBase {
   private static final Logger LOG = Logger.getLogger(TestRecurringJobQueue.class);
-  private static final String TIMEOUT_CONFIG = "Timeout";
 
   @Test
   public void deleteRecreateRecurrentQueue() throws Exception {
@@ -120,7 +119,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.TIMEOUT_CONFIG, String.valueOf(500));
     Thread.sleep(100);
     for (int i = 0; i <= 4; i++) {
       String targetPartition = (i == 0) ? "MASTER" : "SLAVE";
@@ -211,7 +210,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
     // create jobs
     List<JobConfig.Builder> jobs = new ArrayList<JobConfig.Builder>();
     List<String> jobNames = new ArrayList<String>();
-    Map<String, String> commandConfig = ImmutableMap.of(TIMEOUT_CONFIG, String.valueOf(500));
+    Map<String, String> commandConfig = ImmutableMap.of(MockTask.TIMEOUT_CONFIG, String.valueOf(500));
 
     final int JOB_COUNTS = 3;
     for (int i = 0; i < JOB_COUNTS; i++) {

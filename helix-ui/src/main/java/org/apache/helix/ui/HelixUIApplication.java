@@ -28,6 +28,8 @@ import io.dropwizard.views.ViewBundle;
 import org.apache.helix.ui.health.ClusterConnectionHealthCheck;
 import org.apache.helix.ui.resource.AdminResource;
 import org.apache.helix.ui.resource.DashboardResource;
+import org.apache.helix.ui.resource.HealthResource;
+import org.apache.helix.ui.resource.PingResource;
 import org.apache.helix.ui.resource.VisualizerResource;
 import org.apache.helix.ui.task.ClearClientCache;
 import org.apache.helix.ui.task.ClearDataCacheTask;
@@ -36,6 +38,10 @@ import org.apache.helix.ui.util.DataCache;
 import org.apache.helix.ui.util.ZkAddressValidator;
 import org.eclipse.jetty.util.component.AbstractLifeCycle;
 import org.eclipse.jetty.util.component.LifeCycle;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 public class HelixUIApplication extends Application<HelixUIApplicationConfiguration> {
   @Override
@@ -60,7 +66,7 @@ public class HelixUIApplication extends Application<HelixUIApplicationConfigurat
   @Override
   public void run(HelixUIApplicationConfiguration config, Environment environment) throws Exception {
     final ZkAddressValidator zkAddressValidator = new ZkAddressValidator(config.getZkAddresses());
-    final ClientCache clientCache = new ClientCache(zkAddressValidator);
+    final ClientCache clientCache = new ClientCache(zkAddressValidator, config.getZkAliases());
 
     // Close all connections when application stops
     environment.lifecycle().addLifeCycleListener(new AbstractLifeCycle.AbstractLifeCycleListener() {
@@ -70,15 +76,24 @@ public class HelixUIApplication extends Application<HelixUIApplicationConfigurat
       }
     });
 
+    // Any zk aliases
+    List<String> zkAliases = new ArrayList<String>();
+    zkAliases.addAll(config.getZkAliases().keySet());
+    Collections.sort(zkAliases);
+
     DataCache dataCache = new DataCache(clientCache);
 
-
-    DashboardResource dashboardResource
-            = new DashboardResource(clientCache, dataCache, config.isAdminMode());
+    DashboardResource dashboardResource = new DashboardResource(
+        clientCache,
+        dataCache,
+        config.isAdminMode(),
+        zkAliases);
 
     environment.healthChecks().register("clusterConnection", new ClusterConnectionHealthCheck(clientCache));
     environment.jersey().register(dashboardResource);
     environment.jersey().register(new VisualizerResource(clientCache, dataCache));
+    environment.jersey().register(new HealthResource());
+    environment.jersey().register(new PingResource());
     environment.admin().addTask(new ClearDataCacheTask(dataCache));
     environment.admin().addTask(new ClearClientCache(clientCache));
 

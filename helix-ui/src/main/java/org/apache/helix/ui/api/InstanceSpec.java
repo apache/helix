@@ -19,17 +19,22 @@ package org.apache.helix.ui.api;
  * under the License.
  */
 
+import java.util.List;
+
 public class InstanceSpec implements Comparable<InstanceSpec> {
   private final String instanceName;
   private final boolean enabled;
   private final boolean live;
+  private final List<String> tags;
 
   public InstanceSpec(String instanceName,
                       boolean enabled,
-                      boolean live) {
+                      boolean live,
+                      List<String> tags) {
     this.instanceName = instanceName;
     this.enabled = enabled;
     this.live = live;
+    this.tags = tags;
   }
 
   public String getInstanceName() {
@@ -42,6 +47,10 @@ public class InstanceSpec implements Comparable<InstanceSpec> {
 
   public boolean isLive() {
     return live;
+  }
+
+  public List<String> getTags() {
+    return tags;
   }
 
   @Override

@@ -28,8 +28,31 @@ under the License.
         <div id="landing-area">
             <img src="/assets/img/helix-logo.png">
             <form id="landing-form" class="uk-form">
-                <input id="zk-address" type="text" placeholder="ZooKeeper Address (e.g. localhost:2181)"/>
-                <button id="landing-form-button" class="uk-button">Go</button>
+                <div class="uk-form-row">
+                    <input id="zk-address"
+                           type="text"
+                           placeholder="ZooKeeper Address (e.g. localhost:2181)"
+                           class="uk-form-width-large"/>
+                </div>
+                <#if zkAliases?has_content>
+                    <div class="uk-form-row">
+                        OR
+                    </div>
+                    <div class="uk-form-row">
+                        <select id="zk-alias"
+                                class="uk-form-width-large">
+                            <#list zkAliases as alias>
+                                <option value="${alias}">${alias}</option>
+                            </#list>
+                        </select>
+                    </div>
+                </#if>
+                <div class="uk-form-row">
+                    <button id="landing-form-button"
+                            class="uk-button uk-form-width-large">
+                        Go
+                    </button>
+                </div>
             </form>
         </div>
 

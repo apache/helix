@@ -29,6 +29,8 @@ import org.apache.helix.ui.util.DataCache;
 import org.apache.helix.ui.view.ClusterView;
 import org.apache.helix.ui.view.LandingView;
 import org.apache.helix.ui.view.ResourceView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
@@ -39,6 +41,7 @@ import java.util.*;
 @Path("/")
 @Produces(MediaType.TEXT_HTML)
 public class DashboardResource {
+  private static final Logger LOG = LoggerFactory.getLogger(DashboardResource.class);
   private static final List<String> REBALANCE_MODES = ImmutableList.of(
           IdealState.RebalanceMode.SEMI_AUTO.toString(),
           IdealState.RebalanceMode.FULL_AUTO.toString(),
@@ -49,13 +52,16 @@ public class DashboardResource {
   private final boolean adminMode;
   private final ClientCache clientCache;
   private final DataCache dataCache;
+  private final List<String> zkAliases;
 
   public DashboardResource(ClientCache clientCache,
                            DataCache dataCache,
-                           boolean adminMode) {
+                           boolean adminMode,
+                           List<String> zkAliases) {
     this.clientCache = clientCache;
     this.dataCache = dataCache;
     this.adminMode = adminMode;
+    this.zkAliases = zkAliases;
   }
 
   @GET
@@ -66,7 +72,7 @@ public class DashboardResource {
   @GET
   @Path("/dashboard")
   public LandingView getLandingView() {
-    return new LandingView();
+    return new LandingView(zkAliases);
   }
 
   @GET
@@ -92,7 +98,18 @@ public class DashboardResource {
 
     // Check it
     if (!ZKUtil.isClusterSetup(activeCluster, clusterConnection.getZkClient())) {
-      return new ClusterView(adminMode, zkAddress, clusters, false, activeCluster, null, null, null, null, null);
+      return new ClusterView(
+          adminMode,
+          zkAddress,
+          clusters,
+          false,
+          activeCluster,
+          null,
+          null,
+          null,
+          null,
+          null,
+          null);
     }
 
     // Resources in the active cluster
@@ -108,17 +125,21 @@ public class DashboardResource {
     // Config table
     List<ConfigTableRow> configTable = dataCache.getConfigCache().get(clusterSpec);
 
+    // Controller leader
+    String controllerLeader = dataCache.getControllerLeaderCache().get(clusterSpec);
+
     return new ClusterView(
-            adminMode,
-            zkAddress,
-            clusters,
-            true,
-            activeCluster,
-            activeClusterResources,
-            instanceSpecs,
-            configTable,
-            stateModels,
-            REBALANCE_MODES);
+        adminMode,
+        zkAddress,
+        clusters,
+        true,
+        activeCluster,
+        activeClusterResources,
+        instanceSpecs,
+        configTable,
+        stateModels,
+        REBALANCE_MODES,
+        controllerLeader);
   }
 
   @GET
@@ -187,5 +208,26 @@ public class DashboardResource {
             configTable,
             IdealStateSpec.fromIdealState(idealState),
             instanceSpecs);
+  }
+
+  @POST
+  @Path("/dashboard/{zkAddress}/{cluster}/{resource}")
+  public Response resourceAction(
+      @PathParam("zkAddress") String zkAddress,
+      @PathParam("cluster") String cluster,
+      @PathParam("resource") String resource,
+      @QueryParam("action") @DefaultValue("reset") String action) {
+    ClusterConnection clusterConnection = clientCache.get(zkAddress);
+
+    if ("reset".equals(action)) {
+      clusterConnection
+          .getClusterSetup()
+          .getClusterManagementTool()
+          .resetResource(cluster, Collections.singletonList(resource));
+      LOG.info("Reset resource {} in cluster {}", resource, cluster);
+      return Response.ok().build();
+    } else {
+      return Response.status(Response.Status.BAD_REQUEST).entity("Unsupported action " + action).build();
+    }
   }
 }

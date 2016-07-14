@@ -19,7 +19,11 @@
 
 $(document).ready(function() {
     $("#landing-form-button").click(function(event) {
-        event.preventDefault()
-        window.location = "/dashboard/" + encodeURIComponent($("#zk-address").val())
-    })
+        event.preventDefault();
+        if ($("#zk-address").val()) {
+            window.location = "/dashboard/" + encodeURIComponent($("#zk-address").val());
+        } else {
+            window.location = "/dashboard/" + encodeURIComponent($("#zk-alias").val());
+        }
+    });
 })

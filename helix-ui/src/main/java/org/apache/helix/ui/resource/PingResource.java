@@ -1,4 +1,4 @@
-package org.apache.helix.ui.view;
+package org.apache.helix.ui.resource;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,19 +19,20 @@ package org.apache.helix.ui.view;
  * under the License.
  */
 
-import io.dropwizard.views.View;
+import io.dropwizard.jersey.caching.CacheControl;
 
-import java.util.List;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
-public class LandingView extends View {
-  private final List<String> zkAliases;
-
-  public LandingView(List<String> zkAliases) {
-    super("landing-view.ftl");
-    this.zkAliases = zkAliases;
-  }
-
-  public List<String> getZkAliases() {
-    return zkAliases;
+@Path("/ping")
+@Produces(MediaType.APPLICATION_JSON)
+public class PingResource {
+  @GET
+  @CacheControl(mustRevalidate = true, noCache = true, noStore = true)
+  public Response health() {
+    return Response.status(Response.Status.OK).entity("pong").build();
   }
 }

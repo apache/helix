@@ -21,8 +21,17 @@ package org.apache.helix.ui.view;
 
 import io.dropwizard.views.View;
 
+import java.util.List;
+
 public class LandingView extends View {
-  public LandingView() {
+  private final List<String> zkAliases;
+
+  public LandingView(List<String> zkAliases) {
     super("landing-view.ftl");
+    this.zkAliases = zkAliases;
+  }
+
+  public List<String> getZkAliases() {
+    return zkAliases;
   }
 }

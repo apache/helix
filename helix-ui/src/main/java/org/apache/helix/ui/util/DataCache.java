@@ -22,6 +22,8 @@ package org.apache.helix.ui.util;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
 import com.google.common.cache.LoadingCache;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
@@ -40,6 +42,7 @@ public class DataCache {
   private static final TimeUnit CACHE_EXPIRY_UNIT = TimeUnit.SECONDS;
 
   private final LoadingCache<String, List<String>> clusterCache;
+  private final LoadingCache<ClusterSpec, String> controllerLeaderCache;
   private final LoadingCache<ClusterSpec, List<String>> resourceCache;
   private final LoadingCache<ClusterSpec, List<ConfigTableRow>> configCache;
   private final LoadingCache<ResourceSpec, List<ConfigTableRow>> resourceConfigCache;
@@ -57,6 +60,22 @@ public class DataCache {
                 return clusters;
               }
             });
+
+    this.controllerLeaderCache = CacheBuilder.newBuilder()
+        .expireAfterWrite(CACHE_EXPIRY_TIME, CACHE_EXPIRY_UNIT)
+        .build(new CacheLoader<ClusterSpec, String>() {
+          @Override
+          public String load(ClusterSpec clusterSpec) throws Exception {
+            ZkClient zkClient = clientCache
+                .get(clusterSpec.getZkAddress())
+                .getZkClient();
+
+            ZNRecord znRecord = zkClient.readData(
+                String.format("/%s/CONTROLLER/LEADER", clusterSpec.getClusterName()));
+
+            return znRecord.getId();
+          }
+        });
 
     this.resourceCache = CacheBuilder.newBuilder()
             .expireAfterWrite(CACHE_EXPIRY_TIME, CACHE_EXPIRY_UNIT)
@@ -142,13 +161,16 @@ public class DataCache {
                 ClusterConnection clusterConnection = clientCache.get(clusterSpec.getZkAddress());
 
                 // Instances in the cluster
-                List<String> instances =
-                        clusterConnection.getClusterSetup().getClusterManagementTool().getInstancesInCluster(clusterSpec.getClusterName());
+                List<String> instances = clusterConnection
+                    .getClusterSetup()
+                    .getClusterManagementTool()
+                    .getInstancesInCluster(clusterSpec.getClusterName());
 
                 // Live instances in the cluster
                 // TODO: should be able to use clusterSetup for this, but no method available
-                List<String> liveInstances
-                        = clusterConnection.getZkClient().getChildren(String.format("/%s/LIVEINSTANCES", clusterSpec.getClusterName()));
+                List<String> liveInstances = clusterConnection
+                    .getZkClient()
+                    .getChildren(String.format("/%s/LIVEINSTANCES", clusterSpec.getClusterName()));
                 Set<String> liveInstanceSet = new HashSet<String>();
                 if (liveInstances != null) {
                   liveInstanceSet.addAll(liveInstances);
@@ -167,14 +189,34 @@ public class DataCache {
                   }
                 }
 
+                // Instance tags
+                Map<String, List<String>> instanceTags = new HashMap<String, List<String>>();
+                if (instances != null) {
+                  for (String instance : instances) {
+                    InstanceConfig instanceConfig = clusterConnection
+                        .getClusterSetup()
+                        .getClusterManagementTool()
+                        .getInstanceConfig(clusterSpec.getClusterName(), instance);
+
+                    List<String> tags = instanceConfig.getTags() == null
+                        ? Collections.<String>emptyList()
+                        : instanceConfig.getTags();
+
+                    Collections.sort(tags);
+
+                    instanceTags.put(instance, tags);
+                  }
+                }
+
                 // Rows
                 List<InstanceSpec> instanceSpecs = new ArrayList<InstanceSpec>();
                 if (instances != null) {
                   for (String instance : instances) {
                     instanceSpecs.add(new InstanceSpec(
-                            instance,
-                            enabledInstances.contains(instance),
-                            liveInstanceSet.contains(instance)));
+                        instance,
+                        enabledInstances.contains(instance),
+                        liveInstanceSet.contains(instance),
+                        instanceTags.get(instance)));
                   }
                 }
 
@@ -193,6 +235,10 @@ public class DataCache {
 
   public LoadingCache<String, List<String>> getClusterCache() {
     return clusterCache;
+  }
+
+  public LoadingCache<ClusterSpec, String> getControllerLeaderCache() {
+    return controllerLeaderCache;
   }
 
   public LoadingCache<ClusterSpec, List<String>> getResourceCache() {

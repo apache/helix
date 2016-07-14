@@ -27,6 +27,31 @@ $(document).ready(function() {
         }
     })
 
+    $('#reset-resource').click(function(event) {
+        event.preventDefault()
+        var button = $(this);
+
+        var url = '/dashboard'
+            + '/' + encodeURIComponent(button.attr('zk-address'))
+            + '/' + encodeURIComponent(button.attr('cluster'))
+            + '/' + encodeURIComponent(button.attr('resource'))
+            + '?action=reset';
+
+        $.ajax({
+            type: 'POST',
+            url: url,
+            success: function(data, status, jqXHR) {
+                console.log(jqXHR);
+                alert('Successfully reset ' + button.attr('resource'));
+                location.reload();
+            },
+            error: function(jqXHR, status, ex) {
+                console.error(jqXHR);
+                alert(jqXHR.statusText + ": " + jqXHR.responseText);
+            }
+        });
+    });
+
     $('#filter-add').click(function(event) {
         event.preventDefault()
 

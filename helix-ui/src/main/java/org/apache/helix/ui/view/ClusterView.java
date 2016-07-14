@@ -38,6 +38,7 @@ public class ClusterView extends View {
   private final List<ConfigTableRow> configTable;
   private final List<String> stateModels;
   private final List<String> rebalanceModes;
+  private final String controllerLeader;
 
   public ClusterView(boolean adminMode,
                      String zkAddress,
@@ -48,7 +49,8 @@ public class ClusterView extends View {
                      List<InstanceSpec> instanceSpecs,
                      List<ConfigTableRow> configTable,
                      List<String> stateModels,
-                     List<String> rebalanceModes) {
+                     List<String> rebalanceModes,
+                     String controllerLeader) {
     super("cluster-view.ftl");
     this.adminMode = adminMode;
     this.zkAddress = zkAddress;
@@ -60,6 +62,7 @@ public class ClusterView extends View {
     this.configTable = configTable;
     this.stateModels = stateModels;
     this.rebalanceModes = rebalanceModes;
+    this.controllerLeader = controllerLeader;
   }
 
   public boolean isAdminMode() {
@@ -100,5 +103,9 @@ public class ClusterView extends View {
 
   public List<String> getRebalanceModes() {
     return rebalanceModes;
+  }
+
+  public String getControllerLeader() {
+    return controllerLeader;
   }
 }

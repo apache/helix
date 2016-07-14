@@ -24,6 +24,8 @@ import com.google.common.collect.ImmutableMap;
 import io.dropwizard.Configuration;
 
 import javax.validation.constraints.NotNull;
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 
 public class HelixUIApplicationConfiguration extends Configuration {
@@ -33,6 +35,8 @@ public class HelixUIApplicationConfiguration extends Configuration {
   private boolean adminMode = false;
 
   private Set<String> zkAddresses;
+
+  private Map<String, String> zkAliases = Collections.emptyMap();
 
   @JsonProperty("viewRendererConfiguration")
   public ImmutableMap<String, ImmutableMap<String, String>> getViewRendererConfiguration() {
@@ -53,5 +57,13 @@ public class HelixUIApplicationConfiguration extends Configuration {
 
   public Set<String> getZkAddresses() {
     return zkAddresses;
+  }
+
+  public Map<String, String> getZkAliases() {
+    return zkAliases;
+  }
+
+  public void setZkAliases(Map<String, String> zkAliases) {
+    this.zkAliases = zkAliases;
   }
 }

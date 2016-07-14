@@ -51,10 +51,6 @@
     width: 50%;
 }
 
-#landing-area input {
-    width: 80%;
-}
-
 /* cluster-view.ftl */
 
 #cluster-views-area {
@@ -108,4 +104,8 @@
 
 .instance-down {
     background-color: #e5e5e5;
+}
+
+#safe-resource-actions {
+    float: right;
 }

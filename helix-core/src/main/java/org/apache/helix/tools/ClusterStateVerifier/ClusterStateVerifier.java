@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.tools.ClusterStateVerifier;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -42,9 +42,9 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -63,6 +63,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
@@ -125,7 +126,6 @@ public class ClusterStateVerifier {
         _countDown.countDown();
       }
     }
-
   }
 
   private static ZkClient validateAndGetClient(String zkAddr, String clusterName) {
@@ -135,9 +135,6 @@ public class ClusterStateVerifier {
     return ZKClientPool.getZkClient(zkAddr);
   }
 
-  /**
-   * verifier that verifies best possible state and external view
-   */
   public static class BestPossAndExtViewZkVerifier implements ZkVerifier {
     private final String clusterName;
     private final Map<String, Map<String, String>> errStates;
@@ -175,12 +172,230 @@ public class ClusterStateVerifier {
         HelixDataAccessor accessor =
             new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-        return ClusterStateVerifier.verifyBestPossAndExtView(accessor, errStates, clusterName,
-            resources);
+        return verifyBestPossAndExtView(accessor, errStates, clusterName, resources);
       } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
       return false;
+    }
+
+    private boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
+        Map<String, Map<String, String>> errStates, String clusterName, Set<String> resources) {
+      try {
+        PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+        // read cluster once and do verification
+        ClusterDataCache cache = new ClusterDataCache();
+        cache.refresh(accessor);
+
+        Map<String, IdealState> idealStates = cache.getIdealStates();
+        if (idealStates == null) {
+          // ideal state is null because ideal state is dropped
+          idealStates = Collections.emptyMap();
+        }
+
+        // filter out all resources that use Task state model
+        Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();
+        while (it.hasNext()) {
+          Map.Entry<String, IdealState> pair = it.next();
+          if (pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
+            it.remove();
+          }
+        }
+
+        Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
+        if (extViews == null) {
+          extViews = Collections.emptyMap();
+        }
+
+        // Filter resources if requested
+        if (resources != null && !resources.isEmpty()) {
+          idealStates.keySet().retainAll(resources);
+          extViews.keySet().retainAll(resources);
+        }
+
+        // if externalView is not empty and idealState doesn't exist
+        // add empty idealState for the resource
+        for (String resource : extViews.keySet()) {
+          if (!idealStates.containsKey(resource)) {
+            idealStates.put(resource, new IdealState(resource));
+          }
+        }
+
+        // calculate best possible state
+        BestPossibleStateOutput bestPossOutput = calcBestPossState(cache, resources);
+        Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
+            bestPossOutput.getStateMap();
+
+        // set error states
+        if (errStates != null) {
+          for (String resourceName : errStates.keySet()) {
+            Map<String, String> partErrStates = errStates.get(resourceName);
+            for (String partitionName : partErrStates.keySet()) {
+              String instanceName = partErrStates.get(partitionName);
+
+              if (!bestPossStateMap.containsKey(resourceName)) {
+                bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
+              }
+              Partition partition = new Partition(partitionName);
+              if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
+                bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
+              }
+              bestPossStateMap.get(resourceName).get(partition)
+                  .put(instanceName, HelixDefinedState.ERROR.toString());
+            }
+          }
+        }
+
+        // System.out.println("stateMap: " + bestPossStateMap);
+
+        for (String resourceName : idealStates.keySet()) {
+          ExternalView extView = extViews.get(resourceName);
+          if (extView == null) {
+            IdealState is = idealStates.get(resourceName);
+            if (is.isExternalViewDisabled()) {
+              continue;
+            } else {
+              LOG.info("externalView for " + resourceName + " is not available");
+              return false;
+            }
+          }
+
+          // step 0: remove empty map and DROPPED state from best possible state
+          Map<Partition, Map<String, String>> bpStateMap =
+              bestPossOutput.getResourceMap(resourceName);
+          Iterator<Map.Entry<Partition, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
+          while (iter.hasNext()) {
+            Map.Entry<Partition, Map<String, String>> entry = iter.next();
+            Map<String, String> instanceStateMap = entry.getValue();
+            if (instanceStateMap.isEmpty()) {
+              iter.remove();
+            } else {
+              // remove instances with DROPPED state
+              Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
+              while (insIter.hasNext()) {
+                Map.Entry<String, String> insEntry = insIter.next();
+                String state = insEntry.getValue();
+                if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+                  insIter.remove();
+                }
+              }
+            }
+          }
+
+          // System.err.println("resource: " + resourceName + ", bpStateMap: " + bpStateMap);
+
+          // step 1: externalView and bestPossibleState has equal size
+          int extViewSize = extView.getRecord().getMapFields().size();
+          int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
+          if (extViewSize != bestPossStateSize) {
+            LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
+                + bestPossStateSize + ") for resource: " + resourceName);
+
+            // System.err.println("exterView size (" + extViewSize
+            // + ") is different from bestPossState size (" + bestPossStateSize
+            // + ") for resource: " + resourceName);
+            // System.out.println("extView: " + extView.getRecord().getMapFields());
+            // System.out.println("bestPossState: " +
+            // bestPossOutput.getResourceMap(resourceName));
+            return false;
+          }
+
+          // step 2: every entry in external view is contained in best possible state
+          for (String partition : extView.getRecord().getMapFields().keySet()) {
+            Map<String, String> evInstanceStateMap = extView.getRecord().getMapField(partition);
+            Map<String, String> bpInstanceStateMap =
+                bestPossOutput.getInstanceStateMap(resourceName, new Partition(partition));
+
+            boolean result = compareMap(evInstanceStateMap, bpInstanceStateMap);
+            if (result == false) {
+              LOG.info("externalView is different from bestPossibleState for partition:" + partition);
+
+              // System.err.println("externalView is different from bestPossibleState for partition: "
+              // + partition + ", actual: " + evInstanceStateMap + ", bestPoss: " +
+              // bpInstanceStateMap);
+              return false;
+            }
+          }
+        }
+        return true;
+      } catch (Exception e) {
+        LOG.error("exception in verification", e);
+        return false;
+      }
+    }
+
+    /**
+     * calculate the best possible state note that DROPPED states are not checked since when
+     * kick off the BestPossibleStateCalcStage we are providing an empty current state map
+     *
+     * @param cache
+     * @return
+     * @throws Exception
+     */
+    private BestPossibleStateOutput calcBestPossState(ClusterDataCache cache, Set<String> resources)
+        throws Exception {
+      ClusterEvent event = new ClusterEvent("sampleEvent");
+      event.addAttribute("ClusterDataCache", cache);
+
+      ResourceComputationStage rcState = new ResourceComputationStage();
+      CurrentStateComputationStage csStage = new CurrentStateComputationStage();
+      BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
+
+      runStage(event, rcState);
+
+      // Filter resources if specified
+      if (resources != null) {
+        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+        resourceMap.keySet().retainAll(resources);
+      }
+
+      runStage(event, csStage);
+      runStage(event, bpStage);
+
+      BestPossibleStateOutput output =
+          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+
+      // System.out.println("output:" + output);
+      return output;
+    }
+
+    private void runStage(ClusterEvent event, Stage stage) throws Exception {
+      StageContext context = new StageContext();
+      stage.init(context);
+      stage.preProcess();
+      stage.process(event);
+      stage.postProcess();
+    }
+
+    private <K, V> boolean compareMap(Map<K, V> map1, Map<K, V> map2) {
+      boolean isEqual = true;
+      if (map1 == null && map2 == null) {
+        // OK
+      } else if (map1 == null && map2 != null) {
+        if (!map2.isEmpty()) {
+          isEqual = false;
+        }
+      } else if (map1 != null && map2 == null) {
+        if (!map1.isEmpty()) {
+          isEqual = false;
+        }
+      } else {
+        // verify size
+        if (map1.size() != map2.size()) {
+          isEqual = false;
+        }
+        // verify each <key, value> in map1 is contained in map2
+        for (K key : map1.keySet()) {
+          if (!map1.get(key).equals(map2.get(key))) {
+            LOG.debug(
+                "different value for key: " + key + "(map1: " + map1.get(key) + ", map2: " + map2
+                    .get(key) + ")");
+            isEqual = false;
+            break;
+          }
+        }
+      }
+      return isEqual;
     }
 
     @Override
@@ -196,11 +411,11 @@ public class ClusterStateVerifier {
     @Override
     public String toString() {
       String verifierName = getClass().getName();
-      verifierName =
-          verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
+      verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
       return verifierName + "(" + clusterName + "@" + zkClient.getServers() + ")";
     }
   }
+
 
   public static class MasterNbInExtViewVerifier implements ZkVerifier {
     private final String clusterName;
@@ -224,7 +439,7 @@ public class ClusterStateVerifier {
         ZKHelixDataAccessor accessor =
             new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(zkClient));
 
-        return ClusterStateVerifier.verifyMasterNbInExtView(accessor);
+        return verifyMasterNbInExtView(accessor);
       } catch (Exception e) {
         LOG.error("exception in verification", e);
       }
@@ -241,278 +456,47 @@ public class ClusterStateVerifier {
       return clusterName;
     }
 
-  }
-
-  static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
-      Map<String, Map<String, String>> errStates, String clusterName) {
-    return verifyBestPossAndExtView(accessor, errStates, clusterName, null);
-  }
-
-  static boolean verifyBestPossAndExtView(HelixDataAccessor accessor,
-      Map<String, Map<String, String>> errStates, String clusterName, Set<String> resources) {
-    try {
+    private boolean verifyMasterNbInExtView(HelixDataAccessor accessor) {
       Builder keyBuilder = accessor.keyBuilder();
-      // read cluster once and do verification
-      ClusterDataCache cache = new ClusterDataCache();
-      cache.refresh(accessor);
 
-      Map<String, IdealState> idealStates = cache.getIdealStates();
-      if (idealStates == null) {
-        // ideal state is null because ideal state is dropped
-        idealStates = Collections.emptyMap();
-      }
-
-      // filter out all resources that use Task state model
-      Iterator<Map.Entry<String, IdealState>> it = idealStates.entrySet().iterator();
-      while (it.hasNext()) {
-        Map.Entry<String, IdealState> pair = it.next();
-        if (pair.getValue().getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-          it.remove();
-        }
+      Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
+      if (idealStates == null || idealStates.size() == 0) {
+        LOG.info("No resource idealState");
+        return true;
       }
 
       Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
-      if (extViews == null) {
-        extViews = Collections.emptyMap();
-      }
-
-      // Filter resources if requested
-      if (resources != null && !resources.isEmpty()) {
-        idealStates.keySet().retainAll(resources);
-        extViews.keySet().retainAll(resources);
-      }
-
-      // if externalView is not empty and idealState doesn't exist
-      // add empty idealState for the resource
-      for (String resource : extViews.keySet()) {
-        if (!idealStates.containsKey(resource)) {
-          idealStates.put(resource, new IdealState(resource));
-        }
-      }
-
-      // calculate best possible state
-      BestPossibleStateOutput bestPossOutput =
-          ClusterStateVerifier.calcBestPossState(cache, resources);
-      Map<String, Map<Partition, Map<String, String>>> bestPossStateMap =
-          bestPossOutput.getStateMap();
-
-      // set error states
-      if (errStates != null) {
-        for (String resourceName : errStates.keySet()) {
-          Map<String, String> partErrStates = errStates.get(resourceName);
-          for (String partitionName : partErrStates.keySet()) {
-            String instanceName = partErrStates.get(partitionName);
-
-            if (!bestPossStateMap.containsKey(resourceName)) {
-              bestPossStateMap.put(resourceName, new HashMap<Partition, Map<String, String>>());
-            }
-            Partition partition = new Partition(partitionName);
-            if (!bestPossStateMap.get(resourceName).containsKey(partition)) {
-              bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
-            }
-            bestPossStateMap.get(resourceName).get(partition)
-                .put(instanceName, HelixDefinedState.ERROR.toString());
-          }
-        }
-      }
-
-      // System.out.println("stateMap: " + bestPossStateMap);
-
-      for (String resourceName : idealStates.keySet()) {
-        ExternalView extView = extViews.get(resourceName);
-        if (extView == null) {
-          IdealState is = idealStates.get(resourceName);
-          if (is.isExternalViewDisabled()) {
-            continue;
-          } else {
-            LOG.info("externalView for " + resourceName + " is not available");
-            return false;
-          }
-        }
-
-        // step 0: remove empty map and DROPPED state from best possible state
-        Map<Partition, Map<String, String>> bpStateMap =
-            bestPossOutput.getResourceMap(resourceName);
-        Iterator<Entry<Partition, Map<String, String>>> iter = bpStateMap.entrySet().iterator();
-        while (iter.hasNext()) {
-          Map.Entry<Partition, Map<String, String>> entry = iter.next();
-          Map<String, String> instanceStateMap = entry.getValue();
-          if (instanceStateMap.isEmpty()) {
-            iter.remove();
-          } else {
-            // remove instances with DROPPED state
-            Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
-            while (insIter.hasNext()) {
-              Map.Entry<String, String> insEntry = insIter.next();
-              String state = insEntry.getValue();
-              if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
-                insIter.remove();
-              }
-            }
-          }
-        }
-
-        // System.err.println("resource: " + resourceName + ", bpStateMap: " + bpStateMap);
-
-        // step 1: externalView and bestPossibleState has equal size
-        int extViewSize = extView.getRecord().getMapFields().size();
-        int bestPossStateSize = bestPossOutput.getResourceMap(resourceName).size();
-        if (extViewSize != bestPossStateSize) {
-          LOG.info("exterView size (" + extViewSize + ") is different from bestPossState size ("
-              + bestPossStateSize + ") for resource: " + resourceName);
-
-          // System.err.println("exterView size (" + extViewSize
-          // + ") is different from bestPossState size (" + bestPossStateSize
-          // + ") for resource: " + resourceName);
-          // System.out.println("extView: " + extView.getRecord().getMapFields());
-          // System.out.println("bestPossState: " +
-          // bestPossOutput.getResourceMap(resourceName));
-          return false;
-        }
-
-        // step 2: every entry in external view is contained in best possible state
-        for (String partition : extView.getRecord().getMapFields().keySet()) {
-          Map<String, String> evInstanceStateMap = extView.getRecord().getMapField(partition);
-          Map<String, String> bpInstanceStateMap =
-              bestPossOutput.getInstanceStateMap(resourceName, new Partition(partition));
-
-          boolean result =
-              ClusterStateVerifier.<String, String> compareMap(evInstanceStateMap,
-                  bpInstanceStateMap);
-          if (result == false) {
-            LOG.info("externalView is different from bestPossibleState for partition:" + partition);
-
-            // System.err.println("externalView is different from bestPossibleState for partition: "
-            // + partition + ", actual: " + evInstanceStateMap + ", bestPoss: " +
-            // bpInstanceStateMap);
-            return false;
-          }
-        }
-      }
-      return true;
-    } catch (Exception e) {
-      LOG.error("exception in verification", e);
-      return false;
-    }
-
-  }
-
-  static boolean verifyMasterNbInExtView(HelixDataAccessor accessor) {
-    Builder keyBuilder = accessor.keyBuilder();
-
-    Map<String, IdealState> idealStates = accessor.getChildValuesMap(keyBuilder.idealStates());
-    if (idealStates == null || idealStates.size() == 0) {
-      LOG.info("No resource idealState");
-      return true;
-    }
-
-    Map<String, ExternalView> extViews = accessor.getChildValuesMap(keyBuilder.externalViews());
-    if (extViews == null || extViews.size() < idealStates.size()) {
-      LOG.info("No externalViews | externalView.size() < idealState.size()");
-      return false;
-    }
-
-    for (String resource : extViews.keySet()) {
-      int partitions = idealStates.get(resource).getNumPartitions();
-      Map<String, Map<String, String>> instanceStateMap =
-          extViews.get(resource).getRecord().getMapFields();
-      if (instanceStateMap.size() < partitions) {
-        LOG.info("Number of externalViews (" + instanceStateMap.size() + ") < partitions ("
-            + partitions + ")");
+      if (extViews == null || extViews.size() < idealStates.size()) {
+        LOG.info("No externalViews | externalView.size() < idealState.size()");
         return false;
       }
 
-      for (String partition : instanceStateMap.keySet()) {
-        boolean foundMaster = false;
-        for (String instance : instanceStateMap.get(partition).keySet()) {
-          if (instanceStateMap.get(partition).get(instance).equalsIgnoreCase("MASTER")) {
-            foundMaster = true;
-            break;
-          }
-        }
-        if (!foundMaster) {
-          LOG.info("No MASTER for partition: " + partition);
+      for (String resource : extViews.keySet()) {
+        int partitions = idealStates.get(resource).getNumPartitions();
+        Map<String, Map<String, String>> instanceStateMap =
+            extViews.get(resource).getRecord().getMapFields();
+        if (instanceStateMap.size() < partitions) {
+          LOG.info("Number of externalViews (" + instanceStateMap.size() + ") < partitions ("
+              + partitions + ")");
           return false;
         }
-      }
-    }
-    return true;
-  }
 
-  static void runStage(ClusterEvent event, Stage stage) throws Exception {
-    StageContext context = new StageContext();
-    stage.init(context);
-    stage.preProcess();
-    stage.process(event);
-    stage.postProcess();
-  }
-
-  /**
-   * calculate the best possible state note that DROPPED states are not checked since when
-   * kick off the BestPossibleStateCalcStage we are providing an empty current state map
-   * @param cache
-   * @return
-   * @throws Exception
-   */
-  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache) throws Exception {
-    return calcBestPossState(cache, null);
-  }
-
-  static BestPossibleStateOutput calcBestPossState(ClusterDataCache cache, Set<String> resources)
-      throws Exception {
-    ClusterEvent event = new ClusterEvent("sampleEvent");
-    event.addAttribute("ClusterDataCache", cache);
-
-    ResourceComputationStage rcState = new ResourceComputationStage();
-    CurrentStateComputationStage csStage = new CurrentStateComputationStage();
-    BestPossibleStateCalcStage bpStage = new BestPossibleStateCalcStage();
-
-    runStage(event, rcState);
-
-    // Filter resources if specified
-    if (resources != null) {
-      Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
-      resourceMap.keySet().retainAll(resources);
-    }
-
-    runStage(event, csStage);
-    runStage(event, bpStage);
-
-    BestPossibleStateOutput output =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-
-    // System.out.println("output:" + output);
-    return output;
-  }
-
-  public static <K, V> boolean compareMap(Map<K, V> map1, Map<K, V> map2) {
-    boolean isEqual = true;
-    if (map1 == null && map2 == null) {
-      // OK
-    } else if (map1 == null && map2 != null) {
-      if (!map2.isEmpty()) {
-        isEqual = false;
-      }
-    } else if (map1 != null && map2 == null) {
-      if (!map1.isEmpty()) {
-        isEqual = false;
-      }
-    } else {
-      // verify size
-      if (map1.size() != map2.size()) {
-        isEqual = false;
-      }
-      // verify each <key, value> in map1 is contained in map2
-      for (K key : map1.keySet()) {
-        if (!map1.get(key).equals(map2.get(key))) {
-          LOG.debug("different value for key: " + key + "(map1: " + map1.get(key) + ", map2: "
-              + map2.get(key) + ")");
-          isEqual = false;
-          break;
+        for (String partition : instanceStateMap.keySet()) {
+          boolean foundMaster = false;
+          for (String instance : instanceStateMap.get(partition).keySet()) {
+            if (instanceStateMap.get(partition).get(instance).equalsIgnoreCase("MASTER")) {
+              foundMaster = true;
+              break;
+            }
+          }
+          if (!foundMaster) {
+            LOG.info("No MASTER for partition: " + partition);
+            return false;
+          }
         }
       }
+      return true;
     }
-    return isEqual;
   }
 
   public static boolean verifyByPolling(Verifier verifier) {

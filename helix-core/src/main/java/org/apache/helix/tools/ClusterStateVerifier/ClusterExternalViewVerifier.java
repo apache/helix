@@ -1,4 +1,4 @@
-package org.apache.helix.tools;
+package org.apache.helix.tools.ClusterStateVerifier;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -42,6 +42,7 @@ import org.apache.log4j.Logger;
 /**
  * given zk, cluster, and a list of expected live-instances
  * check whether cluster's external-view reaches best-possible states
+ *
  */
 public class ClusterExternalViewVerifier extends ClusterVerifier {
   private static Logger LOG = Logger.getLogger(ClusterExternalViewVerifier.class);

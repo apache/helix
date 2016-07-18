@@ -25,7 +25,7 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

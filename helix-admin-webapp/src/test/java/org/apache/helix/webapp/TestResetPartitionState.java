@@ -37,7 +37,7 @@ import org.apache.helix.mock.participant.ErrTransition;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
 import org.apache.helix.webapp.resources.JsonParameters;
 import org.apache.log4j.Logger;
 import org.testng.Assert;

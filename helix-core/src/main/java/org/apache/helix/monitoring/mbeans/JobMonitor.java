@@ -19,19 +19,13 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.util.Set;
-
-import org.apache.helix.task.JobContext;
-import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.WorkflowContext;
 
 public class JobMonitor implements JobMonitorMBean {
 
   private static final String JOB_KEY = "Job";
 
   private String _clusterName;
-  private Set<String> _workflows;
   private String _jobType;
 
   private long _allJobCount;
@@ -41,11 +35,8 @@ public class JobMonitor implements JobMonitorMBean {
   private long _queuedJobGauge;
   private long _runningJobGauge;
 
-  private TaskDriver _driver;
-
-  public JobMonitor(String clusterName, String jobType, TaskDriver driver) {
+  public JobMonitor(String clusterName, String jobType) {
     _clusterName = clusterName;
-    _workflows = driver.getWorkflows().keySet();
     _jobType = jobType;
     _allJobCount = 0L;
     _successfullJobCount = 0L;
@@ -53,7 +44,6 @@ public class JobMonitor implements JobMonitorMBean {
     _existingJobGauge = 0L;
     _queuedJobGauge = 0L;
     _runningJobGauge = 0L;
-    _driver = driver;
   }
 
   @Override
@@ -91,6 +81,10 @@ public class JobMonitor implements JobMonitorMBean {
     return String.format("%s.%s.%s", _clusterName, JOB_KEY, _jobType);
   }
 
+  public String getJobType() {
+    return _jobType;
+  }
+
   /**
    * Update job metrics with transition state
    * @param from The from state of job, just created when it is null
@@ -119,35 +113,6 @@ public class JobMonitor implements JobMonitorMBean {
       _failedJobCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfullJobCount++;
-    }
-  }
-
-  /**
-   * Refresh job metrics when instance reconnected
-   */
-  public void refreshJobStats() {
-    _allJobCount = 0L;
-    _successfullJobCount = 0L;
-    _failedJobCount = 0L;
-    _queuedJobGauge = 0L;
-    _runningJobGauge = 0L;
-    _workflows = _driver.getWorkflows().keySet();
-
-    for (String workflow : _workflows) {
-      Set<String> allJobs = _driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
-      WorkflowContext workflowContext = _driver.getWorkflowContext(workflow);
-
-      for (String job : allJobs) {
-        JobContext jobContext = _driver.getJobContext(job);
-        if (jobContext == null) {
-          _queuedJobGauge++;
-        } else if (workflowContext != null && workflowContext.getJobState(job)
-            .equals(TaskState.IN_PROGRESS)) {
-          _runningJobGauge++;
-        }
-      }
-
-      _existingJobGauge += allJobs.size();
     }
   }
 }

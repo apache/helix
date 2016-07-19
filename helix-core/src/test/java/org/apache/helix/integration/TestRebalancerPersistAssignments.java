@@ -139,6 +139,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
     Set<String> excludedInstances = new HashSet<String>();
     excludedInstances.add(_participants[0].getInstanceName());
+    Thread.sleep(2000);
     verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
 
     _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);

@@ -19,27 +19,36 @@ package org.apache.helix.tools.ClusterStateVerifier;
  * under the License.
  */
 
-import java.util.Collections;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.helix.manager.zk.ZkClient;
 
-public class ClusterLiveNodesVerifier extends ClusterVerifier {
+public class ClusterLiveNodesVerifier extends ZkHelixClusterVerifier {
 
-  final List<String> _expectSortedLiveNodes; // always sorted
+  final Set<String> _expectLiveNodes;
 
   public ClusterLiveNodesVerifier(ZkClient zkclient, String clusterName,
       List<String> expectLiveNodes) {
     super(zkclient, clusterName);
-    _expectSortedLiveNodes = expectLiveNodes;
-    Collections.sort(_expectSortedLiveNodes);
+    _expectLiveNodes = new HashSet<String>(expectLiveNodes);
   }
 
   @Override
-  public boolean verify() throws Exception {
-    List<String> actualLiveNodes = _accessor.getChildNames(_keyBuilder.liveInstances());
-    Collections.sort(actualLiveNodes);
-    return _expectSortedLiveNodes.equals(actualLiveNodes);
+  public boolean verifyByZkCallback(long timeout) {
+    List<ClusterVerifyTrigger> triggers = new ArrayList<ClusterVerifyTrigger>();
+    triggers.add(new ClusterVerifyTrigger(_keyBuilder.liveInstances(), false, true, true));
+
+    return verifyByCallback(timeout, triggers);
+  }
+
+  @Override
+  protected boolean verifyState() throws Exception {
+    Set<String> actualLiveNodes =
+        new HashSet<String>(_accessor.getChildNames(_keyBuilder.liveInstances()));
+    return _expectLiveNodes.equals(actualLiveNodes);
   }
 
 }

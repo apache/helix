@@ -1,0 +1,269 @@
+package org.apache.helix.tools.ClusterStateVerifier;
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import org.I0Itec.zkclient.IZkChildListener;
+import org.I0Itec.zkclient.IZkDataListener;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
+import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.util.ZKClientPool;
+import org.apache.log4j.Logger;
+
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+public abstract class ZkHelixClusterVerifier
+    implements IZkChildListener, IZkDataListener, HelixClusterVerifier {
+  private static Logger LOG = Logger.getLogger(ZkHelixClusterVerifier.class);
+  protected static int DEFAULT_TIMEOUT = 30 * 1000;
+  protected static int DEFAULT_PERIOD = 1000;
+
+
+  protected final ZkClient _zkClient;
+  protected final String _clusterName;
+  protected final HelixDataAccessor _accessor;
+  protected final PropertyKey.Builder _keyBuilder;
+  private CountDownLatch _countdown;
+
+  protected static class ClusterVerifyTrigger {
+    final PropertyKey _triggerKey;
+    final boolean _triggerOnDataChange;
+    final boolean _triggerOnChildChange;
+    final boolean _triggerOnChildDataChange;
+
+    public ClusterVerifyTrigger(PropertyKey triggerKey, boolean triggerOnDataChange,
+        boolean triggerOnChildChange, boolean triggerOnChildDataChange) {
+      _triggerKey = triggerKey;
+      _triggerOnDataChange = triggerOnDataChange;
+      _triggerOnChildChange = triggerOnChildChange;
+      _triggerOnChildDataChange = triggerOnChildDataChange;
+    }
+
+    public boolean isTriggerOnDataChange() {
+      return _triggerOnDataChange;
+    }
+
+    public PropertyKey getTriggerKey() {
+      return _triggerKey;
+    }
+
+    public boolean isTriggerOnChildChange() {
+      return _triggerOnChildChange;
+    }
+
+    public boolean isTriggerOnChildDataChange() {
+      return _triggerOnChildDataChange;
+    }
+  }
+
+  public ZkHelixClusterVerifier(ZkClient zkClient, String clusterName) {
+    if (zkClient == null || clusterName == null) {
+      throw new IllegalArgumentException("requires zkClient|clusterName");
+    }
+    _zkClient = zkClient;
+    _clusterName = clusterName;
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    _keyBuilder = _accessor.keyBuilder();
+  }
+
+  public ZkHelixClusterVerifier(String zkAddr, String clusterName) {
+    if (zkAddr == null || clusterName == null) {
+      throw new IllegalArgumentException("requires zkAddr|clusterName");
+    }
+    _zkClient = ZKClientPool.getZkClient(zkAddr);
+    _clusterName = clusterName;
+    _accessor = new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    _keyBuilder = _accessor.keyBuilder();
+  }
+
+  /**
+   *  Verify the cluster.
+   *  The method will be blocked at most {@code timeout}.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @param timeout in milliseconds
+   * @return true if succeed, false if not.
+   */
+  public boolean verify(long timeout) {
+    return verifyByZkCallback(timeout);
+  }
+
+  /**
+   *  Verify the cluster.
+   *  The method will be blocked at most 30 seconds.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @return true if succeed, false if not.
+   */
+  public boolean verify() {
+    return verify(DEFAULT_TIMEOUT);
+  }
+
+  /**
+   *  Verify the cluster by relying on zookeeper callback and verify.
+   *  The method will be blocked at most {@code timeout}.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @param timeout in milliseconds
+   * @return true if succeed, false if not.
+   */
+  public abstract boolean verifyByZkCallback(long timeout);
+
+  /**
+   *  Verify the cluster by relying on zookeeper callback and verify.
+   *  The method will be blocked at most 30 seconds.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @return true if succeed, false if not.
+   */
+  public boolean verifyByZkCallback() {
+    return verifyByZkCallback(DEFAULT_TIMEOUT);
+  }
+
+  /**
+   *  Verify the cluster by periodically polling the cluster status and verify.
+   *  The method will be blocked at most {@code timeout}.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @param timeout
+   * @param period polling interval
+   * @return
+   */
+  public boolean verifyByPolling(long timeout, long period) {
+    try {
+      long start = System.currentTimeMillis();
+      boolean success;
+      do {
+        success = verifyState();
+        if (success) {
+          return true;
+        }
+        TimeUnit.MILLISECONDS.sleep(period);
+      } while ((System.currentTimeMillis() - start) <= timeout);
+    } catch (Exception e) {
+      LOG.error("Exception in verifier", e);
+    }
+    return false;
+  }
+
+  /**
+   *  Verify the cluster by periodically polling the cluster status and verify.
+   *  The method will be blocked at most 30 seconds.
+   *  Return true if the verify succeed, otherwise return false.
+   *
+   * @return true if succeed, false if not.
+   */
+  public boolean verifyByPolling() {
+    return verifyByPolling(DEFAULT_TIMEOUT, DEFAULT_PERIOD);
+  }
+
+  protected boolean verifyByCallback(long timeout, List<ClusterVerifyTrigger> triggers) {
+    _countdown = new CountDownLatch(1);
+
+    for (ClusterVerifyTrigger trigger : triggers) {
+      subscribeTrigger(trigger);
+    }
+
+    boolean success = false;
+    try {
+      success = verifyState();
+      if (!success) {
+
+        success = _countdown.await(timeout, TimeUnit.MILLISECONDS);
+        if (!success) {
+          // make a final try if timeout
+          success = verifyState();
+        }
+      }
+    } catch (Exception e) {
+      LOG.error("Exception in verifier", e);
+    }
+
+    // clean up
+    _zkClient.unsubscribeAll();
+
+    return success;
+  }
+
+  private void subscribeTrigger(ClusterVerifyTrigger trigger) {
+    String path = trigger.getTriggerKey().getPath();
+    if (trigger.isTriggerOnDataChange()) {
+      _zkClient.subscribeDataChanges(path, this);
+    }
+
+    if (trigger.isTriggerOnChildChange()) {
+      _zkClient.subscribeChildChanges(path, this);
+    }
+
+    if (trigger.isTriggerOnChildDataChange()) {
+      List<String> childs = _zkClient.getChildren(path);
+      for (String child : childs) {
+        String childPath = String.format("%s/%s", path, child);
+        _zkClient.subscribeDataChanges(childPath, this);
+      }
+    }
+  }
+
+  /**
+   * The method actually performs the required verifications.
+   * @return
+   * @throws Exception
+   */
+  protected abstract boolean verifyState() throws Exception;
+
+  @Override
+  public void handleDataChange(String dataPath, Object data) throws Exception {
+    boolean success = verifyState();
+    if (success) {
+      _countdown.countDown();
+    }
+  }
+
+  @Override
+  public void handleDataDeleted(String dataPath) throws Exception {
+    _zkClient.unsubscribeDataChanges(dataPath, this);
+  }
+
+  @Override
+  public void handleChildChange(String parentPath, List<String> currentChilds) throws Exception {
+    for (String child : currentChilds) {
+      String childPath = String.format("%s/%s", parentPath, child);
+      _zkClient.subscribeDataChanges(childPath, this);
+    }
+
+    boolean success = verifyState();
+    if (success) {
+      _countdown.countDown();
+    }
+  }
+
+  public ZkClient getZkClient() {
+    return _zkClient;
+  }
+
+  public String getClusterName() {
+    return _clusterName;
+  }
+}

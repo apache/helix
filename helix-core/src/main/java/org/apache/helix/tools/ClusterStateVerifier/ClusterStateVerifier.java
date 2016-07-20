@@ -70,6 +70,10 @@ import org.apache.log4j.Logger;
 
 import com.google.common.collect.Sets;
 
+/**
+ * This class is deprecated, please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc.
+ */
+@Deprecated
 public class ClusterStateVerifier {
   public static String cluster = "cluster";
   public static String zkServerAddress = "zkSvr";
@@ -90,6 +94,8 @@ public class ClusterStateVerifier {
     String getClusterName();
   }
 
+  /** Use BestPossibleExternViewVerifier instead */
+  @Deprecated
   static class ExtViewVeriferZkListener implements IZkChildListener, IZkDataListener {
     final CountDownLatch _countDown;
     final ZkClient _zkClient;

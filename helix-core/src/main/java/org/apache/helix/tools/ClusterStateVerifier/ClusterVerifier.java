@@ -33,6 +33,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 
+@Deprecated
 public abstract class ClusterVerifier implements IZkChildListener, IZkDataListener {
   private static Logger LOG = Logger.getLogger(ClusterVerifier.class);
 

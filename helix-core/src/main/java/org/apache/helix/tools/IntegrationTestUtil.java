@@ -100,7 +100,7 @@ public class IntegrationTestUtil {
 
     ClusterLiveNodesVerifier verifier =
         new ClusterLiveNodesVerifier(_zkclient, clusterName, liveNodes);
-    boolean success = verifier.verifyByPolling(timeoutValue);
+    boolean success = verifier.verify(timeoutValue);
     System.out.println(success ? "Successful" : "Failed");
   }
 

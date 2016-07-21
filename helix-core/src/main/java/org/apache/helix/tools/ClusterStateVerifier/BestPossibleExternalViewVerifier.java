@@ -82,6 +82,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     private String _zkAddr;
     private ZkClient _zkClient;
 
+    public Builder(String clusterName) {
+      _clusterName = clusterName;
+    }
+
     public BestPossibleExternalViewVerifier build() {
       if (_clusterName == null || (_zkAddr == null && _zkClient == null)) {
         throw new IllegalArgumentException("Cluster name or zookeeper info is missing!");
@@ -97,11 +101,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
     public String getClusterName() {
       return _clusterName;
-    }
-
-    public Builder setClusterName(String clusterName) {
-      _clusterName = clusterName;
-      return this;
     }
 
     public Map<String, Map<String, String>> getErrStates() {
@@ -333,6 +332,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
     runStage(event, new ResourceComputationStage());
     runStage(event, new CurrentStateComputationStage());
+
+    // TODO: be caution here, should be handled statelessly.
     runStage(event, new BestPossibleStateCalcStage());
 
     BestPossibleStateOutput output =
@@ -351,9 +352,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
   @Override
   public String toString() {
-    String verifierName = getClass().getName();
-    verifierName = verifierName.substring(verifierName.lastIndexOf('.') + 1, verifierName.length());
-    return verifierName + "(" + _clusterName + "@" + _zkClient.getServers() + "@resources["
-        + _resources != null ? Arrays.toString(_resources.toArray()) : "" + "])";
+    String verifierName = getClass().getSimpleName();
+    return verifierName + "(" + _clusterName + "@" + _zkClient + "@resources["
+       + _resources != null ? Arrays.toString(_resources.toArray()) : "" + "])";
   }
 }

@@ -30,6 +30,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.StrictMatchExternalViewVerifier;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -39,29 +40,35 @@ import java.util.Arrays;
 
 public class TestClusterVerifier extends ZkUnitTestBase {
   final String[] RESOURCES = {
-      "resource0", "resource1"
+      "resource0", "resource1", "resource2", "resource3"
   };
   private HelixAdmin _admin;
   private MockParticipantManager[] _participants;
   private ClusterControllerManager _controller;
   private String _clusterName;
+  private ClusterSetup _setupTool;
 
   @BeforeMethod
   public void beforeMethod() throws InterruptedException {
-    final int NUM_PARTITIONS = 1;
-    final int NUM_REPLICAS = 1;
+    final int NUM_PARTITIONS = 10;
+    final int NUM_REPLICAS = 3;
 
     // Cluster and resource setup
     String className = TestHelper.getTestClassName();
     String methodName = TestHelper.getTestMethodName();
     _clusterName = className + "_" + methodName;
-    ClusterSetup setupTool = new ClusterSetup(ZK_ADDR);
-    _admin = setupTool.getClusterManagementTool();
-    setupTool.addCluster(_clusterName, true);
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS,
+    _setupTool = new ClusterSetup(ZK_ADDR);
+    _admin = _setupTool.getClusterManagementTool();
+    _setupTool.addCluster(_clusterName, true);
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[0], NUM_PARTITIONS,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.toString());
-    setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS,
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[1], NUM_PARTITIONS,
         BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.SEMI_AUTO.toString());
+
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[2], NUM_PARTITIONS,
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.FULL_AUTO.toString());
+    _setupTool.addResourceToCluster(_clusterName, RESOURCES[3], NUM_PARTITIONS,
+        BuiltInStateModelDefinitions.OnlineOffline.name(), RebalanceMode.FULL_AUTO.toString());
 
     // Configure and start the participants
     _participants = new MockParticipantManager[RESOURCES.length];
@@ -69,18 +76,14 @@ public class TestClusterVerifier extends ZkUnitTestBase {
       String host = "localhost";
       int port = 12918 + i;
       String id = host + '_' + port;
-      setupTool.addInstanceToCluster(_clusterName, id);
+      _setupTool.addInstanceToCluster(_clusterName, id);
       _participants[i] = new MockParticipantManager(ZK_ADDR, _clusterName, id);
       _participants[i].syncStart();
     }
 
     // Rebalance the resources
     for (int i = 0; i < RESOURCES.length; i++) {
-      IdealState idealState = _admin.getResourceIdealState(_clusterName, RESOURCES[i]);
-      idealState.setReplicas(Integer.toString(NUM_REPLICAS));
-      idealState.getRecord().setListField(RESOURCES[i] + "_0",
-          Arrays.asList(_participants[i].getInstanceName()));
-      _admin.setResourceIdealState(_clusterName, RESOURCES[i], idealState);
+      _setupTool.rebalanceResource(_clusterName, RESOURCES[i], NUM_REPLICAS);
     }
 
     // Start the controller
@@ -99,41 +102,58 @@ public class TestClusterVerifier extends ZkUnitTestBase {
     _admin.dropCluster(_clusterName);
   }
 
-  @Test public void testEntireCluster() {
+  @Test
+  public void testEntireCluster() throws InterruptedException {
     // Just ensure that the entire cluster passes
     // ensure that the external view coalesces
-    HelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder().setClusterName(_clusterName)
-            .setZkClient(_gZkClient).build();
+    HelixClusterVerifier bestPossibleVerifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+    Assert.assertTrue(bestPossibleVerifier.verify(10000));
 
-    boolean result = verifier.verify(10000);
-    Assert.assertTrue(result);
+    HelixClusterVerifier strictMatchVerifier =
+        new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+    Assert.assertTrue(strictMatchVerifier.verify(10000));
+
+    _participants[0].syncStop();
+    Thread.sleep(1000);
+    Assert.assertFalse(strictMatchVerifier.verify(10000));
   }
 
-  @Test
-  public void testResourceSubset() throws InterruptedException {
+  @Test public void testResourceSubset() throws InterruptedException {
+    String testDB = "resource-testDB";
+    _setupTool.addResourceToCluster(_clusterName, testDB, 1,
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.toString());
+
+    IdealState idealState = _admin.getResourceIdealState(_clusterName, testDB);
+    idealState.setReplicas(Integer.toString(2));
+    idealState.getRecord().setListField(testDB + "_0",
+        Arrays.asList(_participants[1].getInstanceName(), _participants[2].getInstanceName()));
+    _admin.setResourceIdealState(_clusterName, testDB, idealState);
+
     // Ensure that this passes even when one resource is down
     _admin.enableInstance(_clusterName, "localhost_12918", false);
     Thread.sleep(1000);
     _admin.enableCluster(_clusterName, false);
     _admin.enableInstance(_clusterName, "localhost_12918", true);
 
-
     HelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder().setClusterName(_clusterName)
-            .setZkClient(_gZkClient).setResources(Sets.newHashSet(RESOURCES[1])).build();
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+            .setResources(Sets.newHashSet(testDB)).build();
+    Assert.assertTrue(verifier.verify());
 
-    boolean result = verifier.verify();
-    Assert.assertTrue(result);
+    verifier = new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient)
+        .setResources(Sets.newHashSet(testDB)).build();
+    Assert.assertTrue(verifier.verify());
 
     // But the full cluster verification should fail
+    verifier =
+        new BestPossibleExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+    Assert.assertFalse(verifier.verify());
 
     verifier =
-        new BestPossibleExternalViewVerifier.Builder().setClusterName(_clusterName)
-            .setZkClient(_gZkClient).build();
+        new StrictMatchExternalViewVerifier.Builder(_clusterName).setZkClient(_gZkClient).build();
+    Assert.assertFalse(verifier.verify());
 
-    result = verifier.verify();
-    Assert.assertFalse(result);
     _admin.enableCluster(_clusterName, true);
   }
 }

@@ -36,6 +36,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -54,6 +55,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   // For connection management
   protected HelixManager _manager;
   protected static ScheduledRebalancer _scheduledRebalancer = new ScheduledRebalancer();
+  protected ClusterStatusMonitor _clusterStatusMonitor;
 
   @Override public void init(HelixManager manager) {
     _manager = manager;
@@ -367,5 +369,11 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         TaskUtil.invokeRebalance(_manager.getHelixDataAccessor(), _resource);
       }
     }
+  }
+  /**
+   * Set the ClusterStatusMonitor for metrics update
+   */
+  public void setClusterStatusMonitor(ClusterStatusMonitor clusterStatusMonitor) {
+     _clusterStatusMonitor = clusterStatusMonitor;
   }
 }

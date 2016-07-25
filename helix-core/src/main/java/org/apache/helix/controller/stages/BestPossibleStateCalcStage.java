@@ -35,6 +35,9 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.task.JobRebalancer;
+import org.apache.helix.task.TaskRebalancer;
+import org.apache.helix.task.WorkflowRebalancer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -156,6 +159,13 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       default:
         break;
       }
+
+      if (rebalancer instanceof TaskRebalancer) {
+	TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
+        taskRebalancer.setClusterStatusMonitor(
+            (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
+      }
+
       if (rebalancer != null && mappingCalculator != null) {
         try {
           HelixManager manager = event.getAttribute("helixmanager");

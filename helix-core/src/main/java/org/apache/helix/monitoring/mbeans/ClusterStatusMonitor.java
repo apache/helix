@@ -41,7 +41,6 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.JobConfig;
-import org.apache.helix.task.JobContext;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
@@ -419,7 +418,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setWorkflowsStatus(TaskDriver driver) throws MalformedObjectNameException {
+  public void setWorkflowsStatus(TaskDriver driver) {
     Map<String, WorkflowConfig> workflowConfigMap = driver.getWorkflows();
     for (String workflow : workflowConfigMap.keySet()) {
       if (workflowConfigMap.get(workflow).isRecurring()) {
@@ -432,8 +431,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void updateWorkflowStatus(WorkflowConfig workflowConfig, TaskState from, TaskState to)
-      throws MalformedObjectNameException {
+  public void updateWorkflowStatus(WorkflowConfig workflowConfig, TaskState from, TaskState to) {
     String workflowType = workflowConfig.getWorkflowType();
     if (workflowType == null || workflowType.length() == 0) {
       workflowType = DEFAULT_WORKFLOW_JOB_TYPE;
@@ -441,14 +439,18 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     if (!_perTypeWorkflowMonitorMap.containsKey(workflowType)) {
       WorkflowMonitor monitor = new WorkflowMonitor(_clusterName, workflowType);
-      registerWorkflow(monitor);
+      try {
+        registerWorkflow(monitor);
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Failed to register object for workflow type : " + workflowType, e);
+      }
       _perTypeWorkflowMonitorMap.put(workflowType, monitor);
     }
 
     _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowStats(from, to);
   }
 
-  public void setJobsStatus(TaskDriver driver) throws MalformedObjectNameException {
+  public void setJobsStatus(TaskDriver driver) {
     for (String workflow : driver.getWorkflows().keySet()) {
       Set<String> allJobs = driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
@@ -464,8 +466,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void updateJobStatus(JobConfig jobConfig, TaskState from, TaskState to)
-      throws MalformedObjectNameException {
+  public void updateJobStatus(JobConfig jobConfig, TaskState from, TaskState to) {
     String jobType = jobConfig.getJobType();
     if (jobType == null || jobType.length() == 0) {
       jobType = DEFAULT_WORKFLOW_JOB_TYPE;
@@ -473,11 +474,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     if (!_perTypeJobMonitorMap.containsKey(jobType)) {
       JobMonitor monitor = new JobMonitor(_clusterName, jobType);
-      registerJob(monitor);
+      try {
+        registerJob(monitor);
+      } catch (MalformedObjectNameException e) {
+        LOG.error("Failed to register job type : " + jobType, e);
+      }
       _perTypeJobMonitorMap.put(jobType, monitor);
     }
 
-    _perTypeWorkflowMonitorMap.get(jobType).updateWorkflowStats(from, to);
+    _perTypeJobMonitorMap.get(jobType).updateJobStats(from, to);
   }
 
   private synchronized void registerInstances(Collection<InstanceMonitor> instances)

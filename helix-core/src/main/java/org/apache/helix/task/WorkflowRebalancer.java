@@ -64,6 +64,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       workflowCtx = new WorkflowContext(new ZNRecord("WorkflowContext"));
       workflowCtx.setStartTime(System.currentTimeMillis());
       LOG.debug("Workflow context is created for " + workflow);
+      _clusterStatusMonitor.updateWorkflowStatus(workflowCfg, null, TaskState.NOT_STARTED);
     }
 
     // Clean up if workflow marked for deletion
@@ -71,6 +72,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (targetState == TargetState.DELETE) {
       LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
       cleanupWorkflow(workflow, workflowCfg);
+      _clusterStatusMonitor.updateWorkflowStatus(workflowCfg, TaskState.COMPLETED, null);
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
@@ -84,6 +86,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED
         && isWorkflowFinished(workflowCtx, workflowCfg)) {
       workflowCtx.setFinishTime(currentTime);
+      _clusterStatusMonitor
+          .updateWorkflowStatus(workflowCfg, TaskState.IN_PROGRESS, TaskState.COMPLETED);
       TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
     }
 
@@ -94,6 +98,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
       if (workflowCtx.getFinishTime() + expiryTime <= currentTime) {
         LOG.info("Workflow " + workflow + " passed expiry time, cleaning up the workflow context.");
         cleanupWorkflow(workflow, workflowCfg);
+        _clusterStatusMonitor
+            .updateWorkflowStatus(workflowCfg, TaskState.IN_PROGRESS, TaskState.FAILED);
       } else {
         // schedule future cleanup work
         long cleanupTime = workflowCtx.getFinishTime() + expiryTime;
@@ -286,8 +292,12 @@ public class WorkflowRebalancer extends TaskRebalancer {
           try {
             // Start the cloned workflow
             driver.start(clonedWf);
+            _clusterStatusMonitor
+                .updateWorkflowStatus(workflowCfg, TaskState.NOT_STARTED, TaskState.IN_PROGRESS);
           } catch (Exception e) {
             LOG.error("Failed to schedule cloned workflow " + newWorkflowName, e);
+            _clusterStatusMonitor
+                .updateWorkflowStatus(workflowCfg, TaskState.NOT_STARTED, TaskState.FAILED);
           }
           // Persist workflow start regardless of success to avoid retrying and failing
           workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
@@ -303,6 +313,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
         if (scheduledTime > 0 && currentTime > scheduledTime) {
           _scheduledRebalancer.removeScheduledRebalance(workflow);
         }
+        _clusterStatusMonitor
+            .updateWorkflowStatus(workflowCfg, TaskState.NOT_STARTED, TaskState.IN_PROGRESS);
         return true;
       }
     } else {

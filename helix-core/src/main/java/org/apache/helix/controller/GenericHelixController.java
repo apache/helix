@@ -28,6 +28,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
+import javax.management.MalformedObjectNameException;
+
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
@@ -66,6 +68,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.helix.task.TaskDriver;
 import org.apache.log4j.Logger;
 
 /**
@@ -272,6 +275,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       } else {
         if (_clusterStatusMonitor == null) {
           _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
+          TaskDriver driver = new TaskDriver(manager);
+          _clusterStatusMonitor.setWorkflowsStatus(driver);
+          _clusterStatusMonitor.setJobsStatus(driver);
         }
 
         event.addAttribute("clusterStatusMonitor", _clusterStatusMonitor);

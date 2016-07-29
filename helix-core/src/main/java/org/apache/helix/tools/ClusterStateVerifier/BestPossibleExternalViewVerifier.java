@@ -354,6 +354,6 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   public String toString() {
     String verifierName = getClass().getSimpleName();
     return verifierName + "(" + _clusterName + "@" + _zkClient + "@resources["
-       + _resources != null ? Arrays.toString(_resources.toArray()) : "" + "])";
+       + (_resources != null ? Arrays.toString(_resources.toArray()) : "") + "])";
   }
 }

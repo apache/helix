@@ -1,6 +1,5 @@
-package org.apache.helix.controller.Strategy;
+package org.apache.helix.controller.strategy;
 
-import org.apache.helix.HelixProperty;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.model.ClusterConfig;
@@ -34,7 +33,7 @@ import java.util.Map;
  */
 
 public class TestTopology {
-  private static Logger logger = Logger.getLogger(TestTopology.class);
+  private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
 
   @Test
   public void testCreateClusterTopology() {
@@ -170,3 +169,4 @@ public class TestTopology {
     }
   }
 }
+

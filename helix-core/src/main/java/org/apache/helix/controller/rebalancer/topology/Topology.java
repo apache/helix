@@ -227,7 +227,7 @@ public class Topology {
       if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
         weight = DEFAULT_NODE_WEIGHT;
       }
-      addEndNode(root, ins, pathValueMap, weight, _liveInstances);
+      root = addEndNode(root, ins, pathValueMap, weight, _liveInstances);
     }
 
     return root;

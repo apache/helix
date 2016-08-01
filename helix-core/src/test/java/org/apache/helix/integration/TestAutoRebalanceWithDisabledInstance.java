@@ -57,9 +57,14 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   public void testDisableEnableInstanceAutoRebalance() throws Exception {
     String disabledInstance = _participants[0].getInstanceName();
 
+    // TODO: preference list is not persisted in IS for full-auto,
+    // Need a way to find how helix assigns partitions to nodes.
+    /*
     Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2,
         disabledInstance);
     Assert.assertFalse(assignedPartitions.isEmpty());
+    */
+
     Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
         disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
@@ -67,16 +72,28 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     // disable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
     Thread.sleep(4000);
+
+    // TODO: preference list is not persisted in IS for full-auto,
+    // Need a way to find how helix assigns partitions to nodes.
+    /*
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertTrue(assignedPartitions.isEmpty());
+    */
+
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertTrue(currentPartitions.isEmpty());
 
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
     Thread.sleep(4000);
+
+    // TODO: preference list is not persisted in IS for full-auto,
+    // Need a way to find how helix assigns partitions to nodes.
+    /*
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(assignedPartitions.isEmpty());
+    */
+
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
   }
@@ -93,8 +110,12 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     participant.syncStart();
 
     Thread.sleep(2000);
+    // TODO: preference list is not persisted in IS for full-auto,
+    // Need a way to find how helix assigns partitions to nodes.
+    /*
     Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertTrue(assignedPartitions.isEmpty());
+    */
     Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
         nodeName);
     Assert.assertTrue(currentPartitions.isEmpty());
@@ -102,8 +123,13 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
     Thread.sleep(2000);
+    // TODO: preference list is not persisted in IS for full-auto,
+    // Need a way to find how helix assigns partitions to nodes.
+    /*
     assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertFalse(assignedPartitions.isEmpty());
+    */
+
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertFalse(currentPartitions.isEmpty());
   }

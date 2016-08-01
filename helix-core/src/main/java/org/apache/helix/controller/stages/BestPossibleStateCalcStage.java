@@ -112,16 +112,9 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       MappingCalculator mappingCalculator = null;
       switch (idealState.getRebalanceMode()) {
       case FULL_AUTO:
-        boolean fullAutoDisabled = cache.getClusterConfig().isFullAutoDisabled();
-        if (!fullAutoDisabled) {
-          AutoRebalancer autoRebalancer = new AutoRebalancer();
-          rebalancer = autoRebalancer;
-          mappingCalculator = autoRebalancer;
-        } else {
-          SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
-          rebalancer = semiAutoRebalancer;
-          mappingCalculator = semiAutoRebalancer;
-        }
+        AutoRebalancer autoRebalancer = new AutoRebalancer();
+        rebalancer = autoRebalancer;
+        mappingCalculator = autoRebalancer;
         break;
       case SEMI_AUTO:
         SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();

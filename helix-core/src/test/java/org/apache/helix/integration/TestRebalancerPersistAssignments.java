@@ -29,7 +29,9 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -90,9 +92,9 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.MasterSlave.name(), rebalanceMode.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    HelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verify());
 
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -101,9 +103,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     // kill 1 node
     _participants[0].syncStop();
 
-    result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(verifier.verify());
 
     idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     // verify that IdealState contains updated assignment in it map fields.
@@ -165,8 +165,11 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
       Assert.assertFalse(instanceStateMap.isEmpty());
 
       Set<String> instancesInMap = instanceStateMap.keySet();
-      Set<String> instanceInList = idealState.getInstanceSet(partition);
-      Assert.assertTrue(instanceInList.containsAll(instancesInMap));
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+        // preference list is not persisted in IS.
+        Set<String> instanceInList = idealState.getInstanceSet(partition);
+        Assert.assertTrue(instanceInList.containsAll(instancesInMap));
+      }
 
       for (String ins : excludedInstances) {
         Assert.assertFalse(instancesInMap.contains(ins));

@@ -57,7 +57,8 @@ public class  WorkflowConfig {
     FailureThreshold,
     /* this is for non-terminable workflow. */
     capacity,
-    WorkflowType
+    WorkflowType,
+    IsJobQueue
   }
 
   /* Default values */
@@ -79,10 +80,11 @@ public class  WorkflowConfig {
   private final int _failureThreshold;
   private final int _capacity;
   private final String _workflowType;
+  private final boolean _isJobQueue;
 
   protected WorkflowConfig(JobDag jobDag, int parallelJobs, TargetState targetState, long expiry,
       int failureThreshold, boolean terminable, ScheduleConfig scheduleConfig, int capacity,
-      String workflowType) {
+      String workflowType, boolean isJobQueue) {
     _jobDag = jobDag;
     _parallelJobs = parallelJobs;
     _targetState = targetState;
@@ -92,6 +94,7 @@ public class  WorkflowConfig {
     _scheduleConfig = scheduleConfig;
     _capacity = capacity;
     _workflowType = workflowType;
+    _isJobQueue = isJobQueue;
   }
 
   public JobDag getJobDag() {
@@ -137,6 +140,10 @@ public class  WorkflowConfig {
     return _scheduleConfig != null && _scheduleConfig.isRecurring();
   }
 
+  public boolean isJobQueue() {
+    return _isJobQueue;
+  }
+
   public static SimpleDateFormat getDefaultDateFormat() {
     SimpleDateFormat defaultDateFormat = new SimpleDateFormat(
         "MM-dd-yyyy HH:mm:ss");
@@ -170,6 +177,7 @@ public class  WorkflowConfig {
     cfgMap.put(WorkflowConfigProperty.Expiry.name(), String.valueOf(getExpiry()));
     cfgMap.put(WorkflowConfigProperty.TargetState.name(), getTargetState().name());
     cfgMap.put(WorkflowConfigProperty.Terminable.name(), String.valueOf(isTerminable()));
+    cfgMap.put(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue()));
     cfgMap.put(WorkflowConfigProperty.FailureThreshold.name(),
         String.valueOf(getFailureThreshold()));
 
@@ -250,12 +258,13 @@ public class  WorkflowConfig {
     private int _capacity = Integer.MAX_VALUE;
     private ScheduleConfig _scheduleConfig;
     private String _workflowType;
+    private boolean _isJobQueue = false;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _failureThreshold,
-          _isTerminable, _scheduleConfig, _capacity, _workflowType);
+          _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue);
     }
 
     public Builder() {}
@@ -269,7 +278,8 @@ public class  WorkflowConfig {
       _scheduleConfig = workflowConfig.getScheduleConfig();
       _capacity = workflowConfig.getCapacity();
       _failureThreshold = workflowConfig.getFailureThreshold();
-      _workflowType =workflowConfig.getWorkflowType();
+      _workflowType = workflowConfig.getWorkflowType();
+      _isJobQueue = workflowConfig.isJobQueue();
     }
 
     protected Builder setJobDag(JobDag v) {
@@ -277,6 +287,11 @@ public class  WorkflowConfig {
       return this;
     }
 
+    /**
+     * This method only applies for JobQueue, will be ignored in generic workflows
+     * @param parallelJobs Allowed parallel job numbers
+     * @return This builder
+     */
     public Builder setParallelJobs(int parallelJobs) {
       _parallelJobs = parallelJobs;
       return this;
@@ -297,6 +312,11 @@ public class  WorkflowConfig {
       return this;
     }
 
+    /**
+     * This method only applies for JobQueue, will be ignored in generic workflows
+     * @param capacity The number of capacity
+     * @return This builder
+     */
     public Builder setCapacity(int capacity) {
       _capacity = capacity;
       return this;
@@ -319,6 +339,11 @@ public class  WorkflowConfig {
 
     public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {
       _scheduleConfig = scheduleConfig;
+      return this;
+    }
+
+    protected Builder setJobQueue(boolean isJobQueue) {
+      _isJobQueue = isJobQueue;
       return this;
     }
 
@@ -377,6 +402,10 @@ public class  WorkflowConfig {
       if (cfg.containsKey(WorkflowConfigProperty.WorkflowType.name())) {
         setWorkFlowType(cfg.get(WorkflowConfigProperty.WorkflowType.name()));
       }
+
+      if (cfg.containsKey(WorkflowConfigProperty.IsJobQueue.name())) {
+        setJobQueue(Boolean.parseBoolean(cfg.get(WorkflowConfigProperty.IsJobQueue.name())));
+      }
       return this;
     }
 
@@ -410,6 +439,10 @@ public class  WorkflowConfig {
 
     public JobDag getJobDag() {
       return _taskDag;
+    }
+
+    public boolean isJobQueue() {
+      return _isJobQueue;
     }
 
     public static Builder from(WorkflowBean workflowBean) {

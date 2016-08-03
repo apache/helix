@@ -22,8 +22,11 @@ package org.apache.helix.integration.task;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
+import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
@@ -43,7 +46,7 @@ public class TestWorkflowJobDependency extends TaskTestBase {
     super.beforeClass();
   }
 
-  @Test (enabled = false)
+  @Test
   public void testWorkflowWithOutDependencies() throws InterruptedException {
     String workflowName = TestHelper.getTestMethodName();
 
@@ -84,5 +87,39 @@ public class TestWorkflowJobDependency extends TaskTestBase {
 
     // All jobs have a valid overlap time range.
     Assert.assertTrue(startTime <= finishTime);
+  }
+
+  @Test
+  public void testWorkflowWithDependencies() throws InterruptedException {
+    String workflowName = TestHelper.getTestMethodName();
+    final int PARALLEL_NUM = 2;
+    // Workflow setup
+    WorkflowConfig.Builder workflowcfgBuilder =
+        new WorkflowConfig.Builder().setParallelJobs(PARALLEL_NUM);
+    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    builder.setWorkflowConfig(workflowcfgBuilder.build());
+
+    builder.addParentChildDependency("job" + _testDbs.get(0), "job" + _testDbs.get(1));
+    for (int i = 0; i < 2; i++) {
+      JobConfig.Builder jobConfig = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+          .setTargetResource(_testDbs.get(i)).setTargetPartitionStates(Sets.newHashSet("SLAVE","MASTER"))
+          .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG);
+      String jobName = "job" + _testDbs.get(i);
+      builder.addJob(jobName, jobConfig);
+    }
+
+    // Start workflow
+    Workflow workflow = builder.build();
+    _driver.start(workflow);
+
+    // Wait until the workflow completes
+    _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
+
+
+    JobContext context1 = _driver
+        .getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(0)));
+    JobContext context2 = _driver
+        .getJobContext(TaskUtil.getNamespacedJobName(workflowName, "job" + _testDbs.get(1)));
+    Assert.assertTrue(context2.getStartTime() - context1.getFinishTime() >= 0L);
   }
 }

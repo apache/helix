@@ -140,7 +140,8 @@ public class TaskTestUtil {
       Thread.sleep(100);
     }
 
-    return maxRunningCount > 1 && maxRunningCount <= workflowConfig.getParallelJobs();
+    return maxRunningCount > 1 && (workflowConfig.isJobQueue() ? maxRunningCount <= workflowConfig
+        .getParallelJobs() : true);
   }
 
   public static Date getDateFromStartTime(String startTime)

@@ -301,6 +301,7 @@ public class Topology {
       if (pathValue == null || pathValue.isEmpty()) {
         pathValue = _defaultDomainPathValues.get(path);
       }
+      pathNodes.add(current);
       if (!current.hasChild(pathValue)) {
         Node n = new Node();
         n.setName(pathValue);
@@ -324,7 +325,6 @@ public class Topology {
         }
         current.addChild(n);
       }
-      pathNodes.add(current);
       current = current.getChild(pathValue);
     }
     return root;

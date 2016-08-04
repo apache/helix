@@ -1,4 +1,4 @@
-package org.apache.helix.tools.ClusterStateVerifier;
+package org.apache.helix.tools.ClusterVerifiers;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one

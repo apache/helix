@@ -36,8 +36,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterExternalViewVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterLiveNodesVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ClusterLiveNodesVerifier;
 import org.apache.log4j.Logger;
 
 /**

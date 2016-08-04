@@ -1,4 +1,4 @@
-package org.apache.helix.tools.ClusterStateVerifier;
+package org.apache.helix.tools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,12 +19,6 @@ package org.apache.helix.tools.ClusterStateVerifier;
  * under the License.
  */
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -39,13 +33,18 @@ import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.Partition;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * given zk, cluster, and a list of expected live-instances
  * check whether cluster's external-view reaches best-possible states
  */
-
 /**
- * This class is deprecated, please use BestPossibleExternalViewVerifier instead.
+ * This class is deprecated, please use BestPossibleExternalViewVerifier in tools.ClusterVerifiers instead.
  */
 @Deprecated
 public class ClusterExternalViewVerifier extends ClusterVerifier {

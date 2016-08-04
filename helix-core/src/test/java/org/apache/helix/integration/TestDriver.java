@@ -38,7 +38,7 @@ import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.store.PropertyJsonSerializer;
 import org.apache.helix.store.PropertyStoreException;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.tools.TestCommand;
 import org.apache.helix.tools.TestExecutor;
@@ -160,7 +160,7 @@ public class TestDriver {
 
   /**
    * starting a dummy participant with a given id
-   * @param uniqueTestName
+   * @param uniqClusterName
    * @param instanceId
    */
   public static void startDummyParticipant(String uniqClusterName, int instanceId) throws Exception {

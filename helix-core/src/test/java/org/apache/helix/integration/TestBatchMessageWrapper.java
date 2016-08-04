@@ -34,8 +34,8 @@ import org.apache.helix.messaging.handling.BatchMessageWrapper;
 import org.apache.helix.mock.participant.MockMSModelFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 

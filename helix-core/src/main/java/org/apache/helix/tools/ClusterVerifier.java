@@ -1,4 +1,4 @@
-package org.apache.helix.tools.ClusterStateVerifier;
+package org.apache.helix.tools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,10 +19,6 @@ package org.apache.helix.tools.ClusterStateVerifier;
  * under the License.
  */
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.HelixDataAccessor;
@@ -33,6 +29,13 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.log4j.Logger;
 
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+/**
+ * Please use implementations of HelixClusterVerifier (BestPossibleExternalViewVerifier, StrictMatchExternalViewVerifier, etc in tools.ClusterVerifiers).
+ */
 @Deprecated
 public abstract class ClusterVerifier implements IZkChildListener, IZkDataListener {
   private static Logger LOG = Logger.getLogger(ClusterVerifier.class);

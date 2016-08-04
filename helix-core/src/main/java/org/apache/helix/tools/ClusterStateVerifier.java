@@ -1,4 +1,4 @@
-package org.apache.helix.tools.ClusterStateVerifier;
+package org.apache.helix.tools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -63,14 +62,13 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.task.TaskConstants;
-import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Sets;
 
 /**
- * This class is deprecated, please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc.
+ * This class is deprecated, please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc, in tools.ClusterVerifiers
  */
 @Deprecated
 public class ClusterStateVerifier {

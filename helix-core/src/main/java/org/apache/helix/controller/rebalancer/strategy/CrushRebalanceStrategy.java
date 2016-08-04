@@ -22,7 +22,6 @@ package org.apache.helix.controller.rebalancer.strategy;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.JenkinsHash;

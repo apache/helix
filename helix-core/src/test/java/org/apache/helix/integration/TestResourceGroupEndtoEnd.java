@@ -36,7 +36,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.OnlineOfflineSMD;
 import org.apache.helix.spectator.RoutingTableProvider;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;

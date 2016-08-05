@@ -34,20 +34,25 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.InstanceType;
 import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.MapKey;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
@@ -104,7 +109,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public static final String MAX_THREADS = "maxThreads";
 
   private MessageQueueMonitor _messageQueueMonitor;
-
+  private ClusterMessagingService _messagingService;
+  private GenericHelixController _controller;
+  private Long _lastSessionSyncTime;
+  private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
+  private static final String SESSION_SYNC = "SESSION-SYNC";
   /**
    * Map of MsgType->MsgHandlerFactoryRegistryItem
    */
@@ -133,6 +142,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
 
     startMonitorThread();
+  }
+
+  public HelixTaskExecutor(ClusterMessagingService messagingService) {
+    this();
+    _messagingService = messagingService;
   }
 
   @Override
@@ -168,6 +182,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           + prevItem.factory());
       newItem = null;
     }
+  }
+
+  public void setController(GenericHelixController controller) {
+    _controller = controller;
   }
 
   public ParticipantMonitor getParticipantMonitor() {
@@ -386,8 +404,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           _taskMap.remove(taskId);
           return true;
         } else {
-          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class,
-              "fail to cancel task: " + taskId,
+          _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "fail to cancel task: " + taskId,
               notificationContext.getManager().getHelixDataAccessor());
         }
       } else {
@@ -403,8 +420,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public void finishTask(MessageTask task) {
     Message message = task.getMessage();
     String taskId = task.getTaskId();
-    LOG.info("message finished: " + taskId + ", took " + (new Date().getTime() - message
-        .getExecuteStartTimeStamp()));
+    LOG.info("message finished: " + taskId + ", took " + (new Date().getTime() - message.getExecuteStartTimeStamp()));
 
     synchronized (_lock) {
       if (_taskMap.containsKey(taskId)) {
@@ -471,8 +487,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       item.factory().reset();
     }
 
-    LOG.info("Unregistered message handler factory for type: " + type + ", factory: "
-        + item.factory() + ", pool: " + pool);
+    LOG.info(
+        "Unregistered message handler factory for type: " + type + ", factory: " + item.factory() + ", pool: " + pool);
   }
 
   void reset() {
@@ -502,6 +518,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       LOG.warn("Task: " + taskId + " fails to terminate. Message: " + info._task.getMessage());
     }
     _taskMap.clear();
+
+    _lastSessionSyncTime = null;
   }
 
   void init() {
@@ -522,6 +540,28 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + prevPool + ", isShutdown: " + prevPool.isShutdown());
         newPool.shutdown();
         newPool = null;
+      }
+    }
+  }
+
+  private void syncSessionToController(HelixManager manager) {
+    if (_lastSessionSyncTime == null ||
+            System.currentTimeMillis() - _lastSessionSyncTime > SESSION_SYNC_INTERVAL) { // > delay since last sync
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      PropertyKey key = new Builder(manager.getClusterName()).controllerMessage(SESSION_SYNC);
+      if (accessor.getProperty(key) == null) {
+        Message msg = new Message(MessageType.PARTICIPANT_SESSION_CHANGE, SESSION_SYNC);
+        msg.setSrcName(manager.getInstanceName());
+        msg.setTgtSessionId("*");
+        msg.setMsgState(MessageState.NEW);
+        msg.setMsgId(SESSION_SYNC);
+
+        Criteria cr = new Criteria();
+        cr.setRecipientInstanceType(InstanceType.CONTROLLER);
+        cr.setSessionSpecific(false);
+
+        manager.getMessagingService().send(cr, msg);
+        _lastSessionSyncTime = System.currentTimeMillis();
       }
     }
   }
@@ -596,8 +636,25 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
                 + message.getMsgId();
         LOG.warn(warningMessage);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
-        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage,
-            accessor);
+        _statusUpdateUtil.logWarning(message, HelixStateMachineEngine.class, warningMessage, accessor);
+
+        // Proactively send a session sync message from participant to controller
+        // upon session mismatch after a new session is established
+        if (manager.getInstanceType() == InstanceType.PARTICIPANT
+            || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT) {
+          if (message.getCreateTimeStamp() > manager.getSessionStartTime()) {
+            syncSessionToController(manager);
+          }
+        }
+        continue;
+      }
+
+      if ((manager.getInstanceType() == InstanceType.CONTROLLER || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
+          && MessageType.PARTICIPANT_SESSION_CHANGE.name().equals(message.getMsgType())) {
+        PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
+        List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
+        _controller.onLiveInstanceChange(liveInstances, changeContext);
+        accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         continue;
       }
 

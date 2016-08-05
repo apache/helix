@@ -31,6 +31,7 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.I0Itec.zkclient.IZkDataListener;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.messaging.AsyncCallback;
 import org.apache.helix.messaging.handling.HelixTaskExecutor;
@@ -454,6 +455,11 @@ public class Mocks {
     public ParticipantHealthReportCollector getHealthReportCollector() {
       // TODO Auto-generated method stub
       return null;
+    }
+
+    @Override
+    public Long getSessionStartTime() {
+      return 0L;
     }
 
   }

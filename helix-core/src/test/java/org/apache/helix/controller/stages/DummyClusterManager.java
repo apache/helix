@@ -39,6 +39,7 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.participant.StateMachineEngine;
@@ -252,4 +253,10 @@ public class DummyClusterManager implements HelixManager {
     // TODO Auto-generated method stub
     return null;
   }
+
+  @Override
+  public Long getSessionStartTime() {
+    return 0L;
+  }
+
 }

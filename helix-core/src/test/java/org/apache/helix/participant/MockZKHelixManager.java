@@ -41,6 +41,7 @@ import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -257,6 +258,11 @@ public class MockZKHelixManager implements HelixManager {
   public ParticipantHealthReportCollector getHealthReportCollector() {
     // TODO Auto-generated method stub
     return null;
+  }
+
+  @Override
+  public Long getSessionStartTime() {
+    return 0L;
   }
 
 }

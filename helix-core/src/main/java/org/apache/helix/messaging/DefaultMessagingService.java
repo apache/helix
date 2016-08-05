@@ -56,7 +56,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
   public DefaultMessagingService(HelixManager manager) {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();
-    _taskExecutor = new HelixTaskExecutor();
+    _taskExecutor = new HelixTaskExecutor(this);
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
         _asyncCallbackService);
@@ -187,7 +187,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
 
   private List<Message> generateMessagesForController(Message message) {
     List<Message> messages = new ArrayList<Message>();
-    String id = UUID.randomUUID().toString();
+    String id = (message.getMsgId() == null) ? UUID.randomUUID().toString() : message.getMsgId();
     Message newMessage = new Message(message.getRecord(), id);
     newMessage.setMsgId(id);
     newMessage.setSrcName(_manager.getInstanceName());

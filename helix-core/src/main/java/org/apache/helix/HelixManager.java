@@ -253,6 +253,11 @@ public interface HelixManager {
   StateMachineEngine getStateMachineEngine();
 
   /**
+   * @return the session start time
+   */
+  Long getSessionStartTime();
+
+  /**
    * Check if the cluster manager is the leader
    * @return true if this is a controller and a leader of the cluster
    */

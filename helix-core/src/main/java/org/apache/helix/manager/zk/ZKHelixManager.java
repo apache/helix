@@ -77,7 +77,7 @@ import org.apache.zookeeper.ZooKeeper.States;
 public class ZKHelixManager implements HelixManager, IZkStateListener {
   private static Logger LOG = Logger.getLogger(ZKHelixManager.class);
 
-  public static final int FLAPPING_TIME_WINDIOW = 300000; // Default to 300 sec
+  public static final int FLAPPING_TIME_WINDOW = 300000; // Default to 300 sec
   public static final int MAX_DISCONNECT_THRESHOLD = 5;
   public static final String ALLOW_PARTICIPANT_AUTO_JOIN = "allowParticipantAutoJoin";
 
@@ -123,6 +123,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private final List<HelixTimerTask> _timerTasks = new ArrayList<HelixTimerTask>();
 
   private final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
+  private Long _sessionStartTime;
 
   /**
    * controller fields
@@ -204,7 +205,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      */
     _flappingTimeWindowMs =
         getSystemPropertyAsInt("helixmanager.flappingTimeWindow",
-            ZKHelixManager.FLAPPING_TIME_WINDIOW);
+            ZKHelixManager.FLAPPING_TIME_WINDOW);
 
     _maxDisconnectThreshold =
         getSystemPropertyAsInt("helixmanager.maxDisconnectThreshold",
@@ -324,9 +325,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void addIdealStateChangeListener(final IdealStateChangeListener listener) throws Exception {
     addListener(listener, new Builder(_clusterName).idealStates(), ChangeType.IDEAL_STATE,
-        new EventType[] {
-            EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated
-        });
+        new EventType[]{EventType.NodeDataChanged, EventType.NodeDeleted, EventType.NodeCreated});
   }
 
   @Override
@@ -509,8 +508,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void connect() throws Exception {
     LOG.info("ClusterManager.connect()");
     if (isConnected()) {
-      LOG.warn("Cluster manager: " + _instanceName + " for cluster: " + _clusterName
-          + " already connected. skip connect");
+      LOG.warn(
+          "Cluster manager: " + _instanceName + " for cluster: " + _clusterName + " already connected. skip connect");
       return;
     }
 
@@ -519,6 +518,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     case CONTROLLER_PARTICIPANT:
       if (_controller == null) {
         _controller = new GenericHelixController();
+        _messagingService.getExecutor().setController(_controller);
       }
       break;
     default:
@@ -566,6 +566,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     } finally {
       _zkclient.close();
       _zkclient = null;
+      _sessionStartTime = null;
       LOG.info("Cluster manager: " + _instanceName + " disconnected");
 
       if (_controller != null) {
@@ -902,6 +903,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
      * setup message listener
      */
     participantHelper.setupMsgHandler();
+
+    _sessionStartTime = System.currentTimeMillis();
   }
 
   void handleNewSessionAsController() {
@@ -926,4 +929,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void handleSessionEstablishmentError(Throwable var1) throws Exception {
   }
+
+  @Override
+  public Long getSessionStartTime() {
+    return _sessionStartTime;
+  }
+
 }

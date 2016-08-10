@@ -131,9 +131,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
       logger.info("orphan = " + _orphaned);
     }
 
-    moveNonPreferredReplicasToPreferred();
-
     assignOrphans();
+    moveNonPreferredReplicasToPreferred();
 
     moveExcessReplicas();
 
@@ -179,15 +178,26 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     while (it.hasNext()) {
       Replica replica = it.next();
       boolean added = false;
-      int startIndex = computeRandomStartIndex(replica);
-      for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
-        Node receiver = _liveNodesList.get(index % _liveNodesList.size());
-        if (receiver.capacity > receiver.currentlyAssigned && receiver.canAdd(replica)) {
-          receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
-          receiver.nonPreferred.add(replica);
-          receiver.newReplicas.add(replica);
-          added = true;
-          break;
+
+      // first find if it preferred node still has capacity
+      Node preferred = _preferredAssignment.get(replica);
+      if (preferred.capacity > preferred.currentlyAssigned && preferred.canAdd(replica)) {
+        preferred.currentlyAssigned ++;
+        preferred.preferred.add(replica);
+        preferred.newReplicas.add(replica);
+        added = true;
+      } else {
+        // if preferred node has no capacity, search all nodes and find one that has capacity.
+        int startIndex = computeRandomStartIndex(replica);
+        for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
+          Node receiver = _liveNodesList.get(index % _liveNodesList.size());
+          if (receiver.capacity > receiver.currentlyAssigned && receiver.canAdd(replica)) {
+            receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
+            receiver.nonPreferred.add(replica);
+            receiver.newReplicas.add(replica);
+            added = true;
+            break;
+          }
         }
       }
       if (!added) {

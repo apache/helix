@@ -20,6 +20,7 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -760,5 +761,32 @@ public class TestAutoRebalanceStrategy {
       firstNodes.add(preferenceList.get(0));
     }
     Assert.assertEquals(firstNodes.size(), 2, "masters not evenly distributed");
+  }
+
+
+  @Test public void test() {
+    int nPartitions = 16;
+    final String resourceName = "something";
+    final List<String> instanceNames =
+        Arrays.asList("node-1", "node-2", "node-3", "node-4"); // Initialize to 4 unique strings
+
+    final int nReplicas = 3;
+
+    List<String> partitions = new ArrayList<String>(nPartitions);
+    for (int i = 0; i < nPartitions; i++) {
+      partitions.add(Integer.toString(i));
+    }
+
+    LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>(2);
+    states.put("OFFLINE", 0);
+    states.put("ONLINE", nReplicas);
+
+    AutoRebalanceStrategy strategy = new AutoRebalanceStrategy(resourceName, partitions, states);
+    ZNRecord znRecord = strategy.computePartitionAssignment(instanceNames, instanceNames,
+        new HashMap<String, Map<String, String>>(0), null);
+
+    for (List p : znRecord.getListFields().values()) {
+      Assert.assertEquals(p.size(), nReplicas);
+    }
   }
 }

@@ -138,10 +138,15 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
         _rebalanceStrategy = RebalanceStrategy.class
             .cast(HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
         _rebalanceStrategy.init(resourceName, partitions, stateCountMap, maxPartition);
-      } catch (ReflectiveOperationException ex) {
-        LOG.error(
-            "Exception while invoking custom rebalance strategy class:" + rebalanceStrategyName,
+      } catch (ClassNotFoundException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
             ex);
+      } catch (InstantiationException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      } catch (IllegalAccessException ex) {
         throw new HelixException(
             "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
             ex);

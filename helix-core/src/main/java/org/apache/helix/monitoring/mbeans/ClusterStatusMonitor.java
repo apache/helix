@@ -266,7 +266,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       if (instanceName == null) {
         continue;
       }
-      messageCount.put(instanceName, messageCount.getOrDefault(instanceName, 0L) + 1L);
+      if (!messageCount.containsKey(instanceName)) {
+        messageCount.put(instanceName, 0L);
+      }
+      messageCount.put(instanceName, messageCount.get(instanceName) + 1L);
     }
 
     // Update message count per instance

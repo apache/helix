@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
@@ -48,6 +49,7 @@ import com.google.common.collect.Maps;
 public class TaskUtil {
   private static final Logger LOG = Logger.getLogger(TaskUtil.class);
   public static final String CONTEXT_NODE = "Context";
+  public static final String USER_CONTENT_NODE = "UserContent";
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.
@@ -219,6 +221,101 @@ public class TaskUtil {
         ctx.getRecord(), AccessOption.PERSISTENT);
   }
 
+  /**
+   * Intialize the user content store znode setup
+   * @param propertyStore       zookeeper property store
+   * @param workflowJobResource the name of workflow or job
+   * @param record              the initial data
+   */
+  protected static void createUserContent(HelixPropertyStore propertyStore, String workflowJobResource,
+      ZNRecord record) {
+    propertyStore.create(Joiner.on("/")
+        .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource,
+            TaskUtil.USER_CONTENT_NODE), record, AccessOption.PERSISTENT);
+  }
+
+  /**
+   * Get user defined workflow or job level key-value pair data
+   *
+   * @param manager             a connection to Helix
+   * @param workflowJobResource the name of workflow
+   * @param key                 the key of key-value pair
+   *
+   * @return null if there is no such pair, otherwise return a String
+   */
+  protected static String getWorkflowJobUserContent(HelixManager manager,
+      String workflowJobResource, String key) {
+    ZNRecord r = manager.getHelixPropertyStore().get(Joiner.on("/")
+            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE), null,
+        AccessOption.PERSISTENT);
+    return r != null ? r.getSimpleField(key) : null;
+  }
+
+  /**
+   * Add an user defined key-value pair data to workflow or job level
+   *
+   * @param manager             a connection to Helix
+   * @param workflowJobResource the name of workflow or job
+   * @param key                 the key of key-value pair
+   * @param value               the value of key-value pair
+   */
+  protected static void addWorkflowJobUserContent(final HelixManager manager,
+      String workflowJobResource, final String key, final String value) {
+    String path = Joiner.on("/")
+        .join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowJobResource, USER_CONTENT_NODE);
+
+    manager.getHelixPropertyStore().update(path, new DataUpdater<ZNRecord>() {
+      @Override public ZNRecord update(ZNRecord znRecord) {
+        znRecord.setSimpleField(key, value);
+        return znRecord;
+      }
+    }, AccessOption.PERSISTENT);
+  }
+
+  /**
+   * Get user defined task level key-value pair data
+   *
+   * @param manager      a connection to Helix
+   * @param jobResource  the name of job
+   * @param taskResource the name of the task
+   * @param key          the key of key-value pair
+   *
+   * @return null if there is no such pair, otherwise return a String
+   */
+  protected static String getTaskUserContent(HelixManager manager, String jobResource,
+      String taskResource, String key) {
+    ZNRecord r = manager.getHelixPropertyStore().get(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, USER_CONTENT_NODE),
+        null, AccessOption.PERSISTENT);
+    return r != null ? (r.getMapField(taskResource) != null
+        ? r.getMapField(taskResource).get(key)
+        : null) : null;
+  }
+
+  /**
+   * Add an user defined key-value pair data to task level
+   *
+   * @param manager       a connection to Helix
+   * @param jobResource   the name of job
+   * @param taskResource  the name of task
+   * @param key           the key of key-value pair
+   * @param value         the value of key-value pair
+   */
+  protected static void addTaskUserContent(final HelixManager manager, String jobResource,
+      final String taskResource, final String key, final String value) {
+    String path =
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource, USER_CONTENT_NODE);
+
+    manager.getHelixPropertyStore().update(path, new DataUpdater<ZNRecord>() {
+      @Override public ZNRecord update(ZNRecord znRecord) {
+        if (znRecord.getMapField(taskResource) == null) {
+          znRecord.setMapField(taskResource, new HashMap<String, String>());
+        }
+        znRecord.getMapField(taskResource).put(key, value);
+        return znRecord;
+      }
+    }, AccessOption.PERSISTENT);
+  }
   /**
    * Get a workflow-qualified job name for a single-job workflow
    *

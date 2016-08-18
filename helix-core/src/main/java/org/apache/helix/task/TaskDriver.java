@@ -596,6 +596,9 @@ public class TaskDriver {
     _admin.addResource(_clusterName, workflow, 1, TaskConstants.STATE_MODEL_NAME);
 
     IdealState is = buildWorkflowIdealState(workflow);
+    TaskUtil
+        .createUserContent(_propertyStore, workflow, new ZNRecord(TaskUtil.USER_CONTENT_NODE));
+
     _admin.setResourceIdealState(_clusterName, workflow, is);
 
   }

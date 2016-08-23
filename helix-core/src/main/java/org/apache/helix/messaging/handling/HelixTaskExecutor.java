@@ -550,6 +550,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       HelixDataAccessor accessor = manager.getHelixDataAccessor();
       PropertyKey key = new Builder(manager.getClusterName()).controllerMessage(SESSION_SYNC);
       if (accessor.getProperty(key) == null) {
+        LOG.info(String.format("Participant %s syncs session with controller", manager.getInstanceName()));
         Message msg = new Message(MessageType.PARTICIPANT_SESSION_CHANGE, SESSION_SYNC);
         msg.setSrcName(manager.getInstanceName());
         msg.setTgtSessionId("*");
@@ -651,6 +652,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
       if ((manager.getInstanceType() == InstanceType.CONTROLLER || manager.getInstanceType() == InstanceType.CONTROLLER_PARTICIPANT)
           && MessageType.PARTICIPANT_SESSION_CHANGE.name().equals(message.getMsgType())) {
+        LOG.info(String.format("Controller received PARTICIPANT_SESSION_CHANGE msg from src: %s", message.getMsgSrc()));
         PropertyKey key = new Builder(manager.getClusterName()).liveInstances();
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);

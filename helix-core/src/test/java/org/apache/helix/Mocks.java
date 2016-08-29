@@ -43,6 +43,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelInfo;
@@ -462,6 +463,10 @@ public class Mocks {
       return 0L;
     }
 
+    @Override
+    public ParticipantStatusMonitor getParticipantStatusMonitor() {
+      return null;
+    }
   }
 
   public static class MockAccessor implements HelixDataAccessor {

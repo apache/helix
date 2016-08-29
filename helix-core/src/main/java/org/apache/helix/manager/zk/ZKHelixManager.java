@@ -64,6 +64,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
@@ -121,7 +122,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   private final StateMachineEngine _stateMachineEngine;
   private final List<HelixTimerTask> _timerTasks = new ArrayList<HelixTimerTask>();
-
+  private ParticipantStatusMonitor _participantStatusMonitor;
   private final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
   private Long _sessionStartTime;
 
@@ -198,7 +199,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     _version = _properties.getVersion();
 
     _keyBuilder = new Builder(clusterName);
-    _messagingService = new DefaultMessagingService(this);
 
     /**
      * use system property if available
@@ -220,6 +220,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     switch (instanceType) {
     case PARTICIPANT:
       _stateMachineEngine = new HelixStateMachineEngine(this);
+      _participantStatusMonitor = new ParticipantStatusMonitor(_instanceName);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
       _timerTasks.add(new ParticipantHealthReportTask(_participantHealthInfoCollector));
@@ -232,6 +233,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       break;
     case CONTROLLER_PARTICIPANT:
       _stateMachineEngine = new HelixStateMachineEngine(this);
+      _participantStatusMonitor = new ParticipantStatusMonitor(_instanceName);
       _participantHealthInfoCollector =
           new ParticipantHealthReportCollectorImpl(this, _instanceName);
 
@@ -246,6 +248,10 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     default:
       throw new IllegalArgumentException("unrecognized type: " + instanceType);
     }
+    // DefaultMessagingService has to be initialized after instance type specific init,
+    // because it depends on ParticipantStatusMonitor
+    _messagingService = new DefaultMessagingService(this);
+
   }
 
   private int getSystemPropertyAsInt(String propertyKey, int propertyDefaultValue) {
@@ -586,6 +592,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public String getSessionId() {
     checkConnected();
     return _sessionId;
+  }
+
+  @Override
+  public ParticipantStatusMonitor getParticipantStatusMonitor() {
+    return _participantStatusMonitor;
   }
 
   @Override

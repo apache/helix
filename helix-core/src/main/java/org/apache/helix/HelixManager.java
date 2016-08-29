@@ -25,6 +25,7 @@ import org.apache.helix.controller.GenericHelixController;
 import org.apache.helix.healthcheck.ParticipantHealthReportCollector;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.spectator.RoutingTableProvider;
@@ -201,6 +202,11 @@ public interface HelixManager {
    */
   String getSessionId();
 
+  /**
+   * Get the ParticipantStatusMonitor.
+   * @return the ParticipantStatusMonitor
+   */
+  ParticipantStatusMonitor getParticipantStatusMonitor();
   /**
    * The time stamp is always updated when a notification is received. This can
    * be used to check if there was any new notification when previous

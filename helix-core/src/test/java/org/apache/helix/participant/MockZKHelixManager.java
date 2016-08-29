@@ -48,6 +48,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 
 public class MockZKHelixManager implements HelixManager {
@@ -265,4 +266,8 @@ public class MockZKHelixManager implements HelixManager {
     return 0L;
   }
 
+  @Override
+  public ParticipantStatusMonitor getParticipantStatusMonitor() {
+    return null;
+  }
 }

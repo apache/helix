@@ -59,6 +59,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
+import org.apache.helix.monitoring.mbeans.ParticipantStatusMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -110,6 +111,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private MessageQueueMonitor _messageQueueMonitor;
   private ClusterMessagingService _messagingService;
+  private ParticipantStatusMonitor _participantStatusMonitor;
   private GenericHelixController _controller;
   private Long _lastSessionSyncTime;
   private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
@@ -144,9 +146,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     startMonitorThread();
   }
 
-  public HelixTaskExecutor(ClusterMessagingService messagingService) {
+  public HelixTaskExecutor(ClusterMessagingService messagingService, ParticipantStatusMonitor participantStatusMonitor) {
     this();
     _messagingService = messagingService;
+    _participantStatusMonitor = participantStatusMonitor;
   }
 
   @Override
@@ -597,6 +600,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     // Update message count
     _messageQueueMonitor.setMessageQueueBacklog(messages.size());
+    if (_participantStatusMonitor != null) {
+      _participantStatusMonitor.incrementReceivedMessages(messages.size());
+    }
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);

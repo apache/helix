@@ -115,6 +115,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     _zkClient.createPersistent(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceError(clusterName, nodeId), true);
     _zkClient.createPersistent(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceHistory(clusterName, nodeId), true);
   }
 
   @Override

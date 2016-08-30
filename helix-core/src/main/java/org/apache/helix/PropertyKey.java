@@ -19,23 +19,6 @@ package org.apache.helix;
  * under the License.
  */
 
-import static org.apache.helix.PropertyType.CONFIGS;
-import static org.apache.helix.PropertyType.CONTROLLER;
-import static org.apache.helix.PropertyType.CURRENTSTATES;
-import static org.apache.helix.PropertyType.ERRORS;
-import static org.apache.helix.PropertyType.ERRORS_CONTROLLER;
-import static org.apache.helix.PropertyType.EXTERNALVIEW;
-import static org.apache.helix.PropertyType.HISTORY;
-import static org.apache.helix.PropertyType.IDEALSTATES;
-import static org.apache.helix.PropertyType.LEADER;
-import static org.apache.helix.PropertyType.LIVEINSTANCES;
-import static org.apache.helix.PropertyType.MESSAGES;
-import static org.apache.helix.PropertyType.MESSAGES_CONTROLLER;
-import static org.apache.helix.PropertyType.PAUSE;
-import static org.apache.helix.PropertyType.STATEMODELDEFS;
-import static org.apache.helix.PropertyType.STATUSUPDATES;
-import static org.apache.helix.PropertyType.STATUSUPDATES_CONTROLLER;
-
 import java.util.Arrays;
 
 import org.apache.helix.model.ClusterConfig;
@@ -50,11 +33,14 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.log4j.Logger;
+
+import static org.apache.helix.PropertyType.*;
 
 /**
  * Key allowing for type-safe lookups of and conversions to {@link HelixProperty} objects.
@@ -313,6 +299,11 @@ public class PropertyKey {
      */
     public PropertyKey errors(String instanceName) {
       return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName);
+    }
+
+    public PropertyKey participantHistory(String instanceName) {
+      return new PropertyKey(INSTANCE_HISTORY, ParticipantHistory.class, _clusterName,
+          instanceName);
     }
 
     /**

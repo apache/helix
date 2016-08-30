@@ -112,6 +112,16 @@ public final class ZKUtil {
           logger.info("Invalid instance setup, missing znode path: " + path);
         }
       }
+
+      if (isValid) {
+        // Create the instance history node if it does not exist.
+        // This is for back-compatibility.
+        String historyPath = PropertyPathBuilder.instanceHistory(clusterName, instanceName);
+        if (!zkclient.exists(historyPath)) {
+          zkclient.createPersistent(historyPath, true);
+        }
+
+      }
       return isValid;
     }
 

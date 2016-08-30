@@ -40,10 +40,10 @@ import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.CurrentState;
-import org.apache.helix.model.CurrentState.CurrentStateProperty;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.Message.MessageType;
@@ -219,6 +219,8 @@ public class ParticipantManagerHelper {
         throw new HelixException(errorMessage);
       }
     }
+
+    updateHistory();
   }
 
   /**
@@ -310,7 +312,19 @@ public class ParticipantManagerHelper {
     _stateMachineEngine.registerStateModelFactory(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
     _messagingService.onConnected();
+  }
 
+  /**
+   * Update participant session history.
+   */
+  private void updateHistory() {
+    PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
+    ParticipantHistory history = _dataAccessor.getProperty(propertyKey);
+    if (history == null) {
+      history = new ParticipantHistory(_instanceName);
+    }
+    history.updateHistory(_sessionId);
+    _dataAccessor.setProperty(propertyKey, history);
   }
 
 }

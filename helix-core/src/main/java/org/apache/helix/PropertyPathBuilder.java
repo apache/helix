@@ -111,6 +111,8 @@ public class PropertyPathBuilder {
         "/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}");
     addEntry(PropertyType.ERRORS, 5,
         "/{clusterName}/INSTANCES/{instanceName}/ERRORS/{sessionId}/{subPath}/{recordName}");
+    addEntry(PropertyType.INSTANCE_HISTORY, 2,
+        "/{clusterName}/INSTANCES/{instanceName}/HISTORY");
     addEntry(PropertyType.HEALTHREPORT, 2, "/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT");
     addEntry(PropertyType.HEALTHREPORT, 3,
         "/{clusterName}/INSTANCES/{instanceName}/HEALTHREPORT/{reportName}");
@@ -265,6 +267,16 @@ public class PropertyPathBuilder {
 
   public static String instanceError(String clusterName, String instanceName) {
     return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
+  }
+
+  public static String instanceError(
+      String clusterName, String instanceName, String sessionId, String resourceName, String partitionName) {
+    return String.format("/%s/INSTANCES/%s/ERRORS/%s/%s/%s",
+        clusterName, instanceName, sessionId, resourceName, partitionName);
+  }
+
+  public static String instanceHistory(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/HISTORY", clusterName, instanceName);
   }
 
   public static String instanceStatusUpdate(String clusterName, String instanceName) {

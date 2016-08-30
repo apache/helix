@@ -26,7 +26,7 @@ enum Type {
   CLUSTER,
   INSTANCE,
   CONTROLLER,
-  RESOURCE;
+  RESOURCE
 }
 
 /**
@@ -50,6 +50,7 @@ public enum PropertyType {
   CURRENTSTATES(Type.INSTANCE, true, true, false, false, true),
   STATUSUPDATES(Type.INSTANCE, true, true, false, false, false, true),
   ERRORS(Type.INSTANCE, true, true),
+  INSTANCE_HISTORY(Type.INSTANCE, true, true, true),
   HEALTHREPORT(Type.INSTANCE, true, false, false, false, false, true),
 
   // CONTROLLER PROPERTY

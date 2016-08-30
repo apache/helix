@@ -19,8 +19,14 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.TimeZone;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
@@ -30,6 +36,12 @@ import org.apache.helix.ZNRecord;
  */
 public class LeaderHistory extends HelixProperty {
   private final static int HISTORY_SIZE = 8;
+
+  private enum ConfigProperty {
+    HISTORY,
+    TIME,
+    DATE
+  }
 
   public LeaderHistory(String id) {
     super(id);
@@ -45,6 +57,8 @@ public class LeaderHistory extends HelixProperty {
    * @param instanceName the name of the leader instance
    */
   public void updateHistory(String clusterName, String instanceName) {
+    /* keep this for back-compatible */
+    // TODO: remove this in future when we confirmed no one consumes it
     List<String> list = _record.getListField(clusterName);
     if (list == null) {
       list = new ArrayList<String>();
@@ -55,6 +69,28 @@ public class LeaderHistory extends HelixProperty {
       list.remove(0);
     }
     list.add(instanceName);
+    // TODO: remove above in future when we confirmed no one consumes it */
+
+
+    List<String> historyList = _record.getListField(ConfigProperty.HISTORY.name());
+    if (historyList == null) {
+      historyList = new ArrayList<String>();
+      _record.setListField(ConfigProperty.HISTORY.name(), historyList);
+    }
+
+    if (historyList.size() == HISTORY_SIZE) {
+      historyList.remove(0);
+    }
+
+    Map<String, String> historyEntry = new HashMap<String, String>();
+
+    long currentTime = System.currentTimeMillis();
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    df.setTimeZone(TimeZone.getTimeZone("UTC"));
+    String dateTime = df.format(new Date(currentTime));
+
+    historyEntry.put(ConfigProperty.TIME.name(), String.valueOf(currentTime));
+    historyEntry.put(ConfigProperty.DATE.name(), dateTime);
   }
 
   @Override

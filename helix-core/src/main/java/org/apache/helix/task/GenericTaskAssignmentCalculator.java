@@ -22,22 +22,22 @@ package org.apache.helix.task;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 
-import org.apache.helix.ZNRecord;
+import org.apache.helix.HelixException;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
-import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.util.JenkinsHash;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Function;
@@ -53,6 +53,7 @@ import com.google.common.collect.Sets;
  */
 public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   private static final Logger LOG = Logger.getLogger(GenericTaskAssignmentCalculator.class);
+  private final int DEFAULT_SHIFT_TIME = 0;
 
   /** Reassignment policy for this algorithm */
   private RetryPolicy _retryPolicy = new DefaultRetryReassigner();
@@ -122,85 +123,21 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
     }
 
     // Get the assignment keyed on partition
-    RebalanceStrategy strategy = new AutoRebalanceStrategy(resourceId, partitions, states);
-    List<String> allNodes =
-        Lists.newArrayList(getEligibleInstances(jobCfg, currStateOutput, instances, cache));
-    Collections.sort(allNodes);
-    ZNRecord record =
-        strategy.computePartitionAssignment(allNodes, allNodes, currentMapping, cache);
-    Map<String, List<String>> preferenceLists = record.getListFields();
-
-    // Convert to an assignment keyed on participant
-    Map<String, SortedSet<Integer>> taskAssignment = Maps.newHashMap();
-    for (Map.Entry<String, List<String>> e : preferenceLists.entrySet()) {
-      String partitionName = e.getKey();
-      partitionName = String.valueOf(TaskUtil.getPartitionId(partitionName));
-      List<String> preferenceList = e.getValue();
-      for (String participantName : preferenceList) {
-        if (!taskAssignment.containsKey(participantName)) {
-          taskAssignment.put(participantName, new TreeSet<Integer>());
-        }
-        taskAssignment.get(participantName).add(Integer.valueOf(partitionName));
-      }
+    if (jobCfg.getTargetResource() != null) {
+      LOG.error(
+          "Target resource is not null, should call FixedTaskAssignmentCalculator, target resource : "
+              + jobCfg.getTargetResource());
+      return new HashMap<String, SortedSet<Integer>>();
     }
+
+    List<String> allNodes = Lists.newArrayList(instances);
+    ConsistentHashingPlacement placement = new ConsistentHashingPlacement(allNodes);
+    Map<String, SortedSet<Integer>> taskAssignment =
+        placement.computeMapping(partitions, DEFAULT_SHIFT_TIME);
 
     // Finally, adjust the assignment if tasks have been failing
     taskAssignment = _retryPolicy.reassign(jobCfg, jobContext, allNodes, taskAssignment);
     return taskAssignment;
-  }
-
-  /**
-   * Filter a list of instances based on targeted resource policies
-   * @param jobCfg the job configuration
-   * @param currStateOutput the current state of all instances in the cluster
-   * @param instances valid instances
-   * @param cache current snapshot of the cluster
-   * @return a set of instances that can be assigned to
-   */
-  private Set<String> getEligibleInstances(JobConfig jobCfg, CurrentStateOutput currStateOutput,
-      Iterable<String> instances, ClusterDataCache cache) {
-    // No target resource means any instance is available
-    Set<String> allInstances = Sets.newHashSet(instances);
-    String targetResource = jobCfg.getTargetResource();
-    if (targetResource == null) {
-      return allInstances;
-    }
-
-    // Bad ideal state means don't assign
-    IdealState idealState = cache.getIdealState(targetResource);
-    if (idealState == null) {
-      return Collections.emptySet();
-    }
-
-    // Get the partitions on the target resource to use
-    Set<String> partitions = idealState.getPartitionSet();
-    List<String> targetPartitions = jobCfg.getTargetPartitions();
-    if (targetPartitions != null && !targetPartitions.isEmpty()) {
-      partitions.retainAll(targetPartitions);
-    }
-
-    // Based on state matches, add eligible instances
-    Set<String> eligibleInstances = Sets.newHashSet();
-    Set<String> targetStates = jobCfg.getTargetPartitionStates();
-    for (String partition : partitions) {
-      Map<String, String> stateMap =
-          currStateOutput.getCurrentStateMap(targetResource, new Partition(partition));
-      Map<String, String> pendingStateMap =
-          currStateOutput.getPendingStateMap(targetResource, new Partition(partition));
-      for (Map.Entry<String, String> e : stateMap.entrySet()) {
-        String instanceName = e.getKey();
-        String state = e.getValue();
-        String pending = pendingStateMap.get(instanceName);
-        if (pending != null) {
-          continue;
-        }
-        if (targetStates == null || targetStates.isEmpty() || targetStates.contains(state)) {
-          eligibleInstances.add(instanceName);
-        }
-      }
-    }
-    allInstances.retainAll(eligibleInstances);
-    return allInstances;
   }
 
   public interface RetryPolicy {
@@ -272,6 +209,83 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
       int maxNumAttempts = jobCfg.getMaxAttemptsPerTask();
       int numInstances = Math.min(instances.size(), jobCfg.getMaxForcedReassignmentsPerTask() + 1);
       return numAttempts / (maxNumAttempts / numInstances);
+    }
+  }
+
+  private class ConsistentHashingPlacement {
+    private JenkinsHash _hashFunction;
+    private ConsistentHashSelector _selector;
+
+    public ConsistentHashingPlacement(List<String> potentialInstances) {
+      _hashFunction = new JenkinsHash();
+      _selector = new ConsistentHashSelector(potentialInstances);
+    }
+
+    public Map<String, SortedSet<Integer>> computeMapping(List<String> partitions, int shiftTimes) {
+      Map<String, SortedSet<Integer>> taskAssignment = Maps.newHashMap();
+
+      for (String partition : partitions) {
+        long hashedValue = partition.hashCode();
+
+        // Hash the value based on the shifting time. The default shift time will be 0.
+        for (int i = 0; i <= shiftTimes; i++) {
+          hashedValue = _hashFunction.hash(hashedValue);
+        }
+        String selectedInstance = select(hashedValue);
+        if (selectedInstance != null) {
+          if (!taskAssignment.containsKey(selectedInstance)) {
+            taskAssignment.put(selectedInstance, new TreeSet<Integer>());
+          }
+          taskAssignment.get(selectedInstance).add(TaskUtil.getPartitionId(partition));
+        }
+      }
+      return taskAssignment;
+    }
+
+    private String select(long data) throws HelixException {
+      return _selector.get(data);
+    }
+
+    protected long hash(long data) {
+      return _hashFunction.hash(data);
+    }
+
+    private class ConsistentHashSelector {
+      private final static int DEFAULT_TOKENS_PER_INSTANCE = 1000;
+      private final SortedMap<Long, String> circle = new TreeMap<Long, String>();
+      protected int instanceSize = 0;
+
+      public ConsistentHashSelector(List<String> instances) {
+        for (String instance : instances) {
+          long tokenCount = DEFAULT_TOKENS_PER_INSTANCE;
+          add(instance, tokenCount);
+          instanceSize++;
+        }
+      }
+
+      public void add(String instance, long numberOfReplicas) {
+        for (int i = 0; i < numberOfReplicas; i++) {
+          circle.put(_hashFunction.hash(instance.hashCode(), i), instance);
+        }
+      }
+
+      public void remove(String instance, long numberOfReplicas) {
+        for (int i = 0; i < numberOfReplicas; i++) {
+          circle.remove(_hashFunction.hash(instance.hashCode(), i));
+        }
+      }
+
+      public String get(long data) {
+        if (circle.isEmpty()) {
+          return null;
+        }
+        long hash = _hashFunction.hash(data);
+        if (!circle.containsKey(hash)) {
+          SortedMap<Long, String> tailMap = circle.tailMap(hash);
+          hash = tailMap.isEmpty() ? circle.firstKey() : tailMap.firstKey();
+        }
+        return circle.get(hash);
+      }
     }
   }
 }

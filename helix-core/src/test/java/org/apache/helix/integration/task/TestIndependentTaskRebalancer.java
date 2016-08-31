@@ -219,8 +219,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    Map<String, String> taskConfigMap = Maps.newHashMap(
-        ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + _startPort));
+    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap
+        .of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + (_startPort + 1)));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();

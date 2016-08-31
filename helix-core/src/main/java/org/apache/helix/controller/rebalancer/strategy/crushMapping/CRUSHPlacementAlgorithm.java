@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.controller.rebalancer.topology.Node;
+import org.apache.helix.util.JenkinsHash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

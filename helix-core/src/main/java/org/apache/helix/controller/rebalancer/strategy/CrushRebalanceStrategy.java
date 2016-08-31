@@ -24,7 +24,7 @@ import com.google.common.base.Predicates;
 import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.crushMapping.CRUSHPlacementAlgorithm;
-import org.apache.helix.controller.rebalancer.strategy.crushMapping.JenkinsHash;
+import org.apache.helix.util.JenkinsHash;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.stages.ClusterDataCache;

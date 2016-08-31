@@ -304,6 +304,10 @@ public class TaskStateModel extends StateModel {
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);
 
+    if (task instanceof UserContentStore) {
+      ((UserContentStore) task).init(_manager, cfg.getWorkflow(), msg.getResourceName(), taskPartition);
+    }
+
     // Submit the task for execution
     _taskRunner =
         new TaskRunner(task, msg.getResourceName(), taskPartition, msg.getTgtName(), _manager,

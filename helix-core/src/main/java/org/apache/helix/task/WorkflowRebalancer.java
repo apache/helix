@@ -171,6 +171,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
     HelixAdmin admin = _manager.getClusterManagmentTool();
 
     IdealState jobIS = admin.getResourceIdealState(_manager.getClusterName(), jobResource);
+    TaskUtil.createUserContent(_manager.getHelixPropertyStore(), jobResource,
+        new ZNRecord(TaskUtil.USER_CONTENT_NODE));
     if (jobIS != null) {
       LOG.info("Job " + jobResource + " idealstate already exists!");
       return;

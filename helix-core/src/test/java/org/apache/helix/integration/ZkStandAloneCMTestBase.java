@@ -21,6 +21,9 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterSetup;
@@ -46,7 +49,8 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
   protected static final String TEST_DB = "TestDB";
   protected static final int _PARTITIONS = 20;
 
-  protected ClusterSetup _setupTool = null;
+  protected ClusterSetup _setupTool;
+  protected HelixManager _manager;
   protected final String CLASS_NAME = getShortClassName();
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + CLASS_NAME;
 
@@ -97,6 +101,11 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             CLUSTER_NAME));
     Assert.assertTrue(result);
+
+    // create cluster manager
+    _manager = HelixManagerFactory
+        .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
+    _manager.connect();
   }
 
   @AfterClass

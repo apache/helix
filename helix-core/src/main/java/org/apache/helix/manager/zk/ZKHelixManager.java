@@ -571,11 +571,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       }
 
     } finally {
-      _zkclient.close();
-      _zkclient = null;
-      _sessionStartTime = null;
-      LOG.info("Cluster manager: " + _instanceName + " disconnected");
-
       if (_controller != null) {
         try {
           _controller.shutdown();
@@ -586,6 +581,16 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
           _leaderElectionHandler = null;
         }
       }
+
+      if (_participantManager != null) {
+        _participantManager.disconnect();
+        _participantManager = null;
+      }
+
+      _zkclient.close();
+      _zkclient = null;
+      _sessionStartTime = null;
+      LOG.info("Cluster manager: " + _instanceName + " disconnected");
     }
   }
 
@@ -897,7 +902,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   void handleNewSessionAsParticipant() throws Exception {
     if (_participantManager != null) {
-      _participantManager.shutdown();
+      _participantManager.reset();
     }
     _participantManager =
         new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,

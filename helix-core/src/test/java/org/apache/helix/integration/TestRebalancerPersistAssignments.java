@@ -94,7 +94,6 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     HelixClusterVerifier verifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
-    Thread.sleep(500);
     Assert.assertTrue(verifier.verify());
 
     // kill 1 node
@@ -107,7 +106,6 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
     Set<String> excludedInstances = new HashSet<String>();
     excludedInstances.add(_participants[0].getInstanceName());
-    Thread.sleep(2000);
     verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
 
     // clean up

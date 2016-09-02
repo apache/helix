@@ -29,12 +29,15 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
+import org.apache.helix.tools.ClusterStateVerifier.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterStateVerifier.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Map;
@@ -81,7 +84,40 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   }
 
   @Test(dataProvider = "rebalanceModes")
-  public void testAutoRebalanceWithPersistAssignmentEnable(RebalanceMode rebalanceMode)
+  public void testDisablePersist(RebalanceMode rebalanceMode)
+      throws Exception {
+    String testDb = "TestDB2-" + rebalanceMode.name();
+
+    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
+
+    HelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
+    Assert.assertTrue(verifier.verify());
+
+    // kill 1 node
+    _participants[0].syncStop();
+
+    Assert.assertTrue(verifier.verify());
+
+    IdealState idealState =
+        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+
+    Set<String> excludedInstances = new HashSet<String>();
+    excludedInstances.add(_participants[0].getInstanceName());
+    verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
+
+    // clean up
+    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _participants[0] =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[0].getInstanceName());
+    _participants[0].syncStart();
+  }
+
+  @Test(dataProvider = "rebalanceModes", dependsOnMethods = {"testDisablePersist"})
+  public void testEnablePersist(RebalanceMode rebalanceMode)
       throws Exception {
     String testDb = "TestDB1-" + rebalanceMode.name();
     enablePersistAssignment(true);

@@ -40,8 +40,11 @@ public class ParticipantHistory extends HelixProperty {
     TIME,
     DATE,
     SESSION,
-    HISTORY
+    HISTORY,
+    LAST_OFFLINE_TIME
   }
+
+  public static long ONLINE = -1;
 
   public ParticipantHistory(String id) {
     super(id);
@@ -52,11 +55,44 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
-   * Update last offline timestamp in participant history.
+   * Called when a participant went offline or is about to go offline.
+   * This will update the offline timestamp in participant history.
+   */
+  public void reportOffline() {
+    long time = System.currentTimeMillis();
+    _record.setSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name(), String.valueOf(time));
+  }
+
+  /**
+   * Called when a participant goes online, this will update all related session history.
    *
    * @return
    */
-  public void updateHistory(String sessionId) {
+  public void reportOnline(String sessionId) {
+    updateSessionHistory(sessionId);
+    _record.setSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name(), String.valueOf(ONLINE));
+  }
+
+  /**
+   * Get the time when this node goes offline last time (epoch time).
+   * If the node is currently online, return -1.
+   * If no offline time is record, return NULL.
+   *
+   * @return
+   */
+  public Long getLastOfflineTime() {
+    String time = _record.getSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name());
+    if (time == null) {
+      return ONLINE;
+    }
+
+    return Long.valueOf(time);
+  }
+
+  /**
+   * Add record to session online history list
+   */
+  private void updateSessionHistory(String sessionId) {
     List<String> list = _record.getListField(ConfigProperty.HISTORY.name());
     if (list == null) {
       list = new ArrayList<String>();

@@ -1054,10 +1054,10 @@ public class ZKHelixAdmin implements HelixAdmin {
     String path = keyBuilder.constraint(constraintType.toString()).getPath();
 
     baseAccessor.update(path, new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        ClusterConstraints constraints =
-            currentData == null ? new ClusterConstraints(constraintType) : new ClusterConstraints(currentData);
+      @Override public ZNRecord update(ZNRecord currentData) {
+        ClusterConstraints constraints = currentData == null ?
+            new ClusterConstraints(constraintType) :
+            new ClusterConstraints(currentData);
 
         constraints.addConstraintItem(constraintId, constraintItem);
         return constraints.getRecord();

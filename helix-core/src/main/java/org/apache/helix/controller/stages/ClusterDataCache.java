@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -39,6 +40,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.model.ParticipantHistory;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
@@ -62,6 +64,7 @@ public class ClusterDataCache {
   Map<String, StateModelDefinition> _stateModelDefMap;
   Map<String, InstanceConfig> _instanceConfigMap;
   Map<String, InstanceConfig> _instanceConfigCacheMap;
+  Map<String, Long> _instanceOfflineTimeMap;
   Map<String, ResourceConfig> _resourceConfigMap;
   Map<String, ResourceConfig> _resourceConfigCacheMap;
   Map<String, ClusterConstraints> _constraintMap;
@@ -73,6 +76,8 @@ public class ClusterDataCache {
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
 
   boolean _init = true;
+
+  boolean _updateInstanceOfflineTime = true;
 
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
 
@@ -101,6 +106,10 @@ public class ClusterDataCache {
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());
+
+    if (_init || _updateInstanceOfflineTime) {
+      updateOfflineInstanceHistory(accessor);
+    }
 
     if (LOG.isTraceEnabled()) {
       for (LiveInstance instance : _liveInstanceMap.values()) {
@@ -236,6 +245,42 @@ public class ClusterDataCache {
   }
 
   /**
+   * Return the last offline time for given instance.
+   * Return NULL if the instance is ONLINE currently, or the record is not persisted somehow.
+   *
+   * @param instanceName
+   * @return
+   */
+  public Long getInstanceOfflineTime(String instanceName) {
+    if (_instanceOfflineTimeMap != null) {
+      return _instanceOfflineTimeMap.get(instanceName);
+    }
+    return null;
+  }
+
+  private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
+    List<String> offlineNodes = new ArrayList<String>(_instanceConfigMap.keySet());
+    offlineNodes.removeAll(_liveInstanceMap.keySet());
+    _instanceOfflineTimeMap = new HashMap<String, Long>();
+
+    for(String instance : offlineNodes) {
+      Builder keyBuilder = accessor.keyBuilder();
+      PropertyKey propertyKey = keyBuilder.participantHistory(instance);
+      ParticipantHistory history = accessor.getProperty(propertyKey);
+      if (history == null) {
+        history = new ParticipantHistory(instance);
+      }
+      if (history.getLastOfflineTime() == ParticipantHistory.ONLINE) {
+        history.reportOffline();
+        // persist history back to ZK.
+        accessor.setProperty(propertyKey, history);
+      }
+      _instanceOfflineTimeMap.put(instance, history.getLastOfflineTime());
+    }
+    _updateInstanceOfflineTime = false;
+  }
+
+  /**
    * Retrieves the idealstates for all resources
    * @return
    */
@@ -269,6 +314,7 @@ public class ClusterDataCache {
       liveInstanceMap.put(liveInstance.getId(), liveInstance);
     }
     _liveInstanceCacheMap = liveInstanceMap;
+    _updateInstanceOfflineTime = true;
   }
 
   /**

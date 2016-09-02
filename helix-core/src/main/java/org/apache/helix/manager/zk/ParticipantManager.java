@@ -246,7 +246,9 @@ public class ParticipantManager {
       }
     }
 
-    updateHistory();
+    ParticipantHistory history = getHistory();
+    history.reportOnline(_sessionId);
+    persistHistory(history);
   }
 
   /**
@@ -339,20 +341,27 @@ public class ParticipantManager {
     _messagingService.onConnected();
   }
 
-  /**
-   * Update participant session history.
-   */
-  private void updateHistory() {
+  private ParticipantHistory getHistory() {
     PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
     ParticipantHistory history = _dataAccessor.getProperty(propertyKey);
     if (history == null) {
       history = new ParticipantHistory(_instanceName);
     }
-    history.updateHistory(_sessionId);
+    return history;
+  }
+
+  private void persistHistory(ParticipantHistory history) {
+    PropertyKey propertyKey = _keyBuilder.participantHistory(_instanceName);
     _dataAccessor.setProperty(propertyKey, history);
   }
 
-  public void shutdown() {
+  public void reset() {
+  }
 
+  public void disconnect() {
+    ParticipantHistory history = getHistory();
+    history.reportOffline();
+    persistHistory(history);
+    reset();
   }
 }

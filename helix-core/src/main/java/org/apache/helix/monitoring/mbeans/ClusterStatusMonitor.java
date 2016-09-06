@@ -416,6 +416,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
       unregisterPerInstanceResources(_perInstanceResourceMap.keySet());
       unregister(getObjectName(clusterBeanName()));
+
+      unregisterWorkflows(_perTypeWorkflowMonitorMap.keySet());
+      unregisterJobs(_perTypeJobMonitorMap.keySet());
     } catch (Exception e) {
       LOG.error("Fail to reset ClusterStatusMonitor, cluster: " + _clusterName, e);
     }
@@ -554,11 +557,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     register(workflowMonitor, getObjectName(workflowBeanName));
   }
 
-  private synchronized void unregisterWorkflow(WorkflowMonitor workflowMonitor)
+  private synchronized void unregisterWorkflows(Collection<String> workflowMonitors)
       throws MalformedObjectNameException {
-    String workflowBeanName = getWorkflowBeanName(workflowMonitor.getWorkflowType());
-    unregister(getObjectName(workflowBeanName));
-    _perTypeWorkflowMonitorMap.remove(workflowMonitor.getWorkflowType());
+    for (String workflowMonitor : workflowMonitors) {
+      String workflowBeanName = getWorkflowBeanName(workflowMonitor);
+      unregister(getObjectName(workflowBeanName));
+      _perTypeWorkflowMonitorMap.remove(workflowMonitor);
+    }
   }
 
   private synchronized void registerJob(JobMonitor jobMonitor) throws MalformedObjectNameException {
@@ -566,11 +571,13 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     register(jobMonitor, getObjectName(jobBeanName));
   }
 
-  private synchronized void unregisterJobs(JobMonitor jobMonitor)
+  private synchronized void unregisterJobs(Collection<String> jobMonitors)
       throws MalformedObjectNameException {
-    String jobBeanName = getJobBeanName(jobMonitor.getJobType());
-    unregister(getObjectName(jobBeanName));
-    _perTypeJobMonitorMap.remove(jobMonitor.getJobType());
+    for (String jobMonitor : jobMonitors) {
+      String jobBeanName = getJobBeanName(jobMonitor);
+      unregister(getObjectName(jobBeanName));
+      _perTypeJobMonitorMap.remove(jobMonitor);
+    }
   }
 
   public String clusterBeanName() {

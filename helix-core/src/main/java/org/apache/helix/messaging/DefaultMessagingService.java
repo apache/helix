@@ -56,7 +56,7 @@ public class DefaultMessagingService implements ClusterMessagingService {
   public DefaultMessagingService(HelixManager manager) {
     _manager = manager;
     _evaluator = new CriteriaEvaluator();
-    _taskExecutor = new HelixTaskExecutor(this, manager.getParticipantStatusMonitor());
+    _taskExecutor = new HelixTaskExecutor(this);
     _asyncCallbackService = new AsyncCallbackService();
     _taskExecutor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
         _asyncCallbackService);

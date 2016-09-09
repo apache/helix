@@ -35,6 +35,7 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.LiveInstanceInfoProvider;
+import org.apache.helix.PreConnectCallback;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordBucketizer;
@@ -54,10 +55,10 @@ import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
 /**
- * helper class for participant-manager
+ * Class to handle all session related work for a participant.
  */
-public class ParticipantManagerHelper {
-  private static Logger LOG = Logger.getLogger(ParticipantManagerHelper.class);
+public class ParticipantManager {
+  private static Logger LOG = Logger.getLogger(ParticipantManager.class);
 
   final ZkClient _zkclient;
   final HelixManager _manager;
@@ -73,9 +74,10 @@ public class ParticipantManagerHelper {
   final DefaultMessagingService _messagingService;
   final StateMachineEngine _stateMachineEngine;
   final LiveInstanceInfoProvider _liveInstanceInfoProvider;
+  final List<PreConnectCallback> _preConnectCallbacks;
 
-  public ParticipantManagerHelper(HelixManager manager, ZkClient zkclient, int sessionTimeout,
-      LiveInstanceInfoProvider liveInstanceInfoProvider) {
+  public ParticipantManager(HelixManager manager, ZkClient zkclient, int sessionTimeout,
+      LiveInstanceInfoProvider liveInstanceInfoProvider, List<PreConnectCallback> preConnectCallbacks) {
     _zkclient = zkclient;
     _manager = manager;
     _clusterName = manager.getClusterName();
@@ -90,9 +92,33 @@ public class ParticipantManagerHelper {
     _messagingService = (DefaultMessagingService) manager.getMessagingService();
     _stateMachineEngine = manager.getStateMachineEngine();
     _liveInstanceInfoProvider = liveInstanceInfoProvider;
+    _preConnectCallbacks = preConnectCallbacks;
   }
 
-  public void joinCluster() {
+  /**
+   * Handle new session for a participang.
+   * @throws Exception
+   */
+  public void handleNewSession() throws Exception {
+    joinCluster();
+
+    /**
+     * Invoke PreConnectCallbacks
+     */
+    for (PreConnectCallback callback : _preConnectCallbacks) {
+      callback.onPreConnect();
+    }
+
+    createLiveInstance();
+    carryOverPreviousCurrentState();
+
+    /**
+     * setup message listener
+     */
+    setupMsgHandler();
+  }
+
+  private void joinCluster() {
     // Read cluster config and see if instance can auto join the cluster
     boolean autoJoin = false;
     try {
@@ -129,7 +155,7 @@ public class ParticipantManagerHelper {
     }
   }
 
-  public void createLiveInstance() {
+  private void createLiveInstance() {
     String liveInstancePath = _keyBuilder.liveInstance(_instanceName).getPath();
     LiveInstance liveInstance = new LiveInstance(_instanceName);
     liveInstance.setSessionId(_sessionId);
@@ -227,7 +253,7 @@ public class ParticipantManagerHelper {
    * carry over current-states from last sessions
    * set to initial state for current session only when state doesn't exist in current session
    */
-  public void carryOverPreviousCurrentState() {
+  private void carryOverPreviousCurrentState() {
     List<String> sessions = _dataAccessor.getChildNames(_keyBuilder.sessions(_instanceName));
 
     for (String session : sessions) {
@@ -302,13 +328,12 @@ public class ParticipantManagerHelper {
     }
   }
 
-  public void setupMsgHandler() throws Exception {
+  private void setupMsgHandler() throws Exception {
     _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
         _stateMachineEngine);
     _manager.addMessageListener(_messagingService.getExecutor(), _instanceName);
 
-    ScheduledTaskStateModelFactory stStateModelFactory =
-        new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
+    ScheduledTaskStateModelFactory stStateModelFactory = new ScheduledTaskStateModelFactory(_messagingService.getExecutor());
     _stateMachineEngine.registerStateModelFactory(
         DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE, stStateModelFactory);
     _messagingService.onConnected();
@@ -327,4 +352,7 @@ public class ParticipantManagerHelper {
     _dataAccessor.setProperty(propertyKey, history);
   }
 
+  public void shutdown() {
+
+  }
 }

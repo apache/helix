@@ -125,6 +125,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   private ParticipantStatusMonitor _participantStatusMonitor;
   private final ParticipantHealthReportCollectorImpl _participantHealthInfoCollector;
   private Long _sessionStartTime;
+  private ParticipantManager _participantManager;
 
   /**
    * controller fields
@@ -427,8 +428,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   @Override
   public void addControllerListener(ControllerChangeListener listener) {
     addListener(listener, new Builder(_clusterName).controller(), ChangeType.CONTROLLER,
-        new EventType[] {
-            EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
+        new EventType[] { EventType.NodeChildrenChanged, EventType.NodeDeleted,
+            EventType.NodeCreated
         });
   }
 
@@ -514,8 +515,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   public void connect() throws Exception {
     LOG.info("ClusterManager.connect()");
     if (isConnected()) {
-      LOG.warn(
-          "Cluster manager: " + _instanceName + " for cluster: " + _clusterName + " already connected. skip connect");
+      LOG.warn("Cluster manager: " + _instanceName + " for cluster: " + _clusterName
+          + " already connected. skip connect");
       return;
     }
 
@@ -882,6 +883,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       break;
     }
 
+    _sessionStartTime = System.currentTimeMillis();
+
     startTimerTasks();
 
     /**
@@ -893,29 +896,13 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
   }
 
   void handleNewSessionAsParticipant() throws Exception {
-    /**
-     * auto-join
-     */
-    ParticipantManagerHelper participantHelper =
-        new ParticipantManagerHelper(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider);
-    participantHelper.joinCluster();
-
-    /**
-     * Invoke PreConnectCallbacks
-     */
-    for (PreConnectCallback callback : _preConnectCallbacks) {
-      callback.onPreConnect();
+    if (_participantManager != null) {
+      _participantManager.shutdown();
     }
-
-    participantHelper.createLiveInstance();
-    participantHelper.carryOverPreviousCurrentState();
-
-    /**
-     * setup message listener
-     */
-    participantHelper.setupMsgHandler();
-
-    _sessionStartTime = System.currentTimeMillis();
+    _participantManager =
+        new ParticipantManager(this, _zkclient, _sessionTimeout, _liveInstanceInfoProvider,
+            _preConnectCallbacks);
+    _participantManager.handleNewSession();
   }
 
   void handleNewSessionAsController() {

@@ -27,18 +27,20 @@ import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
+import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -77,23 +79,57 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
   @DataProvider(name = "rebalanceModes")
   public static RebalanceMode [][] rebalanceModes() {
-    return new RebalanceMode[][] { {RebalanceMode.FULL_AUTO},
-        {RebalanceMode.SEMI_AUTO}
-    };
+    return new RebalanceMode[][] { {RebalanceMode.SEMI_AUTO}, {RebalanceMode.FULL_AUTO}};
   }
 
   @Test(dataProvider = "rebalanceModes")
-  public void testAutoRebalanceWithPersistAssignmentEnable(RebalanceMode rebalanceMode)
+  public void testDisablePersist(RebalanceMode rebalanceMode)
+      throws Exception {
+    String testDb = "TestDB2-" + rebalanceMode.name();
+
+    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
+
+    HelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
+    Thread.sleep(500);
+    Assert.assertTrue(verifier.verify());
+
+    // kill 1 node
+    _participants[0].syncStop();
+
+    Assert.assertTrue(verifier.verify());
+
+    IdealState idealState =
+        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+
+    Set<String> excludedInstances = new HashSet<String>();
+    excludedInstances.add(_participants[0].getInstanceName());
+    Thread.sleep(2000);
+    verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
+
+    // clean up
+    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _participants[0] =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[0].getInstanceName());
+    _participants[0].syncStart();
+  }
+
+  @Test(dataProvider = "rebalanceModes", dependsOnMethods = {"testDisablePersist"})
+  public void testEnablePersist(RebalanceMode rebalanceMode)
       throws Exception {
     String testDb = "TestDB1-" + rebalanceMode.name();
     enablePersistAssignment(true);
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 30,
-        BuiltInStateModelDefinitions.MasterSlave.name(), rebalanceMode.name());
+    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+        BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     HelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
     Assert.assertTrue(verifier.verify());
 
     IdealState idealState =
@@ -112,37 +148,76 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     excludedInstances.add(_participants[0].getInstanceName());
     verifyAssignmentInIdealStateWithPersistEnabled(idealState, excludedInstances);
 
+    // clean up
     _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _participants[0] =
+        new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[0].getInstanceName());
+    _participants[0].syncStart();
   }
 
-  @Test(dataProvider = "rebalanceModes")
-  public void testAutoRebalanceWithPersistAssignmentDisabled(RebalanceMode rebalanceMode)
-      throws Exception {
-    String testDb = "TestDB2-" + rebalanceMode.name();
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 30,
-        BuiltInStateModelDefinitions.MasterSlave.name(), rebalanceMode.name());
+  /**
+   * This test is to test the temporary solution for solving Espresso/Databus back-compatible map format issue.
+   *
+   * @throws Exception
+   */
+  @Test(dependsOnMethods = { "testDisablePersist" })
+  public void testSemiAutoEnablePersistMasterSlave() throws Exception {
+    String testDb = "TestDB1-MasterSlave";
+    enablePersistAssignment(true);
+
+    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
+        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
-    boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    HelixClusterVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
+            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
+    Assert.assertTrue(verifier.verify());
+
+    IdealState idealState =
+        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+    verifySemiAutoMasterSlaveAssignment(idealState);
 
     // kill 1 node
     _participants[0].syncStop();
 
-    result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Assert.assertTrue(verifier.verify());
 
-    IdealState idealState =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+    idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+    verifySemiAutoMasterSlaveAssignment(idealState);
 
-    Set<String> excludedInstances = new HashSet<String>();
-    excludedInstances.add(_participants[0].getInstanceName());
-    Thread.sleep(2000);
-    verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
+    // disable an instance
+    _setupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false);
+    idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
+    verifySemiAutoMasterSlaveAssignment(idealState);
 
+    // clean up
     _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
+    _setupTool.getClusterManagementTool()
+        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), true);
+    _participants[0].reset();
+    _participants[0].syncStart();
+  }
+
+  private void verifySemiAutoMasterSlaveAssignment(IdealState idealState) {
+    for (String partition : idealState.getPartitionSet()) {
+      Map<String, String> instanceStateMap = idealState.getInstanceStateMap(partition);
+      List<String> preferenceList = idealState.getPreferenceList(partition);
+      int numMaster = 0;
+
+      for (String ins : preferenceList) {
+        Assert.assertTrue(instanceStateMap.containsKey(ins));
+        String state = instanceStateMap.get(ins);
+        Assert.assertTrue(state.equals(MasterSlaveSMD.States.MASTER.name()) || state
+            .equals(MasterSlaveSMD.States.SLAVE.name()));
+        if (state.equals(MasterSlaveSMD.States.MASTER.name())) {
+          numMaster++;
+        }
+      }
+
+      Assert.assertEquals(numMaster, 1);
+    }
   }
 
   private void enablePersistAssignment(Boolean enable) {

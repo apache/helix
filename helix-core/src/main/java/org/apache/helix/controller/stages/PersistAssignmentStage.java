@@ -19,16 +19,19 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.log4j.Logger;
@@ -50,15 +53,16 @@ public class PersistAssignmentStage extends AbstractBaseStage {
       HelixManager helixManager = event.getAttribute("helixmanager");
       HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      BestPossibleStateOutput assignments =
+      BestPossibleStateOutput bestPossibleAssignments =
           event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
       Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
 
-      for (String resourceId : assignments.resourceSet()) {
+      for (String resourceId : bestPossibleAssignments.resourceSet()) {
         Resource resource = resourceMap.get(resourceId);
         if (resource != null) {
           boolean changed = false;
-          Map<Partition, Map<String, String>> assignment = assignments.getResourceMap(resourceId);
+          Map<Partition, Map<String, String>> bestPossibleAssignment =
+              bestPossibleAssignments.getResourceMap(resourceId);
           IdealState idealState = cache.getIdealState(resourceId);
           if (idealState == null) {
             LOG.warn("IdealState not found for resource " + resourceId);
@@ -70,8 +74,13 @@ public class PersistAssignmentStage extends AbstractBaseStage {
             // do not persist assignment for resource in neither semi or full auto.
             continue;
           }
+
+          //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.
+          Map<Partition, Map<String, String>> assignmentToPersist =
+              convertAssignmentPersisted(resource, idealState, bestPossibleAssignment);
+
           for (Partition partition : resource.getPartitions()) {
-            Map<String, String> instanceMap = assignment.get(partition);
+            Map<String, String> instanceMap = assignmentToPersist.get(partition);
             Map<String, String> existInstanceMap =
                 idealState.getInstanceStateMap(partition.getPartitionName());
             if (instanceMap == null && existInstanceMap == null) {
@@ -84,8 +93,8 @@ public class PersistAssignmentStage extends AbstractBaseStage {
             }
           }
           if (changed) {
-            for (Partition partition : assignment.keySet()) {
-              Map<String, String> instanceMap = assignment.get(partition);
+            for (Partition partition : assignmentToPersist.keySet()) {
+              Map<String, String> instanceMap = assignmentToPersist.get(partition);
               idealState.setInstanceStateMap(partition.getPartitionName(), instanceMap);
             }
             accessor.setProperty(keyBuilder.idealStates(resourceId), idealState);
@@ -96,5 +105,50 @@ public class PersistAssignmentStage extends AbstractBaseStage {
 
     long endTime = System.currentTimeMillis();
     LOG.info("END PersistAssignmentStage.process(), took " + (endTime - startTime) + " ms");
+  }
+
+  /**
+   * TODO: This is a temporary hacky for back-compatible support of Espresso and Databus,
+   * we should get rid of this conversion as soon as possible.
+   * --- Lei, 2016/9/9.
+   */
+  private Map<Partition, Map<String, String>> convertAssignmentPersisted(Resource resource,
+      IdealState idealState, Map<Partition, Map<String, String>> bestPossibleAssignment) {
+    String stateModelDef = idealState.getStateModelDefRef();
+    /** Only convert for MasterSlave resources */
+    if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name())) {
+      return bestPossibleAssignment;
+    }
+
+    Map<Partition, Map<String, String>> assignmentToPersist =
+        new HashMap<Partition, Map<String, String>>();
+
+    for (Partition partition : resource.getPartitions()) {
+      Map<String, String> instanceMap = new HashMap<String, String>();
+      instanceMap.putAll(bestPossibleAssignment.get(partition));
+
+      List<String> preferenceList = idealState.getPreferenceList(partition.getPartitionName());
+      boolean hasMaster = false;
+      for (String ins : preferenceList) {
+        String state = instanceMap.get(ins);
+        if (state == null || (!state.equals(MasterSlaveSMD.States.SLAVE.name()) && !state
+            .equals(MasterSlaveSMD.States.MASTER.name()))) {
+          instanceMap.put(ins, MasterSlaveSMD.States.SLAVE.name());
+        }
+
+        if (state != null && state.equals(MasterSlaveSMD.States.MASTER.name())) {
+          hasMaster = true;
+        }
+      }
+
+      // if no master, just pick the first node in the preference list as the master.
+      if (!hasMaster) {
+        instanceMap.put(preferenceList.get(0), MasterSlaveSMD.States.MASTER.name());
+      }
+
+      assignmentToPersist.put(partition, instanceMap);
+    }
+
+    return assignmentToPersist;
   }
 }

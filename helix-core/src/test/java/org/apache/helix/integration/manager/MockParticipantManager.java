@@ -38,9 +38,9 @@ import org.apache.log4j.Logger;
 public class MockParticipantManager extends ZKHelixManager implements Runnable, ZkTestManager {
   private static Logger LOG = Logger.getLogger(MockParticipantManager.class);
 
-  private final CountDownLatch _startCountDown = new CountDownLatch(1);
-  private final CountDownLatch _stopCountDown = new CountDownLatch(1);
-  private final CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
+  private CountDownLatch _startCountDown = new CountDownLatch(1);
+  private CountDownLatch _stopCountDown = new CountDownLatch(1);
+  private CountDownLatch _waitStopCompleteCountDown = new CountDownLatch(1);
 
   private final MockMSModelFactory _msModelFactory = new MockMSModelFactory(null);
 
@@ -68,6 +68,16 @@ public class MockParticipantManager extends ZKHelixManager implements Runnable, 
     } catch (InterruptedException e) {
       LOG.error("exception in syncStart participant-manager", e);
     }
+  }
+
+  /**
+   * This method should be called before syncStart() called after syncStop()
+   */
+  public void reset() {
+    syncStop();
+    _startCountDown = new CountDownLatch(1);
+    _stopCountDown = new CountDownLatch(1);
+    _waitStopCompleteCountDown = new CountDownLatch(1);
   }
 
   @Override

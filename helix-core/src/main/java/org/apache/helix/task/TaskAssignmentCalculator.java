@@ -2,6 +2,7 @@ package org.apache.helix.task;
 
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceAssignment;
 
 import java.util.Collection;
@@ -17,11 +18,12 @@ public abstract class TaskAssignmentCalculator {
    * @param jobCtx the task context
    * @param workflowCfg the workflow configuration
    * @param workflowCtx the workflow context
-   * @param cache cluster snapshot
+   * @param idealStateMap the map of resource name map to ideal state
    * @return set of partition numbers
    */
   public abstract Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache);
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      Map<String, IdealState> idealStateMap);
 
   /**
    * Compute an assignment of tasks to instances
@@ -34,12 +36,12 @@ public abstract class TaskAssignmentCalculator {
    * @param workflowCfg the workflow configuration
    * @param workflowCtx the workflow context
    * @param partitionSet the partitions to assign
-   * @param cache cluster snapshot
+   * @param idealStateMap the map of resource name map to ideal state
    * @return map of instances to set of partition numbers
    */
   public abstract Map<String, SortedSet<Integer>> getTaskAssignment(
       CurrentStateOutput currStateOutput, ResourceAssignment prevAssignment,
       Collection<String> instances, JobConfig jobCfg, JobContext jobContext,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, Set<Integer> partitionSet,
-      ClusterDataCache cache);
+      Map<String, IdealState> idealStateMap);
 }

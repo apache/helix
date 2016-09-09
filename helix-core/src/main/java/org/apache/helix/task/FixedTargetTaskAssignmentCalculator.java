@@ -48,36 +48,37 @@ import org.apache.log4j.Logger;
 public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculator {
   private static final Logger LOG = Logger.getLogger(FixedTargetTaskAssignmentCalculator.class);
 
-  @Override
-  public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache) {
-    return getAllTaskPartitions(getTgtIdealState(jobCfg, cache), jobCfg, jobCtx);
+  @Override public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      Map<String, IdealState> idealStateMap) {
+    return getAllTaskPartitions(getTgtIdealState(jobCfg, idealStateMap), jobCfg, jobCtx);
   }
 
   @Override
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
-      Set<Integer> partitionSet, ClusterDataCache cache) {
-    IdealState tgtIs = getTgtIdealState(jobCfg, cache);
+      Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
+    IdealState tgtIs = getTgtIdealState(jobCfg, idealStateMap);
     if (tgtIs == null) {
       LOG.warn("Missing target resource for the scheduled job!");
       return Collections.emptyMap();
     }
     Set<String> tgtStates = jobCfg.getTargetPartitionStates();
     return getTgtPartitionAssignment(currStateOutput, instances, tgtIs, tgtStates, partitionSet,
-        jobContext, cache);
+        jobContext);
   }
 
   /**
    * Gets the ideal state of the target resource of this job
    * @param jobCfg job config containing target resource id
-   * @param cache snapshot of the cluster containing the task and target resource
+   * @param idealStateMap the map of resource name map to ideal state
    * @return target resource ideal state, or null
    */
-  private static IdealState getTgtIdealState(JobConfig jobCfg, ClusterDataCache cache) {
+  private static IdealState getTgtIdealState(JobConfig jobCfg,
+      Map<String, IdealState> idealStateMap) {
     String tgtResourceId = jobCfg.getTargetResource();
-    return cache.getIdealState(tgtResourceId);
+    return idealStateMap.get(tgtResourceId);
   }
 
   /**
@@ -131,7 +132,7 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
    */
   private static Map<String, SortedSet<Integer>> getTgtPartitionAssignment(
       CurrentStateOutput currStateOutput, Iterable<String> instances, IdealState tgtIs,
-      Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx, ClusterDataCache cache) {
+      Set<String> tgtStates, Set<Integer> includeSet, JobContext jobCtx) {
     Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
     for (String instance : instances) {
       result.put(instance, new TreeSet<Integer>());
@@ -150,18 +151,6 @@ public class FixedTargetTaskAssignmentCalculator extends TaskAssignmentCalculato
               currStateOutput.getPendingState(tgtIs.getResourceName(), new Partition(pName),
                   instance);
           if (pendingMessage != null) {
-            continue;
-          }
-
-          InstanceConfig instanceConfig = cache.getInstanceConfigMap().get(instance);
-
-          if (instanceConfig == null) {
-            LOG.error("Instance config not found for instance : " + instance);
-            continue;
-          }
-
-          if (!instanceConfig.getInstanceEnabled()) {
-            LOG.debug("Instance has been disabled, ignore instance : " + instance);
             continue;
           }
 

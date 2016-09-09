@@ -454,21 +454,35 @@ public class ClusterDataCache {
   }
 
   /**
-   * Return all the nodes that are enabled and tagged same as the job.
-   * @param allInstances List of instances to filter with instance tag
-   * @param instanceTag The instance group tag
-   * @return A new set contains instance name and that are marked enabled and have same
-   *         tag with job. The original set will not be changed during the filtering
+   * Return all the live nodes that are enabled
+   * @return A new set contains live instance name and that are marked enabled
    */
-  public Set<String> getAllEnabledInstanceWithTag(final Set<String> allInstances,
-      String instanceTag) {
+  public Set<String> getAllEnabledLiveInstances() {
+    return getAllEnabledInstances(null);
+  }
+
+  /**
+   * Return all the live nodes that are enabled and tagged same as the job.
+   * @param instanceTag The instance group tag, could be null, when no instance group specified
+   * @return A new set contains live instance name and that are marked enabled and have same
+   *         tag with job, only if instance tag input is not null.
+   */
+  public Set<String> getAllEnabledLiveInstancesWithTag(String instanceTag) {
+    return getAllEnabledInstances(instanceTag);
+  }
+
+  private Set<String> getAllEnabledInstances(String instanceTag) {
     Set<String> enabledTagInstances = new HashSet<String>();
-    for (String instance : allInstances) {
+    for (String instance : _liveInstanceMap.keySet()) {
       InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
 
-      if (instanceConfig != null && instanceConfig.getInstanceEnabled() && instanceConfig
-          .containsTag(instanceTag)) {
-        enabledTagInstances.add(instance);
+      // Check instance is enabled
+      if (instanceConfig != null && instanceConfig.getInstanceEnabled()) {
+        // Check whether it has instance group or not
+        // If it has instance group, check whether it belongs to that group or not
+        if (instanceTag == null || instanceConfig.containsTag(instanceTag)) {
+          enabledTagInstances.add(instance);
+        }
       }
     }
 

@@ -118,7 +118,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
             .setJobCommandConfigMap(_jobCommandMap);
 
-    for (int i = 0; i < 20; i++) {
+    for (int i = 0; i < 25; i++) {
       workflowBuilder.addJob("JOB" + i, jobBuilder);
     }
 

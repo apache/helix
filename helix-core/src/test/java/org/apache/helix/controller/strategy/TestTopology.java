@@ -33,7 +33,7 @@ import java.util.Map;
  */
 
 public class TestTopology {
-  private static Logger logger = Logger.getLogger(TestAutoRebalanceStrategy.class);
+  private static Logger logger = Logger.getLogger(TestTopology.class);
 
   @Test
   public void testCreateClusterTopology() {

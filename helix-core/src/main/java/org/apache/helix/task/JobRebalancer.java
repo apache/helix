@@ -129,8 +129,8 @@ public class JobRebalancer extends TaskRebalancer {
     // Fetch the previous resource assignment from the property store. This is required because of
     // HELIX-230.
     Set<String> liveInstances = jobCfg.getInstanceGroupTag() == null
-        ? clusterData.getAllEnabledLiveInstances()
-        : clusterData.getAllEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
+        ? clusterData.getEnabledLiveInstances()
+        : clusterData.getEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
       LOG.error("No available instance found for job!");

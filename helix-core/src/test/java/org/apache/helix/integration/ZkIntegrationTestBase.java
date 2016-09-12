@@ -23,7 +23,9 @@ import java.util.logging.Level;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
@@ -34,6 +36,7 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
@@ -100,4 +103,15 @@ public class ZkIntegrationTestBase {
     new ConfigAccessor(_gZkClient).set(scope, "healthChange" + ".enabled", "" + true);
   }
 
+  protected void enablePersistBestPossibleAssignment(ZkClient zkClient, String clusterName,
+      Boolean enable) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    HelixConfigScope clusterScope =
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+            .forCluster(clusterName).build();
+
+    configAccessor.set(clusterScope,
+        ClusterConfig.ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.name(),
+        enable.toString());
+  }
 }

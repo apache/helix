@@ -29,6 +29,7 @@ import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.log4j.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -42,6 +43,8 @@ import java.util.Set;
  * CRUSH-based partition mapping strategy.
  */
 public class CrushRebalanceStrategy implements RebalanceStrategy {
+  private static final Logger Log = Logger.getLogger(CrushRebalanceStrategy.class.getName());
+
   private String _resourceName;
   private List<String> _partitions;
   private Topology _clusterTopo;
@@ -81,6 +84,12 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
 
       // apply the placement rules
       List<Node> selected = select(topNode, data, _replicas);
+
+      if (selected.size() < _replicas) {
+        Log.warn(String
+            .format("Can not find enough node for resource %s partition %s, required %d, find %d",
+                _resourceName, partitionName, _replicas, selected.size()));
+      }
 
       List<String> nodeList = new ArrayList<String>();
       for (int j = 0; j < selected.size(); j++) {

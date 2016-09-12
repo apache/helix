@@ -147,30 +147,37 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
   }
 
   private Rebalancer getRebalancer(IdealState idealState, String resourceName) {
-    Rebalancer rebalancer = null;
-    switch (idealState.getRebalanceMode()) {
-    case FULL_AUTO:
-      AutoRebalancer autoRebalancer = new AutoRebalancer();
-      rebalancer = autoRebalancer;
-      break;
-    case SEMI_AUTO:
-      SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
-      rebalancer = semiAutoRebalancer;
-      break;
-    case CUSTOMIZED:
-      CustomRebalancer customRebalancer = new CustomRebalancer();
-      rebalancer = customRebalancer;
-      break;
-    case USER_DEFINED:
-    case TASK:
-      String rebalancerClassName = idealState.getRebalancerClassName();
+
+    Rebalancer customizedRebalancer = null;
+    String rebalancerClassName = idealState.getRebalancerClassName();
+    if (rebalancerClassName != null) {
       logger.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
       try {
-        rebalancer = Rebalancer.class
+        customizedRebalancer = Rebalancer.class
             .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
       } catch (Exception e) {
         logger.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
       }
+    }
+
+    Rebalancer rebalancer = null;
+    switch (idealState.getRebalanceMode()) {
+    case FULL_AUTO:
+      if (customizedRebalancer != null) {
+        rebalancer = customizedRebalancer;
+      } else {
+        rebalancer = new AutoRebalancer();
+      }
+      break;
+    case SEMI_AUTO:
+      rebalancer = new SemiAutoRebalancer();
+      break;
+    case CUSTOMIZED:
+      rebalancer = new CustomRebalancer();
+      break;
+    case USER_DEFINED:
+    case TASK:
+      rebalancer = customizedRebalancer;
       break;
     default:
       break;

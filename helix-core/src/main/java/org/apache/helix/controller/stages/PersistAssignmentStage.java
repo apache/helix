@@ -19,7 +19,6 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -142,7 +141,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
       }
 
       // if no master, just pick the first node in the preference list as the master.
-      if (!hasMaster) {
+      if (!hasMaster && preferenceList.size() > 0) {
         instanceMap.put(preferenceList.get(0), MasterSlaveSMD.States.MASTER.name());
       }
 

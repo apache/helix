@@ -50,6 +50,8 @@ public class IdealState extends HelixProperty {
     STATE_MODEL_DEF_REF,
     STATE_MODEL_FACTORY_NAME,
     REPLICAS,
+    MIN_ACTIVE_REPLICAS,
+    REBALANCE_DELAY,
     @Deprecated
     IDEAL_STATE_MODE,
     REBALANCE_MODE,
@@ -212,6 +214,22 @@ public class IdealState extends HelixProperty {
    */
   public String getResourceType() {
     return _record.getSimpleField(IdealStateProperty.RESOURCE_TYPE.toString());
+  }
+
+  /**
+   * Set the delay time (in ms) that Helix should move the partition after an instance goes offline.
+   * @param delayInMilliseconds
+   */
+  public void setRebalanceDelay(long delayInMilliseconds) {
+    _record.setLongField(IdealStateProperty.REBALANCE_DELAY.toString(), delayInMilliseconds);
+  }
+
+  /**
+   * Get rebalance delay time (in ms).
+   * @return
+   */
+  public long getRebalanceDelay() {
+    return _record.getLongField(IdealStateProperty.REBALANCE_DELAY.toString(), 0);
   }
 
   /**
@@ -423,6 +441,24 @@ public class IdealState extends HelixProperty {
    */
   public int getNumPartitions() {
     return _record.getIntField(IdealStateProperty.NUM_PARTITIONS.toString(), -1);
+  }
+
+  /**
+   * Set the number of minimal active partitions for this resource.
+   *
+   * @param minActiveReplicas
+   */
+  public void setMinActiveReplicas(int minActiveReplicas) {
+    _record.setIntField(IdealStateProperty.MIN_ACTIVE_REPLICAS.toString(), minActiveReplicas);
+  }
+
+  /**
+   * Get the number of minimal active partitions for this resource.
+   *
+   * @return
+   */
+  public int getMinActiveReplicas() {
+    return _record.getIntField(IdealStateProperty.MIN_ACTIVE_REPLICAS.toString(), -1);
   }
 
   /**

@@ -19,8 +19,10 @@ package org.apache.helix.controller.rebalancer;
  * under the License.
  */
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -30,12 +32,11 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -100,50 +101,6 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     return partitionMapping;
   }
 
-  /**
-   * @return state count map: state->count
-   */
-  protected static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
-      int liveNodesNb, int totalReplicas) {
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-
-    int replicas = totalReplicas;
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if ("N".equals(num)) {
-        stateCountMap.put(state, liveNodesNb);
-      } else if ("R".equals(num)) {
-        // wait until we get the counts for all other states
-        continue;
-      } else {
-        int stateCount = -1;
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-          // LOG.error("Invalid count for state: " + state + ", count: " + num +
-          // ", use -1 instead");
-        }
-
-        if (stateCount > 0) {
-          stateCountMap.put(state, stateCount);
-          replicas -= stateCount;
-        }
-      }
-    }
-
-    // get state count for R
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if ("R".equals(num)) {
-        stateCountMap.put(state, replicas);
-        // should have at most one state using R
-        break;
-      }
-    }
-    return stateCountMap;
-  }
-
   protected Map<String, Map<String, String>> currentMapping(CurrentStateOutput currentStateOutput,
       String resourceName, List<String> partitions, Map<String, Integer> stateCountMap) {
 
@@ -166,5 +123,36 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
       }
     }
     return map;
+  }
+
+  protected RebalanceStrategy getRebalanceStrategy(String rebalanceStrategyName,
+      List<String> partitions, String resourceName, LinkedHashMap<String, Integer> stateCountMap,
+      int maxPartition) {
+    RebalanceStrategy rebalanceStrategy;
+    if (rebalanceStrategyName == null || rebalanceStrategyName
+        .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
+      rebalanceStrategy =
+          new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition);
+    } else {
+      try {
+        rebalanceStrategy = RebalanceStrategy.class
+            .cast(HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
+        rebalanceStrategy.init(resourceName, partitions, stateCountMap, maxPartition);
+      } catch (ClassNotFoundException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      } catch (InstantiationException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      } catch (IllegalAccessException ex) {
+        throw new HelixException(
+            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
+            ex);
+      }
+    }
+
+    return rebalanceStrategy;
   }
 }

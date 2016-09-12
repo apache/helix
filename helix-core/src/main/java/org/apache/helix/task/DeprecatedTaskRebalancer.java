@@ -48,6 +48,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
+import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -1134,7 +1135,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
 
     @Override
     public void run() {
-      TaskUtil.invokeRebalance(_manager.getHelixDataAccessor(), _resource);
+      RebalanceScheduler.invokeRebalance(_manager.getHelixDataAccessor(), _resource);
     }
   }
 }

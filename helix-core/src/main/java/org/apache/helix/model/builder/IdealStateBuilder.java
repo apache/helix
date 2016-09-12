@@ -33,10 +33,23 @@ public abstract class IdealStateBuilder {
    * Number of partitions/subresources
    */
   private int numPartitions;
+
   /**
    * Number of replicas for each partition
    */
   private int numReplica;
+
+
+  /**
+   * Number of minimal active replicas for each partition
+   */
+  private int minActiveReplica = -1;
+
+  /**
+   * The delay time (in ms) that Helix should move the partition after an instance goes offline.
+   */
+  private long rebalanceDelayInMs = -1;
+
   /**
    * State model that is applicable for this resource
    */
@@ -104,6 +117,20 @@ public abstract class IdealStateBuilder {
    */
   public IdealStateBuilder setNumReplica(int numReplica) {
     this.numReplica = numReplica;
+    return this;
+  }
+
+  /**
+   * @param minActiveReplica
+   * @return
+   */
+  public IdealStateBuilder setMinActiveReplica(int minActiveReplica) {
+    this.minActiveReplica = minActiveReplica;
+    return this;
+  }
+
+  public IdealStateBuilder setRebalanceDelay(int delayInMilliseconds) {
+    this.rebalanceDelayInMs = delayInMilliseconds;
     return this;
   }
 
@@ -217,6 +244,10 @@ public abstract class IdealStateBuilder {
       idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
     }
 
+    if (minActiveReplica >= 0) {
+      idealstate.setMinActiveReplicas(minActiveReplica);
+    }
+
     if (rebalancerClassName != null) {
       idealstate.setRebalancerClassName(rebalancerClassName);
     }
@@ -241,10 +272,14 @@ public abstract class IdealStateBuilder {
       idealstate.enableGroupRouting(enableGroupRouting);
     }
 
+    if (rebalanceDelayInMs > 0) {
+      idealstate.setRebalanceDelay(rebalanceDelayInMs);
+    }
+
     if (!idealstate.isValid()) {
       throw new HelixException("invalid ideal-state: " + idealstate);
     }
+
     return idealstate;
   }
-
 }

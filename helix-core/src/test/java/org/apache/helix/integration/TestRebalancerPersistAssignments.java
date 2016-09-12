@@ -19,16 +19,12 @@ package org.apache.helix.integration;
  * under the License.
  */
 
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.MasterSlaveSMD;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
@@ -122,7 +118,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   public void testEnablePersist(RebalanceMode rebalanceMode)
       throws Exception {
     String testDb = "TestDB1-" + rebalanceMode.name();
-    enablePersistAssignment(true);
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
@@ -166,7 +162,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   @Test(dependsOnMethods = { "testDisablePersist" })
   public void testSemiAutoEnablePersistMasterSlave() throws Exception {
     String testDb = "TestDB1-MasterSlave";
-    enablePersistAssignment(true);
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
     _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
         BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.name());
@@ -221,17 +217,6 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
       Assert.assertEquals(numMaster, 1);
     }
-  }
-
-  private void enablePersistAssignment(Boolean enable) {
-    ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-    HelixConfigScope clusterScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-            .forCluster(CLUSTER_NAME).build();
-
-    configAccessor.set(clusterScope,
-        ClusterConfig.ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.name(),
-        enable.toString());
   }
 
   // verify that the disabled or failed instance should not be included in bestPossible assignment.

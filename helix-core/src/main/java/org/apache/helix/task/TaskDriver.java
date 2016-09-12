@@ -51,6 +51,7 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
@@ -261,7 +262,7 @@ public class TaskDriver {
       LOG.error("Failed to update workflow configuration for workflow " + workflow);
     }
 
-    TaskUtil.invokeRebalance(_accessor, workflow);
+    RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
 
   /**
@@ -601,7 +602,7 @@ public class TaskDriver {
     addWorkflowResourceIfNecessary(queueName);
 
     // Schedule the job
-    TaskUtil.invokeRebalance(_accessor, queueName);
+    RebalanceScheduler.invokeRebalance(_accessor, queueName);
   }
 
   /**
@@ -752,7 +753,7 @@ public class TaskDriver {
       paths.add(_accessor.keyBuilder().resourceConfig(workflowName).getPath());
       updaters.add(updater);
       _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
-      TaskUtil.invokeRebalance(_accessor, workflowName);
+      RebalanceScheduler.invokeRebalance(_accessor, workflowName);
     } else {
       LOG.error("Configuration path " + cfgKey + " not found!");
     }

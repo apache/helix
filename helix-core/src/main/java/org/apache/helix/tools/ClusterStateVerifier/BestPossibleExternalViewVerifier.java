@@ -31,9 +31,11 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
 import org.apache.log4j.Logger;
 
@@ -41,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -252,8 +255,8 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
 
       for (String resourceName : idealStates.keySet()) {
         ExternalView extView = extViews.get(resourceName);
+        IdealState is = idealStates.get(resourceName);
         if (extView == null) {
-          IdealState is = idealStates.get(resourceName);
           if (is.isExternalViewDisabled()) {
             continue;
           } else {
@@ -266,8 +269,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         Map<Partition, Map<String, String>> bpStateMap =
             bestPossOutput.getResourceMap(resourceName);
 
-        boolean result = verifyExternalView(extView, bpStateMap);
+        boolean result = verifyExternalView(is, extView, bpStateMap);
         if (!result) {
+          LOG.debug("verifyExternalView fails! ExternalView: " + extView + " BestPossibleState: "
+              + bpStateMap);
           return false;
         }
       }
@@ -278,35 +283,44 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     }
   }
 
-  private boolean verifyExternalView(ExternalView externalView,
+  private boolean verifyExternalView(IdealState idealState, ExternalView externalView,
       Map<Partition, Map<String, String>> bestPossibleState) {
 
-    // TODO: Is this necessary?
-    // remove empty and dropped items.
-    Iterator<Map.Entry<Partition, Map<String, String>>> iter = bestPossibleState.entrySet().iterator();
-    while (iter.hasNext()) {
-      Map.Entry<Partition, Map<String, String>> entry = iter.next();
+    StateModelDefinition stateModelDef =
+        BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
+            .getStateModelDefinition();
+    Set<String> ignoreStaes = new HashSet<String>(
+        Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
+
+    Map<String, Map<String, String>> bestPossibleStateMap =
+        convertBestPossibleState(bestPossibleState);
+    removeEntryWithIgnoredStates(bestPossibleStateMap.entrySet().iterator(), ignoreStaes);
+
+    Map<String, Map<String, String>> externalViewMap = externalView.getRecord().getMapFields();
+    removeEntryWithIgnoredStates(externalViewMap.entrySet().iterator(), ignoreStaes);
+
+    return externalViewMap.equals(bestPossibleStateMap);
+  }
+
+  private void removeEntryWithIgnoredStates(
+      Iterator<Map.Entry<String, Map<String, String>>> partitionInstanceStateMapIter,
+      Set<String> ignoredStates) {
+    while (partitionInstanceStateMapIter.hasNext()) {
+      Map.Entry<String, Map<String, String>> entry = partitionInstanceStateMapIter.next();
       Map<String, String> instanceStateMap = entry.getValue();
       if (instanceStateMap.isEmpty()) {
-        iter.remove();
+        partitionInstanceStateMapIter.remove();
       } else {
-        // remove instances with DROPPED state
+        // remove instances with DROPPED and OFFLINE state
         Iterator<Map.Entry<String, String>> insIter = instanceStateMap.entrySet().iterator();
         while (insIter.hasNext()) {
-          Map.Entry<String, String> insEntry = insIter.next();
-          String state = insEntry.getValue();
-          if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+          String state = insIter.next().getValue();
+          if (ignoredStates.contains(state)) {
             insIter.remove();
           }
         }
       }
     }
-
-    Map<String, Map<String, String>> bestPossibleStateMap =
-        convertBestPossibleState(bestPossibleState);
-    Map<String, Map<String, String>> externalViewMap = externalView.getRecord().getMapFields();
-
-    return externalViewMap.equals(bestPossibleStateMap);
   }
 
   private Map<String, Map<String, String>> convertBestPossibleState(

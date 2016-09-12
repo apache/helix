@@ -444,26 +444,6 @@ public class TaskUtil {
     return Collections.emptyMap();
   }
 
-  /**
-   * Trigger a controller pipeline execution for a given resource.
-   *
-   * @param accessor Helix data accessor
-   * @param resource the name of the resource changed to triggering the execution
-   */
-  protected static void invokeRebalance(HelixDataAccessor accessor, String resource) {
-    // The pipeline is idempotent, so touching an ideal state is enough to trigger a pipeline run
-    LOG.info("invoke rebalance for " + resource);
-    PropertyKey key = accessor.keyBuilder().idealStates(resource);
-    IdealState is = accessor.getProperty(key);
-    if (is != null && is.getStateModelDefRef().equals(TaskConstants.STATE_MODEL_NAME)) {
-      if (!accessor.updateProperty(key, is)) {
-        LOG.warn("Failed to invoke rebalance on resource " + resource);
-      }
-    } else {
-      LOG.warn("Can't find ideal state or ideal state is not for right type for " + resource);
-    }
-  }
-
   private static HelixProperty getResourceConfig(HelixDataAccessor accessor, String resource) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.getProperty(keyBuilder.resourceConfig(resource));

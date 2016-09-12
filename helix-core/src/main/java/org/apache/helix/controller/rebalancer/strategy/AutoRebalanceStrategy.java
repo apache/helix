@@ -40,7 +40,7 @@ import org.apache.log4j.Logger;
 
 public class AutoRebalanceStrategy implements RebalanceStrategy {
   private static Logger logger = Logger.getLogger(AutoRebalanceStrategy.class);
-  private final ReplicaPlacementScheme _placementScheme;
+  private final ReplicaPlacementScheme _placementScheme = new DefaultPlacementScheme();
 
   private String _resourceName;
   private List<String> _partitions;
@@ -59,12 +59,14 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states, int maximumPerNode) {
     init(resourceName, partitions, states, maximumPerNode);
-    _placementScheme = new DefaultPlacementScheme();
   }
 
   public AutoRebalanceStrategy(String resourceName, final List<String> partitions,
       final LinkedHashMap<String, Integer> states) {
     this(resourceName, partitions, states, Integer.MAX_VALUE);
+  }
+
+  public AutoRebalanceStrategy() {
   }
 
   @Override

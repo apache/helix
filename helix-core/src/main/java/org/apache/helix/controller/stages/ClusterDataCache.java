@@ -244,17 +244,12 @@ public class ClusterDataCache {
   }
 
   /**
-   * Return the last offline time for given instance.
-   * Return NULL if the instance is ONLINE currently, or the record is not persisted somehow.
+   * Return the last offline time map for all offline instances.
    *
-   * @param instanceName
    * @return
    */
-  public Long getInstanceOfflineTime(String instanceName) {
-    if (_instanceOfflineTimeMap != null) {
-      return _instanceOfflineTimeMap.get(instanceName);
-    }
-    return null;
+  public Map<String, Long> getInstanceOfflineTimeMap() {
+    return _instanceOfflineTimeMap;
   }
 
   private void updateOfflineInstanceHistory(HelixDataAccessor accessor) {
@@ -306,6 +301,81 @@ public class ClusterDataCache {
   public Map<String, LiveInstance> getLiveInstances() {
     return _liveInstanceMap;
   }
+
+
+  /**
+   * Return the set of all instances names.
+   */
+  public Set<String> getAllInstances() {
+    return new HashSet<String>(_instanceConfigMap.keySet());
+  }
+
+  /**
+  * Return all the live nodes that are enabled
+  * @return A new set contains live instance name and that are marked enabled
+  */
+  public Set<String> getEnabledLiveInstances() {
+    return getAllEnabledInstances(null);
+  }
+
+  /**
+   * Return all nodes that are enabled.
+   *
+   * @return
+   */
+  public Set<String> getEnabledInstances() {
+    Set<String> enabledNodes = new HashSet<String>(getInstanceConfigMap().keySet());
+    enabledNodes.removeAll(getDisabledInstances());
+
+    return enabledNodes;
+  }
+
+  /**
+   * Return all the live nodes that are enabled and tagged with given instanceTag.
+   *
+   * @param instanceTag The instance group tag.
+   * @return A new set contains live instance name and that are marked enabled and have the specified
+   * tag.
+   */
+  public Set<String> getEnabledLiveInstancesWithTag(String instanceTag) {
+    return getAllEnabledInstances(instanceTag);
+  }
+
+  private Set<String> getAllEnabledInstances(String instanceTag) {
+    Set<String> enabledTagInstances = new HashSet<String>();
+    for (String instance : _liveInstanceMap.keySet()) {
+      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
+
+      // Check instance is enabled
+      if (instanceConfig != null && instanceConfig.getInstanceEnabled()) {
+        // Check whether it has instance group or not
+        // If it has instance group, check whether it belongs to that group or not
+        if (instanceTag == null || instanceConfig.containsTag(instanceTag)) {
+          enabledTagInstances.add(instance);
+        }
+      }
+    }
+
+    return enabledTagInstances;
+  }
+
+  /**
+   * Return all the nodes that are tagged with given instance tag.
+   *
+   * @param instanceTag The instance group tag.
+   */
+  public Set<String> getAllInstancesWithTag(String instanceTag) {
+    Set<String> taggedInstances = new HashSet<String>();
+    for (String instance : _instanceConfigMap.keySet()) {
+      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
+      if (instanceConfig != null && instanceConfig.containsTag(instanceTag)) {
+        taggedInstances.add(instance);
+      }
+    }
+
+    return taggedInstances;
+  }
+
 
   public synchronized void setLiveInstances(List<LiveInstance> liveInstances) {
     Map<String, LiveInstance> liveInstanceMap = Maps.newHashMap();
@@ -438,7 +508,6 @@ public class ClusterDataCache {
     return disabledInstancesSet;
   }
 
-
   /**
    * This method allows one to fetch the set of nodes that are disabled
    * @return
@@ -492,42 +561,6 @@ public class ClusterDataCache {
       return _constraintMap.get(type.toString());
     }
     return null;
-  }
-
-  /**
-   * Return all the live nodes that are enabled
-   * @return A new set contains live instance name and that are marked enabled
-   */
-  public Set<String> getAllEnabledLiveInstances() {
-    return getAllEnabledInstances(null);
-  }
-
-  /**
-   * Return all the live nodes that are enabled and tagged same as the job.
-   * @param instanceTag The instance group tag, could be null, when no instance group specified
-   * @return A new set contains live instance name and that are marked enabled and have same
-   *         tag with job, only if instance tag input is not null.
-   */
-  public Set<String> getAllEnabledLiveInstancesWithTag(String instanceTag) {
-    return getAllEnabledInstances(instanceTag);
-  }
-
-  private Set<String> getAllEnabledInstances(String instanceTag) {
-    Set<String> enabledTagInstances = new HashSet<String>();
-    for (String instance : _liveInstanceMap.keySet()) {
-      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
-
-      // Check instance is enabled
-      if (instanceConfig != null && instanceConfig.getInstanceEnabled()) {
-        // Check whether it has instance group or not
-        // If it has instance group, check whether it belongs to that group or not
-        if (instanceTag == null || instanceConfig.containsTag(instanceTag)) {
-          enabledTagInstances.add(instance);
-        }
-      }
-    }
-
-    return enabledTagInstances;
   }
 
   /**

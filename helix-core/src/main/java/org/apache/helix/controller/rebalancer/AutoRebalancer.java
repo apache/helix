@@ -62,8 +62,8 @@ public class AutoRebalancer extends AbstractRebalancer {
     Map<String, LiveInstance> liveInstance = clusterData.getLiveInstances();
     String replicas = currentIdealState.getReplicas();
 
-    LinkedHashMap<String, Integer> stateCountMap =
-        stateCount(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
+    LinkedHashMap<String, Integer> stateCountMap = StateModelDefinition
+        .getStateCountMap(stateModelDef, liveInstance.size(), Integer.parseInt(replicas));
     List<String> liveNodes = new ArrayList<String>(liveInstance.keySet());
     List<String> allNodes = new ArrayList<String>(clusterData.getInstanceConfigMap().keySet());
     allNodes.removeAll(clusterData.getDisabledInstances());
@@ -110,32 +110,9 @@ public class AutoRebalancer extends AbstractRebalancer {
     Collections.sort(liveNodes);
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
-
-    String rebalanceStrategyName = currentIdealState.getRebalanceStrategy();
-    if (rebalanceStrategyName == null || rebalanceStrategyName
-        .equalsIgnoreCase(RebalanceStrategy.DEFAULT_REBALANCE_STRATEGY)) {
-      _rebalanceStrategy =
-          new AutoRebalanceStrategy(resourceName, partitions, stateCountMap, maxPartition);
-    } else {
-      try {
-        _rebalanceStrategy = RebalanceStrategy.class
-            .cast(HelixUtil.loadClass(getClass(), rebalanceStrategyName).newInstance());
-        _rebalanceStrategy.init(resourceName, partitions, stateCountMap, maxPartition);
-      } catch (ClassNotFoundException ex) {
-        throw new HelixException(
-            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
-            ex);
-      } catch (InstantiationException ex) {
-        throw new HelixException(
-            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
-            ex);
-      } catch (IllegalAccessException ex) {
-        throw new HelixException(
-            "Exception while invoking custom rebalance strategy class: " + rebalanceStrategyName,
-            ex);
-      }
-    }
-
+    _rebalanceStrategy =
+        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName,
+            stateCountMap, maxPartition);
     ZNRecord newMapping = _rebalanceStrategy
         .computePartitionAssignment(allNodes, liveNodes, currentMapping, clusterData);
 

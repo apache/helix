@@ -1,4 +1,4 @@
-package org.apache.helix.controller.Strategy;
+package org.apache.helix.controller.rebalancer;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -37,7 +37,6 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.Mocks.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.AutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;

@@ -21,7 +21,6 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,10 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixException;
-import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
-import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
@@ -40,9 +36,6 @@ import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
@@ -57,18 +50,8 @@ import org.apache.log4j.Logger;
  * The output is a preference list and a mapping based on that preference list, i.e. partition p
  * has a replica on node k with state s.
  */
-public class AutoRebalancer implements Rebalancer, MappingCalculator {
-  // These should be final, but are initialized in init rather than a constructor
-  private HelixManager _manager;
-  private RebalanceStrategy _rebalanceStrategy;
-
+public class AutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(AutoRebalancer.class);
-
-  @Override
-  public void init(HelixManager manager) {
-    this._manager = manager;
-    this._rebalanceStrategy = null;
-  }
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
@@ -171,98 +154,5 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
     newIdealState.getRecord().setListFields(newMapping.getListFields());
 
     return newIdealState;
-  }
-
-  /**
-   * @return state count map: state->count
-   */
-  public static LinkedHashMap<String, Integer> stateCount(StateModelDefinition stateModelDef,
-      int liveNodesNb, int totalReplicas) {
-    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-
-    int replicas = totalReplicas;
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if ("N".equals(num)) {
-        stateCountMap.put(state, liveNodesNb);
-      } else if ("R".equals(num)) {
-        // wait until we get the counts for all other states
-        continue;
-      } else {
-        int stateCount = -1;
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-          // LOG.error("Invalid count for state: " + state + ", count: " + num +
-          // ", use -1 instead");
-        }
-
-        if (stateCount > 0) {
-          stateCountMap.put(state, stateCount);
-          replicas -= stateCount;
-        }
-      }
-    }
-
-    // get state count for R
-    for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      if ("R".equals(num)) {
-        stateCountMap.put(state, replicas);
-        // should have at most one state using R
-        break;
-      }
-    }
-    return stateCountMap;
-  }
-
-  private Map<String, Map<String, String>> currentMapping(CurrentStateOutput currentStateOutput,
-      String resourceName, List<String> partitions, Map<String, Integer> stateCountMap) {
-
-    Map<String, Map<String, String>> map = new HashMap<String, Map<String, String>>();
-
-    for (String partition : partitions) {
-      Map<String, String> curStateMap =
-          currentStateOutput.getCurrentStateMap(resourceName, new Partition(partition));
-      map.put(partition, new HashMap<String, String>());
-      for (String node : curStateMap.keySet()) {
-        String state = curStateMap.get(node);
-        map.get(partition).put(node, state);
-      }
-
-      Map<String, String> pendingStateMap =
-          currentStateOutput.getPendingStateMap(resourceName, new Partition(partition));
-      for (String node : pendingStateMap.keySet()) {
-        String state = pendingStateMap.get(node);
-        map.get(partition).put(node, state);
-      }
-    }
-    return map;
-  }
-
-  @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
-      IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
-    if (LOG.isDebugEnabled()) {
-      LOG.debug("Processing resource:" + resource.getResourceName());
-    }
-    String stateModelDefName = idealState.getStateModelDefRef();
-    StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
-    ResourceAssignment partitionMapping = new ResourceAssignment(resource.getResourceName());
-    for (Partition partition : resource.getPartitions()) {
-      Map<String, String> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
-      Set<String> disabledInstancesForPartition =
-          cache.getDisabledInstancesForPartition(partition.toString());
-      List<String> preferenceList =
-          ConstraintBasedAssignment.getPreferenceList(cache, partition, idealState, stateModelDef);
-      Map<String, String> bestStateForPartition =
-          ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, stateModelDef,
-              preferenceList, currentStateMap, disabledInstancesForPartition,
-              idealState.isEnabled());
-      partitionMapping.addReplicaMap(partition, bestStateForPartition);
-    }
-    return partitionMapping;
   }
 }

@@ -1,6 +1,6 @@
-package org.apache.helix.controller.Strategy;
+package org.apache.helix.controller.strategy;
 
-import org.apache.helix.HelixProperty;
+import org.apache.helix.controller.rebalancer.TestAutoRebalanceStrategy;
 import org.apache.helix.controller.rebalancer.topology.Node;
 import org.apache.helix.controller.rebalancer.topology.Topology;
 import org.apache.helix.model.ClusterConfig;

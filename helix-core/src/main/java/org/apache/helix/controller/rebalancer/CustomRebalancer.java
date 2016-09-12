@@ -24,8 +24,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
@@ -45,13 +43,8 @@ import org.apache.log4j.Logger;
  * The output is a verified mapping based on that preference list, i.e. partition p has a replica
  * on node k with state s, where s may be a dropped or error state if necessary.
  */
-public class CustomRebalancer implements Rebalancer, MappingCalculator {
-
+public class CustomRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(CustomRebalancer.class);
-
-  @Override
-  public void init(HelixManager manager) {
-  }
 
   @Override
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,

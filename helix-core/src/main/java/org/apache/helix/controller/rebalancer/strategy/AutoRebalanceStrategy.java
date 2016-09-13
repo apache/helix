@@ -129,9 +129,8 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
       logger.info("orphan = " + _orphaned);
     }
 
-    moveNonPreferredReplicasToPreferred();
-
     assignOrphans();
+    moveNonPreferredReplicasToPreferred();
 
     moveExcessReplicas();
 
@@ -176,18 +175,23 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     Iterator<Replica> it = _orphaned.iterator();
     while (it.hasNext()) {
       Replica replica = it.next();
-      boolean added = false;
-      int startIndex = computeRandomStartIndex(replica);
-      for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
-        Node receiver = _liveNodesList.get(index % _liveNodesList.size());
-        if (receiver.capacity > receiver.currentlyAssigned && receiver.canAdd(replica)) {
-          receiver.currentlyAssigned = receiver.currentlyAssigned + 1;
-          receiver.nonPreferred.add(replica);
-          receiver.newReplicas.add(replica);
-          added = true;
-          break;
+
+      // first find if it preferred node still has capacity
+      Node preferred = _preferredAssignment.get(replica);
+      boolean added = tryAddReplica(preferred, replica, true);
+
+      if (!added) {
+        // if preferred node has no capacity, search all nodes and find one that has capacity.
+        int startIndex = computeRandomStartIndex(replica);
+        for (int index = startIndex; index < startIndex + _liveNodesList.size(); index++) {
+          Node receiver = _liveNodesList.get(index % _liveNodesList.size());
+          added = tryAddReplica(receiver, replica, false);
+          if (added) {
+            break;
+          }
         }
       }
+
       if (!added) {
         // try adding the replica by making room for it
         added = assignOrphanByMakingRoom(replica);
@@ -199,6 +203,29 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     if (_orphaned.size() > 0 && logger.isInfoEnabled()) {
       logger.info("could not assign nodes to partitions: " + _orphaned);
     }
+  }
+
+  /**
+   * Try to add a replica to a node.  Return true if the node can take the replica, otherwise return false.
+   *
+   * @param node
+   * @param replica
+   * @param preferred whether the given node is the replica's preferred node.
+   * @return true if replica can be added into the node, false otherwise.
+   */
+  private boolean tryAddReplica(Node node, Replica replica, boolean preferred) {
+    if (node.capacity > node.currentlyAssigned && node.canAdd(replica)) {
+      node.currentlyAssigned++;
+      if (preferred) {
+        node.preferred.add(replica);
+      } else {
+        node.nonPreferred.add(replica);
+      }
+      node.newReplicas.add(replica);
+      return true;
+    }
+
+    return false;
   }
 
   /**

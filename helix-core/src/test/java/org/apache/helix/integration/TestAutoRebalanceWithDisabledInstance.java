@@ -22,7 +22,6 @@ package org.apache.helix.integration;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
@@ -30,7 +29,6 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -57,26 +55,19 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
   public void testDisableEnableInstanceAutoRebalance() throws Exception {
     String disabledInstance = _participants[0].getInstanceName();
 
-    Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2,
-        disabledInstance);
-    Assert.assertFalse(assignedPartitions.isEmpty());
     Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
         disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
 
     // disable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, false);
-    Thread.sleep(400);
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
-    Assert.assertTrue(assignedPartitions.isEmpty());
+    Thread.sleep(1000);
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertTrue(currentPartitions.isEmpty());
 
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, disabledInstance, true);
-    Thread.sleep(400);
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
-    Assert.assertFalse(assignedPartitions.isEmpty());
+    Thread.sleep(1000);
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, disabledInstance);
     Assert.assertFalse(currentPartitions.isEmpty());
   }
@@ -93,8 +84,6 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     participant.syncStart();
 
     Thread.sleep(400);
-    Set<String> assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
-    Assert.assertTrue(assignedPartitions.isEmpty());
     Set<String> currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2,
         nodeName);
     Assert.assertTrue(currentPartitions.isEmpty());
@@ -102,27 +91,10 @@ public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBas
     //enable instance
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, nodeName, true);
     Thread.sleep(400);
-    assignedPartitions = getPartitionsAssignedtoInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
-    Assert.assertFalse(assignedPartitions.isEmpty());
     currentPartitions = getCurrentPartitionsOnInstance(CLUSTER_NAME, TEST_DB_2, nodeName);
     Assert.assertFalse(currentPartitions.isEmpty());
   }
 
-  private Set<String> getPartitionsAssignedtoInstance(String cluster, String dbName, String instance) {
-    HelixAdmin admin = _setupTool.getClusterManagementTool();
-    Set<String> partitionSet = new HashSet<String>();
-    IdealState is = admin.getResourceIdealState(cluster, dbName);
-    for (String partition : is.getRecord().getListFields().keySet()) {
-      List<String> assignments = is.getRecord().getListField(partition);
-      for (String ins : assignments) {
-        if (ins.equals(instance)) {
-          partitionSet.add(partition);
-        }
-      }
-    }
-
-    return partitionSet;
-  }
 
   private Set<String> getCurrentPartitionsOnInstance(String cluster, String dbName, String instance) {
     HelixAdmin admin = _setupTool.getClusterManagementTool();

@@ -131,9 +131,8 @@ public class JobRebalancer extends TaskRebalancer {
     // Fetch the previous resource assignment from the property store. This is required because of
     // HELIX-230.
     Set<String> liveInstances = jobCfg.getInstanceGroupTag() == null
-        ? clusterData.getLiveInstances().keySet()
-        : clusterData.getAllEnabledInstanceWithTag(clusterData.getLiveInstances().keySet(),
-            jobCfg.getInstanceGroupTag());
+        ? clusterData.getAllEnabledLiveInstances()
+        : clusterData.getAllEnabledLiveInstancesWithTag(jobCfg.getInstanceGroupTag());
 
     if (liveInstances.isEmpty()) {
       LOG.error("No available instance found for job!");
@@ -222,8 +221,8 @@ public class JobRebalancer extends TaskRebalancer {
 
     // Process all the current assignments of tasks.
     TaskAssignmentCalculator taskAssignmentCal = getAssignmentCalulator(jobCfg);
-    Set<Integer> allPartitions =
-        taskAssignmentCal.getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache);
+    Set<Integer> allPartitions = taskAssignmentCal
+        .getAllTaskPartitions(jobCfg, jobCtx, workflowConfig, workflowCtx, cache.getIdealStates());
 
     if (allPartitions == null || allPartitions.isEmpty()) {
       // Empty target partitions, mark the job as FAILED.
@@ -424,7 +423,7 @@ public class JobRebalancer extends TaskRebalancer {
       // Get instance->[partition, ...] mappings for the target resource.
       Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal
           .getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,
-              workflowConfig, workflowCtx, allPartitions, cache);
+              workflowConfig, workflowCtx, allPartitions, cache.getIdealStates());
       for (Map.Entry<String, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
         String instance = entry.getKey();
         if (!tgtPartitionAssignments.containsKey(instance) || excludedInstances

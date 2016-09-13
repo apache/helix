@@ -34,6 +34,7 @@ import java.util.TreeSet;
 import org.apache.helix.HelixException;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.util.JenkinsHash;
@@ -52,7 +53,8 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
 
   @Override
   public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
-      WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache) {
+      WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
+      Map<String, IdealState> idealStateMap) {
     Map<String, TaskConfig> taskMap = jobCfg.getTaskConfigMap();
     Map<String, Integer> taskIdMap = jobCtx.getTaskIdPartitionMap();
     for (TaskConfig taskCfg : taskMap.values()) {
@@ -69,7 +71,7 @@ public class GenericTaskAssignmentCalculator extends TaskAssignmentCalculator {
   public Map<String, SortedSet<Integer>> getTaskAssignment(CurrentStateOutput currStateOutput,
       ResourceAssignment prevAssignment, Collection<String> instances, JobConfig jobCfg,
       final JobContext jobContext, WorkflowConfig workflowCfg, WorkflowContext workflowCtx,
-      Set<Integer> partitionSet, ClusterDataCache cache) {
+      Set<Integer> partitionSet, Map<String, IdealState> idealStateMap) {
     // Gather input to the full auto rebalancing algorithm
     LinkedHashMap<String, Integer> states = new LinkedHashMap<String, Integer>();
     states.put("ONLINE", 1);

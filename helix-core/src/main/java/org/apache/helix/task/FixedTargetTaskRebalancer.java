@@ -43,7 +43,7 @@ import org.apache.helix.model.ResourceAssignment;
   @Override public Set<Integer> getAllTaskPartitions(JobConfig jobCfg, JobContext jobCtx,
       WorkflowConfig workflowCfg, WorkflowContext workflowCtx, ClusterDataCache cache) {
     return taskAssignmentCalculator
-        .getAllTaskPartitions(jobCfg, jobCtx, workflowCfg, workflowCtx, cache);
+        .getAllTaskPartitions(jobCfg, jobCtx, workflowCfg, workflowCtx, cache.getIdealStates());
   }
 
   @Override public Map<String, SortedSet<Integer>> getTaskAssignment(
@@ -53,6 +53,6 @@ import org.apache.helix.model.ResourceAssignment;
       ClusterDataCache cache) {
     return taskAssignmentCalculator
         .getTaskAssignment(currStateOutput, prevAssignment, instances, jobCfg, jobContext,
-            workflowCfg, workflowCtx, partitionSet, cache);
+            workflowCfg, workflowCtx, partitionSet, cache.getIdealStates());
   }
 }

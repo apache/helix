@@ -215,12 +215,12 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
   }
 
   @Test public void testReassignment() throws Exception {
-    final int NUM_INSTANCES = 2;
+    final int NUM_INSTANCES = 5;
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    Map<String, String> taskConfigMap = Maps.newHashMap(
-        ImmutableMap.of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + _startPort));
+    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap
+        .of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + (_startPort + 1)));
     TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
@@ -242,7 +242,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
     // Ensure that this was tried on two different instances, the first of which exhausted the
     // attempts number, and the other passes on the first try
-    Assert.assertEquals(_runCounts.size(), NUM_INSTANCES);
+    Assert.assertEquals(_runCounts.size(), 2);
     Assert.assertTrue(
         _runCounts.values().contains(JobConfig.DEFAULT_MAX_ATTEMPTS_PER_TASK / NUM_INSTANCES));
     Assert.assertTrue(_runCounts.values().contains(1));

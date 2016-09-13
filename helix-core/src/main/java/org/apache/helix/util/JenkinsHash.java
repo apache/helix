@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-package org.apache.helix.controller.rebalancer.strategy.crushMapping;
+package org.apache.helix.util;
 
 public class JenkinsHash {
   // max value to limit it to 4 bytes

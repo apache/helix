@@ -83,6 +83,7 @@ public class JobConfig {
      * The maximum number of times the task rebalancer may attempt to execute a task.
      */
     MaxAttemptsPerTask,
+    @Deprecated
     /**
      * The maximum number of times Helix will intentionally move a failing task
      */
@@ -134,6 +135,7 @@ public class JobConfig {
   public static final int DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK = 0;
   public static final boolean DEFAULT_DISABLE_EXTERNALVIEW = false;
   public static final boolean DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE = false;
+  public static final int DEFAULT_NUMBER_OF_TASKS = 0;
 
   private final String _workflow;
   private final String _targetResource;
@@ -216,10 +218,6 @@ public class JobConfig {
 
   public int getMaxAttemptsPerTask() {
     return _maxAttemptsPerTask;
-  }
-
-  public int getMaxForcedReassignmentsPerTask() {
-    return _maxForcedReassignmentsPerTask;
   }
 
   public int getFailureThreshold() {
@@ -308,6 +306,8 @@ public class JobConfig {
    * A builder for {@link JobConfig}. Validates the configurations.
    */
   public static class Builder {
+    private final String NUMBER_OF_TASKS = "NumberOfTasks";
+
     private String _workflow;
     private String _targetResource;
     private String _jobType;
@@ -325,9 +325,17 @@ public class JobConfig {
     private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
     private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
+    private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
 
     public JobConfig build() {
       validate();
+
+      if (_taskConfigMap.isEmpty()) {
+        for (int i = 0; i < _numberOfTasks; i++) {
+          TaskConfig taskConfig = new TaskConfig(null, null);
+          _taskConfigMap.put(taskConfig.getId(), taskConfig);
+        }
+      }
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
@@ -375,10 +383,6 @@ public class JobConfig {
       if (cfg.containsKey(JobConfigProperty.MaxAttemptsPerTask.name())) {
         b.setMaxAttemptsPerTask(
             Integer.parseInt(cfg.get(JobConfigProperty.MaxAttemptsPerTask.name())));
-      }
-      if (cfg.containsKey(JobConfigProperty.MaxForcedReassignmentsPerTask.name())) {
-        b.setMaxForcedReassignmentsPerTask(
-            Integer.parseInt(cfg.get(JobConfigProperty.MaxForcedReassignmentsPerTask.name())));
       }
       if (cfg.containsKey(JobConfigProperty.FailureThreshold.name())) {
         b.setFailureThreshold(
@@ -429,6 +433,11 @@ public class JobConfig {
       return this;
     }
 
+    public Builder setNumberOfTasks(int v) {
+      _numberOfTasks = v;
+      return this;
+    }
+
     public Builder setJobCommandConfigMap(Map<String, String> v) {
       _commandConfig = v;
       return this;
@@ -449,6 +458,8 @@ public class JobConfig {
       return this;
     }
 
+    // This field will be ignored by Helix
+    @Deprecated
     public Builder setMaxForcedReassignmentsPerTask(int v) {
       _maxForcedReassignmentsPerTask = v;
       return this;
@@ -508,9 +519,25 @@ public class JobConfig {
         throw new IllegalArgumentException(
             String.format("%s cannot be an empty set", JobConfigProperty.TargetPartitionStates));
       }
-      if (_taskConfigMap.isEmpty() && _command == null) {
-        throw new IllegalArgumentException(
-            String.format("%s cannot be null", JobConfigProperty.Command));
+      if (_taskConfigMap.isEmpty()) {
+        // Check Job command is not null when none taskconfig specified
+        if (_command == null) {
+          throw new IllegalArgumentException(
+              String.format("%s cannot be null", JobConfigProperty.Command));
+        }
+        // Check number of task is set when Job command is not null and none taskconfig specified
+        if (_targetResource == null && _numberOfTasks == 0) {
+          throw new IllegalArgumentException("Either targetResource or numberOfTask should be set");
+        }
+      }
+      // Check each either Job command is not null or none of task command is not null
+      if (_command == null) {
+        for (TaskConfig taskConfig : _taskConfigMap.values()) {
+          if (taskConfig.getCommand() == null) {
+            throw new IllegalArgumentException(
+                String.format("Task % command cannot be null", taskConfig.getId()));
+          }
+        }
       }
       if (_timeoutPerTask < 0) {
         throw new IllegalArgumentException(String
@@ -547,12 +574,11 @@ public class JobConfig {
       Builder b = new Builder();
 
       b.setMaxAttemptsPerTask(jobBean.maxAttemptsPerTask)
-          .setMaxForcedReassignmentsPerTask(jobBean.maxForcedReassignmentsPerTask)
           .setNumConcurrentTasksPerInstance(jobBean.numConcurrentTasksPerInstance)
           .setTimeoutPerTask(jobBean.timeoutPerPartition)
           .setFailureThreshold(jobBean.failureThreshold).setTaskRetryDelay(jobBean.taskRetryDelay)
           .setDisableExternalView(jobBean.disableExternalView)
-          .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure);
+          .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure).setNumberOfTasks(jobBean.numberOfTasks);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);

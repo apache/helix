@@ -36,6 +36,7 @@ public class TaskConfig {
   private enum TaskConfigProperty {
     TASK_ID,
     TASK_COMMAND,
+    @Deprecated
     TASK_SUCCESS_OPTIONAL,
     TASK_TARGET_PARTITION
   }
@@ -44,18 +45,26 @@ public class TaskConfig {
 
   private final Map<String, String> _configMap;
 
+  @Deprecated
+  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional,
+      String id, String target) {
+    this(command, configMap, id, target);
+  }
+
+  @Deprecated
+  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional) {
+    this(command, configMap, null, null);
+  }
+
   /**
    * Instantiate the task config
    *
    * @param command         the command to invoke for the task
    * @param configMap       configuration to be passed as part of the invocation
-   * @param successOptional true if this task need not pass for the job to succeed, false
-   *                        otherwise
    * @param id              existing task ID
    * @param target          target partition for a task
    */
-  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional,
-      String id, String target) {
+  public TaskConfig(String command, Map<String, String> configMap, String id, String target) {
     if (configMap == null) {
       configMap = Maps.newHashMap();
     }
@@ -65,8 +74,6 @@ public class TaskConfig {
     if (command != null) {
       configMap.put(TaskConfigProperty.TASK_COMMAND.name(), command);
     }
-    configMap
-        .put(TaskConfigProperty.TASK_SUCCESS_OPTIONAL.name(), Boolean.toString(successOptional));
     configMap.put(TaskConfigProperty.TASK_ID.name(), id);
     if (target != null) {
       configMap.put(TaskConfigProperty.TASK_TARGET_PARTITION.name(), target);
@@ -79,11 +86,9 @@ public class TaskConfig {
    *
    * @param command         the command to invoke for the task
    * @param configMap       configuration to be passed as part of the invocation
-   * @param successOptional true if this task need not pass for the job to succeed, false
-   *                        otherwise
    */
-  public TaskConfig(String command, Map<String, String> configMap, boolean successOptional) {
-    this(command, configMap, successOptional, null, null);
+  public TaskConfig(String command, Map<String, String> configMap) {
+    this(command, configMap, null, null);
   }
 
   /**
@@ -115,16 +120,13 @@ public class TaskConfig {
 
   /**
    * Check if this task must succeed for a job to succeed
-   *
+   * This field has been ignored by Helix
    * @return true if success is optional, false otherwise
    */
+  @Deprecated
   public boolean isSuccessOptional() {
-    String successOptionalStr = _configMap.get(TaskConfigProperty.TASK_SUCCESS_OPTIONAL.name());
-    if (successOptionalStr == null) {
-      return false;
-    } else {
-      return Boolean.parseBoolean(successOptionalStr);
-    }
+    // This option will not be used in rebalancer anymore, deprecate it.
+    return true;
   }
 
   /**
@@ -154,7 +156,7 @@ public class TaskConfig {
     private Map<String, String> _configMap;
 
     public TaskConfig build() {
-      return new TaskConfig(_command, _configMap, _successOptional, _taskId, _targetPartition);
+      return new TaskConfig(_command, _configMap, _taskId, _targetPartition);
     }
 
     public String getTaskId() {
@@ -184,10 +186,12 @@ public class TaskConfig {
       return this;
     }
 
+    @Deprecated
     public boolean isSuccessOptional() {
       return _successOptional;
     }
 
+    @Deprecated
     public Builder setSuccessOptional(boolean successOptional) {
       _successOptional = successOptional;
       return this;
@@ -208,7 +212,7 @@ public class TaskConfig {
      * @return instantiated TaskConfig
      */
     public static TaskConfig from(String target) {
-      return new TaskConfig(null, null, false, null, target);
+      return new TaskConfig(null, null, null, target);
     }
 
     /**
@@ -218,7 +222,7 @@ public class TaskConfig {
      * @return instantiated TaskConfig
      */
     public static TaskConfig from(TaskBean bean) {
-      return new TaskConfig(bean.command, bean.taskConfigMap, bean.successOptional);
+      return new TaskConfig(bean.command, bean.taskConfigMap);
     }
 
     /**
@@ -232,11 +236,7 @@ public class TaskConfig {
       String taskId = rawConfigMap.get(TaskConfigProperty.TASK_ID.name());
       String command = rawConfigMap.get(TaskConfigProperty.TASK_COMMAND.name());
       String targetPartition = rawConfigMap.get(TaskConfigProperty.TASK_TARGET_PARTITION.name());
-      String successOptionalStr =
-          rawConfigMap.get(TaskConfigProperty.TASK_SUCCESS_OPTIONAL.name());
-      boolean successOptional =
-          (successOptionalStr != null) ? Boolean.valueOf(successOptionalStr) : false;
-      return new TaskConfig(command, rawConfigMap, successOptional, taskId, targetPartition);
+      return new TaskConfig(command, rawConfigMap, taskId, targetPartition);
     }
   }
 }

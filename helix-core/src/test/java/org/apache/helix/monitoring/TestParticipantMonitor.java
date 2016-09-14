@@ -33,7 +33,7 @@ import javax.management.MalformedObjectNameException;
 import javax.management.ObjectInstance;
 import javax.management.ObjectName;
 
-import org.apache.helix.monitoring.ParticipantMonitor;
+import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
 import org.apache.helix.monitoring.mbeans.ClusterMBeanObserver;
@@ -100,7 +100,7 @@ public class TestParticipantMonitor {
   public void testReportData() throws InstanceNotFoundException, MalformedObjectNameException,
       NullPointerException, IOException, InterruptedException {
     System.out.println("START TestParticipantMonitor");
-    ParticipantMonitor monitor = new ParticipantMonitor();
+    ParticipantStatusMonitor monitor = new ParticipantStatusMonitor();
 
     int monitorNum = 0;
 

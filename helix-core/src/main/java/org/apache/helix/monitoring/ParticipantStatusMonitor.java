@@ -27,6 +27,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.log4j.Logger;
 
@@ -36,14 +37,25 @@ public class ParticipantStatusMonitor {
   private static final Logger LOG = Logger.getLogger(ParticipantStatusMonitor.class);
 
   private MBeanServer _beanServer;
+  private ParticipantMessageMonitor _messageMonitor;
 
-  public ParticipantStatusMonitor() {
+  public ParticipantStatusMonitor(boolean isParticipant, String instanceName) {
     try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
+      if (isParticipant) {
+        _messageMonitor = new ParticipantMessageMonitor(instanceName);
+        register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
+      }
     } catch (Exception e) {
       LOG.warn(e);
       e.printStackTrace();
       _beanServer = null;
+    }
+  }
+
+  public void incrementReceivedMessages(int num) {
+    if (_messageMonitor != null) {  // is participant
+      _messageMonitor.incrementReceivedMessages(num);
     }
   }
 
@@ -95,6 +107,16 @@ public class ParticipantStatusMonitor {
   }
 
   public void shutDown() {
+    if (_messageMonitor != null) {  // is participant
+      try {
+        ObjectName name = getObjectName(_messageMonitor.getParticipantBeanName());
+        if (_beanServer.isRegistered(name)) {
+          _beanServer.unregisterMBean(name);
+        }
+      } catch (Exception e) {
+        LOG.warn("fail to unregister " + _messageMonitor.getParticipantBeanName(), e);
+      }
+    }
     for (StateTransitionContext cxt : _monitorMap.keySet()) {
       try {
         ObjectName name = getObjectName(cxt.toString());

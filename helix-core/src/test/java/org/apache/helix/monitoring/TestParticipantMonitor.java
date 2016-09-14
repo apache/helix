@@ -100,7 +100,7 @@ public class TestParticipantMonitor {
   public void testReportData() throws InstanceNotFoundException, MalformedObjectNameException,
       NullPointerException, IOException, InterruptedException {
     System.out.println("START TestParticipantMonitor");
-    ParticipantStatusMonitor monitor = new ParticipantStatusMonitor();
+    ParticipantStatusMonitor monitor = new ParticipantStatusMonitor(false, null);
 
     int monitorNum = 0;
 

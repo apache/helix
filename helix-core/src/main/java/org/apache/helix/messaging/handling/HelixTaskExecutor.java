@@ -109,7 +109,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   public static final String MAX_THREADS = "maxThreads";
 
   private MessageQueueMonitor _messageQueueMonitor;
-  private ClusterMessagingService _messagingService;
   private GenericHelixController _controller;
   private Long _lastSessionSyncTime;
   private static final int SESSION_SYNC_INTERVAL = 2000; // 2 seconds
@@ -128,6 +127,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final Timer _timer;
 
   public HelixTaskExecutor() {
+    this(new ParticipantStatusMonitor(false, null));
+  }
+
+  public HelixTaskExecutor(ParticipantStatusMonitor participantStatusMonitor) {
     _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
@@ -137,16 +140,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _monitor = new ParticipantStatusMonitor();
+    _monitor = participantStatusMonitor;
 
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
 
     startMonitorThread();
-  }
-
-  public HelixTaskExecutor(ClusterMessagingService messagingService) {
-    this();
-    _messagingService = messagingService;
   }
 
   @Override
@@ -597,6 +595,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     // Update message count
     _messageQueueMonitor.setMessageQueueBacklog(messages.size());
+    _monitor.incrementReceivedMessages(messages.size());
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);

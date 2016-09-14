@@ -30,14 +30,14 @@ import javax.management.ObjectName;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.log4j.Logger;
 
-public class ParticipantMonitor {
+public class ParticipantStatusMonitor {
   private final ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor> _monitorMap =
       new ConcurrentHashMap<StateTransitionContext, StateTransitionStatMonitor>();
-  private static final Logger LOG = Logger.getLogger(ParticipantMonitor.class);
+  private static final Logger LOG = Logger.getLogger(ParticipantStatusMonitor.class);
 
   private MBeanServer _beanServer;
 
-  public ParticipantMonitor() {
+  public ParticipantStatusMonitor() {
     try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
     } catch (Exception e) {

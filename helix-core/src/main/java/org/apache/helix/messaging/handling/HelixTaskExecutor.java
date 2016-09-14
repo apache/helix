@@ -57,7 +57,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
-import org.apache.helix.monitoring.ParticipantMonitor;
+import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -105,7 +105,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   protected final Map<String, MessageTaskInfo> _taskMap;
   private final Object _lock;
   private final StatusUpdateUtil _statusUpdateUtil;
-  private final ParticipantMonitor _monitor;
+  private final ParticipantStatusMonitor _monitor;
   public static final String MAX_THREADS = "maxThreads";
 
   private MessageQueueMonitor _messageQueueMonitor;
@@ -137,7 +137,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _monitor = new ParticipantMonitor();
+    _monitor = new ParticipantStatusMonitor();
 
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
 
@@ -188,7 +188,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _controller = controller;
   }
 
-  public ParticipantMonitor getParticipantMonitor() {
+  public ParticipantStatusMonitor getParticipantMonitor() {
     return _monitor;
   }
 

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -43,14 +42,13 @@ import org.apache.log4j.Logger;
 public class ConstraintBasedAssignment {
   private static Logger logger = Logger.getLogger(ConstraintBasedAssignment.class);
 
-  public static List<String> getPreferenceList(ClusterDataCache cache, Partition partition,
-      IdealState idealState, StateModelDefinition stateModelDef) {
+  public static List<String> getPreferenceList(Partition partition, IdealState idealState,
+      Set<String> eligibleInstances) {
     List<String> listField = idealState.getPreferenceList(partition.getPartitionName());
 
     if (listField != null && listField.size() == 1
-        && StateModelToken.ANY_LIVEINSTANCE.toString().equals(listField.get(0))) {
-      Map<String, LiveInstance> liveInstances = cache.getLiveInstances();
-      List<String> prefList = new ArrayList<String>(liveInstances.keySet());
+        && IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString().equals(listField.get(0))) {
+      List<String> prefList = new ArrayList<String>(eligibleInstances);
       Collections.sort(prefList);
       return prefList;
     } else {

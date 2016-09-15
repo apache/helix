@@ -66,6 +66,10 @@ public class IdealState extends HelixProperty {
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
+  public enum IdealStateConstants {
+    ANY_LIVEINSTANCE
+  }
+
   /**
    * Deprecated.
    * @see {@link RebalanceMode}
@@ -507,7 +511,7 @@ public class IdealState extends HelixProperty {
         return false;
       }
 
-      if (!replicaStr.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
+      if (!replicaStr.equals(IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
         int replica = Integer.parseInt(replicaStr);
         Set<String> partitionSet = getPartitionSet();
         for (String partition : partitionSet) {

@@ -65,9 +65,9 @@ public class TestSchemataSM extends ZkIntegrationTestBase {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     PropertyKey key = keyBuilder.idealStates("TestSchemata0");
     IdealState idealState = accessor.getProperty(key);
-    idealState.setReplicas(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString());
+    idealState.setReplicas(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString());
     idealState.getRecord().setListField("TestSchemata0_0",
-        Arrays.asList(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString()));
+        Arrays.asList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
     accessor.setProperty(key, idealState);
 
     ClusterControllerManager controller =

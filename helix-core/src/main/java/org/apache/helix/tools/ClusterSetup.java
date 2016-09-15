@@ -38,7 +38,6 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixConstants;
-import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
@@ -446,7 +445,7 @@ public class ClusterSetup {
     }
     boolean anyLiveInstance = false;
     for (List<String> list : idealState.getRecord().getListFields().values()) {
-      if (list.contains(StateModelToken.ANY_LIVEINSTANCE.toString())) {
+      if (list.contains(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
         _logger.info("Skipping idealState " + idealState.getResourceName()
             + " with ANY_LIVEINSTANCE");
         anyLiveInstance = true;

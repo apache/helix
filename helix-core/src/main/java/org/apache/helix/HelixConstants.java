@@ -39,6 +39,10 @@ public interface HelixConstants {
     // @formatter:on
   }
 
+  /**
+   * Use IdealState.PreferentListToken instead.
+   */
+  @Deprecated
   enum StateModelToken {
     ANY_LIVEINSTANCE
   }

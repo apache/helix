@@ -21,7 +21,6 @@ package org.apache.helix.controller.stages;
 
 import java.util.Map;
 
-import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixManager;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
@@ -35,9 +34,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
-import org.apache.helix.task.JobRebalancer;
 import org.apache.helix.task.TaskRebalancer;
-import org.apache.helix.task.WorkflowRebalancer;
 import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
@@ -108,58 +105,23 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
         idealState.setStateModelDefRef(resource.getStateModelDefRef());
       }
 
-      Rebalancer rebalancer = null;
-      MappingCalculator mappingCalculator = null;
-      switch (idealState.getRebalanceMode()) {
-      case FULL_AUTO:
-        AutoRebalancer autoRebalancer = new AutoRebalancer();
-        rebalancer = autoRebalancer;
-        mappingCalculator = autoRebalancer;
-        break;
-      case SEMI_AUTO:
-        SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
-        rebalancer = semiAutoRebalancer;
-        mappingCalculator = semiAutoRebalancer;
-        break;
-      case CUSTOMIZED:
-        CustomRebalancer customRebalancer = new CustomRebalancer();
-        rebalancer = customRebalancer;
-        mappingCalculator = customRebalancer;
-        break;
-      case USER_DEFINED:
-      case TASK:
-        String rebalancerClassName = idealState.getRebalancerClassName();
-        logger
-            .info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
-        try {
-          rebalancer =
-              Rebalancer.class.cast(HelixUtil.loadClass(getClass(), rebalancerClassName)
-                  .newInstance());
-        } catch (Exception e) {
-          logger.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
-        }
-        if (rebalancer != null) {
-          try {
-            mappingCalculator = MappingCalculator.class.cast(rebalancer);
-          } catch (ClassCastException e) {
-            logger.info("Rebalancer does not have a mapping calculator, defaulting to SEMI_AUTO");
-          }
-        }
-        if (mappingCalculator == null) {
-          mappingCalculator = new SemiAutoRebalancer();
-        }
-        break;
-      default:
-        break;
-      }
+      Rebalancer rebalancer = getRebalancer(idealState, resourceName);
+      MappingCalculator mappingCalculator = getMappingCalculator(rebalancer, resourceName);
 
-      if (rebalancer instanceof TaskRebalancer) {
-	TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
-        taskRebalancer.setClusterStatusMonitor(
-            (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
+      if (rebalancer == null || mappingCalculator == null) {
+        logger.error("Error computing assignment for resource " + resourceName
+            + ". no rebalancer found. rebalancer: " + rebalancer + " mappingCaculator: "
+            + mappingCalculator);
       }
 
       if (rebalancer != null && mappingCalculator != null) {
+
+        if (rebalancer instanceof TaskRebalancer) {
+          TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
+          taskRebalancer.setClusterStatusMonitor(
+              (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
+        }
+
         try {
           HelixManager manager = event.getAttribute("helixmanager");
           rebalancer.init(manager);
@@ -182,5 +144,57 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       }
     }
     return output;
+  }
+
+  private Rebalancer getRebalancer(IdealState idealState, String resourceName) {
+    Rebalancer rebalancer = null;
+    switch (idealState.getRebalanceMode()) {
+    case FULL_AUTO:
+      AutoRebalancer autoRebalancer = new AutoRebalancer();
+      rebalancer = autoRebalancer;
+      break;
+    case SEMI_AUTO:
+      SemiAutoRebalancer semiAutoRebalancer = new SemiAutoRebalancer();
+      rebalancer = semiAutoRebalancer;
+      break;
+    case CUSTOMIZED:
+      CustomRebalancer customRebalancer = new CustomRebalancer();
+      rebalancer = customRebalancer;
+      break;
+    case USER_DEFINED:
+    case TASK:
+      String rebalancerClassName = idealState.getRebalancerClassName();
+      logger.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+      try {
+        rebalancer = Rebalancer.class
+            .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());
+      } catch (Exception e) {
+        logger.error("Exception while invoking custom rebalancer class:" + rebalancerClassName, e);
+      }
+      break;
+    default:
+      break;
+    }
+
+    return rebalancer;
+  }
+
+  private MappingCalculator getMappingCalculator(Rebalancer rebalancer, String resourceName) {
+    MappingCalculator mappingCalculator = null;
+
+    if (rebalancer != null) {
+      try {
+        mappingCalculator = MappingCalculator.class.cast(rebalancer);
+      } catch (ClassCastException e) {
+        logger.warn(
+            "Rebalancer does not have a mapping calculator, defaulting to SEMI_AUTO, resource: "
+                + resourceName);
+      }
+    }
+    if (mappingCalculator == null) {
+      mappingCalculator = new SemiAutoRebalancer();
+    }
+
+    return mappingCalculator;
   }
 }

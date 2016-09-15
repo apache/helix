@@ -67,6 +67,10 @@ public class IdealState extends HelixProperty {
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
+  public enum IdealStateConstants {
+    ANY_LIVEINSTANCE
+  }
+
   /**
    * Deprecated.
    * @see {@link RebalanceMode}
@@ -438,6 +442,7 @@ public class IdealState extends HelixProperty {
     // HACK: if replica doesn't exists, use the length of the first list field
     // instead
     // TODO: remove it when Dbus fixed the IdealState writer
+    // TODO: replica could be "ANY_INSTANCE".
     String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
     if (replica == null) {
       String firstPartition = null;
@@ -523,7 +528,7 @@ public class IdealState extends HelixProperty {
         return false;
       }
 
-      if (!replicaStr.equals(HelixConstants.StateModelToken.ANY_LIVEINSTANCE.toString())) {
+      if (!replicaStr.equals(IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
         int replica = Integer.parseInt(replicaStr);
         Set<String> partitionSet = getPartitionSet();
         for (String partition : partitionSet) {

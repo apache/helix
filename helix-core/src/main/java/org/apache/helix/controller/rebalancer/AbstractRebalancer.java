@@ -32,7 +32,10 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -85,8 +88,9 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
           cache.getDisabledInstancesForPartition(partition.toString());
-      List<String> preferenceList =
-          ConstraintBasedAssignment.getPreferenceList(cache, partition, idealState, stateModelDef);
+      List<String> preferenceList = ConstraintBasedAssignment
+          .getPreferenceList(partition, idealState,
+              Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
           ConstraintBasedAssignment.computeAutoBestStateForPartition(cache, stateModelDef,
               preferenceList, currentStateMap, disabledInstancesForPartition,

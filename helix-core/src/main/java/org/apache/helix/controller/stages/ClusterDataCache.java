@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
@@ -468,7 +467,7 @@ public class ClusterDataCache {
       String replicasStr = _idealStateMap.get(resourceName).getReplicas();
 
       if (replicasStr != null) {
-        if (replicasStr.equals(StateModelToken.ANY_LIVEINSTANCE.toString())) {
+        if (replicasStr.equals(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString())) {
           replicas = _liveInstanceMap.size();
         } else {
           try {

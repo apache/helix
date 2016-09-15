@@ -26,7 +26,6 @@ import java.util.List;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixConstants.ChangeType;
-import org.apache.helix.HelixConstants.StateModelToken;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -144,12 +143,12 @@ public class HelixCustomCodeRunner {
 
       IdealState idealState = new IdealState(_resourceName);
       idealState.setRebalanceMode(RebalanceMode.SEMI_AUTO);
-      idealState.setReplicas(StateModelToken.ANY_LIVEINSTANCE.toString());
+      idealState.setReplicas(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString());
       idealState.setNumPartitions(1);
       idealState.setStateModelDefRef(LEADER_STANDBY);
       idealState.setStateModelFactoryName(_resourceName);
       List<String> prefList =
-          new ArrayList<String>(Arrays.asList(StateModelToken.ANY_LIVEINSTANCE.toString()));
+          new ArrayList<String>(Arrays.asList(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.toString()));
       idealState.getRecord().setListField(_resourceName + "_0", prefList);
 
       List<String> idealStates = accessor.getChildNames(keyBuilder.idealStates());

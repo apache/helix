@@ -267,7 +267,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     for (String partition : idealState.getPartitionSet()) {
       List<String> preferenceList = ConstraintBasedAssignment
-          .getPreferenceList(cache, new Partition(partition), idealState, stateModelDef);
+          .getPreferenceList(new Partition(partition), idealState, liveEnabledInstances);
       Map<String, String> idealMapping =
           computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
       idealPartitionState.put(partition, idealMapping);

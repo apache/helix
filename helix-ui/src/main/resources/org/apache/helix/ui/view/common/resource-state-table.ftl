@@ -41,7 +41,7 @@ under the License.
         </thead>
         <tbody>
             <#list resourceStateTable as row>
-                <tr class="${(row.ideal == row.external)?string("state-ok", "state-warn")} ${(row.external == "ERROR")?string("state-error", "")}">
+                <tr class='${(row.ideal == row.external || row.ideal == "N/A")?string("state-ok", "state-warn")} ${(row.external == "ERROR")?string("state-error", "")}'>
                     <td>${row.partitionName}</td>
                     <td>${row.instanceName}</td>
                     <td>${row.ideal}</td>
@@ -50,4 +50,15 @@ under the License.
             </#list>
         </tbody>
     </table>
+
+    <form class="uk-form" id="safe-resource-actions">
+        <button class="uk-button uk-button-danger"
+                type="button"
+                id="reset-resource"
+                zk-address="${zkAddress}"
+                cluster="${activeCluster}"
+                resource="${activeResource}">
+            Reset
+        </button>
+    </form>
 </#if>

@@ -41,9 +41,11 @@ public class ClientCache {
   private static final int DEFAULT_CONNECTION_TIMEOUT_MILLIS = 5000;
 
   private final ZkAddressValidator zkAddressValidator;
+  private final Map<String, String> zkAliases;
 
-  public ClientCache(ZkAddressValidator zkAddressValidator) {
+  public ClientCache(ZkAddressValidator zkAddressValidator, Map<String, String> zkAliases) {
     this.zkAddressValidator = zkAddressValidator;
+    this.zkAliases = zkAliases;
   }
 
   // Manages and caches lifecycle of connections to ZK
@@ -77,6 +79,11 @@ public class ClientCache {
           });
 
   public ClusterConnection get(String zkAddress) {
+    // Map alias if exists
+    if (zkAliases.containsKey(zkAddress)) {
+      zkAddress = zkAliases.get(zkAddress);
+    }
+
     try {
       zkAddress = URLDecoder.decode(zkAddress, "UTF-8");
     } catch (Exception e) {

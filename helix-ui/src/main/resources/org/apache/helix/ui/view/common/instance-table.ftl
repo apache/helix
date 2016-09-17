@@ -29,6 +29,7 @@ under the License.
                 <th>Instance</th>
                 <th>Enabled</th>
                 <th>Live</th>
+                <th>Tags</th>
                 <#if (adminMode)>
                     <th></th>
                 </#if>
@@ -40,6 +41,7 @@ under the License.
                     <td>${instanceSpec.instanceName}</td>
                     <td>${instanceSpec.enabled?string("Yes", "No")}</td>
                     <td>${instanceSpec.live?string("Yes", "No")}</td>
+                    <td>${instanceSpec.tags?join(", ")}</td>
                     <#if (adminMode)>
                         <td class="table-button">
                             <div class="uk-button-group">

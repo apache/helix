@@ -36,6 +36,10 @@ under the License.
                     <#if (activeValid)>
                         <h1>${activeCluster}</h1>
 
+                        <p>
+                            <em>Controller leader is ${controllerLeader}</em>
+                        </p>
+
                         <ul id="switcher-tabs" class="uk-subnav uk-subnav-pill" data-uk-switcher="{connect: '#switcher'}">
                             <li><a href="">Resources</a></li>
                             <li><a href="">Instances</a></li>

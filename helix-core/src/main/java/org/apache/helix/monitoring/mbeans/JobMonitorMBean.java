@@ -27,16 +27,22 @@ import org.apache.helix.monitoring.SensorNameProvider;
 public interface JobMonitorMBean extends SensorNameProvider {
 
   /**
-   * Get numbers of the succeeded jobs
+   * Get number of the succeeded jobs
    * @return
    */
   public long getSuccessfulJobCount();
 
   /**
-   * Get numbers of failed jobs
+   * Get number of failed jobs
    * @return
    */
   public long getFailedJobCount();
+
+  /**
+   * Get number of the aborted jobs
+   * @return
+   */
+  public long getAbortedJobCount();
 
   /**
    * Get number of existing jobs registered

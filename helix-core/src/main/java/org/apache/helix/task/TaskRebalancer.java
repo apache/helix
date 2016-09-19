@@ -87,6 +87,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
+              _clusterStatusMonitor
+                  .updateJobCounters(TaskUtil.getJobCfg(_manager, jobToFail), TaskState.ABORTED);
             }
           }
           return true;

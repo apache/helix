@@ -27,12 +27,6 @@ import org.apache.helix.monitoring.SensorNameProvider;
 public interface WorkflowMonitorMBean extends SensorNameProvider {
 
   /**
-   * Get number of all workflows registered
-   * @return
-   */
-  public long getAllWorkflowCount();
-
-  /**
    * Get number of succeeded workflows
    * @return
    */

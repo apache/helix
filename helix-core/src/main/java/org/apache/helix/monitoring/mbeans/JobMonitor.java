@@ -20,6 +20,8 @@ package org.apache.helix.monitoring.mbeans;
  */
 
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
 
 public class JobMonitor implements JobMonitorMBean {
 
@@ -28,7 +30,6 @@ public class JobMonitor implements JobMonitorMBean {
   private String _clusterName;
   private String _jobType;
 
-  private long _allJobCount;
   private long _successfullJobCount;
   private long _failedJobCount;
   private long _existingJobGauge;
@@ -38,17 +39,11 @@ public class JobMonitor implements JobMonitorMBean {
   public JobMonitor(String clusterName, String jobType) {
     _clusterName = clusterName;
     _jobType = jobType;
-    _allJobCount = 0L;
     _successfullJobCount = 0L;
     _failedJobCount = 0L;
     _existingJobGauge = 0L;
     _queuedJobGauge = 0L;
     _runningJobGauge = 0L;
-  }
-
-  @Override
-  public long getAllJobCount() {
-    return _allJobCount;
   }
 
   @Override
@@ -86,33 +81,36 @@ public class JobMonitor implements JobMonitorMBean {
   }
 
   /**
-   * Update job metrics with transition state
-   * @param from The from state of job, just created when it is null
+   * Update job counters with transition state
    * @param to The to state of job, cleaned by ZK when it is null
    */
-  public void updateJobStats(TaskState from, TaskState to) {
-    if (from == null) {
-      // From null means a new job has been created
-      _existingJobGauge++;
-      _queuedJobGauge++;
-      _allJobCount++;
-    } else if (from.equals(TaskState.NOT_STARTED)) {
-      // From NOT_STARTED means queued job number has been decreased one
-      _queuedJobGauge--;
-    } else if (from.equals(TaskState.IN_PROGRESS)) {
-      // From IN_PROGRESS means running job number has been decreased one
-      _runningJobGauge--;
-    }
-
-    if (to == null) {
-      // To null means the job has been cleaned from ZK
-      _existingJobGauge--;
-    } else if (to.equals(TaskState.IN_PROGRESS)) {
-      _runningJobGauge++;
-    } else if (to.equals(TaskState.FAILED)) {
+  public void updateJobCounters(TaskState to) {
+    if (to.equals(TaskState.FAILED)) {
       _failedJobCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfullJobCount++;
+    }
+  }
+
+  /**
+   * Reset job gauges
+   */
+  public void resetJobGauge() {
+    _queuedJobGauge = 0L;
+    _existingJobGauge = 0L;
+    _runningJobGauge = 0L;
+  }
+
+  /**
+   * Refresh job gauges
+   * @param to The current state of job
+   */
+  public void updateJobGauge(TaskState to) {
+    _existingJobGauge++;
+    if (to == null || to.equals(TaskState.NOT_STARTED)) {
+      _queuedJobGauge++;
+    } else if (to.equals(TaskState.IN_PROGRESS)) {
+      _runningJobGauge++;
     }
   }
 }

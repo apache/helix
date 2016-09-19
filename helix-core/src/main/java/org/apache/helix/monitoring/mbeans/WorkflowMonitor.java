@@ -27,7 +27,6 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
   private String _clusterName;
   private String _workflowType;
 
-  private long _allWorkflowCount;
   private long _successfulWorkflowCount;
   private long _failedWorkflowCount;
   private long _existingWorkflowGauge;
@@ -38,17 +37,11 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
   public WorkflowMonitor(String clusterName, String workflowType) {
     _clusterName = clusterName;
     _workflowType = workflowType;
-    _allWorkflowCount = 0L;
     _successfulWorkflowCount = 0L;
     _failedWorkflowCount = 0L;
     _existingWorkflowGauge = 0L;
     _queuedWorkflowGauge = 0L;
     _runningWorkflowGauge = 0L;
-  }
-
-  @Override
-  public long getAllWorkflowCount() {
-    return _allWorkflowCount;
   }
 
   @Override
@@ -83,34 +76,38 @@ public class WorkflowMonitor implements WorkflowMonitorMBean {
   public String getWorkflowType() {
     return _workflowType;
   }
+
   /**
    * Update workflow with transition state
-   * @param from The from state of a workflow, created when it is null
-   * @param to The to state of a workflow, cleaned by ZK when it is null
+   * @param to The to state of a workflow
    */
-  public void updateWorkflowStats(TaskState from, TaskState to) {
-    if (from == null) {
-      // From null means a new workflow has been created
-      _allWorkflowCount++;
-      _queuedWorkflowGauge++;
-      _existingWorkflowGauge++;
-    } else if (from.equals(TaskState.NOT_STARTED)) {
-      // From NOT_STARTED means queued workflow number has been decreased one
-      _queuedWorkflowGauge--;
-    } else if (from.equals(TaskState.IN_PROGRESS)) {
-      // From IN_PROGRESS means running workflow number has been decreased one
-      _runningWorkflowGauge--;
-    }
-
-    if (to == null) {
-      // To null means the job has been cleaned from ZK
-      _existingWorkflowGauge--;
-    } else if (to.equals(TaskState.IN_PROGRESS)) {
-      _runningWorkflowGauge++;
-    } else if (to.equals(TaskState.FAILED)) {
+  public void updateWorkflowCounters(TaskState to) {
+   if (to.equals(TaskState.FAILED)) {
       _failedWorkflowCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfulWorkflowCount++;
     }
+  }
+
+  /**
+   * Reset gauges
+   */
+  public void resetGauges() {
+    _existingWorkflowGauge = 0L;
+    _runningWorkflowGauge = 0L;
+    _queuedWorkflowGauge = 0L;
+  }
+
+  /**
+   * Refresh gauges via transition state
+   * @param current current workflow state
+   */
+  public void updateWorkflowGauges(TaskState current) {
+    if (current == null || current.equals(TaskState.NOT_STARTED)) {
+      _queuedWorkflowGauge++;
+    } else if (current.equals(TaskState.IN_PROGRESS)) {
+      _runningWorkflowGauge++;
+    }
+    _existingWorkflowGauge++;
   }
 }

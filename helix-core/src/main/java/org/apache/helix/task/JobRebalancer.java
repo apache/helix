@@ -64,7 +64,6 @@ public class JobRebalancer extends TaskRebalancer {
       LOG.error("Job configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
-    _clusterStatusMonitor.updateJobStatus(jobCfg, null, TaskState.NOT_STARTED);
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
@@ -98,7 +97,6 @@ public class JobRebalancer extends TaskRebalancer {
           workflowResource, jobName, workflowState, jobState));
       cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _scheduledRebalancer.removeScheduledRebalance(jobName);
-      _clusterStatusMonitor.updateJobStatus(jobCfg, jobState, null);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -197,14 +195,11 @@ public class JobRebalancer extends TaskRebalancer {
       // Workflow has been stopped if all in progress jobs are stopped
       if (isWorkflowStopped(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
-        _clusterStatusMonitor.updateJobStatus(jobCfg, TaskState.NOT_STARTED, TaskState.STOPPED);
-
       }
     } else {
       workflowCtx.setJobState(jobResource, TaskState.IN_PROGRESS);
       // Workflow is in progress if any task is in progress
       workflowCtx.setWorkflowState(TaskState.IN_PROGRESS);
-      _clusterStatusMonitor.updateJobStatus(jobCfg, TaskState.NOT_STARTED, TaskState.IN_PROGRESS);
 
     }
 
@@ -231,7 +226,7 @@ public class JobRebalancer extends TaskRebalancer {
       jobCtx.setInfo(failureMsg);
       markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
       markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
-      _clusterStatusMonitor.updateJobStatus(jobCfg, TaskState.IN_PROGRESS, TaskState.FAILED);
+      _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.FAILED);
       return new ResourceAssignment(jobResource);
     }
 
@@ -364,6 +359,7 @@ public class JobRebalancer extends TaskRebalancer {
 
             if (!successOptional) {
               markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
+              _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.FAILED);
               markAllPartitionsError(jobCtx, currState, false);
               addAllPartitions(allPartitions, partitionsToDropFromIs);
 
@@ -405,7 +401,7 @@ public class JobRebalancer extends TaskRebalancer {
 
     if (isJobComplete(jobCtx, allPartitions, skippedPartitions, jobCfg)) {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
-      _clusterStatusMonitor.updateJobStatus(jobCfg, TaskState.IN_PROGRESS, TaskState.COMPLETED);
+      _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED);
       // remove IdealState of this job
       cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     }

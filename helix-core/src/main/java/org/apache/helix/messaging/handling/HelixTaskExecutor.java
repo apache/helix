@@ -34,7 +34,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -59,6 +58,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantStatusMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
+import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
@@ -595,7 +595,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     // Update message count
     _messageQueueMonitor.setMessageQueueBacklog(messages.size());
-    _monitor.incrementReceivedMessages(messages.size());
+    _monitor.reportReceivedMessages(messages);
 
     // sort message by creation timestamp, so message created earlier is processed first
     Collections.sort(messages, Message.CREATE_TIME_COMPARATOR);
@@ -623,6 +623,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         LOG.info("Dropping NO-OP message. mid: " + message.getId() + ", from: "
             + message.getMsgSrc());
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 
@@ -646,6 +647,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             syncSessionToController(manager);
           }
         }
+        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 
@@ -656,6 +658,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         List<LiveInstance> liveInstances = manager.getHelixDataAccessor().getChildValues(key);
         _controller.onLiveInstanceChange(liveInstances, changeContext);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
+        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
         continue;
       }
 
@@ -668,6 +671,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         if (LOG.isTraceEnabled()) {
           LOG.trace("Message already read. msgId: " + message.getMsgId());
         }
+        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 
@@ -675,6 +679,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       try {
         MessageHandler createHandler = createMessageHandler(message, changeContext);
         if (createHandler == null) {
+          _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
           continue;
         }
         handlers.add(createHandler);
@@ -688,7 +693,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
         message.setMsgState(MessageState.UNPROCESSABLE);
         accessor.removeProperty(message.getKey(keyBuilder, instanceName));
         LOG.error("Message cannot be processed: " + message.getRecord(), e);
-
+        _monitor.reportProcessedMessage(message, ParticipantMessageMonitor.ProcessedMessageState.DISCARDED);
         continue;
       }
 

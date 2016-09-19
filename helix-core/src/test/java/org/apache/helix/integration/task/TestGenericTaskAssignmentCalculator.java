@@ -39,6 +39,7 @@ import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
@@ -54,6 +55,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
   private Map<String, Integer> _runCounts = Maps.newHashMap();
   private TaskConfig _taskConfig;
   private Map<String, String> _jobCommandMap;
+  private boolean failTask;
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -110,6 +112,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testMultipleJobAssignment() throws InterruptedException {
+    failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
@@ -130,6 +133,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testMultipleTaskAssignment() throws InterruptedException {
+    failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
@@ -146,6 +150,35 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
     _driver.pollForWorkflowState(workflowName, TaskState.COMPLETED);
 
     Assert.assertEquals(_runCounts.size(), 5);
+  }
+
+  @Test
+  public void testAbortTaskForWorkflowFail()
+      throws InterruptedException {
+    failTask = true;
+    String workflowName = TestHelper.getTestMethodName();
+    Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
+    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
+    taskConfigs.add(_taskConfig);
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
+            .setJobCommandConfigMap(_jobCommandMap);
+
+    for (int i = 0; i < 5; i++) {
+      workflowBuilder.addJob("JOB" + i, jobBuilder);
+    }
+
+    _driver.start(workflowBuilder.build());
+    _driver.pollForWorkflowState(workflowName, TaskState.FAILED);
+
+    int abortedTask = 0;
+    for (TaskState jobState : _driver.getWorkflowContext(workflowName).getJobStates().values()) {
+      if (jobState == TaskState.ABORTED) {
+        abortedTask++;
+      }
+    }
+
+    Assert.assertEquals(abortedTask, 4);
   }
 
   private class TaskOne extends MockTask {
@@ -165,6 +198,9 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
     public TaskResult run() {
       _invokedClasses.add(getClass().getName());
       _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+      if (failTask) {
+        return new TaskResult(TaskResult.Status.FAILED, "");
+      }
       return new TaskResult(TaskResult.Status.COMPLETED, "");
     }
   }

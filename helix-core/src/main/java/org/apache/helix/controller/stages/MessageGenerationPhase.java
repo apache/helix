@@ -101,8 +101,8 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
           String nextState = stateModelDef.getNextStateForTransition(currentState, desiredState);
           if (nextState == null) {
-            logger.error("Unable to find a next state for partition: "
-                + partition.getPartitionName() + " from stateModelDefinition"
+            logger.error("Unable to find a next state for resource: " + resource.getResourceName()
+                + " partition: " + partition.getPartitionName() + " from stateModelDefinition"
                 + stateModelDef.getClass() + " from:" + currentState + " to:" + desiredState);
             continue;
           }
@@ -110,16 +110,18 @@ public class MessageGenerationPhase extends AbstractBaseStage {
           if (pendingMessage != null) {
             String pendingState = pendingMessage.getToState();
             if (nextState.equalsIgnoreCase(pendingState)) {
-              logger.debug("Message already exists for " + instanceName + " to transit "
-                  + partition.getPartitionName() + " from " + currentState + " to " + nextState);
+              logger.debug("Message already exists for " + instanceName + " to transit " + resource
+                  .getResourceName() + "." + partition.getPartitionName() + " from " + currentState
+                  + " to " + nextState);
             } else if (currentState.equalsIgnoreCase(pendingState)) {
-              logger.info("Message hasn't been removed for " + instanceName + " to transit"
-                  + partition.getPartitionName() + " to " + pendingState + ", desiredState: "
-                  + desiredState);
+              logger.info("Message hasn't been removed for " + instanceName + " to transit " +
+                  resource.getResourceName() + "." + partition.getPartitionName() + " to "
+                      + pendingState + ", desiredState: " + desiredState);
             } else {
-              logger.info("IdealState changed before state transition completes for "
-                  + partition.getPartitionName() + " on " + instanceName + ", pendingState: "
-                  + pendingState + ", currentState: " + currentState + ", nextState: " + nextState);
+              logger.info("IdealState changed before state transition completes for " +
+                  resource.getResourceName() + "." + partition.getPartitionName() + " on "
+                      + instanceName + ", pendingState: " + pendingState + ", currentState: "
+                      + currentState + ", nextState: " + nextState);
             }
           } else {
 

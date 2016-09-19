@@ -106,7 +106,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
     _driver = new TaskDriver(_manager);
 
     Map<String, String> taskConfigMap = Maps.newHashMap();
-    _taskConfig = new TaskConfig("TaskOne", taskConfigMap, false);
+    _taskConfig = new TaskConfig("TaskOne", taskConfigMap);
     _jobCommandMap = Maps.newHashMap();
   }
 
@@ -140,7 +140,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(20);
     for (int i = 0; i < 50; i++) {
       Map<String, String> taskConfigMap = Maps.newHashMap();
-      taskConfigs.add(new TaskConfig("TaskOne", taskConfigMap, false));
+      taskConfigs.add(new TaskConfig("TaskOne", taskConfigMap));
     }
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setCommand("DummyCommand").setJobCommandConfigMap(_jobCommandMap)

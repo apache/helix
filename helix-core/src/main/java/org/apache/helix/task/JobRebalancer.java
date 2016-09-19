@@ -340,24 +340,9 @@ public class JobRebalancer extends TaskRebalancer {
           // maximum number of attempts or task is in ABORTED state.
           if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask() ||
               currState.equals(TaskPartitionState.TASK_ABORTED)) {
-            // If the user does not require this task to succeed in order for the job to succeed,
-            // then we don't have to fail the job right now
-            boolean successOptional = false;
-            String taskId = jobCtx.getTaskIdForPartition(pId);
-            if (taskId != null) {
-              TaskConfig taskConfig = jobCfg.getTaskConfig(taskId);
-              if (taskConfig != null) {
-                successOptional = taskConfig.isSuccessOptional();
-              }
-            }
-
-            // Similarly, if we have some leeway for how many tasks we can fail, then we don't have
+            // If we have some leeway for how many tasks we can fail, then we don't have
             // to fail the job immediately
-            if (skippedPartitions.size() < jobCfg.getFailureThreshold()) {
-              successOptional = true;
-            }
-
-            if (!successOptional) {
+            if (skippedPartitions.size() >= jobCfg.getFailureThreshold()) {
               markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
               _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.FAILED);
               markAllPartitionsError(jobCtx, currState, false);

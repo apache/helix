@@ -29,5 +29,6 @@ import java.util.Map;
 public class TaskBean {
   public String command;
   public Map<String, String> taskConfigMap;
+  @Deprecated
   public boolean successOptional = false;
 }

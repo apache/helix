@@ -123,7 +123,7 @@ public class TestUserContentStore extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
     Map<String, String> taskConfigMap = Maps.newHashMap();
-    TaskConfig taskConfig1 = new TaskConfig("ContentStoreTask", taskConfigMap, false);
+    TaskConfig taskConfig1 = new TaskConfig("ContentStoreTask", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
@@ -148,8 +148,8 @@ public class TestUserContentStore extends TaskTestBase {
     List<TaskConfig> taskConfigs2 = Lists.newArrayListWithCapacity(1);
     Map<String, String> taskConfigMap1 = Maps.newHashMap();
     Map<String, String> taskConfigMap2 = Maps.newHashMap();
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap1, false);
-    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", taskConfigMap2, false);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap1);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", taskConfigMap2);
 
     taskConfigs1.add(taskConfig1);
     taskConfigs2.add(taskConfig2);

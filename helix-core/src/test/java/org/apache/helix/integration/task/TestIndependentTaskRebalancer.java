@@ -136,8 +136,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     String jobName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", null, true);
-    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, true);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", null);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
     Map<String, String> jobCommandMap = Maps.newHashMap();
@@ -164,8 +164,8 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
     Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true));
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
-    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
+    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null);
     taskConfigs.add(taskConfig1);
     taskConfigs.add(taskConfig2);
     Map<String, String> jobConfigMap = Maps.newHashMap();
@@ -185,35 +185,6 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
   }
 
-  @Test public void testOptionalTaskFailure() throws Exception {
-    // Create a job with two different tasks
-    String jobName = TestHelper.getTestMethodName();
-    Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
-    List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
-    Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap.of("fail", "" + true));
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, true);
-    TaskConfig taskConfig2 = new TaskConfig("TaskTwo", null, false);
-    taskConfigs.add(taskConfig1);
-    taskConfigs.add(taskConfig2);
-    Map<String, String> jobCommandMap = Maps.newHashMap();
-    jobCommandMap.put("Timeout", "1000");
-
-    JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
-            .setJobCommandConfigMap(jobCommandMap);
-    workflowBuilder.addJob(jobName, jobBuilder);
-
-    _driver.start(workflowBuilder.build());
-
-    // Ensure the job completes
-    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
-    _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
-
-    // Ensure that each class was invoked
-    Assert.assertTrue(_invokedClasses.contains(TaskOne.class.getName()));
-    Assert.assertTrue(_invokedClasses.contains(TaskTwo.class.getName()));
-  }
-
   @Test public void testReassignment() throws Exception {
     final int NUM_INSTANCES = 5;
     String jobName = TestHelper.getTestMethodName();
@@ -221,13 +192,13 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(2);
     Map<String, String> taskConfigMap = Maps.newHashMap(ImmutableMap
         .of("fail", "" + true, "failInstance", PARTICIPANT_PREFIX + '_' + (_startPort + 1)));
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
 
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
-        .setMaxForcedReassignmentsPerTask(NUM_INSTANCES - 1).addTaskConfigs(taskConfigs)
+        .addTaskConfigs(taskConfigs)
         .setJobCommandConfigMap(jobCommandMap);
     workflowBuilder.addJob(jobName, jobBuilder);
 
@@ -254,7 +225,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
     Map<String, String> taskConfigMap = Maps.newHashMap();
-    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap, false);
+    TaskConfig taskConfig1 = new TaskConfig("TaskOne", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
     jobCommandMap.put("Timeout", "1000");
@@ -289,7 +260,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     Workflow.Builder workflowBuilder = new Workflow.Builder(jobName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
     Map<String, String> taskConfigMap = Maps.newHashMap();
-    TaskConfig taskConfig1 = new TaskConfig("SingleFailTask", taskConfigMap, false);
+    TaskConfig taskConfig1 = new TaskConfig("SingleFailTask", taskConfigMap);
     taskConfigs.add(taskConfig1);
     Map<String, String> jobCommandMap = Maps.newHashMap();
 

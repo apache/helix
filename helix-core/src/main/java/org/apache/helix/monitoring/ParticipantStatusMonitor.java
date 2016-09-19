@@ -20,6 +20,7 @@ package org.apache.helix.monitoring;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -27,6 +28,7 @@ import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
 import org.apache.log4j.Logger;
@@ -53,9 +55,29 @@ public class ParticipantStatusMonitor {
     }
   }
 
-  public void incrementReceivedMessages(int num) {
+  public void reportReceivedMessages(List<Message> messages) {
     if (_messageMonitor != null) {  // is participant
-      _messageMonitor.incrementReceivedMessages(num);
+      _messageMonitor.incrementReceivedMessages(messages.size());
+      _messageMonitor.incrementPendingMessages(messages.size());
+    }
+  }
+
+  public void reportProcessedMessage(Message message, ParticipantMessageMonitor.ProcessedMessageState processedMessageState) {
+    if (_messageMonitor != null) {  // is participant
+      switch (processedMessageState) {
+        case DISCARDED:
+          _messageMonitor.incrementDiscardedMessages(1);
+          _messageMonitor.decrementPendingMessages(1);
+          break;
+        case FAILED:
+          _messageMonitor.incrementFailedMessages(1);
+          _messageMonitor.decrementPendingMessages(1);
+          break;
+        case COMPLETED:
+          _messageMonitor.incrementCompletedMessages(1);
+          _messageMonitor.decrementPendingMessages(1);
+          break;
+      }
     }
   }
 

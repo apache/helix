@@ -35,6 +35,7 @@ import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.monitoring.StateTransitionContext;
 import org.apache.helix.monitoring.StateTransitionDataPoint;
+import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.util.StatusUpdateUtil;
 import org.apache.log4j.Logger;
 
@@ -100,6 +101,7 @@ public class HelixTask implements MessageTask {
               + " type: " + _message.getMsgType();
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, e, errorMessage, accessor);
+      _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
     }
 
     // cancel timeout task
@@ -108,9 +110,10 @@ public class HelixTask implements MessageTask {
     Exception exception = null;
     try {
       if (taskResult.isSuccess()) {
-        _statusUpdateUtil.logInfo(_message, _handler.getClass(),
-            "Message handling task completed successfully", accessor);
+        _statusUpdateUtil
+            .logInfo(_message, _handler.getClass(), "Message handling task completed successfully", accessor);
         logger.info("Message " + _message.getMsgId() + " completed.");
+        _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
       } else {
         type = ErrorType.INTERNAL;
 
@@ -142,6 +145,7 @@ public class HelixTask implements MessageTask {
           logger.error(errorMsg);
           _statusUpdateUtil.logError(_message, _handler.getClass(), errorMsg, accessor);
         }
+        _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
       }
 
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
@@ -160,6 +164,7 @@ public class HelixTask implements MessageTask {
           "Exception after executing a message, msgId: " + _message.getMsgId() + e;
       logger.error(errorMessage, e);
       _statusUpdateUtil.logError(_message, HelixTask.class, errorMessage, accessor);
+      _executor.getParticipantMonitor().reportProcessedMessage(_message, ParticipantMessageMonitor.ProcessedMessageState.FAILED);
     } finally {
       long end = System.currentTimeMillis();
       logger.info("msg: " + _message.getMsgId() + " handling task completed, results:"

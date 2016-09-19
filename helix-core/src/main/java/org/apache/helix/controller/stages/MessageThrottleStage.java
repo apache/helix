@@ -179,7 +179,6 @@ public class MessageThrottleStage extends AbstractBaseStage {
           }
         }
       }
-
       if (!msgThrottled) {
         throttleOutputMsgs.add(message);
       }

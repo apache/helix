@@ -123,7 +123,17 @@ public class JobConfig {
     /**
      * The instance group that task assign to
      */
-    InstanceGroupTag
+    InstanceGroupTag,
+
+    /**
+     * The job execution delay time
+     */
+    DelayTime,
+
+    /**
+     * The job execution start time
+     */
+    StartTime
   }
 
   //Default property values
@@ -136,6 +146,8 @@ public class JobConfig {
   public static final boolean DEFAULT_DISABLE_EXTERNALVIEW = false;
   public static final boolean DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE = false;
   public static final int DEFAULT_NUMBER_OF_TASKS = 0;
+  public static final long DEFAULT_JOB_EXECUTION_START_TIME = -1L;
+  public static final long DEFAULT_Job_EXECUTION_DELAY_TIME = -1L;
 
   private final String _workflow;
   private final String _targetResource;
@@ -151,6 +163,8 @@ public class JobConfig {
   private final int _maxForcedReassignmentsPerTask;
   private final int _failureThreshold;
   private final long _retryDelay;
+  private final long _executionDelay;
+  private final long _executionStart;
   private final boolean _disableExternalView;
   private final boolean _ignoreDependentJobFailure;
   private final Map<String, TaskConfig> _taskConfigMap;
@@ -160,7 +174,8 @@ public class JobConfig {
       long timeoutPerTask, int numConcurrentTasksPerInstance, int maxAttemptsPerTask,
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
-      Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag) {
+      Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
+      long executionDelay, long executionStart) {
     _workflow = workflow;
     _targetResource = targetResource;
     _targetPartitions = targetPartitions;
@@ -182,6 +197,8 @@ public class JobConfig {
     }
     _jobType = jobType;
     _instanceGroupTag = instanceGroupTag;
+    _executionDelay = executionDelay;
+    _executionStart = executionStart;
   }
 
   public String getWorkflow() {
@@ -228,6 +245,15 @@ public class JobConfig {
     return _retryDelay;
   }
 
+  // Execution delay time will be ignored when it is negative number
+  public long getExecutionDelay() {
+    return _executionDelay;
+  }
+
+  public long getExecutionStart() {
+    return _executionStart;
+  }
+
   public boolean isDisableExternalView() {
     return _disableExternalView;
   }
@@ -268,6 +294,12 @@ public class JobConfig {
     if (_retryDelay > 0) {
       cfgMap.put(JobConfigProperty.TaskRetryDelay.name(), "" + _retryDelay);
     }
+    if (_executionDelay > 0) {
+      cfgMap.put(JobConfigProperty.DelayTime.name(), "" + _executionDelay);
+    }
+    if (_executionStart > 0) {
+      cfgMap.put(JobConfigProperty.StartTime.name(), "" + _executionStart);
+    }
     cfgMap.put(JobConfigProperty.TimeoutPerPartition.name(), "" + _timeoutPerTask);
     cfgMap.put(JobConfigProperty.MaxAttemptsPerTask.name(), "" + _maxAttemptsPerTask);
     cfgMap.put(JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
@@ -306,8 +338,6 @@ public class JobConfig {
    * A builder for {@link JobConfig}. Validates the configurations.
    */
   public static class Builder {
-    private final String NUMBER_OF_TASKS = "NumberOfTasks";
-
     private String _workflow;
     private String _targetResource;
     private String _jobType;
@@ -323,6 +353,8 @@ public class JobConfig {
     private int _maxForcedReassignmentsPerTask = DEFAULT_MAX_FORCED_REASSIGNMENTS_PER_TASK;
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
     private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
+    private long _executionStart = DEFAULT_JOB_EXECUTION_START_TIME;
+    private long _executionDelay = DEFAULT_Job_EXECUTION_DELAY_TIME;
     private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
@@ -341,7 +373,7 @@ public class JobConfig {
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
-          _instanceGroupTag);
+          _instanceGroupTag, _executionDelay, _executionStart);
     }
 
     /**
@@ -390,6 +422,12 @@ public class JobConfig {
       }
       if (cfg.containsKey(JobConfigProperty.TaskRetryDelay.name())) {
         b.setTaskRetryDelay(Long.parseLong(cfg.get(JobConfigProperty.TaskRetryDelay.name())));
+      }
+      if (cfg.containsKey(JobConfigProperty.DelayTime.name())) {
+        b.setExecutionDelay(Long.parseLong(cfg.get(JobConfigProperty.DelayTime.name())));
+      }
+      if (cfg.containsKey(JobConfigProperty.StartTime.name())) {
+        b.setExecutionStart(Long.parseLong(cfg.get(JobConfigProperty.StartTime.name())));
       }
       if (cfg.containsKey(JobConfigProperty.DisableExternalView.name())) {
         b.setDisableExternalView(
@@ -472,6 +510,16 @@ public class JobConfig {
 
     public Builder setTaskRetryDelay(long v) {
       _retryDelay = v;
+      return this;
+    }
+
+    public Builder setExecutionDelay(long v) {
+      _executionDelay = v;
+      return this;
+    }
+
+    public Builder setExecutionStart(long v) {
+      _executionStart = v;
       return this;
     }
 
@@ -578,7 +626,9 @@ public class JobConfig {
           .setTimeoutPerTask(jobBean.timeoutPerPartition)
           .setFailureThreshold(jobBean.failureThreshold).setTaskRetryDelay(jobBean.taskRetryDelay)
           .setDisableExternalView(jobBean.disableExternalView)
-          .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure).setNumberOfTasks(jobBean.numberOfTasks);
+          .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure)
+          .setNumberOfTasks(jobBean.numberOfTasks).setExecutionDelay(jobBean.executionDelay)
+          .setExecutionStart(jobBean.executionStart);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);

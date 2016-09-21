@@ -95,7 +95,7 @@ public class RebalanceScheduler {
    *
    * @param resource
    */
-  public void removeScheduledRebalance(String resource) {
+  public long removeScheduledRebalance(String resource) {
     ScheduledTask existTask = _rebalanceTasks.remove(resource);
     if (existTask != null && !existTask.getFuture().isDone()) {
       if (!existTask.getFuture().cancel(true)) {
@@ -104,7 +104,11 @@ public class RebalanceScheduler {
       LOG.info(
           "Remove scheduled rebalance task at time " + existTask.getStartTime() + " for resource: "
               + resource);
+
+      return existTask.getStartTime();
     }
+
+    return -1;
   }
 
   /**

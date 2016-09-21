@@ -114,4 +114,16 @@ public class ZkIntegrationTestBase {
         ClusterConfig.ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.name(),
         enable.toString());
   }
+
+  protected void disableDelayRebalanceInCluster(ZkClient zkClient, String clusterName,
+      Boolean disabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    HelixConfigScope clusterScope =
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+            .forCluster(clusterName).build();
+
+    configAccessor
+        .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(),
+            disabled.toString());
+  }
 }

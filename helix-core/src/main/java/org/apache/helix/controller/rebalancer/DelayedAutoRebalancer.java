@@ -24,6 +24,7 @@ import org.apache.helix.controller.rebalancer.util.ConstraintBasedAssignment;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -80,10 +81,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       allNodes = clusterData.getEnabledInstances();
     }
 
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    long delayTime = getRebalanceDelay(currentIdealState, clusterConfig);
     Set<String> activeNodes = getActiveInstances(currentIdealState, allNodes, liveNodes,
-        clusterData.getInstanceOfflineTimeMap());
-
-    setRebalanceScheduler(currentIdealState, activeNodes, clusterData.getInstanceOfflineTimeMap());
+        clusterData.getInstanceOfflineTimeMap(), delayTime, clusterConfig);
+    setRebalanceScheduler(currentIdealState, activeNodes, clusterData.getInstanceOfflineTimeMap(),
+        delayTime, clusterConfig);
 
     if (allNodes.isEmpty() || activeNodes.isEmpty()) {
       LOG.error(String.format(
@@ -105,8 +108,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           emptyMapping(currentIdealState));
     }
 
-    int minActiveReplicas = getMinActiveReplica(currentIdealState, replicaCount);
-
     LinkedHashMap<String, Integer> stateCountMap =
         StateModelDefinition.getStateCountMap(stateModelDef, activeNodes.size(), replicaCount);
     Map<String, Map<String, String>> currentMapping =
@@ -120,18 +121,25 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<String>(allNodes);
     List<String> liveNodeList = new ArrayList<String>(liveNodes);
-    List<String> activeNodeList = new ArrayList<String>(activeNodes);
     Collections.sort(allNodeList);
     Collections.sort(liveNodeList);
-    Collections.sort(activeNodeList);
 
     ZNRecord newIdealMapping = _rebalanceStrategy
         .computePartitionAssignment(allNodeList, liveNodeList, currentMapping, clusterData);
-    ZNRecord newActiveMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
-    ZNRecord finalMapping =
-        getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveNodes,
-            replicaCount, minActiveReplicas);
+    ZNRecord finalMapping = newIdealMapping;
+
+    if (!isDelayRebalanceDisabled(currentIdealState, clusterConfig)) {
+      List<String> activeNodeList = new ArrayList<String>(activeNodes);
+      Collections.sort(activeNodeList);
+      int minActiveReplicas = getMinActiveReplica(currentIdealState, replicaCount);
+
+      ZNRecord newActiveMapping = _rebalanceStrategy
+          .computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
+      finalMapping =
+          getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveNodes,
+              replicaCount, minActiveReplicas);
+      LOG.debug("newActiveMapping: " + newActiveMapping);
+    }
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);
@@ -140,7 +148,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       LOG.debug("allNodes: " + allNodes);
       LOG.debug("maxPartition: " + maxPartition);
       LOG.debug("newIdealMapping: " + newIdealMapping);
-      LOG.debug("newActiveMapping: " + newActiveMapping);
       LOG.debug("finalMapping: " + finalMapping);
     }
 
@@ -159,13 +166,18 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
   /* get all active instances (live instances plus offline-yet-active instances */
   private Set<String> getActiveInstances(IdealState idealState, Set<String> allNodes,
-      Set<String> liveNodes, Map<String, Long> instanceOfflineTimeMap) {
+      Set<String> liveNodes, Map<String, Long> instanceOfflineTimeMap, long delayTime,
+      ClusterConfig clusterConfig) {
     Set<String> activeInstances = new HashSet<String>(liveNodes);
+
+    if (isDelayRebalanceDisabled(idealState, clusterConfig)) {
+      return activeInstances;
+    }
+
     Set<String> offlineInstances = new HashSet<String>(allNodes);
     offlineInstances.removeAll(liveNodes);
 
     long currentTime = System.currentTimeMillis();
-    long delayTime = idealState.getRebalanceDelay();
     for (String ins : offlineInstances) {
       Long offlineTime = instanceOfflineTimeMap.get(ins);
       if (offlineTime != null && offlineTime > 0) {
@@ -180,10 +192,14 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
   /* Set a rebalance scheduler for the closest future rebalance time. */
   private void setRebalanceScheduler(IdealState idealState, Set<String> activeInstances,
-      Map<String, Long> instanceOfflineTimeMap) {
-    long nextRebalanceTime = Long.MAX_VALUE;
-    long delayTime = idealState.getRebalanceDelay();
+      Map<String, Long> instanceOfflineTimeMap, long delayTime, ClusterConfig clusterConfig) {
+    String resourceName = idealState.getResourceName();
+    if (isDelayRebalanceDisabled(idealState, clusterConfig)) {
+      _scheduledRebalancer.removeScheduledRebalance(resourceName);
+      return;
+    }
 
+    long nextRebalanceTime = Long.MAX_VALUE;
     for (String ins : activeInstances) {
       Long offlineTime = instanceOfflineTimeMap.get(ins);
       if (offlineTime != null && offlineTime > 0) {
@@ -197,14 +213,29 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       }
     }
 
-    String resourceName = idealState.getResourceName();
-    LOG.debug(String
-        .format("Next rebalance time for resource %s is %d\n", resourceName, nextRebalanceTime));
     if (nextRebalanceTime == Long.MAX_VALUE) {
-      _scheduledRebalancer.removeScheduledRebalance(resourceName);
+      long startTime = _scheduledRebalancer.removeScheduledRebalance(resourceName);
+      LOG.debug(String
+          .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
     } else {
       _scheduledRebalancer.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
+      LOG.debug(String.format("Set next rebalance time for resource %s at time %d\n", resourceName,
+          nextRebalanceTime));
     }
+  }
+
+  private long getRebalanceDelay(IdealState idealState, ClusterConfig clusterConfig) {
+    long delayTime = idealState.getRebalanceDelay();
+    if (delayTime < 0) {
+      delayTime = clusterConfig.getRebalanceDelayTime();
+    }
+    return delayTime;
+  }
+
+  private boolean isDelayRebalanceDisabled(IdealState idealState, ClusterConfig clusterConfig) {
+    long delayTime = getRebalanceDelay(idealState, clusterConfig);
+    return (delayTime < 0 || idealState.isDelayRebalanceDisabled() || clusterConfig
+        .isDelayRebalaceDisabled());
   }
 
   private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping,
@@ -274,8 +305,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     Set<String> offlineNodes = cache.getAllInstances();
     offlineNodes.removeAll(cache.getLiveInstances().keySet());
 
+    ClusterConfig clusterConfig = cache.getClusterConfig();
+    long delayTime = getRebalanceDelay(idealState, clusterConfig);
     Set<String> activeNodes =
-        getActiveInstances(idealState, allNodes, liveNodes, cache.getInstanceOfflineTimeMap());
+        getActiveInstances(idealState, allNodes, liveNodes, cache.getInstanceOfflineTimeMap(),
+            delayTime, clusterConfig);
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);

@@ -33,7 +33,9 @@ public class ClusterConfig extends HelixProperty {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
     PERSIST_BEST_POSSIBLE_ASSIGNMENT,
     TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
-    FAULT_ZONE_TYPE // the type in which isolation should be applied on when Helix places the replicas from same partition.
+    FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
+    DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
+    DELAY_REBALANCE_TIME     // delayed time in ms that the delay time Helix should hold until rebalancing.
   }
 
   /**
@@ -72,6 +74,14 @@ public class ClusterConfig extends HelixProperty {
   public Boolean isPipelineTriggersDisabled() {
     return _record
         .getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(), false);
+  }
+
+  public long getRebalanceDelayTime() {
+    return _record.getLongField(ClusterConfigProperty.DELAY_REBALANCE_TIME.name(), -1);
+  }
+
+  public boolean isDelayRebalaceDisabled() {
+    return _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(), false);
   }
 
   @Override

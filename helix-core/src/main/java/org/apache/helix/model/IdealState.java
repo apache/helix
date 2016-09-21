@@ -52,6 +52,7 @@ public class IdealState extends HelixProperty {
     REPLICAS,
     MIN_ACTIVE_REPLICAS,
     REBALANCE_DELAY,
+    DELAY_REBALANCE_DISABLED,
     @Deprecated
     IDEAL_STATE_MODE,
     REBALANCE_MODE,
@@ -221,7 +222,7 @@ public class IdealState extends HelixProperty {
    * @param delayInMilliseconds
    */
   public void setRebalanceDelay(long delayInMilliseconds) {
-    _record.setLongField(IdealStateProperty.REBALANCE_DELAY.toString(), delayInMilliseconds);
+    _record.setLongField(IdealStateProperty.REBALANCE_DELAY.name(), delayInMilliseconds);
   }
 
   /**
@@ -229,7 +230,23 @@ public class IdealState extends HelixProperty {
    * @return
    */
   public long getRebalanceDelay() {
-    return _record.getLongField(IdealStateProperty.REBALANCE_DELAY.toString(), 0);
+    return _record.getLongField(IdealStateProperty.REBALANCE_DELAY.name(), -1);
+  }
+
+  /**
+   * If disabled is true, the delayed rebalance time will be ignored.
+   * @param disabled
+   */
+  public void setDelayRebalanceDisabled(boolean disabled) {
+    _record.setBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), disabled);
+  }
+
+  /**
+   * Whether the delay rebalance is disabled.
+   * @return
+   */
+  public boolean isDelayRebalanceDisabled() {
+    return _record.getBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), false);
   }
 
   /**

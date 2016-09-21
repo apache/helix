@@ -51,6 +51,11 @@ public abstract class IdealStateBuilder {
   private long rebalanceDelayInMs = -1;
 
   /**
+   * Whether delay rebalance should be disabled.
+   */
+  private Boolean delayRebalanceDisabled = null;
+
+  /**
    * State model that is applicable for this resource
    */
   private String stateModel;
@@ -139,6 +144,20 @@ public abstract class IdealStateBuilder {
   public IdealStateBuilder setRebalanceDelay(int delayInMilliseconds) {
     this.rebalanceDelayInMs = delayInMilliseconds;
     return this;
+  }
+
+  /**
+   * Disable Delayed Rebalance.
+   */
+  public void disableDelayRebalance() {
+    delayRebalanceDisabled = true;
+  }
+
+  /**
+   * Disable Delayed Rebalance.
+   */
+  public void enableDelayRebalance() {
+    delayRebalanceDisabled = false;
   }
 
   /**
@@ -288,8 +307,12 @@ public abstract class IdealStateBuilder {
       idealstate.setResourceType(resourceType);
     }
 
-    if (rebalanceDelayInMs > 0) {
+    if (rebalanceDelayInMs >= 0) {
       idealstate.setRebalanceDelay(rebalanceDelayInMs);
+    }
+
+    if (delayRebalanceDisabled != null) {
+      idealstate.setDelayRebalanceDisabled(delayRebalanceDisabled);
     }
 
     if (!idealstate.isValid()) {

@@ -42,6 +42,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
@@ -394,21 +395,36 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
-  public void setWorkflowsStatus(TaskDriver driver) {
+  public void refreshWorkflowsStatus(TaskDriver driver) {
+    for (WorkflowMonitor workflowMonitor : _perTypeWorkflowMonitorMap.values()) {
+      workflowMonitor.resetGauges();
+    }
+
     Map<String, WorkflowConfig> workflowConfigMap = driver.getWorkflows();
     for (String workflow : workflowConfigMap.keySet()) {
       if (workflowConfigMap.get(workflow).isRecurring()) {
         continue;
       }
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
-      TaskState toState =
+      TaskState currentState =
           workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getWorkflowState();
-      updateWorkflowStatus(workflowConfigMap.get(workflow), null, toState);
+      updateWorkflowGauges(workflowConfigMap.get(workflow), currentState);
     }
   }
 
-  public void updateWorkflowStatus(WorkflowConfig workflowConfig, TaskState from, TaskState to) {
+  public void updateWorkflowCounters(WorkflowConfig workflowConfig, TaskState to) {
     String workflowType = workflowConfig.getWorkflowType();
+    workflowType = preProcessWorkflow(workflowType);
+    _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowCounters(to);
+  }
+
+  private void updateWorkflowGauges(WorkflowConfig workflowConfig, TaskState current) {
+    String workflowType = workflowConfig.getWorkflowType();
+    workflowType = preProcessWorkflow(workflowType);
+    _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowGauges(current);
+  }
+
+  private String preProcessWorkflow(String workflowType) {
     if (workflowType == null || workflowType.length() == 0) {
       workflowType = DEFAULT_WORKFLOW_JOB_TYPE;
     }
@@ -422,28 +438,37 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       _perTypeWorkflowMonitorMap.put(workflowType, monitor);
     }
-
-    _perTypeWorkflowMonitorMap.get(workflowType).updateWorkflowStats(from, to);
+    return workflowType;
   }
 
-  public void setJobsStatus(TaskDriver driver) {
+  public void refreshJobsStatus(TaskDriver driver) {
+    for (JobMonitor jobMonitor : _perTypeJobMonitorMap.values()) {
+      jobMonitor.resetJobGauge();
+    }
     for (String workflow : driver.getWorkflows().keySet()) {
       Set<String> allJobs = driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
-
       for (String job : allJobs) {
-        TaskState toState = null;
-        if (workflowContext != null) {
-          toState = workflowContext.getJobState(job);
-        }
-        toState = toState == null ? TaskState.NOT_STARTED : toState;
-        updateJobStatus(driver.getJobConfig(job), null, toState);
+        TaskState currentState =
+            workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
+        updateJobGauges(driver.getJobConfig(job), currentState);
       }
     }
   }
 
-  public void updateJobStatus(JobConfig jobConfig, TaskState from, TaskState to) {
+  public void updateJobCounters(JobConfig jobConfig, TaskState to) {
     String jobType = jobConfig.getJobType();
+    jobType = preProcessJobMonitor(jobType);
+    _perTypeJobMonitorMap.get(jobType).updateJobCounters(to);
+  }
+
+  private void updateJobGauges(JobConfig jobConfig, TaskState current) {
+    String jobType = jobConfig.getJobType();
+    jobType = preProcessJobMonitor(jobType);
+    _perTypeJobMonitorMap.get(jobType).updateJobGauge(current);
+  }
+
+  private String preProcessJobMonitor(String jobType) {
     if (jobType == null || jobType.length() == 0) {
       jobType = DEFAULT_WORKFLOW_JOB_TYPE;
     }
@@ -457,8 +482,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       }
       _perTypeJobMonitorMap.put(jobType, monitor);
     }
-
-    _perTypeJobMonitorMap.get(jobType).updateJobStats(from, to);
+    return jobType;
   }
 
   private synchronized void registerInstances(Collection<InstanceMonitor> instances)

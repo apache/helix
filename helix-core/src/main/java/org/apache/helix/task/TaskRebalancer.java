@@ -83,6 +83,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
         failedJobs ++;
         if (failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
+          _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.FAILED);
           for (String jobToFail : cfg.getJobDag().getAllNodes()) {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
@@ -98,6 +99,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     if (!incomplete && cfg.isTerminable()) {
       ctx.setWorkflowState(TaskState.COMPLETED);
+      _clusterStatusMonitor.updateWorkflowCounters(cfg, TaskState.COMPLETED);
       return true;
     }
 

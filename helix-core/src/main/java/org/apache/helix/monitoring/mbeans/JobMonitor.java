@@ -32,6 +32,7 @@ public class JobMonitor implements JobMonitorMBean {
 
   private long _successfullJobCount;
   private long _failedJobCount;
+  private long _abortedJobCount;
   private long _existingJobGauge;
   private long _queuedJobGauge;
   private long _runningJobGauge;
@@ -41,6 +42,7 @@ public class JobMonitor implements JobMonitorMBean {
     _jobType = jobType;
     _successfullJobCount = 0L;
     _failedJobCount = 0L;
+    _abortedJobCount = 0L;
     _existingJobGauge = 0L;
     _queuedJobGauge = 0L;
     _runningJobGauge = 0L;
@@ -54,6 +56,11 @@ public class JobMonitor implements JobMonitorMBean {
   @Override
   public long getFailedJobCount() {
     return _failedJobCount;
+  }
+
+  @Override
+  public long getAbortedJobCount() {
+    return _abortedJobCount;
   }
 
   @Override
@@ -89,6 +96,8 @@ public class JobMonitor implements JobMonitorMBean {
       _failedJobCount++;
     } else if (to.equals(TaskState.COMPLETED)) {
       _successfullJobCount++;
+    } else if (to.equals(TaskState.ABORTED)) {
+      _abortedJobCount++;
     }
   }
 

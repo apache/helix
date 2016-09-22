@@ -463,6 +463,11 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   }
 
   private void updateJobGauges(JobConfig jobConfig, TaskState current) {
+    // When first time for WorkflowRebalancer call, jobconfig may not ready.
+    // Thus only check it for gauge.
+    if (jobConfig == null) {
+      return;
+    }
     String jobType = jobConfig.getJobType();
     jobType = preProcessJobMonitor(jobType);
     _perTypeJobMonitorMap.get(jobType).updateJobGauge(current);

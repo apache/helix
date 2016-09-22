@@ -43,5 +43,9 @@ public enum TaskState {
   /**
    * All the task partitions have completed normally.
    */
-  COMPLETED
+  COMPLETED,
+  /**
+   * The task are aborted due to workflow fail
+   */
+  ABORTED
 }

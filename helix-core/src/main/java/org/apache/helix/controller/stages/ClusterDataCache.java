@@ -311,11 +311,15 @@ public class ClusterDataCache {
   }
 
   /**
-  * Return all the live nodes that are enabled
-  * @return A new set contains live instance name and that are marked enabled
-  */
+   * Return all the live nodes that are enabled
+   *
+   * @return A new set contains live instance name and that are marked enabled
+   */
   public Set<String> getEnabledLiveInstances() {
-    return getAllEnabledInstances(null);
+    Set<String> enabledLiveInstances = new HashSet<String>(getLiveInstances().keySet());
+    enabledLiveInstances.removeAll(getDisabledInstances());
+
+    return enabledLiveInstances;
   }
 
   /**
@@ -338,25 +342,12 @@ public class ClusterDataCache {
    * tag.
    */
   public Set<String> getEnabledLiveInstancesWithTag(String instanceTag) {
-    return getAllEnabledInstances(instanceTag);
-  }
+    Set<String> enabledLiveInstancesWithTag = new HashSet<String>(getLiveInstances().keySet());
+    Set<String> instancesWithTag = getInstancesWithTag(instanceTag);
+    enabledLiveInstancesWithTag.retainAll(instancesWithTag);
+    enabledLiveInstancesWithTag.removeAll(getDisabledInstances());
 
-  private Set<String> getAllEnabledInstances(String instanceTag) {
-    Set<String> enabledTagInstances = new HashSet<String>();
-    for (String instance : _liveInstanceMap.keySet()) {
-      InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
-
-      // Check instance is enabled
-      if (instanceConfig != null && instanceConfig.getInstanceEnabled()) {
-        // Check whether it has instance group or not
-        // If it has instance group, check whether it belongs to that group or not
-        if (instanceTag == null || instanceConfig.containsTag(instanceTag)) {
-          enabledTagInstances.add(instance);
-        }
-      }
-    }
-
-    return enabledTagInstances;
+    return enabledLiveInstancesWithTag;
   }
 
   /**
@@ -364,7 +355,7 @@ public class ClusterDataCache {
    *
    * @param instanceTag The instance group tag.
    */
-  public Set<String> getAllInstancesWithTag(String instanceTag) {
+  public Set<String> getInstancesWithTag(String instanceTag) {
     Set<String> taggedInstances = new HashSet<String>();
     for (String instance : _instanceConfigMap.keySet()) {
       InstanceConfig instanceConfig = _instanceConfigMap.get(instance);
@@ -510,13 +501,14 @@ public class ClusterDataCache {
 
   /**
    * This method allows one to fetch the set of nodes that are disabled
+   *
    * @return
    */
   public Set<String> getDisabledInstances() {
     Set<String> disabledInstancesSet = new HashSet<String>();
     for (String instance : _instanceConfigMap.keySet()) {
       InstanceConfig config = _instanceConfigMap.get(instance);
-      if (config.getInstanceEnabled() == false) {
+      if (!config.getInstanceEnabled()) {
         disabledInstancesSet.add(instance);
       }
     }

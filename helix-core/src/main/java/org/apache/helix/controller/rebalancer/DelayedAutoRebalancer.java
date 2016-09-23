@@ -66,7 +66,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     String instanceTag = currentIdealState.getInstanceGroupTag();
     if (instanceTag != null) {
       liveNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
-      allNodes = clusterData.getAllInstancesWithTag(instanceTag);
+      allNodes = clusterData.getInstancesWithTag(instanceTag);
 
       if (!liveNodes.isEmpty()) {
         // live nodes exist that have this tag

@@ -70,7 +70,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_manager, workflow);
     // Initialize workflow context if needed
     if (workflowCtx == null) {
-      workflowCtx = new WorkflowContext(new ZNRecord("WorkflowContext"));
+      workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
       workflowCtx.setStartTime(System.currentTimeMillis());
       LOG.debug("Workflow context is created for " + workflow);
     }

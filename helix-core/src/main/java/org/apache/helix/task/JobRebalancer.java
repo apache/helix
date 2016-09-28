@@ -114,7 +114,7 @@ public class JobRebalancer extends TaskRebalancer {
     // Fetch any existing context information from the property store.
     JobContext jobCtx = TaskUtil.getJobContext(_manager, jobName);
     if (jobCtx == null) {
-      jobCtx = new JobContext(new ZNRecord("TaskContext"));
+      jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
     }
 

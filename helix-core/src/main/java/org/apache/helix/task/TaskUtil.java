@@ -33,7 +33,6 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
@@ -50,6 +49,8 @@ public class TaskUtil {
   private static final Logger LOG = Logger.getLogger(TaskUtil.class);
   public static final String CONTEXT_NODE = "Context";
   public static final String USER_CONTENT_NODE = "UserContent";
+  public static final String WORKFLOW_CONTEXT_KW = "WorkflowContext";
+  public static final String TASK_CONTEXT_KW = "TaskContext";
 
   /**
    * Parses job resource configurations in Helix into a {@link JobConfig} object.

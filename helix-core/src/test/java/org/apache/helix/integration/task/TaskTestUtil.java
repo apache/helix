@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
@@ -35,14 +36,17 @@ import org.apache.helix.task.TargetState;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskPartitionState;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.task.WorkflowRebalancer;
 import org.testng.Assert;
 
 /**
  * Static test utility methods.
  */
 public class TaskTestUtil {
+  public static final String JOB_KW = "JOB";
   private final static int _default_timeout = 2 * 60 * 1000; /* 2 mins */
 
   public static void pollForEmptyJobState(final TaskDriver driver, final String workflowName,
@@ -215,5 +219,28 @@ public class TaskTestUtil {
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName) {
     return buildJobQueue(jobQueueName, 0, 0);
+  }
+
+  public static WorkflowContext buildWorkflowContext(TaskState workflowState, Long startTime,
+      TaskState... jobStates) {
+    WorkflowContext workflowContext =
+        new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
+    workflowContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
+    int jobId = 0;
+    for (TaskState jobstate : jobStates) {
+      workflowContext.setJobState(JOB_KW + jobId++, jobstate);
+    }
+    workflowContext.setWorkflowState(workflowState);
+    return workflowContext;
+  }
+
+  public static JobContext buildJobContext(Long startTime, TaskPartitionState... partitionStates) {
+    JobContext jobContext = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
+    jobContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
+    int partitionId = 0;
+    for (TaskPartitionState partitionState : partitionStates) {
+      jobContext.setPartitionState(partitionId++, partitionState);
+    }
+    return jobContext;
   }
 }

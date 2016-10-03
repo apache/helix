@@ -30,10 +30,7 @@ public class TestWorkflowAndJobPoll extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numDbs = 1;
-    _numNodes = 1;
-    _numParitions = 1;
-    _numReplicas = 1;
+    setSingleTestEnvironment();
     super.beforeClass();
   }
 

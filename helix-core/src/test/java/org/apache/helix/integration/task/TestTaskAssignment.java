@@ -37,10 +37,8 @@ public class TestTaskAssignment extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numDbs = 1;
+    setSingleTestEnvironment();
     _numNodes = 2;
-    _numParitions = 1;
-    _numReplicas = 1;
     _instanceGroupTag = true;
     super.beforeClass();
   }

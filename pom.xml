@@ -154,6 +154,16 @@ under the License.
 
   <repositories>
     <repository>
+      <id>mvnrepository.com</id>
+      <url>https://mvnrepository.com</url>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+    <repository>
       <id>restlet.org</id>
       <url>http://maven.restlet.org</url>
       <releases>

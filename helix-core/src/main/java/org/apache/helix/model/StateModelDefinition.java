@@ -23,9 +23,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixDefinedState;
@@ -182,6 +184,25 @@ public class StateModelDefinition extends HelixProperty {
    */
   public String getNumInstancesPerState(String state) {
     return _statesCountMap.get(state);
+  }
+
+  /**
+   * Get the second top states, which need one step transition to top state
+   * @return a set of second top states
+   */
+  public Set<String> getSecondTopStates() {
+    Set<String> secondTopStates = new HashSet<String>();
+    if (_statesPriorityList == null || _statesPriorityList.isEmpty()) {
+      return secondTopStates;
+    }
+    String topState = _statesPriorityList.get(0);
+    for (String state : _stateTransitionTable.keySet()) {
+      Map<String, String> transitionMap = _stateTransitionTable.get(state);
+      if (transitionMap.containsKey(topState) && transitionMap.get(topState).equals(topState)) {
+        secondTopStates.add(state);
+      }
+    }
+    return secondTopStates;
   }
 
   @Override

@@ -109,8 +109,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
   @Test()
   public void testDropResourceAutoRebalance() throws Exception {
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline",
-        RebalanceMode.FULL_AUTO + "");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB", _PARTITIONS, "OnlineOffline", RebalanceMode.FULL_AUTO + "");
 
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB", 1);
 
@@ -122,16 +121,16 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     String command = "-zkSvr " + ZK_ADDR + " -dropResource " + CLUSTER_NAME + " " + "MyDB";
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
-    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB",
-        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
-            "localhost_12921", "localhost_12922"), ZK_ADDR);
+    TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB", TestHelper
+            .<String>setOf("localhost_12918", "localhost_12919", "localhost_12920", "localhost_12921",
+                "localhost_12922"), ZK_ADDR);
 
     // add a resource to be dropped
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave",
-        RebalanceMode.FULL_AUTO + "");
+    _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave", RebalanceMode.FULL_AUTO + "");
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 1);
 
+    Thread.sleep(500);
     result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,
             CLUSTER_NAME, "MyDB2"));

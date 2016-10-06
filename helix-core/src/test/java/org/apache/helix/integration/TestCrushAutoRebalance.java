@@ -175,10 +175,8 @@ public class TestCrushAutoRebalance extends ZkIntegrationTestBase {
     for (String partition : is.getPartitionSet()) {
       Set<String> assignedZones = new HashSet<String>();
 
-      Set<String> instancesInIs = new HashSet<String>(is.getRecord().getListField(partition));
       Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
       Set<String> instancesInEV = assignmentMap.keySet();
-      Assert.assertEquals(instancesInEV, instancesInIs);
       for (String instance : instancesInEV) {
         assignedZones.add(_nodeToZoneMap.get(instance));
         if (tag != null) {

@@ -22,7 +22,6 @@ package org.apache.helix.integration.task;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -39,23 +38,21 @@ import org.apache.helix.task.TaskFactory;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskStateModelFactory;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-import org.testng.collections.Sets;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
-  private Set<String> _invokedClasses = Sets.newHashSet();
   private Map<String, Integer> _runCounts = Maps.newHashMap();
   private TaskConfig _taskConfig;
   private Map<String, String> _jobCommandMap;
-  private boolean failTask;
+  private final String FAIL_TASK = "failTask";
+  private final String DELAY = "delay";
 
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -112,7 +109,6 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testMultipleJobAssignment() throws InterruptedException {
-    failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
@@ -133,7 +129,6 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   @Test
   public void testMultipleTaskAssignment() throws InterruptedException {
-    failTask = false;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
 
@@ -155,16 +150,22 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
   @Test
   public void testAbortTaskForWorkflowFail()
       throws InterruptedException {
-    failTask = true;
     String workflowName = TestHelper.getTestMethodName();
     Workflow.Builder workflowBuilder = new Workflow.Builder(workflowName);
     List<TaskConfig> taskConfigs = Lists.newArrayListWithCapacity(1);
     taskConfigs.add(_taskConfig);
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs)
-            .setJobCommandConfigMap(_jobCommandMap);
+        .setMaxAttemptsPerTask(1);
 
     for (int i = 0; i < 5; i++) {
+      Map<String, String> jobCommandMap = new HashMap<String, String>();
+      if (i == 4) {
+        jobCommandMap.put(FAIL_TASK, "true");
+      } else {
+        jobCommandMap.put(DELAY, "true");
+      }
+      jobBuilder.setJobCommandConfigMap(jobCommandMap);
       workflowBuilder.addJob("JOB" + i, jobBuilder);
     }
 
@@ -183,6 +184,7 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
 
   private class TaskOne extends MockTask {
     private final String _instanceName;
+    private JobConfig _jobConfig;
 
     public TaskOne(TaskCallbackContext context, String instanceName) {
       super(context);
@@ -192,15 +194,30 @@ public class TestGenericTaskAssignmentCalculator extends TaskTestBase {
         _runCounts.put(instanceName, 0);
       }
       _instanceName = instanceName;
+      _jobConfig = context.getJobConfig();
     }
 
     @Override
     public TaskResult run() {
-      _invokedClasses.add(getClass().getName());
+      Map<String, String> jobCommandMap = _jobConfig.getJobCommandConfigMap();
+      if (!_runCounts.containsKey(_instanceName)) {
+        _runCounts.put(_instanceName, 0);
+      }
       _runCounts.put(_instanceName, _runCounts.get(_instanceName) + 1);
+
+      boolean failTask = jobCommandMap.containsKey(FAIL_TASK) ? Boolean.valueOf(jobCommandMap.get(FAIL_TASK)) : false;
+      boolean delay = jobCommandMap.containsKey(DELAY) ? Boolean.valueOf(jobCommandMap.get(DELAY)) : false;
+      if (delay) {
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+        }
+      }
+
       if (failTask) {
         return new TaskResult(TaskResult.Status.FAILED, "");
       }
+
       return new TaskResult(TaskResult.Status.COMPLETED, "");
     }
   }

@@ -158,7 +158,8 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
       }
     }
 
-    if (notStartedCount > 0 || inCompleteCount >= workflowCfg.getParallelJobs()) {
+    if (notStartedCount > 0 || (workflowCfg.isJobQueue() && inCompleteCount >= workflowCfg
+        .getParallelJobs())) {
       LOG.debug("Job is not ready to be scheduled due to pending dependent jobs " + resourceName);
       return emptyAssignment(resourceName, currStateOutput);
     }

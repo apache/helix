@@ -122,6 +122,7 @@ public class JobQueue extends Workflow {
     public JobQueue build() {
       buildConfig();
       _workflowConfigBuilder.setTerminable(false);
+      _workflowConfigBuilder.setJobQueue(true);
       return new JobQueue(_name, _workflowConfigBuilder.build(), _jobConfigs, _taskConfigs);
     }
   }

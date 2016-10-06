@@ -142,7 +142,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
         continue;
       }
 
-      if (scheduledJobs >= workflowCfg.getParallelJobs()) {
+      if (workflowCfg.isJobQueue() && scheduledJobs >= workflowCfg.getParallelJobs()) {
         LOG.debug(String.format("Workflow %s already have enough job in progress, "
                 + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
         break;

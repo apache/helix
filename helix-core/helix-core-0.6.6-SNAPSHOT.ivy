@@ -47,7 +47,7 @@ under the License.
 	
 	<dependencies>
     <dependency org="log4j" name="log4j" rev="1.2.15" conf="compile->compile(default);runtime->runtime(default);default->default"/>
-    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.6" conf="compile->compile(default);runtime->runtime(default);default->default"/>
+    <dependency org="org.apache.zookeeper" name="zookeeper" rev="3.4.9" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.codehaus.jackson" name="jackson-core-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="org.codehaus.jackson" name="jackson-mapper-asl" rev="1.8.5" conf="compile->compile(default);runtime->runtime(default);default->default"/>
     <dependency org="commons-io" name="commons-io" rev="1.4" conf="compile->compile(default);runtime->runtime(default);default->default"/>

@@ -35,12 +35,13 @@ import org.apache.helix.ZNRecord;
  * The history of instances that have served as the leader controller
  */
 public class LeaderHistory extends HelixProperty {
-  private final static int HISTORY_SIZE = 8;
+  private final static int HISTORY_SIZE = 10;
 
   private enum ConfigProperty {
     HISTORY,
     TIME,
-    DATE
+    DATE,
+    CONTROLLER
   }
 
   public LeaderHistory(String id) {
@@ -71,7 +72,6 @@ public class LeaderHistory extends HelixProperty {
     list.add(instanceName);
     // TODO: remove above in future when we confirmed no one consumes it */
 
-
     List<String> historyList = _record.getListField(ConfigProperty.HISTORY.name());
     if (historyList == null) {
       historyList = new ArrayList<String>();
@@ -85,12 +85,15 @@ public class LeaderHistory extends HelixProperty {
     Map<String, String> historyEntry = new HashMap<String, String>();
 
     long currentTime = System.currentTimeMillis();
-    DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS");
+    DateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH:mm:ss");
     df.setTimeZone(TimeZone.getTimeZone("UTC"));
     String dateTime = df.format(new Date(currentTime));
 
+    historyEntry.put(ConfigProperty.CONTROLLER.name(), instanceName);
     historyEntry.put(ConfigProperty.TIME.name(), String.valueOf(currentTime));
     historyEntry.put(ConfigProperty.DATE.name(), dateTime);
+
+    historyList.add(historyEntry.toString());
   }
 
   @Override

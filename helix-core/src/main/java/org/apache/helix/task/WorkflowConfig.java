@@ -113,6 +113,10 @@ public class  WorkflowConfig {
     return _expiry;
   }
 
+  /**
+   * This Failure threshold only works for generic workflow. Will be ignored by JobQueue
+   * @return
+   */
   public int getFailureThreshold() {
     return _failureThreshold;
   }

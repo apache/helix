@@ -26,6 +26,8 @@ import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.Workflow;
+import org.apache.helix.task.WorkflowConfig;
 import org.apache.log4j.Logger;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -43,11 +45,11 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
 
   @Test
   public void testJobFailsWithMissingTarget() throws Exception {
-    String queueName = TestHelper.getTestMethodName();
+    String workflowName = TestHelper.getTestMethodName();
 
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
+    // Create a workflow
+    LOG.info("Starting job-queue: " + workflowName);
+    Workflow.Builder builder = new Workflow.Builder(workflowName);
     // Create and Enqueue jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
@@ -56,75 +58,84 @@ public class TestRunJobsWithMissingTarget extends TaskTestBase {
               _testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
       String jobName = "job" + _testDbs.get(i);
-      queueBuilder.enqueueJob(jobName, jobConfig);
+      builder.addJob(jobName, jobConfig);
+      if (i > 0) {
+        builder.addParentChildDependency("job" + _testDbs.get(i - 1), "job" + _testDbs.get(i));
+      }
       currentJobNames.add(jobName);
     }
 
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(1));
-    _driver.start(queueBuilder.build());
+    _driver.start(builder.build());
 
-    String namedSpaceJob = String.format("%s_%s", queueName, currentJobNames.get(1));
-    _driver.pollForJobState(queueName, namedSpaceJob, TaskState.FAILED);
-    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
+    String namedSpaceJob = String.format("%s_%s", workflowName, currentJobNames.get(1));
+    _driver.pollForJobState(workflowName, namedSpaceJob, TaskState.FAILED);
+    _driver.pollForWorkflowState(workflowName, TaskState.FAILED);
 
-    _driver.delete(queueName);
+    _driver.delete(workflowName);
   }
 
   @Test(dependsOnMethods = "testJobFailsWithMissingTarget")
   public void testJobContinueUponParentJobFailure() throws Exception {
-    String queueName = TestHelper.getTestMethodName();
+    String workflowName = TestHelper.getTestMethodName();
 
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName, 0, 3);
-    // Create and Enqueue jobs
+    // Create a workflow
+    LOG.info("Starting job-queue: " + workflowName);
+    Workflow.Builder builder = new Workflow.Builder(workflowName)
+        .setWorkflowConfig(new WorkflowConfig.Builder().setFailureThreshold(10).build());
+    // Create and add jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE")).setIgnoreDependentJobFailure(true);
       String jobName = "job" + _testDbs.get(i);
-      queueBuilder.enqueueJob(jobName, jobConfig);
+      builder.addJob(jobName, jobConfig);
+      if (i > 0) {
+        builder.addParentChildDependency("job" + _testDbs.get(i - 1), "job" + _testDbs.get(i));
+      }
       currentJobNames.add(jobName);
     }
 
-    _driver.start(queueBuilder.build());
+    _driver.start(builder.build());
 
-    String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
-    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
+    String namedSpaceJob1 = String.format("%s_%s", workflowName, currentJobNames.get(1));
+    _driver.pollForJobState(workflowName, namedSpaceJob1, TaskState.FAILED);
     String lastJob =
-        String.format("%s_%s", queueName, currentJobNames.get(currentJobNames.size() - 1));
-    _driver.pollForJobState(queueName, lastJob, TaskState.COMPLETED);
+        String.format("%s_%s", workflowName, currentJobNames.get(currentJobNames.size() - 1));
+    _driver.pollForJobState(workflowName, lastJob, TaskState.COMPLETED);
 
-    _driver.delete(queueName);
+    _driver.delete(workflowName);
   }
 
   @Test(dependsOnMethods = "testJobContinueUponParentJobFailure")
   public void testJobFailsWithMissingTargetInRunning() throws Exception {
-    String queueName = TestHelper.getTestMethodName();
+    String workflowName = TestHelper.getTestMethodName();
 
-    // Create a queue
-    LOG.info("Starting job-queue: " + queueName);
-    JobQueue.Builder queueBuilder = TaskTestUtil.buildJobQueue(queueName);
-    // Create and Enqueue jobs
+    // Create a workflow
+    LOG.info("Starting job-queue: " + workflowName);
+    Workflow.Builder builder = new Workflow.Builder(workflowName);
+    // Create and add jobs
     List<String> currentJobNames = new ArrayList<String>();
     for (int i = 0; i < _numDbs; i++) {
       JobConfig.Builder jobConfig =
           new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTargetResource(_testDbs.get(i))
               .setTargetPartitionStates(Sets.newHashSet("SLAVE"));
       String jobName = "job" + _testDbs.get(i);
-      queueBuilder.enqueueJob(jobName, jobConfig);
-      currentJobNames.add(jobName);
+      builder.addJob(jobName, jobConfig);
+      if (i > 0) {
+        builder.addParentChildDependency("job" + _testDbs.get(i - 1), "job" + _testDbs.get(i));
+      }      currentJobNames.add(jobName);
     }
 
-    _driver.start(queueBuilder.build());
+    _driver.start(builder.build());
     _setupTool.dropResourceFromCluster(CLUSTER_NAME, _testDbs.get(0));
 
-    String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(0));
-    _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
-    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
+    String namedSpaceJob1 = String.format("%s_%s", workflowName, currentJobNames.get(0));
+    _driver.pollForJobState(workflowName, namedSpaceJob1, TaskState.FAILED);
+    _driver.pollForWorkflowState(workflowName, TaskState.FAILED);
 
-    _driver.delete(queueName);
+    _driver.delete(workflowName);
   }
 }
 

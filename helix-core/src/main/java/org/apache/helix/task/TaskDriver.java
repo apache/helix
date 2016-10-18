@@ -635,15 +635,8 @@ public class TaskDriver {
 
     // Set the job configuration
     PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
-    ResourceConfig resourceConfig = new ResourceConfig(jobName);
-    resourceConfig.putSimpleConfigs(jobConfig.getResourceConfigMap());
-    Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
-    if (taskConfigMap != null) {
-      for (TaskConfig taskConfig : taskConfigMap.values()) {
-        resourceConfig.putMapConfig(taskConfig.getId(), taskConfig.getConfigMap());
-      }
-    }
-    if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), resourceConfig)) {
+    JobConfig newJobCfg = new JobConfig(jobName, jobConfig);
+    if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), newJobCfg)) {
       LOG.error("Failed to add job configuration for job " + jobName);
     }
   }

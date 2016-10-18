@@ -66,17 +66,7 @@ public class TaskUtil {
     if (jobResourceConfig == null) {
       return null;
     }
-    JobConfig.Builder b =
-        JobConfig.Builder.fromMap(jobResourceConfig.getRecord().getSimpleFields());
-    Map<String, Map<String, String>> rawTaskConfigMap =
-        jobResourceConfig.getRecord().getMapFields();
-    Map<String, TaskConfig> taskConfigMap = Maps.newHashMap();
-    for (Map<String, String> rawTaskConfig : rawTaskConfigMap.values()) {
-      TaskConfig taskConfig = TaskConfig.Builder.from(rawTaskConfig);
-      taskConfigMap.put(taskConfig.getId(), taskConfig);
-    }
-    b.addTaskConfigMap(taskConfigMap);
-    return b.build();
+    return new JobConfig(jobResourceConfig);
   }
 
   /**

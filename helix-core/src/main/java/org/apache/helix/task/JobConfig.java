@@ -20,27 +20,27 @@ package org.apache.helix.task;
  */
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixProperty;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.beans.JobBean;
+import org.apache.helix.task.beans.TaskBean;
+
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import org.apache.helix.task.beans.JobBean;
-import org.apache.helix.task.beans.TaskBean;
-import org.apache.helix.HelixProperty;
 
 /**
  * Provides a typed interface to job configurations.
  */
-// TODO: extends JobConfig from ResourceConfig
-public class JobConfig {
+public class JobConfig extends ResourceConfig {
 
   /**
    * Do not use this value directly, always use the get/set methods in JobConfig and JobConfig.Builder.
@@ -50,6 +50,10 @@ public class JobConfig {
      * The name of the workflow to which the job belongs.
      */
     WorkflowID,
+    /**
+     * The name of the job
+     */
+    JobID,
     /**
      * The assignment strategy of this job
      */
@@ -87,7 +91,7 @@ public class JobConfig {
     /**
      * The maximum number of times Helix will intentionally move a failing task
      */
-    MaxForcedReassignmentsPerTask,
+        MaxForcedReassignmentsPerTask,
     /**
      * The number of concurrent tasks that are allowed to run on an instance.
      */
@@ -149,25 +153,21 @@ public class JobConfig {
   public static final long DEFAULT_JOB_EXECUTION_START_TIME = -1L;
   public static final long DEFAULT_Job_EXECUTION_DELAY_TIME = -1L;
 
-  private final String _workflow;
-  private final String _targetResource;
-  private final String _jobType;
-  private final String _instanceGroupTag;
-  private final List<String> _targetPartitions;
-  private final Set<String> _targetPartitionStates;
-  private final String _command;
-  private final Map<String, String> _jobCommandConfigMap;
-  private final long _timeoutPerTask;
-  private final int _numConcurrentTasksPerInstance;
-  private final int _maxAttemptsPerTask;
-  private final int _maxForcedReassignmentsPerTask;
-  private final int _failureThreshold;
-  private final long _retryDelay;
-  private final long _executionDelay;
-  private final long _executionStart;
-  private final boolean _disableExternalView;
-  private final boolean _ignoreDependentJobFailure;
-  private final Map<String, TaskConfig> _taskConfigMap;
+  public JobConfig(HelixProperty property) {
+    super(property.getRecord());
+  }
+
+  public JobConfig(String jobId, JobConfig jobConfig) {
+    this(jobConfig.getWorkflow(), jobConfig.getTargetResource(), jobConfig.getTargetPartitions(),
+        jobConfig.getTargetPartitionStates(), jobConfig.getCommand(),
+        jobConfig.getJobCommandConfigMap(), jobConfig.getTimeoutPerTask(),
+        jobConfig.getNumConcurrentTasksPerInstance(), jobConfig.getMaxAttemptsPerTask(),
+        jobConfig.getMaxAttemptsPerTask(), jobConfig.getFailureThreshold(),
+        jobConfig.getTaskRetryDelay(), jobConfig.isDisableExternalView(),
+        jobConfig.isIgnoreDependentJobFailure(), jobConfig.getTaskConfigMap(),
+        jobConfig.getJobType(), jobConfig.getInstanceGroupTag(), jobConfig.getExecutionDelay(),
+        jobConfig.getExecutionStart(), jobId);
+  }
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
       Set<String> targetPartitionStates, String command, Map<String, String> jobCommandConfigMap,
@@ -175,157 +175,169 @@ public class JobConfig {
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
-      long executionDelay, long executionStart) {
-    _workflow = workflow;
-    _targetResource = targetResource;
-    _targetPartitions = targetPartitions;
-    _targetPartitionStates = targetPartitionStates;
-    _command = command;
-    _jobCommandConfigMap = jobCommandConfigMap;
-    _timeoutPerTask = timeoutPerTask;
-    _numConcurrentTasksPerInstance = numConcurrentTasksPerInstance;
-    _maxAttemptsPerTask = maxAttemptsPerTask;
-    _maxForcedReassignmentsPerTask = maxForcedReassignmentsPerTask;
-    _failureThreshold = failureThreshold;
-    _retryDelay = retryDelay;
-    _disableExternalView = disableExternalView;
-    _ignoreDependentJobFailure = ignoreDependentJobFailure;
-    if (taskConfigMap != null) {
-      _taskConfigMap = taskConfigMap;
-    } else {
-      _taskConfigMap = Collections.emptyMap();
+      long executionDelay, long executionStart, String jobId) {
+    super(jobId);
+    putSimpleConfig(JobConfigProperty.WorkflowID.name(), workflow);
+    putSimpleConfig(JobConfigProperty.JobID.name(), jobId);
+    if (command != null) {
+      putSimpleConfig(JobConfigProperty.Command.name(), command);
     }
-    _jobType = jobType;
-    _instanceGroupTag = instanceGroupTag;
-    _executionDelay = executionDelay;
-    _executionStart = executionStart;
+    if (jobCommandConfigMap != null) {
+      String serializedConfig = TaskUtil.serializeJobCommandConfigMap(jobCommandConfigMap);
+      if (serializedConfig != null) {
+        putSimpleConfig(JobConfigProperty.JobCommandConfig.name(), serializedConfig);
+      }
+    }
+    if (targetResource != null) {
+      putSimpleConfig(JobConfigProperty.TargetResource.name(), targetResource);
+    }
+    if (targetPartitionStates != null) {
+      putSimpleConfig(JobConfigProperty.TargetPartitionStates.name(),
+          Joiner.on(",").join(targetPartitionStates));
+    }
+    if (targetPartitions != null) {
+      putSimpleConfig(JobConfigProperty.TargetPartitions.name(),
+          Joiner.on(",").join(targetPartitions));
+    }
+    if (retryDelay > 0) {
+      getRecord().setLongField(JobConfigProperty.TaskRetryDelay.name(), retryDelay);
+    }
+    if (executionDelay > 0) {
+      getRecord().setLongField(JobConfigProperty.DelayTime.name(), executionDelay);
+    }
+    if (executionStart > 0) {
+      getRecord().setLongField(JobConfigProperty.StartTime.name(), executionStart);
+    }
+    getRecord().setLongField(JobConfigProperty.TimeoutPerPartition.name(), timeoutPerTask);
+    getRecord().setIntField(JobConfigProperty.MaxAttemptsPerTask.name(), maxAttemptsPerTask);
+    getRecord().setIntField(JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
+        maxForcedReassignmentsPerTask);
+    getRecord().setIntField(JobConfigProperty.FailureThreshold.name(), failureThreshold);
+    getRecord().setBooleanField(JobConfigProperty.DisableExternalView.name(), disableExternalView);
+    getRecord().setIntField(JobConfigProperty.ConcurrentTasksPerInstance.name(),
+        numConcurrentTasksPerInstance);
+    getRecord().setBooleanField(JobConfigProperty.IgnoreDependentJobFailure.name(),
+        ignoreDependentJobFailure);
+    if (jobType != null) {
+      putSimpleConfig(JobConfigProperty.JobType.name(), jobType);
+    }
+    if (instanceGroupTag != null) {
+      putSimpleConfig(JobConfigProperty.InstanceGroupTag.name(), instanceGroupTag);
+    }
+    if (taskConfigMap != null) {
+      for (TaskConfig taskConfig : taskConfigMap.values()) {
+        putMapConfig(taskConfig.getId(), taskConfig.getConfigMap());
+      }
+    }
   }
 
   public String getWorkflow() {
-    return _workflow == null ? Workflow.UNSPECIFIED : _workflow;
+    return simpleConfigContains(JobConfigProperty.WorkflowID.name())
+        ? getSimpleConfig(JobConfigProperty.WorkflowID.name())
+        : Workflow.UNSPECIFIED;
+  }
+
+  public String getJobId() {
+    return getSimpleConfig(JobConfigProperty.JobID.name());
   }
 
   public String getTargetResource() {
-    return _targetResource;
+    return getSimpleConfig(JobConfigProperty.TargetResource.name());
   }
 
   public List<String> getTargetPartitions() {
-    return _targetPartitions;
+    return simpleConfigContains(JobConfigProperty.TargetPartitions.name()) ? Arrays
+        .asList(getSimpleConfig(JobConfigProperty.TargetPartitions.name()).split(",")) : null;
   }
 
   public Set<String> getTargetPartitionStates() {
-    return _targetPartitionStates;
+    if (simpleConfigContains(JobConfigProperty.TargetPartitionStates.name())) {
+      return new HashSet<String>(Arrays
+          .asList(getSimpleConfig(JobConfigProperty.TargetPartitionStates.name()).split(",")));
+    }
+    return null;
   }
 
   public String getCommand() {
-    return _command;
+    return getSimpleConfig(JobConfigProperty.Command.name());
   }
 
   public Map<String, String> getJobCommandConfigMap() {
-    return _jobCommandConfigMap;
+    return simpleConfigContains(JobConfigProperty.JobCommandConfig.name())
+        ? TaskUtil
+        .deserializeJobCommandConfigMap(getSimpleConfig(JobConfigProperty.JobCommandConfig.name()))
+        : null;
   }
 
   public long getTimeoutPerTask() {
-    return _timeoutPerTask;
+    return getRecord()
+        .getLongField(JobConfigProperty.TimeoutPerPartition.name(), DEFAULT_TIMEOUT_PER_TASK);
   }
 
   public int getNumConcurrentTasksPerInstance() {
-    return _numConcurrentTasksPerInstance;
+    return getRecord().getIntField(JobConfigProperty.ConcurrentTasksPerInstance.name(),
+        DEFAULT_NUM_CONCURRENT_TASKS_PER_INSTANCE);
   }
 
   public int getMaxAttemptsPerTask() {
-    return _maxAttemptsPerTask;
+    return getRecord()
+        .getIntField(JobConfigProperty.MaxAttemptsPerTask.name(), DEFAULT_MAX_ATTEMPTS_PER_TASK);
   }
 
   public int getFailureThreshold() {
-    return _failureThreshold;
+    return getRecord()
+        .getIntField(JobConfigProperty.FailureThreshold.name(), DEFAULT_FAILURE_THRESHOLD);
   }
 
   public long getTaskRetryDelay() {
-    return _retryDelay;
+    return getRecord()
+        .getLongField(JobConfigProperty.TaskRetryDelay.name(), DEFAULT_TASK_RETRY_DELAY);
   }
 
   // Execution delay time will be ignored when it is negative number
   public long getExecutionDelay() {
-    return _executionDelay;
+    return getRecord()
+        .getLongField(JobConfigProperty.DelayTime.name(), DEFAULT_Job_EXECUTION_DELAY_TIME);
   }
 
   public long getExecutionStart() {
-    return _executionStart;
+    return getRecord()
+        .getLongField(JobConfigProperty.StartTime.name(), DEFAULT_JOB_EXECUTION_START_TIME);
   }
 
   public boolean isDisableExternalView() {
-    return _disableExternalView;
+    return getRecord().getBooleanField(JobConfigProperty.DisableExternalView.name(),
+        DEFAULT_DISABLE_EXTERNALVIEW);
   }
 
-  public boolean isIgnoreDependentJobFailure() { return _ignoreDependentJobFailure; }
+  public boolean isIgnoreDependentJobFailure() {
+    return getRecord().getBooleanField(JobConfigProperty.IgnoreDependentJobFailure.name(),
+        DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE);
+  }
 
   public Map<String, TaskConfig> getTaskConfigMap() {
-    return _taskConfigMap;
+    Map<String, TaskConfig> taskConfigMap = new HashMap<String, TaskConfig>();
+    for (Map.Entry<String, Map<String, String>> entry : getMapConfigs().entrySet()) {
+      taskConfigMap
+          .put(entry.getKey(), new TaskConfig(null, entry.getValue(), entry.getKey(), null));
+    }
+    return taskConfigMap;
   }
 
   public TaskConfig getTaskConfig(String id) {
-    return _taskConfigMap.get(id);
+    return new TaskConfig(null, getMapConfig(id), id, null);
   }
 
   public Map<String, String> getResourceConfigMap() {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    cfgMap.put(JobConfigProperty.WorkflowID.name(), _workflow);
-    if (_command != null) {
-      cfgMap.put(JobConfigProperty.Command.name(), _command);
-    }
-    if (_jobCommandConfigMap != null) {
-      String serializedConfig = TaskUtil.serializeJobCommandConfigMap(_jobCommandConfigMap);
-      if (serializedConfig != null) {
-        cfgMap.put(JobConfigProperty.JobCommandConfig.name(), serializedConfig);
-      }
-    }
-    if (_targetResource != null) {
-      cfgMap.put(JobConfigProperty.TargetResource.name(), _targetResource);
-    }
-    if (_targetPartitionStates != null) {
-      cfgMap.put(JobConfigProperty.TargetPartitionStates.name(),
-          Joiner.on(",").join(_targetPartitionStates));
-    }
-    if (_targetPartitions != null) {
-      cfgMap
-          .put(JobConfigProperty.TargetPartitions.name(), Joiner.on(",").join(_targetPartitions));
-    }
-    if (_retryDelay > 0) {
-      cfgMap.put(JobConfigProperty.TaskRetryDelay.name(), "" + _retryDelay);
-    }
-    if (_executionDelay > 0) {
-      cfgMap.put(JobConfigProperty.DelayTime.name(), "" + _executionDelay);
-    }
-    if (_executionStart > 0) {
-      cfgMap.put(JobConfigProperty.StartTime.name(), "" + _executionStart);
-    }
-    cfgMap.put(JobConfigProperty.TimeoutPerPartition.name(), "" + _timeoutPerTask);
-    cfgMap.put(JobConfigProperty.MaxAttemptsPerTask.name(), "" + _maxAttemptsPerTask);
-    cfgMap.put(JobConfigProperty.MaxForcedReassignmentsPerTask.name(),
-        "" + _maxForcedReassignmentsPerTask);
-    cfgMap.put(JobConfigProperty.FailureThreshold.name(), "" + _failureThreshold);
-    cfgMap.put(JobConfigProperty.DisableExternalView.name(),
-        Boolean.toString(_disableExternalView));
-    cfgMap.put(JobConfigProperty.ConcurrentTasksPerInstance.name(),
-        "" + _numConcurrentTasksPerInstance);
-    cfgMap.put(JobConfigProperty.IgnoreDependentJobFailure.name(),
-        Boolean.toString(_ignoreDependentJobFailure));
-    if (_jobType != null) {
-      cfgMap.put(JobConfigProperty.JobType.name(), _jobType);
-    }
-    if (_instanceGroupTag != null) {
-      cfgMap.put(JobConfigProperty.InstanceGroupTag.name(), _instanceGroupTag);
-    }
-    return cfgMap;
+    return getSimpleConfigs();
   }
 
   public String getJobType() {
-    return _jobType;
+    return getSimpleConfig(JobConfigProperty.JobType.name());
   }
 
   public String getInstanceGroupTag() {
-    return _instanceGroupTag;
+    return getSimpleConfig(JobConfigProperty.InstanceGroupTag.name());
   }
 
   public static JobConfig fromHelixProperty(HelixProperty property)
@@ -339,6 +351,7 @@ public class JobConfig {
    */
   public static class Builder {
     private String _workflow;
+    private String _jobId;
     private String _targetResource;
     private String _jobType;
     private String _instanceGroupTag;
@@ -368,12 +381,15 @@ public class JobConfig {
           _taskConfigMap.put(taskConfig.getId(), taskConfig);
         }
       }
+      if (_jobId == null) {
+        _jobId = "";
+      }
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
-          _instanceGroupTag, _executionDelay, _executionStart);
+          _instanceGroupTag, _executionDelay, _executionStart, _jobId);
     }
 
     /**
@@ -386,6 +402,9 @@ public class JobConfig {
       Builder b = new Builder();
       if (cfg.containsKey(JobConfigProperty.WorkflowID.name())) {
         b.setWorkflow(cfg.get(JobConfigProperty.WorkflowID.name()));
+      }
+      if (cfg.containsKey(JobConfigProperty.JobID.name())) {
+        b.setJobId(cfg.get(JobConfigProperty.JobID.name()));
       }
       if (cfg.containsKey(JobConfigProperty.TargetResource.name())) {
         b.setTargetResource(cfg.get(JobConfigProperty.TargetResource.name()));
@@ -448,6 +467,11 @@ public class JobConfig {
 
     public Builder setWorkflow(String v) {
       _workflow = v;
+      return this;
+    }
+
+    public Builder setJobId(String v) {
+      _jobId = v;
       return this;
     }
 

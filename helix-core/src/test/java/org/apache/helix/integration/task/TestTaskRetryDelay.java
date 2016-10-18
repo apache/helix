@@ -41,7 +41,7 @@ public class TestTaskRetryDelay extends TaskTestBase {
     String jobResource = TestHelper.getTestMethodName();
     JobConfig.Builder jobBuilder = JobConfig.Builder.fromMap(WorkflowGenerator.DEFAULT_JOB_CONFIG);
     jobBuilder.setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG)
-        .setMaxAttemptsPerTask(2).setCommand(MockTask.TASK_COMMAND)
+        .setMaxAttemptsPerTask(2).setCommand(MockTask.TASK_COMMAND).setWorkflow(jobResource)
         .setFailureThreshold(Integer.MAX_VALUE).setTaskRetryDelay(2000L)
         .setJobCommandConfigMap(ImmutableMap.of(MockTask.FAILURE_COUNT_BEFORE_SUCCESS, "2"));
     Workflow flow =

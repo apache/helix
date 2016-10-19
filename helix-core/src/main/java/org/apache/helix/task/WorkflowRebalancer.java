@@ -472,12 +472,11 @@ public class WorkflowRebalancer extends TaskRebalancer {
         }
       }
       // Delete workflow context
-      String workflowPropStoreKey = TaskUtil.getWorkflowContextKey(workflow);
-      LOG.info("Removing workflow context: " + workflowPropStoreKey);
-      if (!_manager.getHelixPropertyStore().remove(workflowPropStoreKey, AccessOption.PERSISTENT)) {
+      LOG.info("Removing workflow context: " + workflow);
+      if (!TaskUtil.removeWorkflowContext(_manager, workflow)) {
         LOG.error(String.format(
-            "Error occurred while trying to clean up workflow %s. Failed to remove node %s from Helix. Aborting further clean up steps.",
-            workflow, workflowPropStoreKey));
+            "Error occurred while trying to clean up workflow %s. Aborting further clean up steps.",
+            workflow));
       }
 
       // Remove pending timer task for this workflow if exists
@@ -540,11 +539,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     // Delete job context
     // For recurring workflow, it's OK if the node doesn't exist.
-    String propStoreKey = TaskUtil.getWorkflowContextKey(job);
-    if (!_manager.getHelixPropertyStore().remove(propStoreKey, AccessOption.PERSISTENT)) {
-      LOG.warn(String.format(
-          "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix.",
-          job, propStoreKey));
+    if (!TaskUtil.removeJobContext(_manager, job)) {
+      LOG.warn(String.format("Error occurred while trying to clean up job %s.", job));
     }
 
     LOG.info(String.format("Successfully cleaned up job context %s.", job));

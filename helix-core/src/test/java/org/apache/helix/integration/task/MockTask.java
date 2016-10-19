@@ -26,19 +26,22 @@ import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskResult;
+import org.apache.helix.task.UserContentStore;
 
-public class MockTask implements Task {
+public class MockTask extends UserContentStore implements Task {
   public static final String TASK_COMMAND = "Reindex";
   public static final String TIMEOUT_CONFIG = "Timeout";
   public static final String TASK_RESULT_STATUS = "TaskResultStatus";
   public static final String THROW_EXCEPTION = "ThrowException";
   public static final String ERROR_MESSAGE = "ErrorMessage";
   public static final String FAILURE_COUNT_BEFORE_SUCCESS = "FailureCountBeforeSuccess";
+  public static final String SUCCESS_COUNT_BEFORE_FAIL = "SuccessCountBeforeFail";
   private final long _delay;
   private volatile boolean _canceled;
   private TaskResult.Status _taskResultStatus;
   private boolean _throwException;
-  private int _expectedToSuccess;
+  private int _numOfFailBeforeSuccess;
+  private int _numOfSuccessBeforeFail;
   private String _errorMsg;
 
   public MockTask(TaskCallbackContext context) {
@@ -60,9 +63,11 @@ public class MockTask implements Task {
     _throwException = cfg.containsKey(THROW_EXCEPTION) ?
         Boolean.valueOf(cfg.containsKey(THROW_EXCEPTION)) :
         false;
-    _expectedToSuccess =
+    _numOfFailBeforeSuccess =
         cfg.containsKey(FAILURE_COUNT_BEFORE_SUCCESS) ? Integer.parseInt(
             cfg.get(FAILURE_COUNT_BEFORE_SUCCESS)) : 0;
+    _numOfSuccessBeforeFail = cfg.containsKey(SUCCESS_COUNT_BEFORE_FAIL) ? Integer
+        .parseInt(cfg.get(SUCCESS_COUNT_BEFORE_FAIL)) : Integer.MAX_VALUE;
 
     _errorMsg = cfg.containsKey(ERROR_MESSAGE) ? cfg.get(ERROR_MESSAGE) : null;
   }
@@ -82,15 +87,21 @@ public class MockTask implements Task {
     timeLeft = expiry - System.currentTimeMillis();
 
     if (_throwException) {
-      _expectedToSuccess--;
+      _numOfFailBeforeSuccess--;
       if (_errorMsg == null) {
         _errorMsg = "Test failed";
       }
       throw new RuntimeException(_errorMsg != null ? _errorMsg : "Test failed");
     }
 
-    if (_expectedToSuccess > 0){
-      _expectedToSuccess--;
+    if (getUserContent(SUCCESS_COUNT_BEFORE_FAIL, Scope.WORKFLOW) != null) {
+      _numOfSuccessBeforeFail =
+          Integer.parseInt(getUserContent(SUCCESS_COUNT_BEFORE_FAIL, Scope.WORKFLOW));
+    }
+    putUserContent(SUCCESS_COUNT_BEFORE_FAIL, "" + --_numOfSuccessBeforeFail, Scope.WORKFLOW);
+
+    if (_numOfFailBeforeSuccess > 0 || _numOfSuccessBeforeFail < 0){
+      _numOfFailBeforeSuccess--;
       throw new RuntimeException(_errorMsg != null ? _errorMsg : "Test failed");
     }
 

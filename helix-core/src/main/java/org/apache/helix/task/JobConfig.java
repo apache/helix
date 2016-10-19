@@ -362,7 +362,7 @@ public class JobConfig {
     public JobConfig build() {
       validate();
 
-      if (_taskConfigMap.isEmpty()) {
+      if (_targetResource == null && _taskConfigMap.isEmpty()) {
         for (int i = 0; i < _numberOfTasks; i++) {
           TaskConfig taskConfig = new TaskConfig(null, null);
           _taskConfigMap.put(taskConfig.getId(), taskConfig);

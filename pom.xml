@@ -186,6 +186,7 @@ under the License.
 
  
   <pluginRepositories>
+    <!--
     <pluginRepository>
       <id>apache.snapshots</id>
       <url>https://repository.apache.org/content/repositories/snapshots</url>
@@ -196,6 +197,7 @@ under the License.
         <enabled>true</enabled>
       </snapshots>
     </pluginRepository>
+    -->
   </pluginRepositories>
 
   <scm>

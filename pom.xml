@@ -24,7 +24,7 @@ under the License.
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>13</version>
+    <version>18</version>
   </parent>
 
   <groupId>org.apache.helix</groupId>
@@ -110,7 +110,16 @@ under the License.
         <role>Committer</role>
       </roles>
       <timezone>-8</timezone>
-    </developer>                                     
+    </developer>
+<developer>
+      <id>lxia</id>
+      <name>Lei Xia</name>
+      <email>lxia@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>              
   </developers>
   <modules>
     <module>helix-core</module>

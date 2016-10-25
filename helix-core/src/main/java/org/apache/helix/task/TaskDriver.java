@@ -102,7 +102,8 @@ public class TaskDriver {
     delete,
     resume,
     list,
-    flush
+    flush,
+    clean
   }
 
   public TaskDriver(HelixManager manager) {
@@ -176,6 +177,9 @@ public class TaskDriver {
         break;
       case flush:
         driver.flushQueue(resource);
+        break;
+      case clean:
+        driver.cleanupJobQueue(resource);
         break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);
@@ -405,10 +409,14 @@ public class TaskDriver {
     String workflowState =
         (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
 
-    if (workflowState.equals(TaskState.IN_PROGRESS)) {
+    if (workflowState.equals(TaskState.IN_PROGRESS.name())) {
       throw new IllegalStateException("Queue " + queueName + " is still in progress!");
     }
 
+    removeJob(queueName, jobName);
+  }
+
+  private void removeJob(String queueName, String jobName) {
     // Remove the job from the queue in the DAG
     removeJobFromDag(queueName, jobName);
 
@@ -420,10 +428,7 @@ public class TaskDriver {
     removeJobStateFromQueue(queueName, jobName);
 
     // Delete the job from property store
-    String jobPropertyPath =
-        Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
-    _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
+    TaskUtil.removeJobContext(_propertyStore, jobName);
   }
 
   /** Remove the job name from the DAG from the queue configuration */
@@ -588,6 +593,34 @@ public class TaskDriver {
 
     // Schedule the job
     TaskUtil.invokeRebalance(_accessor, queueName);
+  }
+
+  /**
+   * Clean up final state jobs (ABORTED, FAILED, COMPLETED),
+   * which will consume the capacity, in job queue
+   *
+   * @param queueName The name of job queue
+   */
+  public void cleanupJobQueue(String queueName) {
+    WorkflowConfig workflowCfg =
+        TaskUtil.getWorkflowCfg(_accessor, queueName);
+
+    if (workflowCfg == null) {
+      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+    }
+
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
+    if (wCtx != null && wCtx.getWorkflowState() == null) {
+      throw new IllegalStateException("Queue " + queueName + " does not have a valid work state!");
+    }
+
+    for (String jobNode : workflowCfg.getJobDag().getAllNodes()) {
+      TaskState curState = wCtx.getJobState(jobNode);
+      if (curState != null && (curState == TaskState.ABORTED || curState == TaskState.COMPLETED
+          || curState == TaskState.FAILED)) {
+        removeJob(queueName, TaskUtil.getDenamespacedJobName(queueName, jobNode));
+      }
+    }
   }
 
   /** Posts new workflow resource to cluster */

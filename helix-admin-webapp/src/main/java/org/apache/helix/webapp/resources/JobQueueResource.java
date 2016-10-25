@@ -91,7 +91,7 @@ public class JobQueueResource extends ServerResource {
     // Get job queue config
     // TODO: fix this to use workflowConfig.
     ResourceConfig jobQueueConfig = accessor.getProperty(keyBuilder.resourceConfig(jobQueueName));
-    
+
     // Get job queue context
     WorkflowContext ctx = taskDriver.getWorkflowContext(jobQueueName);
 
@@ -177,6 +177,10 @@ public class JobQueueResource extends ServerResource {
       }
       case delete: {
         driver.delete(jobQueueName);
+        break;
+      }
+      case clean: {
+        driver.cleanupJobQueue(jobQueueName);
         break;
       }
       default:

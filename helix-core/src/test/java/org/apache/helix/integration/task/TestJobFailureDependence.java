@@ -93,7 +93,6 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     String namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(2));
     _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
-    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
   }
 
   @Test
@@ -175,7 +174,6 @@ public class TestJobFailureDependence extends TaskTestBase {
 
     namedSpaceJob1 = String.format("%s_%s", queueName, currentJobNames.get(1));
     _driver.pollForJobState(queueName, namedSpaceJob1, TaskState.FAILED);
-    _driver.pollForWorkflowState(queueName, TaskState.FAILED);
   }
 }
 

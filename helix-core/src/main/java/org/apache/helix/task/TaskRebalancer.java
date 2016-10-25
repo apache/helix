@@ -79,7 +79,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     int failedJobs = 0;
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
-      if (jobState == TaskState.FAILED) {
+      if (!cfg.isJobQueue() && jobState == TaskState.FAILED) {
         failedJobs ++;
         if (failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);

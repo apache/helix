@@ -180,6 +180,33 @@ public class TaskUtil {
   }
 
   /**
+   * Remove the runtime context of a single job.
+   * This method is internal API.
+   *
+   * @param manager     A connection to Helix
+   * @param jobResource The name of the job
+   * @return            True if remove success, otherwise false
+   */
+  protected static boolean removeJobContext(HelixManager manager, String jobResource) {
+    return removeJobContext(manager.getHelixPropertyStore(), jobResource);
+  }
+
+  /**
+   * Remove the runtime context of a single job.
+   * This method is internal API.
+   *
+   * @param propertyStore Property store for the cluster
+   * @param jobResource   The name of the job
+   * @return              True if remove success, otherwise false
+   */
+  protected static boolean removeJobContext(HelixPropertyStore<ZNRecord> propertyStore,
+      String jobResource) {
+    return propertyStore.remove(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, jobResource),
+        AccessOption.PERSISTENT);
+  }
+
+  /**
    * Get the runtime context of a single workflow.
    * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowContext();
    *
@@ -219,6 +246,33 @@ public class TaskUtil {
     manager.getHelixPropertyStore().set(
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource, CONTEXT_NODE),
         ctx.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  /**
+   * Remove the runtime context of a single workflow.
+   * This method is internal API.
+   *
+   * @param manager     A connection to Helix
+   * @param workflowResource The name of the workflow
+   * @return            True if remove success, otherwise false
+   */
+  protected static boolean removeWorkflowContext(HelixManager manager, String workflowResource) {
+    return removeWorkflowContext(manager.getHelixPropertyStore(), workflowResource);
+  }
+
+  /**
+   * Remove the runtime context of a single workflow.
+   * This method is internal API.
+   *
+   * @param propertyStore      Property store for the cluster
+   * @param workflowResource   The name of the workflow
+   * @return                   True if remove success, otherwise false
+   */
+  protected static boolean removeWorkflowContext(HelixPropertyStore<ZNRecord> propertyStore,
+      String workflowResource) {
+    return propertyStore.remove(
+        Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflowResource),
+        AccessOption.PERSISTENT);
   }
 
   /**

@@ -791,4 +791,63 @@ public class TestAutoRebalanceStrategy {
       Assert.assertEquals(p.size(), nReplicas);
     }
   }
+
+  /**
+   * Tests the following scenario: there is only a single partition for a resource. Two nodes up,
+   * partition should
+   * be assigned to one of them. Take down that node, partition should move. Bring back up that
+   * node, partition should not move unnecessarily.
+   */
+  @Test
+  public void testWontMoveSinglePartitionUnnecessarily() {
+    final String RESOURCE = "resource";
+    final String partition = "resource_0";
+    final StateModelDefinition STATE_MODEL =
+        new StateModelDefinition(StateModelConfigGenerator.generateConfigForOnlineOffline());
+    LinkedHashMap<String, Integer> stateCount = Maps.newLinkedHashMap();
+    stateCount.put("ONLINE", 1);
+    final String[] NODES = {"n0", "n1"};
+
+    // initial state, one node, no mapping
+    List<String> allNodes = Lists.newArrayList(NODES);
+    List<String> liveNodes = Lists.newArrayList(NODES);
+    Map<String, Map<String, String>> currentMapping = Maps.newHashMap();
+    currentMapping.put(partition, new HashMap<String, String>());
+
+    // Both nodes there
+    List<String> partitions = Lists.newArrayList(partition);
+    Map<String, String> upperBounds = Maps.newHashMap();
+    for (String state : STATE_MODEL.getStatesPriorityList()) {
+      upperBounds.put(state, STATE_MODEL.getNumInstancesPerState(state));
+    }
+
+    ZNRecord znRecord =
+        new AutoRebalanceStrategy(RESOURCE, partitions, stateCount, Integer.MAX_VALUE)
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
+    Map<String, List<String>> preferenceLists = znRecord.getListFields();
+    List<String> preferenceList = preferenceLists.get(partition.toString());
+    Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+    Assert.assertEquals(preferenceList.size(), 1, "invalid preference list for " + partition);
+    String state = znRecord.getMapField(partition.toString()).get(preferenceList.get(0));
+    Assert.assertEquals(state, "ONLINE", "Invalid state for " + partition);
+    String preferredNode = preferenceList.get(0);
+    String otherNode = preferredNode.equals(NODES[0]) ? NODES[1] : NODES[0];
+    // ok, see what happens if we've got the partition on the other node (e.g. due to the preferred
+    // node being down).
+    currentMapping.get(partition).put(otherNode, state);
+
+    znRecord =
+        new AutoRebalanceStrategy(RESOURCE, partitions, stateCount, Integer.MAX_VALUE)
+            .computePartitionAssignment(allNodes, liveNodes, currentMapping, null);
+
+    preferenceLists = znRecord.getListFields();
+    preferenceList = preferenceLists.get(partition.toString());
+    Assert.assertNotNull(preferenceList, "invalid preference list for " + partition);
+    Assert.assertEquals(preferenceList.size(), 1, "invalid preference list for " + partition);
+    state = znRecord.getMapField(partition.toString()).get(preferenceList.get(0));
+    Assert.assertEquals(state, "ONLINE", "Invalid state for " + partition);
+    String finalPreferredNode = preferenceList.get(0);
+    // finally, make sure we haven't moved it.
+    Assert.assertEquals(finalPreferredNode, otherNode);
+  }
 }

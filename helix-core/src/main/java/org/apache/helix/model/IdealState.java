@@ -410,6 +410,7 @@ public class IdealState extends HelixProperty {
     // HACK: if replica doesn't exists, use the length of the first list field
     // instead
     // TODO: remove it when Dbus fixed the IdealState writer
+    // TODO: replica could be "ANY_INSTANCE".
     String replica = _record.getSimpleField(IdealStateProperty.REPLICAS.toString());
     if (replica == null) {
       String firstPartition = null;

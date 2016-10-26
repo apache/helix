@@ -387,6 +387,24 @@ public class StateModelDefinition extends HelixProperty {
 
   }
 
+  @Override
+  public boolean equals(Object o) {
+    if (o == null) {
+      return false;
+    }
+
+    if (!(o instanceof StateModelDefinition)) {
+      return false;
+    }
+
+    StateModelDefinition stateModelDefinition = (StateModelDefinition) o;
+    return _initialState.equals(stateModelDefinition._initialState) && _statesCountMap
+        .equals(stateModelDefinition._statesCountMap) && _statesPriorityList
+        .equals(stateModelDefinition._statesPriorityList) && _stateTransitionPriorityList
+        .equals(stateModelDefinition._stateTransitionPriorityList) &&
+        _stateTransitionTable.equals(stateModelDefinition._stateTransitionTable);
+  }
+
   /**
    * Get the state to its count map, order in its state priority.
    *

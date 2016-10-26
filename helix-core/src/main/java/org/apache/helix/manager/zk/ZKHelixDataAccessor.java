@@ -71,11 +71,25 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
 
-  @Override
-  public boolean createStateModelDef(StateModelDefinition stateModelDef) {
-    return stateModelDef.isValid() &&
-        _baseDataAccessor.create(PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId()),
-            stateModelDef.getRecord(), AccessOption.PERSISTENT);
+  @Override public boolean createStateModelDef(StateModelDefinition stateModelDef) {
+    String path = PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId());
+    HelixProperty property =
+        getProperty(new PropertyKey.Builder(_clusterName).stateModelDef(stateModelDef.getId()));
+
+    // Set new StateModelDefinition if it is different from old one.
+    if (property != null) {
+      // StateModelDefinition need to be updated
+      if (!new StateModelDefinition(property.getRecord()).equals(stateModelDef)) {
+        return stateModelDef.isValid() && _baseDataAccessor
+            .set(path, stateModelDef.getRecord(), AccessOption.PERSISTENT);
+      }
+    } else {
+      // StateModeDefinition does not exist
+      return stateModelDef.isValid() && _baseDataAccessor
+          .create(path, stateModelDef.getRecord(), AccessOption.PERSISTENT);
+    }
+    // StateModelDefinition exists but not need to be updated
+    return true;
   }
 
   @Override

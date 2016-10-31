@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
+import org.apache.helix.AccessOption;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ClusterMessagingService;
 import org.apache.helix.ConfigAccessor;
@@ -41,6 +42,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerProperties;
+import org.apache.helix.HelixProperty;
 import org.apache.helix.HelixTimerTask;
 import org.apache.helix.IdealStateChangeListener;
 import org.apache.helix.InstanceConfigChangeListener;
@@ -63,6 +65,7 @@ import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
@@ -458,11 +461,25 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    * Add Helix built-in state model definitions if not exist
    */
   private void addBuiltInStateModelDefinitions() {
-    PropertyKey.Builder keyBuilder = _dataAccessor.keyBuilder();
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
-      PropertyKey key = keyBuilder.stateModelDef(def.getStateModelDefinition().getId());
-      // creation succeeds only if not exist
-      _dataAccessor.createProperty(key, def.getStateModelDefinition());
+      String path = String
+          .format("/%s/STATEMODELDEFS/%s", _clusterName, def.getStateModelDefinition().getId());
+
+      HelixProperty property = _dataAccessor.getProperty(new PropertyKey.Builder(_clusterName)
+          .stateModelDef(def.getStateModelDefinition().getId()));
+
+      // Set new StateModelDefinition if it is different from old one.
+      if (property != null) {
+        // StateModelDefinition need to be updated
+        if (!new StateModelDefinition(property.getRecord()).equals(def.getStateModelDefinition())) {
+          _baseDataAccessor
+              .set(path, def.getStateModelDefinition().getRecord(), AccessOption.PERSISTENT);
+        }
+      } else {
+        // StateModeDefinition does not exist
+        _baseDataAccessor
+            .create(path, def.getStateModelDefinition().getRecord(), AccessOption.PERSISTENT);
+      }
     }
   }
 

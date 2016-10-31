@@ -44,7 +44,9 @@ import org.apache.log4j.Logger;
 public class IdealState extends HelixProperty {
   /**
    * Properties that are persisted and are queryable for an ideal state
+   * Deprecated, use ResourceConfig.ResourceConfigProperty instead.
    */
+  @Deprecated
   public enum IdealStateProperty {
     NUM_PARTITIONS,
     STATE_MODEL_DEF_REF,
@@ -70,6 +72,10 @@ public class IdealState extends HelixProperty {
 
   public static final String QUERY_LIST = "PREFERENCE_LIST_QUERYS";
 
+  /**
+   * Deprecated, use ResourceConfig.ResourceConfigConstants instead
+   */
+  @Deprecated
   public enum IdealStateConstants {
     ANY_LIVEINSTANCE
   }

@@ -373,8 +373,6 @@ public class JobConfig extends ResourceConfig {
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
 
     public JobConfig build() {
-      validate();
-
       if (_targetResource == null && _taskConfigMap.isEmpty()) {
         for (int i = 0; i < _numberOfTasks; i++) {
           TaskConfig taskConfig = new TaskConfig(null, null);
@@ -384,6 +382,8 @@ public class JobConfig extends ResourceConfig {
       if (_jobId == null) {
         _jobId = "";
       }
+
+      validate();
 
       return new JobConfig(_workflow, _targetResource, _targetPartitions, _targetPartitionStates,
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,

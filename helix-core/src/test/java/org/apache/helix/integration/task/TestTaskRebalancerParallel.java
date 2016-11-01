@@ -59,9 +59,11 @@ public class TestTaskRebalancerParallel extends TaskTestBase {
               .setTargetPartitionStates(Collections.singleton("SLAVE")));
     }
 
+    _driver.stop(queueName);
     for (int i = 0; i < jobConfigBuilders.size(); ++i) {
       _driver.enqueueJob(queueName, "job_" + (i + 1), jobConfigBuilders.get(i));
     }
+    _driver.resume(queueName);
 
     Assert.assertTrue(TaskTestUtil.pollForWorkflowParallelState(_driver, queueName));
   }

@@ -18,24 +18,25 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import java.io.IOException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
+
 import org.apache.helix.HelixException;
-import org.apache.helix.task.beans.WorkflowBean;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.task.beans.WorkflowBean;
 import org.apache.log4j.Logger;
 
 /**
  * Provides a typed interface to workflow level configurations. Validates the configurations.
  */
-// TODO: extends WorkflowConfig from ResourceConfig
-public class  WorkflowConfig {
+public class  WorkflowConfig extends ResourceConfig {
   private static final Logger LOG = Logger.getLogger(WorkflowConfig.class);
 
   /**
@@ -46,6 +47,7 @@ public class  WorkflowConfig {
    * but it will be change to protected in future major release.
    */
   public enum WorkflowConfigProperty {
+    WorkflowID,
     Dag,
     ParallelJobs,
     TargetState,
@@ -64,53 +66,91 @@ public class  WorkflowConfig {
   /* Default values */
   public static final long DEFAULT_EXPIRY = 24 * 60 * 60 * 1000;
   public static final int DEFAULT_FAILURE_THRESHOLD = 0;
+  public static final int DEFAULT_PARALLEL_JOBS = 1;
+  public static final int DEFAULT_CAPACITY = Integer.MAX_VALUE;
+  public static final JobDag DEFAULT_JOB_DAG = JobDag.EMPTY_DAG;
+  public static final TargetState DEFAULT_TARGET_STATE = TargetState.START;
+  public static final boolean DEFAULT_TERMINABLE = true;
+  public static final boolean DEFAULT_JOB_QUEUE = false;
+  public static final boolean DEFAULT_MONITOR_DISABLE = true;
+
+  public WorkflowConfig(HelixProperty property) {
+    super(property.getRecord());
+  }
+
+  public WorkflowConfig(WorkflowConfig cfg, String workflowId) {
+    this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
+        cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
+        cfg.getWorkflowType(), cfg.isJobQueue());
+  }
 
   /* Member variables */
   // TODO: jobDag should not be in the workflowConfig.
-  private final JobDag _jobDag;
 
-  // _parallelJobs would kind of break the job dependency,
-  // e.g: if job1 -> job2, but _parallelJobs == 2,
-  // then job1 and job2 could be scheduled at the same time
-  private final int _parallelJobs;
-  private final TargetState _targetState;
-  private final long _expiry;
-  private final boolean _terminable;
-  private final ScheduleConfig _scheduleConfig;
-  private final int _failureThreshold;
-  private final int _capacity;
-  private final String _workflowType;
-  private final boolean _isJobQueue;
+  protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
+      TargetState targetState, long expiry, int failureThreshold, boolean terminable,
+      ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue) {
+    super(workflowId);
 
-  protected WorkflowConfig(JobDag jobDag, int parallelJobs, TargetState targetState, long expiry,
-      int failureThreshold, boolean terminable, ScheduleConfig scheduleConfig, int capacity,
-      String workflowType, boolean isJobQueue) {
-    _jobDag = jobDag;
-    _parallelJobs = parallelJobs;
-    _targetState = targetState;
-    _expiry = expiry;
-    _failureThreshold = failureThreshold;
-    _terminable = terminable;
-    _scheduleConfig = scheduleConfig;
-    _capacity = capacity;
-    _workflowType = workflowType;
-    _isJobQueue = isJobQueue;
+    try {
+      putSimpleConfig(WorkflowConfigProperty.Dag.name(), jobDag.toJson());
+    } catch (IOException ex) {
+      throw new HelixException("Invalid job dag configuration!", ex);
+    }
+    putSimpleConfig(WorkflowConfigProperty.ParallelJobs.name(), String.valueOf(parallelJobs));
+    putSimpleConfig(WorkflowConfigProperty.Expiry.name(), String.valueOf(expiry));
+    putSimpleConfig(WorkflowConfigProperty.TargetState.name(), targetState.name());
+    putSimpleConfig(WorkflowConfigProperty.Terminable.name(), String.valueOf(terminable));
+    putSimpleConfig(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue));
+    putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(),
+        String.valueOf(failureThreshold));
+
+    if (capacity > 0) {
+      putSimpleConfig(WorkflowConfigProperty.capacity.name(), String.valueOf(capacity));
+    }
+
+    // Populate schedule if present
+    if (scheduleConfig != null) {
+      Date startTime = scheduleConfig.getStartTime();
+      if (startTime != null) {
+        String formattedTime = WorkflowConfig.getDefaultDateFormat().format(startTime);
+        putSimpleConfig(WorkflowConfigProperty.StartTime.name(), formattedTime);
+      }
+      if (scheduleConfig.isRecurring()) {
+        putSimpleConfig(WorkflowConfigProperty.RecurrenceUnit.name(),
+            scheduleConfig.getRecurrenceUnit().toString());
+        putSimpleConfig(WorkflowConfigProperty.RecurrenceInterval.name(),
+            scheduleConfig.getRecurrenceInterval().toString());
+      }
+    }
+    if (workflowType != null) {
+      putSimpleConfig(WorkflowConfigProperty.WorkflowType.name(), workflowType);
+    }
+    putSimpleConfig(ResourceConfigProperty.MONITORING_DISABLED.toString(),
+        String.valueOf(DEFAULT_MONITOR_DISABLE));
+  }
+
+  public String getWorkflowId() {
+    return getSimpleConfig(WorkflowConfigProperty.WorkflowID.name());
   }
 
   public JobDag getJobDag() {
-    return _jobDag;
+    return simpleConfigContains(WorkflowConfigProperty.Dag.name()) ? JobDag
+        .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
   }
 
   public int getParallelJobs() {
-    return _parallelJobs;
+    return _record
+        .getIntField(WorkflowConfigProperty.ParallelJobs.name(), DEFAULT_PARALLEL_JOBS);
   }
 
   public TargetState getTargetState() {
-    return _targetState;
+    return simpleConfigContains(WorkflowConfigProperty.TargetState.name()) ? TargetState
+        .valueOf(getSimpleConfig(WorkflowConfigProperty.TargetState.name())) : DEFAULT_TARGET_STATE;
   }
 
   public long getExpiry() {
-    return _expiry;
+    return _record.getLongField(WorkflowConfigProperty.Expiry.name(), DEFAULT_EXPIRY);
   }
 
   /**
@@ -118,7 +158,8 @@ public class  WorkflowConfig {
    * @return
    */
   public int getFailureThreshold() {
-    return _failureThreshold;
+    return _record
+        .getIntField(WorkflowConfigProperty.FailureThreshold.name(), DEFAULT_FAILURE_THRESHOLD);
   }
 
   /**
@@ -126,26 +167,31 @@ public class  WorkflowConfig {
    * this field is only used when a workflow is not terminable.
    * @return queue capacity
    */
-  public int getCapacity() { return _capacity; }
+  public int getCapacity() {
+    return _record.getIntField(WorkflowConfigProperty.capacity.name(), DEFAULT_CAPACITY);
+  }
 
   public String getWorkflowType() {
-    return _workflowType;
+    return simpleConfigContains(WorkflowConfigProperty.WorkflowType.name()) ? getSimpleConfig(
+        WorkflowConfigProperty.WorkflowType.name()) : null;
   }
 
   public boolean isTerminable() {
-    return _terminable;
+    return _record.getBooleanField(WorkflowConfigProperty.Terminable.name(), DEFAULT_TERMINABLE);
   }
 
   public ScheduleConfig getScheduleConfig() {
-    return _scheduleConfig;
+    return parseScheduleFromConfigMap(getSimpleConfigs());
   }
 
   public boolean isRecurring() {
-    return _scheduleConfig != null && _scheduleConfig.isRecurring();
+    return simpleConfigContains(WorkflowConfigProperty.StartTime.name()) && simpleConfigContains(
+        WorkflowConfigProperty.RecurrenceInterval.name()) && simpleConfigContains(
+        WorkflowConfigProperty.RecurrenceUnit.name());
   }
 
   public boolean isJobQueue() {
-    return _isJobQueue;
+    return _record.getBooleanField(WorkflowConfigProperty.IsJobQueue.name(), DEFAULT_JOB_QUEUE);
   }
 
   public static SimpleDateFormat getDefaultDateFormat() {
@@ -163,51 +209,19 @@ public class  WorkflowConfig {
    */
   public Date getStartTime() {
     // Workflow with non-scheduled config is ready to schedule immediately.
-    if (_scheduleConfig == null) {
-      return null;
+    try {
+      return simpleConfigContains(WorkflowConfigProperty.StartTime.name())
+          ? WorkflowConfig.getDefaultDateFormat()
+          .parse(getSimpleConfig(WorkflowConfigProperty.StartTime.name()))
+          : null;
+    } catch (ParseException e) {
+      LOG.error("Unparseable date " + getSimpleConfig(WorkflowConfigProperty.StartTime.name()), e);
     }
-
-    return _scheduleConfig.getStartTime();
+    return null;
   }
 
   public Map<String, String> getResourceConfigMap() {
-    Map<String, String> cfgMap = new HashMap<String, String>();
-    try {
-      cfgMap.put(WorkflowConfigProperty.Dag.name(), getJobDag().toJson());
-    } catch (IOException ex) {
-      throw new HelixException("Invalid job dag configuration!", ex);
-    }
-    cfgMap.put(WorkflowConfigProperty.ParallelJobs.name(), String.valueOf(getParallelJobs()));
-    cfgMap.put(WorkflowConfigProperty.Expiry.name(), String.valueOf(getExpiry()));
-    cfgMap.put(WorkflowConfigProperty.TargetState.name(), getTargetState().name());
-    cfgMap.put(WorkflowConfigProperty.Terminable.name(), String.valueOf(isTerminable()));
-    cfgMap.put(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue()));
-    cfgMap.put(WorkflowConfigProperty.FailureThreshold.name(),
-        String.valueOf(getFailureThreshold()));
-
-    if (_capacity > 0) {
-      cfgMap.put(WorkflowConfigProperty.capacity.name(), String.valueOf(_capacity));
-    }
-
-    // Populate schedule if present
-    ScheduleConfig scheduleConfig = getScheduleConfig();
-    if (scheduleConfig != null) {
-      Date startTime = scheduleConfig.getStartTime();
-      if (startTime != null) {
-        String formattedTime = WorkflowConfig.getDefaultDateFormat().format(startTime);
-        cfgMap.put(WorkflowConfigProperty.StartTime.name(), formattedTime);
-      }
-      if (scheduleConfig.isRecurring()) {
-        cfgMap.put(WorkflowConfigProperty.RecurrenceUnit.name(),
-            scheduleConfig.getRecurrenceUnit().toString());
-        cfgMap.put(WorkflowConfigProperty.RecurrenceInterval.name(),
-            scheduleConfig.getRecurrenceInterval().toString());
-      }
-    }
-    if (_workflowType != null) {
-      cfgMap.put(WorkflowConfigProperty.WorkflowType.name(), _workflowType);
-    }
-    return cfgMap;
+    return getSimpleConfigs();
   }
 
   /**
@@ -253,22 +267,23 @@ public class  WorkflowConfig {
   }
 
   public static class Builder {
-    private JobDag _taskDag = JobDag.EMPTY_DAG;
-    private int _parallelJobs = 1;
-    private TargetState _targetState = TargetState.START;
+    private String _workflowId = "";
+    private JobDag _taskDag = DEFAULT_JOB_DAG;
+    private int _parallelJobs = DEFAULT_PARALLEL_JOBS;
+    private TargetState _targetState = DEFAULT_TARGET_STATE;
     private long _expiry = DEFAULT_EXPIRY;
     private int _failureThreshold = DEFAULT_FAILURE_THRESHOLD;
-    private boolean _isTerminable = true;
-    private int _capacity = Integer.MAX_VALUE;
+    private boolean _isTerminable = DEFAULT_TERMINABLE;
+    private int _capacity = DEFAULT_CAPACITY;
     private ScheduleConfig _scheduleConfig;
     private String _workflowType;
-    private boolean _isJobQueue = false;
+    private boolean _isJobQueue = DEFAULT_JOB_QUEUE;
 
     public WorkflowConfig build() {
       validate();
 
-      return new WorkflowConfig(_taskDag, _parallelJobs, _targetState, _expiry, _failureThreshold,
-          _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue);
+      return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
+          _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue);
     }
 
     public Builder() {}
@@ -284,6 +299,11 @@ public class  WorkflowConfig {
       _failureThreshold = workflowConfig.getFailureThreshold();
       _workflowType = workflowConfig.getWorkflowType();
       _isJobQueue = workflowConfig.isJobQueue();
+    }
+
+    public Builder setWorkflowId(String v) {
+      _workflowId = v;
+      return this;
     }
 
     protected Builder setJobDag(JobDag v) {

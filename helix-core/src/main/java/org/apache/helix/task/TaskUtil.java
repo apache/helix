@@ -33,6 +33,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
@@ -40,7 +41,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * Static utility methods.
@@ -82,6 +82,8 @@ public class TaskUtil {
     return getJobCfg(manager.getHelixDataAccessor(), jobResource);
   }
 
+
+
   /**
    * Parses workflow resource configurations in Helix into a {@link WorkflowConfig} object.
    * This method is internal API, please use the corresponding one in TaskDriver.getWorkflowConfig();
@@ -97,10 +99,7 @@ public class TaskUtil {
       return null;
     }
 
-    WorkflowConfig.Builder b =
-        WorkflowConfig.Builder.fromMap(workflowCfg.getRecord().getSimpleFields());
-
-    return b.build();
+    return new WorkflowConfig(workflowCfg);
   }
 
   /**
@@ -114,6 +113,19 @@ public class TaskUtil {
    */
   protected static WorkflowConfig getWorkflowCfg(HelixManager manager, String workflow) {
     return getWorkflowCfg(manager.getHelixDataAccessor(), workflow);
+  }
+
+  /**
+   * Set the resource config
+   * @param accessor        Accessor to Helix configs
+   * @param resource        The resource name
+   * @param resourceConfig  The resource config to be set
+   * @return                True if set successfully, otherwise false
+   */
+  protected static boolean setResouceConfig(HelixDataAccessor accessor, String resource,
+      ResourceConfig resourceConfig) {
+    PropertyKey.Builder keyBuilder = accessor.keyBuilder();
+    return accessor.setProperty(keyBuilder.resourceConfig(resource), resourceConfig);
   }
 
   /**

@@ -202,8 +202,10 @@ public class TaskDriver {
     flow.validate();
 
     // first, add workflow config.
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, flow.getName()),
-        flow.getWorkflowConfig().getResourceConfigMap());
+    if (!TaskUtil.setResouceConfig(_accessor, flow.getName(),
+        new WorkflowConfig(flow.getWorkflowConfig(), flow.getName()))) {
+      LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
+    }
 
     // then add all job configs.
     for (String job : flow.getJobConfigs().keySet()) {
@@ -255,8 +257,10 @@ public class TaskDriver {
           "Workflow " + workflow + " is terminable, not allow to change its configuration!");
     }
 
-    _admin.setConfig(TaskUtil.getResourceConfigScope(_clusterName, workflow),
-        newWorkflowConfig.getResourceConfigMap());
+    // TODO: Should not let user changing DAG in the workflow
+    if (!TaskUtil.setResouceConfig(_accessor, workflow, newWorkflowConfig)) {
+      LOG.error("Failed to update workflow configuration for workflow " + workflow);
+    }
 
     RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
@@ -665,9 +669,8 @@ public class TaskDriver {
     LOG.info("Add job configuration " + jobName);
 
     // Set the job configuration
-    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
     JobConfig newJobCfg = new JobConfig(jobName, jobConfig);
-    if (!_accessor.setProperty(keyBuilder.resourceConfig(jobName), newJobCfg)) {
+    if (!TaskUtil.setResouceConfig(_accessor, jobName, newJobCfg)) {
       LOG.error("Failed to add job configuration for job " + jobName);
     }
   }

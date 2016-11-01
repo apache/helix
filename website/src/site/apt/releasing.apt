@@ -84,13 +84,13 @@ Helix Release Process
    Run the release
 
 +-------------
-mvn -Pwebsite-modules release:prepare
-mvn -Pwebsite-modules release:perform
+mvn release:prepare
+mvn release:perform
 +-------------
 
  [[5]] Go to https://repository.apache.org and close your staged repository. Log in, click on Staging Repositories, check your repository, and click Close. Note the repository url (format https://repository.apache.org/content/repositories/orgapachehelix-[NNNN])
 
- [[6]] Stage the release (stagingRepoUrl format https://repository.apache.org/content/repositories/orgapachehelix-[NNNN])
+ [[6]] Stage the release (version format 0.6.6, stagingRepoUrl format https://repository.apache.org/content/repositories/orgapachehelix-[NNNN])
 
 +-------------
 svn co https://dist.apache.org/repos/dist/dev/helix helix-dev-release

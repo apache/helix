@@ -47,68 +47,156 @@ Release Notes for Apache Helix 0.6.6
 * Changes
 
 ** Bug
+    * [HELIX-543] Avoid moving partitions unnecessarily when auto-rebalancing.
 
-    * [HELIX-512] - add back HelixManager#getHealthReportCollector() interface to 0.6.x
-
-    * [HELIX-514] - ZkBaseDataAccessor#set() should throw BadVersionException instead of return false in case of version mismatch
-
-    * [HELIX-518] - Add integration tests to ensure helix tasks work as expected during master failover
-
-    * [HELIX-519] - Add integration tests to ensure that "kill-switch" for Helix tasks work as expected
-
-    * [HELIX-521] - Should not start GenericHelixController#ClusterEventProcessor in types other than CONTROLLER and CONTROLLER_PARTICIPANT
-
-    * [HELIX-537] - org.apache.helix.task.TaskStateModel should have a shutdown method.
-
-    * [HELIX-541] - Possible "livelock" in Helix controller
-
-    * [HELIX-547] - AutoRebalancer may not converge in some rare situation
-
-    * [HELIX-549] - Discarding Throwable exceptions makes threads unkillable.
-
-    * [HELIX-550] - ZKHelixManager does not shutdown GenericHelixController threads.
-
-    * [HELIX-552] - StateModelFactory#_stateModelMap should use both resourceName and partitionKey to map a state model
-
-    * [HELIX-555] - ClusterStateVerifier leaks ZkClients.
-
-    * [HELIX-559] - Helix web admin performance issues
-
-    * [HELIX-562] - TaskRebalancer doesn't honor MaxAttemptsPerTask when FailureThreshold is larger than 0
-
-    * [HELIX-563] - Throw more meaningful exceptions when AutoRebalanceStrategy#computePartitionAssignment inputs are invalid
-
-    * [HELIX-572] - External view is recreated every time for bucketized resource
-
-    * [HELIX-574] - fix bucketize resource bug in current state carryover
-
-    * [HELIX-575] - Should not send FINALIZED callback when a bucketized resource is removed
-
-    * [HELIX-579] - fix ivy files issue
+    * Check Workflow is JobQueue before doing parallel jobs logics.
+    
+    * [HELIX-631] AutoRebalanceStrategy does not work correctly all the time.
+    
+    * Fix NPE when first time call WorkflowRebalancer.
+    
+    * Fix Workflow and Job metrics Counters.
+    
+    * [HELIX-633] AutoRebalancer should ignore disabled instance and all partitions on disabled instances should be dropped in 
+    FULL_AUTO rebalance mode.
+    
+    * Fix task assignment in instance group tag check.
+    
+    * Fix missing workflowtype assign in builder.
+    
+    * TaskUtil.getWorkflowCfg throws NPE if workflow doesn't exist.
+    
+    * Fix the statemodelFactories in Example Process.
+    
+    * [HELIX-618]  Job hung if the target resource does not exist anymore at the time when it is scheduled.
+    
+    * [Helix-624] Fix NPE in TestMessageService.TestMultiMessageCriteria.
+    
+    * [HELIX-615] Naming problem of scheduled jobs from recurrent queue.
+    
+    * [HELIX-613] Fix thread leaking problems in TaskStateModel by sharing one thread pool among all tasks and timeout tasks from TaskStateModels created from the same TaskStateModelFactory.
+    
+    * [Helix-612] Bump up the version of zkClient and zookeeper to avoid NPE.
+    
+    * [HELIX-600] Task scheduler fails to schedule a recurring workflow if the startTime is set to a future timestamp.
+    
+    * [HELIX-592] addCluster should respect overwriteExisitng when adding stateModel Definations.
+    
+    * [HELIX-589] Delete job API throws NPE if the job does not exist in last scheduled workflow.
+    
+    * [HELIX-587] Fix NPE in ClusterStateVerifier.
+    
+    * [HELIX-584] SimpleDateFormat should not be used as singleton due to its race conditions.
+    
+    * [HELIX-578] NPE while deleting a job from a recurrent job queue.
 
 ** Improvement
+    * Add AbortedJobCount in JobMonior.
 
-    * [HELIX-524] - add getProgress() to Task interface
-
-    * [HELIX-570] - Add default state model definitions if not already exists when controller starts
-
-    * [HELIX-573] - Add support to compress/uncompress data on ZK
-
-    * [HELIX-576] - Make StateModelFactory change backward compatible
+    * Job Config and logic refactoring with 1)Support identical task initialization with job command and number of tasks, 2)Remove unused MaxForcedReassignmentPerTask field and 3)Refactor logics of failure.
+    
+    * [HELIX-635] GenericTaskAssignmentCalculator rebalance with consistent hashing. 1) Implement consistent hashing mapping calculation, 2) Remove reassign logics and applied in consistent hashing.
+    
+    * Refactor TaskAssignmentCalculator API.
+    
+    * Monitors for Task framework. 1) Add workflow and job monitor MBeans and implementations, and 2) Add tests for MBean existing checking.
+    
+    * Check whether instance is disable when assigning tasks to instances in TaskRebalancer.
+    
+    * Add Partition task start time.
+    
+    * Add WorkflowType and JobType in WorkflowConfig and JobConfig.
+    
+    * Added method to TaskDriver to get all workflows from a cluster. Added methods to convert HelixProperty to WorkflowConfig and JobConfig.
+    
+    * More cleanup on workflow and workflowConfig builders.
+    
+    * Add Builder class for TaskConfig, and add unit test for testing generic jobs.
+    
+    * Add static methods into TaskDriver for getting configuration/context for jobs and workflows.
+    
+    * Refactor Workflow and Jobqueue builders to make the builder API more clean.
+    
+    * Add methods in TaskDriver for getting Workflow/Job configuration and context. External users should call these methods instead of TaskUtil.
+    
+    * [HELIX-623] Do not expose internal configuration field name. Client should use JobConfig.Builder to create jobConfig.
+    
+    * [HELIX-617] Job IdealState is generated even the job is not running and not removed when it is completed.
+    
+    * [HELIX-616] Change JobQueue to be subclass of Workflow instead of WorkflowConfig.
+    
+    * [HELIX-614] Fix the bug when job expiry time is shorter than job schedule interval in recurring job queue.
+    
+    * [Helix-606] Add an option in IdealState to allow a resource to disable showing external view.
 
 ** New Feature
-
-    * [HELIX-546] - REST Admin APIs needed for helix job queue management
-
-    * [HELIX-581] - Support deleting job from a job queue
+    * [HELIX-636] Add Java API and REST API for clean up JobQueue.
+    
+    * Add ABORT state in TaskState and set tasks IN_PROGRESS to ABORT when workflow fails.
+    
+    * [HELIX-568] Add new topology aware (rack-aware) rebalance strategy based on CRUSH algorithm. Design doc is available at: https://cwiki.apache.org/confluence/display/HELIX/Helix+Topology-aware+Rebalance+Strategy.
+    
+    * [HELIX-634] Refactor AutoRebalancer to allow configuable placement strategy.
+    
+    * Support user defined content store per workflow/job/task layer, 1) Add feature to support workflow/job/task layer key value user defined content store, and 2) Add test case for workflow/job/task layer key-value pair store and verify.
+    
+    * Allow an instance group tag to be configured for a job, so all tasks of the job can only be running on the instances containing the tag. 1) Add instance group tag for jobs, and 2) Add a test for job assignment when the only instance can be assigned instance is disabled.
+    
+    * Add pollForJobState and pollForWorkflowState function in TaskDriver.
+    
+    * Populate Error message from running client's task and persist it into JobContext for better error reporting.
+    
+    * Add a new task state (TASK_ABORTED) to TaskResult. This allows client to abort a task and let Helix not retry it even Task RetryCount is bigger than 1.
+    
+    * Add new job option to allow contining a job even its direct dependent job fails.
+    
+    * Support changes of workflow configuration.
+    
+    * [HELIX-622] Add new resource configuration option to allow resource to disable emmiting monitoring bean.
+    
+    * [HELIX-599] Support creating/maintaining/routing resources with same names in different instance groups.
+    
+    * [HELIX-601] Allow workflow to schedule dependency jobs in parallel.
+    
+    * [HELIX-591] Provide getResourcesWithTag in HelixAdmin to retrieve all resources with a group tag.
+    
+    * [HELIX-583] support deleting recurring job queue.
 
 ** Task
-
-    * [HELIX-539] - Add ivy file for helix-agent
+    * Upgrade maven release plugin version.
+    
+    * Update Apache POM version.
+    
+    * Make sure all dependant service using zookeeper 3.4.9 version.
+    
+    * Bump Zookeeper client version to 3.4.9 to catch the fix of session reestablish failure due to large set of watches.
 
 ** Test
-
-    * [HELIX-580] - Fix test: TestBatchMessage#testSubMsgExecutionFail
+    * Add integration test for running task with unregistered command.
+    
+    * Refactor redundant code TestTaskRebalancerRetryLimit.
+    
+    * Add test to test task retry with and without delay.
+    
+    * Add unit tests to retrieve all workflows and job info from a cluster.
+    
+    * Add unit test to retrieve workflow and job configurations.
+    
+    * Add job dependency workflow test.
+    
+    * Refactor tests with TaskTestBase and remove duplicated code.
+    
+    * Add TaskTestBase and refactor 2 tests.
+    
+    * Fix task framework unit test failure.
+    
+    * Refactor TaskUtil class to move as many as methods out of the class, and make other methods in it as internal API as possible. Expose necessary APIs in TaskDriver instead.
+    
+    * More fixes and cleanup on task unit tests.
+    
+    * Fix task framework unit tests.
+    
+    * Clean up unit tests for task framework.
 
 []
 

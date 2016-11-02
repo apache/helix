@@ -227,14 +227,18 @@ public class AutoRebalancer implements Rebalancer, MappingCalculator {
       map.put(partition, new HashMap<String, String>());
       for (String node : curStateMap.keySet()) {
         String state = curStateMap.get(node);
-        map.get(partition).put(node, state);
+        if (stateCountMap.containsKey(state)) {
+          map.get(partition).put(node, state);
+        }
       }
 
       Map<String, String> pendingStateMap =
           currentStateOutput.getPendingStateMap(resourceName, new Partition(partition));
       for (String node : pendingStateMap.keySet()) {
         String state = pendingStateMap.get(node);
-        map.get(partition).put(node, state);
+        if (stateCountMap.containsKey(state)) {
+          map.get(partition).put(node, state);
+        }
       }
     }
     return map;

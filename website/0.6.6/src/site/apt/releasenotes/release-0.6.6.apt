@@ -44,7 +44,73 @@ Release Notes for Apache Helix 0.6.6
 
   []
 
-* Changes
+
+* What is new in Helix 0.6.6
+
+** Task Framework Features and Improvements
+
+*** Performance/Stability Improvements. 
+    
+    We have made several major changes on existing task framework to improve its performance and stability, two of the major improvements are:
+
+    * Dramatically reduced the number of IdealState and ExternalView. In the new release, the IdealState of a job will be generated only when it is scheduled to run, and will be removed immediately once the job is completed. In addition, ExternalView for a job is not persisted by default since Job's external view neither useful nor interested by any clients. This change has dramatically reduced the amounts of znodes and traffic to our Zookeeper servers.
+
+    * Unstable scheduling of recurrent jobs. We have seen that the scheduling of recurrent queues and jobs were not stable in old releases.  We have reworked on the timer management in Helix task framework to make it more reliable during many error cases in the new release. 
+
+*** Features
+
+    A major set of new features has also been introduced into the task framework, some of them:
+
+    * Generic Job Support. Besides the Targeted Resource Job, which requires a target resource (database) be associated with a job, now Helix also supports to create a Generic Job, which a job can be created without being associated with any existing resource. 
+
+    * Persistence and Sharing of Contents across Tasks and Jobs.  This new task API allows user's task to persist simple key-value pairs during run-time.  This key-value pairs are visible and shared across other tasks within one job, or across jobs within the same workflow, depends on the scope of the key-value pair. 
+
+    * Conditional Task Retry.  Previously, if a task is failed (timeout-ed, task returned FAILED, or throws any exceptions), the task will be always retried until it reaches the specified max retry count.  However, there are many scenarios in which if certain errors happen, retrying the task will not help. In new release,  Helix provides client a new option to tell Helix whether it should retry or abort the task upon a failure.
+
+    * Running Jobs on Specific Instance Group. Now, when you create a job, you have an option to specify an instance (node) group that you would like this job to be scheduled and run on. Helix will guarantee to not run the job on any nodes that do not belong to the instance group.
+
+    * Persist Task Error Message in Helix. In this release, Helix provides a channel to persist a simple failure messages from each task and provides a set of API for clients to retrieve these messages programmatically. 
+
+
+** Topology-aware (Rack-aware) Auto Rebalancer
+
+    The topology-aware placement strategy provides common strategies for dynamic allocation of partitions within failure zones for these systems administered by Helix. In this release, Helix has shipped two new topology-aware placement strategies along with its full-auto rebalancer.  The new placement strategies allow users to specify a flexible representation of a cluster topology and fault zones. Helix will perform replica placement in a topology-aware way such that the replicas for a partition will not reside in the same failure zone, which essentially avoids service disruption upon the loss of a single fault zone.
+
+** Client Side Thread-pool
+
+    The new release has improved the way how Helix manages its client side threadpools, which includes:
+
+    * Support of client's customized threadpool for state-transition message handling. In old releases, Helix uses a fix-sized thread pool to handle all state transitions in each instance.  The new feature allows client to specify a thread pool, which gives clients more flexibility over thread pool type (fixed or dynamic) and size.
+
+    * Fix thread leaking problem in TaskStateModel. We found a thread-leaking issue because a new thread was always initiated to run client's task.  We have fixed this issue by using shared thread pool for all users' tasks.
+
+
+** New APIs for Monitoring and Operating Job Workflows and Queues
+
+    For Helix client to better retrieve and monitor workflow and job status, a set of methods are added into TaskDriver, which include:
+
+    * PollForJobState and PollForWorkflowState for client to synchronously waiting on a status change.
+    * Retrieving job and workflow configurations and contexts.
+    * Listing all workflows from a cluster.
+    * New Builder class for Workflow, Queue, Job and TaskConfig
+
+** Zookeeper Re-connect Failures after ZK Server Bounce
+
+    We have seen many time that Helix controller fails to reconnect to Zookeeper after one or more of ZK servers experiences long GC or restart. The problem was actually caused by a ZooKeeper bug (ZOOKEEPER-706).  We have bumped our ZK dependency to the fixed version. Please refer to the detailed discussion on this jira.
+
+** Partitions Not Moving Away from Disabled Instances in FULL_AUTO Mode. 
+
+    We saw the problem that when an instance is disabled, Helix still tries to put partitions on the instance.  This issue has been fixed in this new release.
+
+** New Set of Monitoring Metrics for Workflows and Jobs 
+
+    As more and more features are added in Task Framework, monitoring workflows and jobs takes a vital part of stabilizing Helix for long run.  A new set of metrics has been added to better monitor all workflows and jobs. More information on what metrics are exposed for your workflows and jobs, please refer here.
+
+
+
+
+
+* Detailed Changes
 
 ** Bug
 

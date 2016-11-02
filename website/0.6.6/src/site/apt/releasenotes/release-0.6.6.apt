@@ -47,6 +47,7 @@ Release Notes for Apache Helix 0.6.6
 * Changes
 
 ** Bug
+
     * [HELIX-543] Avoid moving partitions unnecessarily when auto-rebalancing.
 
     * Check Workflow is JobQueue before doing parallel jobs logics.
@@ -90,7 +91,9 @@ Release Notes for Apache Helix 0.6.6
     
     * [HELIX-578] NPE while deleting a job from a recurrent job queue.
 
+
 ** Improvement
+
     * Add AbortedJobCount in JobMonior.
 
     * Job Config and logic refactoring with 1)Support identical task initialization with job command and number of tasks, 2)Remove unused MaxForcedReassignmentPerTask field and 3)Refactor logics of failure.
@@ -129,7 +132,9 @@ Release Notes for Apache Helix 0.6.6
     
     * [Helix-606] Add an option in IdealState to allow a resource to disable showing external view.
 
+
 ** New Feature
+
     * [HELIX-636] Add Java API and REST API for clean up JobQueue.
     
     * Add ABORT state in TaskState and set tasks IN_PROGRESS to ABORT when workflow fails.
@@ -162,7 +167,9 @@ Release Notes for Apache Helix 0.6.6
     
     * [HELIX-583] support deleting recurring job queue.
 
+
 ** Task
+
     * Upgrade maven release plugin version.
     
     * Update Apache POM version.
@@ -171,7 +178,9 @@ Release Notes for Apache Helix 0.6.6
     
     * Bump Zookeeper client version to 3.4.9 to catch the fix of session reestablish failure due to large set of watches.
 
+
 ** Test
+
     * Add integration test for running task with unregistered command.
     
     * Refactor redundant code TestTaskRebalancerRetryLimit.

@@ -20,6 +20,7 @@ package org.apache.helix.tools.ClusterStateVerifier;
  */
 
 import org.apache.helix.HelixDefinedState;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
@@ -31,7 +32,6 @@ import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.manager.zk.ZkClient;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -269,7 +269,14 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         Map<Partition, Map<String, String>> bpStateMap =
             bestPossOutput.getResourceMap(resourceName);
 
-        boolean result = verifyExternalView(is, extView, bpStateMap);
+        StateModelDefinition stateModelDef = cache.getStateModelDef(is.getStateModelDefRef());
+        if (stateModelDef == null) {
+          throw new HelixException(
+              "State model definition " + is.getStateModelDefRef() + " for resource not found!" + is
+                  .getResourceName());
+        }
+
+        boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
         if (!result) {
           LOG.debug("verifyExternalView fails! ExternalView: " + extView + " BestPossibleState: "
               + bpStateMap);
@@ -284,11 +291,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private boolean verifyExternalView(IdealState idealState, ExternalView externalView,
-      Map<Partition, Map<String, String>> bestPossibleState) {
-
-    StateModelDefinition stateModelDef =
-        BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
-            .getStateModelDefinition();
+      Map<Partition, Map<String, String>> bestPossibleState, StateModelDefinition stateModelDef) {
     Set<String> ignoreStaes = new HashSet<String>(
         Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
 

@@ -36,6 +36,8 @@ import java.util.TreeSet;
 import org.apache.helix.HelixManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 public class AutoRebalanceStrategy implements RebalanceStrategy {
@@ -88,8 +90,10 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     List<String> sortedAllNodes = new ArrayList<String>(allNodes);
     Collections.sort(sortedAllNodes);
 
+    String stateModelName = clusterData.getIdealState(_resourceName).getStateModelDefRef();
+    StateModelDefinition stateModelDef = clusterData.getStateModelDef(stateModelName);
     Comparator<String> currentStateNodeComparator =
-        new CurrentStateNodeComparator(currentMapping);
+        new CurrentStateNodeComparator(currentMapping, stateModelDef);
 
     List<String> sortedLiveNodes = new ArrayList<String>(liveNodes);
     Collections.sort(sortedLiveNodes, currentStateNodeComparator);
@@ -791,43 +795,61 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
   }
 
   /**
-   * Sorter for live nodes that sorts firstly according to the number of partitions currently
-   * registered against a node (more partitions means sort earlier), then by node name.
+   * Sorter for live nodes that sorts
+   * - first by the sum of "state scores" of partitions currently registered to a node
+   *   (more higher-priority partitions means sort earlier)
+   * - then by node name.
    * This prevents unnecessarily moving partitions due to the capacity assignment
    * unnecessarily reducing the capacity of lower down elements.
    */
   private static class CurrentStateNodeComparator implements Comparator<String> {
 
     /**
-     * The number of partitions that are active for each participant.
+     * The sum of state scores for partitions on each . (Map<ParticipantId, Integer>)
+     * State scores are the reverse of state priorities, s.t. states with lower priority numbers have higher scores.
      */
-    private final Map<String, Integer> partitionCounts;
+    private final Map<String, Integer> participantStatePriorities;
 
     /**
      * Create it.
      * @param currentMapping The current mapping of partitions to participants.
+     * @param stateModelDef The resource's associated state model.
      */
-    public CurrentStateNodeComparator(Map<String, Map<String, String>> currentMapping) {
-      partitionCounts = new HashMap<String, Integer>();
-      for (Entry<String, Map<String, String>> entry : currentMapping.entrySet()) {
-        for (String participantId : entry.getValue().keySet()) {
-          Integer existing = partitionCounts.get(participantId);
-          partitionCounts.put(participantId, existing != null ? existing + 1 : 1);
+    public CurrentStateNodeComparator(Map<String, Map<String, String>> currentMapping,
+                                      StateModelDefinition stateModelDef) {
+      Map<String, Integer> stateScores = getStateScores(stateModelDef);
+
+      participantStatePriorities = new HashMap<String, Integer>();
+      for (Map<String, String> participantStates : currentMapping.values()) {
+        for (String participantId : participantStates.keySet()) {
+          int existing = participantStatePriorities.getOrDefault(participantId, 0);
+          participantStatePriorities.put(participantId, existing + stateScores.getOrDefault(participantId, 0));
         }
       }
     }
 
     @Override
     public int compare(String o1, String o2) {
-      Integer c1 = partitionCounts.get(o1);
+      Integer c1 = participantStatePriorities.get(o1);
       if (c1 == null) {
         c1 = 0;
       }
-      Integer c2 = partitionCounts.get(o2);
+      Integer c2 = participantStatePriorities.get(o2);
       if (c2 == null) {
         c2 = 0;
       }
       return c1 < c2 ? 1 : (c1 > c2 ? -1 : o1.toString().compareTo(o2.toString()));
+    }
+
+    private Map<String, Integer> getStateScores(StateModelDefinition stateModelDef) {
+      List<String> states = stateModelDef.getStateTransitionPriorityList();
+      int maxScore = states.size() - 1;
+
+      Map<String, Integer> scoreMap = new HashMap<String, Integer>();
+      for (int i = 0; i < states.size(); ++i) {
+        scoreMap.put(states.get(i), maxScore - i);
+      }
+      return scoreMap;
     }
   }
 }

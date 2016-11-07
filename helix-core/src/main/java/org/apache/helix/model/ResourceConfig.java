@@ -19,13 +19,14 @@ package org.apache.helix.model;
  * under the License.
  */
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
+import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.log4j.Logger;
-
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * Resource configurations
@@ -88,7 +89,7 @@ public class ResourceConfig extends HelixProperty {
       int minActiveReplica, int maxPartitionsPerInstance, String instanceGroupTag,
       Boolean helixEnabled, String resourceGroupName, String resourceType,
       Boolean groupRoutingEnabled, Boolean externalViewDisabled,
-      RebalanceConfig rebalanceConfig) {
+      RebalanceConfig rebalanceConfig, StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
     super(resourceId);
 
     if (monitorDisabled != null) {
@@ -136,6 +137,11 @@ public class ResourceConfig extends HelixProperty {
 
     if (rebalanceConfig != null) {
       putSimpleConfigs(rebalanceConfig.getSimpleFieldsMap());
+    }
+
+    if (stateTransitionTimeoutConfig != null) {
+      putMapConfig(StateTransitionTimeoutConfig.StateTransitionTimeoutProperty.TIMEOUT.name(),
+          stateTransitionTimeoutConfig.getTimeoutMap());
     }
   }
 
@@ -267,6 +273,10 @@ public class ResourceConfig extends HelixProperty {
     return rebalanceConfig;
   }
 
+  public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
+    return StateTransitionTimeoutConfig.fromRecord(_record);
+  }
+
   /**
    * Put a set of simple configs.
    *
@@ -374,7 +384,7 @@ public class ResourceConfig extends HelixProperty {
   }
 
 
-  public class Builder {
+  public static class Builder {
     private String _resourceId;
     private Boolean _monitorDisabled;
     private int _numPartitions;
@@ -390,6 +400,7 @@ public class ResourceConfig extends HelixProperty {
     private Boolean _groupRoutingEnabled;
     private Boolean _externalViewDisabled;
     private RebalanceConfig _rebalanceConfig;
+    private StateTransitionTimeoutConfig _stateTransitionTimeoutConfig;
 
     public Builder(String resourceId) {
       _resourceId = resourceId;
@@ -529,6 +540,16 @@ public class ResourceConfig extends HelixProperty {
       return _rebalanceConfig;
     }
 
+    public Builder setStateTransitionTimeoutConfig(
+        StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
+      _stateTransitionTimeoutConfig = stateTransitionTimeoutConfig;
+      return this;
+    }
+
+    public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
+      return _stateTransitionTimeoutConfig;
+    }
+
     private void validate() {
       if (_rebalanceConfig == null) {
         throw new IllegalArgumentException("RebalanceConfig not set!");
@@ -565,7 +586,7 @@ public class ResourceConfig extends HelixProperty {
       return new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,
           _instanceGroupTag, _helixEnabled, _resourceGroupName, _resourceType, _groupRoutingEnabled,
-          _externalViewDisabled, _rebalanceConfig);
+          _externalViewDisabled, _rebalanceConfig, _stateTransitionTimeoutConfig);
     }
   }
 }

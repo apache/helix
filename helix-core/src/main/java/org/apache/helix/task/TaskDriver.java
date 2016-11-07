@@ -202,7 +202,7 @@ public class TaskDriver {
     flow.validate();
 
     // first, add workflow config.
-    if (!TaskUtil.setResouceConfig(_accessor, flow.getName(),
+    if (!TaskUtil.setResourceConfig(_accessor, flow.getName(),
         new WorkflowConfig(flow.getWorkflowConfig(), flow.getName()))) {
       LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
     }
@@ -258,7 +258,7 @@ public class TaskDriver {
     }
 
     // TODO: Should not let user changing DAG in the workflow
-    if (!TaskUtil.setResouceConfig(_accessor, workflow, newWorkflowConfig)) {
+    if (!TaskUtil.setResourceConfig(_accessor, workflow, newWorkflowConfig)) {
       LOG.error("Failed to update workflow configuration for workflow " + workflow);
     }
 
@@ -670,7 +670,7 @@ public class TaskDriver {
 
     // Set the job configuration
     JobConfig newJobCfg = new JobConfig(jobName, jobConfig);
-    if (!TaskUtil.setResouceConfig(_accessor, jobName, newJobCfg)) {
+    if (!TaskUtil.setResourceConfig(_accessor, jobName, newJobCfg)) {
       LOG.error("Failed to add job configuration for job " + jobName);
     }
   }

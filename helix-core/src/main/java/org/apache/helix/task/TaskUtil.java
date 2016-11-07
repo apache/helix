@@ -122,7 +122,7 @@ public class TaskUtil {
    * @param resourceConfig  The resource config to be set
    * @return                True if set successfully, otherwise false
    */
-  protected static boolean setResouceConfig(HelixDataAccessor accessor, String resource,
+  protected static boolean setResourceConfig(HelixDataAccessor accessor, String resource,
       ResourceConfig resourceConfig) {
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
     return accessor.setProperty(keyBuilder.resourceConfig(resource), resourceConfig);

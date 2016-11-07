@@ -432,7 +432,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
     Map<String, WorkflowConfig> workflowConfigMap = driver.getWorkflows();
     for (String workflow : workflowConfigMap.keySet()) {
-      if (workflowConfigMap.get(workflow).isRecurring()) {
+      if (workflowConfigMap.get(workflow).isRecurring() || workflow.isEmpty()) {
         continue;
       }
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
@@ -476,6 +476,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       jobMonitor.resetJobGauge();
     }
     for (String workflow : driver.getWorkflows().keySet()) {
+      if (workflow.isEmpty()) {
+        continue;
+      }
       Set<String> allJobs = driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
       for (String job : allJobs) {

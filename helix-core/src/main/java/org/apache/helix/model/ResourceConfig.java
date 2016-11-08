@@ -533,7 +533,7 @@ public class ResourceConfig extends HelixProperty {
       if (_rebalanceConfig == null) {
         throw new IllegalArgumentException("RebalanceConfig not set!");
       } else {
-        if (_rebalanceConfig.isValid()) {
+        if (!_rebalanceConfig.isValid()) {
           throw new IllegalArgumentException("Invalid RebalanceConfig!");
         }
       }
@@ -559,7 +559,8 @@ public class ResourceConfig extends HelixProperty {
     }
 
     public ResourceConfig build() {
-      validate();
+      // TODO: Reenable the validation in the future when ResourceConfig is ready.
+      // validate();
 
       return new ResourceConfig(_resourceId, _monitorDisabled, _numPartitions, _stateModelDefRef,
           _stateModelFactoryName, _numReplica, _minActiveReplica, _maxPartitionsPerInstance,

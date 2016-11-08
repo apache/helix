@@ -201,6 +201,15 @@ under the License.
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>lxia</id>
+      <name>Lei Xia</name>
+      <email>lxia@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>helix-core</module>

@@ -43,7 +43,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
@@ -479,12 +478,15 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       if (workflow.isEmpty()) {
         continue;
       }
-      Set<String> allJobs = driver.getWorkflowConfig(workflow).getJobDag().getAllNodes();
+      WorkflowConfig workflowConfig = driver.getWorkflowConfig(workflow);
+      Set<String> allJobs = workflowConfig.getJobDag().getAllNodes();
       WorkflowContext workflowContext = driver.getWorkflowContext(workflow);
       for (String job : allJobs) {
         TaskState currentState =
             workflowContext == null ? TaskState.NOT_STARTED : workflowContext.getJobState(job);
-        updateJobGauges(driver.getJobConfig(job), currentState);
+        updateJobGauges(
+            workflowConfig.getJobTypes() == null ? null : workflowConfig.getJobTypes().get(job),
+            currentState);
       }
     }
   }
@@ -495,13 +497,9 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _perTypeJobMonitorMap.get(jobType).updateJobCounters(to);
   }
 
-  private void updateJobGauges(JobConfig jobConfig, TaskState current) {
+  private void updateJobGauges(String jobType, TaskState current) {
     // When first time for WorkflowRebalancer call, jobconfig may not ready.
     // Thus only check it for gauge.
-    if (jobConfig == null) {
-      return;
-    }
-    String jobType = jobConfig.getJobType();
     jobType = preProcessJobMonitor(jobType);
     _perTypeJobMonitorMap.get(jobType).updateJobGauge(current);
   }

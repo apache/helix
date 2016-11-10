@@ -60,6 +60,7 @@ public class  WorkflowConfig extends ResourceConfig {
     /* this is for non-terminable workflow. */
     capacity,
     WorkflowType,
+    JobTypes,
     IsJobQueue
   }
 
@@ -81,7 +82,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public WorkflowConfig(WorkflowConfig cfg, String workflowId) {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
-        cfg.getWorkflowType(), cfg.isJobQueue());
+        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes());
   }
 
   /* Member variables */
@@ -89,7 +90,8 @@ public class  WorkflowConfig extends ResourceConfig {
 
   protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
-      ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue) {
+      ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
+      Map<String, String> jobTypes) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -126,6 +128,10 @@ public class  WorkflowConfig extends ResourceConfig {
     }
     if (workflowType != null) {
       putSimpleConfig(WorkflowConfigProperty.WorkflowType.name(), workflowType);
+    }
+
+    if (jobTypes != null) {
+      putMapConfig(WorkflowConfigProperty.JobTypes.name(), jobTypes);
     }
     putSimpleConfig(ResourceConfigProperty.MONITORING_DISABLED.toString(),
         String.valueOf(DEFAULT_MONITOR_DISABLE));
@@ -193,6 +199,15 @@ public class  WorkflowConfig extends ResourceConfig {
 
   public boolean isJobQueue() {
     return _record.getBooleanField(WorkflowConfigProperty.IsJobQueue.name(), DEFAULT_JOB_QUEUE);
+  }
+
+  protected void setJobTypes(Map<String, String> jobTypes) {
+    putMapConfig(WorkflowConfigProperty.JobTypes.name(), jobTypes);
+  }
+
+  public Map<String, String> getJobTypes() {
+    return mapConfigContains(WorkflowConfigProperty.JobTypes.name()) ? getMapConfig(
+        WorkflowConfigProperty.JobTypes.name()) : null;
   }
 
   public static SimpleDateFormat getDefaultDateFormat() {
@@ -279,12 +294,14 @@ public class  WorkflowConfig extends ResourceConfig {
     private ScheduleConfig _scheduleConfig;
     private String _workflowType;
     private boolean _isJobQueue = DEFAULT_JOB_QUEUE;
+    private Map<String, String> _jobTypes;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
-          _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue);
+          _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
+          _jobTypes);
     }
 
     public Builder() {}
@@ -301,6 +318,7 @@ public class  WorkflowConfig extends ResourceConfig {
       _failureThreshold = workflowConfig.getFailureThreshold();
       _workflowType = workflowConfig.getWorkflowType();
       _isJobQueue = workflowConfig.isJobQueue();
+      _jobTypes = workflowConfig.getJobTypes();
     }
 
     public Builder setWorkflowId(String v) {
@@ -378,7 +396,7 @@ public class  WorkflowConfig extends ResourceConfig {
       builder.setConfigMap(cfg);
       return builder;
     }
-
+    // TODO: Add API to set map fields. This API only set simple fields
     public Builder setConfigMap(Map<String, String> cfg) {
       if (cfg.containsKey(WorkflowConfigProperty.Expiry.name())) {
         setExpiry(Long.parseLong(cfg.get(WorkflowConfigProperty.Expiry.name())));

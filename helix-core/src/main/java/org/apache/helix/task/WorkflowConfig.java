@@ -92,6 +92,7 @@ public class  WorkflowConfig extends ResourceConfig {
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue) {
     super(workflowId);
 
+    putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
     try {
       putSimpleConfig(WorkflowConfigProperty.Dag.name(), jobDag.toJson());
     } catch (IOException ex) {
@@ -289,6 +290,7 @@ public class  WorkflowConfig extends ResourceConfig {
     public Builder() {}
 
     public Builder(WorkflowConfig workflowConfig) {
+      _workflowId = workflowConfig.getWorkflowId();
       _taskDag = workflowConfig.getJobDag();
       _parallelJobs = workflowConfig.getParallelJobs();
       _targetState = workflowConfig.getTargetState();

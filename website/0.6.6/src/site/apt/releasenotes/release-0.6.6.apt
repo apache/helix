@@ -26,7 +26,7 @@ Release Notes for Apache Helix 0.6.6
 
   The Apache Helix team would like to announce the release of Apache Helix 0.6.6.
 
-  This is the eighth release under the Apache umbrella, and the fourth as a top-level project.
+  This is the ninth release under the Apache umbrella, and the fifth as a top-level project.
 
   Helix is a generic cluster management framework used for the automatic management of partitioned, replicated and distributed resources hosted on a cluster of nodes. Helix provides the following features:
 

@@ -310,6 +310,3 @@ For pollForWorkflowState, it accepts similar arguments except Job name. For exam
 taskDriver.pollForWorkflowState("MyWorkflowName", 180000L, TaskState.FAILED, TaskState.FATAL_FAILED);
 taskDriver.pollForWorkflowState("MyWorkflowName", TaskState.COMPLETED);
 ```
-
-### Workflow and Job Metrics (Operational Support)
-Currently, Helix provides Workflow and Job monitors, which is Type Defined aggregation. Helix will register MBeans through JMX. With respect that, if user using Helix controller MP, those MBeans can be extracted for stats purposed.

@@ -84,7 +84,7 @@ public class RebalanceScheduler {
    */
   public long getRebalanceTime(String resource) {
     ScheduledTask task = _rebalanceTasks.get(resource);
-    if (task != null) {
+    if (task != null && !task.getFuture().isDone()) {
       return task.getStartTime();
     }
     return -1;

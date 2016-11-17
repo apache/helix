@@ -137,7 +137,12 @@ public class JobConfig extends ResourceConfig {
     /**
      * The job execution start time
      */
-    StartTime
+    StartTime,
+
+    /**
+     * The expiration time for the job
+     */
+    Expiry
   }
 
   //Default property values
@@ -166,7 +171,7 @@ public class JobConfig extends ResourceConfig {
         jobConfig.getTaskRetryDelay(), jobConfig.isDisableExternalView(),
         jobConfig.isIgnoreDependentJobFailure(), jobConfig.getTaskConfigMap(),
         jobConfig.getJobType(), jobConfig.getInstanceGroupTag(), jobConfig.getExecutionDelay(),
-        jobConfig.getExecutionStart(), jobId);
+        jobConfig.getExecutionStart(), jobId, jobConfig.getExpiry());
   }
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
@@ -175,7 +180,7 @@ public class JobConfig extends ResourceConfig {
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
-      long executionDelay, long executionStart, String jobId) {
+      long executionDelay, long executionStart, String jobId, long expiry) {
     super(jobId);
     putSimpleConfig(JobConfigProperty.WorkflowID.name(), workflow);
     putSimpleConfig(JobConfigProperty.JobID.name(), jobId);
@@ -228,6 +233,9 @@ public class JobConfig extends ResourceConfig {
       for (TaskConfig taskConfig : taskConfigMap.values()) {
         putMapConfig(taskConfig.getId(), taskConfig.getConfigMap());
       }
+    }
+    if (expiry > 0) {
+      getRecord().setLongField(JobConfigProperty.Expiry.name(), expiry);
     }
   }
 
@@ -340,6 +348,10 @@ public class JobConfig extends ResourceConfig {
     return getSimpleConfig(JobConfigProperty.InstanceGroupTag.name());
   }
 
+  public Long getExpiry() {
+    return getRecord().getLongField(JobConfigProperty.Expiry.name(), WorkflowConfig.DEFAULT_EXPIRY);
+  }
+
   public static JobConfig fromHelixProperty(HelixProperty property)
       throws IllegalArgumentException {
     Map<String, String> configs = property.getRecord().getSimpleFields();
@@ -368,6 +380,7 @@ public class JobConfig extends ResourceConfig {
     private long _retryDelay = DEFAULT_TASK_RETRY_DELAY;
     private long _executionStart = DEFAULT_JOB_EXECUTION_START_TIME;
     private long _executionDelay = DEFAULT_Job_EXECUTION_DELAY_TIME;
+    private long _expiry = WorkflowConfig.DEFAULT_EXPIRY;
     private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
@@ -389,7 +402,7 @@ public class JobConfig extends ResourceConfig {
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
-          _instanceGroupTag, _executionDelay, _executionStart, _jobId);
+          _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry);
     }
 
     /**
@@ -461,6 +474,9 @@ public class JobConfig extends ResourceConfig {
       }
       if (cfg.containsKey(JobConfigProperty.InstanceGroupTag.name())) {
         b.setInstanceGroupTag(cfg.get(JobConfigProperty.InstanceGroupTag.name()));
+      }
+      if (cfg.containsKey(JobConfigProperty.Expiry.name())) {
+        b.setExpiry(Long.valueOf(cfg.get(JobConfigProperty.Expiry.name())));
       }
       return b;
     }
@@ -578,6 +594,11 @@ public class JobConfig extends ResourceConfig {
 
     public Builder setInstanceGroupTag(String instanceGroupTag) {
       _instanceGroupTag = instanceGroupTag;
+      return this;
+    }
+
+    public Builder setExpiry(Long expiry) {
+      _expiry = expiry;
       return this;
     }
 

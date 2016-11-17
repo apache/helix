@@ -450,6 +450,7 @@ public class JobRebalancer extends TaskRebalancer {
     if (isWorkflowFinished(workflowContext, workflowConfig)) {
       workflowContext.setFinishTime(currentTime);
     }
+    scheduleJobCleanUp(jobName, workflowConfig, currentTime);
   }
 
   private void scheduleForNextTask(String job, JobContext jobCtx, long now) {

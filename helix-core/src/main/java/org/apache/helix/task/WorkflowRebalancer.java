@@ -129,6 +129,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
 
+    cleanExpiredJobs(workflowCfg, workflowCtx);
+
     TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
     return buildEmptyAssignment(workflow, currStateOutput);
   }
@@ -196,7 +198,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
         }
       }
     }
-    if (timeToSchedule < Long.MAX_VALUE) {
+    long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(workflow) == -1
+        ? Long.MAX_VALUE
+        : _scheduledRebalancer.getRebalanceTime(workflow);
+    if (timeToSchedule < currentScheduledTime) {
       _scheduledRebalancer.scheduleRebalance(_manager, workflow, timeToSchedule);
     }
   }
@@ -318,6 +323,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
             scheduleConfig.getRecurrenceUnit().toMillis(scheduleConfig.getRecurrenceInterval());
         long offsetMultiplier = (-delayFromStart) / period;
         long timeToSchedule = period * offsetMultiplier + startTime.getTime();
+
 
         // Now clone the workflow if this clone has not yet been created
         DateFormat df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
@@ -546,6 +552,35 @@ public class WorkflowRebalancer extends TaskRebalancer {
     LOG.info(String.format("Successfully cleaned up job context %s.", job));
 
     _scheduledRebalancer.removeScheduledRebalance(job);
+  }
+
+  private void cleanExpiredJobs(WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
+    if (workflowContext == null) {
+      return;
+    }
+
+    Map<String, TaskState> jobStates = workflowContext.getJobStates();
+    long newTimeToClean = Long.MAX_VALUE;
+    for (String job : workflowConfig.getJobDag().getAllNodes()) {
+      JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
+      JobContext jobContext = TaskUtil.getJobContext(_manager, job);
+      // There is no ABORTED state for JobQueue Job. The job will die with workflow
+      if (jobContext != null && jobStates.containsKey(job) && (
+          jobStates.get(job) == TaskState.COMPLETED || jobStates.get(job) == TaskState.FAILED)) {
+        if (System.currentTimeMillis() >= jobConfig.getExpiry() + jobContext.getFinishTime()) {
+          cleanupJob(job, workflowConfig.getWorkflowId());
+        } else {
+          newTimeToClean =
+              Math.min(newTimeToClean, jobConfig.getExpiry() + jobContext.getFinishTime());
+        }
+      }
+    }
+
+    if (newTimeToClean < Long.MAX_VALUE && newTimeToClean < _scheduledRebalancer
+        .getRebalanceTime(workflowConfig.getWorkflowId())) {
+      _scheduledRebalancer
+          .scheduleRebalance(_manager, workflowConfig.getWorkflowId(), newTimeToClean);
+    }
   }
 
   @Override

@@ -20,7 +20,6 @@ package org.apache.helix.task;
  */
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -233,6 +232,20 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     }
     if (isWorkflowFinished(workflowContext, workflowConfig)) {
       workflowContext.setFinishTime(currentTime);
+    }
+    scheduleJobCleanUp(jobName, workflowConfig, currentTime);
+  }
+
+  protected void scheduleJobCleanUp(String jobName, WorkflowConfig workflowConfig,
+      long currentTime) {
+    JobConfig jobConfig = TaskUtil.getJobCfg(_manager, jobName);
+    long currentScheduledTime =
+        _scheduledRebalancer.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
+            ? Long.MAX_VALUE
+            : _scheduledRebalancer.getRebalanceTime(workflowConfig.getWorkflowId());
+    if (currentTime + jobConfig.getExpiry() < currentScheduledTime) {
+      _scheduledRebalancer.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
+          currentTime + jobConfig.getExpiry());
     }
   }
 

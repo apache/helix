@@ -245,9 +245,10 @@ public class TaskTestUtil {
     return workflowContext;
   }
 
-  public static JobContext buildJobContext(Long startTime, TaskPartitionState... partitionStates) {
+  public static JobContext buildJobContext(Long startTime, Long finishTime, TaskPartitionState... partitionStates) {
     JobContext jobContext = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
     jobContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
+    jobContext.setFinishTime(finishTime == null ? System.currentTimeMillis() : finishTime);
     int partitionId = 0;
     for (TaskPartitionState partitionState : partitionStates) {
       jobContext.setPartitionState(partitionId++, partitionState);

@@ -130,7 +130,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     _setupTool.addResourceToCluster(CLUSTER_NAME, "MyDB2", _PARTITIONS, "MasterSlave",
         RebalanceMode.FULL_AUTO + "");
 
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 3);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "MyDB2", 1);
 
     result =
         ClusterStateVerifier.verifyByZkCallback(new ExternalViewBalancedVerifier(_gZkClient,

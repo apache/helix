@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer.strategy;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -85,18 +86,28 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     if (liveNodes.size() == 0) {
       return znRecord;
     }
-    int distRemainder = (numReplicas * _partitions.size()) % liveNodes.size();
-    int distFloor = (numReplicas * _partitions.size()) / liveNodes.size();
+
+    List<String> sortedAllNodes = new ArrayList<String>(allNodes);
+    Collections.sort(sortedAllNodes);
+
+    Comparator<String> currentStateNodeComparator =
+        new CurrentStateNodeComparator(currentMapping);
+
+    List<String> sortedLiveNodes = new ArrayList<String>(liveNodes);
+    Collections.sort(sortedLiveNodes, currentStateNodeComparator);
+
+    int distRemainder = (numReplicas * _partitions.size()) % sortedLiveNodes.size();
+    int distFloor = (numReplicas * _partitions.size()) / sortedLiveNodes.size();
     _nodeMap = new HashMap<String, Node>();
     _liveNodesList = new ArrayList<Node>();
 
-    for (String id : allNodes) {
+    for (String id : sortedAllNodes) {
       Node node = new Node(id);
       node.capacity = 0;
       node.hasCeilingCapacity = false;
       _nodeMap.put(id, node);
     }
-    for (int i = 0; i < liveNodes.size(); i++) {
+    for (int i = 0; i < sortedLiveNodes.size(); i++) {
       boolean usingCeiling = false;
       int targetSize = (_maximumPerNode > 0) ? Math.min(distFloor, _maximumPerNode) : distFloor;
       if (distRemainder > 0 && targetSize < _maximumPerNode) {
@@ -104,7 +115,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
         distRemainder = distRemainder - 1;
         usingCeiling = true;
       }
-      Node node = _nodeMap.get(liveNodes.get(i));
+      Node node = _nodeMap.get(sortedLiveNodes.get(i));
       node.isAlive = true;
       node.capacity = targetSize;
       node.hasCeilingCapacity = usingCeiling;
@@ -115,7 +126,7 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
     _stateMap = generateStateMap();
 
     // compute the preferred mapping if all nodes were up
-    _preferredAssignment = computePreferredPlacement(allNodes);
+    _preferredAssignment = computePreferredPlacement(sortedAllNodes);
 
     // logger.info("preferred mapping:"+ preferredAssignment);
     // from current mapping derive the ones in preferred location
@@ -761,6 +772,47 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
         index = (partitionId + replicaId) % nodeNames.size();
       }
       return nodeNames.get(index);
+    }
+  }
+
+  /**
+   * Sorter for live nodes that sorts firstly according to the number of partitions currently
+   * registered against a node (more partitions means sort earlier), then by node name.
+   * This prevents unnecessarily moving partitions due to the capacity assignment
+   * unnecessarily reducing the capacity of lower down elements.
+   */
+  private static class CurrentStateNodeComparator implements Comparator<String> {
+
+    /**
+     * The number of partitions that are active for each participant.
+     */
+    private final Map<String, Integer> partitionCounts;
+
+    /**
+     * Create it.
+     * @param currentMapping The current mapping of partitions to participants.
+     */
+    public CurrentStateNodeComparator(Map<String, Map<String, String>> currentMapping) {
+      partitionCounts = new HashMap<String, Integer>();
+      for (Entry<String, Map<String, String>> entry : currentMapping.entrySet()) {
+        for (String participantId : entry.getValue().keySet()) {
+          Integer existing = partitionCounts.get(participantId);
+          partitionCounts.put(participantId, existing != null ? existing + 1 : 1);
+        }
+      }
+    }
+
+    @Override
+    public int compare(String o1, String o2) {
+      Integer c1 = partitionCounts.get(o1);
+      if (c1 == null) {
+        c1 = 0;
+      }
+      Integer c2 = partitionCounts.get(o2);
+      if (c2 == null) {
+        c2 = 0;
+      }
+      return c1 < c2 ? 1 : (c1 > c2 ? -1 : o1.toString().compareTo(o2.toString()));
     }
   }
 }

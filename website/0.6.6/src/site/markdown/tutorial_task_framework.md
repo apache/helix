@@ -26,15 +26,17 @@ under the License.
 Task framework, in Helix, provides executable task scheduling and workflow management. In Helix, three layers of task abstraction have been offered to user for defining their logics of dependencies. The graph shows the relationships between three layers. Workflow can contain multiple jobs. One job can depend on other one. Multiple tasks, including same task different partition and different task different partition, can be added in one job.
 Task framework not only can abstract three layers task logics but also helps doing task assignment and rebalancing. User can create a workflow (or a job queue) at first beginning. Then jobs can be added into workflow. Those jobs contain the executable tasks implemented by user. Once workflow is completed, Helix will schedule the works based on the condition user provided.
 
+![Task Framework flow chart](./images/TaskFrameworkLayers.png)
+
 ### Key Concepts
 * Task is the basic unit in Helix task framework. It can represents the a single runnable logics that user prefer to execute for each partition (distributed units).
 * Job defines one time operation across all the partitions. It contains multiple Tasks and configuration of tasks, such as how many tasks, timeout per task and so on.
 * Workflow is directed acyclic graph represents the relationships and running orders of Jobs. In addition, a workflow can also provide customized configuration, for example, Job dependencies.
 * JobQueue is another type of Workflow. Different from normal one, JobQueue is not terminated until user kill it. Also JobQueue can keep accepting newly coming jobs.
 
-### Implement your task
+### Implement Your Task
 
-#### Task interface
+#### [Task Interface](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/Task.java)
 
 The task interface contains two methods: run and cancel. User can implement his or her own logic in run function and cancel / roll back logic in cancel function.
 
@@ -52,7 +54,7 @@ public class MyTask implements Task {
 }
 ```
 
-#### TaskConfig
+#### [TaskConfig](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/TaskConfig.java)
 
 In helix, usually an object config represents the abstraction of that object, such as TaskConfig, JobConfig and WorkflowConfig. TaskConfig contains configurable task conditions. TaskConfig does not require to have any input to create a new object:
 
@@ -66,9 +68,9 @@ For these four fields:
 * TaskTargetPartition: Target partition of a target. Could be null
 * ConfigMap: Task property key-value map containing all other property stated above, such as command, ID.
 
-#### Share content across tasks and jobs
+#### Share Content Across Tasks and Jobs
 
-Task framework also provides a feature that user can store the key-value data per task, job and workflow. The content stored at workflow layer can shared by different jobs belong to this workflow. Similarly content persisted at job layer can shared by different tasks nested in this job. Currently, user can extend the abstract class UserContentStore and use two methods putUserContent and getUserContent. It will similar to hash map put and get method except a Scope.  The Scope will define which layer this key-value pair to be persisted.
+Task framework also provides a feature that user can store the key-value data per task, job and workflow. The content stored at workflow layer can shared by different jobs belong to this workflow. Similarly content persisted at job layer can shared by different tasks nested in this job. Currently, user can extend the abstract class [UserContentStore](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/UserContentStore.java) and use two methods putUserContent and getUserContent. It will similar to hash map put and get method except a Scope.  The Scope will define which layer this key-value pair to be persisted.
 
 ```
 public class MyTask extends UserContentStore implements Task {
@@ -83,7 +85,7 @@ public class MyTask extends UserContentStore implements Task {
 }
 ```
 
-#### Return task results
+#### Return [Task Results](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/TaskResult.java)
 
 User can define the TaskResult for a task once it is at final stage (complete or failed). The TaskResult contains two fields: status and info. Status is current Task Status including COMPLETED, CANCELLED, FAILED and FATAL_FAILED. The difference between FAILED and FATAL_FAILED is that once the task defined as FATAL_FAILED, helix will not do the retry for this task and abort it. The other field is information, which is a String type. User can pass any information including error message, description and so on.
 
@@ -102,9 +104,9 @@ Helix provides retry logics to users. User can specify the how many times allowe
 return new TaskResult(TaskResult.Status.FATAL_FAILED, "DO NOT WANT TO RETRY, ERROR MESSAGE");
 ```
 
-#### TaskDriver
+#### [TaskDriver](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/TaskDriver.java)
 
-All the control operation related to workflow and job are based on TaskDriver object. TaskDriver offers several APIs to controller, modify and track the tasks. Those APIs will be introduced in each section when they are necessary. TaskDriver object can be created either by HelixManager or ZkClient with cluster name:
+All the control operation related to workflow and job are based on TaskDriver object. TaskDriver offers several APIs to controller, modify and track the tasks. Those APIs will be introduced in each section when they are necessary. TaskDriver object can be created either by [HelixManager](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/HelixManager.java) or [ZkClient](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/manager/zk/ZkClient.java) with cluster name:
 
 ```
 HelixManager manager = new ZKHelixManager(CLUSTER_NAME, INSTANCE_NAME, InstanceType.PARTICIPANT, ZK_ADDRESS);
@@ -125,7 +127,7 @@ taskDriver.getJobContext("JOBNAME").getInfo();
 
 #### One-time Workflow
 
-As common use, one-time workflow will be the default workflow as user created. The first step is to create a WorkflowConfig.Builder object with workflow name. Then all configs can be set in WorkflowConfig.Builder. Once the configuration is done, WorkflowConfig object can be got from WorkflowConfig.Builder object.
+As common use, one-time workflow will be the default workflow as user created. The first step is to create a WorkflowConfig.Builder object with workflow name. Then all configs can be set in WorkflowConfig.Builder. Once the configuration is done, [WorkflowConfig](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/WorkflowConfig.java) object can be got from WorkflowConfig.Builder object.
 We have two rules to validate the Workflow configuration:
 * Expiry time should not be less than 0
 * Schedule config should be valid either one-time or a positive interval magnitude (Recurrent workflow)
@@ -139,7 +141,7 @@ Workflow myWorkflow = myWorkflowBuilder.build();
 
 #### Recurrent Workflow
 
-Recurrent workflow is the workflow scheduled periodically. The only config different from One-time workflow is to set a recurrent ScheduleConfig. There two methods in ScheduleConfig can help you to create a ScheduleConfig object: recurringFromNow and recurringFromDate. Both of them needs recurUnit (time unit for recurrent) and recurInteval (magnitude of recurrent interval). Here's the example:
+Recurrent workflow is the workflow scheduled periodically. The only config different from One-time workflow is to set a recurrent [ScheduleConfig](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/ScheduleConfig.java). There two methods in ScheduleConfig can help you to create a ScheduleConfig object: recurringFromNow and recurringFromDate. Both of them needs recurUnit (time unit for recurrent) and recurInteval (magnitude of recurrent interval). Here's the example:
 
 ```
 ScheduleConfig myConfig1 = ScheduleConfig.recurringFFromNow(TimeUnit.MINUTES, 5L);
@@ -217,13 +219,58 @@ myWorkflowBuilder.addParentChildDependency(ParentJobName, ChildJobName);
 
 ### Creating a Queue
 
-Job queue is another shape of workflow. Here listed different between a job queue and workflow:
+[Job queue](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/JobQueue.java) is another shape of workflow. Here listed different between a job queue and workflow:
 
 | Property | Workflow | Job Queue |
 | -------- | -------- | --------- |
 | Existing time | Workflow will be deleted after it is done. | Job queue will be there until user delete it. |
 | Add jobs | Once workflow is build, no job can be added. | Job queue can keep accepting jobs. |
 | Parallel run | Allows parallel run for jobs without dependencies | No parallel run allowed except setting _ParallelJobs_ |
+
+For creating a job queue, user have to provide queue name and workflow config (please refer above Create a Workflow). Similar to other task object, create a JobQueue.Builder first. Then JobQueue can be validated and generated via build function.
+
+```
+WorkflowConfig.Builder myWorkflowCfgBuilder = new WorkflowConfig.Builder().setWorkFlowType("MyType");
+JobQueue jobQueue = new JobQueue.Builder("MyQueueName").setWorkflowConfig(myWorkflowCfgBuilder.build()).build();
+```
+
+####Append Job to Queue
+
+WARNING:Different from normal workflow, job for JobQueue can be append even in anytime. Similar to workflow add a job, job can be appended via enqueueJob function via TaskDriver.
+
+```
+jobQueueBuilder.enqueueJob("JobName", jobConfigBuilder);
+```
+
+####Delete Job from Queue
+
+Helix allowed user to delete a job from existing queue. We offers delete API in TaskDriver to do this. Delete job from queue and this queue has to be stopped. Then user can resume the job once delete success.
+
+```
+taskDriver.stop("QueueName");
+taskDriver.deleteJob("QueueName", "JobName");
+taskDriver.resume("QueueName");
+```
+
+####Additional Option for JobQueue
+
+_setParallelJobs(int parallelJobs)_ : Set the how many jobs can parallel running, except there is any dependencies.
+
+###Create a Job
+
+Before generate a [JobConfig](https://github.com/apache/helix/blob/helix-0.6.x/helix-core/src/main/java/org/apache/helix/task/JobConfig.java) object, user still have to use JobConfig.Builder to build JobConfig.
+
+```
+JobConfig.Builder myJobCfgBuilder = new JobConfig.Builder();
+JobConfig myJobCfg = myJobCfgBuilder.build();
+```
+
+Helix has couple rules to validate a job:
+* Each job must at least have one task to execute. For adding tasks and task rules please refer following section Add Tasks.
+* Task timeout should not less than zero.
+* Number of concurrent tasks per instances should not less than one.
+* Maximum attempts per task should not less than one
+* There must be a workflow name
 
 #### Add Tasks
 

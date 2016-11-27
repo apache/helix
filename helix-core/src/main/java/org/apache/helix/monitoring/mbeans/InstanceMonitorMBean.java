@@ -36,4 +36,10 @@ public interface InstanceMonitorMBean extends SensorNameProvider {
    * @return 1 if enabled, 0 if disabled
    */
   public long getEnabled();
+
+  /**
+   * Get total message received for this instances
+   * @return The total number of messages sent to this instance
+   */
+  public long getTotalMessageReceived();
 }

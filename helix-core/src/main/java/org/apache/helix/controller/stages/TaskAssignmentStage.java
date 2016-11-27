@@ -36,6 +36,7 @@ import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 public class TaskAssignmentStage extends AbstractBaseStage {
@@ -73,6 +74,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
         batchMessage(dataAccessor.keyBuilder(), messagesToSend, resourceMap, liveInstanceMap,
             manager.getProperties());
     sendMessages(dataAccessor, outputMessages);
+    ClusterStatusMonitor clusterStatusMonitor =
+        (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor");
+    clusterStatusMonitor.increaseMessagePerInstance(outputMessages);
 
     long cacheStart = System.currentTimeMillis();
     cache.cacheMessages(outputMessages);

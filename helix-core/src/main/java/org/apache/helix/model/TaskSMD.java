@@ -48,7 +48,7 @@ public final class TaskSMD extends StateModelDefinition {
     builder.initialState(TaskPartitionState.INIT.name());
 
     // add states
-    builder.addState(TaskPartitionState.INIT.name(), 01);
+    builder.addState(TaskPartitionState.INIT.name(), 0);
     builder.addState(TaskPartitionState.RUNNING.name(), 1);
     builder.addState(TaskPartitionState.STOPPED.name(), 2);
     builder.addState(TaskPartitionState.COMPLETED.name(), 3);

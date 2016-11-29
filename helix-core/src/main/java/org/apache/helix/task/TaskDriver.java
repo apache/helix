@@ -381,7 +381,7 @@ public class TaskDriver {
       String lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
 
       // delete the current scheduled one
-      deleteJobFromScheduledQueue(lastScheduledQueue, jobName);
+      deleteJobFromScheduledQueue(lastScheduledQueue, jobName, true);
 
       // Remove the job from the original queue template's DAG
       removeJobFromDag(queueName, jobName);
@@ -396,7 +396,7 @@ public class TaskDriver {
               .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
       _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
     } else {
-      deleteJobFromScheduledQueue(queueName, jobName);
+      deleteJobFromScheduledQueue(queueName, jobName, false);
     }
   }
 
@@ -406,12 +406,18 @@ public class TaskDriver {
    * @param queueName
    * @param jobName
    */
-  private void deleteJobFromScheduledQueue(final String queueName, final String jobName) {
-    WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowCfg(_accessor, queueName);
+  private void deleteJobFromScheduledQueue(final String queueName, final String jobName,
+      boolean isRecurrent) {
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_accessor, queueName);
 
     if (workflowCfg == null) {
-      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+      // When try to delete recurrent job, it could be either not started or finished. So
+      // there may not be a workflow config.
+      if (isRecurrent) {
+        return;
+      } else {
+        throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+      }
     }
 
     WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);

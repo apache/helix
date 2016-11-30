@@ -36,6 +36,7 @@ import org.apache.helix.controller.stages.BestPossibleStateOutput;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.Message;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
@@ -247,6 +248,32 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
             LOG.error("Could not refresh registration with MBean server: " + instanceName, e);
           }
         }
+      }
+    }
+  }
+
+  /**
+   * Update message count per instance
+   * @param messages a list of messages
+   */
+  public void increaseMessagePerInstance(List<Message> messages) {
+    Map<String, Long> messageCount = new HashMap<String, Long>();
+
+    // Aggregate messages
+    for (Message message : messages) {
+      String instanceName = message.getAttribute(Message.Attributes.TGT_NAME);
+
+      // Ignore the messages do not have target name
+      if (instanceName == null) {
+        continue;
+      }
+      messageCount.put(instanceName, messageCount.getOrDefault(instanceName, 0L) + 1L);
+    }
+
+    // Update message count per instance
+    for (String instance : messageCount.keySet()) {
+      if (_instanceMbeanMap.containsKey(instance)) {
+        _instanceMbeanMap.get(instance).updateMessageCount(messageCount.get(instance));
       }
     }
   }

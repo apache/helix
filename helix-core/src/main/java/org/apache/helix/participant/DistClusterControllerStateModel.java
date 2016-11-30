@@ -36,8 +36,8 @@ import org.apache.log4j.Logger;
 })
 public class DistClusterControllerStateModel extends StateModel {
   private static Logger logger = Logger.getLogger(DistClusterControllerStateModel.class);
-  private HelixManager _controller = null;
-  private final String _zkAddr;
+  protected HelixManager _controller = null;
+  protected final String _zkAddr;
 
   public DistClusterControllerStateModel(String zkAddr) {
     StateModelParser parser = new StateModelParser();

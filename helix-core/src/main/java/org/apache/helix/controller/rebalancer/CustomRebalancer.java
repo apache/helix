@@ -65,7 +65,7 @@ public class CustomRebalancer extends AbstractRebalancer {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
-          cache.getDisabledInstancesForPartition(partition.toString());
+          cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       Map<String, String> idealStateMap =
           idealState.getInstanceStateMap(partition.getPartitionName());
       Map<String, String> bestStateForPartition =

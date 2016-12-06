@@ -317,7 +317,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
-          cache.getDisabledInstancesForPartition(partition.toString());
+          cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
           computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,

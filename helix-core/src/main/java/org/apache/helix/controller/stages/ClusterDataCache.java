@@ -97,12 +97,14 @@ public class ClusterDataCache {
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-      _resourceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
     }
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
     _instanceConfigMap = Maps.newHashMap(_instanceConfigCacheMap);
-    _resourceConfigMap = Maps.newHashMap(_resourceConfigCacheMap);
+
+    // TODO: We should listen on resource config change instead of fetching every time
+    //       And add back resourceConfigCacheMap
+    _resourceConfigMap = accessor.getChildValuesMap(keyBuilder.resourceConfigs());
 
     _stateModelDefMap = accessor.getChildValuesMap(keyBuilder.stateModelDefs());
     _constraintMap = accessor.getChildValuesMap(keyBuilder.constraints());

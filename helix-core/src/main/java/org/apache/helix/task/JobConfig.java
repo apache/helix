@@ -237,6 +237,8 @@ public class JobConfig extends ResourceConfig {
     if (expiry > 0) {
       getRecord().setLongField(JobConfigProperty.Expiry.name(), expiry);
     }
+    putSimpleConfig(ResourceConfigProperty.MONITORING_DISABLED.toString(),
+        String.valueOf(WorkflowConfig.DEFAULT_MONITOR_DISABLE));
   }
 
   public String getWorkflow() {

@@ -177,46 +177,8 @@ public class ClusterSetup {
     }
   }
 
-  private InstanceConfig toInstanceConfig(String instanceId) {
-    String host = null;
-    int port = -1;
-    // to maintain backward compatibility we parse string of format host:port
-    // and host_port, where host port must be of type string and int
-    char[] delims = new char[] {
-        ':', '_'
-    };
-    for (char delim : delims) {
-      String regex = String.format("(.*)[%c]([\\d]+)", delim);
-      if (instanceId.matches(regex)) {
-        int lastIndexOf = instanceId.lastIndexOf(delim);
-        try {
-          port = Integer.parseInt(instanceId.substring(lastIndexOf + 1));
-          host = instanceId.substring(0, lastIndexOf);
-        } catch (Exception e) {
-          _logger.warn("Unable to extract host and port from instanceId:" + instanceId);
-        }
-        break;
-      }
-    }
-    if (host != null && port > 0) {
-      instanceId = host + "_" + port;
-    }
-    InstanceConfig config = new InstanceConfig(instanceId);
-    if (host != null && port > 0) {
-      config.setHostName(host);
-      config.setPort(String.valueOf(port));
-
-    }
-
-    config.setInstanceEnabled(true);
-    if (config.getHostName() == null) {
-      config.setHostName(instanceId);
-    }
-    return config;
-  }
-
   public void addInstanceToCluster(String clusterName, String instanceId) {
-    InstanceConfig config = toInstanceConfig(instanceId);
+    InstanceConfig config = InstanceConfig.toInstanceConfig(instanceId);
     _admin.addInstance(clusterName, config);
   }
 
@@ -237,7 +199,7 @@ public class ClusterSetup {
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
 
-    InstanceConfig instanceConfig = toInstanceConfig(instanceId);
+    InstanceConfig instanceConfig = InstanceConfig.toInstanceConfig(instanceId);
     instanceId = instanceConfig.getInstanceName();
 
     // ensure node is stopped

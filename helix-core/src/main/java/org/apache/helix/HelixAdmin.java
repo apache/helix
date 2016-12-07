@@ -427,14 +427,14 @@ public interface HelixAdmin {
 
   /**
    * @param clusterName
-   * @param instanceNames
+   * @param instanceName
    * @param tag
    */
   void addInstanceTag(String clusterName, String instanceName, String tag);
 
   /**
    * @param clusterName
-   * @param instanceNames
+   * @param instanceName
    * @param tag
    */
   void removeInstanceTag(String clusterName, String instanceName, String tag);

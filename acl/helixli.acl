@@ -1,3 +1,12 @@
-owners: [ ghelgess, lxia, cji, jxue ]
-groups: [ nuage-reviewers ]
-paths: [ '.*' ]
+owners: [
+ ghelgess,
+ lxia,
+ jxue,
+ erkim
+]
+groups: [
+ nuage-reviewers
+]
+paths: [
+ .*
+]

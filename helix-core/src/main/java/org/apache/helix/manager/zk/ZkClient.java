@@ -100,9 +100,6 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     this(new ZkConnection(zkServers), Integer.MAX_VALUE, new SerializableSerializer());
   }
 
-  {
-  }
-
   @Override
   public void setZkSerializer(ZkSerializer zkSerializer) {
     _zkSerializer = new BasicZkSerializer(zkSerializer);
@@ -110,6 +107,10 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
   public void setZkSerializer(PathBasedZkSerializer zkSerializer) {
     _zkSerializer = zkSerializer;
+  }
+
+  public PathBasedZkSerializer getZkSerializer() {
+    return _zkSerializer;
   }
 
   public IZkConnection getConnection() {

@@ -129,7 +129,7 @@ public class TestUserContentStore extends TaskTestBase {
     jobCommandMap.put("Timeout", "1000");
 
     JobConfig.Builder jobBuilder = new JobConfig.Builder().setCommand("DummyCommand")
-        .addTaskConfigs(taskConfigs)
+        .addTaskConfigs(taskConfigs).setWorkflow(jobName)
         .setJobCommandConfigMap(jobCommandMap);
     workflowBuilder.addJob(jobName, jobBuilder);
 
@@ -158,10 +158,10 @@ public class TestUserContentStore extends TaskTestBase {
 
     JobConfig.Builder jobBuilder1 =
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs1)
-            .setJobCommandConfigMap(jobCommandMap);
+            .setJobCommandConfigMap(jobCommandMap).setWorkflow(queueName);
     JobConfig.Builder jobBuilder2 =
         new JobConfig.Builder().setCommand("DummyCommand").addTaskConfigs(taskConfigs2)
-            .setJobCommandConfigMap(jobCommandMap);
+            .setJobCommandConfigMap(jobCommandMap).setWorkflow(queueName);
 
     queueBuilder.enqueueJob(queueName + 0, jobBuilder1);
     queueBuilder.enqueueJob(queueName + 1, jobBuilder2);

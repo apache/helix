@@ -58,6 +58,14 @@ public class ResourceConfig extends HelixProperty {
   }
 
   /**
+   * Instantiate with a pre-populated record with new record id
+   * @param record a ZNRecord corresponding to an instance configuration
+   * @param id     new ZNRecord ID
+   */
+  public ResourceConfig(ZNRecord record, String id) {
+    super(record, id);
+  }
+  /**
    * Get the value of DisableMonitoring set.
    *
    * @return the MonitoringDisabled is true or false
@@ -132,6 +140,32 @@ public class ResourceConfig extends HelixProperty {
    */
   public Map<String, String> getMapConfig(String configKey) {
     return getRecord().getMapField(configKey);
+  }
+
+  /**
+   * Determine whether the given config key is in the simple config
+   * @param configKey The key to check whether exists
+   * @return True if exists, otherwise false
+   */
+  public boolean simpleConfigContains(String configKey) {
+    return getRecord().getSimpleFields().containsKey(configKey);
+  }
+
+  /**
+   * Determine whether the given config key is the map config
+   * @param configKey The key to check whether exists
+   * @return True if exists, otherwise false
+   */
+  public boolean mapConfigContains(String configKey) {
+    return getRecord().getMapFields().containsKey(configKey);
+  }
+
+  /**
+   * Get the stored map fields
+   * @return a map of map fields
+   */
+  public Map<String, Map<String, String>> getMapConfigs() {
+    return getRecord().getMapFields();
   }
 
   @Override

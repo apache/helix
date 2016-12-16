@@ -763,7 +763,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     HelixDataAccessor accessor =
         new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
     Builder keyBuilder = accessor.keyBuilder();
-    accessor.setProperty(keyBuilder.stateModelDef(stateModel.getId()), stateModel);
+    accessor.setProperty(keyBuilder.stateModelDef(stateModelDef), stateModel);
   }
 
   @Override

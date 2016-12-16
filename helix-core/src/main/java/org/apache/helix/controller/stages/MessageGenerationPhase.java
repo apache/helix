@@ -26,17 +26,19 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.helix.HelixManager;
+import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
-import org.apache.helix.model.Partition;
-import org.apache.helix.model.Resource;
-import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 /**
@@ -136,32 +138,13 @@ public class MessageGenerationPhase extends AbstractBaseStage {
                     idealState.getRecord().getMapField(partition.getPartitionName()));
               }
             }
-            // Set timeout of needed
-            String stateTransition =
-                currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
-            if (idealState != null) {
-              String timeOutStr = idealState.getRecord().getSimpleField(stateTransition);
-              if (timeOutStr == null
-                  && idealState.getStateModelDefRef().equalsIgnoreCase(
-                      DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-                // scheduled task queue
-                if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
-                  timeOutStr =
-                      idealState.getRecord().getMapField(partition.getPartitionName())
-                          .get(Message.Attributes.TIMEOUT.toString());
-                }
-              }
-              if (timeOutStr != null) {
-                try {
-                  int timeout = Integer.parseInt(timeOutStr);
-                  if (timeout > 0) {
-                    message.setExecutionTimeout(timeout);
-                  }
-                } catch (Exception e) {
-                  logger.error("", e);
-                }
-              }
+
+            int timeout = getTimeOut(cache.getResourceConfig(resourceName), currentState, nextState,
+                idealState, partition);
+            if (timeout > 0) {
+              message.setExecutionTimeout(timeout);
             }
+
             message.getRecord().setSimpleField("ClusterEventName", event.getName());
             // output.addMessage(resourceName, partition, message);
             if (!messageMap.containsKey(desiredState)) {
@@ -212,5 +195,45 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     }
 
     return message;
+  }
+
+  private int getTimeOut(ResourceConfig resourceConfig, String currentState, String nextState,
+      IdealState idealState, Partition partition) {
+    // Set timeout of needed
+    int timeout = -1;
+    if (resourceConfig != null) {
+      // Set timeout once ResourceConfig set
+      StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
+          resourceConfig.getStateTransitionTimeoutConfig();
+      timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
+          .getStateTransitionTimeout(currentState, nextState) : -1;
+
+    }
+
+    if (timeout <= 0) {
+      String timeOutStr = null;
+      // Check IdealState whether has timeout set
+      if (idealState != null) {
+        String stateTransition = currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
+        timeOutStr = idealState.getRecord().getSimpleField(stateTransition);
+        if (timeOutStr == null && idealState.getStateModelDefRef()
+            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+          // scheduled task queue
+          if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
+            timeOutStr = idealState.getRecord().getMapField(partition.getPartitionName())
+                .get(Message.Attributes.TIMEOUT.toString());
+          }
+        }
+      }
+      if (timeOutStr != null) {
+        try {
+          timeout = Integer.parseInt(timeOutStr);
+        } catch (Exception e) {
+          logger.error("", e);
+        }
+      }
+    }
+
+    return timeout;
   }
 }

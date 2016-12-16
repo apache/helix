@@ -19,12 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-import org.apache.log4j.Logger;
-
 import java.util.Collections;
 import java.util.Map;
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.StateTransitionTimeoutConfig;
+import org.apache.log4j.Logger;
 
 /**
  * Resource configurations
@@ -82,6 +83,17 @@ public class ResourceConfig extends HelixProperty {
   public void setMonitoringDisabled(boolean monitoringDisabled) {
     _record
         .setBooleanField(ResourceConfigProperty.MONITORING_DISABLED.toString(), monitoringDisabled);
+  }
+
+  // TODO: Move it to constructor and Builder when the logic merged in
+  public void setStateTransitionTimeoutConfig(
+      StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
+    putMapConfig(StateTransitionTimeoutConfig.StateTransitionTimeoutProperty.TIMEOUT.name(),
+        stateTransitionTimeoutConfig.getTimeoutMap());
+  }
+
+  public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
+    return StateTransitionTimeoutConfig.fromRecord(_record);
   }
 
   /**

@@ -602,7 +602,7 @@ public class Message extends HelixProperty {
 
   /**
    * Get the value of an attribute
-   * @param attr {@link Attribute}
+   * @param attr {@link Attributes}
    * @return attribute value
    */
   public String getAttribute(Attributes attr) {

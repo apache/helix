@@ -135,6 +135,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     }
 
     int scheduledJobs = 0;
+    long timeToSchedule = Long.MAX_VALUE;
     for (String job : workflowCfg.getJobDag().getAllNodes()) {
       TaskState jobState = workflowCtx.getJobState(job);
       if (jobState != null && !jobState.equals(TaskState.NOT_STARTED)) {
@@ -151,9 +152,41 @@ public class WorkflowRebalancer extends TaskRebalancer {
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx)) {
         JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
-        scheduleSingleJob(job, jobConfig);
-        scheduledJobs++;
+        // Since the start time is calculated base on the time of completion of parent jobs for this
+        // job, the calculated start time should only be calculate once. Persist the calculated time
+        // in WorkflowContext znode.
+        Map<String, String> startTimeMap = workflowCtx.getRecord().getMapField(START_TIME_KEY);
+        if (startTimeMap == null) {
+          startTimeMap = new HashMap<String, String>();
+          workflowCtx.getRecord().setMapField(START_TIME_KEY, startTimeMap);
+        }
+
+        long calculatedStartTime = System.currentTimeMillis();
+        if (startTimeMap.containsKey(job)) {
+          // Get the start time if it is already calculated
+          calculatedStartTime = Long.parseLong(startTimeMap.get(job));
+        } else {
+          // If the start time is not calculated before, do the math.
+          if (jobConfig.getExecutionDelay() >= 0) {
+            calculatedStartTime += jobConfig.getExecutionDelay();
+          }
+          calculatedStartTime = Math.max(calculatedStartTime, jobConfig.getExecutionStart());
+          startTimeMap.put(job, String.valueOf(calculatedStartTime));
+          workflowCtx.getRecord().setMapField(START_TIME_KEY, startTimeMap);
+          TaskUtil.setWorkflowContext(_manager, jobConfig.getWorkflow(), workflowCtx);
+        }
+
+        // Time is not ready. Set a trigger and update the start time.
+        if (System.currentTimeMillis() < calculatedStartTime) {
+          timeToSchedule = Math.min(timeToSchedule, calculatedStartTime);
+        } else {
+          scheduleSingleJob(job, jobConfig);
+          scheduledJobs++;
+        }
       }
+    }
+    if (timeToSchedule < Long.MAX_VALUE) {
+      _scheduledRebalancer.scheduleRebalance(_manager, workflow, timeToSchedule);
     }
   }
 

@@ -36,12 +36,12 @@ import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
@@ -50,6 +50,7 @@ import com.google.common.collect.Maps;
  * Abstract rebalancer class for the {@code Task} state model.
  */
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
+  public static final String START_TIME_KEY = "StartTime";
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
 
   // For connection management
@@ -194,8 +195,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       // If this job comes from a generic workflow, job will not be scheduled until
       // all the direct parent jobs finished
       if (incompleteParentCount > 0) {
-        LOG.debug(String
-            .format("Job %s is not ready to start, notFinishedParent(s)=%d.", job, incompleteParentCount));
+        LOG.debug(String.format("Job %s is not ready to start, notFinishedParent(s)=%d.", job,
+            incompleteParentCount));
         return false;
       }
     }

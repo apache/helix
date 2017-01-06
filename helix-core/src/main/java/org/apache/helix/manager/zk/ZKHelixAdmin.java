@@ -349,7 +349,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     // check there is no pending messages for the partitions exist
     List<Message> messages = accessor.getChildValues(keyBuilder.messages(instanceName));
     for (Message message : messages) {
-      if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())
+      if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())
           || !sessionId.equals(message.getTgtSessionId())
           || !resourceName.equals(message.getResourceName())
           || !resetPartitionNames.contains(message.getPartitionName())) {

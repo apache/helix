@@ -54,7 +54,7 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
       String instanceName = instance.getInstanceName();
       Map<String, Message> instanceMessages = cache.getMessages(instanceName);
       for (Message message : instanceMessages.values()) {
-        if (!MessageType.STATE_TRANSITION.toString().equalsIgnoreCase(message.getMsgType())) {
+        if (!MessageType.STATE_TRANSITION.name().equalsIgnoreCase(message.getMsgType())) {
           continue;
         }
         if (!instance.getSessionId().equals(message.getTgtSessionId())) {

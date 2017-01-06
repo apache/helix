@@ -25,6 +25,7 @@ import java.util.Map;
 public class HelixTaskResult {
 
   private boolean _success;
+  private boolean _cancelled;
   private String _message = "";
   private String _info = "";
   private Map<String, String> _taskResultMap = new HashMap<String, String>();
@@ -41,6 +42,14 @@ public class HelixTaskResult {
 
   public void setInterrupted(boolean interrupted) {
     _interrupted = interrupted;
+  }
+
+  public boolean isCancelled() {
+    return _cancelled;
+  }
+
+  public void setCancelled(boolean cancelled) {
+    _cancelled = cancelled;
   }
 
   public void setSuccess(boolean success) {

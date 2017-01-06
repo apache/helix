@@ -331,7 +331,7 @@ public class ParticipantManager {
   }
 
   private void setupMsgHandler() throws Exception {
-    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.toString(),
+    _messagingService.registerMessageHandlerFactory(MessageType.STATE_TRANSITION.name(),
         _stateMachineEngine);
     _manager.addMessageListener(_messagingService.getExecutor(), _instanceName);
 

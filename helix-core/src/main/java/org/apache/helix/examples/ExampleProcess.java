@@ -91,7 +91,7 @@ public class ExampleProcess {
     stateMach.registerStateModelFactory(stateModelType, stateModelFactory);
     manager.connect();
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.STATE_TRANSITION.toString(), stateMach);
+        MessageType.STATE_TRANSITION.name(), stateMach);
   }
 
   public void stop() {

@@ -29,6 +29,8 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Joiner;
+
 public final class HelixUtil {
   static private Logger LOG = Logger.getLogger(HelixUtil.class);
 
@@ -72,7 +74,7 @@ public final class HelixUtil {
   }
 
   public static String serializeByComma(List<String> objects) {
-    return String.join(",", objects);
+    return Joiner.on(",").join(objects);
   }
 
   public static List<String> deserializeByComma(String object) {

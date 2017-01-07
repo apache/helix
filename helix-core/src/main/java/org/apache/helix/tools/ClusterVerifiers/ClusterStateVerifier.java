@@ -247,7 +247,7 @@ public class ClusterStateVerifier {
                 bestPossStateMap.get(resourceName).put(partition, new HashMap<String, String>());
               }
               bestPossStateMap.get(resourceName).get(partition)
-                  .put(instanceName, HelixDefinedState.ERROR.toString());
+                  .put(instanceName, HelixDefinedState.ERROR.name());
             }
           }
         }
@@ -281,7 +281,7 @@ public class ClusterStateVerifier {
               while (insIter.hasNext()) {
                 Map.Entry<String, String> insEntry = insIter.next();
                 String state = insEntry.getValue();
-                if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.toString())) {
+                if (state.equalsIgnoreCase(HelixDefinedState.DROPPED.name())) {
                   insIter.remove();
                 }
               }
@@ -351,7 +351,7 @@ public class ClusterStateVerifier {
 
       // Filter resources if specified
       if (resources != null) {
-        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
         resourceMap.keySet().retainAll(resources);
       }
 
@@ -359,7 +359,7 @@ public class ClusterStateVerifier {
       runStage(event, bpStage);
 
       BestPossibleStateOutput output =
-          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
       // System.out.println("output:" + output);
       return output;

@@ -24,5 +24,6 @@ package org.apache.helix.tools;
  * please use dedicated verifier classes, such as BestPossibleExternViewVerifier, etc, in tools.ClusterVerifiers
  */
 @Deprecated
-public class ClusterStateVerifier extends org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier{
+public class ClusterStateVerifier
+    extends org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier {
 }

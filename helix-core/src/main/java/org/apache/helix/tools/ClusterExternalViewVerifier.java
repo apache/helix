@@ -28,11 +28,14 @@ import org.apache.helix.manager.zk.ZkClient;
  */
 
 /**
- * This class is deprecated, please use BestPossibleExternalViewVerifier in tools.ClusterVerifiers instead.
+ * This class is deprecated, please use BestPossibleExternalViewVerifier in tools.ClusterVerifiers
+ * instead.
  */
 @Deprecated
-public class ClusterExternalViewVerifier extends org.apache.helix.tools.ClusterVerifiers.ClusterExternalViewVerifier {
-  public ClusterExternalViewVerifier(ZkClient zkclient, String clusterName, List<String> expectLiveNodes) {
+public class ClusterExternalViewVerifier
+    extends org.apache.helix.tools.ClusterVerifiers.ClusterExternalViewVerifier {
+  public ClusterExternalViewVerifier(ZkClient zkclient, String clusterName,
+      List<String> expectLiveNodes) {
     super(zkclient, clusterName, expectLiveNodes);
   }
 }

@@ -36,8 +36,9 @@ public class ClusterConfig extends HelixProperty {
    */
   public enum ClusterConfigProperty {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
-    TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
     PERSIST_BEST_POSSIBLE_ASSIGNMENT,
+    PERSIST_INTERMEDIATE_ASSIGNMENT,
+    TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,     // delayed time in ms that the delay time Helix should hold until rebalancing.
@@ -91,9 +92,28 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
+   * Whether to persist IntermediateAssignment in a resource's idealstate.
    *
    * @return
    */
+  public Boolean isPersistIntermediateAssignment() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString(), false);
+  }
+
+  /**
+   * Enable/Disable persist IntermediateAssignment in a resource's idealstate.
+   *
+   * @return
+   */
+  public void setPersistIntermediateAssignment(Boolean enable) {
+    if (enable == null) {
+      _record.getSimpleFields().remove(ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString());
+    } else {
+      _record.setBooleanField(ClusterConfigProperty.PERSIST_INTERMEDIATE_ASSIGNMENT.toString(), enable);
+    }
+  }
+
   public Boolean isPipelineTriggersDisabled() {
     return _record
         .getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(), false);

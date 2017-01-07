@@ -28,6 +28,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -48,7 +49,8 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
-    if (!clusterConfig.isPersistBestPossibleAssignment()) {
+    if (!clusterConfig.isPersistBestPossibleAssignment() && !clusterConfig
+        .isPersistIntermediateAssignment()) {
       return;
     }
 
@@ -86,13 +88,19 @@ public class PersistAssignmentStage extends AbstractBaseStage {
           }
         }
 
-        Map<Partition, Map<String, String>> bestPossibleAssignements =
-            bestPossibleAssignment.getResourceMap(resourceId);
+        PartitionStateMap partitionStateMap =
+            bestPossibleAssignment.getPartitionStateMap(resourceId);
+        if (clusterConfig.isPersistIntermediateAssignment()) {
+          IntermediateStateOutput intermediateAssignment =
+              event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+          partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
+        }
 
-        if (bestPossibleAssignements != null && hasInstanceMapChanged(bestPossibleAssignements,
-            idealState)) {
-          for (Partition partition : bestPossibleAssignements.keySet()) {
-            Map<String, String> instanceMap = bestPossibleAssignements.get(partition);
+        Map<Partition, Map<String, String>> assignmentToPersist = partitionStateMap.getStateMap());
+
+        if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
+          for (Partition partition : assignmentToPersist.keySet()) {
+            Map<String, String> instanceMap = assignmentToPersist.get(partition);
             idealState.setInstanceStateMap(partition.getPartitionName(), instanceMap);
           }
           needPersist = true;
@@ -101,8 +109,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
         if (needPersist) {
           // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
           accessor.updateProperty(keyBuilder.idealStates(resourceId), new DataUpdater<ZNRecord>() {
-            @Override
-            public ZNRecord update(ZNRecord current) {
+            @Override public ZNRecord update(ZNRecord current) {
               if (current != null) {
                 // Overwrite MapFields and ListFields items with the same key.
                 // Note that default merge will keep old values in the maps or lists unchanged, which is not desired.
@@ -117,7 +124,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END PersistAssignmentStage.process(), took " + (endTime - startTime) + " ms");
+    LOG.info("END PersistAssignmentStage.process() took " + (endTime - startTime) + " ms");
   }
 
   /**

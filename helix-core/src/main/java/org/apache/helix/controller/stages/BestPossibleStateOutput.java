@@ -40,7 +40,8 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
    * @return
    */
   // TODO: remove this.
-  @Deprecated public Map<Partition, Map<String, String>> getResourceMap(String resourceName) {
+  @Deprecated
+  public Map<Partition, Map<String, String>> getResourceMap(String resourceName) {
     PartitionStateMap map = _resourceStateMap.get(resourceName);
     if (map != null) {
       return map.getStateMap();

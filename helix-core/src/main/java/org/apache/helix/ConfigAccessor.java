@@ -162,20 +162,14 @@ public class ConfigAccessor {
       LOG.error("fail to get configs. invalid config scope. scope: " + scope + ", keys: " + keys);
       return null;
     }
+    ZNRecord record = getConfigZnRecord(scope);
 
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
-    }
-
-    Map<String, String> map = new HashMap<String, String>();
-
-    ZNRecord record = zkClient.readData(scope.getZkPath(), true);
     if (record == null) {
       LOG.warn("No config found at " + scope.getZkPath());
       return null;
     }
 
+    Map<String, String> map = new HashMap<String, String>();
     String mapKey = scope.getMapKey();
     if (mapKey == null) {
       for (String key : keys) {
@@ -304,8 +298,8 @@ public class ConfigAccessor {
       }
     }
 
-    String zkPath = scope.getZkPath();
     String mapKey = scope.getMapKey();
+    String zkPath = scope.getZkPath();
     String id = zkPath.substring(zkPath.lastIndexOf('/') + 1);
     ZNRecord update = new ZNRecord(id);
     if (mapKey == null) {
@@ -313,6 +307,7 @@ public class ConfigAccessor {
     } else {
       update.setMapField(mapKey, keyValueMap);
     }
+
     ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
     return;
   }
@@ -620,6 +615,7 @@ public class ConfigAccessor {
   }
 
   /**
+<<<<<<< HEAD
    * Set config of the given resource.
    * The current Resource config will be replaced with the given clusterConfig.
    *

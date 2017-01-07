@@ -69,7 +69,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resource = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resource = event.getAttribute(AttributeName.RESOURCES.name());
     AssertJUnit.assertEquals(1, resource.size());
 
     AssertJUnit.assertEquals(resource.keySet().iterator().next(), resourceName);
@@ -91,7 +91,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     AssertJUnit.assertEquals(resources.length, resourceMap.size());
 
     for (int i = 0; i < resources.length; i++) {
@@ -157,7 +157,7 @@ public class TestResourceComputationStage extends BaseStageTest {
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
 
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     // +1 because it will have one for current state
     AssertJUnit.assertEquals(resources.length + 1, resourceMap.size());
 

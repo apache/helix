@@ -90,7 +90,6 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       participant.syncStart();
       _participants[i] = participant;
-
     }
 
     // start controller
@@ -140,7 +139,7 @@ public class TestAutoRebalance extends ZkStandAloneCMTestBase {
     ClusterSetup.processCommandLineArgs(command.split(" "));
 
     TestHelper.verifyWithTimeout("verifyEmptyCurStateAndExtView", 30 * 1000, CLUSTER_NAME, "MyDB2",
-        TestHelper.<String> setOf("localhost_12918", "localhost_12919", "localhost_12920",
+        TestHelper.<String>setOf("localhost_12918", "localhost_12919", "localhost_12920",
             "localhost_12921", "localhost_12922"), ZK_ADDR);
   }
 

@@ -76,11 +76,11 @@ public class MessageSelectionStage extends AbstractBaseStage {
   @Override
   public void process(ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
-        event.getAttribute(AttributeName.CURRENT_STATE.toString());
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
     MessageGenerationOutput messageGenOutput =
-        event.getAttribute(AttributeName.MESSAGES_ALL.toString());
+        event.getAttribute(AttributeName.MESSAGES_ALL.name());
     if (cache == null || resourceMap == null || currentStateOutput == null
         || messageGenOutput == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -107,7 +107,7 @@ public class MessageSelectionStage extends AbstractBaseStage {
         output.addMessages(resourceName, partition, selectedMessages);
       }
     }
-    event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), output);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), output);
   }
 
   private void increaseStateCnt(Map<String, Bounds> stateConstraints, String state,

@@ -27,11 +27,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.ResourceConfig;
+import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.util.StringTemplate;
 import org.apache.log4j.Logger;
 
@@ -158,20 +162,14 @@ public class ConfigAccessor {
       LOG.error("fail to get configs. invalid config scope. scope: " + scope + ", keys: " + keys);
       return null;
     }
+    ZNRecord record = getConfigZnRecord(scope);
 
-    String clusterName = scope.getClusterName();
-    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
-    }
-
-    Map<String, String> map = new HashMap<String, String>();
-
-    ZNRecord record = zkClient.readData(scope.getZkPath(), true);
     if (record == null) {
       LOG.warn("No config found at " + scope.getZkPath());
       return null;
     }
 
+    Map<String, String> map = new HashMap<String, String>();
     String mapKey = scope.getMapKey();
     if (mapKey == null) {
       for (String key : keys) {
@@ -194,6 +192,15 @@ public class ConfigAccessor {
     }
 
     return map;
+  }
+
+  private ZNRecord getConfigZnRecord(HelixConfigScope scope) {
+    String clusterName = scope.getClusterName();
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to get configs. cluster " + clusterName + " is not setup yet");
+    }
+
+    return zkClient.readData(scope.getZkPath(), true);
   }
 
   /**
@@ -300,8 +307,8 @@ public class ConfigAccessor {
       }
     }
 
-    String zkPath = scope.getZkPath();
     String mapKey = scope.getMapKey();
+    String zkPath = scope.getZkPath();
     String id = zkPath.substring(zkPath.lastIndexOf('/') + 1);
     ZNRecord update = new ZNRecord(id);
     if (mapKey == null) {
@@ -309,6 +316,7 @@ public class ConfigAccessor {
     } else {
       update.setMapField(mapKey, keyValueMap);
     }
+
     ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
     return;
   }
@@ -508,5 +516,100 @@ public class ConfigAccessor {
       Collections.sort(retKeys);
     }
     return retKeys;
+  }
+
+  /**
+   * Get ClusterConfig of the given cluster.
+   *
+   * @param clusterName
+   *
+   * @return
+   */
+  public ClusterConfig getClusterConfig(String clusterName) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to get config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No config found at " + scope.getZkPath());
+      return null;
+    }
+
+    return new ClusterConfig(record);
+  }
+
+  /**
+   * Set ClusterConfig of the given cluster.
+   * Warning: This is not thread-safe or concurrent updates safe.
+   *
+   * @param clusterName
+   *
+   * @return
+   */
+  public void setClusterConfig(String clusterName, ClusterConfig clusterConfig) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to setu89 config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
+
+
+    String zkPath = scope.getZkPath();
+    ZKUtil.createOrUpdate(zkClient, zkPath, clusterConfig.getRecord(), true, true);
+  }
+
+  /**
+   * Get resource config for given resource in given cluster.
+   *
+   * @param clusterName
+   * @param resourceName
+   *
+   * @return
+   */
+  public ResourceConfig getResourceConfig(String clusterName, String resourceName) {
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
+            .forResource(resourceName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No config found at " + scope.getZkPath());
+      return null;
+    }
+
+    return new ResourceConfig(record);
+  }
+
+  /**
+   * Get instance config for given resource in given cluster.
+   *
+   * @param clusterName
+   * @param instanceName
+   *
+   * @return
+   */
+  public InstanceConfig getInstanceConfig(String clusterName, String instanceName) {
+    if (!ZKUtil.isInstanceSetup(zkClient, clusterName, instanceName, InstanceType.PARTICIPANT)) {
+      throw new HelixException(
+          "fail to get config. instance: " + instanceName + " is NOT setup in cluster: "
+              + clusterName);
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forParticipant(instanceName).build();
+    ZNRecord record = getConfigZnRecord(scope);
+
+    if (record == null) {
+      LOG.warn("No config found at " + scope.getZkPath());
+      return null;
+    }
+
+    return new InstanceConfig(record);
   }
 }

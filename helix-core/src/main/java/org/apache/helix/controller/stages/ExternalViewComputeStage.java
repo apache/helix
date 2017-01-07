@@ -59,7 +59,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     LOG.info("START ExternalViewComputeStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     if (manager == null || resourceMap == null || cache == null) {
@@ -71,7 +71,7 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     PropertyKey.Builder keyBuilder = dataAccessor.keyBuilder();
 
     CurrentStateOutput currentStateOutput =
-        event.getAttribute(AttributeName.CURRENT_STATE.toString());
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
 
     List<ExternalView> newExtViews = new ArrayList<ExternalView>();
 

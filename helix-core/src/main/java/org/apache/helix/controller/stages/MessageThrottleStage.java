@@ -114,8 +114,8 @@ public class MessageThrottleStage extends AbstractBaseStage {
   public void process(ClusterEvent event) throws Exception {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     MessageSelectionStageOutput msgSelectionOutput =
-        event.getAttribute(AttributeName.MESSAGES_SELECTED.toString());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+        event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
     if (cache == null || resourceMap == null || msgSelectionOutput == null) {
       throw new StageException("Missing attributes in event: " + event
@@ -148,7 +148,7 @@ public class MessageThrottleStage extends AbstractBaseStage {
       }
     }
 
-    event.addAttribute(AttributeName.MESSAGES_THROTTLE.toString(), output);
+    event.addAttribute(AttributeName.MESSAGES_THROTTLE.name(), output);
   }
 
   private List<Message> throttle(Map<String, Integer> throttleMap, ClusterConstraints constraint,

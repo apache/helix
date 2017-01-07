@@ -127,7 +127,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
       }
     }
 
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

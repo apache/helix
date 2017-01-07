@@ -51,8 +51,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     logger.info("START BestPossibleStateCalcStage.process()");
 
     CurrentStateOutput currentStateOutput =
-        event.getAttribute(AttributeName.CURRENT_STATE.toString());
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
 
     if (currentStateOutput == null || resourceMap == null || cache == null) {

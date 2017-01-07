@@ -349,7 +349,7 @@ public class ClusterStateVerifier {
 
       // Filter resources if specified
       if (resources != null) {
-        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+        Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
         resourceMap.keySet().retainAll(resources);
       }
 
@@ -357,7 +357,7 @@ public class ClusterStateVerifier {
       runStage(event, bpStage);
 
       BestPossibleStateOutput output =
-          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
       // System.out.println("output:" + output);
       return output;

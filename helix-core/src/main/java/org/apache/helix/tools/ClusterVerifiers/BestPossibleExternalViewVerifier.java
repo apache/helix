@@ -354,7 +354,7 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
     runStage(event, new BestPossibleStateCalcStage());
 
     BestPossibleStateOutput output =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
 
     return output;
   }

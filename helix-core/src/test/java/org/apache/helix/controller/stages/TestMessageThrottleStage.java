@@ -114,12 +114,12 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     selectMessages.add(msg);
 
     msgSelectOutput.addMessages("TestDB", new Partition("TestDB_0"), selectMessages);
-    event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), msgSelectOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), msgSelectOutput);
 
     runStage(event, throttleStage);
 
     MessageThrottleStageOutput msgThrottleOutput =
-        event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
+        event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     Assert.assertEquals(msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0")).size(),
         1);
 
@@ -298,12 +298,12 @@ public class TestMessageThrottleStage extends ZkUnitTestBase {
     selectMessages.add(msg6); // should be throttled
 
     msgSelectOutput.addMessages("TestDB", new Partition("TestDB_0"), selectMessages);
-    event.addAttribute(AttributeName.MESSAGES_SELECTED.toString(), msgSelectOutput);
+    event.addAttribute(AttributeName.MESSAGES_SELECTED.name(), msgSelectOutput);
 
     runStage(event, throttleStage);
 
     MessageThrottleStageOutput msgThrottleOutput =
-        event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
+        event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     List<Message> throttleMessages =
         msgThrottleOutput.getMessages("TestDB", new Partition("TestDB_0"));
     Assert.assertEquals(throttleMessages.size(), 4);

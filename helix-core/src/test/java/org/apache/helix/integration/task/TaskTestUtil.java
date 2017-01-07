@@ -285,6 +285,6 @@ public class TaskTestUtil {
       runStage(event, stage);
     }
 
-    return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+    return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
   }
 }

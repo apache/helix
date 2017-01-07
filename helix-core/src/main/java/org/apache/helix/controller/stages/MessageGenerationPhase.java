@@ -51,11 +51,11 @@ public class MessageGenerationPhase extends AbstractBaseStage {
   public void process(ClusterEvent event) throws Exception {
     HelixManager manager = event.getAttribute("helixmanager");
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     CurrentStateOutput currentStateOutput =
-        event.getAttribute(AttributeName.CURRENT_STATE.toString());
+        event.getAttribute(AttributeName.CURRENT_STATE.name());
     IntermediateStateOutput intermediateStateOutput =
-        event.getAttribute(AttributeName.INTERMEDIATE_STATE.toString());
+        event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
     if (manager == null || cache == null || resourceMap == null || currentStateOutput == null
         || intermediateStateOutput == null) {
       throw new StageException("Missing attributes in event:" + event
@@ -168,7 +168,7 @@ public class MessageGenerationPhase extends AbstractBaseStage {
 
       } // end of for-each-partition
     }
-    event.addAttribute(AttributeName.MESSAGES_ALL.toString(), output);
+    event.addAttribute(AttributeName.MESSAGES_ALL.name(), output);
   }
 
   private Message createMessage(HelixManager manager, Resource resource, String partitionName,

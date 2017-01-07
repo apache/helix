@@ -26,6 +26,8 @@ import java.util.Map;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.common.PartitionStateMap;
+import org.apache.helix.controller.common.ResourcesStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
@@ -48,20 +50,24 @@ public class PersistAssignmentStage extends AbstractBaseStage {
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     ClusterConfig clusterConfig = cache.getClusterConfig();
 
+    ResourcesStateMap assignments = null;
     if (clusterConfig.isPersistBestPossibleAssignment()) {
+      assignments = event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+    } else if (clusterConfig.isPersistIntermediateAssignment()) {
+      assignments = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    }
+
+    if (assignments != null) {
       HelixManager helixManager = event.getAttribute("helixmanager");
       HelixDataAccessor accessor = helixManager.getHelixDataAccessor();
       PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-      BestPossibleStateOutput bestPossibleAssignments =
-          event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
-      Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+      Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
-      for (String resourceId : bestPossibleAssignments.resourceSet()) {
+      for (String resourceId : assignments.resourceSet()) {
         Resource resource = resourceMap.get(resourceId);
         if (resource != null) {
           boolean changed = false;
-          Map<Partition, Map<String, String>> bestPossibleAssignment =
-              bestPossibleAssignments.getResourceMap(resourceId);
+
           IdealState idealState = cache.getIdealState(resourceId);
           if (idealState == null) {
             LOG.warn("IdealState not found for resource " + resourceId);
@@ -74,9 +80,10 @@ public class PersistAssignmentStage extends AbstractBaseStage {
             continue;
           }
 
+          PartitionStateMap partitionStateMap = assignments.getPartitionStateMap(resourceId);
           //TODO: temporary solution for Espresso/Dbus backcompatible, should remove this.
           Map<Partition, Map<String, String>> assignmentToPersist =
-              convertAssignmentPersisted(resource, idealState, bestPossibleAssignment);
+              convertAssignmentPersisted(resource, idealState, partitionStateMap.getStateMap());
 
           for (Partition partition : resource.getPartitions()) {
             Map<String, String> instanceMap = assignmentToPersist.get(partition);
@@ -112,11 +119,11 @@ public class PersistAssignmentStage extends AbstractBaseStage {
    * --- Lei, 2016/9/9.
    */
   private Map<Partition, Map<String, String>> convertAssignmentPersisted(Resource resource,
-      IdealState idealState, Map<Partition, Map<String, String>> bestPossibleAssignment) {
+      IdealState idealState, Map<Partition, Map<String, String>> assignments) {
     String stateModelDef = idealState.getStateModelDefRef();
     /** Only convert for MasterSlave resources */
     if (!stateModelDef.equals(BuiltInStateModelDefinitions.MasterSlave.name())) {
-      return bestPossibleAssignment;
+      return assignments;
     }
 
     Map<Partition, Map<String, String>> assignmentToPersist =
@@ -124,7 +131,10 @@ public class PersistAssignmentStage extends AbstractBaseStage {
 
     for (Partition partition : resource.getPartitions()) {
       Map<String, String> instanceMap = new HashMap<String, String>();
-      instanceMap.putAll(bestPossibleAssignment.get(partition));
+      Map<String, String> assignment = assignments.get(partition);
+      if (assignment != null) {
+        instanceMap.putAll(assignment);
+      }
 
       List<String> preferenceList = idealState.getPreferenceList(partition.getPartitionName());
       boolean hasMaster = false;

@@ -35,128 +35,42 @@ public class StateTransitionThrottleConfig {
   private enum ConfigProperty {
     CONFIG_TYPE,
     REBALANCE_TYPE,
-    THROTTLE_SCOPE
+    THROTTLE_SCOPE,
+    MAX_PARTITION_IN_TRANSITION
   }
 
   public enum ThrottleScope {
     CLUSTER,
     RESOURCE,
-    INSTANCE,
-    PARTITION
+    INSTANCE
   }
 
   public enum RebalanceType {
     LOAD_BALANCE,
-    RECOVERY_BALANCE,
-    ANY
+    RECOVERY_BALANCE
   }
 
-  public static class StateTransitionType {
-    final static String ANY_STATE = "*";
-    final static String FROM_KEY = "from";
-    final static String TO_KEY = "to";
-    String _fromState;
-    String _toState;
+  RebalanceType _rebalanceType;
+  ThrottleScope _throttleScope;
+  Long _maxPartitionInTransition;
 
-    StateTransitionType(String fromState, String toState) {
-      _fromState = fromState;
-      _toState = toState;
-    }
-
-    @Override
-    public String toString() {
-      return FROM_KEY + "." + _fromState + "." + TO_KEY + "." + _toState;
-    }
-
-    public static StateTransitionType parseFromString(String stateTransTypeStr) {
-      String states[] = stateTransTypeStr.split(".");
-      if (states.length < 4 || !states[0].equalsIgnoreCase(FROM_KEY) || !states[2]
-          .equalsIgnoreCase(TO_KEY)) {
-        return null;
-      }
-      return new StateTransitionType(states[1], states[3]);
-    }
-  }
-
-  private ThrottleScope _throttleScope;
-  private RebalanceType _rebalanceType;
-  private Map<StateTransitionType, Long> _maxPendingStateTransitionMap;
-
-  public StateTransitionThrottleConfig(RebalanceType rebalanceType, ThrottleScope throttleScope) {
+  public StateTransitionThrottleConfig(RebalanceType rebalanceType,
+      ThrottleScope throttleScope, long maxPartitionInTransition) {
     _rebalanceType = rebalanceType;
     _throttleScope = throttleScope;
-    _maxPendingStateTransitionMap = new HashMap<StateTransitionType, Long>();
+    _maxPartitionInTransition = maxPartitionInTransition;
   }
 
-  /**
-   * Add a max pending transition from given from state to the specified to state.
-   *
-   * @param fromState
-   * @param toState
-   * @param maxPendingStateTransition
-   * @return
-   */
-  public StateTransitionThrottleConfig addThrottle(String fromState, String toState,
-      long maxPendingStateTransition) {
-    _maxPendingStateTransitionMap
-        .put(new StateTransitionType(fromState, toState), maxPendingStateTransition);
-    return this;
+  public RebalanceType getRebalanceType() {
+    return _rebalanceType;
   }
 
-  /**
-   * Add a max pending transition from ANY state to ANY state.
-   *
-   * @param maxPendingStateTransition
-   * @return
-   */
-  public StateTransitionThrottleConfig addThrottle(long maxPendingStateTransition) {
-    _maxPendingStateTransitionMap
-        .put(new StateTransitionType(StateTransitionType.ANY_STATE, StateTransitionType.ANY_STATE),
-            maxPendingStateTransition);
-    return this;
+  public ThrottleScope getThrottleScope() {
+    return _throttleScope;
   }
 
-  /**
-   * Add a max pending transition for a given state transition type.
-   *
-   * @param stateTransitionType
-   * @param maxPendingStateTransition
-   * @return
-   */
-  public StateTransitionThrottleConfig addThrottle(StateTransitionType stateTransitionType,
-      long maxPendingStateTransition) {
-    _maxPendingStateTransitionMap.put(stateTransitionType, maxPendingStateTransition);
-    return this;
-  }
-
-  /**
-   * Add a max pending transition from ANY state to the specified state.
-   *
-   * @param toState
-   * @param maxPendingStateTransition
-   * @return
-   */
-  public StateTransitionThrottleConfig addThrottleFromAnyState(String toState,
-      long maxPendingStateTransition) {
-    _maxPendingStateTransitionMap
-        .put(new StateTransitionType(StateTransitionType.ANY_STATE, toState),
-            maxPendingStateTransition);
-    return this;
-  }
-
-  /**
-   * Add a max pending transition from given state to ANY state.
-   *
-   * @param fromState
-   * @param maxPendingStateTransition
-   * @return
-   */
-  public StateTransitionThrottleConfig addThrottleToAnyState(String fromState,
-      long maxPendingStateTransition) {
-    _maxPendingStateTransitionMap
-        .put(new StateTransitionType(fromState, StateTransitionType.ANY_STATE),
-            maxPendingStateTransition);
-    return this;
+  public Long getMaxPartitionInTransition() {
+    return _maxPartitionInTransition;
   }
 
   private final static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -167,21 +81,18 @@ public class StateTransitionThrottleConfig {
    * @return Json String for this config.
    */
   public String toJSON() {
-    Map<String, String> configsMap = new HashMap<String, String>();
-
-    configsMap.put(ConfigProperty.REBALANCE_TYPE.name(), _rebalanceType.name());
-    configsMap.put(ConfigProperty.THROTTLE_SCOPE.name(), _throttleScope.name());
-
-    for (Map.Entry<StateTransitionType, Long> e : _maxPendingStateTransitionMap.entrySet()) {
-      configsMap.put(e.getKey().toString(), String.valueOf(e.getValue()));
-    }
+    Map<String, String> configMap = new HashMap<String, String>();
+    configMap.put(ConfigProperty.REBALANCE_TYPE.name(), _rebalanceType.name());
+    configMap.put(ConfigProperty.THROTTLE_SCOPE.name(), _throttleScope.name());
+    configMap.put(ConfigProperty.MAX_PARTITION_IN_TRANSITION.name(),
+        String.valueOf(_maxPartitionInTransition));
 
     String jsonStr = null;
     try {
       ObjectWriter objectWriter = OBJECT_MAPPER.writer();
-      jsonStr = objectWriter.writeValueAsString(configsMap);
+      jsonStr = objectWriter.writeValueAsString(configMap);
     } catch (IOException e) {
-      logger.error("Failed to convert config map to JSON object! " + configsMap);
+      logger.error("Failed to convert config map to JSON object! " + configMap);
     }
 
     return jsonStr;
@@ -206,16 +117,17 @@ public class StateTransitionThrottleConfig {
     return throttleConfig;
   }
 
-
   /**
    * Instantiate a throttle config from a config map
    *
    * @param configsMap
-   * @return StateTransitionThrottleConfig or null if the given configs map is not a valid StateTransitionThrottleConfig.
+   *
+   * @return StateTransitionThrottleConfig or null if the given configs map is not a valid
+   * StateTransitionThrottleConfig.
    */
   public static StateTransitionThrottleConfig fromConfigMap(Map<String, String> configsMap) {
-    if (!configsMap.containsKey(ConfigProperty.REBALANCE_TYPE.name()) ||
-        !configsMap.containsKey(ConfigProperty.THROTTLE_SCOPE.name())) {
+    if (!configsMap.containsKey(ConfigProperty.REBALANCE_TYPE.name()) || !configsMap
+        .containsKey(ConfigProperty.THROTTLE_SCOPE.name())) {
       // not a valid StateTransitionThrottleConfig
       return null;
     }
@@ -226,23 +138,11 @@ public class StateTransitionThrottleConfig {
           RebalanceType.valueOf(configsMap.get(ConfigProperty.REBALANCE_TYPE.name()));
       ThrottleScope throttleScope =
           ThrottleScope.valueOf(configsMap.get(ConfigProperty.THROTTLE_SCOPE.name()));
-      config = new StateTransitionThrottleConfig(rebalanceType, throttleScope);
+      Long maxPartition =
+          Long.valueOf(configsMap.get(ConfigProperty.MAX_PARTITION_IN_TRANSITION.name()));
+      config = new StateTransitionThrottleConfig(rebalanceType, throttleScope, maxPartition);
     } catch (IllegalArgumentException ex) {
       return null;
-    }
-
-    for (String configKey : configsMap.keySet()) {
-      StateTransitionType transitionType = StateTransitionType.parseFromString(configKey);
-      if (transitionType != null) {
-        try {
-          long value = Long.valueOf(configsMap.get(configKey));
-          config.addThrottle(transitionType, value);
-        } catch (NumberFormatException ex) {
-          // ignore the config item with invalid number.
-          logger.warn(String.format("Invalid config entry, key=%s, value=%s", configKey,
-              configsMap.get(configKey)));
-        }
-      }
     }
 
     return config;

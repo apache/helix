@@ -39,11 +39,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
   @Test
   public void testEmptyCS() {
     Map<String, Resource> resourceMap = getResourceMap();
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
-    CurrentStateOutput output = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    CurrentStateOutput output = event.getAttribute(AttributeName.CURRENT_STATE.name());
     AssertJUnit.assertEquals(
         output.getCurrentStateMap("testResourceName", new Partition("testResourceName_0")).size(),
         0);
@@ -56,11 +56,11 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
     setupLiveInstances(5);
 
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
     CurrentStateComputationStage stage = new CurrentStateComputationStage();
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
-    CurrentStateOutput output1 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    CurrentStateOutput output1 = event.getAttribute(AttributeName.CURRENT_STATE.name());
     AssertJUnit.assertEquals(
         output1.getCurrentStateMap("testResourceName", new Partition("testResourceName_0")).size(),
         0);
@@ -79,7 +79,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
 
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
-    CurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    CurrentStateOutput output2 = event.getAttribute(AttributeName.CURRENT_STATE.name());
     String pendingState =
         output2.getPendingState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3").getToState();
@@ -104,7 +104,7 @@ public class TestCurrentStateComputationStage extends BaseStageTest {
         stateWithDeadSession);
     runStage(event, new ReadClusterDataStage());
     runStage(event, stage);
-    CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.toString());
+    CurrentStateOutput output3 = event.getAttribute(AttributeName.CURRENT_STATE.name());
     String currentState =
         output3.getCurrentState("testResourceName", new Partition("testResourceName_1"),
             "localhost_3");

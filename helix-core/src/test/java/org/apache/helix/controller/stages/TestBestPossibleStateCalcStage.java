@@ -49,8 +49,8 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
 
     Map<String, Resource> resourceMap = getResourceMap();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
-    event.addAttribute(AttributeName.RESOURCES.toString(), resourceMap);
-    event.addAttribute(AttributeName.CURRENT_STATE.toString(), currentStateOutput);
+    event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
 
     ReadClusterDataStage stage1 = new ReadClusterDataStage();
     runStage(event, stage1);
@@ -58,7 +58,7 @@ public class TestBestPossibleStateCalcStage extends BaseStageTest {
     runStage(event, stage2);
 
     BestPossibleStateOutput output =
-        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
+        event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
     for (int p = 0; p < 5; p++) {
       Partition resource = new Partition("testResourceName_" + p);
       AssertJUnit.assertEquals("MASTER", output.getInstanceStateMap("testResourceName", resource)

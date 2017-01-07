@@ -48,9 +48,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     logger.info("START TaskAssignmentStage.process()");
 
     HelixManager manager = event.getAttribute("helixmanager");
-    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.toString());
+    Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
     MessageThrottleStageOutput messageOutput =
-        event.getAttribute(AttributeName.MESSAGES_THROTTLE.toString());
+        event.getAttribute(AttributeName.MESSAGES_THROTTLE.name());
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, LiveInstance> liveInstanceMap = cache.getLiveInstances();
 

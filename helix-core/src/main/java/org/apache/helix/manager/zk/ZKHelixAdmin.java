@@ -35,7 +35,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.apache.helix.AccessOption;
@@ -159,6 +158,32 @@ public class ZKHelixAdmin implements HelixAdmin {
     Builder keyBuilder = accessor.keyBuilder();
 
     return accessor.getProperty(keyBuilder.instanceConfig(instanceName));
+  }
+
+  @Override
+  public boolean setInstanceConfig(String clusterName, String instanceName,
+      InstanceConfig newInstanceConfig) {
+    String instanceConfigPath = PropertyPathConfig
+        .getPath(PropertyType.CONFIGS, clusterName, ConfigScopeProperty.PARTICIPANT.toString(),
+            instanceName);
+    if (!_zkClient.exists(instanceConfigPath)) {
+      throw new HelixException(
+          "instance" + instanceName + " does not exist in cluster " + clusterName);
+    }
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey instanceConfigPropertyKey = accessor.keyBuilder().instanceConfig(instanceName);
+    InstanceConfig currentInstanceConfig = accessor.getProperty(instanceConfigPropertyKey);
+    if (!newInstanceConfig.getHostName().equals(currentInstanceConfig.getHostName())
+        || !newInstanceConfig.getPort().equals(currentInstanceConfig.getPort())) {
+      throw new HelixException(
+          "Hostname and port cannot be changed, current hostname: " + currentInstanceConfig
+              .getHostName() + " and port: " + currentInstanceConfig.getPort()
+              + " is different from new hostname: " + newInstanceConfig.getHostName()
+              + "and new port: " + newInstanceConfig.getPort());
+    }
+    return accessor.setProperty(instanceConfigPropertyKey, newInstanceConfig);
   }
 
   @Override

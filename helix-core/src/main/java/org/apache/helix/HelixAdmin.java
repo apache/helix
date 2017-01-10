@@ -22,8 +22,14 @@ package org.apache.helix;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import org.apache.helix.model.*;
+import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
+import org.apache.helix.model.ConstraintItem;
+import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.StateModelDefinition;
 
 /*
  * Helix cluster management
@@ -49,6 +55,18 @@ public interface HelixAdmin {
    * @return InstanceConfig corresponding to the specified instance
    */
   InstanceConfig getInstanceConfig(String clusterName, String instanceName);
+
+  /**
+   * Set the instance config of an existing instance under the given cluster.
+   *
+   * @param clusterName    the name of the cluster to which this instance belongs.
+   * @param instanceName   the name of this instance.
+   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
+   *                       associated with this instance.
+   *
+   * @return true if the operation was successful; false otherwise.
+   */
+  boolean setInstanceConfig(String clusterName, String instanceName, InstanceConfig instanceConfig);
 
   /**
    * Get a list of resources in a cluster

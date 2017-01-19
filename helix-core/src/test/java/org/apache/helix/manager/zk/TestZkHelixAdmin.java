@@ -30,11 +30,15 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixManagerFactory;
+import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
+import org.apache.helix.examples.MasterSlaveStateModelFactory;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintAttribute;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
@@ -47,6 +51,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.builder.ConstraintItemBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.zookeeper.data.Stat;
 import org.testng.Assert;
@@ -56,6 +61,7 @@ import org.testng.annotations.Test;
 public class TestZkHelixAdmin extends ZkUnitTestBase {
   @Test()
   public void testZkHelixAdmin() {
+    //TODO refactor this test into small test cases and use @before annotations
     System.out.println("START testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
 
     final String clusterName = getShortClassName();
@@ -102,7 +108,29 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     config = tool.getInstanceConfig(clusterName, "host1_9999");
     AssertJUnit.assertEquals(config.getId(), "host1_9999");
 
-    tool.dropInstance(clusterName, config);
+    // test: should not drop instance when it is still alive
+    HelixManager manager = initializeHelixManager(clusterName, config.getInstanceName(), ZK_ADDR, "id1");
+    try {
+      manager.connect();
+    } catch (Exception e) {
+      Assert.fail("HelixManager failed connecting");
+    }
+
+    try {
+      tool.dropInstance(clusterName, config);
+      Assert.fail("should fail if an instance is still alive");
+    } catch (HelixException e) {
+      // OK
+    }
+
+    try {
+      manager.disconnect();
+    } catch (Exception e) {
+      Assert.fail("HelixManager failed disconnecting");
+    }
+
+    tool.dropInstance(clusterName, config); // correctly drop the instance
+
     try {
       tool.getInstanceConfig(clusterName, "host1_9999");
       Assert.fail("should fail if get a non-existent instance");
@@ -191,6 +219,19 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     // Assert.assertTrue(ZkClient.getNumberOfConnections() - nbOfZkClients < 5);
 
     System.out.println("END testZkHelixAdmin at " + new Date(System.currentTimeMillis()));
+  }
+
+  private HelixManager initializeHelixManager(String clusterName, String instanceName, String zkAddress,
+      String stateModelName)
+  {
+    HelixManager manager = HelixManagerFactory.getZKHelixManager(clusterName, instanceName,
+        InstanceType.PARTICIPANT, zkAddress);
+
+    MasterSlaveStateModelFactory stateModelFactory = new MasterSlaveStateModelFactory(instanceName);
+
+    StateMachineEngine stateMach = manager.getStateMachineEngine();
+    stateMach.registerStateModelFactory(stateModelName, stateModelFactory);
+    return manager;
   }
 
   // drop resource should drop corresponding resource-level config also

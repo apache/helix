@@ -30,6 +30,8 @@ import org.I0Itec.zkclient.exception.ZkInterruptedException;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.SerializableSerializer;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
+import org.apache.helix.HelixException;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.DeleteCallbackHandler;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.ExistsCallbackHandler;
@@ -277,7 +279,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     long startT = System.nanoTime();
     try {
       final byte[] data = serialize(datat, path);
-
+      checkDataSizeLimit(data);
       retryUntilConnected(new Callable<Object>() {
 
         @Override
@@ -298,12 +300,13 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       throws InterruptedException {
     long start = System.nanoTime();
     try {
-      final byte[] bytes = _zkSerializer.serialize(datat, path);
+      final byte[] data = _zkSerializer.serialize(datat, path);
+      checkDataSizeLimit(data);
       return retryUntilConnected(new Callable<Stat>() {
 
         @Override
         public Stat call() throws Exception {
-          return ((ZkConnection) _connection).getZookeeper().setData(path, bytes, expectedVersion);
+          return ((ZkConnection) _connection).getZookeeper().setData(path, data, expectedVersion);
         }
       });
     } finally {
@@ -315,7 +318,7 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
   }
 
   @Override
-  public String create(final String path, Object data, final CreateMode mode)
+  public String create(final String path, Object datat, final CreateMode mode)
       throws ZkInterruptedException, IllegalArgumentException, ZkException, RuntimeException {
     if (path == null) {
       throw new NullPointerException("path must not be null.");
@@ -323,13 +326,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
 
     long startT = System.nanoTime();
     try {
-      final byte[] bytes = data == null ? null : serialize(data, path);
+      final byte[] data = datat == null ? null : serialize(datat, path);
+      checkDataSizeLimit(data);
 
       return retryUntilConnected(new Callable<String>() {
 
         @Override
         public String call() throws Exception {
-          return _connection.create(path, bytes, mode);
+          return _connection.create(path, data, mode);
         }
       });
     } finally {
@@ -425,6 +429,14 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
         return null;
       }
     });
+  }
+
+  private void checkDataSizeLimit(byte[] data) {
+    if (data != null && data.length > ZNRecord.SIZE_LIMIT) {
+      LOG.error("Data size larger than 1M, will not write to zk. Data (first 1k): "
+          + new String(data).substring(0, 1024));
+      throw new HelixException("Data size larger than 1M");
+    }
   }
 
 }

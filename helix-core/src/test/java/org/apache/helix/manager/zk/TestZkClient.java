@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.manager.zk;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -21,9 +21,9 @@ package org.apache.helix;
 
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
+import org.apache.helix.HelixException;
 import org.apache.helix.ZNRecord;
-import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.ZkUnitTestBase;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
@@ -35,8 +35,8 @@ import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
-public class TestZkClientWrapper extends ZkUnitTestBase {
-  private static Logger LOG = Logger.getLogger(TestZkClientWrapper.class);
+public class TestZkClient extends ZkUnitTestBase {
+  private static Logger LOG = Logger.getLogger(TestZkClient.class);
 
   ZkClient _zkClient;
 
@@ -112,5 +112,11 @@ public class TestZkClientWrapper extends ZkUnitTestBase {
     connection = ((ZkConnection) _zkClient.getConnection());
     zookeeper = connection.getZookeeper();
     System.out.println("After session expiry sessionId= " + zookeeper.getSessionId());
+  }
+
+  @Test(expectedExceptions = HelixException.class, expectedExceptionsMessageRegExp = "Data size larger than 1M.*")
+  void testDataSizeLimit() {
+    ZNRecord data = new ZNRecord(new String(new char[1024*1024]));
+    _zkClient.writeData("/test", data, -1);
   }
 }

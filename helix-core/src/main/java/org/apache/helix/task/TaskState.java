@@ -27,7 +27,6 @@ public enum TaskState {
    * The task has yet to start
    */
   NOT_STARTED,
-
   /**
    * The task is in progress.
    */
@@ -36,6 +35,10 @@ public enum TaskState {
    * The task has been stopped. It may be resumed later.
    */
   STOPPED,
+  /**
+   * The task is in stopping process. Will complete if subtasks are stopped or completed
+   */
+  STOPPING,
   /**
    * The task has failed. It cannot be resumed.
    */

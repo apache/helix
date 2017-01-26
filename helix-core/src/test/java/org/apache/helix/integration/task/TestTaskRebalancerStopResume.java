@@ -21,6 +21,7 @@ package org.apache.helix.integration.task;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -35,8 +36,10 @@ import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobDag;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
+import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskConstants;
 import org.apache.helix.task.TaskState;
+import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
@@ -45,6 +48,7 @@ import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
@@ -475,6 +479,44 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
     Assert.assertTrue(result);
 
     System.out.println("END " + queueName + " at " + new Date(System.currentTimeMillis()));
+  }
+
+  @Test
+  public void testStopWorkflowInStoppingState() throws InterruptedException {
+    final String workflowName = TestHelper.getTestMethodName();
+
+    // Create a workflow
+    Workflow.Builder builder = new Workflow.Builder(workflowName);
+
+    // Add 2 jobs
+    Map<String, String> jobCommandConfigMap = new HashMap<String, String>();
+    jobCommandConfigMap.put(MockTask.TIMEOUT_CONFIG, "1000000");
+    jobCommandConfigMap.put(MockTask.NOT_ALLOW_TO_CANCEL, String.valueOf(true));
+    List<TaskConfig> taskConfigs = ImmutableList
+        .of(new TaskConfig.Builder().setCommand(MockTask.TASK_COMMAND).setTaskId("testTask")
+            .build());
+    JobConfig.Builder job1 = new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND)
+   .addTaskConfigs(taskConfigs)
+        .setJobCommandConfigMap(jobCommandConfigMap);
+    String job1Name = "Job1";
+
+    JobConfig.Builder job2 =
+        new JobConfig.Builder().setCommand(MockTask.TASK_COMMAND).addTaskConfigs(taskConfigs);
+    String job2Name = "Job2";
+
+    builder.addJob(job1Name, job1);
+    builder.addJob(job2Name, job2);
+
+    _driver.start(builder.build());
+    Thread.sleep(2000);
+    _driver.stop(workflowName);
+    _driver.pollForWorkflowState(workflowName, TaskState.STOPPING);
+
+    // Expect job and workflow stuck in STOPPING state.
+    WorkflowContext workflowContext = _driver.getWorkflowContext(workflowName);
+    Assert.assertEquals(
+        workflowContext.getJobState(TaskUtil.getNamespacedJobName(workflowName, job1Name)),
+        TaskState.STOPPING);
   }
 
   private void verifyJobDeleted(String queueName, String jobName) throws Exception {

@@ -19,15 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.Sets;
-import org.apache.helix.*;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.*;
-import org.apache.log4j.Logger;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,6 +30,23 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import org.apache.helix.AccessOption;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.log4j.Logger;
+
+import com.google.common.base.Joiner;
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Sets;
 
 /**
  * Custom rebalancer implementation for the {@code Job} in task model.
@@ -191,10 +199,16 @@ public class JobRebalancer extends TaskRebalancer {
     TargetState jobTgtState = workflowConfig.getTargetState();
     // Update running status in workflow context
     if (jobTgtState == TargetState.STOP) {
-      workflowCtx.setJobState(jobResource, TaskState.STOPPED);
+      if (checkJobStopped(jobCtx)) {
+        workflowCtx.setJobState(jobResource, TaskState.STOPPED);
+      } else {
+        workflowCtx.setJobState(jobResource, TaskState.STOPPING);
+      }
       // Workflow has been stopped if all in progress jobs are stopped
       if (isWorkflowStopped(workflowCtx, workflowConfig)) {
         workflowCtx.setWorkflowState(TaskState.STOPPED);
+      } else {
+        workflowCtx.setWorkflowState(TaskState.STOPPING);
       }
     } else {
       workflowCtx.setJobState(jobResource, TaskState.IN_PROGRESS);
@@ -656,6 +670,21 @@ public class JobRebalancer extends TaskRebalancer {
     } else {
       return fixTaskAssignmentCal;
     }
+  }
+
+  /**
+   * Check whether tasks are not in final states
+   * @param jobContext The job context
+   * @return           False if still tasks not in final state. Otherwise return true
+   */
+  private boolean checkJobStopped(JobContext jobContext) {
+    for (int partition : jobContext.getPartitionSet()) {
+      TaskPartitionState taskState = jobContext.getPartitionState(partition);
+      if (taskState != null && taskState.equals(TaskPartitionState.RUNNING)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

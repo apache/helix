@@ -36,7 +36,9 @@ public class MockTask extends UserContentStore implements Task {
   public static final String ERROR_MESSAGE = "ErrorMessage";
   public static final String FAILURE_COUNT_BEFORE_SUCCESS = "FailureCountBeforeSuccess";
   public static final String SUCCESS_COUNT_BEFORE_FAIL = "SuccessCountBeforeFail";
+  public static final String NOT_ALLOW_TO_CANCEL = "NotAllowToCancel";
   private final long _delay;
+  private volatile boolean _notAllowToCancel;
   private volatile boolean _canceled;
   private TaskResult.Status _taskResultStatus;
   private boolean _throwException;
@@ -57,6 +59,9 @@ public class MockTask extends UserContentStore implements Task {
     }
 
     _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 100L;
+    _notAllowToCancel = cfg.containsKey(NOT_ALLOW_TO_CANCEL)
+        ? Boolean.parseBoolean(cfg.get(NOT_ALLOW_TO_CANCEL))
+        : false;
     _taskResultStatus = cfg.containsKey(TASK_RESULT_STATUS) ?
         TaskResult.Status.valueOf(cfg.get(TASK_RESULT_STATUS)) :
         TaskResult.Status.COMPLETED;
@@ -77,7 +82,7 @@ public class MockTask extends UserContentStore implements Task {
     long expiry = System.currentTimeMillis() + _delay;
     long timeLeft;
     while (System.currentTimeMillis() < expiry) {
-      if (_canceled) {
+      if (_canceled && !_notAllowToCancel) {
         timeLeft = expiry - System.currentTimeMillis();
         return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
             : timeLeft));

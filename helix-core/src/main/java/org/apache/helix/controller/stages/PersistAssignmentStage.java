@@ -96,7 +96,7 @@ public class PersistAssignmentStage extends AbstractBaseStage {
           partitionStateMap = intermediateAssignment.getPartitionStateMap(resourceId);
         }
 
-        Map<Partition, Map<String, String>> assignmentToPersist = partitionStateMap.getStateMap());
+        Map<Partition, Map<String, String>> assignmentToPersist = partitionStateMap.getStateMap();
 
         if (assignmentToPersist != null && hasInstanceMapChanged(assignmentToPersist, idealState)) {
           for (Partition partition : assignmentToPersist.keySet()) {

@@ -27,7 +27,9 @@ import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.data.Stat;
@@ -52,11 +54,11 @@ public final class ZKUtil {
     ArrayList<String> requiredPaths = new ArrayList<String>();
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.CLUSTER.toString(), clusterName));
+        HelixConfigScope.ConfigScopeProperty.CLUSTER.toString(), clusterName));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.PARTICIPANT.toString()));
+        HelixConfigScope.ConfigScopeProperty.PARTICIPANT.toString()));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-        ConfigScopeProperty.RESOURCE.toString()));
+        HelixConfigScope.ConfigScopeProperty.RESOURCE.toString()));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.LIVEINSTANCES, clusterName));
     requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName));
@@ -94,7 +96,7 @@ public final class ZKUtil {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
       ArrayList<String> requiredPaths = new ArrayList<String>();
       requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-          ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
+          HelixConfigScope.ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
       requiredPaths.add(PropertyPathBuilder
           .getPath(PropertyType.MESSAGES, clusterName, instanceName));
       requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName,

@@ -232,6 +232,10 @@ under the License.
               <mainClass>org.apache.helix.tools.ZkGrep</mainClass>
               <name>zkgrep</name>
             </program>
+            <program>
+              <mainClass>org.apache.helix.tools.TaskAdmin</mainClass>
+              <name>task-admin</name>
+            </program>
           </programs>
         </configuration>
       </plugin>

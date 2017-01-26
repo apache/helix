@@ -492,8 +492,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
 
   /**
-   * Cleans up workflow configs and workflow contexts associated with this workflow,
-   * including all job-level configs and context, plus workflow-level information.
+   * Cleans up job configs and job contexts associated with this job,
+   * including all job-level configs and context, plus the job info in the workflow context.
    */
   private void cleanupJob(final String job, String workflow) {
     LOG.info("Cleaning up job: " + job + " in workflow: " + workflow);

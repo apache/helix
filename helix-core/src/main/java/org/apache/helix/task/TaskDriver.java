@@ -18,11 +18,8 @@ package org.apache.helix.task;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -30,23 +27,12 @@ import java.util.Map;
 import java.util.Set;
 
 import org.I0Itec.zkclient.DataUpdater;
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.GnuParser;
-import org.apache.commons.cli.HelpFormatter;
-import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionBuilder;
-import org.apache.commons.cli.OptionGroup;
-import org.apache.commons.cli.Options;
-import org.apache.commons.cli.ParseException;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.HelixManagerFactory;
-import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
@@ -70,32 +56,7 @@ import com.google.common.collect.Sets;
  * CLI for scheduling/canceling workflows
  */
 public class TaskDriver {
-  /** For logging */
-  private static final Logger LOG = Logger.getLogger(TaskDriver.class);
 
-  /** Required option name for Helix endpoint */
-  private static final String ZK_ADDRESS = "zk";
-
-  /** Required option name for cluster against which to run task */
-  private static final String CLUSTER_NAME_OPTION = "cluster";
-
-  /** Required option name for task resource within target cluster */
-  private static final String RESOURCE_OPTION = "resource";
-
-  /** Field for specifying a workflow file when starting a job */
-  private static final String WORKFLOW_FILE_OPTION = "file";
-
-  /** Default time out for monitoring workflow or job state */
-  private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
-
-
-  private final HelixDataAccessor _accessor;
-  private final ConfigAccessor _cfgAccessor;
-  private final HelixPropertyStore<ZNRecord> _propertyStore;
-  private final HelixAdmin _admin;
-  private final String _clusterName;
-
-  /** Commands which may be parsed from the first argument to main */
   public enum DriverCommand {
     start,
     stop,
@@ -106,9 +67,20 @@ public class TaskDriver {
     clean
   }
 
+  /** For logging */
+  private static final Logger LOG = Logger.getLogger(TaskDriver.class);
+
+  /** Default time out for monitoring workflow or job state */
+  private final static int _defaultTimeout = 3 * 60 * 1000; /* 3 mins */
+
+  private final HelixDataAccessor _accessor;
+  private final HelixPropertyStore<ZNRecord> _propertyStore;
+  private final HelixAdmin _admin;
+  private final String _clusterName;
+
   public TaskDriver(HelixManager manager) {
-    this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(), manager
-        .getConfigAccessor(), manager.getHelixPropertyStore(), manager.getClusterName());
+    this(manager.getClusterManagmentTool(), manager.getHelixDataAccessor(),
+        manager.getHelixPropertyStore(), manager.getClusterName());
   }
 
   public TaskDriver(ZkClient client, String clusterName) {
@@ -117,80 +89,24 @@ public class TaskDriver {
 
   public TaskDriver(ZkClient client, ZkBaseDataAccessor<ZNRecord> baseAccessor, String clusterName) {
     this(new ZKHelixAdmin(client), new ZKHelixDataAccessor(clusterName, baseAccessor),
-        new ConfigAccessor(client), new ZkHelixPropertyStore<ZNRecord>(baseAccessor,
+        new ZkHelixPropertyStore<ZNRecord>(baseAccessor,
             PropertyPathBuilder.propertyStore(clusterName), null), clusterName);
   }
 
+  @Deprecated
   public TaskDriver(HelixAdmin admin, HelixDataAccessor accessor, ConfigAccessor cfgAccessor,
+      HelixPropertyStore<ZNRecord> propertyStore, String clusterName) {
+    this(admin, accessor, propertyStore, clusterName);
+  }
+
+  public TaskDriver(HelixAdmin admin, HelixDataAccessor accessor,
       HelixPropertyStore<ZNRecord> propertyStore, String clusterName) {
     _admin = admin;
     _accessor = accessor;
-    _cfgAccessor = cfgAccessor;
     _propertyStore = propertyStore;
     _clusterName = clusterName;
   }
 
-  /**
-   * Parses the first argument as a driver command and the rest of the
-   * arguments are parsed based on that command. Constructs a Helix
-   * message and posts it to the controller
-   */
-  public static void main(String[] args) throws Exception {
-    String[] cmdArgs = Arrays.copyOfRange(args, 1, args.length);
-    CommandLine cl = parseOptions(cmdArgs, constructOptions(), args[0]);
-    String zkAddr = cl.getOptionValue(ZK_ADDRESS);
-    String clusterName = cl.getOptionValue(CLUSTER_NAME_OPTION);
-    String resource = cl.getOptionValue(RESOURCE_OPTION);
-
-    if (zkAddr == null || clusterName == null || resource == null) {
-      printUsage(constructOptions(), "[cmd]");
-      throw new IllegalArgumentException(
-          "zk, cluster, and resource must all be non-null for all commands");
-    }
-
-    HelixManager helixMgr =
-        HelixManagerFactory.getZKHelixManager(clusterName, "Admin", InstanceType.ADMINISTRATOR,
-            zkAddr);
-    helixMgr.connect();
-    TaskDriver driver = new TaskDriver(helixMgr);
-    try {
-      DriverCommand cmd = DriverCommand.valueOf(args[0]);
-      switch (cmd) {
-      case start:
-        if (cl.hasOption(WORKFLOW_FILE_OPTION)) {
-          driver.start(Workflow.parse(new File(cl.getOptionValue(WORKFLOW_FILE_OPTION))));
-        } else {
-          throw new IllegalArgumentException("Workflow file is required to start flow.");
-        }
-        break;
-      case stop:
-        driver.setWorkflowTargetState(resource, TargetState.STOP);
-        break;
-      case resume:
-        driver.setWorkflowTargetState(resource, TargetState.START);
-        break;
-      case delete:
-        driver.setWorkflowTargetState(resource, TargetState.DELETE);
-        break;
-      case list:
-        driver.list(resource);
-        break;
-      case flush:
-        driver.flushQueue(resource);
-        break;
-      case clean:
-        driver.cleanupJobQueue(resource);
-        break;
-      default:
-        throw new IllegalArgumentException("Unknown command " + args[0]);
-      }
-    } catch (IllegalArgumentException e) {
-      LOG.error("Unknown driver command " + args[0]);
-      throw e;
-    }
-
-    helixMgr.disconnect();
-  }
 
   /** Schedules a new workflow
    *
@@ -284,7 +200,7 @@ public class TaskDriver {
   }
 
   /**
-   * Flushes a named job queue
+   * Remove all jobs in a job queue
    *
    * @param queueName
    * @throws Exception
@@ -625,8 +541,8 @@ public class TaskDriver {
   }
 
   /**
-   * Clean up final state jobs (ABORTED, FAILED, COMPLETED),
-   * which will consume the capacity, in job queue
+   * Remove all jobs that are in final states (ABORTED, FAILED, COMPLETED) from the job queue.
+   * The job config, job context will be removed from Zookeeper.
    *
    * @param queueName The name of job queue
    */
@@ -687,7 +603,6 @@ public class TaskDriver {
 
     return is;
   }
-
 
   /**
    * Add new job config to cluster
@@ -848,59 +763,6 @@ public class TaskDriver {
     return workflowConfigMap;
   }
 
-  public void list(String resource) {
-    WorkflowConfig wCfg = TaskUtil.getWorkflowCfg(_accessor, resource);
-    if (wCfg == null) {
-      LOG.error("Workflow " + resource + " does not exist!");
-      return;
-    }
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, resource);
-
-    LOG.info("Workflow " + resource + " consists of the following tasks: "
-        + wCfg.getJobDag().getAllNodes());
-    String workflowState =
-        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
-    LOG.info("Current state of workflow is " + workflowState);
-    LOG.info("Job states are: ");
-    LOG.info("-------");
-    for (String job : wCfg.getJobDag().getAllNodes()) {
-      TaskState jobState = (wCtx != null) ? wCtx.getJobState(job) : TaskState.NOT_STARTED;
-      LOG.info("Job " + job + " is " + jobState);
-
-      // fetch job information
-      JobConfig jCfg = TaskUtil.getJobCfg(_accessor, job);
-      JobContext jCtx = TaskUtil.getJobContext(_propertyStore, job);
-      if (jCfg == null || jCtx == null) {
-        LOG.info("-------");
-        continue;
-      }
-
-      // calculate taskPartitions
-      List<Integer> partitions = Lists.newArrayList(jCtx.getPartitionSet());
-      Collections.sort(partitions);
-
-      // report status
-      for (Integer partition : partitions) {
-        String taskId = jCtx.getTaskIdForPartition(partition);
-        taskId = (taskId != null) ? taskId : jCtx.getTargetForPartition(partition);
-        LOG.info("Task: " + taskId);
-        TaskConfig taskConfig = jCfg.getTaskConfig(taskId);
-        if (taskConfig != null) {
-          LOG.info("Configuration: " + taskConfig.getConfigMap());
-        }
-        TaskPartitionState state = jCtx.getPartitionState(partition);
-        state = (state != null) ? state : TaskPartitionState.INIT;
-        LOG.info("State: " + state);
-        String assignedParticipant = jCtx.getAssignedParticipant(partition);
-        if (assignedParticipant != null) {
-          LOG.info("Assigned participant: " + assignedParticipant);
-        }
-        LOG.info("-------");
-      }
-      LOG.info("-------");
-    }
-  }
-
   /**
    * This call will be blocked until either workflow reaches to one of the state specified
    * in the arguments, or timeout happens. If timeout happens, then it will throw a HelixException
@@ -1017,105 +879,5 @@ public class TaskDriver {
   public TaskState pollForJobState(String workflowName, String jobName, TaskState... states)
       throws InterruptedException {
     return pollForJobState(workflowName, jobName, _defaultTimeout, states);
-  }
-
-  /** Constructs options set for all basic control messages */
-  private static Options constructOptions() {
-    Options options = new Options();
-    options.addOptionGroup(contructGenericRequiredOptionGroup());
-    options.addOptionGroup(constructStartOptionGroup());
-    return options;
-  }
-
-  /** Constructs option group containing options required by all drivable jobs */
-  @SuppressWarnings("static-access")
-  private static OptionGroup contructGenericRequiredOptionGroup() {
-    Option zkAddressOption =
-        OptionBuilder.isRequired().withLongOpt(ZK_ADDRESS)
-            .withDescription("ZK address managing cluster").create();
-    zkAddressOption.setArgs(1);
-    zkAddressOption.setArgName("zkAddress");
-
-    Option clusterNameOption =
-        OptionBuilder.isRequired().withLongOpt(CLUSTER_NAME_OPTION).withDescription("Cluster name")
-            .create();
-    clusterNameOption.setArgs(1);
-    clusterNameOption.setArgName("clusterName");
-
-    Option taskResourceOption =
-        OptionBuilder.isRequired().withLongOpt(RESOURCE_OPTION)
-            .withDescription("Workflow or job name").create();
-    taskResourceOption.setArgs(1);
-    taskResourceOption.setArgName("resourceName");
-
-    OptionGroup group = new OptionGroup();
-    group.addOption(zkAddressOption);
-    group.addOption(clusterNameOption);
-    group.addOption(taskResourceOption);
-    return group;
-  }
-
-  /** Constructs option group containing options required by all drivable jobs */
-  private static OptionGroup constructStartOptionGroup() {
-    @SuppressWarnings("static-access")
-    Option workflowFileOption =
-        OptionBuilder.withLongOpt(WORKFLOW_FILE_OPTION)
-            .withDescription("Local file describing workflow").create();
-    workflowFileOption.setArgs(1);
-    workflowFileOption.setArgName("workflowFile");
-
-    OptionGroup group = new OptionGroup();
-    group.addOption(workflowFileOption);
-    return group;
-  }
-
-  /** Attempts to parse options for given command, printing usage under failure */
-  private static CommandLine parseOptions(String[] args, Options options, String cmdStr) {
-    CommandLineParser cliParser = new GnuParser();
-    CommandLine cmd = null;
-
-    try {
-      cmd = cliParser.parse(options, args);
-    } catch (ParseException pe) {
-      LOG.error("CommandLineClient: failed to parse command-line options: " + pe.toString());
-      printUsage(options, cmdStr);
-      System.exit(1);
-    }
-    boolean ret = checkOptionArgsNumber(cmd.getOptions());
-    if (!ret) {
-      printUsage(options, cmdStr);
-      System.exit(1);
-    }
-
-    return cmd;
-  }
-
-  /** Ensures options argument counts are correct */
-  private static boolean checkOptionArgsNumber(Option[] options) {
-    for (Option option : options) {
-      int argNb = option.getArgs();
-      String[] args = option.getValues();
-      if (argNb == 0) {
-        if (args != null && args.length > 0) {
-          System.err.println(option.getArgName() + " shall have " + argNb + " arguments (was "
-              + Arrays.toString(args) + ")");
-          return false;
-        }
-      } else {
-        if (args == null || args.length != argNb) {
-          System.err.println(option.getArgName() + " shall have " + argNb + " arguments (was "
-              + Arrays.toString(args) + ")");
-          return false;
-        }
-      }
-    }
-    return true;
-  }
-
-  /** Displays CLI usage for given option set and command name */
-  private static void printUsage(Options cliOptions, String cmd) {
-    HelpFormatter helpFormatter = new HelpFormatter();
-    helpFormatter.setWidth(1000);
-    helpFormatter.printHelp("java " + TaskDriver.class.getName() + " " + cmd, cliOptions);
   }
 }

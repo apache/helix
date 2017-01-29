@@ -152,7 +152,7 @@ public class ZkUnitTestBase {
       boolean wantExists) {
     // String instanceConfigsPath = HelixUtil.getConfigPath(clusterName);
     String instanceConfigsPath =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString());
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = HelixUtil.getInstancePath(clusterName, instance);

@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.manager.zk.ZkClient;
@@ -148,7 +148,7 @@ public class SchedulerTasksResource extends ServerResource {
           schedulerMessage);
 
       Map<String, String> resultMap = new HashMap<String, String>();
-      resultMap.put("StatusUpdatePath", PropertyPathConfig.getPath(
+      resultMap.put("StatusUpdatePath", PropertyPathBuilder.getPath(
           PropertyType.STATUSUPDATES_CONTROLLER, clusterName, MessageType.SCHEDULER_MSG.toString(),
           schedulerMessage.getMsgId()));
       resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());

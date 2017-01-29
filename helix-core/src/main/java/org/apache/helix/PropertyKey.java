@@ -54,7 +54,6 @@ import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.model.StatusUpdate;
-import org.apache.helix.tools.YAMLClusterSetup;
 import org.apache.log4j.Logger;
 
 /**
@@ -116,7 +115,7 @@ public class PropertyKey {
   public String getPath() {
     String clusterName = _params[0];
     String[] subKeys = Arrays.copyOfRange(_params, 1, _params.length);
-    String path = PropertyPathConfig.getPath(_type, clusterName, subKeys);
+    String path = PropertyPathBuilder.getPath(_type, clusterName, subKeys);
     if (path == null) {
       LOG.error("Invalid property key with type:" + _type + "subKeys:" + Arrays.toString(_params));
     }

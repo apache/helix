@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.InstanceConfig.InstanceConfigProperty;
@@ -562,7 +562,7 @@ public class TestClusterManagementWebapp extends AdminTestBase {
     System.out.println(sw.toString());
 
     // verify pause znode exists
-    String pausePath = PropertyPathConfig.getPath(PropertyType.PAUSE, clusterName);
+    String pausePath = PropertyPathBuilder.getPath(PropertyType.PAUSE, clusterName);
     System.out.println("pausePath: " + pausePath);
     boolean exists = _gZkClient.exists(pausePath);
     Assert.assertTrue(exists, pausePath + " should exist");

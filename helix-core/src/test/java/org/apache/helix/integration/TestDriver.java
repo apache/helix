@@ -27,7 +27,7 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
@@ -355,7 +355,7 @@ public class TestDriver {
       nextIS = nextIdealState(initIS, destIS, step);
       // testInfo._idealStateMap.put(dbName, nextIS);
       String idealStatePath =
-          PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, TEST_DB_PREFIX + i);
+          PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, TEST_DB_PREFIX + i);
       ZnodeOpArg arg = new ZnodeOpArg(idealStatePath, ZnodePropertyType.ZNODE, "+", nextIS);
       TestCommand command = new TestCommand(CommandType.MODIFY, new TestTrigger(beginTime), arg);
       commandList.add(command);

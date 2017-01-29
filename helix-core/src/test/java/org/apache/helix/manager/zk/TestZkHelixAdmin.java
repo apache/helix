@@ -29,7 +29,7 @@ import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -96,7 +96,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     config.getRecord().setListField("dummy", dummyList);
     tool.addInstance(clusterName, config);
     tool.enableInstance(clusterName, instanceName, true);
-    String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, instanceName);
+    String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
     AssertJUnit.assertTrue(_gZkClient.exists(path));
 
     try {
@@ -163,7 +163,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     ZNRecord stateModelRecord = new ZNRecord("id1");
     try {
       tool.addStateModelDef(clusterName, "id1", new StateModelDefinition(stateModelRecord));
-      path = PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
+      path = PropertyPathBuilder.getPath(PropertyType.STATEMODELDEFS, clusterName, "id1");
       AssertJUnit.assertTrue(_gZkClient.exists(path));
       Assert.fail("should fail");
     } catch (HelixException e) {
@@ -384,7 +384,7 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       }
       tool.addInstance(clusterName, config);
       tool.enableInstance(clusterName, instanceName, true);
-      String path = PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName, instanceName);
+      String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
       AssertJUnit.assertTrue(_gZkClient.exists(path));
     }
 

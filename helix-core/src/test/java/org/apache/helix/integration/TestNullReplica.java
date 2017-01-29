@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -56,7 +56,7 @@ public class TestNullReplica extends ZkIntegrationTestBase {
         "MasterSlave", true); // do rebalance
     // set replica in ideal state to null
     String idealStatePath =
-        PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
+        PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName, "TestDB0");
     ZNRecord idealState = _gZkClient.readData(idealStatePath);
     idealState.getSimpleFields().remove(IdealState.IdealStateProperty.REPLICAS.toString());
     _gZkClient.writeData(idealStatePath, idealState);

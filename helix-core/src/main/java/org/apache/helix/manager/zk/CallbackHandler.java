@@ -53,7 +53,7 @@ import org.apache.helix.MessageListener;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ScopedConfigChangeListener;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.CurrentState;
@@ -176,7 +176,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
         CurrentStateChangeListener currentStateChangeListener =
             (CurrentStateChangeListener) _listener;
         subscribeForChanges(changeContext, _path, true, true);
-        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathBuilder.getInstanceNameFromPath(_path);
 
         List<CurrentState> currentStates = _accessor.getChildValues(_propertyKey);
 
@@ -185,7 +185,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       } else if (_changeType == MESSAGE) {
         MessageListener messageListener = (MessageListener) _listener;
         subscribeForChanges(changeContext, _path, true, false);
-        String instanceName = PropertyPathConfig.getInstanceNameFromPath(_path);
+        String instanceName = PropertyPathBuilder.getInstanceNameFromPath(_path);
         List<Message> messages = _accessor.getChildValues(_propertyKey);
 
         messageListener.onMessage(instanceName, messages, changeContext);

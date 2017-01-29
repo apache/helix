@@ -43,7 +43,7 @@ import org.apache.commons.cli.ParseException;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
@@ -579,7 +579,7 @@ public class ClusterStateVerifier {
 
     ExtViewVeriferZkListener listener = new ExtViewVeriferZkListener(countDown, zkClient, verifier);
 
-    String extViewPath = PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName);
+    String extViewPath = PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName);
     zkClient.subscribeChildChanges(extViewPath, listener);
     for (String child : zkClient.getChildren(extViewPath)) {
       String childPath = extViewPath.equals("/") ? extViewPath + child : extViewPath + "/" + child;

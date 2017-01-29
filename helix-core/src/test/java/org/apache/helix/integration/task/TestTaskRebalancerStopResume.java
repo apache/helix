@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
@@ -459,7 +459,7 @@ public class TestTaskRebalancerStopResume extends TaskTestBase {
             = Lists.newArrayList(keyBuilder.resourceConfigs().getPath(),
             keyBuilder.idealStates().getPath(),
             keyBuilder.externalViews().getPath(),
-            PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
+            PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, CLUSTER_NAME)
                 + TaskConstants.REBALANCER_CONTEXT_ROOT);
 
         for (String path : paths) {

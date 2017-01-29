@@ -22,7 +22,7 @@ package org.apache.helix.util;
 import java.util.Map;
 import java.util.TreeMap;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.log4j.Logger;
 
@@ -130,7 +130,7 @@ public final class HelixUtil {
   }
 
   public static String getControllerPropertyPath(String clusterName, PropertyType type) {
-    return PropertyPathConfig.getPath(type, clusterName);
+    return PropertyPathBuilder.getPath(type, clusterName);
   }
 
   /**

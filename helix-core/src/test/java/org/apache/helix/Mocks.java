@@ -517,7 +517,7 @@ public class Mocks {
 
     @Override
     public boolean removeProperty(PropertyKey key) {
-      String path = key.getPath(); // PropertyPathConfig.getPath(type,
+      String path = key.getPath(); // PropertyPathBuilder.getPath(type,
       // _clusterName, keys);
       data.remove(path);
       return true;
@@ -543,7 +543,7 @@ public class Mocks {
     @Override
     public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
       List<ZNRecord> childs = new ArrayList<ZNRecord>();
-      String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
+      String path = propertyKey.getPath(); // PropertyPathBuilder.getPath(type,
       // _clusterName, keys);
       for (String key : data.keySet()) {
         if (key.startsWith(path)) {

@@ -26,7 +26,7 @@ import java.util.List;
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -46,24 +46,24 @@ public final class ZKUtil {
       return false;
     }
     ArrayList<String> requiredPaths = new ArrayList<String>();
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.IDEALSTATES, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.IDEALSTATES, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
         ConfigScopeProperty.CLUSTER.toString(), clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
         ConfigScopeProperty.PARTICIPANT.toString()));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
         ConfigScopeProperty.RESOURCE.toString()));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.PROPERTYSTORE, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.LIVEINSTANCES, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.INSTANCES, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.EXTERNALVIEW, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATEMODELDEFS, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.LIVEINSTANCES, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.EXTERNALVIEW, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.STATEMODELDEFS, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.MESSAGES_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.ERRORS_CONTROLLER, clusterName));
+    requiredPaths.add(PropertyPathBuilder
         .getPath(PropertyType.STATUSUPDATES_CONTROLLER, clusterName));
-    requiredPaths.add(PropertyPathConfig.getPath(PropertyType.HISTORY, clusterName));
+    requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.HISTORY, clusterName));
     boolean isValid = true;
 
     BaseDataAccessor<Object> baseAccessor = new ZkBaseDataAccessor<Object>(zkClient);
@@ -83,15 +83,15 @@ public final class ZKUtil {
       InstanceType type) {
     if (type == InstanceType.PARTICIPANT || type == InstanceType.CONTROLLER_PARTICIPANT) {
       ArrayList<String> requiredPaths = new ArrayList<String>();
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
           ConfigScopeProperty.PARTICIPANT.toString(), instanceName));
-      requiredPaths.add(PropertyPathConfig
+      requiredPaths.add(PropertyPathBuilder
           .getPath(PropertyType.MESSAGES, clusterName, instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName,
+      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName,
           instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.STATUSUPDATES, clusterName,
+      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.STATUSUPDATES, clusterName,
           instanceName));
-      requiredPaths.add(PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, instanceName));
+      requiredPaths.add(PropertyPathBuilder.getPath(PropertyType.ERRORS, clusterName, instanceName));
       boolean isValid = true;
 
       for (String path : requiredPaths) {

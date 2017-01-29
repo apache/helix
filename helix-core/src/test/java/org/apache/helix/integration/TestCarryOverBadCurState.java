@@ -21,7 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -53,7 +53,7 @@ public class TestCarryOverBadCurState extends ZkIntegrationTestBase {
     // add a bad current state
     ZNRecord badCurState = new ZNRecord("TestDB0");
     String path =
-        PropertyPathConfig.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_12918",
+        PropertyPathBuilder.getPath(PropertyType.CURRENTSTATES, clusterName, "localhost_12918",
             "session_0", "TestDB0");
     _gZkClient.createPersistent(path, true);
     _gZkClient.writeData(path, badCurState);

@@ -28,7 +28,7 @@ import org.apache.helix.HelixManager;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -237,7 +237,7 @@ public class TestParticipantManager extends ZkIntegrationTestBase {
 
     // assert interrupt exception error in old session
     String errPath =
-        PropertyPathConfig.getPath(PropertyType.ERRORS, clusterName, "localhost_12918",
+        PropertyPathBuilder.getPath(PropertyType.ERRORS, clusterName, "localhost_12918",
             oldSessionId, "TestDB0", "TestDB0_0");
     ZNRecord error = _gZkClient.readData(errPath);
     Assert

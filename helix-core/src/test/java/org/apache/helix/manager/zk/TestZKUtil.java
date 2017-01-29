@@ -23,7 +23,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.helix.PropertyPathConfig;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
@@ -80,7 +80,7 @@ public class TestZKUtil extends ZkUnitTestBase {
     list.add(new ZNRecord("id1"));
     list.add(new ZNRecord("id2"));
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString());
     ZKUtil.createChildren(_zkClient, path, list);
     list = ZKUtil.getChildren(_zkClient, path);
@@ -97,7 +97,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   @Test()
   public void testUpdateIfExists() {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), "id3");
     ZNRecord record = new ZNRecord("id4");
     ZKUtil.updateIfExists(_zkClient, path, record, false);
@@ -112,7 +112,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   @Test()
   public void testSubtract() {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), "id5");
     ZNRecord record = new ZNRecord("id5");
     record.setSimpleField("key1", "value1");
@@ -125,7 +125,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   @Test()
   public void testNullChildren() {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), "id6");
     ZKUtil.createChildren(_zkClient, path, (List<ZNRecord>) null);
   }
@@ -133,7 +133,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   @Test()
   public void testCreateOrUpdate() {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), "id7");
     ZNRecord record = new ZNRecord("id7");
     ZKUtil.createOrUpdate(_zkClient, path, record, true, true);
@@ -144,7 +144,7 @@ public class TestZKUtil extends ZkUnitTestBase {
   @Test()
   public void testCreateOrReplace() {
     String path =
-        PropertyPathConfig.getPath(PropertyType.CONFIGS, clusterName,
+        PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
             ConfigScopeProperty.PARTICIPANT.toString(), "id8");
     ZNRecord record = new ZNRecord("id8");
     ZKUtil.createOrReplace(_zkClient, path, record, true);

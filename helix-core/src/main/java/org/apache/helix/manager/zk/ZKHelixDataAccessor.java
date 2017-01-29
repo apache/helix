@@ -36,13 +36,19 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZNRecordAssembler;
 import org.apache.helix.ZNRecordBucketizer;
 import org.apache.helix.ZNRecordUpdater;
+import org.apache.helix.model.LiveInstance;
+import org.apache.helix.model.Message;
+import org.apache.helix.model.PauseSignal;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
+
 
 public class ZKHelixDataAccessor implements HelixDataAccessor {
   private static Logger LOG = Logger.getLogger(ZKHelixDataAccessor.class);
@@ -65,23 +71,43 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
     _propertyKeyBuilder = new PropertyKey.Builder(_clusterName);
   }
 
-  @Override
-  public <T extends HelixProperty> boolean createProperty(PropertyKey key, T value) {
-    PropertyType type = key.getType();
-    String path = key.getPath();
-    int options = constructOptions(type);
-    boolean success = false;
-    switch (type) {
-    case STATEMODELDEFS:
-      if (value.isValid()) {
-        success = _baseDataAccessor.create(path, value.getRecord(), options);
+  @Override public boolean createStateModelDef(StateModelDefinition stateModelDef) {
+    String path = PropertyPathBuilder.stateModelDef(_clusterName, stateModelDef.getId());
+    HelixProperty property =
+        getProperty(new PropertyKey.Builder(_clusterName).stateModelDef(stateModelDef.getId()));
+
+    // Set new StateModelDefinition if it is different from old one.
+    if (property != null) {
+      // StateModelDefinition need to be updated
+      if (!new StateModelDefinition(property.getRecord()).equals(stateModelDef)) {
+        return stateModelDef.isValid() && _baseDataAccessor
+            .set(path, stateModelDef.getRecord(), AccessOption.PERSISTENT);
       }
-      break;
-    default:
-      success = _baseDataAccessor.create(path, value.getRecord(), options);
-      break;
+    } else {
+      // StateModeDefinition does not exist
+      return stateModelDef.isValid() && _baseDataAccessor
+          .create(path, stateModelDef.getRecord(), AccessOption.PERSISTENT);
     }
-    return success;
+    // StateModelDefinition exists but not need to be updated
+    return true;
+  }
+
+  @Override
+  public boolean createControllerMessage(Message message) {
+    return _baseDataAccessor.create(PropertyPathBuilder.controllerMessage(_clusterName, message.getMsgId()),
+        message.getRecord(), AccessOption.PERSISTENT);
+  }
+
+  @Override
+  public boolean createControllerLeader(LiveInstance leader) {
+    return _baseDataAccessor.create(PropertyPathBuilder.controllerLeader(_clusterName), leader.getRecord(),
+        AccessOption.EPHEMERAL);
+  }
+
+  @Override
+  public boolean createPause(PauseSignal pauseSignal) {
+    return _baseDataAccessor.create(
+        PropertyPathBuilder.pause(_clusterName), pauseSignal.getRecord(), AccessOption.PERSISTENT);
   }
 
   @Override

@@ -35,6 +35,7 @@ import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.log4j.Logger;
 
+
 /**
  * do distributed leader election
  */
@@ -121,7 +122,7 @@ public class DistributedLeaderElection implements ControllerChangeListener {
       leader.setLiveInstance(ManagementFactory.getRuntimeMXBean().getName());
       leader.setSessionId(manager.getSessionId());
       leader.setHelixVersion(manager.getVersion());
-      boolean success = accessor.createProperty(keyBuilder.controllerLeader(), leader);
+      boolean success = accessor.createControllerLeader(leader);
       if (success) {
         return true;
       } else {

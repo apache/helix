@@ -462,24 +462,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   private void addBuiltInStateModelDefinitions() {
     for (BuiltInStateModelDefinitions def : BuiltInStateModelDefinitions.values()) {
-      String path = String
-          .format("/%s/STATEMODELDEFS/%s", _clusterName, def.getStateModelDefinition().getId());
-
-      HelixProperty property = _dataAccessor.getProperty(new PropertyKey.Builder(_clusterName)
-          .stateModelDef(def.getStateModelDefinition().getId()));
-
-      // Set new StateModelDefinition if it is different from old one.
-      if (property != null) {
-        // StateModelDefinition need to be updated
-        if (!new StateModelDefinition(property.getRecord()).equals(def.getStateModelDefinition())) {
-          _baseDataAccessor
-              .set(path, def.getStateModelDefinition().getRecord(), AccessOption.PERSISTENT);
-        }
-      } else {
-        // StateModeDefinition does not exist
-        _baseDataAccessor
-            .create(path, def.getStateModelDefinition().getRecord(), AccessOption.PERSISTENT);
-      }
+      _dataAccessor.createStateModelDef(def.getStateModelDefinition());
     }
   }
 

@@ -58,7 +58,6 @@ import org.apache.helix.model.ConstraintItem;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -72,6 +71,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.log4j.Logger;
+
 
 public class ZKHelixAdmin implements HelixAdmin {
   public static final String CONNECTION_TIMEOUT = "helixAdmin.timeOutInSec";
@@ -329,7 +329,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (enabled) {
       accessor.removeProperty(keyBuilder.pause());
     } else {
-      accessor.createProperty(keyBuilder.pause(), new PauseSignal("pause"));
+      accessor.createPause(new PauseSignal("pause"));
     }
   }
 

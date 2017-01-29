@@ -26,10 +26,9 @@ import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyType;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
-import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.data.Stat;
 
@@ -74,28 +73,19 @@ public class ZKPathDataDumpTask extends TimerTask {
     List<String> instances = accessor.getChildNames(keyBuilder.instanceConfigs());
     for (String instance : instances) {
       // dump participant status updates
-      String statusUpdatePath =
-          HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
-              PropertyType.STATUSUPDATES);
+      String statusUpdatePath = PropertyPathBuilder.instanceStatusUpdate(_manager.getClusterName(), instance);
       dump(baseAccessor, statusUpdatePath, _thresholdNoChangeMsForStatusUpdates, _maxLeafCount);
 
       // dump participant errors
-      String errorPath =
-          HelixUtil.getInstancePropertyPath(_manager.getClusterName(), instance,
-              PropertyType.ERRORS);
+      String errorPath = PropertyPathBuilder.instanceError(_manager.getClusterName(), instance);
       dump(baseAccessor, errorPath, _thresholdNoChangeMsForErrors, _maxLeafCount);
     }
     // dump controller status updates
-    String controllerStatusUpdatePath =
-        HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
-            PropertyType.STATUSUPDATES_CONTROLLER);
-    dump(baseAccessor, controllerStatusUpdatePath, _thresholdNoChangeMsForStatusUpdates,
-        _maxLeafCount);
+    String controllerStatusUpdatePath = PropertyPathBuilder.controllerStatusUpdate(_manager.getClusterName());
+    dump(baseAccessor, controllerStatusUpdatePath, _thresholdNoChangeMsForStatusUpdates, _maxLeafCount);
 
     // dump controller errors
-    String controllerErrorPath =
-        HelixUtil.getControllerPropertyPath(_manager.getClusterName(),
-            PropertyType.ERRORS_CONTROLLER);
+    String controllerErrorPath = PropertyPathBuilder.controllerError(_manager.getClusterName());
     dump(baseAccessor, controllerErrorPath, _thresholdNoChangeMsForErrors, _maxLeafCount);
   }
 

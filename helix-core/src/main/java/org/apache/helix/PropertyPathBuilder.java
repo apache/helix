@@ -201,4 +201,113 @@ public class PropertyPathBuilder {
     }
     return null;
   }
+
+  public static String idealState(String clusterName) {
+    return String.format("/%s/IDEALSTATES", clusterName);
+  }
+
+  public static String idealState(String clusterName, String resourceName) {
+    return String.format("/%s/IDEALSTATES/%s", clusterName, resourceName);
+  }
+
+  public static String stateModelDef(String clusterName) {
+    return String.format("/%s/STATEMODELDEFS", clusterName);
+  }
+
+  public static String stateModelDef(String clusterName, String stateModelName) {
+    return String.format("/%s/STATEMODELDEFS/%s", clusterName, stateModelName);
+  }
+
+  public static String externalView(String clusterName) {
+    return String.format("/%s/EXTERNALVIEW", clusterName);
+  }
+
+  public static String externalView(String clusterName, String resourceName) {
+    return String.format("/%s/EXTERNALVIEW/%s", clusterName, resourceName);
+  }
+
+  public static String liveInstance(String clusterName) {
+    return String.format("/%s/LIVEINSTANCES", clusterName);
+  }
+
+  public static String liveInstance(String clusterName, String instanceName) {
+    return String.format("/%s/LIVEINSTANCES/%s", clusterName, instanceName);
+  }
+
+  public static String instance(String clusterName) {
+    return String.format("/%s/INSTANCES", clusterName);
+  }
+
+  @Deprecated
+  public static String instanceProperty(String clusterName, String instanceName, PropertyType type, String key) {
+    return String.format("/%s/INSTANCES/%s/%s/%s", clusterName, instanceName, type, key);
+  }
+
+  public static String instance(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s", clusterName, instanceName);
+  }
+
+  public static String instanceMessage(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/MESSAGES", clusterName, instanceName);
+  }
+
+  public static String instanceMessage(String clusterName, String instanceName, String messageId) {
+    return String.format("/%s/INSTANCES/%s/MESSAGES/%s", clusterName, instanceName, messageId);
+  }
+
+  public static String instanceCurrentState(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/CURRENTSTATES", clusterName, instanceName);
+  }
+
+  public static String instanceCurrentState(String clusterName, String instanceName, String sessionId) {
+    return String.format("/%s/INSTANCES/%s/CURRENTSTATES/%s", clusterName, instanceName, sessionId);
+  }
+
+  public static String instanceError(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/ERRORS", clusterName, instanceName);
+  }
+
+  public static String instanceStatusUpdate(String clusterName, String instanceName) {
+    return String.format("/%s/INSTANCES/%s/STATUSUPDATES", clusterName, instanceName);
+  }
+
+  public static String propertyStore(String clusterName) {
+    return String.format("/%s/PROPERTYSTORE", clusterName);
+  }
+
+  public static String instanceConfig(String clusterName) {
+    return String.format("/%s/CONFIGS/PARTICIPANT", clusterName);
+  }
+
+  public static String instanceConfig(String clusterName, String instanceName) {
+    return String.format("/%s/CONFIGS/PARTICIPANT/%s", clusterName, instanceName);
+  }
+
+  public static String controller(String clusterName) {
+    return String.format("/%s/CONTROLLER", clusterName);
+  }
+
+  public static String controllerLeader(String clusterName) {
+    return String.format("/%s/CONTROLLER/LEADER", clusterName);
+  }
+
+  public static String controllerMessage(String clusterName) {
+    return String.format("/%s/CONTROLLER/MESSAGES", clusterName);
+  }
+
+  public static String controllerStatusUpdate(String clusterName) {
+    return String.format("/%s/CONTROLLER/STATUSUPDATES", clusterName);
+  }
+
+  public static String controllerStatusUpdate(String clusterName, String subPath, String recordName) {
+    return String.format("/%s/CONTROLLER/STATUSUPDATES/%s/%s", clusterName, subPath, recordName);
+  }
+
+  public static String controllerError(String clusterName) {
+    return String.format("/%s/CONTROLLER/ERRORS", clusterName);
+  }
+
+  public static String pause(String clusterName) {
+    return String.format("/%s/CONTROLLER/PAUSE", clusterName);
+  }
 }

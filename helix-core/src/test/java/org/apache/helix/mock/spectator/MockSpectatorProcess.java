@@ -26,12 +26,13 @@ import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.spectator.RoutingTableProvider;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.util.HelixUtil;
+
 
 /**
  * A MockSpectatorProcess to demonstrate the integration with cluster manager.
@@ -58,10 +59,8 @@ public class MockSpectatorProcess {
   public static void main(String[] args) throws Exception {
     setup();
     zkServer.getZkClient().setZkSerializer(new ZNRecordSerializer());
-    ZNRecord record =
-        zkServer.getZkClient().readData(HelixUtil.getIdealStatePath(clusterName, "TestDB"));
-
-    String externalViewPath = HelixUtil.getExternalViewPath(clusterName, "TestDB");
+    ZNRecord record = zkServer.getZkClient().readData(PropertyPathBuilder.idealState(clusterName, "TestDB"));
+    String externalViewPath = PropertyPathBuilder.externalView(clusterName, "TestDB");
 
     MockSpectatorProcess process = new MockSpectatorProcess();
     process.start();

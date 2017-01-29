@@ -70,7 +70,6 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
-import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.log4j.Logger;
 
@@ -111,10 +110,10 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     ZKUtil.createChildren(_zkClient, instanceConfigsPath, instanceConfig.getRecord());
 
-    _zkClient.createPersistent(HelixUtil.getMessagePath(clusterName, nodeId), true);
-    _zkClient.createPersistent(HelixUtil.getCurrentStateBasePath(clusterName, nodeId), true);
-    _zkClient.createPersistent(HelixUtil.getErrorsPath(clusterName, nodeId), true);
-    _zkClient.createPersistent(HelixUtil.getStatusUpdatesPath(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceMessage(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceCurrentState(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceError(clusterName, nodeId), true);
+    _zkClient.createPersistent(PropertyPathBuilder.instanceStatusUpdate(clusterName, nodeId), true);
   }
 
   @Override
@@ -124,7 +123,7 @@ public class ZKHelixAdmin implements HelixAdmin {
             ConfigScopeProperty.PARTICIPANT.toString());
     String nodeId = instanceConfig.getId();
     String instanceConfigPath = instanceConfigsPath + "/" + nodeId;
-    String instancePath = HelixUtil.getInstancePath(clusterName, nodeId);
+    String instancePath = PropertyPathBuilder.instance(clusterName, nodeId);
 
     if (!_zkClient.exists(instanceConfigPath)) {
       throw new HelixException("Node " + nodeId + " does not exist in config for cluster "
@@ -549,7 +548,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     String path;
 
     // IDEAL STATE
-    _zkClient.createPersistent(HelixUtil.getIdealStatePath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.idealState(clusterName));
     // CONFIGURATIONS
     path =
         PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
@@ -568,16 +567,16 @@ public class ZKHelixAdmin implements HelixAdmin {
     path = PropertyPathBuilder.getPath(PropertyType.PROPERTYSTORE, clusterName);
     _zkClient.createPersistent(path);
     // LIVE INSTANCES
-    _zkClient.createPersistent(HelixUtil.getLiveInstancesPath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.liveInstance(clusterName));
     // MEMBER INSTANCES
-    _zkClient.createPersistent(HelixUtil.getMemberInstancesPath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.instance(clusterName));
     // External view
-    _zkClient.createPersistent(HelixUtil.getExternalViewPath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.externalView(clusterName));
     // State model definition
-    _zkClient.createPersistent(HelixUtil.getStateModelDefinitionPath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.stateModelDef(clusterName));
 
     // controller
-    _zkClient.createPersistent(HelixUtil.getControllerPath(clusterName));
+    _zkClient.createPersistent(PropertyPathBuilder.controller(clusterName));
     path = PropertyPathBuilder.getPath(PropertyType.HISTORY, clusterName);
     final ZNRecord emptyHistory = new ZNRecord(PropertyType.HISTORY.toString());
     final List<String> emptyList = new ArrayList<String>();
@@ -596,13 +595,13 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public List<String> getInstancesInCluster(String clusterName) {
-    String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
+    String memberInstancesPath = PropertyPathBuilder.instance(clusterName);
     return _zkClient.getChildren(memberInstancesPath);
   }
 
   @Override
   public List<String> getInstancesInClusterWithTag(String clusterName, String tag) {
-    String memberInstancesPath = HelixUtil.getMemberInstancesPath(clusterName);
+    String memberInstancesPath = PropertyPathBuilder.instance(clusterName);
     List<String> instances = _zkClient.getChildren(memberInstancesPath);
     List<String> result = new ArrayList<String>();
 
@@ -649,7 +648,7 @@ public class ZKHelixAdmin implements HelixAdmin {
           + " not found in the cluster STATEMODELDEFS path");
     }
 
-    String idealStatePath = HelixUtil.getIdealStatePath(clusterName);
+    String idealStatePath = PropertyPathBuilder.idealState(clusterName);
     String resourceIdealStatePath = idealStatePath + "/" + resourceName;
     if (_zkClient.exists(resourceIdealStatePath)) {
       throw new HelixException("Skip the operation. Resource ideal state directory already exists:"
@@ -713,7 +712,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public List<String> getResourcesInCluster(String clusterName) {
-    return _zkClient.getChildren(HelixUtil.getIdealStatePath(clusterName));
+    return _zkClient.getChildren(PropertyPathBuilder.idealState(clusterName));
   }
 
   @Override
@@ -772,7 +771,7 @@ public class ZKHelixAdmin implements HelixAdmin {
     if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
       throw new HelixException("cluster " + clusterName + " is not setup yet");
     }
-    String stateModelDefPath = HelixUtil.getStateModelDefinitionPath(clusterName);
+    String stateModelDefPath = PropertyPathBuilder.stateModelDef(clusterName);
     String stateModelPath = stateModelDefPath + "/" + stateModelDef;
     if (_zkClient.exists(stateModelPath)) {
       if (recreateIfExists) {
@@ -803,7 +802,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
   @Override
   public List<String> getStateModelDefs(String clusterName) {
-    return _zkClient.getChildren(HelixUtil.getStateModelDefinitionPath(clusterName));
+    return _zkClient.getChildren(PropertyPathBuilder.stateModelDef(clusterName));
   }
 
   @Override

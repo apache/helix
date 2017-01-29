@@ -37,7 +37,7 @@ import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.PropertyType;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
 import org.apache.helix.messaging.AsyncCallback;
@@ -51,7 +51,6 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StatusUpdate;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
-import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
@@ -274,9 +273,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     Assert.assertEquals(count, _PARTITIONS * 3);
 
     // test the ZkPathDataDumpTask
-    String controllerStatusPath =
-        HelixUtil.getControllerPropertyPath(manager.getClusterName(),
-            PropertyType.STATUSUPDATES_CONTROLLER);
+    String controllerStatusPath = PropertyPathBuilder.controllerStatusUpdate(manager.getClusterName());
     List<String> subPaths = _gZkClient.getChildren(controllerStatusPath);
     Assert.assertTrue(subPaths.size() > 0);
     for (String subPath : subPaths) {
@@ -286,9 +283,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
 
     String instanceStatusPath =
-        HelixUtil.getInstancePropertyPath(manager.getClusterName(), "localhost_" + (START_PORT),
-            PropertyType.STATUSUPDATES);
-
+        PropertyPathBuilder.instanceStatusUpdate(manager.getClusterName(), "localhost_" + (START_PORT));
     subPaths = _gZkClient.getChildren(instanceStatusPath);
     Assert.assertTrue(subPaths.size() == 0);
     for (String subPath : subPaths) {

@@ -25,9 +25,8 @@ import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
-import org.apache.helix.PropertyType;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.util.HelixUtil;
 import org.testng.Assert;
 import org.testng.AssertJUnit;
 import org.testng.annotations.AfterClass;
@@ -68,8 +67,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
   @Test()
   public void testParticipantStartUp() throws Exception {
     setupCluster();
-    String controllerMsgPath =
-        HelixUtil.getControllerPropertyPath(CLUSTER_NAME, PropertyType.MESSAGES_CONTROLLER);
+    String controllerMsgPath = PropertyPathBuilder.controllerMessage(CLUSTER_NAME);
     _gZkClient.deleteRecursive(controllerMsgPath);
     HelixManager manager = null;
 
@@ -102,7 +100,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
     }
 
     setupCluster();
-    String stateModelPath = HelixUtil.getStateModelDefinitionPath(CLUSTER_NAME);
+    String stateModelPath = PropertyPathBuilder.stateModelDef(CLUSTER_NAME);
     _gZkClient.deleteRecursive(stateModelPath);
 
     try {
@@ -120,8 +118,7 @@ public class TestClusterStartsup extends ZkStandAloneCMTestBase {
 
     setupCluster();
     String instanceStatusUpdatePath =
-        HelixUtil.getInstancePropertyPath(CLUSTER_NAME, "localhost_" + (START_PORT + 1),
-            PropertyType.STATUSUPDATES);
+        PropertyPathBuilder.instanceStatusUpdate(CLUSTER_NAME, "localhost_" + (START_PORT + 1));
     _gZkClient.deleteRecursive(instanceStatusUpdatePath);
 
     try {

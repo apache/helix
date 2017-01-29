@@ -32,6 +32,7 @@ import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -39,7 +40,6 @@ import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.LiveInstance.LiveInstanceProperty;
-import org.apache.helix.util.HelixUtil;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -74,8 +74,7 @@ public class ClusterRepresentationUtil {
   public static String getInstancePropertyNameListAsString(ZkClient zkClient, String clusterName,
       String instanceName, PropertyType instanceProperty, String key, MediaType mediaType)
       throws JsonGenerationException, JsonMappingException, IOException {
-    String path =
-        HelixUtil.getInstancePropertyPath(clusterName, instanceName, instanceProperty) + "/" + key;
+    String path = PropertyPathBuilder.instanceProperty(clusterName, instanceName, instanceProperty, key);
     if (zkClient.exists(path)) {
       List<String> recordNames = zkClient.getChildren(path);
       return ObjectToJson(recordNames);
@@ -212,10 +211,7 @@ public class ClusterRepresentationUtil {
 
   public static List<String> getInstancePropertyList(ZkClient zkClient, String clusterName,
       String instanceName, PropertyType property, String key) {
-    String propertyPath =
-        HelixUtil.getInstancePropertyPath(clusterName, instanceName, property) + "/" + key;
-
+    String propertyPath = PropertyPathBuilder.instanceProperty(clusterName, instanceName, property, key);
     return zkClient.getChildren(propertyPath);
-
   }
 }

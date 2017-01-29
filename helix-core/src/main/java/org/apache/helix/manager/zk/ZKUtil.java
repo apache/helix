@@ -42,7 +42,13 @@ public final class ZKUtil {
   }
 
   public static boolean isClusterSetup(String clusterName, ZkClient zkClient) {
-    if (clusterName == null || zkClient == null) {
+    if (clusterName == null) {
+      logger.info("Fail to check cluster setup : cluster name is null!");
+      return false;
+    }
+
+    if (zkClient == null) {
+      logger.info("Fail to check cluster setup : zookeeper client is null!");
       return false;
     }
     ArrayList<String> requiredPaths = new ArrayList<String>();
@@ -68,14 +74,20 @@ public final class ZKUtil {
 
     BaseDataAccessor<Object> baseAccessor = new ZkBaseDataAccessor<Object>(zkClient);
     boolean[] ret = baseAccessor.exists(requiredPaths, 0);
+    StringBuilder errorMsg = new StringBuilder();
+
     for (int i = 0; i < ret.length; i++) {
       if (!ret[i]) {
         isValid = false;
-        if (logger.isDebugEnabled()) {
-          logger.debug("Invalid cluster setup, missing znode path: " + requiredPaths.get(i));
-        }
+        errorMsg
+            .append(("Invalid cluster setup, missing znode path: " + requiredPaths.get(i)) + "\n");
       }
     }
+
+    if (!isValid) {
+      logger.info(errorMsg.toString());
+    }
+
     return isValid;
   }
 

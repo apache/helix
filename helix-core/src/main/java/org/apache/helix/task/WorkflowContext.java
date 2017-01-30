@@ -21,6 +21,7 @@ package org.apache.helix.task;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
@@ -31,11 +32,15 @@ import org.apache.helix.ZNRecord;
  * property store
  */
 public class WorkflowContext extends HelixProperty {
-  public static final String WORKFLOW_STATE = "STATE";
-  public static final String START_TIME = "START_TIME";
-  public static final String FINISH_TIME = "FINISH_TIME";
-  public static final String JOB_STATES = "JOB_STATES";
-  public static final String LAST_SCHEDULED_WORKFLOW = "LAST_SCHEDULED_WORKFLOW";
+  protected enum WorkflowContextProperties {
+    STATE,
+    START_TIME,
+    FINISH_TIME,
+    JOB_STATES,
+    LAST_SCHEDULED_WORKFLOW,
+    LAST_PURGE_TIME
+  }
+
   public static final int UNSTARTED = -1;
   public static final int UNFINISHED = -1;
 
@@ -44,39 +49,48 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setWorkflowState(TaskState s) {
-    if (_record.getSimpleField(WORKFLOW_STATE) == null) {
-      _record.setSimpleField(WORKFLOW_STATE, s.name());
-    } else if (!_record.getSimpleField(WORKFLOW_STATE).equals(TaskState.FAILED.name())
-        && !_record.getSimpleField(WORKFLOW_STATE).equals(TaskState.COMPLETED.name())) {
-      _record.setSimpleField(WORKFLOW_STATE, s.name());
+    String workflowState = _record.getSimpleField(WorkflowContextProperties.STATE.name());
+    if (workflowState == null) {
+      _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
+    } else if (!workflowState.equals(TaskState.FAILED.name()) && !workflowState
+        .equals(TaskState.COMPLETED.name())) {
+      _record.setSimpleField(WorkflowContextProperties.STATE.name(), s.name());
     }
   }
 
   public TaskState getWorkflowState() {
-    String s = _record.getSimpleField(WORKFLOW_STATE);
-    if (s == null) {
-      return null;
+    String state = _record.getSimpleField(WorkflowContextProperties.STATE.name());
+    if (state == null) {
+      return TaskState.NOT_STARTED;
     }
 
-    return TaskState.valueOf(s);
+    return TaskState.valueOf(state);
   }
 
-  public void setJobState(String jobResource, TaskState s) {
-    Map<String, String> states = _record.getMapField(JOB_STATES);
+  public void setJobState(String job, TaskState s) {
+    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (states == null) {
       states = new TreeMap<String, String>();
-      _record.setMapField(JOB_STATES, states);
+      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
     }
-    states.put(jobResource, s.name());
+    states.put(job, s.name());
   }
 
-  public TaskState getJobState(String jobResource) {
-    Map<String, String> states = _record.getMapField(JOB_STATES);
+  protected void removeJobStates(Set<String> jobs) {
+    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
+    if (states != null) {
+      states.keySet().removeAll(jobs);
+      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
+    }
+  }
+
+  public TaskState getJobState(String job) {
+    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (states == null) {
       return null;
     }
 
-    String s = states.get(jobResource);
+    String s = states.get(job);
     if (s == null) {
       return null;
     }
@@ -86,7 +100,8 @@ public class WorkflowContext extends HelixProperty {
 
   public Map<String, TaskState> getJobStates() {
     Map<String, TaskState> jobStates = new HashMap<String, TaskState>();
-    Map<String, String> stateFieldMap = _record.getMapField(JOB_STATES);
+    Map<String, String> stateFieldMap =
+        _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (stateFieldMap != null) {
       for (Map.Entry<String, String> state : stateFieldMap.entrySet()) {
         jobStates.put(state.getKey(), TaskState.valueOf(state.getValue()));
@@ -97,11 +112,11 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setStartTime(long t) {
-    _record.setSimpleField(START_TIME, String.valueOf(t));
+    _record.setSimpleField(WorkflowContextProperties.START_TIME.name(), String.valueOf(t));
   }
 
   public long getStartTime() {
-    String tStr = _record.getSimpleField(START_TIME);
+    String tStr = _record.getSimpleField(WorkflowContextProperties.START_TIME.name());
     if (tStr == null) {
       return -1;
     }
@@ -110,11 +125,11 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setFinishTime(long t) {
-    _record.setSimpleField(FINISH_TIME, String.valueOf(t));
+    _record.setSimpleField(WorkflowContextProperties.FINISH_TIME.name(), String.valueOf(t));
   }
 
   public long getFinishTime() {
-    String tStr = _record.getSimpleField(FINISH_TIME);
+    String tStr = _record.getSimpleField(WorkflowContextProperties.FINISH_TIME.name());
     if (tStr == null) {
       return UNFINISHED;
     }
@@ -123,10 +138,19 @@ public class WorkflowContext extends HelixProperty {
   }
 
   public void setLastScheduledSingleWorkflow(String wf) {
-    _record.setSimpleField(LAST_SCHEDULED_WORKFLOW, wf);
+    _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), wf);
   }
 
   public String getLastScheduledSingleWorkflow() {
-    return _record.getSimpleField(LAST_SCHEDULED_WORKFLOW);
+    return _record.getSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name());
+  }
+
+  protected void setLastJobPurgeTime(long epochTime) {
+    _record.setSimpleField(WorkflowContextProperties.LAST_PURGE_TIME.name(),
+        String.valueOf(epochTime));
+  }
+
+  public long getLastJobPurgeTime() {
+    return _record.getLongField(WorkflowContextProperties.LAST_PURGE_TIME.name(), -1);
   }
 }

@@ -125,7 +125,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     LOG.debug("Computer Best Partition for resource: " + resourceName);
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobCfg(_manager, resourceName);
+    JobConfig jobCfg = TaskUtil.getJobConfig(_manager, resourceName);
     if (jobCfg == null) {
       LOG.debug("Job configuration is NULL for " + resourceName);
       return emptyAssignment(resourceName, currStateOutput);
@@ -133,7 +133,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_manager, workflowResource);
     if (workflowCfg == null) {
       LOG.debug("Workflow configuration is NULL for " + resourceName);
       return emptyAssignment(resourceName, currStateOutput);

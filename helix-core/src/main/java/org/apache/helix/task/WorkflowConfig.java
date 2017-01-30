@@ -146,6 +146,14 @@ public class  WorkflowConfig extends ResourceConfig {
         .fromJson(getSimpleConfig(WorkflowConfigProperty.Dag.name())) : DEFAULT_JOB_DAG;
   }
 
+  protected void setJobDag(JobDag jobDag) {
+    try {
+      putSimpleConfig(WorkflowConfigProperty.Dag.name(), jobDag.toJson());
+    } catch (IOException ex) {
+      throw new HelixException("Invalid job dag configuration!", ex);
+    }
+  }
+
   public int getParallelJobs() {
     return _record
         .getIntField(WorkflowConfigProperty.ParallelJobs.name(), DEFAULT_PARALLEL_JOBS);

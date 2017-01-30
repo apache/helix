@@ -211,9 +211,10 @@ public class TaskTestUtil {
   }
 
   public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
-      int failureThreshold) {
+      int failureThreshold, int capacity) {
     WorkflowConfig.Builder workflowCfgBuilder = new WorkflowConfig.Builder();
     workflowCfgBuilder.setExpiry(120000);
+    workflowCfgBuilder.setCapacity(capacity);
 
     Calendar cal = Calendar.getInstance();
     cal.set(Calendar.MINUTE, cal.get(Calendar.MINUTE) + delayStart / 60);
@@ -227,8 +228,17 @@ public class TaskTestUtil {
     return new JobQueue.Builder(jobQueueName).setWorkflowConfig(workflowCfgBuilder.build());
   }
 
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int delayStart,
+      int failureThreshold) {
+    return buildJobQueue(jobQueueName, delayStart, failureThreshold, 500);
+  }
+
   public static JobQueue.Builder buildJobQueue(String jobQueueName) {
-    return buildJobQueue(jobQueueName, 0, 0);
+    return buildJobQueue(jobQueueName, 0, 0, 500);
+  }
+
+  public static JobQueue.Builder buildJobQueue(String jobQueueName, int capacity) {
+    return buildJobQueue(jobQueueName, 0, 0, capacity);
   }
 
   public static WorkflowContext buildWorkflowContext(String workflowResource,

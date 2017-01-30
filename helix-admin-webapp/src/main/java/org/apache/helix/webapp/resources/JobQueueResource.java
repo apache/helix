@@ -180,7 +180,7 @@ public class JobQueueResource extends ServerResource {
         break;
       }
       case clean: {
-        driver.cleanupJobQueue(jobQueueName);
+        driver.cleanupQueue(jobQueueName);
         break;
       }
       default:

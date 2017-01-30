@@ -137,7 +137,7 @@ public class TaskDriver {
     newWorkflowConfig.setJobTypes(jobTypes);
 
     // add workflow config.
-    if (!TaskUtil.setResourceConfig(_accessor, flow.getName(), newWorkflowConfig)) {
+    if (!TaskUtil.setWorkflowConfig(_accessor, flow.getName(), newWorkflowConfig)) {
       LOG.error("Failed to add workflow configuration for workflow " + flow.getName());
     }
 
@@ -172,7 +172,7 @@ public class TaskDriver {
    */
   public void updateWorkflow(String workflow, WorkflowConfig newWorkflowConfig) {
     WorkflowConfig currentConfig =
-        TaskUtil.getWorkflowCfg(_accessor, workflow);
+        TaskUtil.getWorkflowConfig(_accessor, workflow);
     if (currentConfig == null) {
       throw new HelixException("Workflow " + workflow + " does not exist!");
     }
@@ -182,8 +182,9 @@ public class TaskDriver {
           "Workflow " + workflow + " is terminable, not allow to change its configuration!");
     }
 
-    // TODO: Should not let user changing DAG in the workflow
-    if (!TaskUtil.setResourceConfig(_accessor, workflow, newWorkflowConfig)) {
+    // Should not let user changing DAG in the workflow
+    newWorkflowConfig.setJobDag(currentConfig.getJobDag());
+    if (!TaskUtil.setWorkflowConfig(_accessor, workflow, newWorkflowConfig)) {
       LOG.error("Failed to update workflow configuration for workflow " + workflow);
     }
 
@@ -200,282 +201,132 @@ public class TaskDriver {
   }
 
   /**
-   * Remove all jobs in a job queue
+   * Remove all completed or failed jobs in a job queue
+   * Same as {@link #cleanupQueue(String)}
    *
-   * @param queueName
+   * @param queue name of the queue
    * @throws Exception
    */
-  // TODO: need to make sure the queue is stopped or completed before flush the queue.
-  public void flushQueue(String queueName) {
-    WorkflowConfig config =
-        TaskUtil.getWorkflowCfg(_accessor, queueName);
-    if (config == null) {
-      throw new IllegalArgumentException("Queue does not exist!");
-    }
-
-    // Remove all ideal states and resource configs to trigger a drop event
-    PropertyKey.Builder keyBuilder = _accessor.keyBuilder();
-    final Set<String> toRemove = Sets.newHashSet(config.getJobDag().getAllNodes());
-    for (String resourceName : toRemove) {
-      _accessor.removeProperty(keyBuilder.idealStates(resourceName));
-      _accessor.removeProperty(keyBuilder.resourceConfig(resourceName));
-      // Delete context
-      String contextKey = Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, resourceName);
-      _propertyStore.remove(contextKey, AccessOption.PERSISTENT);
-    }
-
-    // Now atomically clear the DAG
-    String path = keyBuilder.resourceConfig(queueName).getPath();
-    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        JobDag jobDag = JobDag.fromJson(
-            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
-        for (String resourceName : toRemove) {
-          for (String child : jobDag.getDirectChildren(resourceName)) {
-            jobDag.getChildrenToParents().get(child).remove(resourceName);
-          }
-          for (String parent : jobDag.getDirectParents(resourceName)) {
-            jobDag.getParentsToChildren().get(parent).remove(resourceName);
-          }
-          jobDag.getChildrenToParents().remove(resourceName);
-          jobDag.getParentsToChildren().remove(resourceName);
-          jobDag.getAllNodes().remove(resourceName);
-        }
-        try {
-          currentData
-              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
-        } catch (Exception e) {
-          throw new IllegalArgumentException(e);
-        }
-        return currentData;
-      }
-    };
-    _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
-
-    // Now atomically clear the results
-    path =
-        Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
-    updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
-        if (states != null) {
-          states.keySet().removeAll(toRemove);
-        }
-        return currentData;
-      }
-    };
-    _propertyStore.update(path, updater, AccessOption.PERSISTENT);
+  public void flushQueue(String queue) {
+    cleanupQueue(queue);
   }
 
   /**
    * Delete a job from an existing named queue,
    * the queue has to be stopped prior to this call
    *
-   * @param queueName
-   * @param jobName
+   * @param queue queue name
+   * @param job  job name
    */
-  public void deleteJob(final String queueName, final String jobName) {
+  public void deleteJob(final String queue, final String job) {
     WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowCfg(_accessor, queueName);
+        TaskUtil.getWorkflowConfig(_accessor, queue);
 
     if (workflowCfg == null) {
-      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+      throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
     }
     if (workflowCfg.isTerminable()) {
-      throw new IllegalArgumentException(queueName + " is not a queue!");
+      throw new IllegalArgumentException(queue + " is not a queue!");
     }
 
     boolean isRecurringWorkflow =
         (workflowCfg.getScheduleConfig() != null && workflowCfg.getScheduleConfig().isRecurring());
 
     if (isRecurringWorkflow) {
-      WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
-
-      String lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
-
-      // delete the current scheduled one
-      deleteJobFromScheduledQueue(lastScheduledQueue, jobName, true);
-
-      // Remove the job from the original queue template's DAG
-      removeJobFromDag(queueName, jobName);
-
-      // delete the ideal state and resource config for the template job
-      final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
-      _admin.dropResource(_clusterName, namespacedJobName);
-
-      // Delete the job template from property store
-      String jobPropertyPath =
-          Joiner.on("/")
-              .join(TaskConstants.REBALANCER_CONTEXT_ROOT, namespacedJobName);
-      _propertyStore.remove(jobPropertyPath, AccessOption.PERSISTENT);
-    } else {
-      deleteJobFromScheduledQueue(queueName, jobName, false);
-    }
-  }
-
-  /**
-   * delete a job from a scheduled (non-recurrent) queue.
-   *
-   * @param queueName
-   * @param jobName
-   */
-  private void deleteJobFromScheduledQueue(final String queueName, final String jobName,
-      boolean isRecurrent) {
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_accessor, queueName);
-
-    if (workflowCfg == null) {
-      // When try to delete recurrent job, it could be either not started or finished. So
-      // there may not be a workflow config.
-      if (isRecurrent) {
-        return;
-      } else {
-        throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+      // delete job from the last scheduled queue if there exists one.
+      WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
+      String lastScheduledQueue = null;
+      if (wCtx != null) {
+        lastScheduledQueue = wCtx.getLastScheduledSingleWorkflow();
+      }
+      if (lastScheduledQueue != null) {
+        WorkflowConfig lastWorkflowCfg = TaskUtil.getWorkflowConfig(_accessor, lastScheduledQueue);
+        if (lastWorkflowCfg != null) {
+          deleteJobFromQueue(lastScheduledQueue, job);
+        }
       }
     }
 
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
-    if (wCtx != null && wCtx.getWorkflowState() == null) {
-      throw new IllegalStateException("Queue " + queueName + " does not have a valid work state!");
-    }
+    deleteJobFromQueue(queue, job);
+  }
 
-    String workflowState =
-        (wCtx != null) ? wCtx.getWorkflowState().name() : TaskState.NOT_STARTED.name();
+    /**
+     * delete a job from a scheduled (non-recurrent) queue.
+     *
+     * @param queue
+     * @param job
+     */
+
+  private void deleteJobFromQueue(final String queue, final String job) {
+    WorkflowContext workflowCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
+    String workflowState = (workflowCtx != null)
+        ? workflowCtx.getWorkflowState().name()
+        : TaskState.NOT_STARTED.name();
 
     if (workflowState.equals(TaskState.IN_PROGRESS.name())) {
-      throw new IllegalStateException("Queue " + queueName + " is still in progress!");
+      throw new IllegalStateException("Queue " + queue + " is still running!");
     }
-    removeJob(queueName, jobName);
-  }
 
-  private void removeJob(String queueName, String jobName) {
-    // Remove the job from the queue in the DAG
-    removeJobFromDag(queueName, jobName);
-
-    // delete the ideal state and resource config for the job
-    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
-    _admin.dropResource(_clusterName, namespacedJobName);
-
-    // update queue's property to remove job from JOB_STATES if it is already started.
-    removeJobStateFromQueue(queueName, jobName);
-
-    TaskUtil.removeJobContext(_propertyStore, jobName);
-  }
-
-  /** Remove the job name from the DAG from the queue configuration */
-  private void removeJobFromDag(final String queueName, final String jobName) {
-    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
-
-    DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData == null) {
-          LOG.error("Could not update DAG for queue: " + queueName + " ZNRecord is null.");
-          return null;
-        }
-        // Add the node to the existing DAG
-        JobDag jobDag = JobDag.fromJson(
-            currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
-        Set<String> allNodes = jobDag.getAllNodes();
-        if (!allNodes.contains(namespacedJobName)) {
-          LOG.warn(
-              "Could not delete job from queue " + queueName + ", job " + jobName + " not exists");
-          return currentData;
-        }
-        String parent = null;
-        String child = null;
-        // remove the node from the queue
-        for (String node : allNodes) {
-          if (jobDag.getDirectChildren(node).contains(namespacedJobName)) {
-            parent = node;
-            jobDag.removeParentToChild(parent, namespacedJobName);
-          } else if (jobDag.getDirectParents(node).contains(namespacedJobName)) {
-            child = node;
-            jobDag.removeParentToChild(namespacedJobName, child);
-          }
-        }
-        if (parent != null && child != null) {
-          jobDag.addParentToChild(parent, child);
-        }
-        jobDag.removeNode(namespacedJobName);
-
-        // Save the updated DAG
-        try {
-          currentData
-              .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
-        } catch (Exception e) {
-          throw new IllegalStateException(
-              "Could not remove job " + jobName + " from DAG of queue " + queueName, e);
-        }
-        return currentData;
-      }
-    };
-
-    String path = _accessor.keyBuilder().resourceConfig(queueName).getPath();
-    if (!_accessor.getBaseDataAccessor().update(path, dagRemover, AccessOption.PERSISTENT)) {
-      throw new IllegalArgumentException(
-          "Could not remove job " + jobName + " from DAG of queue " + queueName);
+    if (workflowState.equals(TaskState.COMPLETED.name()) || workflowState.equals(
+        TaskState.FAILED.name()) || workflowState.equals(TaskState.ABORTED.name())) {
+      LOG.warn("Queue " + queue + " has already reached its final state, skip deleting job from it.");
+      return;
     }
-  }
 
-  /** update queue's property to remove job from JOB_STATES if it is already started. */
-  private void removeJobStateFromQueue(final String queueName, final String jobName) {
-    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
-    String queuePropertyPath =
-        Joiner.on("/")
-            .join(TaskConstants.REBALANCER_CONTEXT_ROOT, queueName, TaskUtil.CONTEXT_NODE);
-
-    DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
-        if (currentData != null) {
-          Map<String, String> states = currentData.getMapField(WorkflowContext.JOB_STATES);
-          if (states != null && states.containsKey(namespacedJobName)) {
-            states.keySet().remove(namespacedJobName);
-          }
-        }
-        return currentData;
-      }
-    };
-    if (!_propertyStore.update(queuePropertyPath, updater, AccessOption.PERSISTENT)) {
-      LOG.warn("Fail to remove job state for job " + namespacedJobName + " from queue " + queueName);
+    String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
+    Set<String> jobs = new HashSet<String>(Arrays.asList(namespacedJobName));
+    if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, jobs, true)) {
+      LOG.error("Failed to delete job " + job + " from queue " + queue);
+      throw new HelixException("Failed to delete job " + job + " from queue " + queue);
     }
   }
 
   /**
    * Adds a new job to the end an existing named queue.
    *
-   * @param queueName
-   * @param jobName
+   * @param queue
+   * @param job
    * @param jobBuilder
    * @throws Exception
    */
-  public void enqueueJob(final String queueName, final String jobName,
+  public void enqueueJob(final String queue, final String job,
       JobConfig.Builder jobBuilder) {
     // Get the job queue config and capacity
-    WorkflowConfig workflowConfig = TaskUtil.getWorkflowCfg(_accessor, queueName);
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
     if (workflowConfig == null) {
-      throw new IllegalArgumentException("Queue " + queueName + " config does not yet exist!");
+      throw new IllegalArgumentException("Queue " + queue + " config does not yet exist!");
     }
-    boolean isTerminable = workflowConfig.isTerminable();
-    if (isTerminable) {
-      throw new IllegalArgumentException(queueName + " is not a queue!");
+    if (workflowConfig.isTerminable()) {
+      throw new IllegalArgumentException(queue + " is not a queue!");
     }
 
     final int capacity = workflowConfig.getCapacity();
+    int queueSize = workflowConfig.getJobDag().size();
+    if (capacity > 0 && queueSize >= capacity) {
+      // if queue is full, Helix will try to clean up the expired job to free more space.
+      WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, queue);
+      if (workflowContext != null) {
+        Set<String> expiredJobs =
+            TaskUtil.getExpiredJobs(_accessor, _propertyStore, workflowConfig, workflowContext);
+        if (!TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, expiredJobs, true)) {
+          LOG.warn("Failed to clean up expired and completed jobs from queue " + queue);
+        }
+      }
+      workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
+      if (workflowConfig.getJobDag().size() >= capacity) {
+        throw new HelixException("Failed to enqueue a job, queue is full.");
+      }
+    }
 
     // Create the job to ensure that it validates
-    JobConfig jobConfig = jobBuilder.setWorkflow(queueName).build();
-
-    final String namespacedJobName = TaskUtil.getNamespacedJobName(queueName, jobName);
+    JobConfig jobConfig = jobBuilder.setWorkflow(queue).build();
+    final String namespacedJobName = TaskUtil.getNamespacedJobName(queue, job);
 
     // add job config first.
     addJobConfig(namespacedJobName, jobConfig);
     final String jobType = jobConfig.getJobType();
 
-    // Add the job to the end of the queue in the DAG
+    // update the job dag to append the job to the end of the queue.
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
       @Override
       public ZNRecord update(ZNRecord currentData) {
@@ -485,11 +336,11 @@ public class TaskDriver {
         Set<String> allNodes = jobDag.getAllNodes();
         if (capacity > 0 && allNodes.size() >= capacity) {
           throw new IllegalStateException(
-              "Queue " + queueName + " is at capacity, will not add " + jobName);
+              "Queue " + queue + " already reaches its max capacity, failed to add " + job);
         }
         if (allNodes.contains(namespacedJobName)) {
           throw new IllegalStateException(
-              "Could not add to queue " + queueName + ", job " + jobName + " already exists");
+              "Could not add to queue " + queue + ", job " + job + " already exists");
         }
         jobDag.addNode(namespacedJobName);
 
@@ -512,7 +363,7 @@ public class TaskDriver {
           if (jobTypes == null) {
             jobTypes = new HashMap<String, String>();
           }
-          jobTypes.put(jobName, jobType);
+          jobTypes.put(queue, jobType);
           currentData.setMapField(WorkflowConfig.WorkflowConfigProperty.JobTypes.name(), jobTypes);
         }
 
@@ -521,51 +372,58 @@ public class TaskDriver {
           currentData
               .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
         } catch (Exception e) {
-          throw new IllegalStateException("Could not add job " + jobName + " to queue " + queueName,
+          throw new IllegalStateException("Could not add job " + job + " to queue " + queue,
               e);
         }
         return currentData;
       }
     };
-    String path = _accessor.keyBuilder().resourceConfig(queueName).getPath();
+    String path = _accessor.keyBuilder().resourceConfig(queue).getPath();
     boolean status = _accessor.getBaseDataAccessor().update(path, updater, AccessOption.PERSISTENT);
     if (!status) {
-      throw new IllegalArgumentException("Could not enqueue job");
+      throw new HelixException("Failed to enqueue job");
     }
 
     // This is to make it back-compatible with old Helix task driver.
-    addWorkflowResourceIfNecessary(queueName);
+    addWorkflowResourceIfNecessary(queue);
 
     // Schedule the job
-    RebalanceScheduler.invokeRebalance(_accessor, queueName);
+    RebalanceScheduler.invokeRebalance(_accessor, queue);
   }
 
   /**
-   * Remove all jobs that are in final states (ABORTED, FAILED, COMPLETED) from the job queue.
-   * The job config, job context will be removed from Zookeeper.
+   * Remove all jobs that are in final states (ABORTED, FAILED, COMPLETED) from the job queue. The
+   * job config, job context will be removed from Zookeeper.
    *
-   * @param queueName The name of job queue
+   * @param queue The name of job queue
    */
-  public void cleanupJobQueue(String queueName) {
-    WorkflowConfig workflowCfg =
-        TaskUtil.getWorkflowCfg(_accessor, queueName);
+  public void cleanupQueue(String queue) {
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, queue);
 
-    if (workflowCfg == null) {
-      throw new IllegalArgumentException("Queue " + queueName + " does not yet exist!");
+    if (workflowConfig == null) {
+      throw new IllegalArgumentException("Queue " + queue + " does not yet exist!");
     }
 
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queueName);
-    if (wCtx != null && wCtx.getWorkflowState() == null) {
-      throw new IllegalStateException("Queue " + queueName + " does not have a valid work state!");
+    boolean isTerminable = workflowConfig.isTerminable();
+    if (isTerminable) {
+      throw new IllegalArgumentException(queue + " is not a queue!");
     }
 
-    for (String jobNode : workflowCfg.getJobDag().getAllNodes()) {
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, queue);
+    if (wCtx == null || wCtx.getWorkflowState() == null) {
+      throw new IllegalStateException("Queue " + queue + " does not have a valid work state!");
+    }
+
+    Set<String> jobs = new HashSet<String>();
+    for (String jobNode : workflowConfig.getJobDag().getAllNodes()) {
       TaskState curState = wCtx.getJobState(jobNode);
       if (curState != null && (curState == TaskState.ABORTED || curState == TaskState.COMPLETED
           || curState == TaskState.FAILED)) {
-        removeJob(queueName, TaskUtil.getDenamespacedJobName(queueName, jobNode));
+        jobs.add(jobNode);
       }
     }
+
+    TaskUtil.removeJobsFromWorkflow(_accessor, _propertyStore, queue, jobs, true);
   }
 
   /** Posts new workflow resource to cluster */
@@ -578,7 +436,6 @@ public class TaskDriver {
         .createUserContent(_propertyStore, workflow, new ZNRecord(TaskUtil.USER_CONTENT_NODE));
 
     _admin.setResourceIdealState(_clusterName, workflow, is);
-
   }
 
   /**
@@ -607,13 +464,13 @@ public class TaskDriver {
   /**
    * Add new job config to cluster
    */
-  private void addJobConfig(String jobName, JobConfig jobConfig) {
-    LOG.info("Add job configuration " + jobName);
+  private void addJobConfig(String job, JobConfig jobConfig) {
+    LOG.info("Add job configuration " + job);
 
     // Set the job configuration
-    JobConfig newJobCfg = new JobConfig(jobName, jobConfig);
-    if (!TaskUtil.setResourceConfig(_accessor, jobName, newJobCfg)) {
-      LOG.error("Failed to add job configuration for job " + jobName);
+    JobConfig newJobCfg = new JobConfig(job, jobConfig);
+    if (!TaskUtil.setJobConfig(_accessor, job, newJobCfg)) {
+      throw new HelixException("Failed to add job configuration for job " + job);
     }
   }
 
@@ -679,70 +536,63 @@ public class TaskDriver {
   /**
    * Helper function to change target state for a given workflow
    */
-  private void setWorkflowTargetState(String workflowName, TargetState state) {
-    setSingleWorkflowTargetState(workflowName, state);
+  private void setWorkflowTargetState(String workflow, TargetState state) {
+    setSingleWorkflowTargetState(workflow, state);
 
-    // TODO: just need to change the lastScheduledWorkflow.
-    List<String> resources = _accessor.getChildNames(_accessor.keyBuilder().resourceConfigs());
-    for (String resource : resources) {
-      if (resource.startsWith(workflowName)) {
-        setSingleWorkflowTargetState(resource, state);
-      }
-    }
-
-    /* TODO: use this code for new task framework.
     // For recurring schedules, last scheduled incomplete workflow must also be handled
-    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflowName);
-    String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
-    if (lastScheduledWorkflow != null) {
-      WorkflowContext lastScheduledWorkflowCtx =
-          TaskUtil.getWorkflowContext(_propertyStore, lastScheduledWorkflow);
-      if (lastScheduledWorkflowCtx != null && !(
-          lastScheduledWorkflowCtx.getWorkflowState() == TaskState.COMPLETED
-              || lastScheduledWorkflowCtx.getWorkflowState() == TaskState.FAILED)) {
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);
+    if (wCtx != null) {
+      String lastScheduledWorkflow = wCtx.getLastScheduledSingleWorkflow();
+      if (lastScheduledWorkflow != null) {
         setSingleWorkflowTargetState(lastScheduledWorkflow, state);
       }
     }
-    */
   }
 
-  /** Helper function to change target state for a given workflow */
-  private void setSingleWorkflowTargetState(String workflowName, final TargetState state) {
-    LOG.info("Set " + workflowName + " to target state " + state);
+  /**
+   * Helper function to change target state for a given workflow
+   */
+  private void setSingleWorkflowTargetState(String workflow, final TargetState state) {
+    LOG.info("Set " + workflow + " to target state " + state);
+
+    WorkflowConfig workflowConfig = TaskUtil.getWorkflowConfig(_accessor, workflow);
+    if (workflowConfig == null) {
+      LOG.warn("WorkflowConfig for " + workflow + " not found!");
+      return;
+    }
+
+    WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, workflow);
+    if (state != TargetState.DELETE && workflowContext != null &&
+        (workflowContext.getFinishTime() != WorkflowContext.UNFINISHED
+        || workflowContext.getWorkflowState() == TaskState.COMPLETED
+        || workflowContext.getWorkflowState() == TaskState.FAILED)) {
+      // Should not update target state for completed workflow
+      LOG.info("Workflow " + workflow + " is already completed, skip to update its target state "
+          + state);
+      return;
+    }
+
     DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
-      @Override
-      public ZNRecord update(ZNRecord currentData) {
+      @Override public ZNRecord update(ZNRecord currentData) {
         if (currentData != null) {
-          // Only update target state for non-completed workflows
-          String finishTime = currentData.getSimpleField(WorkflowContext.FINISH_TIME);
-          if (finishTime == null || finishTime.equals(WorkflowContext.UNFINISHED)) {
-            currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
-                state.name());
-          } else {
-            LOG.info("TargetState DataUpdater: ignore to update target state " + finishTime);
-          }
+          currentData.setSimpleField(WorkflowConfig.WorkflowConfigProperty.TargetState.name(),
+              state.name());
         } else {
-          LOG.error("TargetState DataUpdater: Fails to update target state " + currentData);
+          LOG.warn("TargetState DataUpdater: Fails to update target state. CurrentData is "
+              + currentData);
         }
         return currentData;
       }
     };
-    List<DataUpdater<ZNRecord>> updaters = Lists.newArrayList();
-    List<String> paths = Lists.newArrayList();
 
-    PropertyKey cfgKey = TaskUtil.getWorkflowConfigKey(_accessor, workflowName);
-    if (_accessor.getProperty(cfgKey) != null) {
-      paths.add(_accessor.keyBuilder().resourceConfig(workflowName).getPath());
-      updaters.add(updater);
-      _accessor.updateChildren(paths, updaters, AccessOption.PERSISTENT);
-      RebalanceScheduler.invokeRebalance(_accessor, workflowName);
-    } else {
-      LOG.error("Configuration path " + cfgKey + " not found!");
-    }
+    PropertyKey workflowConfigKey = TaskUtil.getWorkflowConfigKey(_accessor, workflow);
+    _accessor.getBaseDataAccessor()
+        .update(workflowConfigKey.getPath(), updater, AccessOption.PERSISTENT);
+    RebalanceScheduler.invokeRebalance(_accessor, workflow);
   }
 
   public WorkflowConfig getWorkflowConfig(String workflow) {
-    return TaskUtil.getWorkflowCfg(_accessor, workflow);
+    return TaskUtil.getWorkflowConfig(_accessor, workflow);
   }
 
   public WorkflowContext getWorkflowContext(String workflow) {
@@ -750,7 +600,7 @@ public class TaskDriver {
   }
 
   public JobConfig getJobConfig(String job) {
-    return TaskUtil.getJobCfg(_accessor, job);
+    return TaskUtil.getJobConfig(_accessor, job);
   }
 
   public JobContext getJobContext(String job) {
@@ -762,7 +612,7 @@ public class TaskDriver {
   }
 
   public static WorkflowConfig getWorkflowConfig(HelixManager manager, String workflow) {
-    return TaskUtil.getWorkflowCfg(manager, workflow);
+    return TaskUtil.getWorkflowConfig(manager, workflow);
   }
 
   public static WorkflowContext getWorkflowContext(HelixManager manager, String workflow) {
@@ -770,7 +620,7 @@ public class TaskDriver {
   }
 
   public static JobConfig getJobConfig(HelixManager manager, String job) {
-    return TaskUtil.getJobCfg(manager, job);
+    return TaskUtil.getJobConfig(manager, job);
   }
 
   /**

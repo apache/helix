@@ -268,7 +268,7 @@ public class TaskStateModel extends StateModel {
   }
 
   private void startTask(Message msg, String taskPartition) {
-    JobConfig cfg = TaskUtil.getJobCfg(_manager, msg.getResourceName());
+    JobConfig cfg = TaskUtil.getJobConfig(_manager, msg.getResourceName());
     TaskConfig taskConfig = null;
     String command = cfg.getCommand();
 

@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.annotate.JsonProperty;
 import org.codehaus.jackson.map.ObjectMapper;
 
@@ -34,6 +35,8 @@ import org.codehaus.jackson.map.ObjectMapper;
  * and validate a job dependency graph
  */
 public class JobDag {
+  private static final Logger LOG = Logger.getLogger(JobDag.class);
+
   @JsonProperty("parentsToChildren")
   private Map<String, Set<String>> _parentsToChildren;
 
@@ -66,7 +69,7 @@ public class JobDag {
     _allNodes.add(child);
   }
 
-  public void removeParentToChild(String parent, String child) {
+  private void removeParentToChild(String parent, String child) {
     if (_parentsToChildren.containsKey(parent)) {
       Set<String> children = _parentsToChildren.get(parent);
       children.remove(child);
@@ -91,13 +94,54 @@ public class JobDag {
   /**
    * must make sure no other node dependence before removing the node
    */
-  public void removeNode(String node) {
+  private void removeNode(String node) {
     if (_parentsToChildren.containsKey(node) || _childrenToParents.containsKey(node)) {
       throw new IllegalStateException(
           "The node is either a parent or a child of other node, could not be deleted");
     }
 
     _allNodes.remove(node);
+  }
+
+  /**
+   * Remove a node from the DAG.
+   * @param job
+   * @param maintainDependency: if true, the removed job's parent and child node will be linked together,
+   *                          otherwise, the job will be removed directly without modifying the existing dependency links.
+   */
+  public void removeNode(String job, boolean maintainDependency) {
+    if (!_allNodes.contains(job)) {
+      LOG.info("Could not delete job " + job + " from DAG, node does not exist");
+      return;
+    }
+    if (maintainDependency) {
+      String parent = null;
+      String child = null;
+      // remove the node from the queue
+      for (String n : _allNodes) {
+        if (getDirectChildren(n).contains(job)) {
+          parent = n;
+          removeParentToChild(parent, job);
+        } else if (getDirectParents(n).contains(job)) {
+          child = n;
+          removeParentToChild(job, child);
+        }
+      }
+      if (parent != null && child != null) {
+        addParentToChild(parent, child);
+      }
+      removeNode(job);
+    } else {
+      for (String child : getDirectChildren(job)) {
+        getChildrenToParents().get(child).remove(job);
+      }
+      for (String parent : getDirectParents(job)) {
+        getParentsToChildren().get(parent).remove(job);
+      }
+      _childrenToParents.remove(job);
+      _parentsToChildren.remove(job);
+      removeNode(job);
+    }
   }
 
   public Map<String, Set<String>> getParentsToChildren() {

@@ -19,15 +19,6 @@ package org.apache.helix.task;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
-import org.I0Itec.zkclient.DataUpdater;
-import org.apache.helix.*;
-import org.apache.helix.controller.stages.ClusterDataCache;
-import org.apache.helix.controller.stages.CurrentStateOutput;
-import org.apache.helix.model.*;
-import org.apache.helix.model.builder.CustomModeISBuilder;
-import org.apache.helix.model.builder.IdealStateBuilder;
-import org.apache.log4j.Logger;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -38,6 +29,23 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
+
+import com.google.common.collect.Lists;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.Resource;
+import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.CurrentStateOutput;
+import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.model.builder.IdealStateBuilder;
+import org.apache.log4j.Logger;
+
 
 /**
  * Custom rebalancer implementation for the {@code Workflow} in task state model.
@@ -52,7 +60,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     LOG.debug("Computer Best Partition for workflow: " + workflow);
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflow);
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_manager, workflow);
     if (workflowCfg == null) {
       LOG.warn("Workflow configuration is NULL for " + workflow);
       return buildEmptyAssignment(workflow, currStateOutput);
@@ -70,7 +78,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     TargetState targetState = workflowCfg.getTargetState();
     if (targetState == TargetState.DELETE) {
       LOG.info("Workflow is marked as deleted " + workflow + " cleaning up the workflow context.");
-      cleanupWorkflow(workflow, workflowCfg);
+      cleanupWorkflow(workflow,  workflowCfg);
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 
@@ -124,7 +132,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
       LOG.debug("Workflow " + workflow + " is not ready to be scheduled.");
     }
 
-    cleanExpiredJobs(workflowCfg, workflowCtx);
+    // clean up the expired jobs if it is a queue.
+    if (!workflowCfg.isTerminable() || workflowCfg.isJobQueue()) {
+      purgeExpiredJobs(workflow, workflowCfg, workflowCtx);
+    }
 
     TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
     return buildEmptyAssignment(workflow, currStateOutput);
@@ -158,7 +169,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
       // check ancestor job status
       if (isJobReadyToSchedule(job, workflowCfg, workflowCtx)) {
-        JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
+        JobConfig jobConfig = TaskUtil.getJobConfig(_manager, job);
+
         // Since the start time is calculated base on the time of completion of parent jobs for this
         // job, the calculated start time should only be calculate once. Persist the calculated time
         // in WorkflowContext znode.
@@ -440,140 +452,61 @@ public class WorkflowRebalancer extends TaskRebalancer {
   }
 
   /**
-   * Cleans up workflow configs and workflow contexts associated with this workflow,
-   * including all job-level configs and context, plus workflow-level information.
+   * Clean up a workflow. This removes the workflow config, idealstate, externalview and workflow
+   * contexts associated with this workflow, and all jobs information, including their configs,
+   * context, IS and EV.
    */
   private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg) {
     LOG.info("Cleaning up workflow: " + workflow);
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
 
-    /*
-    if (workflowCtx != null && workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED) {
-      LOG.error("Workflow " + workflow + " has not completed, abort the clean up task.");
-      return;
-    }*/
-
-    for (String job : workflowcfg.getJobDag().getAllNodes()) {
-      cleanupJob(job, workflow);
-    }
-
-    // clean up workflow-level info if this was the last in workflow
     if (workflowcfg.isTerminable() || workflowcfg.getTargetState() == TargetState.DELETE) {
-      // clean up IS & EV
-      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), workflow);
-
-      // delete workflow config
-      PropertyKey workflowCfgKey = TaskUtil.getWorkflowConfigKey(accessor, workflow);
-      if (accessor.getProperty(workflowCfgKey) != null) {
-        if (!accessor.removeProperty(workflowCfgKey)) {
-          LOG.error(String.format(
-              "Error occurred while trying to clean up workflow %s. Failed to remove node %s from Helix.",
-              workflow, workflowCfgKey));
-        }
-      }
-      // Delete workflow context
-      LOG.info("Removing workflow context: " + workflow);
-      if (!TaskUtil.removeWorkflowContext(_manager, workflow)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up workflow %s. Aborting further clean up steps.",
-            workflow));
-      }
-
-      // Remove pending timer task for this workflow if exists
+      Set<String> jobs = workflowcfg.getJobDag().getAllNodes();
+      // Remove all pending timer tasks for this workflow if exists
       _scheduledRebalancer.removeScheduledRebalance(workflow);
+      for (String job : jobs) {
+        _scheduledRebalancer.removeScheduledRebalance(job);
+      }
+      if (!TaskUtil.removeWorkflow(_manager, workflow, jobs)) {
+        LOG.warn("Failed to clean up workflow " + workflow);
+      }
+    } else {
+      LOG.info("Did not clean up workflow " + workflow
+          + " because neither the workflow is non-terminable nor is set to DELETE.");
     }
   }
-
 
   /**
-   * Cleans up job configs and job contexts associated with this job,
-   * including all job-level configs and context, plus the job info in the workflow context.
+   * Clean up all jobs that are COMPLETED and passes its expiry time.
+   *
+   * @param workflowConfig
+   * @param workflowContext
    */
-  private void cleanupJob(final String job, String workflow) {
-    LOG.info("Cleaning up job: " + job + " in workflow: " + workflow);
-    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-
-    // Remove any idealstate and externalView.
-    cleanupIdealStateExtView(accessor, job);
-
-    // Remove DAG references in workflow
-    PropertyKey workflowKey = TaskUtil.getWorkflowConfigKey(accessor, workflow);
-    DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
-      @Override public ZNRecord update(ZNRecord currentData) {
-        if (currentData != null) {
-          JobDag jobDag = JobDag.fromJson(
-              currentData.getSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name()));
-          for (String child : jobDag.getDirectChildren(job)) {
-            jobDag.getChildrenToParents().get(child).remove(job);
-          }
-          for (String parent : jobDag.getDirectParents(job)) {
-            jobDag.getParentsToChildren().get(parent).remove(job);
-          }
-          jobDag.getChildrenToParents().remove(job);
-          jobDag.getParentsToChildren().remove(job);
-          jobDag.getAllNodes().remove(job);
-          try {
-            currentData
-                .setSimpleField(WorkflowConfig.WorkflowConfigProperty.Dag.name(), jobDag.toJson());
-          } catch (Exception e) {
-            LOG.error("Could not update DAG for job: " + job, e);
-          }
-        } else {
-          LOG.error("Could not update DAG for job: " + job + " ZNRecord is null.");
-        }
-        return currentData;
-      }
-    };
-    accessor.getBaseDataAccessor().update(workflowKey.getPath(), dagRemover,
-        AccessOption.PERSISTENT);
-
-    // Delete job configs.
-    PropertyKey cfgKey = TaskUtil.getWorkflowConfigKey(accessor, job);
-    if (accessor.getProperty(cfgKey) != null) {
-      if (!accessor.removeProperty(cfgKey)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up job %s. Failed to remove node %s from Helix.",
-            job, cfgKey));
-      }
-    }
-
-    // Delete job context
-    // For recurring workflow, it's OK if the node doesn't exist.
-    if (!TaskUtil.removeJobContext(_manager, job)) {
-      LOG.warn(String.format("Error occurred while trying to clean up job %s.", job));
-    }
-
-    LOG.info(String.format("Successfully cleaned up job context %s.", job));
-
-    _scheduledRebalancer.removeScheduledRebalance(job);
-  }
-
-  private void cleanExpiredJobs(WorkflowConfig workflowConfig, WorkflowContext workflowContext) {
-    if (workflowContext == null) {
+  // TODO: run this in a separate thread.
+  // Get all jobConfigs & jobContext from ClusterCache.
+  protected void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
+      WorkflowContext workflowContext) {
+    if (workflowContext.getLastJobPurgeTime() + JOB_PURGE_INTERVAL > System.currentTimeMillis()) {
       return;
     }
 
-    Map<String, TaskState> jobStates = workflowContext.getJobStates();
-    long newTimeToClean = Long.MAX_VALUE;
-    for (String job : workflowConfig.getJobDag().getAllNodes()) {
-      JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
-      JobContext jobContext = TaskUtil.getJobContext(_manager, job);
-      // There is no ABORTED state for JobQueue Job. The job will die with workflow
-      if (jobContext != null && jobStates.containsKey(job) && (
-          jobStates.get(job) == TaskState.COMPLETED || jobStates.get(job) == TaskState.FAILED)) {
-        if (System.currentTimeMillis() >= jobConfig.getExpiry() + jobContext.getFinishTime()) {
-          cleanupJob(job, workflowConfig.getWorkflowId());
-        } else {
-          newTimeToClean =
-              Math.min(newTimeToClean, jobConfig.getExpiry() + jobContext.getFinishTime());
-        }
-      }
+    Set<String> expiredJobs = TaskUtil
+        .getExpiredJobs(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
+            workflowConfig, workflowContext);
+    for (String job : expiredJobs) {
+      _scheduledRebalancer.removeScheduledRebalance(job);
+    }
+    if (!TaskUtil
+        .removeJobsFromWorkflow(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
+            workflow, expiredJobs, true)) {
+      LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
     }
 
-    if (newTimeToClean < Long.MAX_VALUE && newTimeToClean < _scheduledRebalancer
-        .getRebalanceTime(workflowConfig.getWorkflowId())) {
-      _scheduledRebalancer
-          .scheduleRebalance(_manager, workflowConfig.getWorkflowId(), newTimeToClean);
+    long currentTime = System.currentTimeMillis();
+    long nextPurgeTime = currentTime + JOB_PURGE_INTERVAL;
+    workflowContext.setLastJobPurgeTime(currentTime);
+    long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(workflow);
+    if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
+      _scheduledRebalancer.scheduleRebalance(_manager, workflow, nextPurgeTime);
     }
   }
 

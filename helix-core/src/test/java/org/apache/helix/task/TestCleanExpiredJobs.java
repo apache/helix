@@ -19,6 +19,9 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.Set;
+import org.apache.helix.HelixException;
 import org.apache.helix.TestHelper;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.integration.task.MockTask;
@@ -39,34 +42,57 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
 
   @Test
   public void testCleanExpiredJobs() throws Exception {
-    String workflowName = TestHelper.getTestMethodName();
-    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(workflowName);
+    String queue = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queue);
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
             .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG).setExpiry(1L);
 
     long startTime = System.currentTimeMillis();
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 8; i++) {
       builder.enqueueJob("JOB" + i, jobBuilder);
-      TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(workflowName, "JOB" + i),
+    }
+
+    for (int i = 0; i < 8; i++) {
+      TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(queue, "JOB" + i),
           TaskTestUtil.buildJobContext(startTime, startTime, TaskPartitionState.COMPLETED));
     }
 
+    for (int i = 4; i < 6; i++) {
+      TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(queue, "JOB" + i),
+          TaskTestUtil
+              .buildJobContext(startTime, startTime + 100000, TaskPartitionState.COMPLETED));
+    }
+
     WorkflowContext workflowContext = TaskTestUtil
-        .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
-            TaskState.FAILED, TaskState.ABORTED, TaskState.IN_PROGRESS, TaskState.NOT_STARTED);
+        .buildWorkflowContext(queue, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
+            TaskState.FAILED, TaskState.ABORTED, TaskState.COMPLETED, TaskState.COMPLETED,
+            TaskState.COMPLETED, TaskState.IN_PROGRESS, TaskState.NOT_STARTED);
+
+    Set<String> jobsLeft = new HashSet<String>();
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 1));
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 2));
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 4));
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 5));
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 6));
+    jobsLeft.add(TaskUtil.getNamespacedJobName(queue, "JOB" + 7));
+
     _driver.start(builder.build());
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor());
-    TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
+    TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
-    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(workflowName);
-    Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), 3);
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
+    Assert.assertEquals(workflowConfig.getJobDag().getAllNodes(), jobsLeft);
+    workflowContext = _driver.getWorkflowContext(queue);
+    Assert.assertTrue(workflowContext.getLastJobPurgeTime() > startTime
+        && workflowContext.getLastJobPurgeTime() < System.currentTimeMillis());
   }
 
-  @Test void testNotCleanJobsDueToParentFail() throws Exception {
-    String workflowName = TestHelper.getTestMethodName();
-    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(workflowName);
+  @Test
+  void testNotCleanJobsDueToParentFail() throws Exception {
+    String queue = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queue);
     JobConfig.Builder jobBuilder =
         new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
@@ -76,17 +102,57 @@ public class TestCleanExpiredJobs extends TaskSynchronizedTestBase {
     builder.enqueueJob("JOB0", jobBuilder);
     builder.enqueueJob("JOB1", jobBuilder);
     builder.addParentChildDependency("JOB0", "JOB1");
-    TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(workflowName, "JOB0"),
+    TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(queue, "JOB0"),
         TaskTestUtil.buildJobContext(startTime, startTime, TaskPartitionState.COMPLETED));
 
     WorkflowContext workflowContext = TaskTestUtil
-        .buildWorkflowContext(workflowName, TaskState.IN_PROGRESS, null, TaskState.FAILED,
+        .buildWorkflowContext(queue, TaskState.IN_PROGRESS, null, TaskState.FAILED,
             TaskState.FAILED);
     _driver.start(builder.build());
     _cache = TaskTestUtil.buildClusterDataCache(_manager.getHelixDataAccessor());
-    TaskUtil.setWorkflowContext(_manager, workflowName, workflowContext);
+    TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
     TaskTestUtil.calculateBestPossibleState(_cache, _manager);
-    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(workflowName);
-    Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), 1);
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
+    Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), 2);
+  }
+
+  @Test
+  void testNotCleanJobsThroughEnqueueJob() throws Exception {
+    int capacity = 5;
+    String queue = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queue, capacity);
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2)
+            .setJobCommandConfigMap(WorkflowGenerator.DEFAULT_COMMAND_CONFIG).setExpiry(1L);
+
+    long startTime = System.currentTimeMillis();
+    for (int i = 0; i < capacity; i++) {
+      builder.enqueueJob("JOB" + i, jobBuilder);
+    }
+
+    _driver.start(builder.build());
+    try {
+      // should fail here since the queue is full.
+      _driver.enqueueJob(queue, "JOB" + capacity, jobBuilder);
+      Assert.fail("Queue is not full.");
+    } catch (HelixException e) {
+      Assert.assertTrue(e.getMessage().contains("queue is full"));
+    }
+
+    for (int i = 0; i < capacity; i++) {
+      TaskUtil.setJobContext(_manager, TaskUtil.getNamespacedJobName(queue, "JOB" + i),
+          TaskTestUtil.buildJobContext(startTime, startTime, TaskPartitionState.COMPLETED));
+    }
+
+    WorkflowContext workflowContext = TaskTestUtil
+        .buildWorkflowContext(queue, TaskState.IN_PROGRESS, null, TaskState.COMPLETED,
+            TaskState.COMPLETED, TaskState.FAILED, TaskState.IN_PROGRESS);
+    TaskUtil.setWorkflowContext(_manager, queue, workflowContext);
+
+    _driver.enqueueJob(queue, "JOB" + capacity, jobBuilder);
+
+    WorkflowConfig workflowConfig = _driver.getWorkflowConfig(queue);
+    Assert.assertEquals(workflowConfig.getJobDag().getAllNodes().size(), capacity - 1);
   }
 }

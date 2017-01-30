@@ -33,6 +33,7 @@ import java.util.TreeSet;
 
 import org.apache.helix.AccessOption;
 import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.stages.ClusterDataCache;
@@ -69,7 +70,7 @@ public class JobRebalancer extends TaskRebalancer {
     LOG.debug("Computer Best Partition for job: " + jobName);
 
     // Fetch job configuration
-    JobConfig jobCfg = TaskUtil.getJobCfg(_manager, jobName);
+    JobConfig jobCfg = TaskUtil.getJobConfig(_manager, jobName);
     if (jobCfg == null) {
       LOG.error("Job configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -77,7 +78,7 @@ public class JobRebalancer extends TaskRebalancer {
     String workflowResource = jobCfg.getWorkflow();
 
     // Fetch workflow configuration and context
-    WorkflowConfig workflowCfg = TaskUtil.getWorkflowCfg(_manager, workflowResource);
+    WorkflowConfig workflowCfg = TaskUtil.getWorkflowConfig(_manager, workflowResource);
     if (workflowCfg == null) {
       LOG.error("Workflow configuration is NULL for " + jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
@@ -105,7 +106,7 @@ public class JobRebalancer extends TaskRebalancer {
       LOG.info(String.format(
           "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
-      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
+      TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
       _scheduledRebalancer.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
@@ -358,7 +359,7 @@ public class JobRebalancer extends TaskRebalancer {
               addAllPartitions(allPartitions, partitionsToDropFromIs);
 
               // remove IdealState of this job
-              cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+              TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
               return buildEmptyAssignment(jobResource, currStateOutput);
             } else {
               skippedPartitions.add(pId);
@@ -397,7 +398,7 @@ public class JobRebalancer extends TaskRebalancer {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED);
       // remove IdealState of this job
-      cleanupIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
+      TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
     }
 
     // Make additional task assignments if needed.
@@ -693,7 +694,7 @@ public class JobRebalancer extends TaskRebalancer {
     }
 
     for (Partition partition : assignment.getMappedPartitions()) {
-      int pId = TaskUtil.getPartitionId(partition.getPartitionName());
+      int pId = getPartitionId(partition.getPartitionName());
       if (includeSet.contains(pId)) {
         Map<String, String> replicaMap = assignment.getReplicaMap(partition);
         for (String instance : replicaMap.keySet()) {
@@ -705,6 +706,15 @@ public class JobRebalancer extends TaskRebalancer {
       }
     }
     return result;
+  }
+
+  /* Extracts the partition id from the given partition name. */
+  private static int getPartitionId(String pName) {
+    int index = pName.lastIndexOf("_");
+    if (index == -1) {
+      throw new HelixException("Invalid partition name " + pName);
+    }
+    return Integer.valueOf(pName.substring(index + 1));
   }
 
   private static Set<Integer> getNonReadyPartitions(JobContext ctx, long now) {

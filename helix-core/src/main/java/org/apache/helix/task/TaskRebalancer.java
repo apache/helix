@@ -23,10 +23,8 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.Rebalancer;
 import org.apache.helix.controller.rebalancer.internal.MappingCalculator;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
@@ -47,6 +45,7 @@ import com.google.common.collect.Maps;
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   public static final String START_TIME_KEY = "StartTime";
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
+  protected static long JOB_PURGE_INTERVAL = 10 * 60 * 1000;
 
   // For connection management
   protected HelixManager _manager;
@@ -84,7 +83,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
             if (ctx.getJobState(jobToFail) == TaskState.IN_PROGRESS) {
               ctx.setJobState(jobToFail, TaskState.ABORTED);
               _clusterStatusMonitor
-                  .updateJobCounters(TaskUtil.getJobCfg(_manager, jobToFail), TaskState.ABORTED);
+                  .updateJobCounters(TaskUtil.getJobConfig(_manager, jobToFail), TaskState.ABORTED);
             }
           }
           return true;
@@ -171,7 +170,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
     // If there is parent job failed, schedule the job only when ignore dependent
     // job failure enabled
-    JobConfig jobConfig = TaskUtil.getJobCfg(_manager, job);
+    JobConfig jobConfig = TaskUtil.getJobConfig(_manager, job);
     if (failedCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx);
       LOG.debug(
@@ -239,7 +238,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
   protected void scheduleJobCleanUp(String jobName, WorkflowConfig workflowConfig,
       long currentTime) {
-    JobConfig jobConfig = TaskUtil.getJobCfg(_manager, jobName);
+    JobConfig jobConfig = TaskUtil.getJobConfig(_manager, jobName);
     long currentScheduledTime =
         _scheduledRebalancer.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
             ? Long.MAX_VALUE
@@ -262,41 +261,8 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     return (startTime == null || startTime.getTime() <= System.currentTimeMillis());
   }
 
-  /**
-   * Cleans up IdealState and external view associated with a job/workflow resource.
-   */
-  protected static void cleanupIdealStateExtView(HelixDataAccessor accessor, final String resourceName) {
-    LOG.info("Cleaning up idealstate and externalView for job: " + resourceName);
-
-    // Delete the ideal state itself.
-    PropertyKey isKey = accessor.keyBuilder().idealStates(resourceName);
-    if (accessor.getProperty(isKey) != null) {
-      if (!accessor.removeProperty(isKey)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
-            resourceName, isKey));
-      }
-    } else {
-      LOG.warn(String.format("Idealstate for resource %s does not exist.", resourceName));
-    }
-
-    // Delete dead external view
-    // because job is already completed, there is no more current state change
-    // thus dead external views removal will not be triggered
-    PropertyKey evKey = accessor.keyBuilder().externalView(resourceName);
-    if (accessor.getProperty(evKey) != null) {
-      if (!accessor.removeProperty(evKey)) {
-        LOG.error(String.format(
-            "Error occurred while trying to clean up resource %s. Failed to remove node %s from Helix.",
-            resourceName, evKey));
-      }
-    }
-
-    LOG.info(String
-        .format("Successfully clean up idealstate/externalView for resource %s.", resourceName));
-  }
-
-  @Override public IdealState computeNewIdealState(String resourceName,
+  @Override
+  public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
       ClusterDataCache clusterData) {
     // All of the heavy lifting is in the ResourceAssignment computation,

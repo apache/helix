@@ -52,7 +52,7 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     _driver.start(builder.build());
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 4),
         TaskState.FAILED);
-    _driver.cleanupJobQueue(queueName);
+    _driver.cleanupQueue(queueName);
     Assert.assertEquals(_driver.getWorkflowConfig(queueName).getJobDag().size(), 0);
   }
 
@@ -71,7 +71,7 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     _driver.start(builder.build());
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 3),
         TaskState.IN_PROGRESS);
-    _driver.cleanupJobQueue(queueName);
+    _driver.cleanupQueue(queueName);
     Assert.assertEquals(_driver.getWorkflowConfig(queueName).getJobDag().size(), 2);
   }
 }

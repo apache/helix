@@ -116,7 +116,7 @@ public class TaskAdmin {
         driver.flushQueue(workflow);
         break;
       case clean:
-        driver.cleanupJobQueue(workflow);
+        driver.cleanupQueue(workflow);
         break;
       default:
         throw new IllegalArgumentException("Unknown command " + args[0]);

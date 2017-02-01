@@ -432,7 +432,7 @@ public class IdealState extends HelixProperty {
     }
     logger.warn("Resource: " + getResourceName() + " key:" + partitionName
         + " does not have a pre-computed preference list.");
-    return null;
+    return new ArrayList<String>();
   }
 
   /**
@@ -593,7 +593,7 @@ public class IdealState extends HelixProperty {
         Set<String> partitionSet = getPartitionSet();
         for (String partition : partitionSet) {
           List<String> preferenceList = getPreferenceList(partition);
-          if (preferenceList == null || preferenceList.size() != replica) {
+          if (preferenceList.isEmpty() || preferenceList.size() != replica) {
             logger
                 .error("invalid ideal-state. preference-list size not equals to replicas in auto mode. replica: "
                     + replica

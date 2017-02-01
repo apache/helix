@@ -188,7 +188,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         Map<String, String> bestPossibleMap =
             bestPossiblePartitionStateMap.getPartitionMap(partition);
         Map<String, String> intermediateMap = new HashMap<String, String>();
-        ;
 
         Set<String> allInstances = new HashSet<String>(currentStateMap.keySet());
         allInstances.addAll(bestPossibleMap.keySet());

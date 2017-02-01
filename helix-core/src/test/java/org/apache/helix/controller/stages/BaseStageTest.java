@@ -74,10 +74,6 @@ public class BaseStageTest {
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
       int replicas, RebalanceMode rebalanceMode) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    List<String> instances = new ArrayList<String>();
-    for (int i = 0; i < nodes; i++) {
-      instances.add("localhost_" + i);
-    }
 
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
@@ -105,7 +101,6 @@ public class BaseStageTest {
   }
 
   protected void setupLiveInstances(int numLiveInstances) {
-    // setup liveInstances
     for (int i = 0; i < numLiveInstances; i++) {
       LiveInstance liveInstance = new LiveInstance("localhost_" + i);
       liveInstance.setSessionId("session_" + i);
@@ -129,9 +124,9 @@ public class BaseStageTest {
   }
 
   protected void setupStateModel() {
-    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
-
     Builder keyBuilder = accessor.keyBuilder();
+
+    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
     accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()), new StateModelDefinition(
         masterSlave));
 

@@ -40,6 +40,7 @@ import org.apache.helix.model.ResourceAssignment;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
+
 /**
  * This is the Full-Auto Rebalancer that is featured with delayed partition movement.
  */
@@ -47,16 +48,15 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(DelayedAutoRebalancer.class);
   private static RebalanceScheduler _scheduledRebalancer = new RebalanceScheduler();
 
-  @Override public IdealState computeNewIdealState(String resourceName,
-      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
-      ClusterDataCache clusterData) {
+  @Override
+  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
+      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
 
     List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
     if (partitions.size() == 0) {
-      LOG.info("Partition count is 0 for resource " + resourceName
-          + ", stop calculate ideal mapping for the resource.");
-      return generateNewIdealState(resourceName, currentIdealState,
-          emptyMapping(currentIdealState));
+      LOG.info(
+          "Partition count is 0 for resource " + resourceName + ", stop calculate ideal mapping for the resource.");
+      return generateNewIdealState(resourceName, currentIdealState, emptyMapping(currentIdealState));
     }
 
     Set<String> liveNodes;
@@ -71,8 +71,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
         // live nodes exist that have this tag
         if (LOG.isInfoEnabled()) {
           LOG.info(String.format("Found the following participants with tag %s for %s: %s",
-              currentIdealState.getInstanceGroupTag(), resourceName,
-              Arrays.toString(liveNodes.toArray())));
+              currentIdealState.getInstanceGroupTag(), resourceName, Arrays.toString(liveNodes.toArray())));
         }
       }
     } else {
@@ -82,29 +81,26 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     ClusterConfig clusterConfig = clusterData.getClusterConfig();
     long delayTime = getRebalanceDelay(currentIdealState, clusterConfig);
-    Set<String> activeNodes = getActiveInstances(currentIdealState, allNodes, liveNodes,
-        clusterData.getInstanceOfflineTimeMap(), delayTime, clusterConfig);
-    setRebalanceScheduler(currentIdealState, activeNodes, clusterData.getInstanceOfflineTimeMap(),
-        delayTime, clusterConfig);
+    Set<String> activeNodes =
+        getActiveInstances(currentIdealState, allNodes, liveNodes, clusterData.getInstanceOfflineTimeMap(), delayTime,
+            clusterConfig);
+    setRebalanceScheduler(currentIdealState, activeNodes, clusterData.getInstanceOfflineTimeMap(), delayTime,
+        clusterConfig);
 
     if (allNodes.isEmpty() || activeNodes.isEmpty()) {
       LOG.error(String.format(
           "No instances or active instances available for resource %s, allNodes: %s, liveNodes: %s, activeInstances: %s",
           resourceName, Arrays.toString(allNodes.toArray()), Arrays.toString(liveNodes.toArray()),
           Arrays.toString(activeNodes.toArray())));
-      return generateNewIdealState(resourceName, currentIdealState,
-          emptyMapping(currentIdealState));
+      return generateNewIdealState(resourceName, currentIdealState, emptyMapping(currentIdealState));
     }
 
-    StateModelDefinition stateModelDef =
-        clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
+    StateModelDefinition stateModelDef = clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
 
     int replicaCount = getReplicaCount(currentIdealState, activeNodes);
     if (replicaCount == 0) {
-      LOG.error("Replica count is 0 for resource " + resourceName
-          + ", stop calculate ideal mapping for the resource.");
-      return generateNewIdealState(resourceName, currentIdealState,
-          emptyMapping(currentIdealState));
+      LOG.error("Replica count is 0 for resource " + resourceName + ", stop calculate ideal mapping for the resource.");
+      return generateNewIdealState(resourceName, currentIdealState, emptyMapping(currentIdealState));
     }
 
     LinkedHashMap<String, Integer> stateCountMap =
@@ -114,8 +110,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
     _rebalanceStrategy =
-        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName,
-            stateCountMap, maxPartition);
+        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName, stateCountMap,
+            maxPartition);
 
     // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<String>(allNodes);
@@ -123,8 +119,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     Collections.sort(allNodeList);
     Collections.sort(liveNodeList);
 
-    ZNRecord newIdealMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodeList, liveNodeList, currentMapping, clusterData);
+    ZNRecord newIdealMapping =
+        _rebalanceStrategy.computePartitionAssignment(allNodeList, liveNodeList, currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
     if (!isDelayRebalanceDisabled(currentIdealState, clusterConfig)) {
@@ -132,11 +128,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       Collections.sort(activeNodeList);
       int minActiveReplicas = getMinActiveReplica(currentIdealState, replicaCount);
 
-      ZNRecord newActiveMapping = _rebalanceStrategy
-          .computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
+      ZNRecord newActiveMapping =
+          _rebalanceStrategy.computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
       finalMapping =
-          getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveNodes,
-              replicaCount, minActiveReplicas);
+          getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveNodes, replicaCount,
+              minActiveReplicas);
       LOG.debug("newActiveMapping: " + newActiveMapping);
     }
 
@@ -153,8 +149,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     return generateNewIdealState(resourceName, currentIdealState, finalMapping);
   }
 
-  private IdealState generateNewIdealState(String resourceName, IdealState currentIdealState,
-      ZNRecord newMapping) {
+  private IdealState generateNewIdealState(String resourceName, IdealState currentIdealState, ZNRecord newMapping) {
     IdealState newIdealState = new IdealState(resourceName);
     newIdealState.getRecord().setSimpleFields(currentIdealState.getRecord().getSimpleFields());
     newIdealState.setRebalanceMode(currentIdealState.getRebalanceMode());
@@ -164,9 +159,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   }
 
   /* get all active instances (live instances plus offline-yet-active instances */
-  private Set<String> getActiveInstances(IdealState idealState, Set<String> allNodes,
-      Set<String> liveNodes, Map<String, Long> instanceOfflineTimeMap, long delayTime,
-      ClusterConfig clusterConfig) {
+  private Set<String> getActiveInstances(IdealState idealState, Set<String> allNodes, Set<String> liveNodes,
+      Map<String, Long> instanceOfflineTimeMap, long delayTime, ClusterConfig clusterConfig) {
     Set<String> activeInstances = new HashSet<String>(liveNodes);
 
     if (isDelayRebalanceDisabled(idealState, clusterConfig)) {
@@ -214,12 +208,10 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     if (nextRebalanceTime == Long.MAX_VALUE) {
       long startTime = _scheduledRebalancer.removeScheduledRebalance(resourceName);
-      LOG.debug(String
-          .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
+      LOG.debug(String.format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
     } else {
       _scheduledRebalancer.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
-      LOG.debug(String.format("Set next rebalance time for resource %s at time %d\n", resourceName,
-          nextRebalanceTime));
+      LOG.debug(String.format("Set next rebalance time for resource %s at time %d\n", resourceName, nextRebalanceTime));
     }
   }
 
@@ -233,12 +225,11 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
   private boolean isDelayRebalanceDisabled(IdealState idealState, ClusterConfig clusterConfig) {
     long delayTime = getRebalanceDelay(idealState, clusterConfig);
-    return (delayTime < 0 || idealState.isDelayRebalanceDisabled() || clusterConfig
-        .isDelayRebalaceDisabled());
+    return (delayTime < 0 || idealState.isDelayRebalanceDisabled() || clusterConfig.isDelayRebalaceDisabled());
   }
 
-  private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping,
-      ZNRecord newActiveMapping, Set<String> liveInstances, int numReplica, int minActiveReplica) {
+  private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping, ZNRecord newActiveMapping,
+      Set<String> liveInstances, int numReplica, int minActiveReplica) {
     if (minActiveReplica >= numReplica) {
       return newIdealMapping;
     }
@@ -293,8 +284,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
    * @return
    */
   @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache,
-      IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput) {
+  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache cache, IdealState idealState,
+      Resource resource, CurrentStateOutput currentStateOutput) {
     if (LOG.isDebugEnabled()) {
       LOG.debug("Processing resource:" + resource.getResourceName());
     }
@@ -307,8 +298,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     ClusterConfig clusterConfig = cache.getClusterConfig();
     long delayTime = getRebalanceDelay(idealState, clusterConfig);
     Set<String> activeNodes =
-        getActiveInstances(idealState, allNodes, liveNodes, cache.getInstanceOfflineTimeMap(),
-            delayTime, clusterConfig);
+        getActiveInstances(idealState, allNodes, liveNodes, cache.getInstanceOfflineTimeMap(), delayTime,
+            clusterConfig);
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
@@ -320,8 +311,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
-          computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition, idealState.isEnabled());
+          computeBestPossibleStateForPartition(stateModelDef, preferenceList, currentStateMap,
+              cache.getLiveInstances().keySet(), disabledInstancesForPartition, idealState.isEnabled());
 
       if (preferenceList == null) {
         LOG.info(String.format(
@@ -350,8 +341,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       if (replicaStr.equalsIgnoreCase(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.name())) {
         replica = eligibleInstances.size();
       } else {
-        LOG.error("Can not determine the replica count for resource " + idealState.getResourceName()
-            + ", set to 0.");
+        LOG.error("Can not determine the replica count for resource " + idealState.getResourceName() + ", set to 0.");
       }
     }
 

@@ -244,11 +244,11 @@ public class ZKHelixAdmin implements HelixAdmin {
       IdealState idealState = new IdealState(idealStateRecord);
       for (String partitionName : partitionNames) {
         if ((idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO && idealState
-            .getPreferenceList(partitionName) == null)
+            .getPreferenceList(partitionName).isEmpty())
             || (idealState.getRebalanceMode() == RebalanceMode.USER_DEFINED && idealState
-                .getPreferenceList(partitionName) == null)
+                .getPreferenceList(partitionName).isEmpty())
             || (idealState.getRebalanceMode() == RebalanceMode.TASK && idealState
-                .getPreferenceList(partitionName) == null)
+                .getPreferenceList(partitionName).isEmpty())
             || (idealState.getRebalanceMode() == RebalanceMode.CUSTOMIZED && idealState
                 .getInstanceStateMap(partitionName) == null)) {
           logger.warn("Cluster: " + clusterName + ", resource: " + resourceName + ", partition: "

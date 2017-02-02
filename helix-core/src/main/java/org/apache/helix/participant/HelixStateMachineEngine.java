@@ -19,6 +19,7 @@ package org.apache.helix.participant;
  * under the License.
  */
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +46,8 @@ import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
 import org.apache.helix.participant.statemachine.StateModelParser;
 import org.apache.log4j.Logger;
+
+import com.google.common.collect.ImmutableList;
 
 public class HelixStateMachineEngine implements StateMachineEngine {
   private static Logger logger = Logger.getLogger(HelixStateMachineEngine.class);
@@ -162,7 +165,8 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   public MessageHandler createHandler(Message message, NotificationContext context) {
     String type = message.getMsgType();
 
-    if (!type.equals(MessageType.STATE_TRANSITION.name())) {
+    if (!type.equals(MessageType.STATE_TRANSITION.name()) && !type
+        .equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
       throw new HelixException("Expect state-transition message type, but was "
           + message.getMsgType() + ", msgId: " + message.getMsgId());
     }
@@ -253,6 +257,11 @@ public class HelixStateMachineEngine implements StateMachineEngine {
   @Override
   public String getMessageType() {
     return MessageType.STATE_TRANSITION.name();
+  }
+
+  @Override public List<String> getMessageTypes() {
+    return ImmutableList
+        .of(MessageType.STATE_TRANSITION.name(), MessageType.STATE_TRANSITION_CANCELLATION.name());
   }
 
   @Override

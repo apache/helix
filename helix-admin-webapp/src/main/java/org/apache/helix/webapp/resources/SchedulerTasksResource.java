@@ -149,8 +149,8 @@ public class SchedulerTasksResource extends ServerResource {
 
       Map<String, String> resultMap = new HashMap<String, String>();
       resultMap.put("StatusUpdatePath", PropertyPathBuilder.controllerStatusUpdate(
-          clusterName, MessageType.SCHEDULER_MSG.toString(), schedulerMessage.getMsgId()));
-      resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.toString());
+          clusterName, MessageType.SCHEDULER_MSG.name(), schedulerMessage.getMsgId()));
+      resultMap.put("MessageType", Message.MessageType.SCHEDULER_MSG.name());
       resultMap.put("MsgId", schedulerMessage.getMsgId());
 
       // Assemble the rest URL for task status update

@@ -62,7 +62,7 @@ public class TestHelixTaskExecutor {
 
     MockHelixTaskExecutor executor = new MockHelixTaskExecutor();
     MockStateModel stateModel = new MockStateModel();
-    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.toString(),
+    executor.registerMessageHandlerFactory(MessageType.TASK_REPLY.name(),
         new AsyncCallbackService());
 
     NotificationContext context = new NotificationContext(manager);

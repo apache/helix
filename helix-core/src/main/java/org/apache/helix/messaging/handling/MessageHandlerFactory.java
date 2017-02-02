@@ -19,13 +19,18 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
+import java.util.List;
+
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 
 public interface MessageHandlerFactory {
   MessageHandler createHandler(Message message, NotificationContext context);
 
+  @Deprecated
   String getMessageType();
+
+  List<String> getMessageTypes();
 
   void reset();
 }

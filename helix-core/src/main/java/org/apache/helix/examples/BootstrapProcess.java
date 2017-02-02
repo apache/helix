@@ -21,6 +21,7 @@ package org.apache.helix.examples;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -44,6 +45,8 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+
+import com.google.common.collect.ImmutableList;
 
 /**
  * This process does little more than handling the state transition messages.
@@ -109,7 +112,7 @@ public class BootstrapProcess {
     manager.getMessagingService().registerMessageHandlerFactory(
         MessageType.STATE_TRANSITION.name(), stateMach);
     manager.getMessagingService().registerMessageHandlerFactory(
-        MessageType.USER_DEFINE_MSG.toString(), new CustomMessageHandlerFactory());
+        MessageType.USER_DEFINE_MSG.name(), new CustomMessageHandlerFactory());
     manager.connect();
   }
 
@@ -121,9 +124,15 @@ public class BootstrapProcess {
       return new CustomMessageHandler(message, context);
     }
 
+    @Deprecated
     @Override
     public String getMessageType() {
-      return MessageType.USER_DEFINE_MSG.toString();
+      return MessageType.USER_DEFINE_MSG.name();
+    }
+
+    @Override
+    public List<String> getMessageTypes() {
+      return ImmutableList.of(MessageType.USER_DEFINE_MSG.name());
     }
 
     @Override

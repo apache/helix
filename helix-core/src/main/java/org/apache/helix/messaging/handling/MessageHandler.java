@@ -41,6 +41,7 @@ public abstract class MessageHandler {
    * The message to be handled
    */
   protected final Message _message;
+  protected boolean _cancelled;
 
   /**
    * The context for handling the message. The cluster manager interface can be
@@ -55,6 +56,7 @@ public abstract class MessageHandler {
   public MessageHandler(Message message, NotificationContext context) {
     _message = message;
     _notificationContext = context;
+    _cancelled = false;
   }
 
   /**
@@ -87,5 +89,9 @@ public abstract class MessageHandler {
    */
   public Message getMessage() {
     return _message;
+  }
+
+  public void cancel() {
+    _cancelled = true;
   }
 }

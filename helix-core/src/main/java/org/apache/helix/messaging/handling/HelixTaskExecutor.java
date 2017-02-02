@@ -122,7 +122,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
 
-  final ConcurrentHashMap<String, Future<HelixTaskResult>> _messageFutureMap;
+  final ConcurrentHashMap<String, String> _messageTaskMap;
   private ExecutorService _cancellationExcutorService;
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
@@ -140,7 +140,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
-    _messageFutureMap = new ConcurrentHashMap<String, Future<HelixTaskResult>>();
+    _messageTaskMap = new ConcurrentHashMap<String, String>();
     _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
@@ -162,9 +162,9 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   @Override
   public void registerMessageHandlerFactory(String type, MessageHandlerFactory factory,
       int threadpoolSize) {
-    if (!type.equalsIgnoreCase(factory.getMessageType())) {
+    if (!factory.getMessageTypes().contains(type)) {
       throw new HelixException("Message factory type mismatch. Type: " + type + ", factory: "
-          + factory.getMessageType());
+          + factory.getMessageTypes());
     }
 
     MsgHandlerFactoryRegistryItem newItem =
@@ -315,7 +315,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       String taskId = task.getTaskId();
       if (_taskMap.containsKey(taskId)) {
         MessageTaskInfo info = _taskMap.get(taskId);
-        removeMessageFromFutureMap(task.getMessage());
+        removeMessageFromTaskAndFutureMap(task.getMessage());
         if (info._timerTask != null) {
           info._timerTask.cancel();
         }
@@ -352,9 +352,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
           LOG.info("Submit task: " + taskId + " to pool: " + exeSvc);
           Future<HelixTaskResult> future = exeSvc.submit(task);
-          _messageFutureMap
+
+          _messageTaskMap
               .putIfAbsent(getMessageTarget(message.getResourceName(), message.getPartitionName()),
-                  future);
+                  taskId);
 
           TimerTask timerTask = null;
           if (message.getExecutionTimeout() > 0) {
@@ -402,7 +403,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
         // cancel task
         Future<HelixTaskResult> future = taskInfo.getFuture();
-        removeMessageFromFutureMap(message);
+        removeMessageFromTaskAndFutureMap(message);
         _statusUpdateUtil.logInfo(message, HelixTaskExecutor.class, "Canceling task: " + taskId,
             notificationContext.getManager().getHelixDataAccessor());
 
@@ -436,7 +437,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     synchronized (_lock) {
       if (_taskMap.containsKey(taskId)) {
         MessageTaskInfo info = _taskMap.remove(taskId);
-        removeMessageFromFutureMap(message);
+        removeMessageFromTaskAndFutureMap(message);
         if (info._timerTask != null) {
           // ok to cancel multiple times
           info._timerTask.cancel();
@@ -532,7 +533,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _taskMap.clear();
 
     shutdownAndAwaitTermination(_cancellationExcutorService);
-    _messageFutureMap.clear();
+    _messageTaskMap.clear();
 
     _lastSessionSyncTime = null;
   }
@@ -712,14 +713,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           stateTransitionHandlers.remove(messageTarget);
           continue;
         } else {
-          if (_messageFutureMap.containsKey(messageTarget)) {
-            Future<HelixTaskResult> future = _messageFutureMap.get(messageTarget);
+          if (_messageTaskMap.containsKey(messageTarget)) {
+            // Lock the task object to avoid race condition between cancel and start tasks.
             // Cancel the from future without interrupt ->  Cancel the task future without
             // interruptting the state transition that is already started.  If the state transition
             // is already started, we should call cancel in the state model.
-            if (future.cancel(false) || future.isDone()) {
-              markReadMessage(message, changeContext, accessor);
-              readMsgs.add(message);
+            String taskId = _messageTaskMap.get(messageTarget);
+            HelixTask task = (HelixTask) _taskMap.get(taskId).getTask();
+            Future<HelixTaskResult> future = _taskMap.get(taskId).getFuture();
+            if (task.cancel()) {
+              future.cancel(false);
               _monitor.reportProcessedMessage(message,
                   ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
               removeMessageFromZk(accessor, message, instanceName);
@@ -844,10 +847,10 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     return handlerFactory.createHandler(message, changeContext);
   }
 
-  private void removeMessageFromFutureMap(Message message) {
+  private void removeMessageFromTaskAndFutureMap(Message message) {
     String messageTarget = getMessageTarget(message.getResourceName(), message.getPartitionName());
-    if (_messageFutureMap.containsKey(messageTarget)) {
-      _messageFutureMap.remove(messageTarget);
+    if (_messageTaskMap.containsKey(messageTarget)) {
+      _messageTaskMap.remove(messageTarget);
     }
   }
 

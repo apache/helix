@@ -54,20 +54,25 @@ public class ControllerManagerHelper {
       _manager.addControllerMessageListener(_messagingService.getExecutor());
       MessageHandlerFactory defaultControllerMsgHandlerFactory =
           new DefaultControllerMessageHandlerFactory();
-      _messagingService.getExecutor().registerMessageHandlerFactory(
-          defaultControllerMsgHandlerFactory.getMessageType(), defaultControllerMsgHandlerFactory);
+      for (String type : defaultControllerMsgHandlerFactory.getMessageTypes()) {
+        _messagingService.getExecutor()
+            .registerMessageHandlerFactory(type, defaultControllerMsgHandlerFactory);
+      }
 
       MessageHandlerFactory defaultSchedulerMsgHandlerFactory =
           new DefaultSchedulerMessageHandlerFactory(_manager);
-      _messagingService.getExecutor().registerMessageHandlerFactory(
-          defaultSchedulerMsgHandlerFactory.getMessageType(), defaultSchedulerMsgHandlerFactory);
+      for (String type : defaultSchedulerMsgHandlerFactory.getMessageTypes()) {
+        _messagingService.getExecutor()
+            .registerMessageHandlerFactory(type, defaultSchedulerMsgHandlerFactory);
+      }
 
       MessageHandlerFactory defaultParticipantErrorMessageHandlerFactory =
           new DefaultParticipantErrorMessageHandlerFactory(_manager);
-      _messagingService.getExecutor().registerMessageHandlerFactory(
-          defaultParticipantErrorMessageHandlerFactory.getMessageType(),
 
-          defaultParticipantErrorMessageHandlerFactory);
+      for (String type : defaultParticipantErrorMessageHandlerFactory.getMessageTypes()) {
+        _messagingService.getExecutor()
+            .registerMessageHandlerFactory(type, defaultParticipantErrorMessageHandlerFactory);
+      }
 
       /**
        * setup generic-controller

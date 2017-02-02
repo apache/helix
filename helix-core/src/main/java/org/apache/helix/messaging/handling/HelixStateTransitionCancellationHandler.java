@@ -40,20 +40,15 @@ public class HelixStateTransitionCancellationHandler extends MessageHandler {
   @Override
   public HelixTaskResult handleMessage() throws InterruptedException {
     HelixTaskResult taskResult = new HelixTaskResult();
-    synchronized (_stateModel) {
-      try {
-        _stateModel.cancel();
-        taskResult.setSuccess(true);
-      } catch (Exception e) {
-        taskResult.setSuccess(false);
-        taskResult.setMessage(e.toString());
-        taskResult.setException(e);
-      }
-
-      if (taskResult.isSuccess()) {
-        throw new HelixRollbackException("Cancellation success for " + _message.getMsgId());
-      }
+    try {
+      _stateModel.cancel();
+      taskResult.setSuccess(true);
+    } catch (Exception e) {
+      taskResult.setSuccess(false);
+      taskResult.setMessage(e.toString());
+      taskResult.setException(e);
     }
+
     return taskResult;
   }
 

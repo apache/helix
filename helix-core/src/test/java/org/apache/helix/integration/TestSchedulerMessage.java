@@ -58,6 +58,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
+import com.google.common.collect.ImmutableList;
 
 public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
@@ -92,6 +93,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     @Override
     public String getMessageType() {
       return "TestParticipant";
+    }
+
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of("TestParticipant");
     }
 
     @Override
@@ -150,6 +155,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       return "TestMessagingHandlerLatch";
     }
 
+    @Override public List<String> getMessageTypes() {
+      return ImmutableList.of("TestMessagingHandlerLatch");
+    }
+
     @Override
     public void reset() {
       // TODO Auto-generated method stub
@@ -192,7 +201,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
@@ -206,7 +215,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     // schedulerMessage.getRecord().setSimpleField(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE,
     // "TestSchedulerMsg");
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
+    Message msg = new Message(_factory.getMessageTypes().get(0), "Template");
     msg.setTgtSessionId("*");
     msg.setMsgState(MessageState.NEW);
 
@@ -244,7 +253,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
     Assert.assertEquals(_PARTITIONS, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
             schedulerMessage.getMsgId());
 
     int messageResultCount = 0;
@@ -326,7 +335,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
@@ -339,7 +348,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
+    Message msg = new Message(_factory.getMessageTypes().get(0), "Template");
     msg.setTgtSessionId("*");
     msg.setMsgState(MessageState.NEW);
 
@@ -373,7 +382,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
 
     Assert.assertEquals(0, _factory._results.size());
     PropertyKey controllerTaskStatus =
-        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(),
+        keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(),
             schedulerMessage.getMsgId());
     for (int i = 0; i < 10; i++) {
       StatusUpdate update = helixDataAccessor.getProperty(controllerTaskStatus);
@@ -397,10 +406,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
@@ -413,7 +422,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
+    Message msg = new Message(_factory.getMessageTypes().get(0), "Template");
     msg.setTgtSessionId("*");
     msg.setMsgState(MessageState.NEW);
 
@@ -481,7 +490,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       for (int j = 0; j < 100; j++) {
         Thread.sleep(200);
         PropertyKey controllerTaskStatus =
-            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
         ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
         if (statusUpdate.getMapFields().containsKey("Summary")) {
           break;
@@ -489,7 +498,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       }
 
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
           .equals("" + (_PARTITIONS * 3 / 5)));
@@ -518,10 +527,10 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     HelixManager manager = null;
     for (int i = 0; i < NODE_NR; i++) {
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       _participants[i].getMessagingService().registerMessageHandlerFactory(
-          _factory.getMessageType(), _factory);
+          _factory.getMessageTypes(), _factory);
 
       manager = _participants[i]; // _startCMResultMap.get(hostDest)._manager;
     }
@@ -534,7 +543,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     schedulerMessage.setSrcName("CONTROLLER");
 
     // Template for the individual message sent to each participant
-    Message msg = new Message(_factory.getMessageType(), "Template");
+    Message msg = new Message(_factory.getMessageTypes().get(0), "Template");
     msg.setTgtSessionId("*");
     msg.setMsgState(MessageState.NEW);
 
@@ -617,7 +626,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       for (int j = 0; j < 100; j++) {
         Thread.sleep(200);
         PropertyKey controllerTaskStatus =
-            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+            keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
         ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
         if (statusUpdate.getMapFields().containsKey("Summary")) {
           // System.err.println(msgId+" done");
@@ -626,7 +635,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
       }
 
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgId);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgId);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       Assert.assertTrue(statusUpdate.getMapField("SentMessageCount").get("MessageCount")
           .equals("" + (_PARTITIONS * 3 / 5)));
@@ -646,7 +655,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     for (int j = 0; j < 100; j++) {
       Thread.sleep(200);
       PropertyKey controllerTaskStatus =
-          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.toString(), msgIdPrime);
+          keyBuilder.controllerTaskStatus(MessageType.SCHEDULER_MSG.name(), msgIdPrime);
       ZNRecord statusUpdate = helixDataAccessor.getProperty(controllerTaskStatus).getRecord();
       if (statusUpdate.getMapFields().containsKey("Summary")) {
         break;

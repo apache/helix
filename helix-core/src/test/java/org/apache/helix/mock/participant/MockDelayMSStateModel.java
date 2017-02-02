@@ -1,5 +1,10 @@
 package org.apache.helix.mock.participant;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.apache.helix.NotificationContext;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
@@ -31,15 +36,15 @@ import org.apache.log4j.Logger;
 })
 public class MockDelayMSStateModel extends StateModel {
   private static Logger LOG = Logger.getLogger(MockDelayMSStateModel.class);
-
   private long _delay;
 
   public MockDelayMSStateModel(long delay) {
     _delay = delay;
+    _cancelled = false;
   }
 
   @Transition(to = "SLAVE", from = "OFFLINE")
-  public void onBecomeSLAVEFromOffline(Message message, NotificationContext context) {
+  public void onBecomeSlaveFromOffline(Message message, NotificationContext context) {
     if (_delay > 0) {
       try {
         Thread.sleep(_delay);
@@ -50,10 +55,17 @@ public class MockDelayMSStateModel extends StateModel {
     LOG.info("Become SLAVE from OFFLINE");
   }
 
-  @Transition(to = "ONLINE", from = "SLAVE")
-  public void onBecomeMasterFromSlave(Message message, NotificationContext context) {
-    LOG.info("Become ONLINE from SLAVE");
+  @Transition(to = "MASTER", from = "SLAVE")
+  public void onBecomeMasterFromSlave(Message message, NotificationContext context)
+      throws InterruptedException {
+    if (_delay < 0) {
+        Thread.sleep(Math.abs(_delay));
+    }
+    LOG.error("Become MASTER from SLAVE");
   }
 
-
+  @Transition(to = "OFFLINE", from = "SLAVE")
+  public void onBecomeOfflineFromSlave(Message message, NotificationContext context) {
+    LOG.info("Become OFFLINE from SLAVE");
+  }
 }

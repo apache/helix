@@ -71,11 +71,6 @@ public class CriteriaEvaluator {
         result.add(row);
       }
     }
-    if (recipientCriteria.getMaxRecipient() != null && recipientCriteria.getMaxRecipient() < result.size()) {
-      // would destroy the original order but seems to be OK
-      Collections.shuffle(result);
-      result = result.subList(0, recipientCriteria.getMaxRecipient());
-    }
 
     // deduplicate and convert the matches into the required format
     for (ZNRecordRow row : result) {

@@ -25,7 +25,9 @@ package org.apache.helix;
 public class Criteria {
   public enum DataSource {
     IDEALSTATES,
-    EXTERNALVIEW
+    EXTERNALVIEW,
+    LIVEINSTANCES,
+    INSTANCES
   }
 
   /**

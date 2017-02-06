@@ -35,6 +35,7 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.ZkUnitTestBase;
@@ -98,12 +99,19 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
       // OK
     }
 
-    InstanceConfig config = new InstanceConfig("host1_9999");
-    config.setHostName("host1");
-    config.setPort("9999");
+    String hostname = "host1";
+    String port = "9999";
+    String instanceName = hostname + "_" + port;
+    InstanceConfig config = new InstanceConfig(instanceName);
+    config.setHostName(hostname);
+    config.setPort(port);
+    List<String> dummyList = new ArrayList<String>();
+    dummyList.add("foo");
+    dummyList.add("bar");
+    config.getRecord().setListField("dummy", dummyList);
     tool.addInstance(clusterName, config);
-    tool.enableInstance(clusterName, "host1_9999", true);
-    String path = PropertyPathBuilder.instance(clusterName, "host1_9999");
+    tool.enableInstance(clusterName, instanceName, true);
+    String path = PropertyPathBuilder.getPath(PropertyType.INSTANCES, clusterName, instanceName);
     AssertJUnit.assertTrue(_gZkClient.exists(path));
 
     try {
@@ -112,8 +120,42 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     } catch (HelixException e) {
       // OK
     }
+
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    AssertJUnit.assertEquals(config.getId(), instanceName);
+
+    // test setInstanceConfig()
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.setHostName("host2");
+    try {
+      // different host
+      tool.setInstanceConfig(clusterName, instanceName, config);
+      Assert.fail("should fail if hostname is different from the current one");
+    } catch (HelixException e) {
+      // OK
+    }
+
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.setPort("7777");
+    try {
+      // different port
+      tool.setInstanceConfig(clusterName, instanceName, config);
+      Assert.fail("should fail if port is different from the current one");
+    } catch (HelixException e) {
+      // OK
+    }
+
+    dummyList.remove("bar");
+    dummyList.add("baz");
+    config = tool.getInstanceConfig(clusterName, instanceName);
+    config.getRecord().setListField("dummy", dummyList);
+    AssertJUnit.assertTrue(tool.setInstanceConfig(clusterName, "host1_9999", config));
     config = tool.getInstanceConfig(clusterName, "host1_9999");
-    AssertJUnit.assertEquals(config.getId(), "host1_9999");
+    dummyList = config.getRecord().getListField("dummy");
+    AssertJUnit.assertTrue(dummyList.contains("foo"));
+    AssertJUnit.assertTrue(dummyList.contains("baz"));
+    AssertJUnit.assertFalse(dummyList.contains("bar"));
+    AssertJUnit.assertEquals(2, dummyList.size());
 
     // test: should not drop instance when it is still alive
     HelixManager manager = initializeHelixManager(clusterName, config.getInstanceName(), ZK_ADDR, "id1");

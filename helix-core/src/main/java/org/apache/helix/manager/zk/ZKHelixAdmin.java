@@ -159,6 +159,30 @@ public class ZKHelixAdmin implements HelixAdmin {
     return accessor.getProperty(keyBuilder.instanceConfig(instanceName));
   }
 
+  @Override public boolean setInstanceConfig(String clusterName, String instanceName,
+      InstanceConfig newInstanceConfig) {
+    String instanceConfigPath = PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
+        HelixConfigScope.ConfigScopeProperty.PARTICIPANT.toString(), instanceName);
+    if (!_zkClient.exists(instanceConfigPath)) {
+      throw new HelixException(
+          "instance" + instanceName + " does not exist in cluster " + clusterName);
+    }
+
+    HelixDataAccessor accessor =
+        new ZKHelixDataAccessor(clusterName, new ZkBaseDataAccessor<ZNRecord>(_zkClient));
+    PropertyKey instanceConfigPropertyKey = accessor.keyBuilder().instanceConfig(instanceName);
+    InstanceConfig currentInstanceConfig = accessor.getProperty(instanceConfigPropertyKey);
+    if (!newInstanceConfig.getHostName().equals(currentInstanceConfig.getHostName())
+        || !newInstanceConfig.getPort().equals(currentInstanceConfig.getPort())) {
+      throw new HelixException(
+          "Hostname and port cannot be changed, current hostname: " + currentInstanceConfig
+              .getHostName() + " and port: " + currentInstanceConfig.getPort()
+              + " is different from new hostname: " + newInstanceConfig.getHostName()
+              + "and new port: " + newInstanceConfig.getPort());
+    }
+    return accessor.setProperty(instanceConfigPropertyKey, newInstanceConfig);
+  }
+
   @Override
   public void enableInstance(final String clusterName, final String instanceName,
       final boolean enabled) {

@@ -51,6 +51,18 @@ public interface HelixAdmin {
   InstanceConfig getInstanceConfig(String clusterName, String instanceName);
 
   /**
+   +   * Set the instance config of an existing instance under the given cluster.
+   +   *
+   +   * @param clusterName    the name of the cluster to which this instance belongs.
+   +   * @param instanceName   the name of this instance.
+   +   * @param instanceConfig the new {@link InstanceConfig} that will replace the current one
+   +   *                       associated with this instance.
+   +   *
+   +   * @return true if the operation was successful; false otherwise.
+   +   */
+  boolean setInstanceConfig(String clusterName, String instanceName, InstanceConfig instanceConfig);
+
+  /**
    * Get a list of resources in a cluster
    * @param clusterName
    * @return a list of resource names in the cluster

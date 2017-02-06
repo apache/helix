@@ -19,7 +19,6 @@ package org.apache.helix.messaging;
  * under the License.
  */
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,14 +49,19 @@ public class CriteriaEvaluator {
     // get the data
     HelixDataAccessor accessor = manager.getHelixDataAccessor();
     PropertyKey.Builder keyBuilder = accessor.keyBuilder();
-    Set<Map<String, String>> selected = Sets.newHashSet();
+
     List<HelixProperty> properties;
-    if (recipientCriteria.getDataSource() == DataSource.EXTERNALVIEW) {
+    DataSource dataSource = recipientCriteria.getDataSource();
+    if (dataSource == DataSource.EXTERNALVIEW) {
       properties = accessor.getChildValues(keyBuilder.externalViews());
-    } else if (recipientCriteria.getDataSource() == DataSource.IDEALSTATES) {
+    } else if (dataSource == DataSource.IDEALSTATES) {
       properties = accessor.getChildValues(keyBuilder.idealStates());
+    } else if (dataSource == DataSource.LIVEINSTANCES) {
+      properties = accessor.getChildValues(keyBuilder.liveInstances());
+    } else if (dataSource == DataSource.INSTANCES) {
+      properties = accessor.getChildValues(keyBuilder.instances());
     } else {
-      return Collections.emptyList();
+      return Lists.newArrayList();
     }
 
     // flatten the data
@@ -71,6 +75,8 @@ public class CriteriaEvaluator {
         result.add(row);
       }
     }
+
+    Set<Map<String, String>> selected = Sets.newHashSet();
 
     // deduplicate and convert the matches into the required format
     for (ZNRecordRow row : result) {

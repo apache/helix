@@ -208,11 +208,14 @@ public abstract class IdealStateBuilder {
   public IdealState build() {
     IdealState idealstate = new IdealState(_record);
     idealstate.setNumPartitions(numPartitions);
-    idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
     idealstate.setStateModelDefRef(stateModel);
     idealstate.setStateModelFactoryName(stateModelFactoryName);
     idealstate.setRebalanceMode(rebalancerMode);
     idealstate.setReplicas("" + numReplica);
+
+    if (maxPartitionsPerNode > 0) {
+      idealstate.setMaxPartitionsPerInstance(maxPartitionsPerNode);
+    }
 
     if (rebalancerClassName != null) {
       idealstate.setRebalancerClassName(rebalancerClassName);

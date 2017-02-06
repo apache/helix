@@ -26,6 +26,7 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.*;
 import org.apache.helix.model.builder.CustomModeISBuilder;
+import org.apache.helix.model.builder.IdealStateBuilder;
 import org.apache.log4j.Logger;
 
 import java.text.DateFormat;
@@ -237,7 +238,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     accessor.setProperty(keyBuilder.resourceConfig(jobResource), resourceConfig);
 
     // Push out new ideal state based on number of target partitions
-    CustomModeISBuilder builder = new CustomModeISBuilder(jobResource);
+    IdealStateBuilder builder = new CustomModeISBuilder(jobResource);
     builder.setRebalancerMode(IdealState.RebalanceMode.TASK);
     builder.setNumReplica(1);
     builder.setNumPartitions(numPartitions);

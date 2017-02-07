@@ -297,9 +297,20 @@ public class Workflow {
       return this;
     }
 
+    /**
+     * Set the config via an existing workflowConfig.
+     * BE CAUTION!: All the previous settings will be override by setting here.
+     *
+     * @param workflowConfig
+     * @return
+     */
     public Builder setWorkflowConfig(WorkflowConfig workflowConfig) {
       _workflowConfigBuilder = new WorkflowConfig.Builder(workflowConfig);
       return this;
+    }
+
+    public WorkflowConfig getWorkflowConfig() {
+      return _workflowConfigBuilder.build();
     }
 
     public Builder setScheduleConfig(ScheduleConfig scheduleConfig) {

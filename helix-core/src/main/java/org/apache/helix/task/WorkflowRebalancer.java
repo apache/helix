@@ -53,9 +53,9 @@ import org.apache.log4j.Logger;
 public class WorkflowRebalancer extends TaskRebalancer {
   private static final Logger LOG = Logger.getLogger(WorkflowRebalancer.class);
 
-  @Override
-  public ResourceAssignment computeBestPossiblePartitionState(ClusterDataCache clusterData,
-      IdealState taskIs, Resource resource, CurrentStateOutput currStateOutput) {
+  @Override public ResourceAssignment computeBestPossiblePartitionState(
+      ClusterDataCache clusterData, IdealState taskIs, Resource resource,
+      CurrentStateOutput currStateOutput) {
     final String workflow = resource.getResourceName();
     LOG.debug("Computer Best Partition for workflow: " + workflow);
 
@@ -93,8 +93,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     long currentTime = System.currentTimeMillis();
     // Check if workflow has been finished and mark it if it is.
-    if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED
-        && isWorkflowFinished(workflowCtx, workflowCfg)) {
+    if (workflowCtx.getFinishTime() == WorkflowContext.UNFINISHED && isWorkflowFinished(workflowCtx,
+        workflowCfg)) {
       workflowCtx.setFinishTime(currentTime);
       TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
     }
@@ -123,8 +123,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     }
 
     // Check for readiness, and stop processing if it's not ready
-    boolean isReady =
-        scheduleWorkflowIfReady(workflow, workflowCfg, workflowCtx);
+    boolean isReady = scheduleWorkflowIfReady(workflow, workflowCfg, workflowCtx);
     if (isReady) {
       // Schedule jobs from this workflow.
       scheduleJobs(workflow, workflowCfg, workflowCtx);
@@ -142,10 +141,11 @@ public class WorkflowRebalancer extends TaskRebalancer {
   }
 
   /**
-   * Figure out whether the jobs in the workflow should be run,
-   * and if it's ready, then just schedule it
+   * Figure out whether the jobs in the workflow should be run, and if it's ready, then just
+   * schedule it
    */
-  private void scheduleJobs(String workflow, WorkflowConfig workflowCfg, WorkflowContext workflowCtx) {
+  private void scheduleJobs(String workflow, WorkflowConfig workflowCfg,
+      WorkflowContext workflowCtx) {
     ScheduleConfig scheduleConfig = workflowCfg.getScheduleConfig();
     if (scheduleConfig != null && scheduleConfig.isRecurring()) {
       LOG.debug("Jobs from recurring workflow are not schedule-able");
@@ -163,7 +163,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
       if (workflowCfg.isJobQueue() && scheduledJobs >= workflowCfg.getParallelJobs()) {
         LOG.debug(String.format("Workflow %s already have enough job in progress, "
-                + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
+            + "scheduledJobs(s)=%d, stop scheduling more jobs", workflow, scheduledJobs));
         break;
       }
 
@@ -174,25 +174,16 @@ public class WorkflowRebalancer extends TaskRebalancer {
         // Since the start time is calculated base on the time of completion of parent jobs for this
         // job, the calculated start time should only be calculate once. Persist the calculated time
         // in WorkflowContext znode.
-        Map<String, String> startTimeMap = workflowCtx.getRecord().getMapField(START_TIME_KEY);
-        if (startTimeMap == null) {
-          startTimeMap = new HashMap<String, String>();
-          workflowCtx.getRecord().setMapField(START_TIME_KEY, startTimeMap);
-        }
-
-        long calculatedStartTime = System.currentTimeMillis();
-        if (startTimeMap.containsKey(job)) {
-          // Get the start time if it is already calculated
-          calculatedStartTime = Long.parseLong(startTimeMap.get(job));
-        } else {
+        long calculatedStartTime = workflowCtx.getJobStartTime(job);
+        if (calculatedStartTime < 0) {
+          // Calculate the start time if it is not already calculated
+          calculatedStartTime = System.currentTimeMillis();
           // If the start time is not calculated before, do the math.
           if (jobConfig.getExecutionDelay() >= 0) {
             calculatedStartTime += jobConfig.getExecutionDelay();
           }
           calculatedStartTime = Math.max(calculatedStartTime, jobConfig.getExecutionStart());
-          startTimeMap.put(job, String.valueOf(calculatedStartTime));
-          workflowCtx.getRecord().setMapField(START_TIME_KEY, startTimeMap);
-          TaskUtil.setWorkflowContext(_manager, jobConfig.getWorkflow(), workflowCtx);
+          workflowCtx.setJobStartTime(job, calculatedStartTime);
         }
 
         // Time is not ready. Set a trigger and update the start time.
@@ -285,9 +276,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
   /**
    * Check if a workflow is ready to schedule, and schedule a rebalance if it is not
    *
-   * @param workflow the Helix resource associated with the workflow
-   * @param workflowCfg  the workflow to check
-   * @param workflowCtx  the current workflow context
+   * @param workflow    the Helix resource associated with the workflow
+   * @param workflowCfg the workflow to check
+   * @param workflowCtx the current workflow context
+   *
    * @return true if the workflow is ready for schedule, false if not ready
    */
   private boolean scheduleWorkflowIfReady(String workflow, WorkflowConfig workflowCfg,
@@ -330,7 +322,6 @@ public class WorkflowRebalancer extends TaskRebalancer {
         long offsetMultiplier = (-delayFromStart) / period;
         long timeToSchedule = period * offsetMultiplier + startTime.getTime();
 
-
         // Now clone the workflow if this clone has not yet been created
         DateFormat df = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
         df.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -350,7 +341,6 @@ public class WorkflowRebalancer extends TaskRebalancer {
           }
           // Persist workflow start regardless of success to avoid retrying and failing
           workflowCtx.setLastScheduledSingleWorkflow(newWorkflowName);
-          TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
         }
 
         // Change the time to trigger the pipeline to that of the next run
@@ -379,6 +369,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
    * @param origWorkflowName the name of the existing workflow
    * @param newWorkflowName  the name of the new workflow
    * @param newStartTime     a provided start time that deviates from the desired start time
+   *
    * @return the cloned workflow, or null if there was a problem cloning the existing one
    */
   public static Workflow cloneWorkflow(HelixManager manager, String origWorkflowName,
@@ -452,9 +443,14 @@ public class WorkflowRebalancer extends TaskRebalancer {
   }
 
   /**
+<<<<<<< HEAD
    * Clean up a workflow. This removes the workflow config, idealstate, externalview and workflow
    * contexts associated with this workflow, and all jobs information, including their configs,
    * context, IS and EV.
+=======
+   * Cleans up workflow configs and workflow contexts associated with this workflow, including all
+   * job-level configs and context, plus workflow-level information.
+>>>>>>> Support configurable job purge interval for a queue.
    */
   private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg) {
     LOG.info("Cleaning up workflow: " + workflow);
@@ -483,36 +479,54 @@ public class WorkflowRebalancer extends TaskRebalancer {
    */
   // TODO: run this in a separate thread.
   // Get all jobConfigs & jobContext from ClusterCache.
-  protected void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
+  private void purgeExpiredJobs(String workflow, WorkflowConfig workflowConfig,
       WorkflowContext workflowContext) {
-    if (workflowContext.getLastJobPurgeTime() + JOB_PURGE_INTERVAL > System.currentTimeMillis()) {
-      return;
-    }
-
-    Set<String> expiredJobs = TaskUtil
-        .getExpiredJobs(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
-            workflowConfig, workflowContext);
-    for (String job : expiredJobs) {
-      _scheduledRebalancer.removeScheduledRebalance(job);
-    }
-    if (!TaskUtil
-        .removeJobsFromWorkflow(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
-            workflow, expiredJobs, true)) {
-      LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
-    }
-
+    long purgeInterval = workflowConfig.getJobPurgeInterval();
     long currentTime = System.currentTimeMillis();
-    long nextPurgeTime = currentTime + JOB_PURGE_INTERVAL;
-    workflowContext.setLastJobPurgeTime(currentTime);
+
+    if (purgeInterval > 0 && workflowContext.getLastJobPurgeTime() + purgeInterval <= currentTime) {
+      Set<String> expiredJobs = TaskUtil
+          .getExpiredJobs(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(),
+              workflowConfig, workflowContext);
+
+      if (expiredJobs.isEmpty()) {
+        LOG.info("No job to purge for the queue " + workflow);
+      } else {
+        LOG.info("Purge jobs " + expiredJobs + " from queue " + workflow);
+        for (String job : expiredJobs) {
+          if (!TaskUtil
+              .removeJob(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(), job)) {
+            LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
+          }
+          _scheduledRebalancer.removeScheduledRebalance(job);
+        }
+        if (!TaskUtil
+            .removeJobsFromDag(_manager.getHelixDataAccessor(), workflow, expiredJobs, true)) {
+          LOG.warn(
+              "Error occurred while trying to remove jobs + " + expiredJobs + " from the workflow "
+                  + workflow);
+        }
+        // remove job states in workflowContext.
+        workflowContext.removeJobStates(expiredJobs);
+        workflowContext.removeJobStartTime(expiredJobs);
+      }
+      workflowContext.setLastJobPurgeTime(currentTime);
+    }
+
+    setNextJobPurgeTime(workflow, currentTime, purgeInterval);
+  }
+
+  private void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval) {
+    long nextPurgeTime = currentTime + purgeInterval;
     long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(workflow);
     if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
       _scheduledRebalancer.scheduleRebalance(_manager, workflow, nextPurgeTime);
     }
   }
 
-  @Override
-  public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
-      CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
+  @Override public IdealState computeNewIdealState(String resourceName,
+      IdealState currentIdealState, CurrentStateOutput currentStateOutput,
+      ClusterDataCache clusterData) {
     // Nothing to do here with workflow resource.
     return currentIdealState;
   }

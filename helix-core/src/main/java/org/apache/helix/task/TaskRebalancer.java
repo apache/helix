@@ -43,7 +43,6 @@ import com.google.common.collect.Maps;
  * Abstract rebalancer class for the {@code Task} state model.
  */
 public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
-  public static final String START_TIME_KEY = "StartTime";
   private static final Logger LOG = Logger.getLogger(TaskRebalancer.class);
   protected static long JOB_PURGE_INTERVAL = 10 * 60 * 1000;
 

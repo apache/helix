@@ -27,12 +27,15 @@ import java.util.TreeMap;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.log4j.Logger;
 
 /**
  * Typed interface to the workflow context information stored by {@link TaskRebalancer} in the Helix
  * property store
  */
 public class WorkflowContext extends HelixProperty {
+  private static final Logger LOG = Logger.getLogger(WorkflowContext.class);
+
   protected enum WorkflowContextProperties {
     STATE,
     START_TIME,
@@ -40,7 +43,8 @@ public class WorkflowContext extends HelixProperty {
     JOB_STATES,
     LAST_SCHEDULED_WORKFLOW,
     SCHEDULED_WORKFLOWS,
-    LAST_PURGE_TIME
+    LAST_PURGE_TIME,
+    StartTime
   }
 
   public static final int UNSTARTED = -1;
@@ -78,14 +82,6 @@ public class WorkflowContext extends HelixProperty {
     states.put(job, s.name());
   }
 
-  protected void removeJobStates(Set<String> jobs) {
-    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
-    if (states != null) {
-      states.keySet().removeAll(jobs);
-      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
-    }
-  }
-
   public TaskState getJobState(String job) {
     Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
     if (states == null) {
@@ -98,6 +94,67 @@ public class WorkflowContext extends HelixProperty {
     }
 
     return TaskState.valueOf(s);
+  }
+
+  protected void removeJobStates(Set<String> jobs) {
+    Map<String, String> states = _record.getMapField(WorkflowContextProperties.JOB_STATES.name());
+    if (states != null) {
+      states.keySet().removeAll(jobs);
+      _record.setMapField(WorkflowContextProperties.JOB_STATES.name(), states);
+    }
+  }
+
+  protected void setJobStartTime(String job, long time) {
+    Map<String, String> startTimes =
+        _record.getMapField(WorkflowContextProperties.StartTime.name());
+    if (startTimes == null) {
+      startTimes = new HashMap<>();
+      _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
+    }
+    startTimes.put(job, String.valueOf(time));
+  }
+
+  protected void removeJobStartTime(Set<String> jobs) {
+    Map<String, String> startTimes =
+        _record.getMapField(WorkflowContextProperties.StartTime.name());
+    if (startTimes != null) {
+      startTimes.keySet().removeAll(jobs);
+      _record.setMapField(WorkflowContextProperties.StartTime.name(), startTimes);
+    }
+  }
+
+  public long getJobStartTime(String job) {
+    Map<String, String> startTimes =
+        _record.getMapField(WorkflowContextProperties.StartTime.name());
+    if (startTimes == null || !startTimes.containsKey(job)) {
+      return -1;
+    }
+
+    String t = startTimes.get(job);
+    if (t == null) {
+      return -1;
+    }
+
+    try {
+      long ret = Long.valueOf(t);
+      return ret;
+    } catch (NumberFormatException e) {
+      LOG.warn("Number error " + t + " for job start time of " + job);
+      return -1;
+    }
+  }
+
+  public Map<String, Long> getJobStartTimes() {
+    Map<String, Long> startTimes = new HashMap<>();
+    Map<String, String> startTimesMap =
+        _record.getMapField(WorkflowContextProperties.StartTime.name());
+    if (startTimesMap != null) {
+      for (Map.Entry<String, String> time : startTimesMap.entrySet()) {
+        startTimes.put(time.getKey(), Long.valueOf(time.getValue()));
+      }
+    }
+
+    return startTimes;
   }
 
   public Map<String, TaskState> getJobStates() {

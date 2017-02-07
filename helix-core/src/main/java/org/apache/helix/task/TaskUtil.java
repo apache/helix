@@ -36,17 +36,14 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.IdealState;
 import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.log4j.Logger;
-import org.apache.zookeeper.data.Stat;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.type.TypeReference;
 
 import com.google.common.base.Joiner;
-import com.google.common.collect.Maps;
 
 /**
  * Static utility methods.
@@ -679,7 +676,7 @@ public class TaskUtil {
 
   /* remove IS/EV, config and context of a job */
   // Jobname is here should be NamespacedJobName.
-  private static boolean removeJob(HelixDataAccessor accessor, HelixPropertyStore propertyStore,
+  protected static boolean removeJob(HelixDataAccessor accessor, HelixPropertyStore propertyStore,
       String job) {
     boolean success = true;
     if (!cleanupJobIdealStateExtView(accessor, job)) {
@@ -688,7 +685,7 @@ public class TaskUtil {
               job));
       success = false;
     }
-    if (!removeJobConfig(accessor, job)) {
+    if (!removeWorkflowJobConfig(accessor, job)) {
       LOG.warn(String.format("Error occurred while trying to remove job config for %s.", job));
       success = false;
     }
@@ -702,7 +699,8 @@ public class TaskUtil {
 
   /** Remove the job name from the DAG from the queue configuration */
   // Job name should be namespaced job name here.
-  private static boolean removeJobsFromDag(final HelixDataAccessor accessor, final String workflow,
+
+  protected static boolean removeJobsFromDag(final HelixDataAccessor accessor, final String workflow,
       final Set<String> jobsToRemove, final boolean maintainDependency) {
     // Now atomically clear the DAG
     DataUpdater<ZNRecord> dagRemover = new DataUpdater<ZNRecord>() {
@@ -741,7 +739,7 @@ public class TaskUtil {
   /**
    * update workflow's property to remove jobs from JOB_STATES if there are already started.
    */
-  private static boolean removeJobsState(final HelixPropertyStore propertyStore,
+  protected static boolean removeJobsState(final HelixPropertyStore propertyStore,
       final String workflow, final Set<String> jobs) {
     String contextPath =
         Joiner.on("/").join(TaskConstants.REBALANCER_CONTEXT_ROOT, workflow, TaskUtil.CONTEXT_NODE);
@@ -751,6 +749,7 @@ public class TaskUtil {
         if (currentData != null) {
           WorkflowContext workflowContext = new WorkflowContext(currentData);
           workflowContext.removeJobStates(jobs);
+          workflowContext.removeJobStartTime(jobs);
           currentData = workflowContext.getRecord();
         }
         return currentData;

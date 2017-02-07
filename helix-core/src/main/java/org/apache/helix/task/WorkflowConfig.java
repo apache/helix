@@ -63,7 +63,8 @@ public class  WorkflowConfig extends ResourceConfig {
     JobTypes,
     IsJobQueue,
     /* Allow multiple jobs in this workflow to be assigned to a same instance or not */
-    AllowOverlapJobAssignment
+    AllowOverlapJobAssignment,
+    JobPurgeInterval
   }
 
   /* Default values */
@@ -77,6 +78,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public static final boolean DEFAULT_JOB_QUEUE = false;
   public static final boolean DEFAULT_MONITOR_DISABLE = true;
   public static final boolean DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT = false;
+  protected static final long DEFAULT_JOB_PURGE_INTERVAL = 30 * 60 * 1000; //default 30 minutes
 
   public WorkflowConfig(HelixProperty property) {
     super(property.getRecord());
@@ -85,7 +87,7 @@ public class  WorkflowConfig extends ResourceConfig {
   public WorkflowConfig(WorkflowConfig cfg, String workflowId) {
     this(workflowId, cfg.getJobDag(), cfg.getParallelJobs(), cfg.getTargetState(), cfg.getExpiry(),
         cfg.getFailureThreshold(), cfg.isTerminable(), cfg.getScheduleConfig(), cfg.getCapacity(),
-        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.isAllowOverlapJobAssignment());
+        cfg.getWorkflowType(), cfg.isJobQueue(), cfg.getJobTypes(), cfg.isAllowOverlapJobAssignment(),cfg.getJobPurgeInterval());
   }
 
   /* Member variables */
@@ -94,7 +96,7 @@ public class  WorkflowConfig extends ResourceConfig {
   protected WorkflowConfig(String workflowId, JobDag jobDag, int parallelJobs,
       TargetState targetState, long expiry, int failureThreshold, boolean terminable,
       ScheduleConfig scheduleConfig, int capacity, String workflowType, boolean isJobQueue,
-      Map<String, String> jobTypes, boolean allowOverlapJobAssignment) {
+      Map<String, String> jobTypes, boolean allowOverlapJobAssignment, long purgeInterval) {
     super(workflowId);
 
     putSimpleConfig(WorkflowConfigProperty.WorkflowID.name(), workflowId);
@@ -110,6 +112,7 @@ public class  WorkflowConfig extends ResourceConfig {
     putSimpleConfig(WorkflowConfigProperty.IsJobQueue.name(), String.valueOf(isJobQueue));
     putSimpleConfig(WorkflowConfigProperty.FailureThreshold.name(), String.valueOf(failureThreshold));
     putSimpleConfig(WorkflowConfigProperty.AllowOverlapJobAssignment.name(), String.valueOf(allowOverlapJobAssignment));
+    putSimpleConfig(WorkflowConfigProperty.JobPurgeInterval.name(), String.valueOf(purgeInterval));
 
     if (capacity > 0) {
       putSimpleConfig(WorkflowConfigProperty.capacity.name(), String.valueOf(capacity));
@@ -169,6 +172,11 @@ public class  WorkflowConfig extends ResourceConfig {
 
   public long getExpiry() {
     return _record.getLongField(WorkflowConfigProperty.Expiry.name(), DEFAULT_EXPIRY);
+  }
+
+  public long getJobPurgeInterval() {
+    return _record
+        .getLongField(WorkflowConfigProperty.JobPurgeInterval.name(), DEFAULT_JOB_PURGE_INTERVAL);
   }
 
   /**
@@ -312,13 +320,14 @@ public class  WorkflowConfig extends ResourceConfig {
     private boolean _isJobQueue = DEFAULT_JOB_QUEUE;
     private Map<String, String> _jobTypes;
     private boolean _allowOverlapJobAssignment = DEFAULT_ALLOW_OVERLAP_JOB_ASSIGNMENT;
+    private long _jobPurgeInterval = DEFAULT_JOB_PURGE_INTERVAL;
 
     public WorkflowConfig build() {
       validate();
 
       return new WorkflowConfig(_workflowId, _taskDag, _parallelJobs, _targetState, _expiry,
           _failureThreshold, _isTerminable, _scheduleConfig, _capacity, _workflowType, _isJobQueue,
-          _jobTypes, _allowOverlapJobAssignment);
+          _jobTypes, _allowOverlapJobAssignment, _jobPurgeInterval);
     }
 
     public Builder() {}
@@ -337,6 +346,7 @@ public class  WorkflowConfig extends ResourceConfig {
       _isJobQueue = workflowConfig.isJobQueue();
       _jobTypes = workflowConfig.getJobTypes();
       _allowOverlapJobAssignment = workflowConfig.isAllowOverlapJobAssignment();
+      _jobPurgeInterval = workflowConfig.getJobPurgeInterval();
     }
 
     public Builder setWorkflowId(String v) {
@@ -359,16 +369,53 @@ public class  WorkflowConfig extends ResourceConfig {
       return this;
     }
 
+    /**
+     * The expiry time for this workflow. Helix may clean up the workflow information after the
+     * expiry time from the completion of the workflow.
+     *
+     * @param v
+     * @param unit
+     *
+     * @return
+     */
     public Builder setExpiry(long v, TimeUnit unit) {
       _expiry = unit.toMillis(v);
       return this;
     }
 
+    /**
+     * The expiry time for this workflow. Helix may clean up the workflow information after the
+     * expiry time from the completion of the workflow.
+     *
+     * @param v in milliseconds
+     *
+     * @return
+     */
     public Builder setExpiry(long v) {
       _expiry = v;
       return this;
     }
 
+    /**
+     * The time periodical Helix should clean up all completed jobs. This config applies only on
+     * JobQueue.
+     *
+     * @param t in milliseconds
+     *
+     * @return
+     */
+    public Builder setJobPurgeInterval(long t) {
+      _jobPurgeInterval = t;
+      return this;
+    }
+
+    /**
+     * The max allowed numbers of failed jobs before Helix should marks the workflow failure.
+     *
+     * @param failureThreshold
+     *
+     * @return
+     */
     public Builder setFailureThreshold(int failureThreshold) {
       _failureThreshold = failureThreshold;
       return this;
@@ -376,7 +423,7 @@ public class  WorkflowConfig extends ResourceConfig {
 
     /**
      * This method only applies for JobQueue, will be ignored in generic workflows
-     * @param capacity The number of capacity
+     * @param capacity The max number of jobs allowed in the queue
      * @return This builder
      */
     public Builder setCapacity(int capacity) {
@@ -389,7 +436,7 @@ public class  WorkflowConfig extends ResourceConfig {
       return this;
     }
 
-    public Builder setTerminable(boolean isTerminable) {
+    protected Builder setTerminable(boolean isTerminable) {
       _isTerminable = isTerminable;
       return this;
     }
@@ -425,6 +472,7 @@ public class  WorkflowConfig extends ResourceConfig {
       builder.setConfigMap(cfg);
       return builder;
     }
+
     // TODO: Add API to set map fields. This API only set simple fields
     public Builder setConfigMap(Map<String, String> cfg) {
       if (cfg.containsKey(WorkflowConfigProperty.Expiry.name())) {
@@ -456,6 +504,14 @@ public class  WorkflowConfig extends ResourceConfig {
         int capacity = Integer.valueOf(cfg.get(WorkflowConfigProperty.capacity.name()));
         if (capacity > 0) {
           setCapacity(capacity);
+        }
+      }
+
+      if (cfg.containsKey(WorkflowConfigProperty.JobPurgeInterval.name())) {
+        long jobPurgeInterval =
+            Long.valueOf(cfg.get(WorkflowConfigProperty.JobPurgeInterval.name()));
+        if (jobPurgeInterval > 0) {
+          setJobPurgeInterval(jobPurgeInterval);
         }
       }
 

@@ -177,7 +177,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
       validateNoPartitionMove(idealStates.get(db), externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName());
     }
@@ -188,7 +190,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
     }
   }
 
@@ -222,7 +226,8 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
     }
 
     Thread.sleep(delay + 1000);
@@ -230,7 +235,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, _replica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, _replica);
     }
   }
 
@@ -267,8 +274,10 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
-      validateNoPartitionMove(idealStates.get(db), externalViewsBefore.get(db), ev,
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
+      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName());
     }
 
@@ -317,7 +326,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, _replica);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, _replica);
     }
 
     disableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
@@ -404,6 +415,10 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
 
     for (String partition : is.getPartitionSet()) {
       Map<String, String> assignmentMap = ev.getRecord().getMapField(partition);
+      Assert.assertNotNull(assignmentMap,
+          is.getResourceName() + "'s best possible assignment is null for partition " + partition);
+      Assert.assertTrue(!assignmentMap.isEmpty(),
+          is.getResourceName() + "'s partition " + partition + " has no best possible map in IS.");
 
       boolean hasTopState = false;
       int activeReplica = 0;

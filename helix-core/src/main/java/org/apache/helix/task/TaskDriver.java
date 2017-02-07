@@ -118,8 +118,7 @@ public class TaskDriver {
     flow.validate();
 
     WorkflowConfig newWorkflowConfig =
-        new WorkflowConfig.Builder().setConfigMap(flow.getResourceConfigMap())
-            .setWorkflowId(flow.getName()).build();
+        new WorkflowConfig.Builder(flow.getWorkflowConfig()).setWorkflowId(flow.getName()).build();
 
     Map<String, String> jobTypes = new HashMap<String, String>();
     // add all job configs.

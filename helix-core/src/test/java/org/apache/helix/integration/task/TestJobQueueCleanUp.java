@@ -19,11 +19,16 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.Set;
 import org.apache.helix.TestHelper;
 import org.apache.helix.task.JobConfig;
+import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
+import org.apache.helix.task.WorkflowConfig;
+import org.apache.helix.task.WorkflowContext;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
@@ -72,5 +77,49 @@ public class TestJobQueueCleanUp extends TaskTestBase {
         TaskState.IN_PROGRESS);
     _driver.cleanupQueue(queueName);
     Assert.assertEquals(_driver.getWorkflowConfig(queueName).getJobDag().size(), 2);
+  }
+
+  @Test
+  public void testJobQueueAutoCleanUp() throws InterruptedException {
+    int capacity = 10;
+    String queueName = TestHelper.getTestMethodName();
+    JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName, capacity);
+    WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(builder.getWorkflowConfig());
+    cfgBuilder.setJobPurgeInterval(1000);
+    builder.setWorkflowConfig(cfgBuilder.build());
+
+    JobConfig.Builder jobBuilder =
+        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+            .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2).setJobCommandConfigMap(
+            ImmutableMap.of(MockTask.SUCCESS_COUNT_BEFORE_FAIL, String.valueOf(capacity / 2)))
+            .setExpiry(200L);
+    Set<String> deletedJobs = new HashSet<String>();
+    Set<String> remainJobs = new HashSet<String>();
+    for (int i = 0; i < capacity; i++) {
+      builder.enqueueJob("JOB" + i, jobBuilder);
+      if (i < capacity/2) {
+        deletedJobs.add("JOB" + i);
+      } else {
+        remainJobs.add(TaskUtil.getNamespacedJobName(queueName, "JOB" + i));
+      }
+    }
+    _driver.start(builder.build());
+    _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + (capacity - 1)), TaskState.FAILED);
+    Thread.sleep(2000);
+
+    WorkflowConfig config = _driver.getWorkflowConfig(queueName);
+    Assert.assertEquals(config.getJobDag().getAllNodes(), remainJobs);
+
+    WorkflowContext context = _driver.getWorkflowContext(queueName);
+    Assert.assertEquals(context.getJobStates().keySet(), remainJobs);
+    Assert.assertTrue(remainJobs.containsAll(context.getJobStartTimes().keySet()));
+
+    for (String job : deletedJobs) {
+      JobConfig cfg = _driver.getJobConfig(job);
+      JobContext ctx = _driver.getJobContext(job);
+      Assert.assertNull(cfg);
+      Assert.assertNull(ctx);
+    }
+
   }
 }

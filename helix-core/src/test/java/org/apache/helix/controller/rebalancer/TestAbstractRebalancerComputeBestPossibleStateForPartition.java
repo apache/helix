@@ -38,75 +38,79 @@ import org.testng.annotations.Test;
 // in order to increase availability
 public class TestAbstractRebalancerComputeBestPossibleStateForPartition {
 
-  private StateModelDefinition stateModelDefinition = MasterSlaveSMD.build();
-  private final String NODE_0 = "NODE_0", NODE_1 = "NODE_1";
-  private final String MASTER = "MASTER", SLAVE = "SLAVE", OFFLINE = "OFFLINE";
-  private List<String> preferenceList = Lists.newArrayList(NODE_0, NODE_1);
-  private Set<String> disabledInstances = new HashSet<String>();
-  private Map<String, String> currentStateMap = new HashMap<String, String>();
-  private Map<String, String> expectedBestPossibleMap = new HashMap<String, String>();
-  private Set<String> liveInstance = Sets.newHashSet(NODE_0, NODE_1);
-  private AbstractRebalancer rebalancer = new AutoRebalancer();
+  private static final String NODE_0 = "NODE_0";
+  private static final String NODE_1 = "NODE_1";
+  private static final String MASTER = MasterSlaveSMD.States.MASTER.toString();
+  private static final String SLAVE = MasterSlaveSMD.States.SLAVE.toString();
+  private static final String OFFLINE = MasterSlaveSMD.States.OFFLINE.toString();
+
+  private StateModelDefinition _stateModelDefinition = MasterSlaveSMD.build();
+  private List<String> _preferenceList = Lists.newArrayList(NODE_0, NODE_1);
+  private Set<String> _disabledInstances = new HashSet<String>();
+  private Map<String, String> _currentStateMap = new HashMap<String, String>();
+  private Map<String, String> _expectedBestPossibleMap = new HashMap<String, String>();
+  private Set<String> _liveInstance = Sets.newHashSet(NODE_0, NODE_1);
+  private AbstractRebalancer _rebalancer = new AutoRebalancer();
 
   @BeforeMethod
   public void clearMaps() {
-    currentStateMap.clear();
-    expectedBestPossibleMap.clear();
+    _currentStateMap.clear();
+    _expectedBestPossibleMap.clear();
   }
 
   @Test
   public void case1() {
     // Promote to Slave, at the same time promote another Slave to Master
-    currentStateMap.put(NODE_0, OFFLINE);
-    currentStateMap.put(NODE_1, SLAVE);
-    expectedBestPossibleMap.put(NODE_0, SLAVE);
-    expectedBestPossibleMap.put(NODE_1, MASTER);
+    _currentStateMap.put(NODE_0, OFFLINE);
+    _currentStateMap.put(NODE_1, SLAVE);
+    _expectedBestPossibleMap.put(NODE_0, SLAVE);
+    _expectedBestPossibleMap.put(NODE_1, MASTER);
 
     Map<String, String> bestPossibleMap =
-        rebalancer.computeBestPossibleStateForPartition(stateModelDefinition, preferenceList, currentStateMap,
-            liveInstance, disabledInstances, true);
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+        _rebalancer.computeBestPossibleStateForPartition(_stateModelDefinition, _preferenceList, _currentStateMap,
+            _liveInstance, _disabledInstances, true);
+    Assert.assertEquals(bestPossibleMap, _expectedBestPossibleMap);
   }
 
   @Test
   public void case2() {
     // Be able to switch Master and Slave
-    currentStateMap.put(NODE_0, SLAVE);
-    currentStateMap.put(NODE_1, MASTER);
-    expectedBestPossibleMap.put(NODE_0, MASTER);
-    expectedBestPossibleMap.put(NODE_1, SLAVE);
+    _currentStateMap.put(NODE_0, SLAVE);
+    _currentStateMap.put(NODE_1, MASTER);
+    _expectedBestPossibleMap.put(NODE_0, MASTER);
+    _expectedBestPossibleMap.put(NODE_1, SLAVE);
 
     Map<String, String> bestPossibleMap =
-        rebalancer.computeBestPossibleStateForPartition(stateModelDefinition, preferenceList, currentStateMap,
-            liveInstance, disabledInstances, true);
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+        _rebalancer.computeBestPossibleStateForPartition(_stateModelDefinition, _preferenceList, _currentStateMap,
+            _liveInstance, _disabledInstances, true);
+    Assert.assertEquals(bestPossibleMap, _expectedBestPossibleMap);
   }
 
   @Test
   public void case3() {
     // Stay the same
-    currentStateMap.put(NODE_0, MASTER);
-    currentStateMap.put(NODE_1, SLAVE);
-    expectedBestPossibleMap.put(NODE_0, MASTER);
-    expectedBestPossibleMap.put(NODE_1, SLAVE);
+    _currentStateMap.put(NODE_0, MASTER);
+    _currentStateMap.put(NODE_1, SLAVE);
+    _expectedBestPossibleMap.put(NODE_0, MASTER);
+    _expectedBestPossibleMap.put(NODE_1, SLAVE);
 
     Map<String, String> bestPossibleMap =
-        rebalancer.computeBestPossibleStateForPartition(stateModelDefinition, preferenceList, currentStateMap,
-            liveInstance, disabledInstances, true);
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+        _rebalancer.computeBestPossibleStateForPartition(_stateModelDefinition, _preferenceList, _currentStateMap,
+            _liveInstance, _disabledInstances, true);
+    Assert.assertEquals(bestPossibleMap, _expectedBestPossibleMap);
   }
 
   @Test
   public void case4() {
     // Promote normally
-    currentStateMap.put(NODE_0, OFFLINE);
-    currentStateMap.put(NODE_1, OFFLINE);
-    expectedBestPossibleMap.put(NODE_0, MASTER);
-    expectedBestPossibleMap.put(NODE_1, SLAVE);
+    _currentStateMap.put(NODE_0, OFFLINE);
+    _currentStateMap.put(NODE_1, OFFLINE);
+    _expectedBestPossibleMap.put(NODE_0, MASTER);
+    _expectedBestPossibleMap.put(NODE_1, SLAVE);
 
     Map<String, String> bestPossibleMap =
-        rebalancer.computeBestPossibleStateForPartition(stateModelDefinition, preferenceList, currentStateMap,
-            liveInstance, disabledInstances, true);
-    Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap);
+        _rebalancer.computeBestPossibleStateForPartition(_stateModelDefinition, _preferenceList, _currentStateMap,
+            _liveInstance, _disabledInstances, true);
+    Assert.assertEquals(bestPossibleMap, _expectedBestPossibleMap);
   }
 }

@@ -144,7 +144,7 @@ public class TaskAssignmentStage extends AbstractBaseStage {
           "Sending Message " + message.getMsgId() + " to " + message.getTgtName() + " transit "
               + message.getResourceName() + "." + message.getPartitionName() + "|" + message
               .getPartitionNames() + " from:" + message.getFromState() + " to:" + message
-              .getToState());
+              .getToState() + ", Message type ");
 
       keys.add(keyBuilder.message(message.getTgtName(), message.getId()));
     }

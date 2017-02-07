@@ -39,6 +39,7 @@ import com.google.common.collect.Sets;
 public class CurrentStateOutput {
   private final Map<String, Map<Partition, Map<String, String>>> _currentStateMap;
   private final Map<String, Map<Partition, Map<String, Message>>> _pendingStateMap;
+  private final Map<String, Map<Partition, Map<String, Message>>> _cancellationStateMap;
   // Contains per-resource maps of partition -> (instance, requested_state). This corresponds to the
   // REQUESTED_STATE
   // field in the CURRENTSTATES node.
@@ -55,6 +56,7 @@ public class CurrentStateOutput {
   public CurrentStateOutput() {
     _currentStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
     _pendingStateMap = new HashMap<String, Map<Partition, Map<String, Message>>>();
+    _cancellationStateMap = new HashMap<String, Map<Partition, Map<String, Message>>>();
     _resourceStateModelMap = new HashMap<String, String>();
     _curStateMetaMap = new HashMap<String, CurrentState>();
     _requestedStateMap = new HashMap<String, Map<Partition, Map<String, String>>>();
@@ -122,13 +124,30 @@ public class CurrentStateOutput {
 
   public void setPendingState(String resourceName, Partition partition, String instanceName,
       Message message) {
-    if (!_pendingStateMap.containsKey(resourceName)) {
-      _pendingStateMap.put(resourceName, new HashMap<Partition, Map<String, Message>>());
+    setStateMessage(resourceName, partition, instanceName, message, _pendingStateMap);
+  }
+
+  /**
+   * Update the cancellation messages per resource per partition
+   * @param resourceName
+   * @param partition
+   * @param instanceName
+   * @param message
+   */
+  public void setCancellationState(String resourceName, Partition partition, String instanceName,
+      Message message) {
+    setStateMessage(resourceName, partition, instanceName, message, _cancellationStateMap);
+  }
+
+  private void setStateMessage(String resourceName, Partition partition, String instanceName,
+      Message message, Map<String, Map<Partition, Map<String, Message>>> stateMessageMap) {
+    if (!stateMessageMap.containsKey(resourceName)) {
+      stateMessageMap.put(resourceName, new HashMap<Partition, Map<String, Message>>());
     }
-    if (!_pendingStateMap.get(resourceName).containsKey(partition)) {
-      _pendingStateMap.get(resourceName).put(partition, new HashMap<String, Message>());
+    if (!stateMessageMap.get(resourceName).containsKey(partition)) {
+      stateMessageMap.get(resourceName).put(partition, new HashMap<String, Message>());
     }
-    _pendingStateMap.get(resourceName).get(partition).put(instanceName, message);
+    stateMessageMap.get(resourceName).get(partition).put(instanceName, message);
   }
 
   /**
@@ -179,7 +198,24 @@ public class CurrentStateOutput {
    * @return pending message
    */
   public Message getPendingState(String resourceName, Partition partition, String instanceName) {
-    Map<Partition, Map<String, Message>> map = _pendingStateMap.get(resourceName);
+    return getStateMessage(resourceName, partition, instanceName, _pendingStateMap);
+  }
+
+  /**
+   * Fetch cancellation message per resource, partition, instance
+   * @param resourceName
+   * @param partition
+   * @param instanceName
+   * @return
+   */
+  public Message getCancellationState(String resourceName, Partition partition,
+      String instanceName) {
+    return getStateMessage(resourceName, partition, instanceName, _cancellationStateMap);
+  }
+
+  private Message getStateMessage(String resourceName, Partition partition, String instanceName,
+      Map<String, Map<Partition, Map<String, Message>>> stateMessageMap) {
+    Map<Partition, Map<String, Message>> map = stateMessageMap.get(resourceName);
     if (map != null) {
       Map<String, Message> instanceStateMap = map.get(partition);
       if (instanceStateMap != null) {

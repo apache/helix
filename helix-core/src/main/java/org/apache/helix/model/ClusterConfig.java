@@ -19,13 +19,13 @@ package org.apache.helix.model;
  * under the License.
  */
 
-import org.apache.helix.HelixProperty;
-import org.apache.helix.ZNRecord;
-import org.apache.helix.api.config.StateTransitionThrottleConfig;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import org.apache.helix.HelixProperty;
+import org.apache.helix.ZNRecord;
+import org.apache.helix.api.config.StateTransitionThrottleConfig;
 
 /**
  * Cluster configurations
@@ -42,7 +42,8 @@ public class ClusterConfig extends HelixProperty {
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,    // delayed time in ms that the delay time Helix should hold until rebalancing.
-    STATE_TRANSITION_THROTTLE_CONFIGS
+    STATE_TRANSITION_THROTTLE_CONFIGS,
+    STATE_TRANSITION_CANCELLATION_ENABLED
   }
 
   /**
@@ -120,6 +121,25 @@ public class ClusterConfig extends HelixProperty {
 
   public boolean isDelayRebalaceDisabled() {
     return _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(), false);
+  }
+
+  /**
+   * Enable/Disable state transition cancellation for the cluster
+   * @param enable
+   */
+  public void stateTransitionCancelEnabled(Boolean enable) {
+    if (enable == null) {
+      _record.getSimpleFields()
+          .remove(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name());
+    } else {
+      _record.setBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(),
+          enable);
+    }
+  }
+
+  public boolean isStateTransitionCancelEnabled() {
+    return _record
+        .getBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(), false);
   }
 
   @Override

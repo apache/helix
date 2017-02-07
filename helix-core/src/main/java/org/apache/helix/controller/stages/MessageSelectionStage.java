@@ -172,6 +172,10 @@ public class MessageSelectionStage extends AbstractBaseStage {
     Map<Integer, List<Message>> messagesGroupByStateTransitPriority =
         new TreeMap<Integer, List<Message>>();
     for (Message message : messages) {
+      if (message.getMsgType().equals(Message.MessageType.STATE_TRANSITION_CANCELLATION.name())) {
+        selectedMessages.add(message);
+        continue;
+      }
       String fromState = message.getFromState();
       String toState = message.getToState();
       String transition = fromState + "-" + toState;

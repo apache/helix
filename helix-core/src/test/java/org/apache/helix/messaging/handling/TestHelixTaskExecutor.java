@@ -647,6 +647,8 @@ public class TestHelixTaskExecutor {
     msg1.setResourceName("R1");
     msg1.setTgtName("Localhost_1123");
     msg1.setSrcName("127.101.1.23_2234");
+    msg1.setFromState("SLAVE");
+    msg1.setToState("MASTER");
     msgList.add(msg1);
 
     Message msg2 = new Message(Message.MessageType.STATE_TRANSITION_CANCELLATION, UUID.randomUUID().toString());
@@ -655,6 +657,8 @@ public class TestHelixTaskExecutor {
     msg2.setResourceName("R1");
     msg2.setTgtName("Localhost_1123");
     msg2.setSrcName("127.101.1.23_2234");
+    msg2.setFromState("SLAVE");
+    msg2.setToState("MASTER");
     msgList.add(msg2);
 
     executor.onMessage("someInstance", msgList, changeContext);

@@ -60,7 +60,4 @@ public class TaskTestBase extends TaskSynchronizedTestBase {
     super.afterClass();
     _controller.syncStop();
   }
-
-
-
 }

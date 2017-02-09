@@ -105,7 +105,9 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
-    Assert.assertTrue(listener._maxNbOfChilds <= 2,
+    // Change to three is because there is an extra factory registered
+    // So one extra NO_OP message send
+    Assert.assertTrue(listener._maxNbOfChilds <= 3,
         "Should get no more than 2 messages (O->S and S->M)");
 
     // clean up
@@ -185,7 +187,9 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
-    Assert.assertTrue(listener._maxNbOfChilds <= 2,
+    // Change to three is because there is an extra factory registered
+    // So one extra NO_OP message send
+    Assert.assertTrue(listener._maxNbOfChilds <= 3,
         "Should get no more than 2 messages (O->S and S->M)");
 
     // clean up

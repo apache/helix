@@ -36,6 +36,8 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
   private final CountDownLatch _stopCountDown = new CountDownLatch(1);
   private final CountDownLatch _waitStopFinishCountDown = new CountDownLatch(1);
 
+  private boolean _started = false;
+
   public ClusterControllerManager(String zkAddr, String clusterName) {
     this(zkAddr, clusterName, "controller");
   }
@@ -48,13 +50,20 @@ public class ClusterControllerManager extends ZKHelixManager implements Runnable
     _stopCountDown.countDown();
     try {
       _waitStopFinishCountDown.await();
+      _started = false;
     } catch (InterruptedException e) {
       LOG.error("Interrupted waiting for finish", e);
     }
   }
 
+  // This should not be called more than once because HelixManager.connect() should not be called more than once.
   public void syncStart() {
-    // TODO: prevent start multiple times
+    if (_started) {
+      throw new RuntimeException("Helix Controller already started. Do not call syncStart() more than once.");
+    } else {
+      _started = true;
+    }
+
     new Thread(this).start();
     try {
       _startCountDown.await();

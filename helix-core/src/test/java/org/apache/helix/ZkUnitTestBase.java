@@ -39,6 +39,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.ExternalView;
+import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -151,7 +152,7 @@ public class ZkUnitTestBase {
     // String instanceConfigsPath = PropertyPathBuilder.getConfigPath(clusterName);
     String instanceConfigsPath =
         PropertyPathBuilder.getPath(PropertyType.CONFIGS, clusterName,
-            ConfigScopeProperty.PARTICIPANT.toString());
+            HelixConfigScope.ConfigScopeProperty.PARTICIPANT.toString());
     String instanceConfigPath = instanceConfigsPath + "/" + instance;
     String instancePath = PropertyPathBuilder.instance(clusterName, instance);
     AssertJUnit.assertEquals(wantExists, zkClient.exists(instanceConfigPath));

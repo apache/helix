@@ -26,6 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.I0Itec.zkclient.IZkChildListener;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;

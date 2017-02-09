@@ -23,6 +23,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZkTestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;

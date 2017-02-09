@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.I0Itec.zkclient.serialize.BytesPushThroughSerializer;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.PropertyType;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;

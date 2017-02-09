@@ -33,6 +33,7 @@ import org.apache.helix.HelixProperty;
 import org.apache.helix.PropertyKey;
 import org.apache.log4j.Logger;
 
+import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
@@ -71,7 +72,9 @@ public class CriteriaEvaluator {
     Set<String> liveParticipants = accessor.getChildValuesMap(keyBuilder.liveInstances()).keySet();
     List<ZNRecordRow> result = Lists.newArrayList();
     for (ZNRecordRow row : allRows) {
-      if (rowMatches(recipientCriteria, row) && liveParticipants.contains(row.getMapSubKey())) {
+      // The participant instance name is stored in the return value of either getRecordId() or getMapSubKey()
+      if (rowMatches(recipientCriteria, row) &&
+          (liveParticipants.contains(row.getRecordId()) || liveParticipants.contains(row.getMapSubKey()))) {
         result.add(row);
       }
     }
@@ -81,8 +84,9 @@ public class CriteriaEvaluator {
     // deduplicate and convert the matches into the required format
     for (ZNRecordRow row : result) {
       Map<String, String> resultRow = new HashMap<String, String>();
-      resultRow.put("instanceName",
-          !recipientCriteria.getInstanceName().equals("") ? row.getMapSubKey() : "");
+      resultRow.put("instanceName", !recipientCriteria.getInstanceName().equals("") ?
+          (!Strings.isNullOrEmpty(row.getMapSubKey()) ? row.getMapSubKey() : row.getRecordId()) :
+          "");
       resultRow.put("resourceName", !recipientCriteria.getResource().equals("") ? row.getRecordId()
           : "");
       resultRow.put("partitionName", !recipientCriteria.getPartition().equals("") ? row.getMapKey()
@@ -106,10 +110,11 @@ public class CriteriaEvaluator {
     String resourceName = normalizePattern(criteria.getResource());
     String partitionName = normalizePattern(criteria.getPartition());
     String partitionState = normalizePattern(criteria.getPartitionState());
-    return stringMatches(instanceName, row.getMapSubKey())
-        && stringMatches(resourceName, row.getRecordId())
-        && stringMatches(partitionName, row.getMapKey())
-        && stringMatches(partitionState, row.getMapValue());
+    return (stringMatches(instanceName, Strings.nullToEmpty(row.getMapSubKey())) ||
+            stringMatches(instanceName, Strings.nullToEmpty(row.getRecordId())))
+        && stringMatches(resourceName, Strings.nullToEmpty(row.getRecordId()))
+        && stringMatches(partitionName, Strings.nullToEmpty(row.getMapKey()))
+        && stringMatches(partitionState, Strings.nullToEmpty(row.getMapValue()));
   }
 
   /**

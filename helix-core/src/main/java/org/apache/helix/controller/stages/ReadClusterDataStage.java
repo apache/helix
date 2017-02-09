@@ -67,7 +67,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       Set<String> instanceSet = Sets.newHashSet();
       Set<String> liveInstanceSet = Sets.newHashSet();
       Set<String> disabledInstanceSet = Sets.newHashSet();
-      Map<String, Set<String>> disabledPartitions = Maps.newHashMap();
+      Map<String, Map<String, String>> disabledPartitions = Maps.newHashMap();
       Map<String, Set<String>> tags = Maps.newHashMap();
       Map<String, LiveInstance> liveInstanceMap = _cache.getLiveInstances();
       for (Map.Entry<String, InstanceConfig> e : _cache.getInstanceConfigMap().entrySet()) {
@@ -80,11 +80,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         if (!config.getInstanceEnabled()) {
           disabledInstanceSet.add(instanceName);
         }
-        List<String> disabledPartitionsList = config.getDisabledPartitions();
-        Set<String> partitionNames =
-            disabledPartitionsList != null ? new HashSet<String>(config.getDisabledPartitions())
-                : new HashSet<String>();
-        disabledPartitions.put(instanceName, partitionNames);
+        disabledPartitions.put(instanceName, config.getDisabledPartitionsMap());
         Set<String> instanceTags = Sets.newHashSet(config.getTags());
         tags.put(instanceName, instanceTags);
       }

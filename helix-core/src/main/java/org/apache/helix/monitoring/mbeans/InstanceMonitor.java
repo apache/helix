@@ -21,7 +21,11 @@ package org.apache.helix.monitoring.mbeans;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import org.apache.helix.task.TaskUtil;
+import org.apache.helix.util.HelixUtil;
 
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
@@ -34,7 +38,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
   private final String _clusterName;
   private final String _participantName;
   private List<String> _tags;
-  private List<String> _disabledPartitions;
+  private long _disabledPartitions;
   private boolean _isUp;
   private boolean _isEnabled;
   private long _totalMessageReceived;
@@ -48,7 +52,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     _clusterName = clusterName;
     _participantName = participantName;
     _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
-    _disabledPartitions = Collections.emptyList();
+    _disabledPartitions = 0L;
     _isUp = false;
     _isEnabled = false;
     _totalMessageReceived = 0;
@@ -73,6 +77,11 @@ public class InstanceMonitor implements InstanceMonitorMBean {
   @Override
   public long getTotalMessageReceived() {
     return _totalMessageReceived;
+  }
+
+  @Override
+  public long getDisabledPartitions() {
+    return _disabledPartitions;
   }
 
   /**
@@ -110,7 +119,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param isLive true if running, false otherwise
    * @param isEnabled true if enabled, false if disabled
    */
-  public synchronized void updateInstance(Set<String> tags, Set<String> disabledPartitions,
+  public synchronized void updateInstance(Set<String> tags, Map<String, String> disabledPartitions,
       boolean isLive, boolean isEnabled) {
     if (tags == null || tags.isEmpty()) {
       _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
@@ -118,11 +127,13 @@ public class InstanceMonitor implements InstanceMonitorMBean {
       _tags = Lists.newArrayList(tags);
       Collections.sort(_tags);
     }
-    if (disabledPartitions == null) {
-      _disabledPartitions = Collections.emptyList();
-    } else {
-      _disabledPartitions = Lists.newArrayList(disabledPartitions);
-      Collections.sort(_disabledPartitions);
+    _disabledPartitions = 0L;
+    if (disabledPartitions != null) {
+      for (String partitions : disabledPartitions.values()) {
+        if (partitions != null) {
+          _disabledPartitions += HelixUtil.deserializeByComma(partitions).size();
+        }
+      }
     }
     _isUp = isLive;
     _isEnabled = isEnabled;

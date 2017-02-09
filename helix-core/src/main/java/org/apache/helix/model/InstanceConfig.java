@@ -21,12 +21,15 @@ package org.apache.helix.model;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 /**
@@ -223,12 +226,15 @@ public class InstanceConfig extends HelixProperty {
    * @param partition the partition name to check
    * @return true if the instance is enabled for the partition, false otherwise
    */
-  public boolean getInstanceEnabledForPartition(String partition) {
-    // Map<String, String> disabledPartitionMap =
-    // _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-    List<String> disabledPartitions =
-        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-    if (disabledPartitions != null && disabledPartitions.contains(partition)) {
+  public boolean getInstanceEnabledForPartition(String resource, String partition) {
+    // TODO: Remove this old partition list check once old get API removed.
+    List<String> oldDisabledPartition =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    Map<String, String> disabledPartitionsMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if ((disabledPartitionsMap != null && disabledPartitionsMap.containsKey(resource) && HelixUtil
+        .deserializeByComma(disabledPartitionsMap.get(resource)).contains(partition))
+        || oldDisabledPartition != null && oldDisabledPartition.contains(partition)) {
       return false;
     } else {
       return true;
@@ -237,34 +243,126 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Get the partitions disabled by this instance
+   * This method will be deprecated since we persist disabled partitions
+   * based on instance and resource. The result will not be accurate as we
+   * union all the partitions disabled.
+   *
    * @return a list of partition names
    */
+  @Deprecated
   public List<String> getDisabledPartitions() {
-    return _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    List<String> oldDisabled =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if (!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
+        && oldDisabled == null) {
+      return null;
+    }
+
+    Set<String> disabledPartitions = new HashSet<String>();
+    if (oldDisabled != null) {
+      disabledPartitions.addAll(oldDisabled);
+    }
+
+    for (String perResource : _record
+        .getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).values()) {
+      disabledPartitions.addAll(HelixUtil.deserializeByComma(perResource));
+    }
+
+    return new ArrayList<String>(disabledPartitions);
   }
 
   /**
-   * Set the enabled state for a partition on this instance
+   * Get the partitions disabled by resource on this instance
+   * @param resourceName  The resource of disabled partitions
+   * @return              A list of partition names if exists, otherwise will be null
+   */
+  public List<String> getDisabledPartitions(String resourceName) {
+    // TODO: Remove this logic getting data from list field when getDisabledParition() removed.
+    List<String> oldDisabled =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if ((!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
+        || !_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
+        .containsKey(resourceName)) && oldDisabled == null) {
+      return null;
+    }
+
+    Set<String> disabledPartitions = new HashSet<String>();
+    if (oldDisabled != null) {
+      disabledPartitions.addAll(oldDisabled);
+    }
+
+    disabledPartitions.addAll(HelixUtil.deserializeByComma(
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
+            .get(resourceName)));
+
+    return new ArrayList<String>(disabledPartitions);
+  }
+
+  /**
+   * Get a map that mapping resource name to disabled partitions
+   * @return A map of resource name mapping to disabled partitions
+   */
+  public Map<String, String> getDisabledPartitionsMap() {
+    return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+  }
+
+  /**
+   * Set the enabled state for a partition on this instance across all the resources
+   *
    * @param partitionName the partition to set
    * @param enabled true to enable, false to disable
    */
+  @Deprecated
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
-    List<String> list =
-        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    Map<String, String> disabledPartitionMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    for (String resourceName : disabledPartitionMap.keySet()) {
+      setInstanceEnabledForPartition(resourceName, partitionName, enabled);
+    }
+  }
+
+  public void setInstanceEnabledForPartition(String resourceName, String partitionName,
+      boolean enabled) {
+    // Get old disabled partitions if exists
+    // TODO: Remove this when getDisabledParition() removed.
+    List<String> oldDisabledPartitions =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+
+    Map<String, String> currentDisabled =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
     Set<String> disabledPartitions = new HashSet<String>();
-    if (list != null) {
-      disabledPartitions.addAll(list);
+
+    if (currentDisabled != null && currentDisabled.containsKey(resourceName)) {
+      disabledPartitions.addAll(HelixUtil.deserializeByComma(currentDisabled.get(resourceName)));
     }
 
     if (enabled) {
       disabledPartitions.remove(partitionName);
+      if (oldDisabledPartitions != null && oldDisabledPartitions.contains(partitionName)) {
+        oldDisabledPartitions.remove(partitionName);
+      }
     } else {
       disabledPartitions.add(partitionName);
     }
 
-    list = new ArrayList<String>(disabledPartitions);
-    Collections.sort(list);
-    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
+    List<String> disabledPartitionList = new ArrayList<String>(disabledPartitions);
+    Collections.sort(disabledPartitionList);
+    if (currentDisabled == null) {
+      currentDisabled = new HashMap<String, String>();
+    }
+
+    if (disabledPartitionList != null) {
+      currentDisabled.put(resourceName, HelixUtil.serializeByComma(disabledPartitionList));
+    }
+
+    if (!currentDisabled.isEmpty()) {
+      _record.setMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(), currentDisabled);
+    }
+
+    if (oldDisabledPartitions != null && !oldDisabledPartitions.isEmpty()) {
+      _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
+          oldDisabledPartitions);
+    }
   }
 
   @Override

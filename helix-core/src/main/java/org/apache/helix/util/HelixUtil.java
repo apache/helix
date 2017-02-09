@@ -19,6 +19,9 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -66,6 +69,17 @@ public final class HelixUtil {
    */
   public static String getZkName(String path) {
     return path.substring(path.lastIndexOf('/') + 1);
+  }
+
+  public static String serializeByComma(List<String> objects) {
+    return String.join(",", objects);
+  }
+
+  public static List<String> deserializeByComma(String object) {
+    if (object.length() == 0) {
+      return Collections.EMPTY_LIST;
+    }
+    return Arrays.asList(object.split(","));
   }
 
   /**

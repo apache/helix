@@ -46,6 +46,7 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.Workflow;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
@@ -74,7 +75,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Set<String> _liveInstances = Collections.emptySet();
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
-  private Map<String, Set<String>> _disabledPartitions = Collections.emptyMap();
+  private Map<String, Map<String, String>> _disabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
@@ -130,11 +131,14 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return _disabledInstances.size();
   }
 
-  @Override
-  public long getDisabledPartitionsGauge() {
+  @Override public long getDisabledPartitionsGauge() {
     int numDisabled = 0;
-    for (String instance : _disabledPartitions.keySet()) {
-      numDisabled += _disabledPartitions.get(instance).size();
+    for (Map<String, String> perInstance : _disabledPartitions.values()) {
+      for (String partitions : perInstance.values()) {
+        if (partitions != null) {
+          numDisabled += HelixUtil.deserializeByComma(partitions).size();
+        }
+      }
     }
     return numDisabled;
   }
@@ -196,7 +200,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param tags a map of instance name to the set of tags on it
    */
   public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
-      Set<String> disabledInstanceSet, Map<String, Set<String>> disabledPartitions,
+      Set<String> disabledInstanceSet, Map<String, Map<String, String>> disabledPartitions,
       Map<String, Set<String>> tags) {
     // Unregister beans for instances that are no longer configured
     Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());

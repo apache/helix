@@ -487,12 +487,12 @@ public class ClusterDataCache {
    * @param partition
    * @return
    */
-  public Set<String> getDisabledInstancesForPartition(String partition) {
+  public Set<String> getDisabledInstancesForPartition(String resource, String partition) {
     Set<String> disabledInstancesSet = new HashSet<String>();
     for (String instance : _instanceConfigMap.keySet()) {
       InstanceConfig config = _instanceConfigMap.get(instance);
       if (config.getInstanceEnabled() == false
-          || config.getInstanceEnabledForPartition(partition) == false) {
+          || config.getInstanceEnabledForPartition(resource, partition) == false) {
         disabledInstancesSet.add(instance);
       }
     }

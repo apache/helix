@@ -88,7 +88,7 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
       Map<String, String> currentStateMap =
           currentStateOutput.getCurrentStateMap(resource.getResourceName(), partition);
       Set<String> disabledInstancesForPartition =
-          cache.getDisabledInstancesForPartition(partition.toString());
+          cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = ConstraintBasedAssignment
           .getPreferenceList(partition, idealState,
               Collections.unmodifiableSet(cache.getLiveInstances().keySet()));

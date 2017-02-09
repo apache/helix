@@ -20,6 +20,7 @@ package org.apache.helix.manager.zk;
  */
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -406,5 +407,58 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     List<String> resourcesWithTag = tool.getResourcesInClusterWithTag(clusterName, TEST_TAG);
     AssertJUnit.assertEquals(allResources.size(), 4);
     AssertJUnit.assertEquals(resourcesWithTag.size(), 2);
+  }
+  @Test
+  public void testEnableDisablePartitions() {
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    String clusterName = className + "_" + methodName;
+    String instanceName = "TestInstance";
+    String testResourcePrefix = "TestResource";
+    System.out.println("START " + clusterName + " at " + new Date(System.currentTimeMillis()));
+    HelixAdmin admin = new ZKHelixAdmin(_gZkClient);
+    admin.addCluster(clusterName, true);
+    admin.addInstance(clusterName, new InstanceConfig(instanceName));
+
+    // Test disable instances with resources
+    admin.enablePartition(false, clusterName, instanceName, testResourcePrefix + "0",
+        Arrays.asList(new String[]{"1", "2"}));
+    admin.enablePartition(false, clusterName, instanceName, testResourcePrefix + "1",
+        Arrays.asList(new String[]{"2", "3", "4"}));
+    InstanceConfig instanceConfig = admin.getInstanceConfig(clusterName, instanceName);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 2);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 3);
+
+    // Test enable partition across resources
+    instanceConfig.setInstanceEnabledForPartition("2", true);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 1);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 2);
+
+    // Test disable partition across resources
+    instanceConfig.setInstanceEnabledForPartition("10", false);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 2);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 3);
+  }
+
+  @Test
+  public void testLegacyEnableDisablePartition() {
+    String instanceName = "TestInstanceLegacy";
+    String testResourcePrefix = "TestResourceLegacy";
+    ZNRecord record = new ZNRecord(instanceName);
+    List<String> disabledPartitions =
+        new ArrayList<String>(Arrays.asList(new String[] { "1", "2", "3" }));
+    record.setListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
+        disabledPartitions);
+    InstanceConfig instanceConfig = new InstanceConfig(record);
+    instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", false);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 3);
+    Assert.assertEquals(instanceConfig.getRecord()
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        3);
+    instanceConfig.setInstanceEnabledForPartition(testResourcePrefix, "2", true);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix).size(), 2);
+    Assert.assertEquals(instanceConfig.getRecord()
+            .getListField(InstanceConfig.InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).size(),
+        2);
   }
 }

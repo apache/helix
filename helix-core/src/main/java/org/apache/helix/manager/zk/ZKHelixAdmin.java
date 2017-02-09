@@ -70,6 +70,7 @@ import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.DefaultIdealStateCalculator;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.RebalanceUtil;
 import org.apache.log4j.Logger;
 
@@ -300,24 +301,12 @@ public class ZKHelixAdmin implements HelixAdmin {
               + ", participant config is null");
         }
 
-        // TODO: merge with InstanceConfig.setInstanceEnabledForPartition
-        List<String> list =
-            currentData.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
-        Set<String> disabledPartitions = new HashSet<String>();
-        if (list != null) {
-          disabledPartitions.addAll(list);
+        InstanceConfig instanceConfig = new InstanceConfig(currentData);
+        for (String partitionName : partitionNames) {
+          instanceConfig.setInstanceEnabledForPartition(resourceName, partitionName, enabled);
         }
 
-        if (enabled) {
-          disabledPartitions.removeAll(partitionNames);
-        } else {
-          disabledPartitions.addAll(partitionNames);
-        }
-
-        list = new ArrayList<String>(disabledPartitions);
-        Collections.sort(list);
-        currentData.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
-        return currentData;
+        return instanceConfig.getRecord();
       }
     }, AccessOption.PERSISTENT);
   }

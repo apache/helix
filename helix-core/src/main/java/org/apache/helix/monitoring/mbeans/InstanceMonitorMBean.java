@@ -42,4 +42,10 @@ public interface InstanceMonitorMBean extends SensorNameProvider {
    * @return The total number of messages sent to this instance
    */
   public long getTotalMessageReceived();
+
+  /**
+   * Get the total disabled partitions number for this instance
+   * @return The total number of disabled partitions
+   */
+  public long getDisabledPartitions();
 }

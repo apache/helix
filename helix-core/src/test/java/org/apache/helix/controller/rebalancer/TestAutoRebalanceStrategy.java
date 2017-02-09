@@ -226,8 +226,8 @@ public class TestAutoRebalanceStrategy {
         Map<String, String> currentStateMap = _currentMapping.get(partition);
         Set<String> disabled = Collections.emptySet();
         Map<String, String> assignment = new AutoRebalancer()
-            .computeBestPossibleStateForPartition(_stateModelDef, preferenceList,
-                currentStateMap, cache.getLiveInstances().keySet(), disabled, true);
+            .computeAutoBestStateForPartition(cache, _stateModelDef, preferenceList,
+                currentStateMap, disabled, true);
         mapResult.put(partition, assignment);
       }
       return mapResult;

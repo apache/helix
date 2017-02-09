@@ -19,6 +19,7 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import com.google.common.base.Joiner;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -72,7 +73,7 @@ public final class HelixUtil {
   }
 
   public static String serializeByComma(List<String> objects) {
-    return String.join(",", objects);
+    return Joiner.on(",").join(objects);
   }
 
   public static List<String> deserializeByComma(String object) {

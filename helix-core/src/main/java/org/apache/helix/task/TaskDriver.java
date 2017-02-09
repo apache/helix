@@ -692,12 +692,44 @@ public class TaskDriver {
   }
 
   /**
-   * Public method to stop a workflow/queue.
+   * Public async method to stop a workflow/queue.
+   *
+   * This call only send STOP command to Helix, it does not check
+   * whether the workflow (all jobs) has been stopped yet.
    *
    * @param workflow
    */
-  public void stop(String workflow) {
+  public void stop(String workflow) throws InterruptedException {
     setWorkflowTargetState(workflow, TargetState.STOP);
+  }
+
+  /**
+   * Public sync method to stop a workflow/queue with timeout
+   *
+   * Basically the workflow and all of its jobs has been stopped if this method return success.
+   *
+   * @param workflow  The workflow name
+   * @param timeout   The timeout for stopping workflow/queue in milisecond
+   */
+  public void waitToStop(String workflow, long timeout) throws InterruptedException {
+    setWorkflowTargetState(workflow, TargetState.STOP);
+    long endTime = System.currentTimeMillis() + timeout;
+
+    while (System.currentTimeMillis() <= endTime) {
+      WorkflowContext workflowContext = getWorkflowContext(workflow);
+
+      if (workflowContext == null || !workflowContext.getWorkflowState()
+          .equals(TaskState.STOPPED)) {
+        Thread.sleep(1000);
+      } else {
+        // Successfully stopped
+        return;
+      }
+    }
+
+    // Failed to stop with timeout
+    throw new HelixException(String
+        .format("Fail to stop the workflow/queue %s with in %d milliseconds.", workflow, timeout));
   }
 
   /**

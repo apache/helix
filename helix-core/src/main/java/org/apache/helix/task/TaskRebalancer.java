@@ -114,9 +114,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   protected boolean isWorkflowStopped(WorkflowContext ctx, WorkflowConfig cfg) {
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
-      if (jobState != null && jobState != TaskState.COMPLETED && jobState != TaskState.FAILED
-          && jobState != TaskState.STOPPED)
+      if (jobState != null && (jobState.equals(TaskState.IN_PROGRESS) || jobState
+          .equals(TaskState.STOPPING))) {
         return false;
+      }
     }
     return true;
   }

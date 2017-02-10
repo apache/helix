@@ -47,7 +47,9 @@ public class StateTransitionThrottleConfig {
 
   public enum RebalanceType {
     LOAD_BALANCE,
-    RECOVERY_BALANCE
+    RECOVERY_BALANCE,
+    ANY,
+    NONE
   }
 
   RebalanceType _rebalanceType;

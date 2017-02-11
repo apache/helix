@@ -351,9 +351,11 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the current mapping of a partition
-   * CAUTION: In FULL-AUTO mode, this method could return empty map if
-   * {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)} is set to true.
+   * Get the current mapping of a partition.
+   *
+   * CAUTION: In FULL-AUTO mode, this method
+   * could return empty map if neither {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)}
+   * nor {@link ClusterConfig#setPersistIntermediateAssignment(Boolean)} is set to true.
    *
    * @param partitionName the name of the partition
    * @return the instances where the replicas live and the state of each
@@ -375,25 +377,25 @@ public class IdealState extends HelixProperty {
 
   /**
    * Get the instances who host replicas of a partition.
-   * CAUTION: In FULL-AUTO mode, this method could return empty map if
-   * {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)} is set to true.
-   +
-   * @param partitionName the partition to look up
+   * CAUTION: In FULL-AUTO mode, this method
+   * could return empty set if neither {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)}
+   * nor {@link ClusterConfig#setPersistIntermediateAssignment(Boolean)} is set to true.
+   *
    * @return set of instance names
    */
   public Set<String> getInstanceSet(String partitionName) {
-    switch (getRebalanceMode()) {
+    switch(getRebalanceMode()) {
     case FULL_AUTO:
     case SEMI_AUTO:
     case USER_DEFINED:
     case TASK:
       List<String> prefList = _record.getListField(partitionName);
       if (prefList != null && !prefList.isEmpty()) {
-        return new TreeSet<String>(prefList);
+        return new TreeSet<>(prefList);
       } else {
         Map<String, String> stateMap = _record.getMapField(partitionName);
         if (stateMap != null && !stateMap.isEmpty()) {
-          return new TreeSet<String>(stateMap.keySet());
+          return new TreeSet<>(stateMap.keySet());
         } else {
           logger.warn(partitionName + " does NOT exist");
         }
@@ -402,21 +404,22 @@ public class IdealState extends HelixProperty {
     case CUSTOMIZED:
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
-        return new TreeSet<String>(stateMap.keySet());
+        return new TreeSet<>(stateMap.keySet());
       } else {
         logger.warn(partitionName + " does NOT exist");
       }
       break;
     case NONE:
     default:
-      logger.error("Invalid ideal state mode: " + getResourceName());
+      logger.warn("Invalid ideal state mode: " + getResourceName());
       break;
     }
 
     return Collections.emptySet();
   }
 
-  /** Set the preference list of a partition
+  /**
+   * Set the preference list of a partition
    * @param partitionName the name of the partition
    * @param instanceList the instance preference list
    */

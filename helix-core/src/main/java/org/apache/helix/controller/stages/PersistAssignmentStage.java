@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.I0Itec.zkclient.DataUpdater;
+
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
@@ -87,7 +88,6 @@ public class PersistAssignmentStage extends AbstractBaseStage {
             needPersist = true;
           }
         }
-
         PartitionStateMap partitionStateMap =
             bestPossibleAssignment.getPartitionStateMap(resourceId);
         if (clusterConfig.isPersistIntermediateAssignment()) {

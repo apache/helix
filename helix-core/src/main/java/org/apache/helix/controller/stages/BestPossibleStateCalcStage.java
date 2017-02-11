@@ -144,23 +144,23 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     if (rebalancer != null && mappingCalculator != null) {
-
       if (rebalancer instanceof TaskRebalancer) {
         TaskRebalancer taskRebalancer = TaskRebalancer.class.cast(rebalancer);
         taskRebalancer.setClusterStatusMonitor(
             (ClusterStatusMonitor) event.getAttribute("clusterStatusMonitor"));
       }
-
       try {
         HelixManager manager = event.getAttribute("helixmanager");
         rebalancer.init(manager);
-        idealState = rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
+        idealState =
+            rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
+
         output.setPreferenceLists(resourceName, idealState.getPreferenceLists());
 
         // Use the internal MappingCalculator interface to compute the final assignment
         // The next release will support rebalancers that compute the mapping from start to finish
-        ResourceAssignment partitionStateAssignment =
-            mappingCalculator.computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
+        ResourceAssignment partitionStateAssignment = mappingCalculator
+            .computeBestPossiblePartitionState(cache, idealState, resource, currentStateOutput);
         for (Partition partition : resource.getPartitions()) {
           Map<String, String> newStateMap = partitionStateAssignment.getReplicaMap(partition);
           output.setState(resourceName, partition, newStateMap);

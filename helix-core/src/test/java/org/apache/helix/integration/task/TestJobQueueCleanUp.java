@@ -86,11 +86,11 @@ public class TestJobQueueCleanUp extends TaskTestBase {
     String queueName = TestHelper.getTestMethodName();
     JobQueue.Builder builder = TaskTestUtil.buildJobQueue(queueName, capacity);
     WorkflowConfig.Builder cfgBuilder = new WorkflowConfig.Builder(builder.getWorkflowConfig());
-    cfgBuilder.setJobPurgeInterval(1000);
+    cfgBuilder.setJobPurgeInterval(500);
     builder.setWorkflowConfig(cfgBuilder.build());
 
     JobConfig.Builder jobBuilder =
-        new JobConfig.Builder().setTargetResource(WorkflowGenerator.DEFAULT_TGT_DB)
+        new JobConfig.Builder().setNumberOfTasks(1)
             .setCommand(MockTask.TASK_COMMAND).setMaxAttemptsPerTask(2).setJobCommandConfigMap(
             ImmutableMap.of(MockTask.SUCCESS_COUNT_BEFORE_FAIL, String.valueOf(capacity / 2)))
             .setExpiry(200L);

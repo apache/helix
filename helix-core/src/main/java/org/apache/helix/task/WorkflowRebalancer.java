@@ -443,14 +443,8 @@ public class WorkflowRebalancer extends TaskRebalancer {
   }
 
   /**
-<<<<<<< HEAD
-   * Clean up a workflow. This removes the workflow config, idealstate, externalview and workflow
-   * contexts associated with this workflow, and all jobs information, including their configs,
-   * context, IS and EV.
-=======
    * Cleans up workflow configs and workflow contexts associated with this workflow, including all
    * job-level configs and context, plus workflow-level information.
->>>>>>> Support configurable job purge interval for a queue.
    */
   private void cleanupWorkflow(String workflow, WorkflowConfig workflowcfg) {
     LOG.info("Cleaning up workflow: " + workflow);

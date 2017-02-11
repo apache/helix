@@ -215,7 +215,8 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     }
   }
 
-  // verify that the disabled or failed instance should not be included in bestPossible assignment.
+  // verify that both list field and map field should be persisted in IS,
+  // And the disabled or failed instance should not be included in bestPossible assignment.
   private void verifyAssignmentInIdealStateWithPersistEnabled(IdealState idealState,
       Set<String> excludedInstances) {
     for (String partition : idealState.getPartitionSet()) {
@@ -225,9 +226,18 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
 
       Set<String> instancesInMap = instanceStateMap.keySet();
       if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
-        // preference list is not persisted in IS.
         Set<String> instanceInList = idealState.getInstanceSet(partition);
         Assert.assertTrue(instanceInList.containsAll(instancesInMap));
+      }
+
+      if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+        // preference list should be persisted in IS.
+        List<String> instanceList = idealState.getPreferenceList(partition);
+        Assert.assertNotNull(instanceList);
+        Assert.assertFalse(instanceList.isEmpty());
+        for (String ins : excludedInstances) {
+          Assert.assertFalse(instanceList.contains(ins));
+        }
       }
 
       for (String ins : excludedInstances) {
@@ -252,6 +262,12 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         if(instancesInMap.contains(ins)) {
           // if at least one excluded instance is included, it means assignment was not updated.
           assignmentNotChanged = true;
+        }
+        if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+          List<String> instanceList = idealState.getPreferenceList(partition);
+          if (instanceList.contains(ins)) {
+            assignmentNotChanged = true;
+          }
         }
       }
     }

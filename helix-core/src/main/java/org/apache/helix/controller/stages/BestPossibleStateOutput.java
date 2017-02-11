@@ -21,6 +21,7 @@ package org.apache.helix.controller.stages;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -32,6 +33,8 @@ import org.apache.helix.model.Partition;
  * Output for BestPossibleStateCalStage.
  */
 public class BestPossibleStateOutput extends ResourcesStateMap {
+  /* resource -> partition -> preference list */
+  private Map<String, Map<String, List<String>>> _preferenceLists;
   /**
    * Deprecated, use getResourceStatesMap instead.
    *
@@ -61,5 +64,44 @@ public class BestPossibleStateOutput extends ResourcesStateMap {
       stateMap.put(e.getKey(), e.getValue().getStateMap());
     }
     return stateMap;
+  }
+
+  public Map<String, Map<String, List<String>>> getPreferenceLists() {
+    return _preferenceLists;
+  }
+
+  public Map<String, List<String>> getPreferenceLists(String resource) {
+    if (_preferenceLists != null && _preferenceLists.containsKey(resource)) {
+      return _preferenceLists.get(resource);
+    }
+
+    return null;
+  }
+
+  public List<String> getPreferenceList(String resource, String partition) {
+    if (_preferenceLists != null && _preferenceLists.containsKey(resource) && _preferenceLists
+        .get(resource).containsKey(partition)) {
+      return _preferenceLists.get(resource).get(partition);
+    }
+
+    return null;
+  }
+
+  public void setPreferenceList(String resource, String partition, List<String> list) {
+    if (_preferenceLists == null) {
+      _preferenceLists = new HashMap<String, Map<String, List<String>>>();
+    }
+    if (!_preferenceLists.containsKey(resource)) {
+      _preferenceLists.put(resource, new HashMap<String, List<String>>());
+    }
+    _preferenceLists.get(resource).put(partition, list);
+  }
+
+  public void setPreferenceLists(String resource,
+      Map<String, List<String>> resourcePreferenceLists) {
+    if (_preferenceLists == null) {
+      _preferenceLists = new HashMap<String, Map<String, List<String>>>();
+    }
+    _preferenceLists.put(resource, resourcePreferenceLists);
   }
 }

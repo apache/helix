@@ -76,7 +76,8 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Enable/Disable persist best possible assignment in a resource's idealstate.
-   *
+   * CAUTION: if both {@link #setPersistBestPossibleAssignment(Boolean)} and {@link #setPersistIntermediateAssignment(Boolean)}
+   * are set to true, the IntermediateAssignment will be persisted into IdealState's map field.
    * @return
    */
   public void setPersistBestPossibleAssignment(Boolean enable) {
@@ -99,6 +100,8 @@ public class ClusterConfig extends HelixProperty {
 
   /**
    * Enable/Disable persist IntermediateAssignment in a resource's idealstate.
+   * CAUTION: if both {@link #setPersistBestPossibleAssignment(Boolean)} and {@link #setPersistIntermediateAssignment(Boolean)}
+   * are set to true, the IntermediateAssignment will be persisted into IdealState's map field.
    *
    * @return
    */

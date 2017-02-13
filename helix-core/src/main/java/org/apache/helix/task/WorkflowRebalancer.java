@@ -76,6 +76,10 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
     if (targetState == TargetState.STOP) {
       LOG.info("Workflow " + workflow + "is marked as stopped.");
+      if (isWorkflowStopped(workflowCtx, workflowCfg)) {
+        workflowCtx.setWorkflowState(TaskState.STOPPED);
+        TaskUtil.setWorkflowContext(_manager, workflow, workflowCtx);
+      }
       return buildEmptyAssignment(workflow, currStateOutput);
     }
 

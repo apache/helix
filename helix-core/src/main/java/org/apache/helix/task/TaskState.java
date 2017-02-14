@@ -50,5 +50,10 @@ public enum TaskState {
   /**
    * The task are aborted due to workflow fail
    */
-  ABORTED
+  ABORTED,
+  /**
+   * The allowed execution time for the job.
+   * TODO: also use this for the task
+   */
+  TIMED_OUT
 }

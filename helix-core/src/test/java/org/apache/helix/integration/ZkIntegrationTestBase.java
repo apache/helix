@@ -126,4 +126,15 @@ public class ZkIntegrationTestBase {
         .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(),
             disabled.toString());
   }
+
+  protected void setDelayTimeInCluster(ZkClient zkClient, String clusterName, long delay) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    HelixConfigScope clusterScope =
+        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
+            .forCluster(clusterName).build();
+
+    configAccessor
+        .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_TIME.name(),
+            String.valueOf(delay));
+  }
 }

@@ -140,6 +140,52 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
+
+  /**
+   * The partition movement should be delayed (not happen immediately) after one single node goes offline.
+   * @throws Exception
+   */
+  @Test
+  public void testDelayedPartitionMovementWithClusterConfigedDelay() throws Exception {
+    Map<String, IdealState> idealStates = new HashMap<String, IdealState>();
+    Map<String, ExternalView> externalViewsBefore = new HashMap<String, ExternalView>();
+
+    setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
+
+    int minActiveReplica = _replica - 1;
+    int i = 0;
+    for (String stateModel : TestStateModels) {
+      String db = "Test-DB-" + i++;
+      IdealState idealState =
+          createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
+              minActiveReplica, -1);
+      _testDBs.add(db);
+      idealStates.put(db, idealState);
+    }
+
+    Thread.sleep(1000);
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      externalViewsBefore.put(db, ev);
+    }
+
+    // bring down one node, no partition should be moved.
+    _participants.get(0).syncStop();
+    Thread.sleep(1000);
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
+      validateNoPartitionMove(idealStates.get(db), externalViewsBefore.get(db), ev,
+          _participants.get(0).getInstanceName());
+    }
+  }
+
   /**
    * Test when two nodes go offline,  the minimal active replica should be maintained.
    * @throws Exception
@@ -155,7 +201,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       String db = "Test-DB-" + i++;
       IdealState idealState =
           createResourceWithDelayedRebalance(CLUSTER_NAME, db, stateModel, _PARTITIONS, _replica,
-              minActiveReplica, 100000);
+              minActiveReplica, -1);
       _testDBs.add(db);
       idealStates.put(db, idealState);
     }
@@ -274,8 +320,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
-          CLUSTER_NAME, db);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
       validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName());
@@ -369,7 +414,9 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
     idealState.setMinActiveReplicas(minActiveReplica);
-    idealState.setRebalanceDelay(delay);
+    if (delay > 0) {
+      idealState.setRebalanceDelay(delay);
+    }
     idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
     _setupTool.getClusterManagementTool().setResourceIdealState(clusterName, db, idealState);
     _setupTool.rebalanceStorageCluster(clusterName, db, replica);

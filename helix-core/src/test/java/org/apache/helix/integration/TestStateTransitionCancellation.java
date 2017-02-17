@@ -94,6 +94,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _setupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
 
+
     // Wait for pipeline reaching final stage
     Thread.sleep(2000L);
     ExternalView externalView = _setupTool.getClusterManagementTool()

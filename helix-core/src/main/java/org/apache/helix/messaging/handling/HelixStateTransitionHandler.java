@@ -101,6 +101,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
     // Verify the fromState and current state of the stateModel
     String state = _currentStateDelta.getState(partitionName);
 
+    // Set start time right before invoke client logic
+    _currentStateDelta.setStartTime(_message.getPartitionName(), System.currentTimeMillis());
+
     if (fromState != null && !fromState.equals("*") && !fromState.equalsIgnoreCase(state)) {
       String errorMessage =
           "Current state of stateModel does not match the fromState in Message"
@@ -178,8 +181,10 @@ public class HelixStateTransitionHandler extends MessageHandler {
       return;
     }
 
-    // Set the INFO property.
+    // Set the INFO property and mark the end time, previous state of the state transition
     _currentStateDelta.setInfo(partitionKey, taskResult.getInfo());
+    _currentStateDelta.setEndTime(partitionKey, System.currentTimeMillis());
+    _currentStateDelta.setPreviousState(partitionKey, _message.getFromState());
 
     if (taskResult.isSuccess()) {
       // String fromState = message.getFromState();

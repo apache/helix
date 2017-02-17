@@ -59,6 +59,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     _numParitions = 20;
     _numNodes = 2;
     _numReplicas = 2;
+    _participants = new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -93,6 +94,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
     // Disable the resource
     _setupTool.getClusterManagementTool()
         .enableResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, false);
+
 
     // Wait for pipeline reaching final stage
     Thread.sleep(2000L);

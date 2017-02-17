@@ -202,6 +202,9 @@ public class HelixStateTransitionHandler extends MessageHandler {
         // if the partition is not to be dropped, update _stateModel to the TO_STATE
         _stateModel.updateState(toState);
       }
+    } else if (taskResult.isCancelled()) {
+      // Cancelled message does not need current state update
+      return;
     } else {
       if (exception instanceof HelixStateMismatchException) {
         // if fromState mismatch, set current state on zk to stateModel's current state
@@ -304,15 +307,22 @@ public class HelixStateTransitionHandler extends MessageHandler {
           e = (InterruptedException) e.getCause();
         }
 
-        if (e.getCause() != null && e.getCause() instanceof HelixRollbackException) {
-          throw new HelixRollbackException(e.getCause());
+        if (e instanceof HelixRollbackException || (e.getCause() != null
+            && e.getCause() instanceof HelixRollbackException)) {
+          // TODO : Support cancel to any state
+          logger.info(
+              "Rollback happened of state transition on resource \"" + _message.getResourceName()
+                  + "\" partition \"" + _message.getPartitionName() + "\" from \"" + _message
+                  .getFromState() + "\" to \"" + _message.getToState() + "\"");
+          taskResult.setCancelled(true);
+        } else {
+          _statusUpdateUtil
+              .logError(message, HelixStateTransitionHandler.class, e, errorMessage, accessor);
+          taskResult.setSuccess(false);
+          taskResult.setMessage(e.toString());
+          taskResult.setException(e);
+          taskResult.setInterrupted(e instanceof InterruptedException);
         }
-        _statusUpdateUtil.logError(message, HelixStateTransitionHandler.class, e, errorMessage,
-            accessor);
-        taskResult.setSuccess(false);
-        taskResult.setMessage(e.toString());
-        taskResult.setException(e);
-        taskResult.setInterrupted(e instanceof InterruptedException);
       }
 
       // add task result to context for postHandling

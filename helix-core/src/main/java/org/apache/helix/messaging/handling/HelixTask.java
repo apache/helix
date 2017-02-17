@@ -95,14 +95,6 @@ public class HelixTask implements MessageTask {
       _statusUpdateUtil.logError(_message, HelixTask.class, e,
           "State transition interrupted, timeout:" + _isTimeout, accessor);
       logger.info("Message " + _message.getMsgId() + " is interrupted");
-    } catch (HelixRollbackException e) {
-      // TODO : Support cancel to any state
-      logger.info(
-          "Rollback happened of state transition on resource \"" + _message.getResourceName()
-              + "\" partition \"" + _message.getPartitionName() + "\" from \"" + _message
-              .getFromState() + "\" to \"" + _message.getToState() + "\"");
-      taskResult = new HelixTaskResult();
-      taskResult.setCancelled(true);
     } catch (Exception e) {
       taskResult = new HelixTaskResult();
       taskResult.setException(e);

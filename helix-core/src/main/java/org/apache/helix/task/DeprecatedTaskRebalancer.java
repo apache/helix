@@ -142,7 +142,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
 
     // Initialize workflow context if needed
     if (workflowCtx == null) {
-      workflowCtx = new WorkflowContext(new ZNRecord("WorkflowContext"));
+      workflowCtx = new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
       workflowCtx.setStartTime(System.currentTimeMillis());
       LOG.info("Workflow context for " + resourceName + " created!");
     }
@@ -188,7 +188,7 @@ public abstract class DeprecatedTaskRebalancer implements Rebalancer, MappingCal
     // Fetch any existing context information from the property store.
     JobContext jobCtx = TaskUtil.getJobContext(_manager, resourceName);
     if (jobCtx == null) {
-      jobCtx = new JobContext(new ZNRecord("TaskContext"));
+      jobCtx = new JobContext(new ZNRecord(TaskUtil.TASK_CONTEXT_KW));
       jobCtx.setStartTime(System.currentTimeMillis());
     }
 

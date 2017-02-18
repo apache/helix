@@ -32,6 +32,7 @@ import java.util.Set;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.mock.participant.MockTransition;

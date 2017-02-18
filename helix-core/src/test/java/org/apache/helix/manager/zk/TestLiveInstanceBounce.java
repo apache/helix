@@ -19,7 +19,7 @@ package org.apache.helix.manager.zk;
  * under the License.
  */
 
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;

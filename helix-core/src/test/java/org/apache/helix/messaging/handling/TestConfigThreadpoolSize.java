@@ -28,7 +28,7 @@ import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.HelixManager;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.Message;
 import org.testng.Assert;

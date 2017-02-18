@@ -19,6 +19,7 @@ package org.apache.helix.integration;
  * under the License.
  */
 
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;

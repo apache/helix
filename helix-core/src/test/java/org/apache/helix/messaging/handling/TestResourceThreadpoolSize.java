@@ -29,7 +29,7 @@ import org.apache.helix.mock.participant.DummyProcess;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.HelixManager;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;

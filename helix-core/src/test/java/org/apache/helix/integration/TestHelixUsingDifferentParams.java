@@ -21,6 +21,7 @@ package org.apache.helix.integration;
 
 import java.util.Date;
 
+import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.log4j.Logger;
 import org.testng.annotations.Test;
 

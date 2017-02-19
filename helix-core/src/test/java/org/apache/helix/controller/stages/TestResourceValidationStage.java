@@ -23,7 +23,7 @@ import java.util.Map;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixProperty;
-import org.apache.helix.Mocks;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.IdealStateProperty;
@@ -43,7 +43,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testIdealStateValidity() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create some ideal states
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -85,7 +85,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testNoSpec() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";
@@ -113,7 +113,7 @@ public class TestResourceValidationStage {
 
   @Test
   public void testMissingStateModel() throws Exception {
-    Mocks.MockAccessor accessor = new Mocks.MockAccessor();
+    MockAccessor accessor = new MockAccessor();
 
     // create an ideal state and no spec
     String masterSlaveCustomResource = "masterSlaveCustomResource";

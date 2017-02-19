@@ -28,12 +28,11 @@ import java.util.UUID;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
-import org.apache.helix.Mocks;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.LiveInstance;
@@ -66,7 +65,7 @@ public class BaseStageTest {
   @BeforeMethod()
   public void setup() {
     String clusterName = "testCluster-" + UUID.randomUUID().toString();
-    manager = new Mocks.MockManager(clusterName);
+    manager = new MockManager(clusterName);
     accessor = manager.getHelixDataAccessor();
     event = new ClusterEvent("sampleEvent");
   }

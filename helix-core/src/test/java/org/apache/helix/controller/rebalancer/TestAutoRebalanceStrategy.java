@@ -35,7 +35,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 import org.apache.helix.HelixDefinedState;
-import org.apache.helix.Mocks.MockAccessor;
+import org.apache.helix.MockAccessor;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;

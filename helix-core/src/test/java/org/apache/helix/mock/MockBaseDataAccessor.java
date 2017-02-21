@@ -19,6 +19,8 @@ package org.apache.helix.mock;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,12 +36,10 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   Map<String, ZNRecord> map = new HashMap<String, ZNRecord>();
 
   @Override public boolean create(String path, ZNRecord record, int options) {
-    // TODO Auto-generated method stub
-    return false;
+    return set(path, record, options);
   }
 
   @Override public boolean set(String path, ZNRecord record, int options) {
-    System.err.println("Store.write()" + System.currentTimeMillis());
     map.put(path, record);
     try {
       Thread.sleep(50);
@@ -50,35 +50,58 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   }
 
   @Override public boolean update(String path, DataUpdater<ZNRecord> updater, int options) {
-    // TODO Auto-generated method stub
-    return false;
+    ZNRecord current = map.get(path);
+    ZNRecord newRecord = updater.update(current);
+    map.put(path, newRecord);
+    try {
+      Thread.sleep(50);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    return true;
   }
 
   @Override public boolean remove(String path, int options) {
-    // TODO Auto-generated method stub
-    return false;
+    map.remove(path);
+    try {
+      Thread.sleep(50);
+    } catch (InterruptedException e) {
+      e.printStackTrace();
+    }
+    return true;
   }
 
   @Override public boolean[] createChildren(List<String> paths, List<ZNRecord> records,
       int options) {
-    // TODO Auto-generated method stub
-    return null;
+    return setChildren(paths, records, options);
   }
 
   @Override public boolean[] setChildren(List<String> paths, List<ZNRecord> records, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    boolean [] ret = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      boolean success = create(paths.get(i), records.get(i), options);
+      ret[i] = success;
+    }
+    return ret;
   }
 
   @Override public boolean[] updateChildren(List<String> paths,
       List<DataUpdater<ZNRecord>> updaters, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    boolean [] ret = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      boolean success = update(paths.get(i), updaters.get(i), options);
+      ret[i] = success;
+    }
+    return ret;
   }
 
   @Override public boolean[] remove(List<String> paths, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    boolean [] ret = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      boolean success = remove(paths.get(i), options);
+      ret[i] = success;
+    }
+    return ret;
   }
 
   @Override public ZNRecord get(String path, Stat stat, int options) {
@@ -86,28 +109,58 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   }
 
   @Override public List<ZNRecord> get(List<String> paths, List<Stat> stats, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    List<ZNRecord> records = new ArrayList<ZNRecord>();
+    for (int i = 0; i < paths.size(); i++) {
+      ZNRecord record = get(paths.get(i), stats.get(i), options);
+      records.add(record);
+    }
+    return records;
   }
 
   @Override public List<ZNRecord> getChildren(String parentPath, List<Stat> stats, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    List<ZNRecord> children = new ArrayList<ZNRecord>();
+    for (String key : map.keySet()) {
+      if (key.startsWith(parentPath)) {
+        String[] keySplit = key.split("\\/");
+        String[] pathSplit = parentPath.split("\\/");
+        if (keySplit.length - pathSplit.length == 1) {
+          ZNRecord record = map.get(key);
+          if (record != null) {
+            children.add(record);
+          }
+        } else {
+          System.out.println("keySplit:" + Arrays.toString(keySplit));
+          System.out.println("pathSplit:" + Arrays.toString(pathSplit));
+        }
+      }
+    }
+    return children;
   }
 
   @Override public List<String> getChildNames(String parentPath, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    List<String> child = new ArrayList<String>();
+    for (String key : map.keySet()) {
+      if (key.startsWith(parentPath)) {
+        String[] keySplit = key.split("\\/");
+        String[] pathSplit = parentPath.split("\\/");
+        if (keySplit.length > pathSplit.length) {
+          child.add(keySplit[pathSplit.length]);
+        }
+      }
+    }
+    return child;
   }
 
   @Override public boolean exists(String path, int options) {
-    // TODO Auto-generated method stub
-    return false;
+    return map.containsKey(path);
   }
 
   @Override public boolean[] exists(List<String> paths, int options) {
-    // TODO Auto-generated method stub
-    return null;
+    boolean [] ret = new boolean[paths.size()];
+    for (int i = 0; i < paths.size(); i++) {
+      ret[i] = map.containsKey(paths.get(i));
+    }
+    return ret;
   }
 
   @Override public Stat[] getStats(List<String> paths, int options) {
@@ -141,13 +194,11 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   }
 
   @Override public void reset() {
-    // TODO Auto-generated method stub
-
+    map.clear();
   }
 
   @Override public boolean set(String path, ZNRecord record, int options, int expectVersion) {
-    // TODO Auto-generated method stub
-    return false;
+    return set(path, record, options);
   }
 
 }

@@ -22,18 +22,22 @@ package org.apache.helix.controller.rebalancer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.HelixDefinedState;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.util.RebalanceScheduler;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -99,7 +103,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     StateModelDefinition stateModelDef =
         clusterData.getStateModelDef(currentIdealState.getStateModelDefRef());
 
-    int replicaCount = getReplicaCount(currentIdealState, activeNodes);
+    int replicaCount = currentIdealState.getReplicaCount(activeNodes.size());
     if (replicaCount == 0) {
       LOG.error("Replica count is 0 for resource " + resourceName
           + ", stop calculate ideal mapping for the resource.");
@@ -108,7 +112,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     LinkedHashMap<String, Integer> stateCountMap =
-        StateModelDefinition.getStateCountMap(stateModelDef, activeNodes.size(), replicaCount);
+        stateModelDef.getStateCountMap(activeNodes.size(), replicaCount);
     Map<String, Map<String, String>> currentMapping =
         currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
 
@@ -320,7 +324,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           cache.getDisabledInstancesForPartition(resource.getResourceName(), partition.toString());
       List<String> preferenceList = getPreferenceList(partition, idealState, activeNodes);
       Map<String, String> bestStateForPartition =
-          computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,
+          computeBestStateForPartition(liveNodes, stateModelDef, preferenceList, currentStateMap,
               disabledInstancesForPartition, idealState.isEnabled());
 
       if (preferenceList == null) {
@@ -340,29 +344,205 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     return partitionMapping;
   }
 
-  private int getReplicaCount(IdealState idealState, Set<String> eligibleInstances) {
-    String replicaStr = idealState.getReplicas();
-    int replica = 0;
-
-    try {
-      replica = Integer.parseInt(replicaStr);
-    } catch (NumberFormatException ex) {
-      if (replicaStr.equalsIgnoreCase(IdealState.IdealStateConstants.ANY_LIVEINSTANCE.name())) {
-        replica = eligibleInstances.size();
-      } else {
-        LOG.error("Can not determine the replica count for resource " + idealState.getResourceName()
-            + ", set to 0.");
-      }
-    }
-
-    return replica;
-  }
-
   private int getMinActiveReplica(IdealState idealState, int replicaCount) {
     int minActiveReplicas = idealState.getMinActiveReplicas();
     if (minActiveReplicas < 0) {
       minActiveReplicas = replicaCount;
     }
     return minActiveReplicas;
+  }
+
+  /**
+   * compute best state for resource in AUTO ideal state mode
+   * @param liveInstances
+   * @param stateModelDef
+   * @param instancePreferenceList
+   * @param currentStateMap
+   *          : instance->state for each partition
+   * @param disabledInstancesForPartition
+   * @param isResourceEnabled
+   * @return
+   */
+  protected Map<String, String> computeBestStateForPartition(Set<String> liveInstances,
+      StateModelDefinition stateModelDef, List<String> instancePreferenceList,
+      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
+      boolean isResourceEnabled) {
+    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+    if (currentStateMap == null) {
+      currentStateMap = Collections.emptyMap();
+    }
+
+    // If the partition is removed from IS or the IS is deleted.
+    // Transit to DROPPED no matter the instance is disabled or not.
+    if (instancePreferenceList == null) {
+      for (String instance : currentStateMap.keySet()) {
+        bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
+      }
+      return bestPossibleStateMap;
+    }
+
+    // If the resource is disabled.
+    if (!isResourceEnabled) {
+      for (String instance : currentStateMap.keySet()) {
+        // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
+        if (!currentStateMap.get(instance).equals(HelixDefinedState.ERROR.name())) {
+          bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
+        }
+      }
+      return bestPossibleStateMap;
+    }
+
+    // Instances not in preference list but still have active replica
+    List<String> instancesTobeMoved = new ArrayList<String>(currentStateMap.keySet());
+    instancesTobeMoved.removeAll(instancePreferenceList);
+
+    for (String ins : currentStateMap.keySet()) {
+      if (instancesTobeMoved.contains(ins)) {
+        String state = currentStateMap.get(ins);
+        if (stateModelDef.getInitialState().equals(state) || HelixDefinedState.ERROR.name().equals(state)) {
+          instancesTobeMoved.remove(ins);
+          bestPossibleStateMap.put(ins, HelixDefinedState.DROPPED.name());
+        }
+      }
+    }
+
+    // sort the previous instances by their current partition state.
+    Collections
+        .sort(instancesTobeMoved, new PreferenceListNodeComparator(currentStateMap, stateModelDef));
+
+    List<String> combinedPreferenceList = new ArrayList<String>(instancePreferenceList);
+    combinedPreferenceList.addAll(instancesTobeMoved);
+
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+
+    // sort the preference list to select the instance(s) for the TOP State.
+    List<String> candidateListForTopStates = new ArrayList<String>(combinedPreferenceList);
+    Collections.sort(candidateListForTopStates,
+        new TopStatePreferenceListComparator(currentStateMap, stateModelDef));
+
+    Set<String> assigned = new HashSet<String>();
+    for (String state : statesPriorityList) {
+      int stateCount = getStateCount(state, stateModelDef, liveInstances,
+          combinedPreferenceList.size(), disabledInstancesForPartition);
+      if (stateCount > 0) {
+        List<String> preferenceList;
+        // use the the special candidate list for choosing instance for top state.
+        if (state.equals(statesPriorityList.get(0))) {
+          preferenceList = candidateListForTopStates;
+        } else {
+          preferenceList = combinedPreferenceList;
+        }
+
+        for (String instance : preferenceList) {
+          boolean notInErrorState =
+              currentStateMap == null || currentStateMap.get(instance) == null || !currentStateMap
+                  .get(instance).equals(HelixDefinedState.ERROR.toString());
+
+          boolean enabled = !disabledInstancesForPartition.contains(instance);
+          if (liveInstances.contains(instance) && !assigned.contains(instance)
+              && notInErrorState && enabled) {
+            bestPossibleStateMap.put(instance, state);
+            assigned.add(instance);
+            stateCount --;
+            if (stateCount == 0) {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    // this is the final target instance-> state map.
+    Map<String, String> targetInstanceMap = new HashMap<String, String>(bestPossibleStateMap);
+    targetInstanceMap.keySet().retainAll(instancePreferenceList);
+
+    // Once current state map contains all required target instance state,
+    // that means the load-balance finishes, will drop all partitions from old instances.
+    if (currentStateMap.entrySet().containsAll(targetInstanceMap.entrySet())) {
+      for (String instance : currentStateMap.keySet()) {
+        if (!instancePreferenceList.contains(instance)) {
+          String state = currentStateMap.get(instance);
+          if (state != null) {
+            bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
+          }
+        }
+      }
+    }
+
+    int count = 0;
+    for (String val : bestPossibleStateMap.values()) {
+      if (val.equals("MASTER")) {
+        count ++;
+      }
+      if (count > 1) {
+        System.out.println("WTF!!!");
+      }
+    }
+
+    return bestPossibleStateMap;
+  }
+
+  /**
+   * Sorter for nodes that sorts firstly according to the current state of the partition.
+   */
+  private static class PreferenceListNodeComparator implements Comparator<String> {
+    protected final Map<String, String> _currentStateMap;
+    protected final StateModelDefinition _stateModelDef;
+
+    public PreferenceListNodeComparator(Map<String, String> currentStateMap,
+        StateModelDefinition stateModelDefinition) {
+      _currentStateMap = currentStateMap;
+      _stateModelDef = stateModelDefinition;
+    }
+
+    @Override
+    public int compare(String ins1, String ins2) {
+      Integer p1 = Integer.MAX_VALUE;
+      Integer p2 = Integer.MAX_VALUE;
+
+      Map<String, Integer> statesPriorityMap = _stateModelDef.getStatePriorityMap();
+      String state1 = _currentStateMap.get(ins1);
+      String state2 = _currentStateMap.get(ins2);
+      if (state1 != null && statesPriorityMap.containsKey(state1)) {
+        p1 = statesPriorityMap.get(state1);
+      }
+      if (state2 != null && statesPriorityMap.containsKey(state2)) {
+        p2 = statesPriorityMap.get(state2);
+      }
+
+      return p1.compareTo(p2);
+    }
+  }
+
+  /**
+   * Sorter for nodes that sorts firstly according to the current state of the partition.
+   */
+  private static class TopStatePreferenceListComparator extends PreferenceListNodeComparator {
+    public TopStatePreferenceListComparator(Map<String, String> currentStateMap,
+        StateModelDefinition stateModelDefinition) {
+      super(currentStateMap, stateModelDefinition);
+    }
+
+    @Override
+    public int compare(String ins1, String ins2) {
+      String state1 = _currentStateMap.get(ins1);
+      String state2 = _currentStateMap.get(ins2);
+
+      String topState = _stateModelDef.getStatesPriorityList().get(0);
+      Set<String> preferredStates = new HashSet<String>(_stateModelDef.getSecondTopStates());
+      preferredStates.add(topState);
+
+      int p1 = 1;
+      int p2 = 1;
+
+      if (state1 != null && preferredStates.contains(state1)) {
+        p1 = 0;
+      }
+      if (state2 != null && preferredStates.contains(state2)) {
+        p2 = 0;
+      }
+
+      return p1 - p2;
+    }
   }
 }

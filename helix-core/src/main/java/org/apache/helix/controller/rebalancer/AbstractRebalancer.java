@@ -204,21 +204,8 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
 
     for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      int stateCount = -1;
-      if ("N".equals(num)) {
-        Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
-        liveAndEnabled.removeAll(disabledInstancesForPartition);
-        stateCount = isResourceEnabled ? liveAndEnabled.size() : 0;
-      } else if ("R".equals(num)) {
-        stateCount = instancePreferenceList.size();
-      } else {
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-          LOG.error("Invalid count for state:" + state + " ,count=" + num);
-        }
-      }
+      int stateCount = getStateCount(state, stateModelDef, liveInstancesMap.keySet(),
+          instancePreferenceList.size(), disabledInstancesForPartition);
       if (stateCount > -1) {
         int count = 0;
         for (int i = 0; i < instancePreferenceList.size(); i++) {
@@ -257,5 +244,27 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     } else {
       return listField;
     }
+  }
+
+  protected int getStateCount(String state, StateModelDefinition stateModelDef,
+      Set<String> liveInstances, int preferenceListSize,
+      Set<String> disabledInstancesForPartition) {
+    String num = stateModelDef.getNumInstancesPerState(state);
+    int stateCount = -1;
+    if ("N".equals(num)) {
+      Set<String> liveAndEnabled = new HashSet<String>(liveInstances);
+      liveAndEnabled.removeAll(disabledInstancesForPartition);
+      stateCount = liveAndEnabled.size();
+    } else if ("R".equals(num)) {
+      stateCount = preferenceListSize;
+    } else {
+      try {
+        stateCount = Integer.parseInt(num);
+      } catch (Exception e) {
+        LOG.error("Invalid count for state:" + state + " ,count=" + num);
+      }
+    }
+
+    return stateCount;
   }
 }

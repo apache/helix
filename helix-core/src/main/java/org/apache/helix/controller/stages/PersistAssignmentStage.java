@@ -19,6 +19,7 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -169,9 +170,8 @@ public class PersistAssignmentStage extends AbstractBaseStage {
   }
 
   /**
-   * TODO: This is a temporary hacky for back-compatible support of Espresso and Databus,
-   * we should get rid of this conversion as soon as possible.
-   * --- Lei, 2016/9/9.
+   * TODO: This is a temporary hacky for back-compatible support of Espresso and Databus, we should
+   * get rid of this conversion as soon as possible. --- Lei, 2016/9/9.
    */
   private Map<Partition, Map<String, String>> convertAssignmentPersisted(Resource resource,
       IdealState idealState, Map<Partition, Map<String, String>> assignments) {
@@ -192,8 +192,13 @@ public class PersistAssignmentStage extends AbstractBaseStage {
       }
 
       List<String> preferenceList = idealState.getPreferenceList(partition.getPartitionName());
+      if (preferenceList == null) {
+        preferenceList = Collections.emptyList();
+      }
+      Set<String> nodeList = new HashSet<String>(preferenceList);
+      nodeList.addAll(assignment.keySet());
       boolean hasMaster = false;
-      for (String ins : preferenceList) {
+      for (String ins : nodeList) {
         String state = instanceMap.get(ins);
         if (state == null || (!state.equals(MasterSlaveSMD.States.SLAVE.name()) && !state
             .equals(MasterSlaveSMD.States.MASTER.name()))) {

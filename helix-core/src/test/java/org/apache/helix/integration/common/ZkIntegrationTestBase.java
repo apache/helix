@@ -23,9 +23,12 @@ import java.util.logging.Level;
 
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ConfigScope;
 import org.apache.helix.model.HelixConfigScope;
+import org.apache.helix.model.IdealState;
 import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.TestHelper;
@@ -136,5 +139,32 @@ public class ZkIntegrationTestBase {
     configAccessor
         .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_TIME.name(),
             String.valueOf(delay));
+  }
+
+  protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
+      String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
+    return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,
+        minActiveReplica, delay, AutoRebalanceStrategy.class.getName());
+  }
+
+  protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
+      String stateModel, int numPartition, int replica, int minActiveReplica, long delay,
+      String rebalanceStrategy) {
+    _gSetupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
+        IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
+
+    IdealState idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+    idealState.setMinActiveReplicas(minActiveReplica);
+    if (delay > 0) {
+      idealState.setRebalanceDelay(delay);
+    }
+    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
+    _gSetupTool.getClusterManagementTool().setResourceIdealState(clusterName, db, idealState);
+    _gSetupTool.rebalanceStorageCluster(clusterName, db, replica);
+    idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+
+    return idealState;
   }
 }

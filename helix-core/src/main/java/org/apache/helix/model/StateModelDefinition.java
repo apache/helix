@@ -70,6 +70,8 @@ public class StateModelDefinition extends HelixProperty {
 
   private final List<String> _stateTransitionPriorityList;
 
+  Map<String, Integer> _statesPriorityMap = new HashMap<String, Integer>();
+
   /**
    * StateTransition which is used to find the nextState given StartState and
    * FinalState
@@ -96,6 +98,7 @@ public class StateModelDefinition extends HelixProperty {
     _stateTransitionTable = new HashMap<String, Map<String, String>>();
     _statesCountMap = new HashMap<String, String>();
     if (_statesPriorityList != null) {
+      int priority = 1;
       for (String state : _statesPriorityList) {
         Map<String, String> metaData = record.getMapField(state + ".meta");
         if (metaData != null) {
@@ -105,6 +108,7 @@ public class StateModelDefinition extends HelixProperty {
         }
         Map<String, String> nextData = record.getMapField(state + ".next");
         _stateTransitionTable.put(state, nextData);
+        _statesPriorityMap.put(state, priority++);
       }
     }
 
@@ -145,6 +149,10 @@ public class StateModelDefinition extends HelixProperty {
    */
   public List<String> getStateTransitionPriorityList() {
     return _stateTransitionPriorityList;
+  }
+
+  public Map<String, Integer> getStatePriorityMap() {
+    return _statesPriorityMap;
   }
 
   /**
@@ -410,14 +418,13 @@ public class StateModelDefinition extends HelixProperty {
    *
    * @return state count map: state->count
    */
-  public static LinkedHashMap<String, Integer> getStateCountMap(
-      StateModelDefinition stateModelDef, int candidateNodeNum, int totalReplicas) {
+  public LinkedHashMap<String, Integer> getStateCountMap(int candidateNodeNum, int totalReplicas) {
     LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+    List<String> statesPriorityList = getStatesPriorityList();
 
     int replicas = totalReplicas;
     for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
+      String num = getNumInstancesPerState(state);
       if ("N".equals(num)) {
         stateCountMap.put(state, candidateNodeNum);
       } else if ("R".equals(num)) {
@@ -441,7 +448,7 @@ public class StateModelDefinition extends HelixProperty {
 
     // get state count for R
     for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
+      String num = getNumInstancesPerState(state);
       if ("R".equals(num)) {
         stateCountMap.put(state, replicas);
         // should have at most one state using R

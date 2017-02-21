@@ -231,9 +231,9 @@ public class MessageSelectionStage extends AbstractBaseStage {
       } else if ("R".equals(numInstancesPerState)) {
         // idealState is null when resource has been dropped,
         // R can't be evaluated and ignore state constraints
-        if (idealState != null) {
-          max = cache.getReplicas(idealState.getResourceName());
-        }
+        //if (idealState != null) {
+        //  max = cache.getReplicas(idealState.getResourceName());
+        //}
       } else {
         try {
           max = Integer.parseInt(numInstancesPerState);

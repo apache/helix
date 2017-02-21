@@ -589,6 +589,30 @@ public class IdealState extends HelixProperty {
   }
 
   /**
+   * Get the number of replicas for each partition of this resource
+   *
+   * @return number of replicas
+   */
+  public int getReplicaCount(int eligibleInstancesCount) {
+    String replicaStr = getReplicas();
+    int replica = 0;
+
+    try {
+      replica = Integer.parseInt(replicaStr);
+    } catch (NumberFormatException ex) {
+      if (replicaStr
+          .equalsIgnoreCase(ResourceConfig.ResourceConfigConstants.ANY_LIVEINSTANCE.name())) {
+        replica = eligibleInstancesCount;
+      } else {
+        logger.error("Can not determine the replica count for resource " + getResourceName()
+                + ", set to 0.");
+      }
+    }
+
+    return replica;
+  }
+
+  /**
    * Set the state model factory associated with this resource
    * @param name state model factory name
    */

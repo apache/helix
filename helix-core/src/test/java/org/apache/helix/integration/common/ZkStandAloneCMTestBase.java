@@ -114,9 +114,16 @@ public class ZkStandAloneCMTestBase extends ZkIntegrationTestBase {
      * shutdown order: 1) disconnect the controller 2) disconnect participants
      */
 
-    _controller.syncStop();
+    if (_controller != null && _controller.isConnected()) {
+      _controller.syncStop();
+    }
     for (int i = 0; i < NODE_NR; i++) {
-      _participants[i].syncStop();
+      if (_participants[i] != null && _participants[i].isConnected()) {
+        _participants[i].syncStop();
+      }
+    }
+    if (_manager != null && _manager.isConnected()) {
+      _manager.disconnect();
     }
 
     System.out.println("END " + CLASS_NAME + " at " + new Date(System.currentTimeMillis()));

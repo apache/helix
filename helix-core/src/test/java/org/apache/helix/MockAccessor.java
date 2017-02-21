@@ -25,15 +25,18 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.I0Itec.zkclient.DataUpdater;
+import org.apache.helix.mock.MockBaseDataAccessor;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.PauseSignal;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.zookeeper.data.Stat;
 
 public class MockAccessor implements HelixDataAccessor {
   private final String _clusterName;
-  Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
+  //Map<String, ZNRecord> data = new HashMap<String, ZNRecord>();
   private final PropertyKey.Builder _propertyKeyBuilder;
+  private BaseDataAccessor _baseDataAccessor = new MockBaseDataAccessor();
 
   public MockAccessor() {
     this("testCluster-" + Math.random() * 10000 % 999);
@@ -66,10 +69,9 @@ public class MockAccessor implements HelixDataAccessor {
     return false;
   }
 
-  @Override
-  public boolean setProperty(PropertyKey key, HelixProperty value) {
+  @Override public boolean setProperty(PropertyKey key, HelixProperty value) {
     String path = key.getPath();
-    data.put(path, value.getRecord());
+    _baseDataAccessor.set(path, value.getRecord(), AccessOption.PERSISTENT);
     return true;
   }
 
@@ -78,26 +80,26 @@ public class MockAccessor implements HelixDataAccessor {
     String path = key.getPath();
     PropertyType type = key.getType();
     if (type.updateOnlyOnExists) {
-      if (data.containsKey(path)) {
+      if (_baseDataAccessor.exists(path, 0)) {
         if (type.mergeOnUpdate) {
-          ZNRecord znRecord = new ZNRecord(data.get(path));
+          ZNRecord znRecord = new ZNRecord((ZNRecord) _baseDataAccessor.get(path, null, 0));
           znRecord.merge(value.getRecord());
-          data.put(path, znRecord);
+          _baseDataAccessor.set(path, znRecord, 0);
         } else {
-          data.put(path, value.getRecord());
+          _baseDataAccessor.set(path, value.getRecord(), 0);
         }
       }
     } else {
       if (type.mergeOnUpdate) {
-        if (data.containsKey(path)) {
-          ZNRecord znRecord = new ZNRecord(data.get(path));
+        if (_baseDataAccessor.exists(path, 0)) {
+          ZNRecord znRecord = new ZNRecord((ZNRecord) _baseDataAccessor.get(path, null, 0));
           znRecord.merge(value.getRecord());
-          data.put(path, znRecord);
+          _baseDataAccessor.set(path, znRecord, 0);
         } else {
-          data.put(path, value.getRecord());
+          _baseDataAccessor.set(path, value.getRecord(), 0);
         }
       } else {
-        data.put(path, value.getRecord());
+        _baseDataAccessor.set(path, value.getRecord(), 0);
       }
     }
 
@@ -108,55 +110,30 @@ public class MockAccessor implements HelixDataAccessor {
   @Override
   public <T extends HelixProperty> T getProperty(PropertyKey key) {
     String path = key.getPath();
-    return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(), data.get(path));
+    Stat stat = new Stat();
+    return (T) HelixProperty.convertToTypedInstance(key.getTypeClass(),
+        (ZNRecord) _baseDataAccessor.get(path, stat, 0));
   }
 
   @Override
   public boolean removeProperty(PropertyKey key) {
     String path = key.getPath(); // PropertyPathConfig.getPath(type,
     // _clusterName, keys);
-    data.remove(path);
+    _baseDataAccessor.remove(path, 0);
     return true;
   }
 
   @Override
   public List<String> getChildNames(PropertyKey propertyKey) {
-    List<String> child = new ArrayList<String>();
     String path = propertyKey.getPath();
-    for (String key : data.keySet()) {
-      if (key.startsWith(path)) {
-        String[] keySplit = key.split("\\/");
-        String[] pathSplit = path.split("\\/");
-        if (keySplit.length > pathSplit.length) {
-          child.add(keySplit[pathSplit.length]);
-        }
-      }
-    }
-    return child;
+    return _baseDataAccessor.getChildNames(path, 0);
   }
 
   @SuppressWarnings("unchecked")
-  @Override
-  public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
-    List<ZNRecord> childs = new ArrayList<ZNRecord>();
+  @Override public <T extends HelixProperty> List<T> getChildValues(PropertyKey propertyKey) {
     String path = propertyKey.getPath(); // PropertyPathConfig.getPath(type,
-    // _clusterName, keys);
-    for (String key : data.keySet()) {
-      if (key.startsWith(path)) {
-        String[] keySplit = key.split("\\/");
-        String[] pathSplit = path.split("\\/");
-        if (keySplit.length - pathSplit.length == 1) {
-          ZNRecord record = data.get(key);
-          if (record != null) {
-            childs.add(record);
-          }
-        } else {
-          System.out.println("keySplit:" + Arrays.toString(keySplit));
-          System.out.println("pathSplit:" + Arrays.toString(pathSplit));
-        }
-      }
-    }
-    return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), childs);
+    List<ZNRecord> children = _baseDataAccessor.getChildren(path, null, 0);
+    return (List<T>) HelixProperty.convertToTypedList(propertyKey.getTypeClass(), children);
   }
 
   @Override
@@ -185,8 +162,7 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override
   public BaseDataAccessor getBaseDataAccessor() {
-    // TODO Auto-generated method stub
-    return null;
+    return _baseDataAccessor;
   }
 
   @Override

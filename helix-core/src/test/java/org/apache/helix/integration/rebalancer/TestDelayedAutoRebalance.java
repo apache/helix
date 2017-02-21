@@ -18,15 +18,12 @@ package org.apache.helix.integration.rebalancer;
  * specific language governing permissions and limitations
  * under the License.
  */
-import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
-import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
 import org.apache.helix.integration.common.ZkIntegrationTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
@@ -224,8 +221,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
-          CLUSTER_NAME, db);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
       validateNoPartitionMove(idealStates.get(db), externalViewsBefore.get(db), ev,
           _participants.get(0).getInstanceName());
@@ -237,8 +233,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     for (String db : _testDBs) {
       ExternalView ev =
           _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
-          CLUSTER_NAME, db);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       validateMinActiveAndTopStateReplica(is, ev, minActiveReplica);
     }
   }
@@ -400,33 +395,6 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     }
   }
 
-  protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
-      String stateModel, int numPartition, int replica, int minActiveReplica, long delay) {
-    return createResourceWithDelayedRebalance(clusterName, db, stateModel, numPartition, replica,
-        minActiveReplica, delay, AutoRebalanceStrategy.class.getName());
-  }
-
-  protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
-      String stateModel, int numPartition, int replica, int minActiveReplica, long delay,
-      String rebalanceStrategy) {
-    _setupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
-        RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
-
-    IdealState idealState =
-        _setupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
-    idealState.setMinActiveReplicas(minActiveReplica);
-    if (delay > 0) {
-      idealState.setRebalanceDelay(delay);
-    }
-    idealState.setRebalancerClassName(DelayedAutoRebalancer.class.getName());
-    _setupTool.getClusterManagementTool().setResourceIdealState(clusterName, db, idealState);
-    _setupTool.rebalanceStorageCluster(clusterName, db, replica);
-    idealState =
-        _setupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
-
-    return idealState;
-  }
-
   /**
    * Validate instances for each partition is on different zone and with necessary tagged instances.
    */
@@ -458,7 +426,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     int replica = Integer.valueOf(is.getReplicas());
 
     Map<String, Integer> stateCount =
-        StateModelDefinition.getStateCountMap(stateModelDef, NUM_NODE, replica);
+        stateModelDef.getStateCountMap(NUM_NODE, replica);
     Set<String> activeStates = stateCount.keySet();
 
     for (String partition : is.getPartitionSet()) {

@@ -95,21 +95,8 @@ public class SemiAutoRebalancer extends AbstractRebalancer {
     }
 
     for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      int stateCount = -1;
-      if ("N".equals(num)) {
-        Set<String> liveAndEnabled = new HashSet<String>(liveInstancesMap.keySet());
-        liveAndEnabled.removeAll(disabledInstancesForPartition);
-        stateCount = isResourceEnabled ? liveAndEnabled.size() : 0;
-      } else if ("R".equals(num)) {
-        stateCount = instancePreferenceList.size();
-      } else {
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-          LOG.error("Invalid count for state:" + state + " ,count=" + num);
-        }
-      }
+      int stateCount = getStateCount(state, stateModelDef, liveInstancesMap.keySet(),
+          instancePreferenceList.size(), disabledInstancesForPartition);
       if (stateCount > -1) {
         int count = 0;
         for (int i = 0; i < instancePreferenceList.size(); i++) {

@@ -19,14 +19,17 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
@@ -85,10 +88,22 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             dataCache.getLiveInstances().keySet());
 
     for (String resourceName : resourceMap.keySet()) {
+      Resource resource = resourceMap.get(resourceName);
+      IdealState idealState = dataCache.getIdealState(resourceName);
+
+      if (idealState == null) {
+        // if ideal state is deleted, use an empty one
+        logger.info("resource:" + resourceName + " does not exist anymore");
+        idealState = new IdealState(resourceName);
+        idealState.setStateModelDefRef(resource.getStateModelDefRef());
+      }
+
       PartitionStateMap intermediatePartitionStateMap =
-          computeIntermediatePartitionState(dataCache, dataCache.getIdealState(resourceName),
+          computeIntermediatePartitionState(dataCache, idealState,
               resourceMap.get(resourceName), currentStateOutput,
-              bestPossibleStateOutput.getPartitionStateMap(resourceName), throttleController);
+              bestPossibleStateOutput.getPartitionStateMap(resourceName),
+              bestPossibleStateOutput.getPreferenceLists(resourceName),
+              throttleController);
       output.setState(resourceName, intermediatePartitionStateMap);
     }
     return output;
@@ -97,12 +112,13 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   public PartitionStateMap computeIntermediatePartitionState(ClusterDataCache cache,
       IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput,
       PartitionStateMap bestPossiblePartitionStateMap,
+      Map<String, List<String>> preferenceLists,
       StateTransitionThrottleController throttleController) {
     String resourceName = resource.getResourceName();
     logger.info("Processing resource:" + resourceName);
 
-    if (!throttleController.isThrottleEnabled() || !idealState.getRebalanceMode()
-        .equals(IdealState.RebalanceMode.FULL_AUTO)) {
+    if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
+        .equals(idealState.getRebalanceMode())) {
       // We only apply throttling on FULL-AUTO now.
       return bestPossiblePartitionStateMap;
     }
@@ -119,9 +135,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
           currentStateOutput.getCurrentStateMap(resourceName, partition);
       Map<String, String> bestPossibleMap =
           bestPossiblePartitionStateMap.getPartitionMap(partition);
+      List<String> preferenceList = preferenceLists.get(partition.getPartitionName());
 
-      RebalanceType rebalanceType = getRebalanceType(bestPossibleMap, stateModelDef,
-          currentStateMap);
+      RebalanceType rebalanceType =
+          getRebalanceType(cache, bestPossibleMap, preferenceList, stateModelDef, currentStateMap,
+              idealState);
       if (rebalanceType.equals(RebalanceType.RECOVERY_BALANCE)) {
         partitionsNeedRecovery.add(partition);
       } else if (rebalanceType.equals(RebalanceType.LOAD_BALANCE)){
@@ -143,8 +161,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     chargePendingTransition(resource, currentStateOutput, throttleController,
         partitionsNeedRecovery, partitionsNeedLoadbalance);
 
-    PartitionStateMap output = new PartitionStateMap(resourceName);
-
     // check recovery rebalance
     recoveryRebalance(resource, bestPossiblePartitionStateMap, throttleController,
         intermediatePartitionStateMap, partitionsNeedRecovery);
@@ -154,11 +170,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       // TODO: to set a minimal threshold for allowing load-rebalance.
       loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap, throttleController,
           intermediatePartitionStateMap, partitionsNeedLoadbalance);
+    } else {
+      for (Partition p : partitionsNeedLoadbalance) {
+        Map<String, String> currentStateMap =
+            currentStateOutput.getCurrentStateMap(resourceName, p);
+        intermediatePartitionStateMap.setState(p, currentStateMap);
+      }
     }
 
     logger.info("End processing resource:" + resourceName);
 
-    return output;
+    return intermediatePartitionStateMap;
   }
 
   /**
@@ -272,7 +294,6 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
                 .chargeInstance(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, ins);
           }
         }
-
         throttleController.chargeCluster(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
         throttleController
             .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
@@ -283,8 +304,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       intermediatePartitionStateMap.setState(partition, intermediateMap);
     }
 
-    logger.info(String.format("loadbalanceNeeded: %d, loadbalanceThrottled: %d",
-        partitionsNeedLoadbalance.size(), partitionsLoadbalanceThrottled.size()));
+    logger.info(String
+        .format("loadbalanceNeeded: %d, loadbalanceThrottled: %d", partitionsNeedLoadbalance.size(),
+            partitionsLoadbalanceThrottled.size()));
 
     if (logger.isDebugEnabled()) {
       logger.debug("recovery balance throttled for " + resource + " partitions: "
@@ -292,24 +314,36 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
   }
 
-  private RebalanceType getRebalanceType(Map<String, String> bestPossibleMap,
-      StateModelDefinition stateModelDef, Map<String, String> currentStateMap) {
-    if (bestPossibleMap.equals(currentStateMap)) {
+  /**
+   * Given preferenceList, bestPossibleState and currentState, determine which type of rebalance is
+   * needed.
+   */
+  private RebalanceType getRebalanceType(ClusterDataCache cache,
+      Map<String, String> bestPossibleMap, List<String> preferenceList,
+      StateModelDefinition stateModelDef, Map<String, String> currentStateMap, IdealState idealState) {
+    if (currentStateMap.equals(bestPossibleMap)) {
       return RebalanceType.NONE;
     }
 
-    List<String> states = stateModelDef.getStatesPriorityList();
-    Map<String, Long> bestPossibleStateCounts = getStateCounts(bestPossibleMap);
-    Map<String, Long> currentStateCounts = getStateCounts(currentStateMap);
+    if (preferenceList == null) {
+      preferenceList = Collections.emptyList();
+    }
 
-    for (String state : states) {
-      Long bestPossibleCount = bestPossibleStateCounts.get(state);
-      Long currentCount = currentStateCounts.get(state);
+    int replica = idealState.getReplicaCount(preferenceList.size());
+    Set<String> activeList = new HashSet<String>(preferenceList);
+    activeList.retainAll(cache.getEnabledLiveInstances());
 
-      if (bestPossibleCount == null && currentCount == null) {
-        continue;
-      } else if (bestPossibleCount == null || currentCount == null ||
-          currentCount < bestPossibleCount) {
+    LinkedHashMap<String, Integer> bestPossileStateCountMap =
+        getBestPossibleStateCountMap(stateModelDef, activeList.size(), replica);
+    Map<String, Integer> currentStateCounts = getStateCounts(currentStateMap);
+
+    for (String state : bestPossileStateCountMap.keySet()) {
+      Integer bestPossibleCount = bestPossileStateCountMap.get(state);
+      Integer currentCount = currentStateCounts.get(state);
+      bestPossibleCount = bestPossibleCount == null? 0 : bestPossibleCount;
+      currentCount = currentCount == null? 0 : currentCount;
+
+      if (currentCount < bestPossibleCount) {
         if (!state.equals(HelixDefinedState.DROPPED.name()) &&
             !state.equals(HelixDefinedState.ERROR.name()) &&
             !state.equals(stateModelDef.getInitialState())) {
@@ -320,12 +354,60 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     return RebalanceType.LOAD_BALANCE;
   }
 
+  private LinkedHashMap<String, Integer> getBestPossibleStateCountMap(
+      StateModelDefinition stateModelDef, int candidateNodeNum, int totalReplicas) {
+    LinkedHashMap<String, Integer> stateCountMap = new LinkedHashMap<String, Integer>();
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+
+    int replicas = totalReplicas;
+    for (String state : statesPriorityList) {
+      String num = stateModelDef.getNumInstancesPerState(state);
+      if (candidateNodeNum <= 0) {
+        break;
+      }
+      if ("N".equals(num)) {
+        stateCountMap.put(state, candidateNodeNum);
+        replicas -= candidateNodeNum;
+        break;
+      } else if ("R".equals(num)) {
+        // wait until we get the counts for all other states
+        continue;
+      } else {
+        int stateCount = -1;
+        try {
+          stateCount = Integer.parseInt(num);
+        } catch (Exception e) {
+        }
+
+        if (stateCount > 0) {
+          int count = stateCount <= candidateNodeNum ? stateCount : candidateNodeNum;
+          candidateNodeNum -= count;
+          stateCountMap.put(state, count);
+          replicas -= count;
+        }
+      }
+    }
+
+    // get state count for R
+    for (String state : statesPriorityList) {
+      String num = stateModelDef.getNumInstancesPerState(state);
+      if ("R".equals(num)) {
+        if (candidateNodeNum > 0 && replicas > 0) {
+          stateCountMap.put(state, replicas < candidateNodeNum ? replicas : candidateNodeNum);
+        }
+        // should have at most one state using R
+        break;
+      }
+    }
+    return stateCountMap;
+  }
+
   /* given instance->state map, return the state counts */
-  private Map<String, Long> getStateCounts(Map<String, String> stateMap) {
-    Map<String, Long> stateCounts = new HashMap<String, Long>();
+  private Map<String, Integer> getStateCounts(Map<String, String> stateMap) {
+    Map<String, Integer> stateCounts = new HashMap<String, Integer>();
     for (String state : stateMap.values()) {
       if (!stateCounts.containsKey(state)) {
-        stateCounts.put(state, 0L);
+        stateCounts.put(state, 0);
       }
       stateCounts.put(state, stateCounts.get(state) + 1);
     }

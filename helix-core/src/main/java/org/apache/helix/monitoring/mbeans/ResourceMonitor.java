@@ -31,19 +31,33 @@ import com.google.common.collect.Sets;
 
 public class ResourceMonitor implements ResourceMonitorMBean {
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
+  private static final long RESET_TIME_RANGE = 1000 * 60 * 60; // 1 hour
 
   private int _numOfPartitions;
   private int _numOfPartitionsInExternalView;
   private int _numOfErrorPartitions;
   private int _numNonTopStatePartitions;
   private int _externalViewIdealStateDiff;
+  private long _successfulTopStateHandoffDurationCounter;
+  private long _successTopStateHandoffCounter;
+  private long _failedTopStateHandoffCounter;
+  private long _maxSinglePartitionTopStateHandoffDuration;
+  private long _lastResetTime;
   private String _tag = ClusterStatusMonitor.DEFAULT_TAG;
   private String _resourceName;
   private String _clusterName;
 
+  public enum MonitorState {
+    TOP_STATE
+  }
+
   public ResourceMonitor(String clusterName, String resourceName) {
     _clusterName = clusterName;
     _resourceName = resourceName;
+    _successfulTopStateHandoffDurationCounter = 0L;
+    _successTopStateHandoffCounter = 0L;
+    _failedTopStateHandoffCounter = 0L;
+    _lastResetTime = System.currentTimeMillis();
   }
 
   @Override
@@ -64,6 +78,26 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   @Override
   public long getDifferenceWithIdealStateGauge() {
     return _externalViewIdealStateDiff;
+  }
+
+  @Override
+  public long getSuccessfulTopStateHandoffDurationCounter() {
+    return _successfulTopStateHandoffDurationCounter;
+  }
+
+  @Override
+  public long getSucceededTopStateHandoffCounter() {
+    return _successTopStateHandoffCounter;
+  }
+
+  @Override
+  public long getMaxSinglePartitionTopStateHandoffDurationGauge() {
+    return _maxSinglePartitionTopStateHandoffDuration;
+  }
+
+  @Override
+  public long getFailedTopStateHandoffCounter() {
+    return _failedTopStateHandoffCounter;
   }
 
   @Override
@@ -140,6 +174,24 @@ public class ResourceMonitor implements ResourceMonitorMBean {
     }
   }
 
+  public void updateStateHandoffStats(MonitorState monitorState, long duration, boolean succeeded) {
+    switch (monitorState) {
+    case TOP_STATE:
+      if (succeeded) {
+        _successTopStateHandoffCounter++;
+        _successfulTopStateHandoffDurationCounter += duration;
+        _maxSinglePartitionTopStateHandoffDuration =
+            Math.max(_maxSinglePartitionTopStateHandoffDuration, duration);
+      } else {
+        _failedTopStateHandoffCounter++;
+      }
+      break;
+    default:
+      LOG.warn(
+          String.format("Wrong monitor state \"%s\" that not supported ", monitorState.name()));
+    }
+  }
+
   @Override
   public long getExternalViewPartitionGauge() {
     return _numOfPartitionsInExternalView;
@@ -147,5 +199,11 @@ public class ResourceMonitor implements ResourceMonitorMBean {
 
   public String getBeanName() {
     return _clusterName + " " + _resourceName;
+  }
+
+  public void resetMaxTopStateHandoffGauge() {
+    if (_lastResetTime + RESET_TIME_RANGE <= System.currentTimeMillis()) {
+      _maxSinglePartitionTopStateHandoffDuration = 0L;
+    }
   }
 }

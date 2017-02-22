@@ -195,6 +195,14 @@ public class StateModelDefinition extends HelixProperty {
   }
 
   /**
+   * Get the top state of this state model
+   * @return
+   */
+  public String getTopState() {
+    return _statesPriorityList.get(0);
+  }
+
+  /**
    * Get the second top states, which need one step transition to top state
    * @return a set of second top states
    */

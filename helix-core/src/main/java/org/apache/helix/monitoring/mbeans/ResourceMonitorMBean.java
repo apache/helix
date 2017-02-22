@@ -31,4 +31,27 @@ public interface ResourceMonitorMBean extends SensorNameProvider {
   public long getDifferenceWithIdealStateGauge();
 
   public long getExternalViewPartitionGauge();
+
+  /**
+   * Get aggregated successful handoff duration
+   * @return
+   */
+  public long getSuccessfulTopStateHandoffDurationCounter();
+
+  /**
+   * Get number of top state successful handoffs
+   * @return
+   */
+  public long getSucceededTopStateHandoffCounter();
+
+  /**
+   * Get number of top state failed handoffs
+   * @return
+   */
+  public long getFailedTopStateHandoffCounter();
+
+  /**
+   * Get maximum single partition successful handoff
+   */
+  public long getMaxSinglePartitionTopStateHandoffDurationGauge();
 }

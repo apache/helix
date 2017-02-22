@@ -43,7 +43,8 @@ public class ClusterConfig extends HelixProperty {
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_TIME,    // delayed time in ms that the delay time Helix should hold until rebalancing.
     STATE_TRANSITION_THROTTLE_CONFIGS,
-    STATE_TRANSITION_CANCELLATION_ENABLED
+    STATE_TRANSITION_CANCELLATION_ENABLED,
+    MISS_TOP_STATE_DURATION_THRESHOLD
   }
 
   /**
@@ -201,6 +202,30 @@ public class ClusterConfig extends HelixProperty {
       _record
           .setListField(ClusterConfigProperty.STATE_TRANSITION_THROTTLE_CONFIGS.name(), configStrs);
     }
+  }
+
+  /**
+   * Set the missing top state duration threshold
+   *
+   * If top-state hand off duration is greater than this threshold, Helix will count that handoff
+   * as failed and report it with missingtopstate metrics. If this thresold is not set,
+   * Long.MAX_VALUE will be used as the default value, which means no top-state hand-off will be
+   * treated as failure.
+   *
+   * @param durationThreshold
+   */
+  public void setMissTopStateDurationThreshold(long durationThreshold) {
+    _record.setLongField(ClusterConfigProperty.MISS_TOP_STATE_DURATION_THRESHOLD.name(),
+        durationThreshold);
+  }
+
+  /**
+   * Get the missing top state duration threshold
+   * @return
+   */
+  public long getMissTopStateDurationThreshold() {
+    return _record.getLongField(ClusterConfigProperty.MISS_TOP_STATE_DURATION_THRESHOLD.name(),
+        Long.MAX_VALUE);
   }
 
   @Override

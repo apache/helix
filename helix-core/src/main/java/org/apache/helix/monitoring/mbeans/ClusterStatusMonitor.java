@@ -43,7 +43,6 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
-import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.helix.util.HelixUtil;
@@ -403,6 +402,27 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     }
   }
 
+  public synchronized void updateMissingTopStateDurationStats(String resourceName, long duration,
+      boolean succeeded) {
+    try {
+      if (!_resourceMbeanMap.containsKey(resourceName)) {
+        ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
+        registerResources(Arrays.asList(bean));
+      }
+    } catch (Exception e) {
+      LOG.error("Fail to set resource status, resource: " + resourceName);
+    }
+
+    _resourceMbeanMap.get(resourceName)
+        .updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, duration, succeeded);
+  }
+
+  public void resetMaxMissingTopStateGauge() {
+    for (ResourceMonitor monitor : _resourceMbeanMap.values()) {
+      monitor.resetMaxTopStateHandoffGauge();
+    }
+  }
+
   public void addMessageQueueSize(String instanceName, long msgQueueSize) {
     _instanceMsgQueueSizes.put(instanceName, msgQueueSize);
   }
@@ -613,6 +633,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
       unregister(getObjectName(jobBeanName));
       _perTypeJobMonitorMap.remove(jobMonitor);
     }
+  }
+
+  protected ResourceMonitor getResourceMonitor(String resourceName) {
+    return _resourceMbeanMap.get(resourceName);
   }
 
   public String clusterBeanName() {

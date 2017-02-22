@@ -28,18 +28,16 @@ import java.util.UUID;
 
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
-import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
-import org.apache.helix.mock.MockHelixAdmin;
-import org.apache.helix.mock.MockManager;
-import org.apache.helix.PropertyPathBuilder;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
-import org.apache.helix.controller.stages.ClusterEvent;
-import org.apache.helix.manager.zk.ZKUtil;
+import org.apache.helix.mock.MockHelixAdmin;
+import org.apache.helix.mock.MockManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
@@ -52,6 +50,10 @@ import org.testng.annotations.BeforeClass;
 import org.testng.annotations.BeforeMethod;
 
 public class BaseStageTest {
+  public final static String HOSTNAME_PREFIX = "localhost_";
+  public final static String SESSION_PREFIX = "session_";
+
+  protected String _clusterName;
   protected HelixManager manager;
   protected HelixDataAccessor accessor;
   protected ClusterEvent event;
@@ -73,12 +75,12 @@ public class BaseStageTest {
 
   @BeforeMethod()
   public void setup() {
-    String clusterName = "testCluster-" + UUID.randomUUID().toString();
-    manager = new MockManager(clusterName);
+    _clusterName = "testCluster-" + UUID.randomUUID().toString();
+    manager = new MockManager(_clusterName);
     accessor = manager.getHelixDataAccessor();
     admin = new MockHelixAdmin(manager);
     event = new ClusterEvent("sampleEvent");
-    admin.addCluster(clusterName);
+    admin.addCluster(_clusterName);
   }
 
   protected List<IdealState> setupIdealState(int nodes, String[] resources, int partitions,
@@ -87,7 +89,7 @@ public class BaseStageTest {
     List<IdealState> idealStates = new ArrayList<IdealState>();
     List<String> instances = new ArrayList<String>();
     for (int i = 0; i < nodes; i++) {
-      instances.add("localhost_" + i);
+      instances.add(HOSTNAME_PREFIX + i);
     }
 
     for (int i = 0; i < resources.length; i++) {
@@ -96,7 +98,7 @@ public class BaseStageTest {
       for (int p = 0; p < partitions; p++) {
         List<String> value = new ArrayList<String>();
         for (int r = 0; r < replicas; r++) {
-          value.add("localhost_" + (p + r + 1) % nodes);
+          value.add(HOSTNAME_PREFIX + (p + r + 1) % nodes);
         }
         record.setListField(resourceName + "_" + p, value);
       }
@@ -140,23 +142,36 @@ public class BaseStageTest {
 
   protected void setupLiveInstances(int numLiveInstances) {
     for (int i = 0; i < numLiveInstances; i++) {
-      LiveInstance liveInstance = new LiveInstance("localhost_" + i);
-      liveInstance.setSessionId("session_" + i);
+      LiveInstance liveInstance = new LiveInstance(HOSTNAME_PREFIX + i);
+      liveInstance.setSessionId(SESSION_PREFIX + i);
 
       Builder keyBuilder = accessor.keyBuilder();
-      accessor.setProperty(keyBuilder.liveInstance("localhost_" + i), liveInstance);
+      accessor.setProperty(keyBuilder.liveInstance(HOSTNAME_PREFIX + i), liveInstance);
     }
   }
 
   protected void setupInstances(int numInstances) {
     // setup liveInstances
     for (int i = 0; i < numInstances; i++) {
-      String instance = "localhost_" + i;
+      String instance = HOSTNAME_PREFIX + i;
       InstanceConfig config = new InstanceConfig(instance);
       config.setHostName(instance);
       config.setPort("12134");
       admin.addInstance(manager.getClusterName(), config);
     }
+  }
+
+  protected void setupCurrentStates(Map<String, CurrentState> currentStates) {
+    Builder keyBuilder = accessor.keyBuilder();
+    for (String instanceName : currentStates.keySet()) {
+      accessor.setProperty(keyBuilder
+          .currentState(instanceName, currentStates.get(instanceName).getSessionId(),
+              currentStates.get(instanceName).getResourceName()), currentStates.get(instanceName));
+    }
+  }
+
+  protected void setClusterConfig(ClusterConfig clusterConfig) {
+    accessor.setProperty(accessor.keyBuilder().clusterConfig(), clusterConfig);
   }
 
   protected void runStage(ClusterEvent event, Stage stage) {

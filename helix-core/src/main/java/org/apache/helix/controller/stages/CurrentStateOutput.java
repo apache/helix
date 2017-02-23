@@ -197,6 +197,7 @@ public class CurrentStateOutput {
    * @param instanceName
    * @return pending message
    */
+  // TODO: this should return toState, not pending message, create a separate method
   public Message getPendingState(String resourceName, Partition partition, String instanceName) {
     return getStateMessage(resourceName, partition, instanceName, _pendingStateMap);
   }

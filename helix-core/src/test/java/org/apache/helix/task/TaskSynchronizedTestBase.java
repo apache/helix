@@ -128,7 +128,10 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
         return new MockTask(context);
       }
     });
+    startParticipants(taskFactoryReg);
+  }
 
+  protected void startParticipants(Map<String, TaskFactory> taskFactoryReg) {
     // start dummy participants
     for (int i = 0; i < _numNodes; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);

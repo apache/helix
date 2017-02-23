@@ -72,7 +72,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     int failedJobs = 0;
     for (String job : cfg.getJobDag().getAllNodes()) {
       TaskState jobState = ctx.getJobState(job);
-      if (jobState == TaskState.FAILED) {
+      if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
         failedJobs ++;
         if (!cfg.isJobQueue() && failedJobs > cfg.getFailureThreshold()) {
           ctx.setWorkflowState(TaskState.FAILED);
@@ -87,7 +87,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
           return true;
         }
       }
-      if (jobState != TaskState.COMPLETED && jobState != TaskState.FAILED) {
+      if (jobState != TaskState.COMPLETED && jobState != TaskState.FAILED && jobState != TaskState.TIMED_OUT) {
         incomplete = true;
       }
     }
@@ -145,15 +145,15 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
   protected boolean isJobReadyToSchedule(String job, WorkflowConfig workflowCfg,
       WorkflowContext workflowCtx) {
     int notStartedCount = 0;
-    int failedCount = 0;
+    int failedOrTimeoutCount = 0;
     int incompleteParentCount = 0;
 
     for (String parent : workflowCfg.getJobDag().getDirectParents(job)) {
       TaskState jobState = workflowCtx.getJobState(parent);
       if (jobState == null || jobState == TaskState.NOT_STARTED) {
         ++notStartedCount;
-      } else if (jobState == TaskState.FAILED) {
-        ++failedCount;
+      } else if (jobState == TaskState.FAILED || jobState == TaskState.TIMED_OUT) {
+        ++failedOrTimeoutCount;
       } else if (jobState != TaskState.COMPLETED) {
         incompleteParentCount++;
       }
@@ -169,10 +169,10 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
     // If there is parent job failed, schedule the job only when ignore dependent
     // job failure enabled
     JobConfig jobConfig = TaskUtil.getJobConfig(_manager, job);
-    if (failedCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
+    if (failedOrTimeoutCount > 0 && !jobConfig.isIgnoreDependentJobFailure()) {
       markJobFailed(job, null, workflowCfg, workflowCtx);
       LOG.debug(
-          String.format("Job %s is not ready to start, failedCount(s)=%d.", job, failedCount));
+          String.format("Job %s is not ready to start, failedCount(s)=%d.", job, failedOrTimeoutCount));
       return false;
     }
 

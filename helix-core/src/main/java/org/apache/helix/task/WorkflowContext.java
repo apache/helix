@@ -42,7 +42,7 @@ public class WorkflowContext extends HelixProperty {
     JOB_STATES,
     LAST_SCHEDULED_WORKFLOW,
     LAST_PURGE_TIME,
-    StartTime
+    StartTime // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
     }
 
   public static final int UNSTARTED = -1;

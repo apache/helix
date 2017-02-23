@@ -80,7 +80,7 @@ public class RebalanceScheduler {
    * Get the current schedule time for given resource.
    *
    * @param resource
-   * @return existing schedule time or NULL if there is no scheduled task for this resource
+   * @return existing schedule time or -1 if there is no scheduled task for this resource
    */
   public long getRebalanceTime(String resource) {
     ScheduledTask task = _rebalanceTasks.get(resource);

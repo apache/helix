@@ -154,8 +154,9 @@ public class TaskStateModel extends StateModel {
           "Invalid state transition. There is no running task for partition %s.", taskPartition));
     }
 
+    _taskRunner.cancel();
     TaskResult r = _taskRunner.waitTillDone();
-    if (r.getStatus() != TaskResult.Status.FATAL_FAILED) {
+    if (r.getStatus() != TaskResult.Status.FATAL_FAILED && r.getStatus() != TaskResult.Status.CANCELED) {
       throw new IllegalStateException(String.format(
           "Partition %s received a state transition to %s but the result status code is %s.",
           msg.getPartitionName(), msg.getToState(), r.getStatus()));
@@ -299,7 +300,7 @@ public class TaskStateModel extends StateModel {
     // Create a task instance with this command
     if (command == null || _taskFactoryRegistry == null
         || !_taskFactoryRegistry.containsKey(command)) {
-      throw new IllegalStateException("No callback implemented for task " + command);
+      throw new IllegalStateException("No callback implemented(or not registered) for task " + command);
     }
     TaskFactory taskFactory = _taskFactoryRegistry.get(command);
     Task task = taskFactory.createNewTask(callbackContext);

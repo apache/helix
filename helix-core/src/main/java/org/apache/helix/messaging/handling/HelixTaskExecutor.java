@@ -736,6 +736,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             if (task.cancel()) {
               Message stateTransitionMessage = task.getMessage();
               future.cancel(false);
+              _messageTaskMap.remove(messageTarget);
+              _taskMap.remove(taskId);
               _monitor.reportProcessedMessage(message,
                   ParticipantMessageMonitor.ProcessedMessageState.COMPLETED);
               removeMessageFromZk(accessor, message, instanceName);

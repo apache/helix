@@ -190,6 +190,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
           timeToSchedule = Math.min(timeToSchedule, calculatedStartTime);
         } else {
           scheduleSingleJob(job, jobConfig);
+          workflowCtx.setJobState(job, TaskState.NOT_STARTED);
           scheduledJobs++;
         }
       }

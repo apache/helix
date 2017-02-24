@@ -308,17 +308,12 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
     }
   }
 
-  private static class DelayedTransition extends MockTransition {
-    private static long _delay = 0;
+  private static class DelayedTransition extends DelayedTransitionBase {
     private static Map<String, List<PartitionTransitionTime>> resourcePatitionTransitionTimes =
         new HashMap<String, List<PartitionTransitionTime>>();
     private static Map<String, List<PartitionTransitionTime>> instancePatitionTransitionTimes =
         new HashMap<String, List<PartitionTransitionTime>>();
     private static boolean _recordThrottle = false;
-
-    public static void setDelay(long delay) {
-      _delay = delay;
-    }
 
     public static Map<String, List<PartitionTransitionTime>> getResourcePatitionTransitionTimes() {
       return resourcePatitionTransitionTimes;
@@ -337,7 +332,8 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       instancePatitionTransitionTimes.clear();
     }
 
-    @Override public void doTransition(Message message, NotificationContext context)
+    @Override
+    public void doTransition(Message message, NotificationContext context)
         throws InterruptedException {
       long start = System.currentTimeMillis();
       if (_delay > 0) {
@@ -347,11 +343,6 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       if (_recordThrottle) {
         PartitionTransitionTime partitionTransitionTime =
             new PartitionTransitionTime(message.getPartitionName(), start, end);
-
-//        System.out.println(String
-//            .format("Transit resource %s partition %s from %s to %s at instance %s: %s",
-//                message.getResourceName(), message.getPartitionName(), message.getFromState(),
-//                message.getToState(), message.getTgtName(), partitionTransitionTime));
 
         if (!resourcePatitionTransitionTimes.containsKey(message.getResourceName())) {
           resourcePatitionTransitionTimes

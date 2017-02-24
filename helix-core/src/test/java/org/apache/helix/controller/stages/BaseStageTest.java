@@ -78,6 +78,8 @@ public class BaseStageTest {
     _clusterName = "testCluster-" + UUID.randomUUID().toString();
     manager = new MockManager(_clusterName);
     accessor = manager.getHelixDataAccessor();
+    ClusterConfig clusterConfig = new ClusterConfig(_clusterName);
+    setClusterConfig(clusterConfig);
     admin = new MockHelixAdmin(manager);
     event = new ClusterEvent("sampleEvent");
     admin.addCluster(_clusterName);
@@ -172,6 +174,11 @@ public class BaseStageTest {
 
   protected void setClusterConfig(ClusterConfig clusterConfig) {
     accessor.setProperty(accessor.keyBuilder().clusterConfig(), clusterConfig);
+  }
+
+  protected void setSingleIdealState(IdealState idealState) {
+    accessor
+        .setProperty(accessor.keyBuilder().idealStates(idealState.getResourceName()), idealState);
   }
 
   protected void runStage(ClusterEvent event, Stage stage) {

@@ -19,26 +19,27 @@ package org.apache.helix.controller.stages;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.api.config.StateTransitionThrottleConfig.RebalanceType;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
-import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * For partition compute the Intermediate State (instance,state) pair based on the BestPossible
@@ -87,7 +88,40 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         new StateTransitionThrottleController(resourceMap.keySet(), dataCache.getClusterConfig(),
             dataCache.getLiveInstances().keySet());
 
+    // Resource level prioritization with numerical sortable field.
+    // If no value has been set, it will be treated as lowest priority.
+    List<ResourcePriority> prioritizedResourceList = new ArrayList<ResourcePriority>();
     for (String resourceName : resourceMap.keySet()) {
+      prioritizedResourceList.add(new ResourcePriority(resourceName, Integer.MIN_VALUE));
+    }
+    // Not have resource level prioritization if user did not set the field name
+    if (dataCache.getClusterConfig().getResourcePriorityField() != null) {
+      String priorityField = dataCache.getClusterConfig().getResourcePriorityField();
+
+      for (ResourcePriority resourcePriority : prioritizedResourceList) {
+        String resourceName = resourcePriority.getResourceName();
+
+        // Will take the priority from ResourceConfig first
+        // If ResourceConfig does not exist or does not have this field.
+        // Try to fetch it from ideal state. Otherwise will treated as lowest priority
+        if (dataCache.getResourceConfig(resourceName) != null
+            && dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField) != null) {
+          resourcePriority.setPriority(
+              dataCache.getResourceConfig(resourceName).getSimpleConfig(priorityField));
+        } else if (dataCache.getIdealState(resourceName) != null
+            && dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField)
+            != null) {
+
+          resourcePriority.setPriority(
+              dataCache.getIdealState(resourceName).getRecord().getSimpleField(priorityField));
+        }
+      }
+
+      Collections.sort(prioritizedResourceList, new ResourcePriortiyComparator());
+    }
+
+    for (ResourcePriority resourcePriority : prioritizedResourceList) {
+      String resourceName = resourcePriority.getResourceName();
       Resource resource = resourceMap.get(resourceName);
       IdealState idealState = dataCache.getIdealState(resourceName);
 
@@ -455,4 +489,36 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
   }
 
+  private static class ResourcePriortiyComparator implements Comparator<ResourcePriority> {
+    @Override public int compare(ResourcePriority r1, ResourcePriority r2) {
+      return r2.compareTo(r1);
+    }
+  }
+
+  private static class ResourcePriority {
+    private String _resourceName;
+    private Integer _priority;
+
+    public ResourcePriority(String resourceName, Integer priority) {
+      _resourceName = resourceName;
+      _priority = priority;
+    }
+
+    public int compareTo(ResourcePriority resourcePriority) {
+      return this._priority.compareTo(resourcePriority._priority);
+    }
+
+    public String getResourceName() {
+      return _resourceName;
+    }
+
+    public void setPriority(String priority) {
+      try {
+        _priority = Integer.parseInt(priority);
+      } catch (Exception e) {
+        logger.warn(
+            String.format("Invalid priority field %s for resource %s", priority, _resourceName));
+      }
+    }
+  }
 }

@@ -96,6 +96,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
 
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -113,6 +114,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
 
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -210,8 +212,8 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     event.addAttribute("helixmanager", manager);
 
     ClusterDataCache cache = new ClusterDataCache();
-    cache._clusterConfig = new ClusterConfig(clusterName);
     event.addAttribute("ClusterDataCache", cache);
+    refreshClusterConfig(event, clusterName);
 
     final String resourceName = "testResource_pending";
     String[] resourceGroups = new String[] {
@@ -249,6 +251,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
 
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -287,6 +290,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     List<String> msgIds = accessor.getChildNames(keyBuilder.messages("localhost_0"));
     accessor.removeProperty(keyBuilder.message("localhost_0", msgIds.get(0)));
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -347,6 +351,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
 
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     MessageSelectionStageOutput msgSelOutput =
         event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
@@ -367,6 +372,7 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
         "SLAVE");
 
     runPipeline(event, dataRefresh);
+    refreshClusterConfig(event, clusterName);
     runPipeline(event, rebalancePipeline);
     msgSelOutput = event.getAttribute(AttributeName.MESSAGES_SELECTED.name());
     messages = msgSelOutput.getMessages(resourceName, new Partition(resourceName + "_0"));
@@ -387,5 +393,11 @@ public class TestRebalancePipeline extends ZkUnitTestBase {
     curState.setSessionId(sessionId);
     curState.setStateModelDefRef("MasterSlave");
     accessor.setProperty(keyBuilder.currentState(instance, sessionId, resourceGroupName), curState);
+  }
+
+  private void refreshClusterConfig(ClusterEvent event, String clusterName) {
+    ClusterDataCache cache = event.getAttribute("ClusterDataCache");
+    cache._clusterConfig = new ClusterConfig(clusterName);
+    event.addAttribute("ClusterDataCache", cache);
   }
 }

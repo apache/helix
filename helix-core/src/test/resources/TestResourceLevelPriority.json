@@ -1,0 +1,41 @@
+{
+  "Resource" : [
+    {
+      "PriorityField" : "Version",
+      "ResourceMap" : {
+        "Resource_0" : "2",
+        "Resource_1" : "ABC",
+        "Resource_2" : "1",
+        "Resource_3" : "-1",
+        "Resource_4" : ""
+      },
+      "ExpectedPriority" : [
+        "Resource_0",
+        "Resource_2",
+        "Resource_3",
+        "Resource_1",
+        "Resource_4"
+      ]
+    },
+    {
+      "PriorityField" : "OtherField",
+      "ResourceMap" : {
+        "Resource_0" : "-2147483647",
+        "Resource_1" : "5",
+        "Resource_2" : "5",
+        "Resource_3" : "-3",
+        "Resource_4" : "",
+        "Resource_5" : "-3"
+      },
+      "ExpectedPriority" : [
+        "Resource_1",
+        "Resource_2",
+        "Resource_5",
+        "Resource_3",
+        "Resource_0",
+        "Resource_4"
+      ]
+
+    }
+  ]
+}

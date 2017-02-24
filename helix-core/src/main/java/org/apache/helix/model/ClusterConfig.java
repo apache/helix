@@ -47,7 +47,8 @@ public class ClusterConfig extends HelixProperty {
     DELAY_REBALANCE_TIME,    // delayed time in ms that the delay time Helix should hold until rebalancing.
     STATE_TRANSITION_THROTTLE_CONFIGS,
     STATE_TRANSITION_CANCELLATION_ENABLED,
-    MISS_TOP_STATE_DURATION_THRESHOLD
+    MISS_TOP_STATE_DURATION_THRESHOLD,
+    RESOURCE_PRIORITY_FIELD
   }
 
   /**
@@ -209,6 +210,23 @@ public class ClusterConfig extends HelixProperty {
       _record.setBooleanField(ClusterConfigProperty.STATE_TRANSITION_CANCELLATION_ENABLED.name(),
           enable);
     }
+  }
+
+  /**
+   * Set the resource prioritization field. It should be Integer field and sortable.
+   *
+   * IMPORTANT: The sorting order is DESCENDING order, which means the larger number will have
+   * higher priority. If user did not set up the field in ResourceConfig or IdealState or the field
+   * is not parseable, Helix will treat it as lowest priority.
+   *
+   * @param priorityField
+   */
+  public void setResourcePriorityField(String priorityField) {
+    _record.setSimpleField(ClusterConfigProperty.RESOURCE_PRIORITY_FIELD.name(), priorityField);
+  }
+
+  public String getResourcePriorityField() {
+    return _record.getSimpleField(ClusterConfigProperty.RESOURCE_PRIORITY_FIELD.name());
   }
 
   public boolean isStateTransitionCancelEnabled() {

@@ -86,7 +86,7 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
       List<Node> selected = select(topNode, data, _replicas);
 
       if (selected.size() < _replicas) {
-        Log.warn(String
+        Log.error(String
             .format("Can not find enough node for resource %s partition %s, required %d, find %d",
                 _resourceName, partitionName, _replicas, selected.size()));
       }
@@ -108,13 +108,14 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
   /**
    * Number of retries for finding an appropriate instance for a replica.
    */
-  private static final int MAX_RETRY = 100;
+  private static final int MAX_RETRY = 10;
   private final JenkinsHash hashFun = new JenkinsHash();
   private CRUSHPlacementAlgorithm placementAlgorithm = new CRUSHPlacementAlgorithm();
 
   /**
    * Enforce isolation on the specified fault zone.
-   * The caller will either get the expected number of selected nodes as a result, or an exception will be thrown.
+   * The caller will try to get the expected number of selected nodes as a result,
+   * if no enough nodes can be found, could return any number of nodes than required.
    */
   private List<Node> select(Node topNode, long data, int rf)
       throws HelixException {
@@ -130,8 +131,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
         input = hashFun.hash(input); // create a different hash value for retrying
         tries++;
         if (tries >= MAX_RETRY) {
-          throw new HelixException(
-              String.format("could not find all mappings after %d tries", tries));
+          Log.error(String.format("Could not find all mappings after %d tries", tries));
+          break;
         }
       }
     }
@@ -145,8 +146,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
 
     if (!zoneType.equals(endNodeType)) {
       // pick fault zones first
-      List<Node> zones = placementAlgorithm
-          .select(topNode, input, rf, zoneType, nodeAlreadySelected(selectedZones));
+      List<Node> zones = placementAlgorithm.select(topNode, input, rf, zoneType,
+          nodeAlreadySelected(selectedZones));
       // add the racks to the selected racks
       selectedZones.addAll(zones);
       // pick one end node from each fault zone.
@@ -156,8 +157,8 @@ public class CrushRebalanceStrategy implements RebalanceStrategy {
       }
     } else {
       // pick end node directly
-      List<Node> nodes = placementAlgorithm.select(topNode, input, rf, endNodeType,
-          nodeAlreadySelected(new HashSet(selectedNodes)));
+      List<Node> nodes = placementAlgorithm
+          .select(topNode, input, rf, endNodeType, nodeAlreadySelected(new HashSet(selectedNodes)));
       selectedNodes.addAll(nodes);
     }
   }

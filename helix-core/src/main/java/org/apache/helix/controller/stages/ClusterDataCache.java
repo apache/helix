@@ -272,7 +272,9 @@ public class ClusterDataCache {
       if (history.getLastOfflineTime() == ParticipantHistory.ONLINE) {
         history.reportOffline();
         // persist history back to ZK.
-        accessor.setProperty(propertyKey, history);
+        if(!accessor.setProperty(propertyKey, history)) {
+          LOG.error("Fails to persist participant online history back to ZK!");
+        }
       }
       _instanceOfflineTimeMap.put(instance, history.getLastOfflineTime());
     }

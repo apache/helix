@@ -109,36 +109,24 @@ public class ZkIntegrationTestBase {
   protected void enablePersistBestPossibleAssignment(ZkClient zkClient, String clusterName,
       Boolean enable) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    HelixConfigScope clusterScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-            .forCluster(clusterName).build();
-
-    configAccessor.set(clusterScope,
-        ClusterConfig.ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.name(),
-        enable.toString());
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setPersistBestPossibleAssignment(enable);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
-  protected void disableDelayRebalanceInCluster(ZkClient zkClient, String clusterName,
-      Boolean disabled) {
+  protected void enableDelayRebalanceInCluster(ZkClient zkClient, String clusterName,
+      boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    HelixConfigScope clusterScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-            .forCluster(clusterName).build();
-
-    configAccessor
-        .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(),
-            disabled.toString());
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setDelayRebalaceEnabled(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
   protected void setDelayTimeInCluster(ZkClient zkClient, String clusterName, long delay) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    HelixConfigScope clusterScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-            .forCluster(clusterName).build();
-
-    configAccessor
-        .set(clusterScope, ClusterConfig.ClusterConfigProperty.DELAY_REBALANCE_TIME.name(),
-            String.valueOf(delay));
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setRebalanceDelayTime(delay);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,

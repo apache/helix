@@ -75,14 +75,10 @@ public class TestCrushAutoRebalanceNonRack extends ZkIntegrationTestBase {
     _setupTool.addCluster(CLUSTER_NAME, true);
 
     ConfigAccessor configAccessor = new ConfigAccessor(_gZkClient);
-      HelixConfigScope clusterScope =
-          new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-              .forCluster(CLUSTER_NAME).build();
-
-    Map<String, String> configs = new HashMap<String, String>();
-    configs.put(ClusterConfig.ClusterConfigProperty.TOPOLOGY.name(), "/instance");
-    configs.put(ClusterConfig.ClusterConfigProperty.FAULT_ZONE_TYPE.name(), "instance");
-    configAccessor.set(clusterScope, configs);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setTopology("/instance");
+    clusterConfig.setFaultZoneType("instance");
+    configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
 
     for (int i = 0; i < NUM_NODE; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);

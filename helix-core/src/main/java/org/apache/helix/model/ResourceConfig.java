@@ -48,7 +48,8 @@ public class ResourceConfig extends HelixProperty {
     RESOURCE_GROUP_NAME,
     RESOURCE_TYPE,
     GROUP_ROUTING_ENABLED,
-    EXTERNAL_VIEW_DISABLED
+    EXTERNAL_VIEW_DISABLED,
+    DELAY_REBALANCE_ENABLED
   }
 
   public enum ResourceConfigConstants {

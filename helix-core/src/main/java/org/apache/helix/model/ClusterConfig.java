@@ -40,7 +40,10 @@ public class ClusterConfig extends HelixProperty {
     PERSIST_INTERMEDIATE_ASSIGNMENT,
     TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
-    DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
+    TOPOLGOY_AWARE_ENABLED, // whether topology aware rebalance is enabled.
+    @Deprecated
+    DELAY_REBALANCE_DISABLED,  // disabled the delayed rebalaning in case node goes offline.
+    DELAY_REBALANCE_ENABLED,  // whether the delayed rebalaning is enabled.
     DELAY_REBALANCE_TIME,    // delayed time in ms that the delay time Helix should hold until rebalancing.
     STATE_TRANSITION_THROTTLE_CONFIGS,
     STATE_TRANSITION_CANCELLATION_ENABLED,
@@ -79,6 +82,7 @@ public class ClusterConfig extends HelixProperty {
    * Enable/Disable persist best possible assignment in a resource's idealstate.
    * CAUTION: if both {@link #setPersistBestPossibleAssignment(Boolean)} and {@link #setPersistIntermediateAssignment(Boolean)}
    * are set to true, the IntermediateAssignment will be persisted into IdealState's map field.
+   * By default, it is DISABLED if not set.
    * @return
    */
   public void setPersistBestPossibleAssignment(Boolean enable) {
@@ -103,7 +107,7 @@ public class ClusterConfig extends HelixProperty {
    * Enable/Disable persist IntermediateAssignment in a resource's idealstate.
    * CAUTION: if both {@link #setPersistBestPossibleAssignment(Boolean)} and {@link #setPersistIntermediateAssignment(Boolean)}
    * are set to true, the IntermediateAssignment will be persisted into IdealState's map field.
-   *
+   * By default, it is DISABLED if not set.
    * @return
    */
   public void setPersistIntermediateAssignment(Boolean enable) {
@@ -119,12 +123,78 @@ public class ClusterConfig extends HelixProperty {
         .getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(), false);
   }
 
+  /**
+   * Set cluster topology, this is used for topology-aware rebalancer.
+   * @param topology
+   */
+  public void setTopology(String topology) {
+    _record.setSimpleField(ClusterConfigProperty.TOPOLOGY.name(), topology);
+  }
+
+  /**
+   * Get cluster topology.
+   *
+   * @return
+   */
+  public String getTopology() {
+    return _record.getSimpleField(ClusterConfigProperty.TOPOLOGY.name());
+  }
+
+  /**
+   * Set cluster fault zone type, this should be set combined with {@link #setTopology(String)}.
+   * @param faultZoneType
+   */
+  public void setFaultZoneType(String faultZoneType) {
+    _record.setSimpleField(ClusterConfigProperty.FAULT_ZONE_TYPE.name(), faultZoneType);
+  }
+
+  /**
+   * Get cluster fault zone type.
+   *
+   * @return
+   */
+  public String getFaultZoneType() {
+    return _record.getSimpleField(ClusterConfigProperty.FAULT_ZONE_TYPE.name());
+  }
+
+  /**
+   * Set the delayed rebalance time, this applies only when {@link #isDelayRebalaceEnabled()} is
+   * true.
+   *
+   * @param milliseconds
+   */
+  public void setRebalanceDelayTime(long milliseconds) {
+    _record.setLongField(ClusterConfigProperty.DELAY_REBALANCE_TIME.name(), milliseconds);
+  }
+
   public long getRebalanceDelayTime() {
     return _record.getLongField(ClusterConfigProperty.DELAY_REBALANCE_TIME.name(), -1);
   }
 
-  public boolean isDelayRebalaceDisabled() {
-    return _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(), false);
+  /**
+   * Disable/enable delay rebalance.
+   * By default, this is ENABLED if not set.
+   *
+   * @param enabled
+   */
+  public void setDelayRebalaceEnabled(boolean enabled) {
+    _record.setBooleanField(ClusterConfigProperty.DELAY_REBALANCE_ENABLED.name(), enabled);
+  }
+
+  /**
+   * Whether Delay rebalance is enabled for this cluster.
+   *
+   * @return
+   */
+  public boolean isDelayRebalaceEnabled() {
+    boolean disabled =
+        _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(), false);
+    boolean enabled =
+        _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_ENABLED.name(), true);
+    if (disabled) {
+      return false;
+    }
+    return enabled;
   }
 
   /**

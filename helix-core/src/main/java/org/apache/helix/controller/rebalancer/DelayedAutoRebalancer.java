@@ -131,7 +131,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
         .computePartitionAssignment(allNodeList, liveNodeList, currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
-    if (!isDelayRebalanceDisabled(currentIdealState, clusterConfig)) {
+    if (isDelayRebalanceEnabled(currentIdealState, clusterConfig)) {
       List<String> activeNodeList = new ArrayList<String>(activeNodes);
       Collections.sort(activeNodeList);
       int minActiveReplicas = getMinActiveReplica(currentIdealState, replicaCount);
@@ -173,7 +173,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       ClusterConfig clusterConfig) {
     Set<String> activeInstances = new HashSet<String>(liveNodes);
 
-    if (isDelayRebalanceDisabled(idealState, clusterConfig)) {
+    if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
       return activeInstances;
     }
 
@@ -197,7 +197,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   private void setRebalanceScheduler(IdealState idealState, Set<String> activeInstances,
       Map<String, Long> instanceOfflineTimeMap, long delayTime, ClusterConfig clusterConfig) {
     String resourceName = idealState.getResourceName();
-    if (isDelayRebalanceDisabled(idealState, clusterConfig)) {
+    if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
       _scheduledRebalancer.removeScheduledRebalance(resourceName);
       return;
     }
@@ -235,10 +235,10 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     return delayTime;
   }
 
-  private boolean isDelayRebalanceDisabled(IdealState idealState, ClusterConfig clusterConfig) {
+  private boolean isDelayRebalanceEnabled(IdealState idealState, ClusterConfig clusterConfig) {
     long delayTime = getRebalanceDelay(idealState, clusterConfig);
-    return (delayTime < 0 || idealState.isDelayRebalanceDisabled() || clusterConfig
-        .isDelayRebalaceDisabled());
+    return (delayTime > 0 && idealState.isDelayRebalanceEnabled() && clusterConfig
+        .isDelayRebalaceEnabled());
   }
 
   private ZNRecord getFinalDelayedMapping(IdealState idealState, ZNRecord newIdealMapping,
@@ -466,16 +466,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
             bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
           }
         }
-      }
-    }
-
-    int count = 0;
-    for (String val : bestPossibleStateMap.values()) {
-      if (val.equals("MASTER")) {
-        count ++;
-      }
-      if (count > 1) {
-        System.out.println("WTF!!!");
       }
     }
 

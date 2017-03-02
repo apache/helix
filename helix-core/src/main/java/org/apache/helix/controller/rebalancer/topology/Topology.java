@@ -54,7 +54,7 @@ public class Topology {
   private List<String> _allInstances;
   private List<String> _liveInstances;
   private Map<String, InstanceConfig> _instanceConfigMap;
-  private HelixProperty _clusterConfig;
+  private ClusterConfig _clusterConfig;
   private String _faultZoneType;
   private String _endNodeType;
   private boolean _useDefaultTopologyDef;
@@ -74,8 +74,7 @@ public class Topology {
       _clusterConfig = clusterConfig;
       _types = new LinkedHashSet<String>();
 
-      String topologyDef = _clusterConfig.getRecord()
-          .getSimpleField(ClusterConfig.ClusterConfigProperty.TOPOLOGY.name());
+      String topologyDef = _clusterConfig.getTopology();
       if (topologyDef != null) {
         // Customized cluster topology definition is configured.
         String[] types = topologyDef.trim().split("/");
@@ -94,9 +93,10 @@ public class Topology {
             lastType = type;
           }
           _endNodeType = lastType;
-          _faultZoneType = _clusterConfig.getRecord()
-              .getStringField(ClusterConfig.ClusterConfigProperty.FAULT_ZONE_TYPE.name(),
-                  _endNodeType);
+          _faultZoneType = clusterConfig.getFaultZoneType();
+          if (_faultZoneType == null) {
+            _faultZoneType = _endNodeType;
+          }
           if (!_types.contains(_faultZoneType)) {
             throw new HelixException(String
                 .format("Invalid fault zone type %s, not present in topology definition %s.",

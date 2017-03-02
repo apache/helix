@@ -41,10 +41,8 @@ public class TestTopology {
     ClusterConfig clusterConfig = new ClusterConfig("Test_Cluster");
 
     String topology = "/Rack/Sub-Rack/Host/Instance";
-    clusterConfig.getRecord().getSimpleFields()
-        .put(ClusterConfig.ClusterConfigProperty.TOPOLOGY.name(), topology);
-    clusterConfig.getRecord().getSimpleFields()
-        .put(ClusterConfig.ClusterConfigProperty.FAULT_ZONE_TYPE.name(), "Sub-Rack");
+    clusterConfig.setTopology(topology);
+    clusterConfig.setFaultZoneType("Sub-Rack");
 
     List<String> allNodes = new ArrayList<String>();
     List<String> liveNodes = new ArrayList<String>();

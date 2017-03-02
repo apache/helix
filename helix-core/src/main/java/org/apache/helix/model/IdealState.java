@@ -31,6 +31,7 @@ import org.apache.helix.HelixConstants;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.Rebalancer;
+import org.apache.helix.model.ResourceConfig.ResourceConfigProperty;
 import org.apache.helix.task.FixedTargetTaskRebalancer;
 import org.apache.helix.task.GenericTaskRebalancer;
 import org.apache.helix.task.JobRebalancer;
@@ -54,6 +55,7 @@ public class IdealState extends HelixProperty {
     REPLICAS,
     MIN_ACTIVE_REPLICAS,
     REBALANCE_DELAY,
+    @Deprecated
     DELAY_REBALANCE_DISABLED,
     @Deprecated
     IDEAL_STATE_MODE,
@@ -240,19 +242,28 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * If disabled is true, the delayed rebalance time will be ignored.
-   * @param disabled
+   * Enable/Disable the delayed rebalance.
+   * By default it is enabled if not set.
+   *
+   * @param enabled
    */
-  public void setDelayRebalanceDisabled(boolean disabled) {
-    _record.setBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), disabled);
+  public void setDelayRebalanceEnabled(boolean enabled) {
+    _record.setBooleanField(ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(), enabled);
   }
 
   /**
-   * Whether the delay rebalance is disabled.
+   * Whether the delay rebalance is enabled.
    * @return
    */
-  public boolean isDelayRebalanceDisabled() {
-    return _record.getBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), false);
+  public boolean isDelayRebalanceEnabled() {
+    boolean disabled =
+        _record.getBooleanField(IdealStateProperty.DELAY_REBALANCE_DISABLED.name(), false);
+    boolean enabled =
+        _record.getBooleanField(ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(), true);
+    if (disabled) {
+      return false;
+    }
+    return enabled;
   }
 
   /**

@@ -22,6 +22,7 @@ package org.apache.helix.tools.ClusterVerifiers;
 import org.apache.helix.HelixDefinedState;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.controller.pipeline.Stage;
 import org.apache.helix.controller.pipeline.StageContext;
 import org.apache.helix.controller.stages.AttributeName;
@@ -266,20 +267,21 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
         }
 
         // step 0: remove empty map and DROPPED state from best possible state
-        Map<Partition, Map<String, String>> bpStateMap =
-            bestPossOutput.getResourceMap(resourceName);
+        PartitionStateMap bpStateMap =
+            bestPossOutput.getPartitionStateMap(resourceName);
 
         StateModelDefinition stateModelDef = cache.getStateModelDef(is.getStateModelDefRef());
         if (stateModelDef == null) {
-          throw new HelixException(
+          LOG.error(
               "State model definition " + is.getStateModelDefRef() + " for resource not found!" + is
                   .getResourceName());
+          return false;
         }
 
         boolean result = verifyExternalView(is, extView, bpStateMap, stateModelDef);
         if (!result) {
-          LOG.debug("verifyExternalView fails! ExternalView: " + extView + " BestPossibleState: "
-              + bpStateMap);
+          LOG.debug("verifyExternalView fails for " + resourceName + "! ExternalView: " + extView
+              + " BestPossibleState: " + bpStateMap);
           return false;
         }
       }
@@ -291,12 +293,13 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private boolean verifyExternalView(IdealState idealState, ExternalView externalView,
-      Map<Partition, Map<String, String>> bestPossibleState, StateModelDefinition stateModelDef) {
+      PartitionStateMap bestPossibleState, StateModelDefinition stateModelDef) {
     Set<String> ignoreStaes = new HashSet<String>(
         Arrays.asList(stateModelDef.getInitialState(), HelixDefinedState.DROPPED.toString()));
 
     Map<String, Map<String, String>> bestPossibleStateMap =
         convertBestPossibleState(bestPossibleState);
+
     removeEntryWithIgnoredStates(bestPossibleStateMap.entrySet().iterator(), ignoreStaes);
 
     Map<String, Map<String, String>> externalViewMap = externalView.getRecord().getMapFields();
@@ -327,10 +330,10 @@ public class BestPossibleExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   private Map<String, Map<String, String>> convertBestPossibleState(
-      Map<Partition, Map<String, String>> bestPossibleState) {
+      PartitionStateMap bestPossibleState) {
     Map<String, Map<String, String>> result = new HashMap<String, Map<String, String>>();
-    for (Partition partition : bestPossibleState.keySet()) {
-      result.put(partition.getPartitionName(), bestPossibleState.get(partition));
+    for (Partition partition : bestPossibleState.getStateMap().keySet()) {
+      result.put(partition.getPartitionName(), bestPossibleState.getPartitionMap(partition));
     }
     return result;
   }

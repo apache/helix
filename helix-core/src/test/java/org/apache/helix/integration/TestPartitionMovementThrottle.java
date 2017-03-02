@@ -51,7 +51,7 @@ import org.testng.annotations.Test;
 
 public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
   ConfigAccessor _configAccessor;
-  List<String> _dbs = new ArrayList<String>();
+  Set<String> _dbs = new HashSet<String>();
 
   @Override
   @BeforeClass
@@ -151,9 +151,10 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
   public void cleanupTest() throws InterruptedException {
     for (String db : _dbs) {
       _setupTool.dropResourceFromCluster(CLUSTER_NAME, db);
+      Thread.sleep(20);
     }
     _dbs.clear();
-    Thread.sleep(500);
+    Thread.sleep(50);
 
     for (int i = 0; i < _participants.length; i++) {
       if (_participants[i].isConnected()) {
@@ -162,9 +163,10 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i] =
           new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, _participants[i].getInstanceName());
     }
+    DelayedTransition.clearThrottleRecord();
   }
 
-  @Test
+  @Test (dependsOnMethods = {"testResourceThrottle"})
   public void testResourceThrottleWithDelayRebalancer() throws Exception {
     // start a few participants
     for (int i = 0; i < NODE_NR - 2; i++) {
@@ -210,7 +212,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
       _participants[i].syncStart();
     }
 
-    Assert.assertTrue(_clusterVerifier.verify(30000));
+    Assert.assertTrue(_clusterVerifier.verify());
 
     for (String db : _dbs) {
       validateThrottle(DelayedTransition.getResourcePatitionTransitionTimes(), db, 2);
@@ -328,6 +330,11 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     public static void enableThrottleRecord() {
       _recordThrottle = true;
+    }
+
+    public static void clearThrottleRecord() {
+      resourcePatitionTransitionTimes.clear();
+      instancePatitionTransitionTimes.clear();
     }
 
     @Override public void doTransition(Message message, NotificationContext context)

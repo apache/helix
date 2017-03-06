@@ -32,7 +32,9 @@ import org.apache.helix.api.config.StateTransitionThrottleConfig;
  */
 public class ClusterConfig extends HelixProperty {
   /**
-   * Configurable characteristics of a cluster
+   * Configurable characteristics of a cluster.
+   *
+   * NOTE: Do NOT use this field name directly, use its corresponding getter/setter in the ClusterConfig.
    */
   public enum ClusterConfigProperty {
     HELIX_DISABLE_PIPELINE_TRIGGERS,
@@ -40,7 +42,7 @@ public class ClusterConfig extends HelixProperty {
     PERSIST_INTERMEDIATE_ASSIGNMENT,
     TOPOLOGY,  // cluster topology definition, for example, "/zone/rack/host/instance"
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
-    TOPOLGOY_AWARE_ENABLED, // whether topology aware rebalance is enabled.
+    TOPOLOGY_AWARE_ENABLED, // whether topology aware rebalance is enabled.
     @Deprecated
     DELAY_REBALANCE_DISABLED,  // disabled the delayed rebalaning in case node goes offline.
     DELAY_REBALANCE_ENABLED,  // whether the delayed rebalaning is enabled.
@@ -122,6 +124,26 @@ public class ClusterConfig extends HelixProperty {
   public Boolean isPipelineTriggersDisabled() {
     return _record
         .getBooleanField(ClusterConfigProperty.HELIX_DISABLE_PIPELINE_TRIGGERS.toString(), false);
+  }
+
+  /**
+   * Enable/disable topology aware rebalacning. If enabled, both {@link #setTopology(String)} and
+   * {@link #setFaultZoneType(String)} should be set.
+   * By default, this is DISABLED if not set.
+   *
+   * @param enabled
+   */
+  public void setTopologyAwareEnabled(boolean enabled) {
+    _record.setBooleanField(ClusterConfigProperty.TOPOLOGY_AWARE_ENABLED.name(), enabled);
+  }
+
+  /**
+   * Whether topology aware rebalance is enabled for this cluster.
+   * By default, it is DISABLED.
+   * @return
+   */
+  public boolean isTopologyAwareEnabled() {
+    return _record.getBooleanField(ClusterConfigProperty.TOPOLOGY_AWARE_ENABLED.name(), false);
   }
 
   /**

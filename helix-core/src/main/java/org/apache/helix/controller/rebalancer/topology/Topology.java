@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.HelixProperty;
+import org.apache.helix.NotificationContext;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.log4j.Logger;
@@ -58,6 +59,7 @@ public class Topology {
   private String _faultZoneType;
   private String _endNodeType;
   private boolean _useDefaultTopologyDef;
+  private boolean _topologyAwareEnabled;
   private LinkedHashSet<String> _types;
 
   /* default names for domain paths, if value is not specified for a domain path, the default one is used */
@@ -68,12 +70,18 @@ public class Topology {
       final Map<String, InstanceConfig> instanceConfigMap, ClusterConfig clusterConfig) {
     try {
       _md = MessageDigest.getInstance("SHA-1");
-      _allInstances = allNodes;
-      _liveInstances = liveNodes;
-      _instanceConfigMap = instanceConfigMap;
-      _clusterConfig = clusterConfig;
-      _types = new LinkedHashSet<String>();
+    } catch (NoSuchAlgorithmException ex) {
+      throw new IllegalArgumentException(ex);
+    }
 
+    _allInstances = allNodes;
+    _liveInstances = liveNodes;
+    _instanceConfigMap = instanceConfigMap;
+    _clusterConfig = clusterConfig;
+    _types = new LinkedHashSet<String>();
+    _topologyAwareEnabled = clusterConfig.isTopologyAwareEnabled();
+
+    if (_topologyAwareEnabled) {
       String topologyDef = _clusterConfig.getTopology();
       if (topologyDef != null) {
         // Customized cluster topology definition is configured.
@@ -112,13 +120,17 @@ public class Topology {
         _faultZoneType = Types.ZONE.name();
         _useDefaultTopologyDef = true;
       }
-    } catch (NoSuchAlgorithmException ex) {
-      throw new IllegalArgumentException(ex);
-    }
-    if (_useDefaultTopologyDef) {
-      _root = createClusterTreeWithDefaultTopologyDef();
+
+      if (_useDefaultTopologyDef) {
+        _root = createClusterTreeWithDefaultTopologyDef();
+      } else {
+        _root = createClusterTreeWithCustomizedTopology();
+      }
     } else {
-      _root = createClusterTreeWithCustomizedTopology();
+      _types.add(Types.INSTANCE.name());
+      _endNodeType = Types.INSTANCE.name();
+      _faultZoneType = Types.INSTANCE.name();
+      _root = createClusterTreeWithDefaultTopologyDef();
     }
   }
 
@@ -211,18 +223,18 @@ public class Topology {
       if (config == null) {
         throw new HelixException(String.format("Config for instance %s is not found!", ins));
       }
-      String zone = config.getZoneId();
-      if (zone == null) {
-        //TODO: we should allow non-rack cluster for back-compatible. This should be solved once
-        // we have the hierarchy style of domain id for instance.
-        throw new HelixException(String
-            .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
-                ins));
-      }
       Map<String, String> pathValueMap = new HashMap<String, String>();
-      pathValueMap.put(Types.ZONE.name(), zone);
+      if (_topologyAwareEnabled) {
+        String zone = config.getZoneId();
+        if (zone == null) {
+          // we have the hierarchy style of domain id for instance.
+          throw new HelixException(String
+              .format("ZONE_ID for instance %s is not set, failed the topology-aware placement!",
+                  ins));
+        }
+        pathValueMap.put(Types.ZONE.name(), zone);
+      }
       pathValueMap.put(Types.INSTANCE.name(), ins);
-
       int weight = config.getWeight();
       if (weight < 0 || weight == InstanceConfig.WEIGHT_NOT_SET) {
         weight = DEFAULT_NODE_WEIGHT;

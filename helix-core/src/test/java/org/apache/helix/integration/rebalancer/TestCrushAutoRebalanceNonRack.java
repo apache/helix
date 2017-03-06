@@ -27,11 +27,9 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
-import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.InstanceConfig;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
@@ -93,11 +91,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
       String tag = "tag-" + i % 2;
       _setupTool.getClusterManagementTool().addInstanceTag(CLUSTER_NAME, storageNodeName, tag);
       _nodeToTagMap.put(storageNodeName, tag);
-      HelixConfigScope instanceScope =
-          new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.PARTICIPANT)
-              .forCluster(CLUSTER_NAME).forParticipant(storageNodeName).build();
-      configAccessor.set(instanceScope, InstanceConfig.InstanceConfigProperty.DOMAIN.name(),
-          "instance=" + storageNodeName);
+      InstanceConfig instanceConfig = configAccessor.getInstanceConfig(CLUSTER_NAME, storageNodeName);
+      instanceConfig.setDomain("instance=" + storageNodeName);
+      configAccessor.setInstanceConfig(CLUSTER_NAME, storageNodeName, instanceConfig);
     }
 
     // start dummy participants
@@ -111,6 +107,9 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     String controllerName = CONTROLLER_PREFIX + "_0";
     _controller = new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
     _controller.syncStart();
+
+    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
+    //enableTopologyAwareRebalance(_gZkClient, CLUSTER_NAME, true);
   }
 
   @DataProvider(name = "rebalanceStrategies") public static String[][] rebalanceStrategies() {
@@ -162,11 +161,10 @@ public class TestCrushAutoRebalanceNonRack extends ZkStandAloneCMTestBase {
     }
     Thread.sleep(300);
 
-    HelixClusterVerifier _clusterVerifier =
+      HelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
             .setResources(_allDBs).build();
     Assert.assertTrue(_clusterVerifier.verify(5000));
-
     for (String db : _allDBs) {
       IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
       ExternalView ev =

@@ -107,10 +107,18 @@ public class ZkIntegrationTestBase {
   }
 
   protected void enablePersistBestPossibleAssignment(ZkClient zkClient, String clusterName,
-      Boolean enable) {
+      Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
-    clusterConfig.setPersistBestPossibleAssignment(enable);
+    clusterConfig.setPersistBestPossibleAssignment(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableTopologyAwareRebalance(ZkClient zkClient, String clusterName,
+      Boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setTopologyAwareEnabled(enabled);
     configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 

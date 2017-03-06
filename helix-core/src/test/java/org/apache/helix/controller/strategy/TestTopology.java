@@ -43,6 +43,7 @@ public class TestTopology {
     String topology = "/Rack/Sub-Rack/Host/Instance";
     clusterConfig.setTopology(topology);
     clusterConfig.setFaultZoneType("Sub-Rack");
+    clusterConfig.setTopologyAwareEnabled(true);
 
     List<String> allNodes = new ArrayList<String>();
     List<String> liveNodes = new ArrayList<String>();
@@ -114,6 +115,7 @@ public class TestTopology {
   @Test
   public void testCreateClusterTopologyWithDefaultTopology() {
     ClusterConfig clusterConfig = new ClusterConfig("Test_Cluster");
+    clusterConfig.setTopologyAwareEnabled(true);
 
     List<String> allNodes = new ArrayList<String>();
     List<String> liveNodes = new ArrayList<String>();

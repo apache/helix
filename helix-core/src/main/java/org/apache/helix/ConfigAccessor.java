@@ -544,7 +544,7 @@ public class ConfigAccessor {
 
   /**
    * Set ClusterConfig of the given cluster.
-   * Warning: This is not thread-safe or concurrent updates safe.
+   * WARNING: This is not thread-safe or concurrent updates safe.
    *
    * @param clusterName
    *
@@ -552,7 +552,7 @@ public class ConfigAccessor {
    */
   public void setClusterConfig(String clusterName, ClusterConfig clusterConfig) {
     if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("fail to setu89 config. cluster: " + clusterName + " is NOT setup.");
+      throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
 
     HelixConfigScope scope =
@@ -586,6 +586,28 @@ public class ConfigAccessor {
   }
 
   /**
+   * Set config of the given resource.
+   * WARNING: This is not thread-safe or concurrent updates safe.
+   *
+   * @param clusterName
+   *
+   * @return
+   */
+  public void setResourceConfig(String clusterName, String resourceName,
+      ResourceConfig resourceConfig) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forResource(resourceName).build();
+
+    String zkPath = scope.getZkPath();
+    ZKUtil.createOrUpdate(zkClient, zkPath, resourceConfig.getRecord(), true, true);
+  }
+
+  /**
    * Get instance config for given resource in given cluster.
    *
    * @param clusterName
@@ -611,5 +633,27 @@ public class ConfigAccessor {
     }
 
     return new InstanceConfig(record);
+  }
+
+  /**
+   * Set config of the given instance config.
+   * WARNING: This is not thread-safe or concurrent updates safe.
+   *
+   * @param clusterName
+   *
+   * @return
+   */
+  public void setInstanceConfig(String clusterName, String instanceName,
+      InstanceConfig instanceConfig) {
+    if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
+      throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
+    }
+
+    HelixConfigScope scope =
+        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+            .forParticipant(instanceName).build();
+
+    String zkPath = scope.getZkPath();
+    ZKUtil.createOrUpdate(zkClient, zkPath, instanceConfig.getRecord(), true, true);
   }
 }

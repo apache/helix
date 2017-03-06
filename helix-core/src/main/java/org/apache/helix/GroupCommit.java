@@ -34,6 +34,7 @@ import org.apache.log4j.Logger;
  */
 public class GroupCommit {
   private static Logger LOG = Logger.getLogger(GroupCommit.class);
+  private static int MAX_RETRY = 3;
 
   private static class Queue {
     final AtomicReference<Thread> _running = new AtomicReference<Thread>();
@@ -85,6 +86,7 @@ public class GroupCommit {
     Queue queue = getQueue(key);
     Entry entry = new Entry(key, record);
 
+    boolean success = true;
     queue._pending.add(entry);
 
     while (!entry._sent.get()) {
@@ -127,11 +129,18 @@ public class GroupCommit {
             // System.out.println("After merging:" + merged);
             it.remove();
           }
-          // System.out.println("size:"+ processed.size());
-          if (removeIfEmpty && merged.getMapFields().isEmpty()) {
-            accessor.remove(mergedKey, options);
-          } else {
-            accessor.set(mergedKey, merged, options);
+
+          int retry = 0;
+          success = false;
+          while (++retry <= MAX_RETRY && !success) {
+            if (removeIfEmpty && merged.getMapFields().isEmpty()) {
+              success = accessor.remove(mergedKey, options);
+            } else {
+              success = accessor.set(mergedKey, merged, options);
+            }
+            if (!success) {
+              LOG.error("Fails to update " + mergedKey + " to ZK, retry it!");
+            }
           }
         } finally {
           queue._running.set(null);
@@ -155,7 +164,7 @@ public class GroupCommit {
         }
       }
     }
-    return true;
+    return success;
   }
 
 }

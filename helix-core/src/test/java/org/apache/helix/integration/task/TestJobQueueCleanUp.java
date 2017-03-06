@@ -70,7 +70,7 @@ public class TestJobQueueCleanUp extends TaskTestBase {
       builder.enqueueJob("JOB" + i, jobBuilder);
     }
     builder.enqueueJob("JOB" + 3,
-        jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000L")));
+        jobBuilder.setJobCommandConfigMap(ImmutableMap.of(MockTask.TIMEOUT_CONFIG, "1000000")));
     builder.enqueueJob("JOB" + 4, jobBuilder);
     _driver.start(builder.build());
     _driver.pollForJobState(queueName, TaskUtil.getNamespacedJobName(queueName, "JOB" + 3),

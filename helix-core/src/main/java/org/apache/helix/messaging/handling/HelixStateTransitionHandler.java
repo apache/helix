@@ -139,7 +139,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
       currStateUpdate.setDeltaList(deltaList);
 
       // Update the ZK current state of the node
-      accessor.updateProperty(key, currStateUpdate);
+      if (!accessor.updateProperty(key, currStateUpdate)) {
+        logger.error(
+            "Fails to persist current state back to ZK for resource " + resource + " partition: "
+                + partitionName);
+      }
     }
     catch (Exception e)
     {
@@ -250,7 +254,11 @@ public class HelixStateTransitionHandler extends MessageHandler {
               bucketizer.getBucketName(partitionKey));
       if (_message.getAttribute(Attributes.PARENT_MSG_ID) == null) {
         // normal message
-        accessor.updateProperty(key, _currentStateDelta);
+        if (!accessor.updateProperty(key, _currentStateDelta)) {
+          throw new HelixException(
+              "Fails to persist current state back to ZK for resource " + resource + " partition: "
+                  + _message.getPartitionName());
+        }
       } else {
         // sub-message of a batch message
         ConcurrentHashMap<String, CurrentStateUpdate> csUpdateMap =
@@ -416,9 +424,13 @@ public class HelixStateTransitionHandler extends MessageHandler {
         if (_message.getFromState().equalsIgnoreCase(HelixDefinedState.ERROR.toString())) {
           disablePartition();
         }
-        accessor.updateProperty(
+
+        if (!accessor.updateProperty(
             keyBuilder.currentState(instanceName, _message.getTgtSessionId(), resourceName),
-            currentStateDelta);
+            currentStateDelta)) {
+          logger.error("Fails to persist ERROR current state to ZK for resource " + resourceName
+                  + " partition: " + partition);
+        }
       }
     } finally {
       StateTransitionError error = new StateTransitionError(type, code, e);

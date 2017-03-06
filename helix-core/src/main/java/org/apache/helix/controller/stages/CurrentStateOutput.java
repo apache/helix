@@ -227,6 +227,18 @@ public class CurrentStateOutput {
   }
 
   /**
+   * Given resource, returns current state map (parition -> instance -> currentState)
+   * @param resourceName
+   * @return
+   */
+  public Map<Partition, Map<String, String>> getCurrentStateMap(String resourceName) {
+    if (_currentStateMap.containsKey(resourceName)) {
+      return  _currentStateMap.get(resourceName);
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
    * given (resource, partition), returns (instance->currentState) map
    * @param resourceName
    * @param partition

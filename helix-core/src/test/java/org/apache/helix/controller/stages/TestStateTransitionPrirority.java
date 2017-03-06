@@ -22,16 +22,20 @@ package org.apache.helix.controller.stages;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
 import org.apache.helix.controller.common.PartitionStateMap;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
+import org.apache.helix.model.Resource;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.ObjectReader;
 import org.testng.Assert;
@@ -40,12 +44,17 @@ import org.testng.annotations.Test;
 
 public class TestStateTransitionPrirority extends BaseStageTest {
   public static final String RESOURCE = "Resource";
+  public static final String PARTITION = "Partition";
 
   // TODO : Reenable this when throttling enabled for recovery rebalance
   @Test(dataProvider = "ResourceLevelPriority", enabled = false)
   public void testResourceLevelPriorityForRecoveryBalance(
       Map<String, String> resourceMap, String priorityField, List<String> expectedPriority) {
-    preSetup(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, resourceMap, priorityField);
+    preSetup(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE, resourceMap.keySet(),
+        priorityField, 10, 1);
+    event.addAttribute(AttributeName.RESOURCES.name(),
+        getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
+            "MasterSlave"));
 
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
@@ -84,7 +93,11 @@ public class TestStateTransitionPrirority extends BaseStageTest {
   @Test(dataProvider = "ResourceLevelPriority")
   public void testResourceLevelPriorityForLoadBalance(
       Map<String, String> resourceMap, String priorityField, List<String> expectedPriority) {
-    preSetup(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceMap, priorityField);
+    preSetup(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceMap.keySet(), priorityField,
+        10, 1);
+    event.addAttribute(AttributeName.RESOURCES.name(),
+        getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.keySet().size()]), 1,
+            "MasterSlave"));
     // Initialize bestpossible state and current state
     BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
     CurrentStateOutput currentStateOutput = new CurrentStateOutput();
@@ -118,16 +131,81 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     Assert.assertEquals(resourcePriority, expectedPriority);
   }
 
-  @DataProvider(name = "ResourceLevelPriority") private Object[][] loadResourceInput() {
+  @Test(dataProvider = "PartitionLevelPriority")
+  public void testPartitionLevelPriority(String resourceName,
+      Map<String, Map<String, String>> bestPossibleMap,
+      Map<String, Map<String, String>> currentStateMap, List<String> preferenceList,
+      List<String> expectedPriority) {
+    preSetup(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        new HashSet<String>(Arrays.asList(resourceName)), "no_field", 3, 3);
+
+    // Add load rebalance throttle config
+    ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+    StateTransitionThrottleConfig throttleConfigForLoadRebalance =
+        new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 1);
+    List<StateTransitionThrottleConfig> currentThrottleConfig =
+        clusterConfig.getStateTransitionThrottleConfigs();
+    currentThrottleConfig.add(throttleConfigForLoadRebalance);
+    clusterConfig.setStateTransitionThrottleConfigs(currentThrottleConfig);
+    setClusterConfig(clusterConfig);
+
+    // Initialize best possible state, current state and resource map.
+    Resource resource = new Resource(resourceName);
+    BestPossibleStateOutput bestPossibleStateOutput = new BestPossibleStateOutput();
+    CurrentStateOutput currentStateOutput = new CurrentStateOutput();
+
+    for (String partitionName : bestPossibleMap.keySet()) {
+      Partition partition = new Partition(partitionName);
+      bestPossibleStateOutput.setPreferenceList(resourceName, partitionName, preferenceList);
+      for (String instanceName : bestPossibleMap.get(partitionName).keySet()) {
+        bestPossibleStateOutput.setState(resourceName, partition, instanceName,
+            bestPossibleMap.get(partitionName).get(instanceName));
+        currentStateOutput.setCurrentState(resourceName, partition, instanceName,
+            currentStateMap.get(partitionName).get(instanceName));
+      }
+      resource.addPartition(partitionName);
+    }
+    resource.setStateModelDefRef("MasterSlave");
+
+    event.addAttribute(AttributeName.RESOURCES.name(),
+        Collections.singletonMap(resourceName, resource));
+    event.addAttribute(AttributeName.BEST_POSSIBLE_STATE.name(), bestPossibleStateOutput);
+    event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+    runStage(event, new ReadClusterDataStage());
+
+    // Keep update the current state.
+    List<String> partitionPriority = new ArrayList<String>();
+    for (int i = 0; i < bestPossibleMap.size(); i++) {
+      runStage(event, new IntermediateStateCalcStage());
+      updateCurrentStateForPartitionLevelPriority(partitionPriority, currentStateOutput,
+          resourceName, bestPossibleMap);
+    }
+
+    Assert.assertEquals(partitionPriority, expectedPriority);
+  }
+
+  @DataProvider(name = "PartitionLevelPriority")
+  private Object[][] loadPartitionInput() {
+    return loadInputData(PARTITION);
+  }
+
+
+  @DataProvider(name = "ResourceLevelPriority")
+  private Object[][] loadResourceInput() {
     return loadInputData(RESOURCE);
   }
 
-  private static final String TEST_INPUT_FILE = "TestResourceLevelPriority.json";
+  private static final String TEST_INPUT_FILE = "Test%sLevelPriority.json";
   private static final String PRIORITY_FIELD = "PriorityField";
   private static final String EXPECTED_PRIORITY = "ExpectedPriority";
+  private static final String BEST_POSSIBLE_MAP = "BestPossibleMap";
+  private static final String CURRENT_STATE_MAP = "CurrentStateMap";
+  private static final String PREFERENCE_LIST = "PreferenceList";
   private Object[][] loadInputData(String inputEntry) {
     Object[][] inputData = null;
-    InputStream inputStream = getClass().getClassLoader().getResourceAsStream(TEST_INPUT_FILE);
+    InputStream inputStream =
+        getClass().getClassLoader().getResourceAsStream(String.format(TEST_INPUT_FILE, inputEntry));
 
     try {
       ObjectReader mapReader = new ObjectMapper().reader(Map.class);
@@ -136,10 +214,25 @@ public class TestStateTransitionPrirority extends BaseStageTest {
       List<Map<String, Object>> inputs = (List<Map<String, Object>>) inputMaps.get(inputEntry);
       inputData = new Object[inputs.size()][];
       for (int i = 0; i < inputs.size(); i++) {
-        Map<String, String> resourceMap = (Map<String, String>) inputs.get(i).get(RESOURCE + "Map");
-        String priorityField = (String) inputs.get(i).get(PRIORITY_FIELD);
-        List<String> expectedPriority = (List<String>) inputs.get(i).get(EXPECTED_PRIORITY);
-        inputData[i] = new Object[] { resourceMap, priorityField, expectedPriority };
+        if (inputEntry.equals(RESOURCE)) {
+          Map<String, String> resourceMap =
+              (Map<String, String>) inputs.get(i).get(RESOURCE + "Map");
+          String priorityField = (String) inputs.get(i).get(PRIORITY_FIELD);
+          List<String> expectedPriority = (List<String>) inputs.get(i).get(EXPECTED_PRIORITY);
+          inputData[i] = new Object[] { resourceMap, priorityField, expectedPriority };
+        } else if (inputEntry.equals(PARTITION)) {
+          String resource = (String) inputs.get(i).get(RESOURCE);
+          Map<String, Map<String, String>> bestPossibleMap =
+              (Map<String, Map<String, String>>) inputs.get(i).get(BEST_POSSIBLE_MAP);
+          Map<String, Map<String, String>> currentStateMap =
+              (Map<String, Map<String, String>>) inputs.get(i).get(CURRENT_STATE_MAP);
+          List<String> expectedPriority = (List<String>) inputs.get(i).get(EXPECTED_PRIORITY);
+          List<String> preferenceList = (List<String>) inputs.get(i).get(PREFERENCE_LIST);
+
+          inputData[i] = new Object[] { resource, bestPossibleMap, currentStateMap, preferenceList,
+              expectedPriority
+          };
+        }
       }
     } catch (IOException e) {
       e.printStackTrace();
@@ -149,11 +242,11 @@ public class TestStateTransitionPrirority extends BaseStageTest {
   }
 
   private void preSetup(StateTransitionThrottleConfig.RebalanceType rebalanceType,
-      Map<String, String> resourceMap, String priorityField) {
-    setupIdealState(10, resourceMap.keySet().toArray(new String[resourceMap.size()]), 10, 1,
-        IdealState.RebalanceMode.FULL_AUTO, "MasterSlave");
+      Set<String> resourceSet, String priorityField, int numOfLiveInstances, int numOfReplicas) {
+    setupIdealState(numOfLiveInstances, resourceSet.toArray(new String[resourceSet.size()]),
+        numOfLiveInstances, numOfReplicas, IdealState.RebalanceMode.FULL_AUTO, "MasterSlave");
     setupStateModel();
-    setupLiveInstances(10);
+    setupLiveInstances(numOfLiveInstances);
 
     // Set up cluster configs
     ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
@@ -162,9 +255,6 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     clusterConfig.setStateTransitionThrottleConfigs(Collections.singletonList(throttleConfig));
     clusterConfig.setResourcePriorityField(priorityField);
     setClusterConfig(clusterConfig);
-    event.addAttribute(AttributeName.RESOURCES.name(),
-        getResourceMap(resourceMap.keySet().toArray(new String[resourceMap.size()]), 1,
-            "MasterSlave"));
   }
 
   private void updateCurrentStatesForRecoveryBalance(List<String> resourcePriority,
@@ -208,5 +298,24 @@ public class TestStateTransitionPrirority extends BaseStageTest {
     resourcePriority.add(resourceName);
     currentStateOutput.setCurrentState(resourceName, partition, instanceName, state);
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+  }
+
+  private void updateCurrentStateForPartitionLevelPriority(List<String> partitionPriority,
+      CurrentStateOutput currentStateOutput, String resourceName,
+      Map<String, Map<String, String>> bestPossibleMap) {
+    IntermediateStateOutput output = event.getAttribute(AttributeName.INTERMEDIATE_STATE.name());
+    PartitionStateMap partitionStateMap = output.getPartitionStateMap(resourceName);
+    for (Partition partition : partitionStateMap.getStateMap().keySet()) {
+      Map<String, String> instanceStateMap = bestPossibleMap.get(partition.getPartitionName());
+      if (partitionStateMap.getPartitionMap(partition).equals(instanceStateMap)
+          && !partitionPriority.contains(partition.getPartitionName())) {
+        partitionPriority.add(partition.getPartitionName());
+        for (String instanceName : instanceStateMap.keySet()) {
+          currentStateOutput.setCurrentState(resourceName, partition, instanceName,
+              instanceStateMap.get(instanceName));
+        }
+        break;
+      }
+    }
   }
 }

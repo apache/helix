@@ -204,14 +204,17 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     // perform recovery rebalance
     int recoveryRebalanceThrottledCount =
     recoveryRebalance(resource, bestPossiblePartitionStateMap, throttleController,
-        intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput);
+        intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput,
+        cache.getStateModelDef(resource.getStateModelDefRef()).getTopState());
 
     int loadRebalanceThrottledCount = partitionsNeedLoadbalance.size();
     if (partitionsNeedRecovery.isEmpty()) {
       // perform load balance only if no partition need recovery rebalance.
       // TODO: to set a minimal threshold for allowing load-rebalance.
-      loadRebalanceThrottledCount = loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap, throttleController,
-          intermediatePartitionStateMap, partitionsNeedLoadbalance);
+      loadRebalanceThrottledCount =
+          loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap,
+              throttleController, intermediatePartitionStateMap, partitionsNeedLoadbalance,
+              currentStateOutput.getCurrentStateMap(resourceName));
     } else {
       for (Partition p : partitionsNeedLoadbalance) {
         Map<String, String> currentStateMap =
@@ -274,13 +277,32 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
    *  if recover rebalance is needed.
    *  return the number of partitions needs recoveryRebalance but get throttled
    */
-  private int recoveryRebalance(Resource resource,
-      PartitionStateMap bestPossiblePartitionStateMap,
+
+  public int recoveryRebalance(Resource resource, PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedRecovery,
-      CurrentStateOutput currentStateOutput) {
+      CurrentStateOutput currentStateOutput, String topState) {
     Set<Partition> partitionRecoveryBalanceThrottled = new HashSet<Partition>();
-    for (Partition partition : partitionsNeedRecovery) {
+
+    Map<Partition, Map<String, String>> currentStateMap =
+        currentStateOutput.getCurrentStateMap(resource.getResourceName());
+    List<Partition> partitionsNeedRecoveryPrioritized =
+        new ArrayList<Partition>(partitionsNeedRecovery);
+
+    // TODO : Due to currently using JAVA 1.6, the original order of partitions list is not
+    // determinable, sort the list by partition name and remove the code after bump to JAVA 1.8
+    Collections.sort(partitionsNeedRecoveryPrioritized, new Comparator<Partition>() {
+      @Override
+      public int compare(Partition o1, Partition o2) {
+        return o1.getPartitionName().compareTo(o2.getPartitionName());
+      }
+    });
+
+    Collections.sort(partitionsNeedRecoveryPrioritized,
+        new PartitionPriorityComparator(bestPossiblePartitionStateMap.getStateMap(),
+            currentStateMap, topState, true));
+
+    for (Partition partition : partitionsNeedRecoveryPrioritized) {
       throtteStateTransitions(throttleController, resource.getResourceName(), partition,
           currentStateOutput, bestPossiblePartitionStateMap, partitionRecoveryBalanceThrottled,
           intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
@@ -296,11 +318,28 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   private int loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
-      PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedLoadbalance) {
+      PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedLoadbalance,
+      Map<Partition, Map<String, String>> currentStateMaps) {
     String resourceName = resource.getResourceName();
     Set<Partition> partitionsLoadbalanceThrottled = new HashSet<Partition>();
 
-    for (Partition partition : partitionsNeedLoadbalance) {
+    List<Partition> partitionsNeedLoadRebalancePrioritized =
+        new ArrayList<Partition>(partitionsNeedLoadbalance);
+
+    // TODO : Due to currently using JAVA 1.6, the original order of partitions list is not
+    // determinable, sort the list by partition name and remove the code after bump to JAVA 1.8
+    Collections.sort(partitionsNeedLoadRebalancePrioritized, new Comparator<Partition>() {
+      @Override
+      public int compare(Partition o1, Partition o2) {
+        return o1.getPartitionName().compareTo(o2.getPartitionName());
+      }
+    });
+
+    Collections.sort(partitionsNeedLoadRebalancePrioritized,
+        new PartitionPriorityComparator(bestPossiblePartitionStateMap.getStateMap(),
+            currentStateMaps, "", false));
+
+    for (Partition partition : partitionsNeedLoadRebalancePrioritized) {
       throtteStateTransitions(throttleController, resourceName, partition, currentStateOutput,
           bestPossiblePartitionStateMap, partitionsLoadbalanceThrottled,
           intermediatePartitionStateMap, RebalanceType.LOAD_BALANCE);
@@ -540,6 +579,98 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
         logger.warn(
             String.format("Invalid priority field %s for resource %s", priority, _resourceName));
       }
+    }
+  }
+
+  //  Compare partitions according following standard:
+  //  1) Partition without top state always is the highest priority.
+  //  2) For partition with top-state, the more number of active replica it has, the less priority.
+  private class PartitionPriorityComparator implements Comparator<Partition> {
+    private Map<Partition, Map<String, String>> _bestPossibleMap;
+    private Map<Partition, Map<String, String>> _currentStateMap;
+    private String _topState;
+    private boolean _recoveryRebalance;
+
+    public PartitionPriorityComparator(Map<Partition, Map<String, String>> bestPossibleMap,
+        Map<Partition, Map<String, String>> currentStateMap, String topState,
+        boolean recoveryRebalance) {
+      _bestPossibleMap = bestPossibleMap;
+      _currentStateMap = currentStateMap;
+      _topState = topState;
+      _recoveryRebalance = recoveryRebalance;
+    }
+
+    @Override
+    public int compare(Partition p1, Partition p2) {
+      if (_recoveryRebalance) {
+        Integer missTopState1 = getMissTopStateIndex(p1);
+        Integer missTopState2 = getMissTopStateIndex(p2);
+
+        // Highest priority for the partition without top state
+        if (!missTopState1.equals(missTopState2)) {
+          return missTopState1.compareTo(missTopState2);
+        }
+
+        Integer currentActiveReplicas1 = getCurrentActiveReplicas(p1);
+        Integer currentActiveReplicas2 = getCurrentActiveReplicas(p2);
+        return currentActiveReplicas1.compareTo(currentActiveReplicas2);
+      }
+
+      // Higher priority for the partition, which has less number of active replicas
+      Integer idealStateMatched1 = getIdealStateMatched(p1);
+      Integer idealStateMatched2 = getIdealStateMatched(p2);
+
+      return idealStateMatched1.compareTo(idealStateMatched2);
+    }
+
+    private Integer getMissTopStateIndex(Partition partition) {
+      // 0 if no replica in top-state, 1 if it has at least one replica in top-state.
+      if (!_currentStateMap.containsKey(partition) || !_currentStateMap.get(partition).values()
+          .contains(_topState)) {
+        return 0;
+      }
+      return 1;
+    }
+
+    private Integer getCurrentActiveReplicas(Partition partition) {
+      Integer currentActiveReplicas = 0;
+      if (!_currentStateMap.containsKey(partition)) {
+        return currentActiveReplicas;
+      }
+
+      // Initialize state -> number of this state map
+      Map<String, Integer> stateCountMap = new HashMap<String, Integer>();
+      for (String state : _bestPossibleMap.get(partition).values()) {
+        if (!stateCountMap.containsKey(state)) {
+          stateCountMap.put(state, 0);
+        }
+        stateCountMap.put(state, stateCountMap.get(state) + 1);
+      }
+
+      // Search the state map
+      for (String state : _currentStateMap.get(partition).values()) {
+        if (stateCountMap.containsKey(state) && stateCountMap.get(state) > 0) {
+          currentActiveReplicas++;
+          stateCountMap.put(state, stateCountMap.get(state) - 1);
+        }
+      }
+
+      return currentActiveReplicas;
+    }
+
+    private Integer getIdealStateMatched(Partition partition) {
+      Integer matchedState = 0;
+      if (!_currentStateMap.containsKey(partition)) {
+        return matchedState;
+      }
+
+      for (String instance : _bestPossibleMap.get(partition).keySet()) {
+        if (_bestPossibleMap.get(partition).get(instance)
+            .equals(_currentStateMap.get(partition).get(instance))) {
+          matchedState++;
+        }
+      }
+      return matchedState;
     }
   }
 }

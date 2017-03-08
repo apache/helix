@@ -602,7 +602,7 @@ public class ZKHelixAdmin implements HelixAdmin {
 
     for (String instanceName : instances) {
       InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
-      if (config.containsTag(tag)) {
+      if (config != null && config.containsTag(tag)) {
         result.add(instanceName);
       }
     }

@@ -1,11 +1,11 @@
 owners: [
- ghelgess,
  lxia,
  jxue,
- erkim
+ erkim,
+ wkong
 ]
 groups: [
- nuage-reviewers
+ helix-reviewers
 ]
 paths: [
  .*

@@ -223,6 +223,24 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Check if this instance is enabled for a given partition
+   * This API is deprecated, and will be removed in next major release.
+   *
+   * @param partition the partition name to check
+   * @return true if the instance is enabled for the partition, false otherwise
+   */
+  @Deprecated
+  public boolean getInstanceEnabledForPartition(String partition) {
+    boolean enabled = true;
+    Map<String, String> disabledPartitionMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    for (String resourceName : disabledPartitionMap.keySet()) {
+      enabled &= getInstanceEnabledForPartition(resourceName, partition);
+    }
+    return enabled;
+  }
+
+  /**
+   * Check if this instance is enabled for a given partition
    * @param partition the partition name to check
    * @return true if the instance is enabled for the partition, false otherwise
    */
@@ -314,11 +332,22 @@ public class InstanceConfig extends HelixProperty {
    */
   @Deprecated
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
-    Map<String, String> disabledPartitionMap =
-        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    for (String resourceName : disabledPartitionMap.keySet()) {
-      setInstanceEnabledForPartition(resourceName, partitionName, enabled);
+    List<String> list =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    Set<String> disabledPartitions = new HashSet<String>();
+    if (list != null) {
+      disabledPartitions.addAll(list);
     }
+
+    if (enabled) {
+      disabledPartitions.remove(partitionName);
+    } else {
+      disabledPartitions.add(partitionName);
+    }
+
+    list = new ArrayList<String>(disabledPartitions);
+    Collections.sort(list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
   }
 
   public void setInstanceEnabledForPartition(String resourceName, String partitionName,

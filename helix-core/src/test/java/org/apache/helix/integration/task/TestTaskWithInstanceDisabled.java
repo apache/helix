@@ -33,9 +33,8 @@ public class TestTaskWithInstanceDisabled extends TaskTestBase {
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
-    _numDbs = 1;
+    setSingleTestEnvironment();
     _numNodes = 2;
-    _numParitions = 1;
     _numReplicas = 2;
     _partitionVary = false;
     super.beforeClass();

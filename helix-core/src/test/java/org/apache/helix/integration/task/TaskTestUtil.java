@@ -27,8 +27,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.HelixManager;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.controller.pipeline.Stage;
+import org.apache.helix.controller.pipeline.StageContext;
+import org.apache.helix.controller.stages.AttributeName;
+import org.apache.helix.controller.stages.BestPossibleStateCalcStage;
+import org.apache.helix.controller.stages.BestPossibleStateOutput;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.controller.stages.ClusterEvent;
+import org.apache.helix.controller.stages.CurrentStateComputationStage;
+import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
@@ -39,7 +50,6 @@ import org.apache.helix.task.TaskState;
 import org.apache.helix.task.TaskUtil;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.task.WorkflowRebalancer;
 import org.testng.Assert;
 
 /**
@@ -221,14 +231,15 @@ public class TaskTestUtil {
     return buildJobQueue(jobQueueName, 0, 0);
   }
 
-  public static WorkflowContext buildWorkflowContext(TaskState workflowState, Long startTime,
-      TaskState... jobStates) {
+  public static WorkflowContext buildWorkflowContext(String workflowResource,
+      TaskState workflowState, Long startTime, TaskState... jobStates) {
     WorkflowContext workflowContext =
         new WorkflowContext(new ZNRecord(TaskUtil.WORKFLOW_CONTEXT_KW));
     workflowContext.setStartTime(startTime == null ? System.currentTimeMillis() : startTime);
     int jobId = 0;
     for (TaskState jobstate : jobStates) {
-      workflowContext.setJobState(JOB_KW + jobId++, jobstate);
+      workflowContext
+          .setJobState(TaskUtil.getNamespacedJobName(workflowResource, JOB_KW) + jobId++, jobstate);
     }
     workflowContext.setWorkflowState(workflowState);
     return workflowContext;
@@ -242,5 +253,37 @@ public class TaskTestUtil {
       jobContext.setPartitionState(partitionId++, partitionState);
     }
     return jobContext;
+  }
+
+  public static ClusterDataCache buildClusterDataCache(HelixDataAccessor accessor) {
+    ClusterDataCache cache = new ClusterDataCache();
+    cache.refresh(accessor);
+    return cache;
+  }
+
+  static void runStage(ClusterEvent event, Stage stage) throws Exception {
+    StageContext context = new StageContext();
+    stage.init(context);
+    stage.preProcess();
+    stage.process(event);
+    stage.postProcess();
+  }
+
+  public static BestPossibleStateOutput calculateBestPossibleState(ClusterDataCache cache,
+      HelixManager manager) throws Exception {
+    ClusterEvent event = new ClusterEvent("event");
+    event.addAttribute("ClusterDataCache", cache);
+    event.addAttribute("helixmanager", manager);
+
+    List<Stage> stages = new ArrayList<Stage>();
+    stages.add(new ResourceComputationStage());
+    stages.add(new CurrentStateComputationStage());
+    stages.add(new BestPossibleStateCalcStage());
+
+    for (Stage stage : stages) {
+      runStage(event, stage);
+    }
+
+    return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
   }
 }

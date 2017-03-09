@@ -332,11 +332,22 @@ public class InstanceConfig extends HelixProperty {
    */
   @Deprecated
   public void setInstanceEnabledForPartition(String partitionName, boolean enabled) {
-    Map<String, String> disabledPartitionMap =
-        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    for (String resourceName : disabledPartitionMap.keySet()) {
-      setInstanceEnabledForPartition(resourceName, partitionName, enabled);
+    List<String> list =
+        _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString());
+    Set<String> disabledPartitions = new HashSet<String>();
+    if (list != null) {
+      disabledPartitions.addAll(list);
     }
+
+    if (enabled) {
+      disabledPartitions.remove(partitionName);
+    } else {
+      disabledPartitions.add(partitionName);
+    }
+
+    list = new ArrayList<String>(disabledPartitions);
+    Collections.sort(list);
+    _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.toString(), list);
   }
 
   public void setInstanceEnabledForPartition(String resourceName, String partitionName,

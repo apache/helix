@@ -18,8 +18,8 @@ package org.apache.helix.controller.rebalancer;
  * specific language governing permissions and limitations
  * under the License.
  */
+import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +28,6 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -48,90 +47,5 @@ public class SemiAutoRebalancer extends AbstractRebalancer {
   public IdealState computeNewIdealState(String resourceName, IdealState currentIdealState,
       CurrentStateOutput currentStateOutput, ClusterDataCache clusterData) {
     return currentIdealState;
-  }
-
-  @Override
-  public Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
-      StateModelDefinition stateModelDef, List<String> instancePreferenceList,
-      Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
-      boolean isResourceEnabled) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
-
-    if (currentStateMap != null) {
-      for (String instance : currentStateMap.keySet()) {
-        if (instancePreferenceList == null || !instancePreferenceList.contains(instance)) {
-          // The partition is dropped from preference list.
-          // Transit to DROPPED no matter the instance is disabled or not.
-          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else {
-          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          if (disabledInstancesForPartition.contains(instance) || !isResourceEnabled) {
-            if (currentStateMap.get(instance) == null || !currentStateMap.get(instance)
-                .equals(HelixDefinedState.ERROR.name())) {
-              instanceStateMap.put(instance, stateModelDef.getInitialState());
-            }
-          }
-        }
-      }
-    }
-
-    // if the ideal state is deleted, instancePreferenceList will be empty and
-    // we should drop all resources.
-    if (instancePreferenceList == null) {
-      return instanceStateMap;
-    }
-
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    boolean assigned[] = new boolean[instancePreferenceList.size()];
-
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-    Set<String> secondTopStates = stateModelDef.getSecondTopStates();
-    String topState = statesPriorityList.get(0);
-    int occupiedTopState = 0;
-    for (String currentState : currentStateMap.values()) {
-      if (currentState.equals(topState)) {
-        occupiedTopState++;
-      }
-    }
-
-    for (String state : statesPriorityList) {
-      int stateCount = getStateCount(state, stateModelDef, liveInstancesMap.keySet(),
-          instancePreferenceList.size(), disabledInstancesForPartition);
-      if (stateCount > -1) {
-        int count = 0;
-        for (int i = 0; i < instancePreferenceList.size(); i++) {
-          String instanceName = instancePreferenceList.get(i);
-
-          boolean notInErrorState =
-              currentStateMap == null || currentStateMap.get(instanceName) == null
-                  || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
-
-          boolean enabled =
-              !disabledInstancesForPartition.contains(instanceName) && isResourceEnabled;
-
-          String currentState =
-              (currentStateMap == null || currentStateMap.get(instanceName) == null)
-                  ? stateModelDef.getInitialState() : currentStateMap.get(instanceName);
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && enabled) {
-            // If target state is top state : 1. Still have extra top state count not assigned
-            //                                2. Current state is is at second top state
-            //                                3. Current state is at top state
-            if (state.equals(topState) && stateCount - occupiedTopState <= 0 && !currentState
-                .equals(topState) && !secondTopStates.contains(currentState)) {
-              continue;
-            }
-            instanceStateMap.put(instanceName, state);
-            count = count + 1;
-            assigned[i] = true;
-            occupiedTopState++;
-            if (count == stateCount) {
-              break;
-            }
-          }
-        }
-      }
-    }
-    return instanceStateMap;
   }
 }

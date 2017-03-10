@@ -55,7 +55,7 @@ public class TestZeroReplicaAvoidance extends BaseStageTest {
 
     DelayedAutoRebalancer rebalancer = new DelayedAutoRebalancer();
     Map<String, String> bestPossibleMap = rebalancer
-        .computeBestStateForPartition(liveInstances, stateModelDef, instancePreferenceList, currentStateMap,
+        .computeBestPossibleStateForPartition(liveInstances, stateModelDef, instancePreferenceList, currentStateMap,
             Collections.<String>emptySet(), true);
     Assert.assertEquals(bestPossibleMap, expectedBestPossibleMap,
         "Differs, get " + bestPossibleMap + ": expected: " + expectedBestPossibleMap);

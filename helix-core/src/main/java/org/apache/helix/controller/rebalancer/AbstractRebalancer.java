@@ -21,6 +21,7 @@ package org.apache.helix.controller.rebalancer;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -37,7 +38,6 @@ import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -95,8 +95,8 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
       List<String> preferenceList = getPreferenceList(partition, idealState,
           Collections.unmodifiableSet(cache.getLiveInstances().keySet()));
       Map<String, String> bestStateForPartition =
-          computeAutoBestStateForPartition(cache, stateModelDef, preferenceList, currentStateMap,
-              disabledInstancesForPartition, idealState.isEnabled());
+          computeBestPossibleStateForPartition(cache.getLiveInstances().keySet(), stateModelDef, preferenceList,
+              currentStateMap, disabledInstancesForPartition, idealState.isEnabled());
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -157,79 +157,47 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     return rebalanceStrategy;
   }
 
-  /**
-   * compute best state for resource in AUTO ideal state mode
-   * @param cache
-   * @param stateModelDef
-   * @param instancePreferenceList
-   * @param currentStateMap
-   *          : instance->state for each partition
-   * @param disabledInstancesForPartition
-   * @param isResourceEnabled
-   * @return
-   */
-  public Map<String, String> computeAutoBestStateForPartition(ClusterDataCache cache,
-      StateModelDefinition stateModelDef, List<String> instancePreferenceList,
+  protected Map<String, String> computeBestPossibleStateForPartition(Set<String> liveInstances,
+      StateModelDefinition stateModelDef, List<String> preferenceList,
       Map<String, String> currentStateMap, Set<String> disabledInstancesForPartition,
       boolean isResourceEnabled) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
 
-    if (currentStateMap != null) {
-      for (String instance : currentStateMap.keySet()) {
-        if (instancePreferenceList == null || !instancePreferenceList.contains(instance)) {
-          // The partition is dropped from preference list.
-          // Transit to DROPPED no matter the instance is disabled or not.
-          instanceStateMap.put(instance, HelixDefinedState.DROPPED.toString());
-        } else {
-          // if disabled and not in ERROR state, transit to initial-state (e.g. OFFLINE)
-          if (disabledInstancesForPartition.contains(instance) || !isResourceEnabled) {
-            if (currentStateMap.get(instance) == null || !currentStateMap.get(instance)
-                .equals(HelixDefinedState.ERROR.name())) {
-              instanceStateMap.put(instance, stateModelDef.getInitialState());
-            }
-          }
-        }
+    if (currentStateMap == null) {
+      currentStateMap = Collections.emptyMap();
+    }
+
+    // (1) If the partition is removed from IS or the IS is deleted.
+    // Transit to DROPPED no matter the instance is disabled or not.
+    if (preferenceList == null) {
+      return computeBestPossibleMapForDroppedResource(currentStateMap);
+    }
+
+    // (2) If resource disabled altogether, transit to initial-state (e.g. OFFLINE) if it's not in ERROR.
+    if (!isResourceEnabled) {
+      return computeBestPossibleMapForDisabledResource(currentStateMap, stateModelDef);
+    }
+
+    return computeBestPossibleMap(preferenceList, stateModelDef, currentStateMap, liveInstances,
+        disabledInstancesForPartition);
+  }
+
+  protected Map<String, String> computeBestPossibleMapForDroppedResource(Map<String, String> currentStateMap) {
+    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+    for (String instance : currentStateMap.keySet()) {
+      bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.toString());
+    }
+    return bestPossibleStateMap;
+  }
+
+  protected Map<String, String> computeBestPossibleMapForDisabledResource(Map<String, String> currentStateMap
+      , StateModelDefinition stateModelDef) {
+    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+    for (String instance : currentStateMap.keySet()) {
+      if (!HelixDefinedState.ERROR.name().equals(currentStateMap.get(instance))) {
+        bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
       }
     }
-
-    // if the ideal state is deleted, instancePreferenceList will be empty and
-    // we should drop all resources.
-    if (instancePreferenceList == null) {
-      return instanceStateMap;
-    }
-
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    boolean assigned[] = new boolean[instancePreferenceList.size()];
-
-    Map<String, LiveInstance> liveInstancesMap = cache.getLiveInstances();
-
-    for (String state : statesPriorityList) {
-      int stateCount = getStateCount(state, stateModelDef, liveInstancesMap.keySet(),
-          instancePreferenceList.size(), disabledInstancesForPartition);
-      if (stateCount > -1) {
-        int count = 0;
-        for (int i = 0; i < instancePreferenceList.size(); i++) {
-          String instanceName = instancePreferenceList.get(i);
-
-          boolean notInErrorState =
-              currentStateMap == null || currentStateMap.get(instanceName) == null
-                  || !currentStateMap.get(instanceName).equals(HelixDefinedState.ERROR.toString());
-
-          boolean enabled =
-              !disabledInstancesForPartition.contains(instanceName) && isResourceEnabled;
-          if (liveInstancesMap.containsKey(instanceName) && !assigned[i] && notInErrorState
-              && enabled) {
-            instanceStateMap.put(instanceName, state);
-            count = count + 1;
-            assigned[i] = true;
-            if (count == stateCount) {
-              break;
-            }
-          }
-        }
-      }
-    }
-    return instanceStateMap;
+    return bestPossibleStateMap;
   }
 
   public static List<String> getPreferenceList(Partition partition, IdealState idealState,
@@ -266,5 +234,119 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     }
 
     return stateCount;
+  }
+
+  /**
+   * This method generates the instance->state mapping for a partition based on its {@param preferenceList}
+   * and {@param StateModelDefinition}.
+   * {@param preferenceList} could be different for different rebalancer(e.g. DelayedAutoRebalancer).
+   * This method also makes sure corner cases like disabled or ERROR instances are correctly handled.
+   * {@param currentStateMap} must be non-null.
+   */
+  protected Map<String, String> computeBestPossibleMap(List<String> preferenceList, StateModelDefinition stateModelDef,
+      Map<String, String> currentStateMap, Set<String> liveInstances, Set<String> disabledInstancesForPartition) {
+
+    Map<String, String> bestPossibleStateMap = new HashMap<String, String>();
+
+    // (1) Instances that have current state but not in preference list, drop, no matter it's disabled or not.
+    for (String instance : currentStateMap.keySet()) {
+      if (!preferenceList.contains(instance)) {
+        bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
+      }
+    }
+
+    // (2) Set initial-state to certain instances that are disabled and in preference list.
+    // Be careful with the conditions.
+    for (String instance : preferenceList) {
+      if (disabledInstancesForPartition.contains(instance)) {
+        if (currentStateMap.containsKey(instance)) {
+          if (!currentStateMap.get(instance).equals(HelixDefinedState.ERROR.name())) {
+            bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
+          }
+        } else {
+          if (liveInstances.contains(instance)) {
+            bestPossibleStateMap.put(instance, stateModelDef.getInitialState());
+          }
+        }
+      }
+    }
+
+    // (3) Assign normal states to instances.
+    // When we choose the TOP-STATE (for example, MASTER state) replica for a partiton, we prefer to choose it from
+    // these replicas which are already in the secondary states (e.g, SLAVE) instead of in OFFLINE.
+    // This is because a replica in secondary state will take shorter time to transition to the top-state,
+    // which could minimize the impact to the application's availability.
+    // To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and second-states with
+    // same priority and rely on the fact that Collections.sort() is stable.
+    List<String> preferenceListForTopState = new ArrayList<String>(preferenceList);
+    Collections.sort(preferenceListForTopState, new TopStatePreferenceListComparator(currentStateMap, stateModelDef));
+
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+    Set<String> assigned = new HashSet<String>();
+    for (String state : statesPriorityList) {
+      int stateCount = getStateCount(state, stateModelDef, liveInstances,
+          preferenceList.size(), disabledInstancesForPartition);
+      if (stateCount > 0) {
+        // Use the the specially ordered preferenceList for choosing instance for top state.
+        if (state.equals(statesPriorityList.get(0))) {
+          preferenceList = preferenceListForTopState;
+        }
+
+        for (String instance : preferenceList) {
+          boolean notInErrorState =
+              currentStateMap == null || currentStateMap.get(instance) == null || !currentStateMap
+                  .get(instance).equals(HelixDefinedState.ERROR.toString());
+
+          boolean enabled = !disabledInstancesForPartition.contains(instance);
+          if (liveInstances.contains(instance) && !assigned.contains(instance)
+              && notInErrorState && enabled) {
+            bestPossibleStateMap.put(instance, state);
+            assigned.add(instance);
+            stateCount --;
+            if (stateCount == 0) {
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return bestPossibleStateMap;
+  }
+
+  /**
+   * Sorter for nodes that sorts according to the CurrentState of the partition. There are only two priorities:
+   * (1) Top-state and second states have priority 0. (2) Other states(or no state) have priority 1.
+   */
+  private static class TopStatePreferenceListComparator implements Comparator<String> {
+    protected final Map<String, String> _currentStateMap;
+    protected final StateModelDefinition _stateModelDef;
+
+    public TopStatePreferenceListComparator(Map<String, String> currentStateMap, StateModelDefinition stateModelDef) {
+      _currentStateMap = currentStateMap;
+      _stateModelDef = stateModelDef;
+    }
+
+    @Override
+    public int compare(String ins1, String ins2) {
+      String state1 = _currentStateMap.get(ins1);
+      String state2 = _currentStateMap.get(ins2);
+
+      String topState = _stateModelDef.getStatesPriorityList().get(0);
+      Set<String> preferredStates = new HashSet<String>(_stateModelDef.getSecondTopStates());
+      preferredStates.add(topState);
+
+      int p1 = 1;
+      int p2 = 1;
+
+      if (state1 != null && preferredStates.contains(state1)) {
+        p1 = 0;
+      }
+      if (state2 != null && preferredStates.contains(state2)) {
+        p2 = 0;
+      }
+
+      return p1 - p2;
+    }
   }
 }

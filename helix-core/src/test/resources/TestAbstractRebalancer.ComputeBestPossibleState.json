@@ -1,0 +1,175 @@
+[
+  {
+    "comment": "Promote Master and Slave normally.",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "OFFLINE",
+      "node_2": "OFFLINE",
+      "node_3": "OFFLINE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    }
+  },
+  {
+    "comment": "Normal case, assignment stays the same.",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    }
+  },
+  {
+    "comment": "Drop instance not in preferenceList(empty), no matter it's disabled or in ERROR state.",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [],
+    "currentStateMap": {
+      "node_1": "MASTER",
+      "node_2": "ERROR",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [
+      "node_1"
+    ],
+    "expectedBestPossibleStateMap": {
+      "node_1": "DROPPED",
+      "node_2": "DROPPED",
+      "node_3": "DROPPED"
+    }
+  },
+  {
+    "comment": "node_1: disabled and live, set initial-state. node_2: disabled and non-live, do nothing. node_3: disabled but in ERROR, do nothing. node_3: ",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "MASTER",
+      "node_3": "ERROR"
+    },
+    "disabledInstancesForPartition": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "expectedBestPossibleStateMap": {
+      "node_1": "OFFLINE"
+    }
+  },
+  {
+    "comment": "node_1 back live before node_2 become Master. Promote node_1 to Slave, at the same time promote node_2 to Master (for high-availability)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "OFFLINE",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "SLAVE",
+      "node_2": "MASTER",
+      "node_3": "SLAVE"
+    }
+  },
+  {
+    "comment": "node_1 come back live (or still transiting to Slave) after node_2 already become Master, node_2 stay as Master while promoting node_1 to Slave first (high-availability during node_1 recovery)",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "OFFLINE",
+      "node_2": "MASTER",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "SLAVE",
+      "node_2": "MASTER",
+      "node_3": "SLAVE"
+    }
+  },
+  {
+    "comment": "After node_1 become Slave, switch Master and Slave.",
+    "stateModel": "MasterSlave",
+    "liveInstances": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "preferenceList": [
+      "node_1",
+      "node_2",
+      "node_3"
+    ],
+    "currentStateMap": {
+      "node_1": "SLAVE",
+      "node_2": "MASTER",
+      "node_3": "SLAVE"
+    },
+    "disabledInstancesForPartition": [],
+    "expectedBestPossibleStateMap": {
+      "node_1": "MASTER",
+      "node_2": "SLAVE",
+      "node_3": "SLAVE"
+    }
+  }
+]

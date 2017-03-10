@@ -153,12 +153,13 @@ public class JobRebalancer extends TaskRebalancer {
         computeResourceMapping(jobName, workflowCfg, jobCfg, prevAssignment, liveInstances,
             currStateOutput, workflowCtx, jobCtx, partitionsToDrop, clusterData);
 
-    if (!partitionsToDrop.isEmpty()) {
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    PropertyKey propertyKey = accessor.keyBuilder().idealStates(jobName);
+    taskIs = accessor.getProperty(propertyKey);
+    if (!partitionsToDrop.isEmpty() && taskIs != null) {
       for (Integer pId : partitionsToDrop) {
         taskIs.getRecord().getMapFields().remove(pName(jobName, pId));
       }
-      HelixDataAccessor accessor = _manager.getHelixDataAccessor();
-      PropertyKey propertyKey = accessor.keyBuilder().idealStates(jobName);
       accessor.setProperty(propertyKey, taskIs);
     }
 

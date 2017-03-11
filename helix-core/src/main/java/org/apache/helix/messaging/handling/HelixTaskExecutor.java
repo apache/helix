@@ -127,6 +127,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
+  final Set<String> _transitionTypeThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
@@ -143,6 +144,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _messageTaskMap = new ConcurrentHashMap<String, String>();
     _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
     _resourcesThreadpoolChecked =
+        Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
+    _transitionTypeThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
     _lock = new Object();
@@ -210,6 +213,34 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
 
     String resourceName = message.getResourceName();
+    String factoryName = message.getStateModelFactoryName();
+    String stateModelName = message.getStateModelDef();
+
+    if (factoryName == null) {
+      factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
+    }
+    StateModelFactory<? extends StateModel> stateModelFactory =
+        manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
+
+    String perStateTransitionTypeKey =
+        getStateTransitionType(getPerResourceStateTransitionPoolName(resourceName),
+            message.getFromState(), message.getToState());
+    if (perStateTransitionTypeKey != null && stateModelFactory != null
+        && !_transitionTypeThreadpoolChecked.contains(perStateTransitionTypeKey)) {
+      ExecutorService perStateTransitionTypeExecutor = stateModelFactory
+          .getExecutorService(resourceName, message.getFromState(), message.getToState());
+      _transitionTypeThreadpoolChecked.add(perStateTransitionTypeKey);
+
+      if (perStateTransitionTypeExecutor != null) {
+        _executorMap.put(perStateTransitionTypeKey, perStateTransitionTypeExecutor);
+        LOG.info(String
+            .format("Added client specified dedicate threadpool for resource %s from %s to %s",
+                getPerResourceStateTransitionPoolName(resourceName), message.getFromState(),
+                message.getToState()));
+        return;
+      }
+    }
+
     if (!_resourcesThreadpoolChecked.contains(resourceName)) {
       int threadpoolSize = -1;
       ConfigAccessor configAccessor = manager.getConfigAccessor();
@@ -229,7 +260,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
               "Failed to parse ThreadPoolSize from resourceConfig for resource" + resourceName, e);
         }
       }
-      String key = MessageType.STATE_TRANSITION.name() + "." + resourceName;
+      String key = getPerResourceStateTransitionPoolName(resourceName);
       if (threadpoolSize > 0) {
         _executorMap.put(key, Executors.newFixedThreadPool(threadpoolSize));
         LOG.info("Added dedicate threadpool for resource: " + resourceName + " with size: "
@@ -237,14 +268,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       } else {
         // if threadpool is not configured
         // check whether client specifies customized threadpool.
-        String factoryName = message.getStateModelFactoryName();
-        String stateModelName = message.getStateModelDef();
-        if (factoryName == null) {
-          factoryName = HelixConstants.DEFAULT_STATE_MODEL_FACTORY;
-        }
-
-        StateModelFactory<? extends StateModel> stateModelFactory =
-            manager.getStateMachineEngine().getStateModelFactory(stateModelName, factoryName);
         if (stateModelFactory != null) {
           ExecutorService executor = stateModelFactory.getExecutorService(resourceName);
           if (executor != null) {
@@ -271,7 +294,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       String resourceName = message.getResourceName();
       if (resourceName != null) {
         String key = message.getMsgType() + "." + resourceName;
-        if (_executorMap.containsKey(key)) {
+        String perStateTransitionTypeKey =
+            getStateTransitionType(key, message.getFromState(), message.getToState());
+        if (perStateTransitionTypeKey != null && _executorMap
+            .containsKey(perStateTransitionTypeKey)) {
+          LOG.info(String
+              .format("Find per state transition type thread pool for resource %s from %s to %s",
+                  message.getResourceName(), message.getFromState(), message.getToState()));
+          executorService = _executorMap.get(perStateTransitionTypeKey);
+        } else if (_executorMap.containsKey(key)) {
           LOG.info("Find per-resource thread pool with key: " + key);
           executorService = _executorMap.get(key);
         }
@@ -877,6 +908,17 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   private String getMessageTarget(String resourceName, String partitionName) {
     return String.format("%s_%s", resourceName, partitionName);
+  }
+
+  private String getStateTransitionType(String prefix, String fromState, String toState){
+    if (prefix == null || fromState == null || toState == null) {
+      return null;
+    }
+    return String.format("%s.%s.%s", prefix, fromState, toState);
+  }
+
+  private String getPerResourceStateTransitionPoolName(String resourceName) {
+    return MessageType.STATE_TRANSITION.name() + "." + resourceName;
   }
 
   private void removeMessageFromZk(HelixDataAccessor accessor, Message message,

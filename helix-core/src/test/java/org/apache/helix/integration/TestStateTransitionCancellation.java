@@ -172,8 +172,9 @@ public class TestStateTransitionCancellation extends TaskTestBase {
       participant.syncStop();
     }
 
-    // Only partial of state transition has been cancelled
-    Assert.assertTrue((numOfMasters > 0 && numOfMasters < _numParitions));
+    // Either partial of state transitions have been cancelled or all the Slave -> Master
+    // reassigned to other cluster
+    Assert.assertTrue((numOfMasters > 0 && numOfMasters <= _numParitions));
   }
 
   private void stateCleanUp() {

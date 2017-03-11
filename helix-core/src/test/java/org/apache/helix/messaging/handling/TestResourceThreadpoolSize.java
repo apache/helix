@@ -19,18 +19,21 @@ package org.apache.helix.messaging.handling;
  * under the License.
  */
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.mock.participant.DummyProcess;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
-import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
@@ -39,6 +42,11 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
+  public static final String TEST_FACTORY = "TestFactory";
+  public static final String ONLINE_OFFLINE = "OnlineOffline";
+  public static final String OFFLINE_TO_SLAVE = "OFFLINE.SLAVE";
+  public static final String SLAVE_TO_MASTER = "SLAVE.MASTER";
+
   @Test
   public void TestThreadPoolSizeConfig() {
     setResourceThreadPoolSize("NextDB", 12);
@@ -70,26 +78,31 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     int customizedPoolSize = 7;
     int configuredPoolSize = 9;
     for (MockParticipantManager participant : _participants) {
-      participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-          new TestOnlineOfflineStateModelFactory(customizedPoolSize), "TestFactory");
+      participant.getStateMachineEngine().registerStateModelFactory(ONLINE_OFFLINE,
+          new TestOnlineOfflineStateModelFactory(customizedPoolSize), TEST_FACTORY);
     }
 
     // add db with default thread pool
-    _setupTool.addResourceToCluster(CLUSTER_NAME, "TestDB1", 64, STATE_MODEL);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB1", 3);
+    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 64,
+        STATE_MODEL);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "1", 3);
 
     // add db with customized thread pool
-    IdealState idealState = new FullAutoModeISBuilder("TestDB2").setStateModel("OnlineOffline")
-        .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
-    _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, "TestDB2", idealState);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB2", 1);
+    IdealState idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "2")
+        .setStateModel(ONLINE_OFFLINE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
+        .setNumReplica(1).build();
+    _setupTool.getClusterManagementTool()
+        .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "2", idealState);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "2", 1);
 
     // add db with configured pool size
-    idealState = new FullAutoModeISBuilder("TestDB3").setStateModel("OnlineOffline")
-        .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
-    _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, "TestDB3", idealState);
-    setResourceThreadPoolSize("TestDB3", configuredPoolSize);
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, "TestDB3", 1);
+    idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "3")
+        .setStateModel(ONLINE_OFFLINE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
+        .setNumReplica(1).build();
+    _setupTool.getClusterManagementTool()
+        .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", idealState);
+    setResourceThreadPoolSize(WorkflowGenerator.DEFAULT_TGT_DB + "3", configuredPoolSize);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "3", 1);
 
     boolean result = ClusterStateVerifier.verifyByPolling(
         new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
@@ -100,18 +113,56 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
           (DefaultMessagingService) (_participants[i].getMessagingService());
       HelixTaskExecutor helixExecutor = svc.getExecutor();
       ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._executorMap
-          .get(MessageType.STATE_TRANSITION + "." + "TestDB1"));
+          .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "1"));
       Assert.assertNull(executor);
 
       executor = (ThreadPoolExecutor) (helixExecutor._executorMap
-          .get(MessageType.STATE_TRANSITION + "." + "TestDB2"));
+          .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "2"));
       Assert.assertEquals(customizedPoolSize, executor.getMaximumPoolSize());
 
       executor = (ThreadPoolExecutor) (helixExecutor._executorMap
-          .get(MessageType.STATE_TRANSITION + "." + "TestDB3"));
+          .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "3"));
       Assert.assertEquals(configuredPoolSize, executor.getMaximumPoolSize());
     }
   }
+
+  @Test
+  public void TestPerStateTransitionTypeThreadPool() throws InterruptedException {
+    String MASTER_SLAVE = "MasterSlave";
+
+    int customizedPoolSize = 22;
+    for (MockParticipantManager participant : _participants) {
+      participant.getStateMachineEngine().registerStateModelFactory(MASTER_SLAVE,
+          new TestMasterSlaveStateModelFactory(customizedPoolSize), TEST_FACTORY);
+    }
+
+    // add db with customized thread pool
+    IdealState idealState = new FullAutoModeISBuilder(WorkflowGenerator.DEFAULT_TGT_DB + "4")
+        .setStateModel(MASTER_SLAVE).setStateModelFactoryName(TEST_FACTORY).setNumPartitions(10)
+        .setNumReplica(1).build();
+    _setupTool.getClusterManagementTool()
+        .addResource(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", idealState);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "4", 1);
+
+    Thread.sleep(2000);
+
+    // Verify OFFLINE -> SLAVE and SLAVE -> MASTER have different threadpool size.
+    for (int i = 0; i < NODE_NR; i++) {
+      DefaultMessagingService svc =
+          (DefaultMessagingService) (_participants[i].getMessagingService());
+      HelixTaskExecutor helixExecutor = svc.getExecutor();
+      ThreadPoolExecutor executorOfflineToSlave = (ThreadPoolExecutor) (helixExecutor._executorMap
+          .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "4" + "."
+              + OFFLINE_TO_SLAVE));
+      Assert.assertEquals(customizedPoolSize, executorOfflineToSlave.getMaximumPoolSize());
+
+      ThreadPoolExecutor executorSlaveToMaster = (ThreadPoolExecutor) (helixExecutor._executorMap
+          .get(MessageType.STATE_TRANSITION + "." + WorkflowGenerator.DEFAULT_TGT_DB + "4" + "."
+              + SLAVE_TO_MASTER));
+      Assert.assertEquals(customizedPoolSize + 5, executorSlaveToMaster.getMaximumPoolSize());
+    }
+  }
+
 
   private void setResourceThreadPoolSize(String resourceName, int threadPoolSize) {
     HelixManager manager = _participants[0];
@@ -136,6 +187,30 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
 
     @Override public ExecutorService getExecutorService(String resourceName) {
       return _threadPoolExecutor;
+    }
+  }
+
+  public static class TestMasterSlaveStateModelFactory
+      extends DummyProcess.DummyStateModelFactory {
+    int _startThreadPoolSize;
+    Map<String, ExecutorService> _threadPoolExecutorMap;
+
+    public TestMasterSlaveStateModelFactory(int startThreadPoolSize) {
+      super(0);
+      _startThreadPoolSize = startThreadPoolSize;
+      _threadPoolExecutorMap = new HashMap<String, ExecutorService>();
+      if (_startThreadPoolSize > 0) {
+        _threadPoolExecutorMap
+            .put(OFFLINE_TO_SLAVE, Executors.newFixedThreadPool(_startThreadPoolSize));
+        _threadPoolExecutorMap
+            .put(SLAVE_TO_MASTER, Executors.newFixedThreadPool(_startThreadPoolSize + 5));
+      }
+    }
+
+    @Override
+    public ExecutorService getExecutorService(String resourceName, String fromState,
+        String toState) {
+      return _threadPoolExecutorMap.get(fromState + "." + toState);
     }
   }
 }

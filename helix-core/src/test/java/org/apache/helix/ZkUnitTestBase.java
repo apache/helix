@@ -48,7 +48,7 @@ import org.apache.helix.model.Message;
 import org.apache.helix.model.Message.Attributes;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.StateModelDefinition;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier.ZkVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier.ZkVerifier;
 import org.apache.helix.tools.StateModelConfigGenerator;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;

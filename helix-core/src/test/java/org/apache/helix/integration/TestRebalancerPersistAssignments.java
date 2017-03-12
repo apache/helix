@@ -26,9 +26,9 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.tools.ClusterSetup;
-import org.apache.helix.tools.ClusterStateVerifier.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterStateVerifier.HelixClusterVerifier;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
+import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
+import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -164,8 +164,8 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     String testDb = "TestDB1-MasterSlave";
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5,
-        BuiltInStateModelDefinitions.MasterSlave.name(), RebalanceMode.SEMI_AUTO.name());
+    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5, BuiltInStateModelDefinitions.MasterSlave.name(),
+        RebalanceMode.SEMI_AUTO.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
     HelixClusterVerifier verifier =

@@ -1,4 +1,4 @@
-package org.apache.helix.tools.ClusterStateVerifier;
+package org.apache.helix.tools;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,22 +19,20 @@ package org.apache.helix.tools.ClusterStateVerifier;
  * under the License.
  */
 
-public interface HelixClusterVerifier {
-  /**
-   *  Verify the cluster.
-   *  The method will be blocked at most {@code timeout}.
-   *  Return true if the verify succeed, otherwise return false.
-   *
-   * @param timeout in milliseconds
-   * @return true if succeed, false if not.
-   */
-  boolean verify(long timeout);
+import java.util.List;
+import org.apache.helix.manager.zk.ZkClient;
 
-  /**
-   *  Verify the cluster.
-   *  Return true if the verify succeed, otherwise return false.
-   *
-   *  @return true if succeed, false if not.
-   */
-  boolean verify();
+/**
+ * given zk, cluster, and a list of expected live-instances
+ * check whether cluster's external-view reaches best-possible states
+ */
+
+/**
+ * This class is deprecated, please use BestPossibleExternalViewVerifier in tools.ClusterVerifiers instead.
+ */
+@Deprecated
+public class ClusterExternalViewVerifier extends org.apache.helix.tools.ClusterVerifiers.ClusterExternalViewVerifier {
+  public ClusterExternalViewVerifier(ZkClient zkclient, String clusterName, List<String> expectLiveNodes) {
+    super(zkclient, clusterName, expectLiveNodes);
+  }
 }

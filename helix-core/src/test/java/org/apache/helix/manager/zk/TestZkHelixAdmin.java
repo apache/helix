@@ -480,15 +480,11 @@ public class TestZkHelixAdmin extends ZkUnitTestBase {
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 2);
     Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 3);
 
-    // Test enable partition across resources
-    instanceConfig.setInstanceEnabledForPartition("2", true);
-    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 1);
-    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 2);
-
     // Test disable partition across resources
+    // TODO : Remove this part once setInstanceEnabledForPartition(partition, enabled) is removed
     instanceConfig.setInstanceEnabledForPartition("10", false);
-    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 2);
-    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 3);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "0").size(), 3);
+    Assert.assertEquals(instanceConfig.getDisabledPartitions(testResourcePrefix + "1").size(), 4);
   }
 
   @Test

@@ -19,10 +19,13 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.controller.rebalancer.AbstractRebalancer;
 import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
@@ -43,6 +46,7 @@ import java.util.Set;
 /**
  * Verifier that verifies whether the ExternalViews of given resources (or all resources in the cluster)
  * match exactly as its ideal mapping (in idealstate).
+ * To use this verifier on resources in Full-Auto mode, BestPossible state must be persisted in Cluster config.
  */
 public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   private static Logger LOG = Logger.getLogger(StrictMatchExternalViewVerifier.class);
@@ -236,8 +240,19 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
-      // TODO: preference list is not saved in IS for full-auto mode, need to get preference list.
-      return true;
+      ClusterConfig clusterConfig = new ConfigAccessor(_zkClient).getClusterConfig(dataCache.getClusterName());
+      if (!clusterConfig.isPersistBestPossibleAssignment() && !clusterConfig.isPersistIntermediateAssignment()) {
+        throw new HelixException(String.format("Full-Auto IdealState verifier requires "
+            + "ClusterConfig.PERSIST_BEST_POSSIBLE_ASSIGNMENT or ClusterConfig.PERSIST_INTERMEDIATE_ASSIGNMENT "
+            + "is enabled."));
+      }
+      for (String partition : idealState.getPartitionSet()) {
+        if (idealState.getPreferenceList(partition) == null || idealState.getPreferenceList(partition).isEmpty()) {
+          return false;
+        }
+      }
+      idealPartitionState = computeIdealPartitionState(dataCache, idealState);
+      break;
     case SEMI_AUTO:
     case USER_DEFINED:
       idealPartitionState = computeIdealPartitionState(dataCache, idealState);
@@ -268,8 +283,7 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     for (String partition : idealState.getPartitionSet()) {
       List<String> preferenceList = AbstractRebalancer
           .getPreferenceList(new Partition(partition), idealState, liveEnabledInstances);
-      Map<String, String> idealMapping =
-          computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
+      Map<String, String> idealMapping = computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
       idealPartitionState.put(partition, idealMapping);
     }
 
@@ -277,51 +291,35 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
   }
 
   /**
-   * compute the ideal mapping for resource in SEMI-AUTO based on its preference list
+   * compute the ideal mapping for resource in Full-Auto and Semi-Auto based on its preference list
    */
-  private Map<String, String> computeIdealMapping(List<String> instancePreferenceList,
-      StateModelDefinition stateModelDef, Set<String> liveEnabledInstances) {
-    Map<String, String> instanceStateMap = new HashMap<String, String>();
+  static Map<String, String> computeIdealMapping(List<String> preferenceList,
+      StateModelDefinition stateModelDef, Set<String> liveAndEnabled) {
+    Map<String, String> idealStateMap = new HashMap<String, String>();
 
-    if (instancePreferenceList == null) {
-      return instanceStateMap;
+    if (preferenceList == null) {
+      return idealStateMap;
     }
 
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    boolean assigned[] = new boolean[instancePreferenceList.size()];
+    Set<String> assigned = new HashSet<String>();
 
     for (String state : statesPriorityList) {
-      String num = stateModelDef.getNumInstancesPerState(state);
-      int stateCount = -1;
-      if ("N".equals(num)) {
-        stateCount = liveEnabledInstances.size();
-      } else if ("R".equals(num)) {
-        stateCount = instancePreferenceList.size();
-      } else {
-        try {
-          stateCount = Integer.parseInt(num);
-        } catch (Exception e) {
-          LOG.error("Invalid count for state:" + state + " ,count=" + num);
+      int stateCount = AbstractRebalancer.getStateCount(state, stateModelDef, liveAndEnabled.size(),
+          preferenceList.size());
+      for (String instance : preferenceList) {
+        if (stateCount <= 0) {
+          break;
         }
-      }
-      if (stateCount > 0) {
-        int count = 0;
-        for (int i = 0; i < instancePreferenceList.size(); i++) {
-          String instanceName = instancePreferenceList.get(i);
-
-          if (!assigned[i]) {
-            instanceStateMap.put(instanceName, state);
-            count = count + 1;
-            assigned[i] = true;
-            if (count == stateCount) {
-              break;
-            }
-          }
+        if (!assigned.contains(instance)) {
+          idealStateMap.put(instance, state);
+          assigned.add(instance);
+          stateCount--;
         }
       }
     }
 
-    return instanceStateMap;
+    return idealStateMap;
   }
 
   @Override

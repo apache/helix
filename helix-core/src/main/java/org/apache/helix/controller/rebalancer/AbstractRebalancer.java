@@ -214,15 +214,12 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     }
   }
 
-  protected int getStateCount(String state, StateModelDefinition stateModelDef,
-      Set<String> liveInstances, int preferenceListSize,
-      Set<String> disabledInstancesForPartition) {
+  public static int getStateCount(String state, StateModelDefinition stateModelDef, int liveAndEnabledSize,
+      int preferenceListSize) {
     String num = stateModelDef.getNumInstancesPerState(state);
     int stateCount = -1;
     if ("N".equals(num)) {
-      Set<String> liveAndEnabled = new HashSet<String>(liveInstances);
-      liveAndEnabled.removeAll(disabledInstancesForPartition);
-      stateCount = liveAndEnabled.size();
+      stateCount = liveAndEnabledSize;
     } else if ("R".equals(num)) {
       stateCount = preferenceListSize;
     } else {
@@ -272,41 +269,36 @@ public abstract class AbstractRebalancer implements Rebalancer, MappingCalculato
     }
 
     // (3) Assign normal states to instances.
-    // When we choose the TOP-STATE (for example, MASTER state) replica for a partiton, we prefer to choose it from
-    // these replicas which are already in the secondary states (e.g, SLAVE) instead of in OFFLINE.
+    // When we choose the top-state (e.g. MASTER) replica for a partition, we prefer to choose it from
+    // these replicas which are already in the secondary states (e.g, SLAVE) instead of in lower-state.
     // This is because a replica in secondary state will take shorter time to transition to the top-state,
     // which could minimize the impact to the application's availability.
     // To achieve that, we sort the preferenceList based on CurrentState, by treating top-state and second-states with
     // same priority and rely on the fact that Collections.sort() is stable.
-    List<String> preferenceListForTopState = new ArrayList<String>(preferenceList);
-    Collections.sort(preferenceListForTopState, new TopStatePreferenceListComparator(currentStateMap, stateModelDef));
-
     List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
     Set<String> assigned = new HashSet<String>();
+    Set<String> liveAndEnabled = new HashSet<String>(liveInstances);
+    liveAndEnabled.removeAll(disabledInstancesForPartition);
+
     for (String state : statesPriorityList) {
-      int stateCount = getStateCount(state, stateModelDef, liveInstances,
-          preferenceList.size(), disabledInstancesForPartition);
-      if (stateCount > 0) {
-        // Use the the specially ordered preferenceList for choosing instance for top state.
-        if (state.equals(statesPriorityList.get(0))) {
-          preferenceList = preferenceListForTopState;
+      // Use the the specially ordered preferenceList for choosing instance for top state.
+      if (state.equals(statesPriorityList.get(0))) {
+        List<String> preferenceListForTopState = new ArrayList<String>(preferenceList);
+        Collections.sort(preferenceListForTopState,
+            new TopStatePreferenceListComparator(currentStateMap, stateModelDef));
+        preferenceList = preferenceListForTopState;
+      }
+
+      int stateCount = getStateCount(state, stateModelDef, liveAndEnabled.size(), preferenceList.size());
+      for (String instance : preferenceList) {
+        if (stateCount <= 0) {
+          break;
         }
-
-        for (String instance : preferenceList) {
-          boolean notInErrorState =
-              currentStateMap == null || currentStateMap.get(instance) == null || !currentStateMap
-                  .get(instance).equals(HelixDefinedState.ERROR.toString());
-
-          boolean enabled = !disabledInstancesForPartition.contains(instance);
-          if (liveInstances.contains(instance) && !assigned.contains(instance)
-              && notInErrorState && enabled) {
-            bestPossibleStateMap.put(instance, state);
-            assigned.add(instance);
-            stateCount --;
-            if (stateCount == 0) {
-              break;
-            }
-          }
+        boolean inError = HelixDefinedState.ERROR.toString().equals(currentStateMap.get(instance));
+        if (!assigned.contains(instance) && liveAndEnabled.contains(instance) && !inError) {
+          bestPossibleStateMap.put(instance, state);
+          assigned.add(instance);
+          stateCount--;
         }
       }
     }

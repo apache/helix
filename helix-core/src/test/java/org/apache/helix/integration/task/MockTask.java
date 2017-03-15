@@ -19,14 +19,27 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
+import com.google.common.collect.Lists;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
+import org.apache.commons.codec.binary.Base64;
+import org.apache.helix.HelixException;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
 import org.apache.helix.task.TaskConfig;
 import org.apache.helix.task.TaskResult;
 import org.apache.helix.task.UserContentStore;
+import org.codehaus.jackson.map.ObjectMapper;
+
 
 public class MockTask extends UserContentStore implements Task {
   public static final String TASK_COMMAND = "Reindex";
@@ -37,7 +50,8 @@ public class MockTask extends UserContentStore implements Task {
   public static final String FAILURE_COUNT_BEFORE_SUCCESS = "FailureCountBeforeSuccess";
   public static final String SUCCESS_COUNT_BEFORE_FAIL = "SuccessCountBeforeFail";
   public static final String NOT_ALLOW_TO_CANCEL = "NotAllowToCancel";
-  private final long _delay;
+  public static final String TARGET_PARTITION_CONFIG = "TargetPartitionConfig";
+  private long _delay;
   private volatile boolean _notAllowToCancel;
   private volatile boolean _canceled;
   private TaskResult.Status _taskResultStatus;
@@ -53,9 +67,9 @@ public class MockTask extends UserContentStore implements Task {
     }
 
     TaskConfig taskConfig = context.getTaskConfig();
-    Map<String, String> taskCfg = taskConfig.getConfigMap();
-    if (taskCfg != null) {
-      cfg.putAll(taskCfg);
+    Map<String, String> taskConfigMap = taskConfig.getConfigMap();
+    if (taskConfigMap != null) {
+      cfg.putAll(taskConfigMap);
     }
 
     _delay = cfg.containsKey(TIMEOUT_CONFIG) ? Long.parseLong(cfg.get(TIMEOUT_CONFIG)) : 100L;
@@ -75,6 +89,43 @@ public class MockTask extends UserContentStore implements Task {
         .parseInt(cfg.get(SUCCESS_COUNT_BEFORE_FAIL)) : Integer.MAX_VALUE;
 
     _errorMsg = cfg.containsKey(ERROR_MESSAGE) ? cfg.get(ERROR_MESSAGE) : null;
+
+    setTargetPartitionsConfigs(cfg, taskConfig.getTargetPartition());
+  }
+
+  // Override configs if there's config for specific target partitions
+  private void setTargetPartitionsConfigs(Map<String, String> cfg, String targetPartition) {
+    if (cfg.containsKey(TARGET_PARTITION_CONFIG)) {
+      Map<String, Map<String, String>> targetPartitionConfigs =
+          deserializeTargetPartitionConfig(cfg.get(TARGET_PARTITION_CONFIG));
+      if (targetPartitionConfigs.containsKey(targetPartition)) {
+        Map<String, String> targetPartitionConfig = targetPartitionConfigs.get(targetPartition);
+        if (targetPartitionConfig.containsKey(TIMEOUT_CONFIG)) {
+          _delay = Long.parseLong(targetPartitionConfig.get(TIMEOUT_CONFIG));
+        }
+        if (targetPartitionConfig.containsKey(TASK_RESULT_STATUS)) {
+          _taskResultStatus = TaskResult.Status.valueOf(targetPartitionConfig.get(TASK_RESULT_STATUS));
+        }
+      }
+    }
+  }
+
+  public static String serializeTargetPartitionConfig(Map<String, Map<String, String>> config) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      return mapper.writeValueAsString(config);
+    } catch (IOException e) {
+      throw new HelixException(e);
+    }
+  }
+
+  private static Map<String, Map<String, String>> deserializeTargetPartitionConfig(String configString) {
+    ObjectMapper mapper = new ObjectMapper();
+    try {
+      return mapper.readValue(configString, Map.class);
+    } catch (IOException e) {
+      throw new HelixException(e);
+    }
   }
 
   @Override

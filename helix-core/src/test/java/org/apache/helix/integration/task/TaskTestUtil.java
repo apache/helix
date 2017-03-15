@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.Stage;
@@ -40,6 +41,7 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.ClusterEvent;
 import org.apache.helix.controller.stages.CurrentStateComputationStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
+import org.apache.helix.model.Message;
 import org.apache.helix.task.JobContext;
 import org.apache.helix.task.JobQueue;
 import org.apache.helix.task.ScheduleConfig;
@@ -296,5 +298,35 @@ public class TaskTestUtil {
     }
 
     return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.name());
+  }
+
+  public static boolean pollForAllTasksBlock(HelixDataAccessor accessor, String instance, int numTask, long timeout)
+      throws InterruptedException {
+    PropertyKey propertyKey = accessor.keyBuilder().messages(instance);
+
+    long startTime = System.currentTimeMillis();
+    while (true) {
+      List<Message> messages = accessor.getChildValues(propertyKey);
+      if (allTasksBlock(messages, numTask)) {
+        return true;
+      } else if (startTime + timeout < System.currentTimeMillis()) {
+        return false;
+      } else {
+        Thread.sleep(100);
+      }
+    }
+  }
+
+  private static boolean allTasksBlock(List<Message> messages, int numTask) {
+    if (messages.size() != numTask) {
+      return false;
+    }
+    for (Message message : messages) {
+      if (!message.getFromState().equals(TaskPartitionState.INIT.name())
+          || !message.getToState().equals(TaskPartitionState.RUNNING.name())) {
+        return false;
+      }
+    }
+    return true;
   }
 }

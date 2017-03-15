@@ -60,5 +60,10 @@ public enum TaskState {
    * The job is in the process to be TIMED_OUT.
    * Usually this means some tasks are still being aborted.
    */
-  TIMING_OUT
+  TIMING_OUT,
+  /**
+   * The job is in the process to be FAILED.
+   * Unfinished tasks are being aborted.
+   */
+  FAILING
 }

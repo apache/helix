@@ -206,8 +206,8 @@ public class JobRebalancer extends TaskRebalancer {
     if (jobState == TaskState.IN_PROGRESS && isJobTimeout(jobCtx, jobCfg)) {
       jobState = TaskState.TIMING_OUT;
       workflowCtx.setJobState(jobResource, TaskState.TIMING_OUT);
-    } else if (jobState != TaskState.TIMED_OUT && jobState != TaskState.TIMING_OUT) {
-      // TIMED_OUT and TIMING_OUT job can't be stopped, because all tasks are being aborted
+    } else if (jobState != TaskState.TIMING_OUT && jobState != TaskState.FAILING) {
+      // TIMING_OUT/FAILING/ABORTING job can't be stopped, because all tasks are being aborted
       // Update running status in workflow context
       if (jobTgtState == TargetState.STOP) {
         if (checkJobStopped(jobCtx)) {
@@ -249,9 +249,8 @@ public class JobRebalancer extends TaskRebalancer {
       String failureMsg = "Empty task partition mapping for job " + jobResource + ", marked the job as FAILED!";
       LOG.info(failureMsg);
       jobCtx.setInfo(failureMsg);
-      markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
       markAllPartitionsError(jobCtx, TaskPartitionState.ERROR, false);
-      _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.FAILED);
       return new ResourceAssignment(jobResource);
     }
 
@@ -362,22 +361,8 @@ public class JobRebalancer extends TaskRebalancer {
             if (jobCtx.getPartitionNumAttempts(pId) >= jobCfg.getMaxAttemptsPerTask()
                 || currState.equals(TaskPartitionState.TASK_ABORTED)
                 || currState.equals(TaskPartitionState.ERROR)) {
-              // If we have some leeway for how many tasks we can fail, then we don't have
-              // to fail the job immediately
-              if (skippedPartitions.size() >= jobCfg.getFailureThreshold()) {
-                markJobFailed(jobResource, jobCtx, workflowConfig, workflowCtx);
-                _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.FAILED);
-                markAllPartitionsError(jobCtx, currState, false);
-                addAllPartitions(allPartitions, partitionsToDropFromIs);
-
-                // remove IdealState of this job
-                TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
-                return buildEmptyAssignment(jobResource, currStateOutput);
-              } else {
-                skippedPartitions.add(pId);
-                partitionsToDropFromIs.add(pId);
-              }
-
+              skippedPartitions.add(pId);
+              partitionsToDropFromIs.add(pId);
               LOG.debug("skippedPartitions:" + skippedPartitions);
             } else {
               // Mark the task to be started at some later time (if enabled)
@@ -404,8 +389,34 @@ public class JobRebalancer extends TaskRebalancer {
       pSet.removeAll(donePartitions);
     }
 
-    // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
-    scheduleForNextTask(jobResource, jobCtx, currentTime);
+    if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()) {
+      if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
+        failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
+        return buildEmptyAssignment(jobResource, currStateOutput);
+      }
+      workflowCtx.setJobState(jobResource, TaskState.FAILING);
+      // Drop all assigned but not given-up tasks
+      for (int pId : jobCtx.getPartitionSet()) {
+        String instance = jobCtx.getAssignedParticipant(pId);
+        if (jobCtx.getPartitionState(pId) != null && !isTaskGivenup(jobCtx, jobCfg, pId)) {
+          paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.TASK_ABORTED.name()));
+        }
+        Partition partition = new Partition(pName(jobResource, pId));
+        Message pendingMessage = currStateOutput.getPendingState(jobResource, partition, instance);
+        // While job is failing, if the task is pending on INIT->RUNNING, set it back to INIT,
+        // so that Helix will cancel the transition.
+        if (jobCtx.getPartitionState(pId) == TaskPartitionState.INIT && pendingMessage != null) {
+          paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.INIT.name()));
+        }
+      }
+
+      return toResourceAssignment(jobResource, paMap);
+    }
+
+    if (jobState == TaskState.FAILING && isJobFinished(jobCtx, jobResource, currStateOutput)) {
+      failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
+      return buildEmptyAssignment(jobResource, currStateOutput);
+    }
 
     if (isJobComplete(jobCtx, allPartitions, jobCfg)) {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
@@ -417,8 +428,7 @@ public class JobRebalancer extends TaskRebalancer {
 
     // If job is being timed out and no task is running (for whatever reason), idealState can be deleted and all tasks
     // can be dropped(note that Helix doesn't track whether the drop is success or not).
-    if (jobState == TaskState.TIMING_OUT
-        && isJobFinishTimingOut(jobCtx, jobResource, currStateOutput)) {
+    if (jobState == TaskState.TIMING_OUT && isJobFinished(jobCtx, jobResource, currStateOutput)) {
       jobCtx.setFinishTime(System.currentTimeMillis());
       workflowCtx.setJobState(jobResource, TaskState.TIMED_OUT);
       // Mark all INIT task to TASK_ABORTED
@@ -432,6 +442,9 @@ public class JobRebalancer extends TaskRebalancer {
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
+
+    // For delayed tasks, trigger a rebalance event for the closest upcoming ready time
+    scheduleForNextTask(jobResource, jobCtx, currentTime);
 
     // Make additional task assignments if needed.
     if (jobState != TaskState.TIMING_OUT && jobState != TaskState.TIMED_OUT && jobTgtState == TargetState.START) {
@@ -473,6 +486,10 @@ public class JobRebalancer extends TaskRebalancer {
       }
     }
 
+    return toResourceAssignment(jobResource, paMap);
+  }
+
+  private ResourceAssignment toResourceAssignment(String jobResource, Map<Integer, PartitionAssignment> paMap) {
     // Construct a ResourceAssignment object from the map of partition assignments.
     ResourceAssignment ra = new ResourceAssignment(jobResource);
     for (Map.Entry<Integer, PartitionAssignment> e : paMap.entrySet()) {
@@ -480,7 +497,6 @@ public class JobRebalancer extends TaskRebalancer {
       ra.addReplicaMap(new Partition(pName(jobResource, e.getKey())),
           ImmutableMap.of(pa._instance, pa._state));
     }
-
     return ra;
   }
 
@@ -540,20 +556,35 @@ public class JobRebalancer extends TaskRebalancer {
     }
   }
 
+  private void failJob(String jobName, WorkflowContext workflowContext, JobContext jobContext,
+      WorkflowConfig workflowConfig, JobConfig jobConfig) {
+    markJobFailed(jobName, jobContext, workflowConfig, workflowContext);
+    // Mark all INIT task to TASK_ABORTED
+    for (int pId : jobContext.getPartitionSet()) {
+      if (jobContext.getPartitionState(pId) == TaskPartitionState.INIT) {
+        jobContext.setPartitionState(pId, TaskPartitionState.TASK_ABORTED);
+      }
+    }
+    _clusterStatusMonitor.updateJobCounters(jobConfig, TaskState.FAILED);
+    _scheduledRebalancer.removeScheduledRebalance(jobName);
+    TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
+  }
+
   private boolean isJobTimeout(JobContext jobContext, JobConfig jobConfig) {
     long jobTimeoutTime = computeJobTimeoutTime(jobContext, jobConfig);
     return jobTimeoutTime != jobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime <= System.currentTimeMillis();
   }
 
-  private boolean isJobFinishTimingOut(JobContext jobContext, String jobResource,
+  private boolean isJobFinished(JobContext jobContext, String jobResource,
       CurrentStateOutput currentStateOutput) {
     for (int pId : jobContext.getPartitionSet()) {
       TaskPartitionState state = jobContext.getPartitionState(pId);
       Partition partition = new Partition(pName(jobResource, pId));
       String instance = jobContext.getAssignedParticipant(pId);
       Message pendingMessage = currentStateOutput.getPendingState(jobResource, partition, instance);
-      // If state is INIT but is pending INIT->RUNNING, it's not yet safe to mark job as TIMEDOUT and drop the task
-      if (state == TaskPartitionState.RUNNING || (state == TaskPartitionState.INIT && pendingMessage != null)) {
+      // If state is INIT but is pending INIT->RUNNING, it's not yet safe to say the job finished
+      if (state == TaskPartitionState.RUNNING
+          || (state == TaskPartitionState.INIT && pendingMessage != null)) {
         return false;
       }
     }
@@ -810,7 +841,7 @@ public class JobRebalancer extends TaskRebalancer {
   private boolean checkJobStopped(JobContext jobContext) {
     for (int partition : jobContext.getPartitionSet()) {
       TaskPartitionState taskState = jobContext.getPartitionState(partition);
-      if (taskState != null && taskState.equals(TaskPartitionState.RUNNING)) {
+      if (taskState == TaskPartitionState.RUNNING) {
         return false;
       }
     }

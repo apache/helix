@@ -84,8 +84,9 @@ public class TaskAssignmentStage extends AbstractBaseStage {
     logger.debug("Caching messages took " + (cacheEnd - cacheStart) + " ms");
 
     long endTime = System.currentTimeMillis();
-    logger.info("END TaskAssignmentStage.process(). took: " + (endTime - startTime) + " ms");
-
+    logger.info(
+        "END TaskAssignmentStage.process() for cluster " + cache.getClusterName() + ". took: " + (
+            endTime - startTime) + " ms");
   }
 
   List<Message> batchMessage(Builder keyBuilder, List<Message> messages,

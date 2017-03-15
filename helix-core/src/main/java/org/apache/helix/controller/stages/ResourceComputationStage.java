@@ -42,6 +42,7 @@ public class ResourceComputationStage extends AbstractBaseStage {
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     if (cache == null) {
       throw new StageException("Missing attributes in event:" + event + ". Requires DataCache");
@@ -128,6 +129,10 @@ public class ResourceComputationStage extends AbstractBaseStage {
     }
 
     event.addAttribute(AttributeName.RESOURCES.name(), resourceMap);
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("END ResourceComputationStage.process() for cluster " + cache.getClusterName()
+        + ". took: " + (endTime - startTime) + " ms");
   }
 
   private void addResource(String resource, Map<String, Resource> resourceMap) {

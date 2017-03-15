@@ -79,7 +79,7 @@ public final class ZKUtil {
     }
 
     if (!isValid) {
-      logger.info(errorMsg.toString());
+      logger.debug(errorMsg.toString());
     }
 
     return isValid;

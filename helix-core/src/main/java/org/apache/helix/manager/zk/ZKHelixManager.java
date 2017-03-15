@@ -518,7 +518,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     case CONTROLLER:
     case CONTROLLER_PARTICIPANT:
       if (_controller == null) {
-        _controller = new GenericHelixController();
+        _controller = new GenericHelixController(_clusterName);
         _messagingService.getExecutor().setController(_controller);
       }
       break;

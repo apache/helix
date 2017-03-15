@@ -72,7 +72,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), immediateStateOutput);
 
     long endTime = System.currentTimeMillis();
-    logger.info("END ImmediateStateCalcStage.process(). took: " + (endTime - startTime) + " ms");
+    logger.info(
+        "END ImmediateStateCalcStage.process() for cluster " + cache.getClusterName() + ". took: "
+            + (endTime - startTime) + " ms");
   }
 
   private IntermediateStateOutput compute(ClusterDataCache dataCache,
@@ -149,7 +151,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       Map<String, List<String>> preferenceLists,
       StateTransitionThrottleController throttleController) {
     String resourceName = resource.getResourceName();
-    logger.info("Processing resource:" + resourceName);
+    logger.debug("Processing resource:" + resourceName);
 
     if (!throttleController.isThrottleEnabled() || !IdealState.RebalanceMode.FULL_AUTO
         .equals(idealState.getRebalanceMode())) {
@@ -212,7 +214,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       }
     }
 
-    logger.info("End processing resource:" + resourceName);
+    logger.debug("End processing resource:" + resourceName);
 
     return intermediatePartitionStateMap;
   }

@@ -182,7 +182,8 @@ public class ExternalViewComputeStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END ExternalViewComputeStage.process(). took: " + (endTime - startTime) + " ms");
+    LOG.info("END ExternalViewComputeStage.process() for cluster " + cache.getClusterName()
+        + ". took: " + (endTime - startTime) + " ms");
   }
 
   private void updateScheduledTaskStatus(ExternalView ev, HelixManager manager,

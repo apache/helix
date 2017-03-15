@@ -76,7 +76,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     }
 
     long endTime = System.currentTimeMillis();
-    logger.info("END BestPossibleStateCalcStage.process(). took: " + (endTime - startTime) + " ms");
+    logger.info("END BestPossibleStateCalcStage.process() for cluster " + cache.getClusterName()
+        + ". took: " + (endTime - startTime) + " ms");
   }
 
   private BestPossibleStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
@@ -152,7 +153,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
     Rebalancer customizedRebalancer = null;
     String rebalancerClassName = idealState.getRebalancerClassName();
     if (rebalancerClassName != null) {
-      logger.info("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
+      logger.debug("resource " + resourceName + " use idealStateRebalancer " + rebalancerClassName);
       try {
         customizedRebalancer = Rebalancer.class
             .cast(HelixUtil.loadClass(getClass(), rebalancerClassName).newInstance());

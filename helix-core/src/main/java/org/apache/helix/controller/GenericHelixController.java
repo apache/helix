@@ -120,6 +120,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
    */
   private ClusterDataCache _cache;
 
+  private String _clusterName;
+
   /**
    * Default constructor that creates a default pipeline registry. This is sufficient in most cases,
    * but if there is a some thing specific needed use another constructor where in you can pass a
@@ -128,6 +130,12 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   public GenericHelixController() {
     this(createDefaultRegistry());
   }
+
+  public GenericHelixController(String clusterName) {
+    this(createDefaultRegistry());
+    _clusterName = clusterName;
+  }
+
 
   class RebalanceTask extends TimerTask {
     HelixManager _manager;
@@ -235,7 +243,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _eventThread = new ClusterEventProcessor();
     _eventThread.setDaemon(true);
     _eventThread.start();
-    _cache = new ClusterDataCache();
+    _cache = new ClusterDataCache(_clusterName);
   }
 
   /**
@@ -251,13 +259,14 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     }
 
     if (!manager.isLeader()) {
-      logger.error("Cluster manager: " + manager.getInstanceName()
-          + " is not leader. Pipeline will not be invoked");
+      logger.error("Cluster manager: " + manager.getInstanceName() + " is not leader for " + manager
+          .getClusterName() + ". Pipeline will not be invoked");
       return;
     }
 
     if (_paused) {
-      logger.info("Cluster is paused. Ignoring the event:" + event.getName());
+      logger.info("Cluster " + manager.getClusterName() + " is paused. Ignoring the event:" + event
+          .getName());
       return;
     }
 
@@ -305,8 +314,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       }
     }
     long endTime = System.currentTimeMillis();
-    logger.info("END: Invoking controller pipeline for event: " + event.getName() + ", took "
-        + (endTime - startTime) + " ms");
+    logger.info("END: Invoking controller pipeline for event: " + event.getName() + " for cluster "
+        + manager.getClusterName() + ", took " + (endTime - startTime) + " ms");
   }
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
@@ -331,7 +340,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   @Override
   public void onMessage(String instanceName, List<Message> messages,
       NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onMessage()");
+    logger.info("START: GenericClusterController.onMessage() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -347,13 +356,13 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       _clusterStatusMonitor.addMessageQueueSize(instanceName, messages.size());
     }
 
-    logger.info("END: GenericClusterController.onMessage()");
+    logger.info("END: GenericClusterController.onMessage() for cluster " + _clusterName);
   }
 
   @Override
   public void onLiveInstanceChange(List<LiveInstance> liveInstances,
       NotificationContext changeContext) {
-    logger.info("START: Generic GenericClusterController.onLiveInstanceChange()");
+    logger.info("START: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -381,7 +390,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", liveInstances);
     _eventQueue.put(event);
-    logger.info("END: Generic GenericClusterController.onLiveInstanceChange()");
+    logger.info("END: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
   }
 
   void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates) {
@@ -401,7 +410,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   @Override
   public void onIdealStateChange(List<IdealState> idealStates, NotificationContext changeContext) {
-    logger.info("START: Generic GenericClusterController.onIdealStateChange()");
+    logger.info("START: Generic GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -420,12 +429,12 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       checkRebalancingTimer(changeContext.getManager(), idealStates);
     }
 
-    logger.info("END: GenericClusterController.onIdealStateChange()");
+    logger.info("END: GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
   }
 
   @Override
   public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onConfigChange()");
+    logger.info("START: GenericClusterController.onConfigChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -440,23 +449,23 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("helixmanager", changeContext.getManager());
     event.addAttribute("eventData", configs);
     _eventQueue.put(event);
-    logger.info("END: GenericClusterController.onConfigChange()");
+    logger.info("END: GenericClusterController.onConfigChange() for cluster " + _clusterName);
   }
 
   @Override
   public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
       NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onInstanceConfigChange()");
+    logger.info("START: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
     onConfigChange(instanceConfigs, changeContext);
-    logger.info("END: GenericClusterController.onInstanceConfigChange()");
+    logger.info("END: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
   }
 
   @Override
   public void onControllerChange(NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onControllerChange()");
+    logger.info("START: GenericClusterController.onControllerChange() for cluster " + _clusterName);
     _cache.requireFullRefresh();
     if (changeContext != null && changeContext.getType() == Type.FINALIZE) {
-      logger.info("GenericClusterController.onControllerChange() FINALIZE");
+      logger.info("GenericClusterController.onControllerChange() FINALIZE for cluster " + _clusterName);
       return;
     }
     HelixDataAccessor accessor = changeContext.getManager().getHelixDataAccessor();
@@ -496,7 +505,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
         _paused = false;
       }
     }
-    logger.info("END: GenericClusterController.onControllerChange()");
+    logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
   }
 
   /**
@@ -592,7 +601,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   private class ClusterEventProcessor extends Thread {
     @Override
     public void run() {
-      logger.info("START ClusterEventProcessor thread");
+      logger.info("START ClusterEventProcessor thread  for cluster " + _clusterName);
       while (!isInterrupted()) {
         try {
           ClusterEvent event = _eventQueue.take();

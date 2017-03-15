@@ -33,6 +33,7 @@ import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
+import org.apache.log4j.Logger;
 
 /**
  * For each LiveInstances select currentState and message whose sessionId matches
@@ -40,12 +41,15 @@ import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
  * previous State [ResourceComputationStage]
  */
 public class CurrentStateComputationStage extends AbstractBaseStage {
+  private static Logger LOG = Logger.getLogger(CurrentStateComputationStage.class);
+
   public final long NOT_RECORDED = -1L;
   public final long TRANSITION_FAILED = -2L;
   public final String TASK_STATE_MODEL_NAME = "Task";
 
   @Override
   public void process(ClusterEvent event) throws Exception {
+    long startTime = System.currentTimeMillis();
     ClusterDataCache cache = event.getAttribute("ClusterDataCache");
     Map<String, Resource> resourceMap = event.getAttribute(AttributeName.RESOURCES.name());
 
@@ -140,6 +144,10 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
     updateMissingTopStateStatus(cache, clusterStatusMonitor, resourceMap, currentStateOutput);
 
     event.addAttribute(AttributeName.CURRENT_STATE.name(), currentStateOutput);
+
+    long endTime = System.currentTimeMillis();
+    LOG.info("END CurrentStateComputationStage.process() for cluster " + cache.getClusterName()
+        + ". took: " + (endTime - startTime) + " ms");
   }
 
   private void setMessageState(CurrentStateOutput currentStateOutput, String resourceName,

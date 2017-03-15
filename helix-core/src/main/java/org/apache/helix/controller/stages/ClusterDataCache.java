@@ -80,7 +80,16 @@ public class ClusterDataCache {
 
   boolean _updateInstanceOfflineTime = true;
 
+  private String _clusterName;
+
   private static final Logger LOG = Logger.getLogger(ClusterDataCache.class.getName());
+
+
+  public ClusterDataCache () {};
+
+  public ClusterDataCache (String clusterName) {
+    _clusterName = clusterName;
+  }
 
   /**
    * This refreshes the cluster data by re-fetching the data from zookeeper in
@@ -228,10 +237,14 @@ public class ClusterDataCache {
           _idealStateRuleMap.put(simpleKey, singleRule);
         }
       }
+    } else {
+      LOG.error("Cluster config is null!");
     }
 
     long endTime = System.currentTimeMillis();
-    LOG.info("END: ClusterDataCache.refresh(), took " + (endTime - startTime) + " ms");
+    LOG.info(
+        "END: ClusterDataCache.refresh() for cluster " + getClusterName() + ", took " + (endTime
+            - startTime) + " ms");
 
     if (LOG.isDebugEnabled()) {
       int numPaths = _liveInstanceMap.size() + _idealStateMap.size() + _stateModelDefMap.size()
@@ -246,6 +259,10 @@ public class ClusterDataCache {
 
   public ClusterConfig getClusterConfig() {
     return _clusterConfig;
+  }
+
+  public String getClusterName() {
+    return _clusterConfig != null ? _clusterConfig.getClusterName() : _clusterName;
   }
 
   /**

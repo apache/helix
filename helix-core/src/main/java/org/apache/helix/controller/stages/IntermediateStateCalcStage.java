@@ -199,7 +199,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
 
     // check recovery rebalance
     recoveryRebalance(resource, bestPossiblePartitionStateMap, throttleController,
-        intermediatePartitionStateMap, partitionsNeedRecovery);
+        intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput);
 
     if (partitionsNeedRecovery.isEmpty()) {
       // perform load balance only if no partition need recovery rebalance.
@@ -266,16 +266,18 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   public void recoveryRebalance(Resource resource,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
-      PartitionStateMap intermediatePartitionStateMap,
-      Set<Partition> partitionsNeedRecovery) {
-
+      PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedRecovery,
+      CurrentStateOutput currentStateOutput) {
+    Set<Partition> partitionRecoveryBalanceThrottled = new HashSet<Partition>();
     for (Partition partition : partitionsNeedRecovery) {
-      Map<String, String> bestPossibleMap =
-          bestPossiblePartitionStateMap.getPartitionMap(partition);
-      Map<String, String> intermediateMap = new HashMap<String, String>(bestPossibleMap);
-      //TODO: add throttling on recovery balance
-      intermediatePartitionStateMap.setState(partition, intermediateMap);
+      throtteStateTransitions(throttleController, resource.getResourceName(), partition,
+          currentStateOutput, bestPossiblePartitionStateMap, partitionRecoveryBalanceThrottled,
+          intermediatePartitionStateMap, RebalanceType.RECOVERY_BALANCE);
     }
+
+    logger.info(String
+        .format("needRecovery: %d, recoverybalanceThrottled: %d", partitionsNeedRecovery.size(),
+            partitionRecoveryBalanceThrottled.size()));
   }
 
   public void loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
@@ -286,58 +288,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     Set<Partition> partitionsLoadbalanceThrottled = new HashSet<Partition>();
 
     for (Partition partition : partitionsNeedLoadbalance) {
-      Map<String, String> currentStateMap =
-          currentStateOutput.getCurrentStateMap(resourceName, partition);
-      Map<String, String> bestPossibleMap =
-          bestPossiblePartitionStateMap.getPartitionMap(partition);
-      Map<String, String> intermediateMap = new HashMap<String, String>();
-
-      Set<String> allInstances = new HashSet<String>(currentStateMap.keySet());
-      allInstances.addAll(bestPossibleMap.keySet());
-
-      boolean throttled = false;
-      if (throttleController
-          .throttleforResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-              resourceName)) {
-        throttled = true;
-        logger.debug("Load balance throttled on resource for " + resourceName + " " + partition
-            .getPartitionName());
-      } else {
-        // throttle the load balance if any of the instance can not handle the state transition
-        for (String ins : allInstances) {
-          String currentState = currentStateMap.get(ins);
-          String bestPossibleState = bestPossibleMap.get(ins);
-          if (bestPossibleState != null && !bestPossibleState.equals(currentState)) {
-            if (throttleController
-                .throttleForInstance(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
-                    ins)) {
-              throttled = true;
-              logger.debug(
-                  "Load balance throttled because instance " + ins + " for " + resourceName + " "
-                      + partition.getPartitionName());
-            }
-          }
-        }
-      }
-
-      if (!throttled) {
-        intermediateMap.putAll(bestPossibleMap);
-        for (String ins : allInstances) {
-          String currentState = currentStateMap.get(ins);
-          String bestPossibleState = bestPossibleMap.get(ins);
-          if (bestPossibleState != null && !bestPossibleState.equals(currentState)) {
-            throttleController
-                .chargeInstance(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, ins);
-          }
-        }
-        throttleController.chargeCluster(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE);
-        throttleController
-            .chargeResource(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE, resourceName);
-      } else {
-        intermediateMap.putAll(currentStateMap);
-        partitionsLoadbalanceThrottled.add(partition);
-      }
-      intermediatePartitionStateMap.setState(partition, intermediateMap);
+      throtteStateTransitions(throttleController, resourceName, partition, currentStateOutput,
+          bestPossiblePartitionStateMap, partitionsLoadbalanceThrottled,
+          intermediatePartitionStateMap, RebalanceType.LOAD_BALANCE);
     }
 
     logger.info(String
@@ -348,6 +301,57 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       logger.debug("recovery balance throttled for " + resource + " partitions: "
           + partitionsLoadbalanceThrottled);
     }
+  }
+
+  private void throtteStateTransitions(StateTransitionThrottleController throttleController,
+      String resourceName, Partition partition, CurrentStateOutput currentStateOutput,
+      PartitionStateMap bestPossiblePartitionStateMap, Set<Partition> partitionsThrottled,
+      PartitionStateMap intermediatePartitionStateMap, RebalanceType rebalanceType) {
+
+    Map<String, String> currentStateMap =
+        currentStateOutput.getCurrentStateMap(resourceName, partition);
+    Map<String, String> bestPossibleMap = bestPossiblePartitionStateMap.getPartitionMap(partition);
+    Set<String> allInstances = new HashSet<String>(currentStateMap.keySet());
+    allInstances.addAll(bestPossibleMap.keySet());
+    Map<String, String> intermediateMap = new HashMap<String, String>();
+
+    boolean throttled = false;
+    if (throttleController.throttleforResource(rebalanceType, resourceName)) {
+      throttled = true;
+      logger
+          .debug("Throttled on resource for " + resourceName + " " + partition.getPartitionName());
+    } else {
+      // throttle if any of the instance can not handle the state transition
+      for (String ins : allInstances) {
+        String currentState = currentStateMap.get(ins);
+        String bestPossibleState = bestPossibleMap.get(ins);
+        if (bestPossibleState != null && !bestPossibleState.equals(currentState)) {
+          if (throttleController.throttleForInstance(rebalanceType, ins)) {
+            throttled = true;
+            logger.debug(
+                "Throttled because instance " + ins + " for " + resourceName + " " + partition
+                    .getPartitionName());
+          }
+        }
+      }
+    }
+
+    if (!throttled) {
+      intermediateMap.putAll(bestPossibleMap);
+      for (String ins : allInstances) {
+        String currentState = currentStateMap.get(ins);
+        String bestPossibleState = bestPossibleMap.get(ins);
+        if (bestPossibleState != null && !bestPossibleState.equals(currentState)) {
+          throttleController.chargeInstance(rebalanceType, ins);
+        }
+      }
+      throttleController.chargeCluster(rebalanceType);
+      throttleController.chargeResource(rebalanceType, resourceName);
+    } else {
+      intermediateMap.putAll(currentStateMap);
+      partitionsThrottled.add(partition);
+    }
+    intermediatePartitionStateMap.setState(partition, intermediateMap);
   }
 
   /**

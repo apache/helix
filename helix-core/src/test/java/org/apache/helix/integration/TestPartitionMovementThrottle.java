@@ -29,6 +29,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
@@ -36,7 +37,7 @@ import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.mock.participant.MockTransition;
+import org.apache.helix.integration.task.WorkflowGenerator;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
@@ -94,20 +95,32 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
   private void setupThrottleConfig() {
     ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
 
-    StateTransitionThrottleConfig resourceThrottle =
+    StateTransitionThrottleConfig resourceLoadThrottle =
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
             StateTransitionThrottleConfig.ThrottleScope.RESOURCE, 2);
 
-    StateTransitionThrottleConfig instanceThrottle =
+    StateTransitionThrottleConfig instanceLoadThrottle =
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
             StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 2);
 
-    StateTransitionThrottleConfig clusterThrottle =
+    StateTransitionThrottleConfig clusterLoadThrottle =
         new StateTransitionThrottleConfig(StateTransitionThrottleConfig.RebalanceType.LOAD_BALANCE,
             StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
 
-    clusterConfig.setStateTransitionThrottleConfigs(
-        Arrays.asList(resourceThrottle, clusterThrottle, instanceThrottle));
+
+        StateTransitionThrottleConfig resourceRecoveryThrottle = new StateTransitionThrottleConfig(
+            StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.RESOURCE, 3);
+
+        StateTransitionThrottleConfig clusterRecoveryThrottle = new StateTransitionThrottleConfig(
+            StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+            StateTransitionThrottleConfig.ThrottleScope.CLUSTER, 100);
+
+    clusterConfig.setStateTransitionThrottleConfigs(Arrays
+        .asList(resourceLoadThrottle, instanceLoadThrottle, clusterLoadThrottle,
+    resourceRecoveryThrottle, clusterRecoveryThrottle));
+
+
     clusterConfig.setPersistIntermediateAssignment(true);
     _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
   }
@@ -129,7 +142,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(_clusterVerifier.verify(10000));
+    Assert.assertTrue(_clusterVerifier.verify());
 
 
     DelayedTransition.setDelay(20);
@@ -144,6 +157,75 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     for (String db : _dbs) {
       validateThrottle(DelayedTransition.getResourcePatitionTransitionTimes(), db, 2);
+    }
+  }
+
+  @Test
+  public void testPartitionRecoveryRebalanceThrottle() throws InterruptedException {
+    // start some participants
+    for (int i = 0; i < NODE_NR - 2; i++) {
+      _participants[i].syncStart();
+    }
+    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, 10, STATE_MODEL,
+        RebalanceMode.FULL_AUTO.name());
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _replica);
+
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    // Set throttling after states are stable. Otherwise it takes too long to reach stable state
+    setSingleThrottlingConfig(StateTransitionThrottleConfig.RebalanceType.RECOVERY_BALANCE,
+        StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 2);
+
+    DelayedTransition.setDelay(20);
+    DelayedTransition.enableThrottleRecord();
+
+    // start another 2 nodes
+    for (int i = NODE_NR - 2; i < NODE_NR; i++) {
+      _participants[i].syncStart();
+    }
+
+    Thread.sleep(2000);
+
+    for (int i = 0; i < NODE_NR; i++) {
+      validateThrottle(DelayedTransition.getInstancePatitionTransitionTimes(),
+          _participants[i].getInstanceName(), 2);
+    }
+  }
+
+  @Test
+  public void testANYtypeThrottle() throws InterruptedException {
+    // start some participants
+    for (int i = 0; i < NODE_NR - 3; i++) {
+      _participants[i].syncStart();
+    }
+    _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", 20,
+        STATE_MODEL, RebalanceMode.FULL_AUTO.name());
+    _setupTool
+        .rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB + "_ANY", _replica);
+
+    HelixClusterVerifier _clusterVerifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    // Set ANY type throttling after states are stable.
+    setSingleThrottlingConfig(StateTransitionThrottleConfig.RebalanceType.ANY,
+        StateTransitionThrottleConfig.ThrottleScope.INSTANCE, 1);
+
+    DelayedTransition.setDelay(20);
+    DelayedTransition.enableThrottleRecord();
+
+    // start another 3 nodes
+    for (int i = NODE_NR - 3; i < NODE_NR; i++) {
+      _participants[i].syncStart();
+    }
+
+    Thread.sleep(2000L);
+
+    for (int i = 0; i < NODE_NR; i++) {
+      validateThrottle(DelayedTransition.getInstancePatitionTransitionTimes(),
+          _participants[i].getInstanceName(), 1);
     }
   }
 
@@ -201,7 +283,7 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
     HelixClusterVerifier _clusterVerifier =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
-    Assert.assertTrue(_clusterVerifier.verify(10000));
+    Assert.assertTrue(_clusterVerifier.verify());
 
 
     DelayedTransition.setDelay(20);
@@ -306,6 +388,18 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
           ", end=" + end +
           ']';
     }
+  }
+
+  private void setSingleThrottlingConfig(StateTransitionThrottleConfig.RebalanceType rebalanceType,
+      StateTransitionThrottleConfig.ThrottleScope scope, int maxStateTransitions) {
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    StateTransitionThrottleConfig anyTypeInstanceThrottle =
+        new StateTransitionThrottleConfig(rebalanceType, scope, maxStateTransitions);
+    List<StateTransitionThrottleConfig> currentThrottleConfigs =
+        clusterConfig.getStateTransitionThrottleConfigs();
+    currentThrottleConfigs.add(anyTypeInstanceThrottle);
+    clusterConfig.setStateTransitionThrottleConfigs(currentThrottleConfigs);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
   }
 
   private static class DelayedTransition extends DelayedTransitionBase {

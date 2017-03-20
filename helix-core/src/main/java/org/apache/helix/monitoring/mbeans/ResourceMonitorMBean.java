@@ -28,6 +28,18 @@ public interface ResourceMonitorMBean extends SensorNameProvider {
 
   public long getMissingTopStatePartitionGauge();
 
+  public long getMissingMinActiveReplicaPartitionGauge();
+
+  public long getMissingReplicaPartitionGauge();
+
+  public long getPendingRecoveryRebalancePartitionGauge();
+
+  public long getPendingLoadRebalancePartitionGauge();
+
+  public long getRecoveryRebalanceThrottledPartitionGauge();
+
+  public long getLoadRebalanceThrottledPartitionGauge();
+
   public long getDifferenceWithIdealStateGauge();
 
   public long getExternalViewPartitionGauge();

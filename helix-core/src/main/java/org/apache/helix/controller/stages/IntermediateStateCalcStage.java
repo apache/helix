@@ -39,6 +39,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.monitoring.mbeans.ClusterStatusMonitor;
 import org.apache.log4j.Logger;
 
 /**
@@ -48,7 +49,8 @@ import org.apache.log4j.Logger;
 public class IntermediateStateCalcStage extends AbstractBaseStage {
   private static final Logger logger = Logger.getLogger(IntermediateStateCalcStage.class.getName());
 
-  @Override public void process(ClusterEvent event) throws Exception {
+  @Override
+  public void process(ClusterEvent event) throws Exception {
     long startTime = System.currentTimeMillis();
     logger.info("START Intermediate.process()");
 
@@ -67,7 +69,7 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     }
 
     IntermediateStateOutput immediateStateOutput =
-        compute(cache, resourceMap, currentStateOutput, bestPossibleStateOutput);
+        compute(event, resourceMap, currentStateOutput, bestPossibleStateOutput);
 
     event.addAttribute(AttributeName.INTERMEDIATE_STATE.name(), immediateStateOutput);
 
@@ -77,14 +79,14 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
             + (endTime - startTime) + " ms");
   }
 
-  private IntermediateStateOutput compute(ClusterDataCache dataCache,
-      Map<String, Resource> resourceMap, CurrentStateOutput currentStateOutput,
-      BestPossibleStateOutput bestPossibleStateOutput) {
+  private IntermediateStateOutput compute(ClusterEvent event, Map<String, Resource> resourceMap,
+      CurrentStateOutput currentStateOutput, BestPossibleStateOutput bestPossibleStateOutput) {
     // for each resource
     // get the best possible state and current state
     // try to bring immediate state close to best possible state until
     // the possible pending state transition numbers reach the set throttle number.
     IntermediateStateOutput output = new IntermediateStateOutput();
+    ClusterDataCache dataCache = event.getAttribute("ClusterDataCache");
 
     StateTransitionThrottleController throttleController =
         new StateTransitionThrottleController(resourceMap.keySet(), dataCache.getClusterConfig(),
@@ -122,6 +124,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       Collections.sort(prioritizedResourceList, new ResourcePriortiyComparator());
     }
 
+    // Update cluster status monitor mbean
+    ClusterStatusMonitor clusterStatusMonitor = event.getAttribute("clusterStatusMonitor");
+
     for (ResourcePriority resourcePriority : prioritizedResourceList) {
       String resourceName = resourcePriority.getResourceName();
       Resource resource = resourceMap.get(resourceName);
@@ -135,19 +140,18 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       }
 
       PartitionStateMap intermediatePartitionStateMap =
-          computeIntermediatePartitionState(dataCache, idealState,
+          computeIntermediatePartitionState(dataCache, clusterStatusMonitor, idealState,
               resourceMap.get(resourceName), currentStateOutput,
               bestPossibleStateOutput.getPartitionStateMap(resourceName),
-              bestPossibleStateOutput.getPreferenceLists(resourceName),
-              throttleController);
+              bestPossibleStateOutput.getPreferenceLists(resourceName), throttleController);
       output.setState(resourceName, intermediatePartitionStateMap);
     }
     return output;
   }
 
-  public PartitionStateMap computeIntermediatePartitionState(ClusterDataCache cache,
-      IdealState idealState, Resource resource, CurrentStateOutput currentStateOutput,
-      PartitionStateMap bestPossiblePartitionStateMap,
+  private PartitionStateMap computeIntermediatePartitionState(ClusterDataCache cache,
+      ClusterStatusMonitor clusterStatusMonitor, IdealState idealState, Resource resource,
+      CurrentStateOutput currentStateOutput, PartitionStateMap bestPossiblePartitionStateMap,
       Map<String, List<String>> preferenceLists,
       StateTransitionThrottleController throttleController) {
     String resourceName = resource.getResourceName();
@@ -197,14 +201,16 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     chargePendingTransition(resource, currentStateOutput, throttleController,
         partitionsNeedRecovery, partitionsNeedLoadbalance);
 
-    // check recovery rebalance
+    // perform recovery rebalance
+    int recoveryRebalanceThrottledCount =
     recoveryRebalance(resource, bestPossiblePartitionStateMap, throttleController,
         intermediatePartitionStateMap, partitionsNeedRecovery, currentStateOutput);
 
+    int loadRebalanceThrottledCount = partitionsNeedLoadbalance.size();
     if (partitionsNeedRecovery.isEmpty()) {
       // perform load balance only if no partition need recovery rebalance.
       // TODO: to set a minimal threshold for allowing load-rebalance.
-      loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap, throttleController,
+      loadRebalanceThrottledCount = loadRebalance(resource, currentStateOutput, bestPossiblePartitionStateMap, throttleController,
           intermediatePartitionStateMap, partitionsNeedLoadbalance);
     } else {
       for (Partition p : partitionsNeedLoadbalance) {
@@ -214,15 +220,20 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       }
     }
 
-    logger.debug("End processing resource:" + resourceName);
+    if (clusterStatusMonitor != null) {
+      clusterStatusMonitor.updateRebalancerStats(resourceName, partitionsNeedRecovery.size(),
+          partitionsNeedLoadbalance.size(), recoveryRebalanceThrottledCount,
+          loadRebalanceThrottledCount);
+    }
 
+    logger.debug("End processing resource:" + resourceName);
     return intermediatePartitionStateMap;
   }
 
   /**
    * Check and charge all pending transitions for throttling.
    */
-  public void chargePendingTransition(Resource resource, CurrentStateOutput currentStateOutput,
+  private void chargePendingTransition(Resource resource, CurrentStateOutput currentStateOutput,
       StateTransitionThrottleController throttleController, Set<Partition> partitionsNeedRecovery,
       Set<Partition> partitionsNeedLoadbalance) {
     String resourceName = resource.getResourceName();
@@ -261,9 +272,9 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
   /**
    *  Perform any recovery balance if needed, fill intermediatePartitionStateMap
    *  if recover rebalance is needed.
-   *  return true if any partitions from this resource need recovery rebalance.
+   *  return the number of partitions needs recoveryRebalance but get throttled
    */
-  public void recoveryRebalance(Resource resource,
+  private int recoveryRebalance(Resource resource,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedRecovery,
@@ -278,9 +289,11 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
     logger.info(String
         .format("needRecovery: %d, recoverybalanceThrottled: %d", partitionsNeedRecovery.size(),
             partitionRecoveryBalanceThrottled.size()));
+    return partitionRecoveryBalanceThrottled.size();
   }
 
-  public void loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
+  /* return the number of partitions needs loadRebalance but get throttled */
+  private int loadRebalance(Resource resource, CurrentStateOutput currentStateOutput,
       PartitionStateMap bestPossiblePartitionStateMap,
       StateTransitionThrottleController throttleController,
       PartitionStateMap intermediatePartitionStateMap, Set<Partition> partitionsNeedLoadbalance) {
@@ -301,6 +314,8 @@ public class IntermediateStateCalcStage extends AbstractBaseStage {
       logger.debug("recovery balance throttled for " + resource + " partitions: "
           + partitionsLoadbalanceThrottled);
     }
+
+    return partitionsLoadbalanceThrottled.size();
   }
 
   private void throtteStateTransitions(StateTransitionThrottleController throttleController,

@@ -371,27 +371,20 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public void setResourceStatus(ExternalView externalView, IdealState idealState,
       StateModelDefinition stateModelDef) {
-    String topState = null;
-    if (stateModelDef != null) {
-      List<String> priorityList = stateModelDef.getStatesPriorityList();
-      if (!priorityList.isEmpty()) {
-        topState = priorityList.get(0);
-      }
-    }
     try {
       String resourceName = externalView.getId();
       if (!_resourceMbeanMap.containsKey(resourceName)) {
         synchronized (this) {
           if (!_resourceMbeanMap.containsKey(resourceName)) {
             ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-            bean.updateResource(externalView, idealState, topState);
+            bean.updateResource(externalView, idealState, stateModelDef);
             registerResources(Arrays.asList(bean));
           }
         }
       }
       ResourceMonitor bean = _resourceMbeanMap.get(resourceName);
       String oldSensorName = bean.getSensorName();
-      bean.updateResource(externalView, idealState, topState);
+      bean.updateResource(externalView, idealState, stateModelDef);
       String newSensorName = bean.getSensorName();
       if (!oldSensorName.equals(newSensorName)) {
         unregisterResources(Arrays.asList(resourceName));
@@ -404,17 +397,41 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   public synchronized void updateMissingTopStateDurationStats(String resourceName, long duration,
       boolean succeeded) {
+    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+    if (resourceMonitor != null) {
+      resourceMonitor
+          .updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, duration, succeeded);
+    }
+  }
+
+  public void updateRebalancerStats(String resourceName, long numPendingRecoveryRebalancePartitions,
+      long numPendingLoadRebalancePartitions, long numRecoveryRebalanceThrottledPartitions,
+      long numLoadRebalanceThrottledPartitions) {
+    ResourceMonitor resourceMonitor = getOrCreateResourceMonitor(resourceName);
+
+    if (resourceMonitor != null) {
+      resourceMonitor.updateRebalancerStat(numPendingRecoveryRebalancePartitions,
+          numPendingLoadRebalancePartitions, numRecoveryRebalanceThrottledPartitions,
+          numLoadRebalanceThrottledPartitions);
+    }
+  }
+
+  private ResourceMonitor getOrCreateResourceMonitor(String resourceName) {
     try {
       if (!_resourceMbeanMap.containsKey(resourceName)) {
-        ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
-        registerResources(Arrays.asList(bean));
+        synchronized (this) {
+          if (!_resourceMbeanMap.containsKey(resourceName)) {
+            ResourceMonitor bean = new ResourceMonitor(_clusterName, resourceName);
+            registerResources(Arrays.asList(bean));
+          }
+        }
       }
-    } catch (Exception e) {
-      LOG.error("Fail to set resource status, resource: " + resourceName);
+    } catch (MalformedObjectNameException ex) {
+      LOG.error("Fail to register resource mbean, resource: " + resourceName);
     }
 
-    _resourceMbeanMap.get(resourceName)
-        .updateStateHandoffStats(ResourceMonitor.MonitorState.TOP_STATE, duration, succeeded);
+    return _resourceMbeanMap.get(resourceName);
   }
 
   public void resetMaxMissingTopStateGauge() {

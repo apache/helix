@@ -120,8 +120,8 @@ public class TestHelixConfigAccessor extends ZkUnitTestBase {
     keys =
         configAccessor.getKeys(new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT)
             .forCluster(clusterName).forParticipant("localhost_12918").build());
-    Assert.assertEquals(keys.size(), 4,
-        "should be [HELIX_ENABLED, HELIX_PORT, HELIX_HOST, participantConfigKey]");
+    Assert.assertEquals(keys.size(), 5,
+        "should be [HELIX_ENABLED, HELIX_ENABLED_TIMESTAMP, HELIX_PORT, HELIX_HOST, participantConfigKey]");
     Assert.assertTrue(keys.contains("participantConfigKey"));
 
     keys =

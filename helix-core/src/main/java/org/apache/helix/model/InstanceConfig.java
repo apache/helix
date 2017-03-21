@@ -44,6 +44,7 @@ public class InstanceConfig extends HelixProperty {
     HELIX_PORT,
     HELIX_ZONE_ID,
     HELIX_ENABLED,
+    HELIX_ENABLED_TIMESTAMP,
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
     INSTANCE_WEIGHT,
@@ -215,10 +216,22 @@ public class InstanceConfig extends HelixProperty {
 
   /**
    * Set the enabled state of the instance
+   *
    * @param enabled true to enable, false to disable
    */
   public void setInstanceEnabled(boolean enabled) {
     _record.setBooleanField(InstanceConfigProperty.HELIX_ENABLED.toString(), enabled);
+    _record.setLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(),
+        System.currentTimeMillis());
+  }
+
+  /**
+   * Get the timestamp (milliseconds from epoch) when this instance was enabled/disabled last time.
+   *
+   * @return
+   */
+  public long getInstanceEnabledTime() {
+    return _record.getLongField(InstanceConfigProperty.HELIX_ENABLED_TIMESTAMP.name(), -1);
   }
 
   /**

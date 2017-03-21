@@ -20,7 +20,6 @@ package org.apache.helix.controller.rebalancer;
  */
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -38,6 +37,7 @@ import org.apache.helix.controller.stages.ClusterDataCache;
 import org.apache.helix.controller.stages.CurrentStateOutput;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
@@ -51,10 +51,10 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(DelayedAutoRebalancer.class);
   private static RebalanceScheduler _scheduledRebalancer = new RebalanceScheduler();
 
-  @Override public IdealState computeNewIdealState(String resourceName,
+  @Override
+  public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
       ClusterDataCache clusterData) {
-
     List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
     if (partitions.size() == 0) {
       LOG.info("Partition count is 0 for resource " + resourceName
@@ -62,40 +62,47 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       return generateNewIdealState(resourceName, currentIdealState,
           emptyMapping(currentIdealState));
     }
+    ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    boolean delayRebalanceEnabled = isDelayRebalanceEnabled(currentIdealState, clusterConfig);
 
-    Set<String> liveNodes;
+    Set<String> liveEnabledNodes;
     Set<String> allNodes;
 
     String instanceTag = currentIdealState.getInstanceGroupTag();
     if (instanceTag != null) {
-      liveNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
+      liveEnabledNodes = clusterData.getEnabledLiveInstancesWithTag(instanceTag);
       allNodes = clusterData.getInstancesWithTag(instanceTag);
 
-      if (!liveNodes.isEmpty()) {
-        // live nodes exist that have this tag
-        if (LOG.isInfoEnabled()) {
-          LOG.info(String.format("Found the following participants with tag %s for %s: %s",
-              currentIdealState.getInstanceGroupTag(), resourceName,
-              Arrays.toString(liveNodes.toArray())));
-        }
+      if (LOG.isInfoEnabled()) {
+        LOG.info(String.format(
+            "Found the following participants with tag %s for %s: "
+                + "instances: %s, liveEnabledInstances: %s",
+            currentIdealState.getInstanceGroupTag(), resourceName, allNodes, liveEnabledNodes));
       }
     } else {
-      liveNodes = clusterData.getEnabledLiveInstances();
-      allNodes = clusterData.getEnabledInstances();
+      liveEnabledNodes = clusterData.getEnabledLiveInstances();
+      allNodes = clusterData.getAllInstances();
     }
 
-    ClusterConfig clusterConfig = clusterData.getClusterConfig();
-    long delayTime = getRebalanceDelay(currentIdealState, clusterConfig);
-    Set<String> activeNodes = getActiveInstances(currentIdealState, allNodes, liveNodes,
-        clusterData.getInstanceOfflineTimeMap(), delayTime, clusterConfig);
-    setRebalanceScheduler(currentIdealState, activeNodes, clusterData.getInstanceOfflineTimeMap(),
-        delayTime, clusterConfig);
+    Set<String> activeNodes = liveEnabledNodes;
+    if (delayRebalanceEnabled) {
+      long delay = getRebalanceDelay(currentIdealState, clusterConfig);
+      activeNodes = getActiveInstances(allNodes, currentIdealState, liveEnabledNodes,
+          clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+          clusterData.getInstanceConfigMap(), delay, clusterConfig);
+
+      Set<String> offlineOrDisabledInstances = new HashSet<String>(activeNodes);
+      offlineOrDisabledInstances.removeAll(liveEnabledNodes);
+      setRebalanceScheduler(currentIdealState, offlineOrDisabledInstances,
+          clusterData.getInstanceOfflineTimeMap(), clusterData.getLiveInstances().keySet(),
+          clusterData.getInstanceConfigMap(), delay, clusterConfig);
+    }
 
     if (allNodes.isEmpty() || activeNodes.isEmpty()) {
       LOG.error(String.format(
-          "No instances or active instances available for resource %s, allNodes: %s, liveNodes: %s, activeInstances: %s",
-          resourceName, Arrays.toString(allNodes.toArray()), Arrays.toString(liveNodes.toArray()),
-          Arrays.toString(activeNodes.toArray())));
+          "No instances or active instances available for resource %s, "
+              + "allInstances: %s, liveInstances: %s, activeInstances: %s",
+          resourceName, allNodes, liveEnabledNodes, activeNodes));
       return generateNewIdealState(resourceName, currentIdealState,
           emptyMapping(currentIdealState));
     }
@@ -123,12 +130,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
 
     // sort node lists to ensure consistent preferred assignments
     List<String> allNodeList = new ArrayList<String>(allNodes);
-    List<String> liveNodeList = new ArrayList<String>(liveNodes);
+    List<String> liveEnabledNodeList = new ArrayList<String>(liveEnabledNodes);
     Collections.sort(allNodeList);
-    Collections.sort(liveNodeList);
+    Collections.sort(liveEnabledNodeList);
 
     ZNRecord newIdealMapping = _rebalanceStrategy
-        .computePartitionAssignment(allNodeList, liveNodeList, currentMapping, clusterData);
+        .computePartitionAssignment(allNodeList, liveEnabledNodeList, currentMapping, clusterData);
     ZNRecord finalMapping = newIdealMapping;
 
     if (isDelayRebalanceEnabled(currentIdealState, clusterConfig)) {
@@ -139,7 +146,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       ZNRecord newActiveMapping = _rebalanceStrategy
           .computePartitionAssignment(allNodeList, activeNodeList, currentMapping, clusterData);
       finalMapping =
-          getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveNodes,
+          getFinalDelayedMapping(currentIdealState, newIdealMapping, newActiveMapping, liveEnabledNodes,
               replicaCount, minActiveReplicas);
       LOG.debug("newActiveMapping: " + newActiveMapping);
     }
@@ -147,7 +154,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);
       LOG.debug("stateCountMap: " + stateCountMap);
-      LOG.debug("liveNodes: " + liveNodes);
+      LOG.debug("liveEnabledNodes: " + liveEnabledNodes);
+      LOG.debug("ActiveNodes: " + activeNodes);
       LOG.debug("allNodes: " + allNodes);
       LOG.debug("maxPartition: " + maxPartition);
       LOG.debug("newIdealMapping: " + newIdealMapping);
@@ -168,25 +176,24 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   }
 
   /* get all active instances (live instances plus offline-yet-active instances */
-  private Set<String> getActiveInstances(IdealState idealState, Set<String> allNodes,
-      Set<String> liveNodes, Map<String, Long> instanceOfflineTimeMap, long delayTime,
-      ClusterConfig clusterConfig) {
-    Set<String> activeInstances = new HashSet<String>(liveNodes);
+  private Set<String> getActiveInstances(Set<String> allNodes, IdealState idealState,
+      Set<String> liveEnabledNodes, Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
+      Map<String, InstanceConfig> instanceConfigMap, long delay, ClusterConfig clusterConfig) {
+    Set<String> activeInstances = new HashSet<String>(liveEnabledNodes);
 
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
       return activeInstances;
     }
 
-    Set<String> offlineInstances = new HashSet<String>(allNodes);
-    offlineInstances.removeAll(liveNodes);
+    Set<String> offlineOrDisabledInstances = new HashSet<String>(allNodes);
+    offlineOrDisabledInstances.removeAll(liveEnabledNodes);
 
     long currentTime = System.currentTimeMillis();
-    for (String ins : offlineInstances) {
-      Long offlineTime = instanceOfflineTimeMap.get(ins);
-      if (offlineTime != null && offlineTime > 0) {
-        if (delayTime > 0 && offlineTime + delayTime > currentTime) {
-          activeInstances.add(ins);
-        }
+    for (String ins : offlineOrDisabledInstances) {
+      long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
+          instanceConfigMap.get(ins));
+      if (inactiveTime > currentTime) {
+        activeInstances.add(ins);
       }
     }
 
@@ -194,25 +201,24 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   }
 
   /* Set a rebalance scheduler for the closest future rebalance time. */
-  private void setRebalanceScheduler(IdealState idealState, Set<String> activeInstances,
-      Map<String, Long> instanceOfflineTimeMap, long delayTime, ClusterConfig clusterConfig) {
+  private void setRebalanceScheduler(IdealState idealState, Set<String> offlineOrDisabledInstances,
+      Map<String, Long> instanceOfflineTimeMap, Set<String> liveNodes,
+      Map<String, InstanceConfig> instanceConfigMap,  long delay,
+      ClusterConfig clusterConfig) {
     String resourceName = idealState.getResourceName();
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
       _scheduledRebalancer.removeScheduledRebalance(resourceName);
       return;
     }
 
+    long currentTime = System.currentTimeMillis();
     long nextRebalanceTime = Long.MAX_VALUE;
-    for (String ins : activeInstances) {
-      Long offlineTime = instanceOfflineTimeMap.get(ins);
-      if (offlineTime != null && offlineTime > 0) {
-        // calculate the closest future rebalance time
-        if (offlineTime + delayTime < nextRebalanceTime) {
-          long rebalanceTime = offlineTime + delayTime;
-          if (rebalanceTime < nextRebalanceTime) {
-            nextRebalanceTime = rebalanceTime;
-          }
-        }
+    // calculate the closest future rebalance time
+    for (String ins : offlineOrDisabledInstances) {
+      long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
+          instanceConfigMap.get(ins));
+      if (inactiveTime != -1 && inactiveTime > currentTime && inactiveTime < nextRebalanceTime) {
+        nextRebalanceTime = inactiveTime;
       }
     }
 
@@ -221,10 +227,46 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       LOG.debug(String
           .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
     } else {
-      _scheduledRebalancer.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
-      LOG.debug(String.format("Set next rebalance time for resource %s at time %d\n", resourceName,
-          nextRebalanceTime));
+      long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(resourceName);
+      if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
+        _scheduledRebalancer.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
+        LOG.debug(String
+            .format("Set next rebalance time for resource %s at time %d\n", resourceName,
+                nextRebalanceTime));
+      }
     }
+  }
+
+  /**
+   * The time when an offline or disabled instance should be treated as inactive. return -1 if it is
+   * inactive now.
+   *
+   * @return
+   */
+  private long getInactiveTime(String instance, Set<String> liveInstances, Long offlineTime,
+      long delay, InstanceConfig instanceConfig) {
+    long inactiveTime = Long.MAX_VALUE;
+
+    // check the time instance went offline.
+    if (!liveInstances.contains(instance)) {
+      if (offlineTime != null && offlineTime > 0 && offlineTime + delay < inactiveTime) {
+        inactiveTime = offlineTime + delay;
+      }
+    }
+
+    // check the time instance got disabled.
+    if (!instanceConfig.getInstanceEnabled()) {
+      long disabledTime = instanceConfig.getInstanceEnabledTime();
+      if (disabledTime > 0 && disabledTime + delay < inactiveTime) {
+        inactiveTime = disabledTime + delay;
+      }
+    }
+
+    if (inactiveTime == Long.MAX_VALUE) {
+      return -1;
+    }
+
+    return inactiveTime;
   }
 
   private long getRebalanceDelay(IdealState idealState, ClusterConfig clusterConfig) {
@@ -236,8 +278,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   }
 
   private boolean isDelayRebalanceEnabled(IdealState idealState, ClusterConfig clusterConfig) {
-    long delayTime = getRebalanceDelay(idealState, clusterConfig);
-    return (delayTime > 0 && idealState.isDelayRebalanceEnabled() && clusterConfig
+    long delay = getRebalanceDelay(idealState, clusterConfig);
+    return (delay > 0 && idealState.isDelayRebalanceEnabled() && clusterConfig
         .isDelayRebalaceEnabled());
   }
 
@@ -304,15 +346,13 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     Set<String> allNodes = cache.getEnabledInstances();
-    Set<String> liveNodes = cache.getEnabledLiveInstances();
-    Set<String> offlineNodes = cache.getAllInstances();
-    offlineNodes.removeAll(cache.getLiveInstances().keySet());
+    Set<String> liveNodes = cache.getLiveInstances().keySet();
 
     ClusterConfig clusterConfig = cache.getClusterConfig();
     long delayTime = getRebalanceDelay(idealState, clusterConfig);
-    Set<String> activeNodes =
-        getActiveInstances(idealState, allNodes, liveNodes, cache.getInstanceOfflineTimeMap(),
-            delayTime, clusterConfig);
+    Set<String> activeNodes = getActiveInstances(allNodes, idealState, liveNodes,
+        cache.getInstanceOfflineTimeMap(), cache.getLiveInstances().keySet(),
+        cache.getInstanceConfigMap(), delayTime, clusterConfig);
 
     String stateModelDefName = idealState.getStateModelDefRef();
     StateModelDefinition stateModelDef = cache.getStateModelDef(stateModelDefName);
@@ -327,18 +367,6 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
           computeBestPossibleStateForPartition(liveNodes, stateModelDef, preferenceList, currentStateMap,
               disabledInstancesForPartition, idealState.isEnabled());
 
-      if (preferenceList == null) {
-        LOG.info(String.format(
-            "No preferenceList defined for partition %s, resource %s, skip computing best possible mapping!",
-            partition.getPartitionName(), idealState.getResourceName()));
-        continue;
-      }
-
-      for (String ins : preferenceList) {
-        if (offlineNodes.contains(ins) && !bestStateForPartition.containsKey(ins)) {
-          bestStateForPartition.put(ins, stateModelDef.getInitialState());
-        }
-      }
       partitionMapping.addReplicaMap(partition, bestStateForPartition);
     }
     return partitionMapping;
@@ -395,7 +423,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       String state = currentStateMap.get(instance);
       if (disabledInstancesForPartition.contains(instance) || state == null
           || state.equals(HelixDefinedState.ERROR.name())
-          || state.equals(stateModelDef.getInitialState())) {
+          || state.equals(stateModelDef.getInitialState())
+          || disabledInstancesForPartition.contains(instance)) {
         it.remove();
         instancesToDrop.add(instance); // These instances should be set to DROPPED after we get bestPossibleStateMap;
       }
@@ -416,14 +445,12 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       bestPossibleStateMap.put(instance, HelixDefinedState.DROPPED.name());
     }
 
-    // The eventual goal: instances in preferenceList(not combinedPreferenceList) all have the same states
-    // as they're in bestPossibleStateMap.
+    // The eventual goal is to have all instances in preferenceList all in the target states as specified in bestPossibleStateMap.
     Map<String, String> targetInstanceMap = new HashMap<String, String>(bestPossibleStateMap);
     targetInstanceMap.keySet().retainAll(preferenceList);
 
-    // Once currentStateMap contains all required target instances, and the states are also the same,
-    // that means the load-balance partition movement finishes, should drop(override assignment) all partitions
-    // from old instances.
+    // Once currentStateMap contains all required target instances and states, the
+    // load-balance finishes, we should drop all partitions from previous assigned instances.
     if (currentStateMap.entrySet().containsAll(targetInstanceMap.entrySet())) {
       for (String instance : currentStateMap.keySet()) {
         if (!preferenceList.contains(instance)) {

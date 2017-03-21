@@ -28,7 +28,6 @@ import org.apache.helix.HelixDefinedState;
 import org.apache.helix.model.*;
 import org.apache.log4j.Logger;
 
-import com.google.common.collect.Sets;
 
 public class ResourceMonitor implements ResourceMonitorMBean {
   private static final Logger LOG = Logger.getLogger(ResourceMonitor.class);
@@ -183,10 +182,10 @@ public class ResourceMonitor implements ResourceMonitorMBean {
         if (topState != null && topState.equalsIgnoreCase(currentState)) {
           numOfPartitionWithTopState++;
         }
-        if (currentState != null && !HelixDefinedState.ERROR.toString()
-            .equalsIgnoreCase(currentState) && !HelixDefinedState.DROPPED.toString()
-            .equalsIgnoreCase(currentState) &&
-            !stateModelDef.getInitialState().equalsIgnoreCase(currentState)) {
+
+        Map<String, Integer> stateCount = stateModelDef.getStateCountMap(idealRecord.size(), replica);
+        Set<String> activeStates = stateCount.keySet();
+        if (currentState != null && activeStates.contains(currentState)) {
           activeReplicaCount++;
         }
       }

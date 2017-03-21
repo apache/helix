@@ -35,7 +35,7 @@ public class TestNodeOfflineTimeStamp extends ZkStandAloneCMTestBase {
     for (MockParticipantManager participant : _participants) {
       ParticipantHistory history = getInstanceHistory(participant.getInstanceName());
       Assert.assertNotNull(history);
-      Assert.assertEquals(history.getLastOfflineTime(), Long.valueOf(ParticipantHistory.ONLINE));
+      Assert.assertEquals(history.getLastOfflineTime(), ParticipantHistory.ONLINE);
     }
 
     long shutdownTime = System.currentTimeMillis();
@@ -49,7 +49,7 @@ public class TestNodeOfflineTimeStamp extends ZkStandAloneCMTestBase {
     _participants[0].syncStart();
 
     history = getInstanceHistory(_participants[0].getInstanceName());
-    Assert.assertEquals(history.getLastOfflineTime(), Long.valueOf(ParticipantHistory.ONLINE));
+    Assert.assertEquals(history.getLastOfflineTime(), ParticipantHistory.ONLINE);
   }
 
   private ParticipantHistory getInstanceHistory(String instance) {

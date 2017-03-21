@@ -20,10 +20,8 @@ package org.apache.helix.integration.rebalancer;
  */
 
 import java.util.Date;
-import org.apache.helix.ConfigAccessor;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.tools.ClusterSetup;
 import org.testng.annotations.BeforeClass;
 

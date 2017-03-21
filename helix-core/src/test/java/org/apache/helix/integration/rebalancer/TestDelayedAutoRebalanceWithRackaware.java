@@ -18,6 +18,8 @@ package org.apache.helix.integration.rebalancer;
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import java.util.Date;
 import org.apache.helix.controller.rebalancer.strategy.CrushRebalanceStrategy;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -25,8 +27,6 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.testng.annotations.BeforeClass;
-
-import java.util.Date;
 
 public class TestDelayedAutoRebalanceWithRackaware extends TestDelayedAutoRebalance {
   final int NUM_NODE = 9;

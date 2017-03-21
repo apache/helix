@@ -19,6 +19,10 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.integration.common.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -29,11 +33,6 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
-
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class TestAutoRebalanceWithDisabledInstance extends ZkStandAloneCMTestBase {
   private static String TEST_DB_2 = "TestDB2";

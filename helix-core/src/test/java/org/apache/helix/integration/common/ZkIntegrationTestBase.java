@@ -146,12 +146,19 @@ public class ZkIntegrationTestBase {
   protected IdealState createResourceWithDelayedRebalance(String clusterName, String db,
       String stateModel, int numPartition, int replica, int minActiveReplica, long delay,
       String rebalanceStrategy) {
-    _gSetupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
-        IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
-
     IdealState idealState =
         _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
+    if (idealState == null) {
+      _gSetupTool.addResourceToCluster(clusterName, db, numPartition, stateModel,
+          IdealState.RebalanceMode.FULL_AUTO + "", rebalanceStrategy);
+    }
+
+    idealState =
+        _gSetupTool.getClusterManagementTool().getResourceIdealState(clusterName, db);
     idealState.setMinActiveReplicas(minActiveReplica);
+    if (!idealState.isDelayRebalanceEnabled()) {
+      idealState.setDelayRebalanceEnabled(true);
+    }
     if (delay > 0) {
       idealState.setRebalanceDelay(delay);
     }

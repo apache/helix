@@ -30,11 +30,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
+import org.apache.log4j.Logger;
 
 /**
  * The history of participant.
  */
 public class ParticipantHistory extends HelixProperty {
+  private static Logger LOG = Logger.getLogger(ParticipantHistory.class);
+
   private final static int HISTORY_SIZE = 10;
   private enum ConfigProperty {
     TIME,
@@ -74,19 +77,23 @@ public class ParticipantHistory extends HelixProperty {
   }
 
   /**
-   * Get the time when this node goes offline last time (epoch time).
-   * If the node is currently online, return -1.
-   * If no offline time is record, return NULL.
+   * Get the time when this node goes offline last time (epoch time). If the node is currently
+   * online or if no offline time is recorded, return -1.
    *
    * @return
    */
-  public Long getLastOfflineTime() {
-    String time = _record.getSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name());
-    if (time == null) {
-      return ONLINE;
+  public long getLastOfflineTime() {
+    long offlineTime = ONLINE;
+    String timeStr = _record.getSimpleField(ConfigProperty.LAST_OFFLINE_TIME.name());
+    if (timeStr != null) {
+      try {
+        offlineTime = Long.valueOf(timeStr);
+      } catch (NumberFormatException ex) {
+        LOG.warn("Failed to parse LAST_OFFLINE_TIME " + timeStr);
+      }
     }
 
-    return Long.valueOf(time);
+    return offlineTime;
   }
 
   /**

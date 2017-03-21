@@ -19,10 +19,12 @@ package org.apache.helix.integration.rebalancer;
  * under the License.
  */
 
+import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 import java.util.Date;
 import java.util.Map;
 import java.util.Set;
-
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -47,10 +49,6 @@ import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.Test;
-
-import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Sets;
 
 /**
  * Test that node tagging behaves correctly in FULL_AUTO mode

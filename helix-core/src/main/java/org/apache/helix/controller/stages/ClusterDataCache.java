@@ -279,7 +279,7 @@ public class ClusterDataCache {
     offlineNodes.removeAll(_liveInstanceMap.keySet());
     _instanceOfflineTimeMap = new HashMap<String, Long>();
 
-    for(String instance : offlineNodes) {
+    for (String instance : offlineNodes) {
       Builder keyBuilder = accessor.keyBuilder();
       PropertyKey propertyKey = keyBuilder.participantHistory(instance);
       ParticipantHistory history = accessor.getProperty(propertyKey);
@@ -289,7 +289,7 @@ public class ClusterDataCache {
       if (history.getLastOfflineTime() == ParticipantHistory.ONLINE) {
         history.reportOffline();
         // persist history back to ZK.
-        if(!accessor.setProperty(propertyKey, history)) {
+        if (!accessor.setProperty(propertyKey, history)) {
           LOG.error("Fails to persist participant online history back to ZK!");
         }
       }

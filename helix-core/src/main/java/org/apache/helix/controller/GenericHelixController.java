@@ -320,7 +320,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
   // TODO since we read data in pipeline, we can get rid of reading from zookeeper in
   // callback
-
   @Override
   public void onStateChange(String instanceName, List<CurrentState> statesInfo,
       NotificationContext changeContext) {

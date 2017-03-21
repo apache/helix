@@ -271,8 +271,9 @@ public class InstanceConfig extends HelixProperty {
   public List<String> getDisabledPartitions() {
     List<String> oldDisabled =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    if (!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        && oldDisabled == null) {
+    Map<String, String> newDisabledMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if (newDisabledMap == null && oldDisabled == null) {
       return null;
     }
 
@@ -281,11 +282,11 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.addAll(oldDisabled);
     }
 
-    for (String perResource : _record
-        .getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name()).values()) {
-      disabledPartitions.addAll(HelixUtil.deserializeByComma(perResource));
+    if (newDisabledMap != null) {
+      for (String perResource : newDisabledMap.values()) {
+        disabledPartitions.addAll(HelixUtil.deserializeByComma(perResource));
+      }
     }
-
     return new ArrayList<String>(disabledPartitions);
   }
 
@@ -298,9 +299,10 @@ public class InstanceConfig extends HelixProperty {
     // TODO: Remove this logic getting data from list field when getDisabledParition() removed.
     List<String> oldDisabled =
         _record.getListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
-    if ((!_record.getMapFields().containsKey(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        || !_record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-        .containsKey(resourceName)) && oldDisabled == null) {
+    Map<String, String> newDisabledMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if ((newDisabledMap == null || !newDisabledMap.containsKey(resourceName))
+        && oldDisabled == null) {
       return null;
     }
 
@@ -309,10 +311,9 @@ public class InstanceConfig extends HelixProperty {
       disabledPartitions.addAll(oldDisabled);
     }
 
-    disabledPartitions.addAll(HelixUtil.deserializeByComma(
-        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name())
-            .get(resourceName)));
-
+    if (newDisabledMap != null) {
+      disabledPartitions.addAll(HelixUtil.deserializeByComma(newDisabledMap.get(resourceName)));
+    }
     return new ArrayList<String>(disabledPartitions);
   }
 

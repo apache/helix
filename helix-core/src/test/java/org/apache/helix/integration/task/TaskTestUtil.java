@@ -89,6 +89,8 @@ public class TaskTestUtil {
 
   // 1. Different jobs in a same work flow is in RUNNING at the same time
   // 2. No two jobs in the same work flow is in RUNNING at the same instance
+  // Use this method with caution because it assumes workflow doesn't finish too quickly and number of parallel running
+  // tasks can be counted.
   public static boolean pollForWorkflowParallelState(TaskDriver driver, String workflowName)
       throws InterruptedException {
 

@@ -86,7 +86,7 @@ public class TestScheduleDelayJobs extends TaskSynchronizedTestBase {
 
   private class TestRebalancer extends WorkflowRebalancer {
     public long getRebalanceTime(String workflow) {
-      return _scheduledRebalancer.getRebalanceTime(workflow);
+      return _rebalanceScheduler.getRebalanceTime(workflow);
     }
   }
 

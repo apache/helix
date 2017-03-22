@@ -49,7 +49,7 @@ import org.apache.log4j.Logger;
  */
 public class DelayedAutoRebalancer extends AbstractRebalancer {
   private static final Logger LOG = Logger.getLogger(DelayedAutoRebalancer.class);
-  private static RebalanceScheduler _scheduledRebalancer = new RebalanceScheduler();
+  private static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
 
   @Override
   public IdealState computeNewIdealState(String resourceName,
@@ -209,7 +209,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
       ClusterConfig clusterConfig) {
     String resourceName = idealState.getResourceName();
     if (!isDelayRebalanceEnabled(idealState, clusterConfig)) {
-      _scheduledRebalancer.removeScheduledRebalance(resourceName);
+      _rebalanceScheduler.removeScheduledRebalance(resourceName);
       return;
     }
 
@@ -225,13 +225,13 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     }
 
     if (nextRebalanceTime == Long.MAX_VALUE) {
-      long startTime = _scheduledRebalancer.removeScheduledRebalance(resourceName);
+      long startTime = _rebalanceScheduler.removeScheduledRebalance(resourceName);
       LOG.debug(String
           .format("Remove exist rebalance timer for resource %s at %d\n", resourceName, startTime));
     } else {
-      long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(resourceName);
+      long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(resourceName);
       if (currentScheduledTime < 0 || currentScheduledTime > nextRebalanceTime) {
-        _scheduledRebalancer.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
+        _rebalanceScheduler.scheduleRebalance(_manager, resourceName, nextRebalanceTime);
         LOG.debug(String
             .format("Set next rebalance time for resource %s at time %d\n", resourceName,
                 nextRebalanceTime));

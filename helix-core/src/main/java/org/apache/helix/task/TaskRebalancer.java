@@ -47,7 +47,7 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
 
   // For connection management
   protected HelixManager _manager;
-  protected static RebalanceScheduler _scheduledRebalancer = new RebalanceScheduler();
+  protected static RebalanceScheduler _rebalanceScheduler = new RebalanceScheduler();
   protected ClusterStatusMonitor _clusterStatusMonitor;
 
   @Override public void init(HelixManager manager) {
@@ -238,11 +238,11 @@ public abstract class TaskRebalancer implements Rebalancer, MappingCalculator {
       long currentTime) {
     JobConfig jobConfig = TaskUtil.getJobConfig(_manager, jobName);
     long currentScheduledTime =
-        _scheduledRebalancer.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
+        _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId()) == -1
             ? Long.MAX_VALUE
-            : _scheduledRebalancer.getRebalanceTime(workflowConfig.getWorkflowId());
+            : _rebalanceScheduler.getRebalanceTime(workflowConfig.getWorkflowId());
     if (currentTime + jobConfig.getExpiry() < currentScheduledTime) {
-      _scheduledRebalancer.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
+      _rebalanceScheduler.scheduleRebalance(_manager, workflowConfig.getWorkflowId(),
           currentTime + jobConfig.getExpiry());
     }
   }

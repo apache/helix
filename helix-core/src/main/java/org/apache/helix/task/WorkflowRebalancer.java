@@ -108,7 +108,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       } else {
         // schedule future cleanup work
         long cleanupTime = workflowCtx.getFinishTime() + expiryTime;
-        _scheduledRebalancer.scheduleRebalance(_manager, workflow, cleanupTime);
+        _rebalanceScheduler.scheduleRebalance(_manager, workflow, cleanupTime);
       }
       return buildEmptyAssignment(workflow, currStateOutput);
     }
@@ -116,7 +116,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (!isWorkflowReadyForSchedule(workflowCfg)) {
       LOG.info("Workflow " + workflow + " is not ready to schedule");
       // set the timer to trigger future schedule
-      _scheduledRebalancer
+      _rebalanceScheduler
           .scheduleRebalance(_manager, workflow, workflowCfg.getStartTime().getTime());
       return buildEmptyAssignment(workflow, currStateOutput);
     }
@@ -195,11 +195,11 @@ public class WorkflowRebalancer extends TaskRebalancer {
         }
       }
     }
-    long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(workflow) == -1
+    long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(workflow) == -1
         ? Long.MAX_VALUE
-        : _scheduledRebalancer.getRebalanceTime(workflow);
+        : _rebalanceScheduler.getRebalanceTime(workflow);
     if (timeToSchedule < currentScheduledTime) {
-      _scheduledRebalancer.scheduleRebalance(_manager, workflow, timeToSchedule);
+      _rebalanceScheduler.scheduleRebalance(_manager, workflow, timeToSchedule);
     }
   }
 
@@ -344,19 +344,19 @@ public class WorkflowRebalancer extends TaskRebalancer {
         }
 
         // Change the time to trigger the pipeline to that of the next run
-        _scheduledRebalancer.scheduleRebalance(_manager, workflow, (timeToSchedule + period));
+        _rebalanceScheduler.scheduleRebalance(_manager, workflow, (timeToSchedule + period));
       } else {
         // one time workflow.
         // Remove any timers that are past-time for this workflowg
-        long scheduledTime = _scheduledRebalancer.getRebalanceTime(workflow);
+        long scheduledTime = _rebalanceScheduler.getRebalanceTime(workflow);
         if (scheduledTime > 0 && currentTime > scheduledTime) {
-          _scheduledRebalancer.removeScheduledRebalance(workflow);
+          _rebalanceScheduler.removeScheduledRebalance(workflow);
         }
         return true;
       }
     } else {
       // set the timer to trigger future schedule
-      _scheduledRebalancer.scheduleRebalance(_manager, workflow, startTime.getTime());
+      _rebalanceScheduler.scheduleRebalance(_manager, workflow, startTime.getTime());
     }
 
     return false;
@@ -452,9 +452,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
     if (workflowcfg.isTerminable() || workflowcfg.getTargetState() == TargetState.DELETE) {
       Set<String> jobs = workflowcfg.getJobDag().getAllNodes();
       // Remove all pending timer tasks for this workflow if exists
-      _scheduledRebalancer.removeScheduledRebalance(workflow);
+      _rebalanceScheduler.removeScheduledRebalance(workflow);
       for (String job : jobs) {
-        _scheduledRebalancer.removeScheduledRebalance(job);
+        _rebalanceScheduler.removeScheduledRebalance(job);
       }
       if (!TaskUtil.removeWorkflow(_manager, workflow, jobs)) {
         LOG.warn("Failed to clean up workflow " + workflow);
@@ -492,7 +492,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
               .removeJob(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(), job)) {
             LOG.warn("Failed to clean up expired and completed jobs from workflow " + workflow);
           }
-          _scheduledRebalancer.removeScheduledRebalance(job);
+          _rebalanceScheduler.removeScheduledRebalance(job);
         }
         if (!TaskUtil
             .removeJobsFromDag(_manager.getHelixDataAccessor(), workflow, expiredJobs, true)) {
@@ -512,9 +512,9 @@ public class WorkflowRebalancer extends TaskRebalancer {
 
   private void setNextJobPurgeTime(String workflow, long currentTime, long purgeInterval) {
     long nextPurgeTime = currentTime + purgeInterval;
-    long currentScheduledTime = _scheduledRebalancer.getRebalanceTime(workflow);
+    long currentScheduledTime = _rebalanceScheduler.getRebalanceTime(workflow);
     if (currentScheduledTime == -1 || currentScheduledTime > nextPurgeTime) {
-      _scheduledRebalancer.scheduleRebalance(_manager, workflow, nextPurgeTime);
+      _rebalanceScheduler.scheduleRebalance(_manager, workflow, nextPurgeTime);
     }
   }
 

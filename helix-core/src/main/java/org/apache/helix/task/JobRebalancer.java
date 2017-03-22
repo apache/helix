@@ -105,7 +105,7 @@ public class JobRebalancer extends TaskRebalancer {
           "Workflow %s or job %s is already failed or completed, workflow state (%s), job state (%s), clean up job IS.",
           workflowResource, jobName, workflowState, jobState));
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
-      _scheduledRebalancer.removeScheduledRebalance(jobName);
+      _rebalanceScheduler.removeScheduledRebalance(jobName);
       return buildEmptyAssignment(jobName, currStateOutput);
     }
 
@@ -196,7 +196,7 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private ResourceAssignment computeResourceMapping(String jobResource,
-      WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevAssignment,
+      WorkflowConfig workflowConfig, JobConfig jobCfg, ResourceAssignment prevTaskToInstanceStateAssignment,
       Collection<String> liveInstances, CurrentStateOutput currStateOutput,
       WorkflowContext workflowCtx, JobContext jobCtx, Set<Integer> partitionsToDropFromIs,
       ClusterDataCache cache) {
@@ -254,20 +254,20 @@ public class JobRebalancer extends TaskRebalancer {
       return new ResourceAssignment(jobResource);
     }
 
-    Map<String, SortedSet<Integer>> taskAssignments =
-        getTaskPartitionAssignments(liveInstances, prevAssignment, allPartitions);
+    Map<String, SortedSet<Integer>> prevInstanceToTaskAssignments =
+        getPrevInstanceToTaskAssignments(liveInstances, prevTaskToInstanceStateAssignment, allPartitions);
     long currentTime = System.currentTimeMillis();
 
-    LOG.debug("All partitions: " + allPartitions + " taskAssignment: " + taskAssignments
+    LOG.debug("All partitions: " + allPartitions + " taskAssignment: " + prevInstanceToTaskAssignments
         + " excludedInstances: " + excludedInstances);
 
     // Iterate through all instances
-    for (String instance : taskAssignments.keySet()) {
+    for (String instance : prevInstanceToTaskAssignments.keySet()) {
       if (excludedInstances.contains(instance)) {
         continue;
       }
 
-      Set<Integer> pSet = taskAssignments.get(instance);
+      Set<Integer> pSet = prevInstanceToTaskAssignments.get(instance);
       // Used to keep track of partitions that are in one of the final states: COMPLETED, TIMED_OUT,
       // TASK_ERROR, ERROR.
       Set<Integer> donePartitions = new TreeSet<Integer>();
@@ -280,7 +280,7 @@ public class JobRebalancer extends TaskRebalancer {
         Message pendingMessage =
             currStateOutput.getPendingState(jobResource, new Partition(pName), instance);
         if (pendingMessage != null) {
-          processTaskWithPendingMessage(prevAssignment, pId, pName, instance, pendingMessage, jobState, currState,
+          processTaskWithPendingMessage(prevTaskToInstanceStateAssignment, pId, pName, instance, pendingMessage, jobState, currState,
               paMap, assignedPartitions);
           continue;
         }
@@ -423,7 +423,7 @@ public class JobRebalancer extends TaskRebalancer {
     if (isJobComplete(jobCtx, allPartitions, jobCfg)) {
       markJobComplete(jobResource, jobCtx, workflowConfig, workflowCtx);
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.COMPLETED);
-      _scheduledRebalancer.removeScheduledRebalance(jobResource);
+      _rebalanceScheduler.removeScheduledRebalance(jobResource);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
@@ -440,7 +440,7 @@ public class JobRebalancer extends TaskRebalancer {
         }
       }
       _clusterStatusMonitor.updateJobCounters(jobCfg, TaskState.TIMED_OUT);
-      _scheduledRebalancer.removeScheduledRebalance(jobResource);
+      _rebalanceScheduler.removeScheduledRebalance(jobResource);
       TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobResource);
       return buildEmptyAssignment(jobResource, currStateOutput);
     }
@@ -460,9 +460,9 @@ public class JobRebalancer extends TaskRebalancer {
       excludeSet.addAll(getNonReadyPartitions(jobCtx, currentTime));
       // Get instance->[partition, ...] mappings for the target resource.
       Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal
-          .getTaskAssignment(currStateOutput, prevAssignment, liveInstances, jobCfg, jobCtx,
+          .getTaskAssignment(currStateOutput, prevTaskToInstanceStateAssignment, liveInstances, jobCfg, jobCtx,
               workflowConfig, workflowCtx, allPartitions, cache.getIdealStates());
-      for (Map.Entry<String, SortedSet<Integer>> entry : taskAssignments.entrySet()) {
+      for (Map.Entry<String, SortedSet<Integer>> entry : prevInstanceToTaskAssignments.entrySet()) {
         String instance = entry.getKey();
         if (!tgtPartitionAssignments.containsKey(instance) || excludedInstances
             .contains(instance)) {
@@ -568,7 +568,7 @@ public class JobRebalancer extends TaskRebalancer {
       }
     }
     _clusterStatusMonitor.updateJobCounters(jobConfig, TaskState.FAILED);
-    _scheduledRebalancer.removeScheduledRebalance(jobName);
+    _rebalanceScheduler.removeScheduledRebalance(jobName);
     TaskUtil.cleanupJobIdealStateExtView(_manager.getHelixDataAccessor(), jobName);
   }
 
@@ -632,9 +632,9 @@ public class JobRebalancer extends TaskRebalancer {
 
     // If any was found, then schedule it
     if (shouldSchedule) {
-      long scheduledTime = _scheduledRebalancer.getRebalanceTime(job);
+      long scheduledTime = _rebalanceScheduler.getRebalanceTime(job);
       if (scheduledTime == -1 || earliestTime < scheduledTime) {
-        _scheduledRebalancer.scheduleRebalance(_manager, job, earliestTime);
+        _rebalanceScheduler.scheduleRebalance(_manager, job, earliestTime);
       }
     }
   }
@@ -644,9 +644,9 @@ public class JobRebalancer extends TaskRebalancer {
   private void scheduleRebalanceForJobTimeout(JobConfig jobCfg, JobContext jobCtx) {
     long jobTimeoutTime = computeJobTimeoutTime(jobCtx, jobCfg);
     if (jobTimeoutTime != JobConfig.DEFAULT_TIMEOUT_NEVER && jobTimeoutTime > System.currentTimeMillis()) {
-      long nextRebalanceTime = _scheduledRebalancer.getRebalanceTime(jobCfg.getJobId());
+      long nextRebalanceTime = _rebalanceScheduler.getRebalanceTime(jobCfg.getJobId());
       if (nextRebalanceTime == JobConfig.DEFAULT_TIMEOUT_NEVER || jobTimeoutTime < nextRebalanceTime) {
-        _scheduledRebalancer.scheduleRebalance(_manager, jobCfg.getJobId(), jobTimeoutTime);
+        _rebalanceScheduler.scheduleRebalance(_manager, jobCfg.getJobId(), jobTimeoutTime);
       }
     }
   }
@@ -778,19 +778,22 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   /**
-   * Return the assignment of task partitions per instance.
+   * @param liveInstances
+   * @param prevAssignment task partition -> (instance -> state)
+   * @param allTaskPartitions all task partitionIds
+   * @return instance -> partitionIds from previous assignment, if the instance is still live
    */
-  private static Map<String, SortedSet<Integer>> getTaskPartitionAssignments(
-      Iterable<String> instanceList, ResourceAssignment assignment, Set<Integer> includeSet) {
+  private static Map<String, SortedSet<Integer>> getPrevInstanceToTaskAssignments(
+      Iterable<String> liveInstances, ResourceAssignment prevAssignment, Set<Integer> allTaskPartitions) {
     Map<String, SortedSet<Integer>> result = new HashMap<String, SortedSet<Integer>>();
-    for (String instance : instanceList) {
+    for (String instance : liveInstances) {
       result.put(instance, new TreeSet<Integer>());
     }
 
-    for (Partition partition : assignment.getMappedPartitions()) {
+    for (Partition partition : prevAssignment.getMappedPartitions()) {
       int pId = getPartitionId(partition.getPartitionName());
-      if (includeSet.contains(pId)) {
-        Map<String, String> replicaMap = assignment.getReplicaMap(partition);
+      if (allTaskPartitions.contains(pId)) {
+        Map<String, String> replicaMap = prevAssignment.getReplicaMap(partition);
         for (String instance : replicaMap.keySet()) {
           SortedSet<Integer> pList = result.get(instance);
           if (pList != null) {

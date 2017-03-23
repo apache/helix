@@ -75,7 +75,7 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
   }
 
   @DataProvider(name = "rebalanceModes")
-  public static RebalanceMode [][] rebalanceModes() {
+  public static Object [][] rebalanceModes() {
     return new RebalanceMode[][] { {RebalanceMode.SEMI_AUTO}, {RebalanceMode.FULL_AUTO}};
   }
 

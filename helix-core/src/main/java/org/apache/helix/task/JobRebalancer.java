@@ -389,6 +389,8 @@ public class JobRebalancer extends TaskRebalancer {
       pSet.removeAll(donePartitions);
     }
 
+    addGiveupPartitions(skippedPartitions, jobCtx, allPartitions, jobCfg);
+
     if (jobState == TaskState.IN_PROGRESS && skippedPartitions.size() > jobCfg.getFailureThreshold()) {
       if (isJobFinished(jobCtx, jobResource, currStateOutput)) {
         failJob(jobResource, workflowCtx, jobCtx, workflowConfig, jobCfg);
@@ -697,12 +699,6 @@ public class JobRebalancer extends TaskRebalancer {
     return numOfGivenUpTasks <= cfg.getFailureThreshold();
   }
 
-  private static void addAllPartitions(Set<Integer> toAdd, Set<Integer> destination) {
-    for (Integer pId : toAdd) {
-      destination.add(pId);
-    }
-  }
-
   private static void addCompletedTasks(Set<Integer> set, JobContext ctx,
       Iterable<Integer> pIds) {
     for (Integer pId : pIds) {
@@ -715,11 +711,13 @@ public class JobRebalancer extends TaskRebalancer {
 
   private static boolean isTaskGivenup(JobContext ctx, JobConfig cfg, int pId) {
     TaskPartitionState state = ctx.getPartitionState(pId);
-    if (state != null
-        && (state.equals(TaskPartitionState.TASK_ABORTED) || state.equals(TaskPartitionState.ERROR))) {
+    if (state == TaskPartitionState.TASK_ABORTED || state == TaskPartitionState.ERROR) {
       return true;
     }
-    return ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask();
+    if (state == TaskPartitionState.TIMED_OUT || state == TaskPartitionState.TASK_ERROR) {
+      return ctx.getPartitionNumAttempts(pId) >= cfg.getMaxAttemptsPerTask();
+    }
+    return false;
   }
 
   // add all partitions that have been tried maxNumberAttempts

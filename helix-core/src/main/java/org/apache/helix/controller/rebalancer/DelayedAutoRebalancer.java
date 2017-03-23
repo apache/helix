@@ -192,7 +192,9 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     for (String ins : offlineOrDisabledInstances) {
       long inactiveTime = getInactiveTime(ins, liveNodes, instanceOfflineTimeMap.get(ins), delay,
           instanceConfigMap.get(ins));
-      if (inactiveTime > currentTime) {
+      InstanceConfig instanceConfig = instanceConfigMap.get(ins);
+      if (inactiveTime > currentTime && instanceConfig != null && instanceConfig
+          .isDelayRebalanceEnabled()) {
         activeInstances.add(ins);
       }
     }

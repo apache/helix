@@ -48,7 +48,8 @@ public class InstanceConfig extends HelixProperty {
     HELIX_DISABLED_PARTITION,
     TAG_LIST,
     INSTANCE_WEIGHT,
-    DOMAIN
+    DOMAIN,
+    DELAY_REBALANCE_ENABLED
   }
   public static final int WEIGHT_NOT_SET = -1;
 
@@ -418,6 +419,28 @@ public class InstanceConfig extends HelixProperty {
       _record.setListField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name(),
           oldDisabledPartitions);
     }
+  }
+
+  /**
+   * Whether the delay rebalance is enabled for this instance.
+   * By default, it is enable if the field is not set.
+   *
+   * @return
+   */
+  public boolean isDelayRebalanceEnabled() {
+    return _record
+        .getBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+            true);
+  }
+
+  /**
+   * Enable/Disable the delayed rebalance. By default it is enabled if not set.
+   *
+   * @param enabled
+   */
+  public void setDelayRebalanceEnabled(boolean enabled) {
+    _record.setBooleanField(ResourceConfig.ResourceConfigProperty.DELAY_REBALANCE_ENABLED.name(),
+        enabled);
   }
 
   @Override

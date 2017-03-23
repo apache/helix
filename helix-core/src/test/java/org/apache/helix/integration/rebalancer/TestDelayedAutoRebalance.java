@@ -107,20 +107,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
   @Test
   public void testDelayedPartitionMovement() throws Exception {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
-
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
   }
 
   @Test(dependsOnMethods = {"testDelayedPartitionMovement"})
@@ -128,20 +115,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
 
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(1000);
-    Assert.assertTrue(_clusterVerifier.verify());
-
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
 
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, -1);
   }
@@ -154,20 +128,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
   public void testMinimalActiveReplicaMaintain() throws Exception {
     setDelayTimeInCluster(_gZkClient, CLUSTER_NAME, 1000000);
     Map<String, ExternalView> externalViewsBefore = createTestDBs(-1);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
-
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
 
     // bring down another node, the minimal active replica for each partition should be maintained.
     _participants.get(3).syncStop();
@@ -190,19 +151,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
 
     long delay = 4000;
     Map<String, ExternalView> externalViewsBefore = createTestDBs(delay);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(200);
-    Assert.assertTrue(_clusterVerifier.verify());
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
 
     Thread.sleep(delay + 200);
     Assert.assertTrue(_clusterVerifier.verify());
@@ -218,20 +167,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
   @Test (dependsOnMethods = {"testMinimalActiveReplicaMaintain"})
   public void testDisableDelayRebalanceInResource() throws Exception {
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
-
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
 
     // disable delay rebalance for one db, partition should be moved immediately
     String testDb = _testDBs.get(0);
@@ -265,20 +201,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
 
     Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
-
-    // bring down one node, no partition should be moved.
-    _participants.get(0).syncStop();
-    Thread.sleep(500);
-    Assert.assertTrue(_clusterVerifier.verify());
-
-    for (String db : _testDBs) {
-      ExternalView ev =
-          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
-      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
-      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
-      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
-          _participants.get(0).getInstanceName(), false);
-    }
+    validateDelayedMovements(externalViewsBefore);
 
     // disable delay rebalance for the entire cluster.
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, false);
@@ -295,6 +218,26 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
     }
 
     enableDelayRebalanceInCluster(_gZkClient, CLUSTER_NAME, true);
+  }
+
+  @Test (dependsOnMethods = {"testDisableDelayRebalanceInCluster"})
+  public void testDisableDelayRebalanceInInstance() throws Exception {
+    Map<String, ExternalView> externalViewsBefore = createTestDBs(1000000);
+    validateDelayedMovements(externalViewsBefore);
+
+    String disabledInstanceName = _participants.get(0).getInstanceName();
+    enableDelayRebalanceInInstance(_gZkClient, CLUSTER_NAME, disabledInstanceName, false);
+    Thread.sleep(1000);
+
+    for (String db : _testDBs) {
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(
+          CLUSTER_NAME, db);
+      Map<String, List<String>> preferenceLists = is.getPreferenceLists();
+      for (List<String> instances : preferenceLists.values()) {
+        Assert.assertFalse(instances.contains(disabledInstanceName));
+      }
+    }
+    enableDelayRebalanceInInstance(_gZkClient, CLUSTER_NAME, disabledInstanceName, true);
   }
 
   @AfterMethod
@@ -406,6 +349,23 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       Assert.assertTrue(activeReplica >= minActiveReplica, String
           .format("%s has less active replica %d then required %d", partition, activeReplica,
               minActiveReplica));
+    }
+  }
+
+  private void validateDelayedMovements(Map<String, ExternalView> externalViewsBefore)
+      throws InterruptedException {
+    // bring down one node, no partition should be moved.
+    _participants.get(0).syncStop();
+    Thread.sleep(500);
+    Assert.assertTrue(_clusterVerifier.verify());
+
+    for (String db : _testDBs) {
+      ExternalView ev =
+          _setupTool.getClusterManagementTool().getResourceExternalView(CLUSTER_NAME, db);
+      IdealState is = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, db);
+      validateMinActiveAndTopStateReplica(is, ev, _minActiveReplica);
+      validateNoPartitionMove(is, externalViewsBefore.get(db), ev,
+          _participants.get(0).getInstanceName(), false);
     }
   }
 

@@ -22,24 +22,23 @@ package org.apache.helix.integration.common;
 import java.util.logging.Level;
 
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.DelayedAutoRebalancer;
 import org.apache.helix.controller.rebalancer.strategy.AutoRebalanceStrategy;
-import org.apache.helix.model.ClusterConfig;
-import org.apache.helix.model.ConfigScope;
-import org.apache.helix.model.HelixConfigScope;
-import org.apache.helix.model.IdealState;
-import org.apache.helix.model.builder.ConfigScopeBuilder;
-import org.apache.helix.BaseDataAccessor;
-import org.apache.helix.TestHelper;
-import org.apache.helix.PropertyKey.Builder;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.ConfigScope;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
-import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.model.builder.ConfigScopeBuilder;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
 import org.apache.log4j.Logger;
@@ -128,6 +127,14 @@ public class ZkIntegrationTestBase {
     ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
     clusterConfig.setDelayRebalaceEnabled(enabled);
     configAccessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  protected void enableDelayRebalanceInInstance(ZkClient zkClient, String clusterName,
+      String instanceName, boolean enabled) {
+    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
+    InstanceConfig instanceConfig = configAccessor.getInstanceConfig(clusterName, instanceName);
+    instanceConfig.setDelayRebalanceEnabled(enabled);
+    configAccessor.setInstanceConfig(clusterName, instanceName, instanceConfig);
   }
 
   protected void setDelayTimeInCluster(ZkClient zkClient, String clusterName, long delay) {

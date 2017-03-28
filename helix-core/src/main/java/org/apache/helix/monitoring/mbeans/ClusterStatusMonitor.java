@@ -74,7 +74,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Set<String> _liveInstances = Collections.emptySet();
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
-  private Map<String, Map<String, String>> _disabledPartitions = Collections.emptyMap();
+  private Map<String, Map<String, List<String>>> _disabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
@@ -132,10 +132,10 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
 
   @Override public long getDisabledPartitionsGauge() {
     int numDisabled = 0;
-    for (Map<String, String> perInstance : _disabledPartitions.values()) {
-      for (String partitions : perInstance.values()) {
+    for (Map<String, List<String>> perInstance : _disabledPartitions.values()) {
+      for (List<String> partitions : perInstance.values()) {
         if (partitions != null) {
-          numDisabled += HelixUtil.deserializeByComma(partitions).size();
+          numDisabled += partitions.size();
         }
       }
     }
@@ -199,7 +199,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    * @param tags a map of instance name to the set of tags on it
    */
   public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
-      Set<String> disabledInstanceSet, Map<String, Map<String, String>> disabledPartitions,
+      Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
       Map<String, Set<String>> tags) {
     // Unregister beans for instances that are no longer configured
     Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());

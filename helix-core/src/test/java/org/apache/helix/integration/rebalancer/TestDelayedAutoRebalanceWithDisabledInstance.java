@@ -173,7 +173,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
   public void testPartitionMovementAfterDelayTime() throws Exception {
     enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
 
-    long delay = 4000;
+    long delay = 10000;
     Map<String, ExternalView> externalViewsBefore = createTestDBs(delay);
 
     // disable one node, no partition should be moved.
@@ -223,7 +223,7 @@ public class TestDelayedAutoRebalanceWithDisabledInstance extends TestDelayedAut
         CLUSTER_NAME, testDb);
     idealState.setDelayRebalanceEnabled(false);
     _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, testDb, idealState);
-    Thread.sleep(100);
+    Thread.sleep(2000);
     Assert.assertTrue(_clusterVerifier.verify());
 
     // once delay rebalance is disabled, it should maintain required number of replicas for that db.

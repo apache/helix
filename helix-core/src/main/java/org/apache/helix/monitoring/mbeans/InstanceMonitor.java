@@ -24,9 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.helix.task.TaskUtil;
-import org.apache.helix.util.HelixUtil;
-
 import com.google.common.base.Joiner;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
@@ -119,8 +116,8 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param isLive true if running, false otherwise
    * @param isEnabled true if enabled, false if disabled
    */
-  public synchronized void updateInstance(Set<String> tags, Map<String, String> disabledPartitions,
-      boolean isLive, boolean isEnabled) {
+  public synchronized void updateInstance(Set<String> tags,
+      Map<String, List<String>> disabledPartitions, boolean isLive, boolean isEnabled) {
     if (tags == null || tags.isEmpty()) {
       _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     } else {
@@ -129,9 +126,9 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     }
     _disabledPartitions = 0L;
     if (disabledPartitions != null) {
-      for (String partitions : disabledPartitions.values()) {
+      for (List<String> partitions : disabledPartitions.values()) {
         if (partitions != null) {
-          _disabledPartitions += HelixUtil.deserializeByComma(partitions).size();
+          _disabledPartitions += partitions.size();
         }
       }
     }

@@ -88,7 +88,7 @@ public class ZNRecordSerializer implements ZkSerializer {
       mapper.writeValue(baos, data);
       serializedBytes = baos.toByteArray();
       // apply compression if needed
-      if (record.getBooleanField("enableCompression", false)) {
+      if (record.getBooleanField("enableCompression", false) || serializedBytes.length > ZNRecord.SIZE_LIMIT) {
         serializedBytes = GZipCompressionUtil.compress(serializedBytes);
       }
     } catch (Exception e) {

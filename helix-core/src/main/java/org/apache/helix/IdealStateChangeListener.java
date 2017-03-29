@@ -18,21 +18,13 @@ package org.apache.helix;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.List;
-
-import org.apache.helix.model.IdealState;
-
 /**
  * Interface to implement to listen for changes to the ideal state of resources.
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.IdealStateChangeListener}
  */
-public interface IdealStateChangeListener {
-
-  /**
-   * Invoed when ideal state changes
-   * @param idealState
-   * @param changeContext
-   */
-  void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext);
-
+@Deprecated
+public interface IdealStateChangeListener extends
+    org.apache.helix.api.listeners.IdealStateChangeListener {
 }

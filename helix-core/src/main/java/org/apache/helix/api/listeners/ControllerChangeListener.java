@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,15 @@ package org.apache.helix;
  * under the License.
  */
 
+import org.apache.helix.NotificationContext;
+
 /**
- * Interface to implement to be notified of changes to the external view.
- *
- * @deprecated
- * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ExternalViewChangeListener}
+ * Interface to implement to respond to controller changes.
  */
-@Deprecated
-public interface ExternalViewChangeListener extends
-    org.apache.helix.api.listeners.ExternalViewChangeListener {
+public interface ControllerChangeListener {
+  /**
+   * Invoked when controller changes
+   * @param changeContext description of the event and state
+   */
+  public void onControllerChange(NotificationContext changeContext);
 }

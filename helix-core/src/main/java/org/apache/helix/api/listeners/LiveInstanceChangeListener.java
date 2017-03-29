@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,21 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.List;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.LiveInstance;
+
 /**
- * Interface to implement to be notified of changes to the external view.
- *
- * @deprecated
- * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ExternalViewChangeListener}
+ * Interface to implement to listen for live instance changes.
  */
-@Deprecated
-public interface ExternalViewChangeListener extends
-    org.apache.helix.api.listeners.ExternalViewChangeListener {
+public interface LiveInstanceChangeListener {
+
+  /**
+   * Invoked when live instance changes
+   * @param liveInstances
+   * @param changeContext
+   */
+  public void onLiveInstanceChange(List<LiveInstance> liveInstances,
+      NotificationContext changeContext);
+
 }

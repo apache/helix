@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,20 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.List;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.InstanceConfig;
+
 /**
- * Interface to implement to be notified of changes to the external view.
- *
- * @deprecated
- * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ExternalViewChangeListener}
+ * @deprecated replaced by InstanceConfigChangeListener
  */
-@Deprecated
-public interface ExternalViewChangeListener extends
-    org.apache.helix.api.listeners.ExternalViewChangeListener {
+public interface ConfigChangeListener {
+
+  /**
+   * Invoked when participant config changes
+   * @param configs
+   * @param changeContext
+   */
+  public void onConfigChange(List<InstanceConfig> configs, NotificationContext changeContext);
+
 }

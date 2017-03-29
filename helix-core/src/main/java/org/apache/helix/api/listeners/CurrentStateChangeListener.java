@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,22 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.List;
+import org.apache.helix.NotificationContext;
+import org.apache.helix.model.CurrentState;
+
 /**
- * Interface to implement to be notified of changes to the external view.
- *
- * @deprecated
- * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ExternalViewChangeListener}
+ * Interface to implement to respond to changes in the current state
  */
-@Deprecated
-public interface ExternalViewChangeListener extends
-    org.apache.helix.api.listeners.ExternalViewChangeListener {
+public interface CurrentStateChangeListener {
+
+  /**
+   * Invoked when current state changes
+   * @param instanceName name of the instance whose state changed
+   * @param statesInfo a list of the current states
+   * @param changeContext the change event and state
+   */
+  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
+      NotificationContext changeContext);
+
 }

@@ -1,4 +1,4 @@
-package org.apache.helix;
+package org.apache.helix.api.listeners;
 
 /*
  * Licensed to the Apache Software Foundation (ASF) under one
@@ -19,13 +19,18 @@ package org.apache.helix;
  * under the License.
  */
 
+import java.util.List;
+import org.apache.helix.HelixProperty;
+import org.apache.helix.NotificationContext;
+
 /**
- * Interface to implement to be notified of changes to the external view.
- *
- * @deprecated
- * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ExternalViewChangeListener}
+ * Interface to implement to listen for changes to any specified scope.
  */
-@Deprecated
-public interface ExternalViewChangeListener extends
-    org.apache.helix.api.listeners.ExternalViewChangeListener {
+public interface ScopedConfigChangeListener {
+  /**
+   * Invoked when configs of a scope (cluster, participant, or resource) change
+   * @param configs
+   * @param context
+   */
+  public void onConfigChange(List<HelixProperty> configs, NotificationContext context);
 }

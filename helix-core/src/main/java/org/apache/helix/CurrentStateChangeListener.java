@@ -18,23 +18,13 @@ package org.apache.helix;
  * specific language governing permissions and limitations
  * under the License.
  */
-
-import java.util.List;
-
-import org.apache.helix.model.CurrentState;
-
 /**
  * Interface to implement to respond to changes in the current state
+ *
+ * @deprecated
+ * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.CurrentStateChangeListener}
  */
-public interface CurrentStateChangeListener {
-
-  /**
-   * Invoked when current state changes
-   * @param instanceName name of the instance whose state changed
-   * @param statesInfo a list of the current states
-   * @param changeContext the change event and state
-   */
-  public void onStateChange(String instanceName, List<CurrentState> statesInfo,
-      NotificationContext changeContext);
-
+@Deprecated
+public interface CurrentStateChangeListener extends
+    org.apache.helix.api.listeners.CurrentStateChangeListener {
 }

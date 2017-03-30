@@ -170,7 +170,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
 
   public void enqueueTask(NotificationContext changeContext) throws Exception {
     //async mode only applicable to CALLBACK from ZK, During INIT and FINALIZE invoke the callback's immediately.
-    if (asyncBatchModeEnabled && changeContext.getType() != NotificationContext.Type.CALLBACK) {
+    if (asyncBatchModeEnabled && changeContext.getType() == NotificationContext.Type.CALLBACK) {
       logger.info("Enqueuing callback");
       _queue.put(changeContext);
     } else {

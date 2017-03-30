@@ -317,12 +317,26 @@ public class InstanceConfig extends HelixProperty {
   }
 
   /**
-   * Get a map that mapping resource name to disabled partitions
-   * @return A map of resource name mapping to disabled partitions
-   */
-  public Map<String, String> getDisabledPartitionsMap() {
-    return _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+  * Get a map that mapping resource name to disabled partitions
+  * @return A map of resource name mapping to disabled partitions. If no
+  *         resource/partitions disabled, return an empty map.
+  */
+  public Map<String, List<String>> getDisabledPartitionsMap() {
+    Map<String, String> disabledPartitionsRawMap =
+        _record.getMapField(InstanceConfigProperty.HELIX_DISABLED_PARTITION.name());
+    if (disabledPartitionsRawMap == null) {
+      return Collections.emptyMap();
+    }
+
+    Map<String, List<String>> disabledPartitionsMap = new HashMap<String, List<String>>();
+    for (String resourceName : disabledPartitionsRawMap.keySet()) {
+      disabledPartitionsMap.put(resourceName, getDisabledPartitions(resourceName));
+    }
+
+    return disabledPartitionsMap;
   }
+
+
 
   /**
    * Set the enabled state for a partition on this instance across all the resources

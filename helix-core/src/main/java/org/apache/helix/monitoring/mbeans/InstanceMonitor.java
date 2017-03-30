@@ -119,7 +119,7 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param isLive true if running, false otherwise
    * @param isEnabled true if enabled, false if disabled
    */
-  public synchronized void updateInstance(Set<String> tags, Map<String, String> disabledPartitions,
+  public synchronized void updateInstance(Set<String> tags, Map<String, List<String>> disabledPartitions,
       boolean isLive, boolean isEnabled) {
     if (tags == null || tags.isEmpty()) {
       _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
@@ -129,9 +129,9 @@ public class InstanceMonitor implements InstanceMonitorMBean {
     }
     _disabledPartitions = 0L;
     if (disabledPartitions != null) {
-      for (String partitions : disabledPartitions.values()) {
+      for (List<String> partitions : disabledPartitions.values()) {
         if (partitions != null) {
-          _disabledPartitions += HelixUtil.deserializeByComma(partitions).size();
+          _disabledPartitions += partitions.size();
         }
       }
     }

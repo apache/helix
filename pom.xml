@@ -210,6 +210,15 @@ under the License.
       </roles>
       <timezone>-8</timezone>
     </developer>
+    <developer>
+      <id>jxue</id>
+      <name>Junkai Xue</name>
+      <email>jxue@apache.org</email>
+      <roles>
+        <role>Committer</role>
+      </roles>
+      <timezone>-8</timezone>
+    </developer>
   </developers>
   <modules>
     <module>helix-core</module>

@@ -119,12 +119,19 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem> _hdlrFtyRegistry;
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
+  
+  /**
+   * separate executor for executing batch messages
+   */
+  private final ExecutorService _batchMessageExecutorService;
+
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
+
 
   public HelixTaskExecutor() {
     this(new ParticipantStatusMonitor(false, null));
@@ -135,6 +142,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
+    _batchMessageExecutorService = Executors.newCachedThreadPool();
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
@@ -261,12 +269,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
-      String resourceName = message.getResourceName();
-      if (resourceName != null) {
-        String key = message.getMsgType() + "." + resourceName;
-        if (_executorMap.containsKey(key)) {
-          LOG.info("Find per-resource thread pool with key: " + key);
-          executorService = _executorMap.get(key);
+      if(message.getBatchMessageMode() == true) {
+        executorService = _batchMessageExecutorService;
+      } else {
+        String resourceName = message.getResourceName();
+        if (resourceName != null) {
+          String key = message.getMsgType() + "." + resourceName;
+          if (_executorMap.containsKey(key)) {
+            LOG.info("Find per-resource thread pool with key: " + key);
+            executorService = _executorMap.get(key);
+          }
         }
       }
     }

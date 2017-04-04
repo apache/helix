@@ -84,8 +84,8 @@ public class TestParallelJobs extends TaskTestBase {
     _driver.pollForWorkflowState(queueName, TaskState.STOPPED);
   }
 
-  private int getNumOfRunningJobs(WorkflowConfig workflowConfig) {
-    WorkflowContext workflowContext = _driver.getWorkflowContext(workflowConfig.getWorkflowId());
+  private int getNumOfRunningJobs(WorkflowConfig workflowConfig) throws InterruptedException {
+    WorkflowContext workflowContext = TaskTestUtil.pollForWorkflowContext(_driver, workflowConfig.getWorkflowId());
     int runningCount = 0;
     for (String jobName : workflowConfig.getJobDag().getAllNodes()) {
       TaskState jobState = workflowContext.getJobState(jobName);

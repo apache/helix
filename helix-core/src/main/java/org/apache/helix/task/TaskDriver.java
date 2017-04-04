@@ -22,10 +22,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.AccessOption;
 import org.apache.helix.ConfigAccessor;
@@ -47,10 +45,6 @@ import org.apache.helix.model.builder.CustomModeISBuilder;
 import org.apache.helix.store.HelixPropertyStore;
 import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.log4j.Logger;
-
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 /**
  * CLI for scheduling/canceling workflows
@@ -740,7 +734,8 @@ public class TaskDriver {
 
     if (ctx == null || !allowedStates.contains(ctx.getJobState(jobName))) {
       throw new HelixException(
-          String.format("Job \"%s\" context is null or not in states: \"%s\"", jobName, states));
+          String.format("Workflow \"%s\" context is null or job \"%s\" is not in states: %s",
+              workflowName, jobName, allowedStates));
     }
 
     return ctx.getJobState(jobName);

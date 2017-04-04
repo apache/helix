@@ -119,11 +119,11 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem> _hdlrFtyRegistry;
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
-  
+
   /**
    * separate executor for executing batch messages
    */
-  private final ExecutorService _batchMessageExecutorService;
+  final ExecutorService _batchMessageExecutorService;
 
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/

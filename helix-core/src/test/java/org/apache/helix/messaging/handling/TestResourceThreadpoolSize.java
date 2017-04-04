@@ -24,16 +24,17 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixManager;
+import org.apache.helix.integration.ZkStandAloneCMTestBase;
 import org.apache.helix.integration.manager.MockParticipantManager;
+import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.mock.participant.DummyProcess;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.IdealState;
-import org.apache.helix.HelixManager;
-import org.apache.helix.integration.ZkStandAloneCMTestBase;
-import org.apache.helix.messaging.DefaultMessagingService;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.FullAutoModeISBuilder;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
+import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
 import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -71,7 +72,7 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     int configuredPoolSize = 9;
     for (MockParticipantManager participant : _participants) {
       participant.getStateMachineEngine().registerStateModelFactory("OnlineOffline",
-          new TestOnlineOfflineStateModelFactory(customizedPoolSize), "TestFactory");
+          new TestOnlineOfflineStateModelFactory(customizedPoolSize, 0), "TestFactory");
     }
 
     // add db with default thread pool
@@ -113,6 +114,41 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     }
   }
 
+  @Test
+  public void testBatchMessageThreadPoolSize() throws InterruptedException {
+    int customizedPoolSize = 5;
+    _participants[0].getStateMachineEngine().registerStateModelFactory("OnlineOffline",
+        new TestOnlineOfflineStateModelFactory(customizedPoolSize, 2000), "TestFactory");
+    for (int i = 1; i < _participants.length; i++) {
+      _participants[i].syncStop();
+    }
+    Thread.sleep(2000L);
+
+    // Add 10 dbs with batch message enabled. Each db has 10 partitions.
+    // So it will have 10 batch messages and each batch message has 10 sub messages.
+    int numberOfDbs = 10;
+    for (int i = 0; i < numberOfDbs; i++) {
+      String dbName = "TestDBABatch" + i;
+      IdealState idealState = new FullAutoModeISBuilder(dbName).setStateModel("OnlineOffline")
+          .setStateModelFactoryName("TestFactory").setNumPartitions(10).setNumReplica(1).build();
+      idealState.setBatchMessageMode(true);
+      _setupTool.getClusterManagementTool().addResource(CLUSTER_NAME, dbName, idealState);
+      _setupTool.rebalanceStorageCluster(CLUSTER_NAME, dbName, 1);
+    }
+    Thread.sleep(2000L);
+
+    DefaultMessagingService svc =
+        (DefaultMessagingService) (_participants[0].getMessagingService());
+    HelixTaskExecutor helixExecutor = svc.getExecutor();
+    ThreadPoolExecutor executor = (ThreadPoolExecutor) (helixExecutor._batchMessageExecutorService);
+    Assert.assertNotNull(executor);
+    Assert.assertTrue(executor.getPoolSize() >= numberOfDbs);
+
+    BestPossibleExternalViewVerifier verifier =
+        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR).build();
+    Assert.assertTrue(verifier.verify());
+  }
+
   private void setResourceThreadPoolSize(String resourceName, int threadPoolSize) {
     HelixManager manager = _participants[0];
     ConfigAccessor accessor = manager.getConfigAccessor();
@@ -127,8 +163,8 @@ public class TestResourceThreadpoolSize extends ZkStandAloneCMTestBase {
     int _threadPoolSize;
     ExecutorService _threadPoolExecutor;
 
-    public TestOnlineOfflineStateModelFactory(int threadPoolSize) {
-      super(0);
+    public TestOnlineOfflineStateModelFactory(int threadPoolSize, int delay) {
+      super(delay);
       if (threadPoolSize > 0) {
         _threadPoolExecutor = Executors.newFixedThreadPool(threadPoolSize);
       }

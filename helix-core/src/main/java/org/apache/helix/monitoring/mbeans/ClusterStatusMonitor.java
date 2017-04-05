@@ -45,7 +45,6 @@ import org.apache.helix.task.TaskDriver;
 import org.apache.helix.task.TaskState;
 import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
-import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Maps;
@@ -71,6 +70,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private final String _clusterName;
   private final MBeanServer _beanServer;
 
+  private boolean _enabled = true;
   private Set<String> _liveInstances = Collections.emptySet();
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
@@ -715,4 +715,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     return CLUSTER_STATUS_KEY + "." + _clusterName;
   }
 
+  @Override
+  public long getEnabled() {
+    return _enabled ? 1 : 0;
+  }
+
+  public void setEnabled(boolean enabled) {
+    this._enabled = enabled;
+  }
 }

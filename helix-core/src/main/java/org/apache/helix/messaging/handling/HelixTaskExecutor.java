@@ -122,6 +122,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
   final ConcurrentHashMap<String, ExecutorService> _executorMap;
 
+  final ExecutorService _batchMessageExecutorService;
+
   final ConcurrentHashMap<String, String> _messageTaskMap;
   private ExecutorService _cancellationExcutorService;
 
@@ -143,6 +145,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
     _messageTaskMap = new ConcurrentHashMap<String, String>();
     _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
+    _batchMessageExecutorService = Executors.newCachedThreadPool();
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     _transitionTypeThreadpoolChecked =
@@ -291,20 +294,22 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   ExecutorService findExecutorServiceForMsg(Message message) {
     ExecutorService executorService = _executorMap.get(message.getMsgType());
     if (message.getMsgType().equals(MessageType.STATE_TRANSITION.name())) {
-      String resourceName = message.getResourceName();
-      if (resourceName != null) {
-        String key = message.getMsgType() + "." + resourceName;
-        String perStateTransitionTypeKey =
-            getStateTransitionType(key, message.getFromState(), message.getToState());
-        if (perStateTransitionTypeKey != null && _executorMap
-            .containsKey(perStateTransitionTypeKey)) {
-          LOG.info(String
-              .format("Find per state transition type thread pool for resource %s from %s to %s",
-                  message.getResourceName(), message.getFromState(), message.getToState()));
-          executorService = _executorMap.get(perStateTransitionTypeKey);
-        } else if (_executorMap.containsKey(key)) {
-          LOG.info("Find per-resource thread pool with key: " + key);
-          executorService = _executorMap.get(key);
+      if(message.getBatchMessageMode() == true) {
+        executorService = _batchMessageExecutorService;
+      } else {
+        String resourceName = message.getResourceName();
+        if (resourceName != null) {
+          String key = message.getMsgType() + "." + resourceName;
+          String perStateTransitionTypeKey =
+              getStateTransitionType(key, message.getFromState(), message.getToState());
+          if (perStateTransitionTypeKey != null && _executorMap.containsKey(perStateTransitionTypeKey)) {
+            LOG.info(String.format("Find per state transition type thread pool for resource %s from %s to %s",
+                message.getResourceName(), message.getFromState(), message.getToState()));
+            executorService = _executorMap.get(perStateTransitionTypeKey);
+          } else if (_executorMap.containsKey(key)) {
+            LOG.info("Find per-resource thread pool with key: " + key);
+            executorService = _executorMap.get(key);
+          }
         }
       }
     } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {

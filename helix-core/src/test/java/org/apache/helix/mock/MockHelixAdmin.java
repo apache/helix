@@ -353,6 +353,15 @@ public class MockHelixAdmin implements HelixAdmin {
 
   }
 
+  @Override public void enableBatchMessageMode(String clusterName, boolean enabled) {
+
+  }
+
+  @Override public void enableBatchMessageMode(String clusterName, String resourceName,
+      boolean enabled) {
+
+  }
+
   @Override public void close() {
 
   }

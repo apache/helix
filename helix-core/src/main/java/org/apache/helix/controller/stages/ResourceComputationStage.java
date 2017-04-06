@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
@@ -62,7 +63,12 @@ public class ResourceComputationStage extends AbstractBaseStage {
           resource.setStateModelDefRef(idealState.getStateModelDefRef());
           resource.setStateModelFactoryName(idealState.getStateModelFactoryName());
           resource.setBucketSize(idealState.getBucketSize());
-          resource.setBatchMessageMode(idealState.getBatchMessageMode());
+          boolean batchMessageMode = idealState.getBatchMessageMode();
+          ClusterConfig clusterConfig = cache.getClusterConfig();
+          if (clusterConfig != null) {
+            batchMessageMode |= clusterConfig.getBatchMessageMode();
+          }
+          resource.setBatchMessageMode(batchMessageMode);
           resource.setResourceGroupName(idealState.getResourceGroupName());
           resource.setResourceTag(idealState.getInstanceGroupTag());
         }

@@ -454,6 +454,24 @@ public interface HelixAdmin {
   void setInstanceZoneId(String clusterName, String instanceName, String zoneId);
 
   /**
+   * Enable/disable batch message mode for specified cluster.
+   * By default batch message mode is disabled.
+   *
+   * @param clusterName
+   * @param enabled
+   */
+  void enableBatchMessageMode(String clusterName, boolean enabled);
+
+  /**
+   * Enable/disable batch message mode for specified resource in a cluster
+   * By default batch message mode is disabled.
+   * @param clusterName
+   * @param resourceName
+   * @param enabled
+   */
+  void enableBatchMessageMode(String clusterName, String resourceName, boolean enabled);
+
+  /**
    * Release resources
    */
   void close();

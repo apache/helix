@@ -53,6 +53,7 @@ import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ClusterConstraints;
 import org.apache.helix.model.ClusterConstraints.ConstraintType;
 import org.apache.helix.model.ConstraintItem;
@@ -1184,6 +1185,31 @@ public class ZKHelixAdmin implements HelixAdmin {
     InstanceConfig config = accessor.getProperty(keyBuilder.instanceConfig(instanceName));
     config.setZoneId(zoneId);
     accessor.setProperty(keyBuilder.instanceConfig(instanceName), config);
+  }
+
+  @Override
+  public void enableBatchMessageMode(String clusterName, boolean enabled) {
+    if (!ZKUtil.isClusterSetup(clusterName, _zkClient)) {
+      throw new HelixException("cluster " + clusterName + " is not setup yet");
+    }
+    ConfigAccessor accessor = new ConfigAccessor(_zkClient);
+
+    ClusterConfig clusterConfig = accessor.getClusterConfig(clusterName);
+    clusterConfig.setBatchMessageMode(enabled);
+    accessor.setClusterConfig(clusterName, clusterConfig);
+  }
+
+  @Override
+  public void enableBatchMessageMode(String clusterName, String resourceName, boolean enabled) {
+    // TODO: Change IdealState to ResourceConfig when configs are migrated to ResourceConfig
+    IdealState idealState = getResourceIdealState(clusterName, resourceName);
+    if (idealState == null) {
+      throw new HelixException("Cluster " + clusterName + ", resource: " + resourceName
+          + ", ideal-state does not exist");
+    }
+
+    idealState.setBatchMessageMode(enabled);
+    setResourceIdealState(clusterName, resourceName, idealState);
   }
 
   @Override

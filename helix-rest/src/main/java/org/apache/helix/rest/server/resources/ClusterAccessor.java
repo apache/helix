@@ -20,33 +20,35 @@ package org.apache.helix.rest.server.resources;
  */
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixAdmin;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.log4j.Logger;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
 import javax.ws.rs.core.Response;
 
 @Path("/clusters")
-public class Clusters {
-  private static Logger _logger = Logger.getLogger(Clusters.class.getName());
+public class ClusterAccessor extends AbstractResource {
+  private static Logger _logger = Logger.getLogger(ClusterAccessor.class.getName());
 
   @GET
-  @Produces("text/json")
+  @Produces({"application/json", "text/plain"})
   public Response getClusters() {
     Response r;
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, List<String>> configMap = new HashMap<String, List<String>>();
-    configMap.put("clusters", Collections.<String>emptyList());
+    HelixAdmin helixAdmin = getHelixAdmin();
+    List<String> clusters = helixAdmin.getClusters();
+
+    Map<String, List<String>> dataMap = new HashMap<>();
+    dataMap.put("clusters", clusters);
     try {
-      ObjectWriter objectWriter = objectMapper.writer();
-      String jsonStr = objectWriter.writeValueAsString(configMap);
+      String jsonStr = toJson(dataMap);
       r = Response.ok(jsonStr).build();
     } catch (IOException e) {
       _logger.error("Failed to convert map to JSON response", e);
@@ -54,5 +56,24 @@ public class Clusters {
     }
 
     return r;
+  }
+
+  @GET
+  @Path("{clusterId}/configs")
+  @Produces({"application/json", "text/plain"})
+  public Response getClusterConfig(@PathParam("clusterId") String clusterId) {
+    ConfigAccessor accessor = getConfigAccessor();
+    ClusterConfig config = accessor.getClusterConfig(clusterId);
+    if (config == null) {
+      return Response.status(Response.Status.NOT_FOUND).build();
+    }
+
+    try {
+      String jsonStr = toJson(config.getRecord());
+      return Response.ok(jsonStr).build();
+    } catch (IOException e) {
+      _logger.error("Failed to convert ClusterConfig to JSON response", e);
+      return Response.serverError().build();
+    }
   }
 }

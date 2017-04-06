@@ -49,7 +49,7 @@ under the License.
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
       <artifactId>jetty-server</artifactId>
-      <version>9.2.0.RC0</version>
+      <version>9.1.0.RC0</version>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.core</groupId>
@@ -57,8 +57,18 @@ under the License.
       <version>2.6</version>
     </dependency>
     <dependency>
+      <groupId>org.eclipse.jetty</groupId>
+      <artifactId>jetty-servlet</artifactId>
+      <version>9.1.0.RC0</version>
+    </dependency>
+    <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-jetty-http</artifactId>
+      <version>2.6</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.containers</groupId>
+      <artifactId>jersey-container-servlet-core</artifactId>
       <version>2.6</version>
     </dependency>
     <dependency>
@@ -113,7 +123,7 @@ under the License.
           </platforms>
           <programs>
             <program>
-              <mainClass>org.apache.helix.rest.server.HelixRestServer</mainClass>
+              <mainClass>org.apache.helix.rest.server.HelixRestMain</mainClass>
               <name>run-rest-admin</name>
             </program>
           </programs>

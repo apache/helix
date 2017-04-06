@@ -67,6 +67,7 @@ public class ReadClusterDataStage extends AbstractBaseStage {
       Set<String> liveInstanceSet = Sets.newHashSet();
       Set<String> disabledInstanceSet = Sets.newHashSet();
       Map<String, Map<String, List<String>>> disabledPartitions = Maps.newHashMap();
+      Map<String, List<String>> oldDisabledPartitions = Maps.newHashMap();
       Map<String, Set<String>> tags = Maps.newHashMap();
       Map<String, LiveInstance> liveInstanceMap = _cache.getLiveInstances();
       for (Map.Entry<String, InstanceConfig> e : _cache.getInstanceConfigMap().entrySet()) {
@@ -79,12 +80,16 @@ public class ReadClusterDataStage extends AbstractBaseStage {
         if (!config.getInstanceEnabled()) {
           disabledInstanceSet.add(instanceName);
         }
+
+        // TODO : Get rid of this data structure once the API is removed.
+        oldDisabledPartitions.put(instanceName, config.getDisabledPartitions());
         disabledPartitions.put(instanceName, config.getDisabledPartitionsMap());
+
         Set<String> instanceTags = Sets.newHashSet(config.getTags());
         tags.put(instanceName, instanceTags);
       }
       clusterStatusMonitor.setClusterInstanceStatus(liveInstanceSet, instanceSet,
-          disabledInstanceSet, disabledPartitions, tags);
+          disabledInstanceSet, disabledPartitions, oldDisabledPartitions, tags);
     }
 
     event.addAttribute("ClusterDataCache", _cache);

@@ -75,6 +75,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
   private Set<String> _instances = Collections.emptySet();
   private Set<String> _disabledInstances = Collections.emptySet();
   private Map<String, Map<String, List<String>>> _disabledPartitions = Collections.emptyMap();
+  private Map<String, List<String>> _oldDisabledPartitions = Collections.emptyMap();
   private Map<String, Long> _instanceMsgQueueSizes = Maps.newConcurrentMap();
 
   private final ConcurrentHashMap<String, ResourceMonitor> _resourceMbeanMap =
@@ -139,6 +140,12 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         }
       }
     }
+
+    // TODO : Get rid of this after old API removed.
+    for (String instance : _oldDisabledPartitions.keySet()) {
+      numDisabled += _oldDisabledPartitions.get(instance).size();
+    }
+
     return numDisabled;
   }
 
@@ -200,7 +207,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
    */
   public void setClusterInstanceStatus(Set<String> liveInstanceSet, Set<String> instanceSet,
       Set<String> disabledInstanceSet, Map<String, Map<String, List<String>>> disabledPartitions,
-      Map<String, Set<String>> tags) {
+      Map<String, List<String>> oldDisabledPartitions, Map<String, Set<String>> tags) {
     // Unregister beans for instances that are no longer configured
     Set<String> toUnregister = Sets.newHashSet(_instanceMbeanMap.keySet());
     toUnregister.removeAll(instanceSet);
@@ -217,7 +224,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     for (String instanceName : toRegister) {
       InstanceMonitor bean = new InstanceMonitor(_clusterName, instanceName);
       bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
-          liveInstanceSet.contains(instanceName), !disabledInstanceSet.contains(instanceName));
+          oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
+          !disabledInstanceSet.contains(instanceName));
       monitorsToRegister.add(bean);
     }
     try {
@@ -231,6 +239,7 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
     _liveInstances = liveInstanceSet;
     _disabledInstances = disabledInstanceSet;
     _disabledPartitions = disabledPartitions;
+    _oldDisabledPartitions = oldDisabledPartitions;
 
     // Update the instance MBeans
     for (String instanceName : instanceSet) {
@@ -239,7 +248,8 @@ public class ClusterStatusMonitor implements ClusterStatusMonitorMBean {
         InstanceMonitor bean = _instanceMbeanMap.get(instanceName);
         String oldSensorName = bean.getSensorName();
         bean.updateInstance(tags.get(instanceName), disabledPartitions.get(instanceName),
-            liveInstanceSet.contains(instanceName), !disabledInstanceSet.contains(instanceName));
+            oldDisabledPartitions.get(instanceName), liveInstanceSet.contains(instanceName),
+            !disabledInstanceSet.contains(instanceName));
 
         // If the sensor name changed, re-register the bean so that listeners won't miss it
         String newSensorName = bean.getSensorName();

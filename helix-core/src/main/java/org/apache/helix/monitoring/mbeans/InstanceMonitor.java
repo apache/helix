@@ -117,7 +117,8 @@ public class InstanceMonitor implements InstanceMonitorMBean {
    * @param isEnabled true if enabled, false if disabled
    */
   public synchronized void updateInstance(Set<String> tags,
-      Map<String, List<String>> disabledPartitions, boolean isLive, boolean isEnabled) {
+      Map<String, List<String>> disabledPartitions, List<String> oldDisabledPartitions,
+      boolean isLive, boolean isEnabled) {
     if (tags == null || tags.isEmpty()) {
       _tags = ImmutableList.of(ClusterStatusMonitor.DEFAULT_TAG);
     } else {
@@ -131,6 +132,10 @@ public class InstanceMonitor implements InstanceMonitorMBean {
           _disabledPartitions += partitions.size();
         }
       }
+    }
+    // TODO : Get rid of this when old API removed.
+    if (oldDisabledPartitions != null) {
+      _disabledPartitions += oldDisabledPartitions.size();
     }
     _isUp = isLive;
     _isEnabled = isEnabled;

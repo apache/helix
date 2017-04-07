@@ -566,20 +566,20 @@ public class TaskUtil {
    * externalview and workflow contexts associated with this workflow, and all jobs information,
    * including their configs, context, IS and EV.
    *
-   * @param manager
+   * @param accessor
+   * @param propertyStore
    * @param workflow the workflow name.
    * @param jobs     all job names in this workflow.
    *
    * @return  True if remove success, otherwise false
    */
-  protected static boolean removeWorkflow(final HelixManager manager, String workflow,
-      Set<String> jobs) {
+  protected static boolean removeWorkflow(final HelixDataAccessor accessor, final HelixPropertyStore propertyStore,
+      String workflow, Set<String> jobs) {
     boolean success = true;
-    HelixDataAccessor accessor = manager.getHelixDataAccessor();
 
     // clean up all jobs
     for (String job : jobs) {
-      if (!removeJob(accessor, manager.getHelixPropertyStore(), job)) {
+      if (!removeJob(accessor, propertyStore, job)) {
         success = false;
       }
     }
@@ -595,7 +595,7 @@ public class TaskUtil {
           String.format("Error occurred while trying to remove workflow config for %s.", workflow));
       success = false;
     }
-    if (!removeWorkflowContext(manager, workflow)) {
+    if (!removeWorkflowContext(propertyStore, workflow)) {
       LOG.warn(String
           .format("Error occurred while trying to remove workflow context for %s.", workflow));
       success = false;

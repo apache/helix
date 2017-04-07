@@ -523,7 +523,27 @@ public class TaskDriver {
    * @param workflow
    */
   public void delete(String workflow) {
+    // After set DELETE state, rebalancer may remove the workflow instantly.
+    // So record context before set DELETE state.
+    WorkflowContext wCtx = TaskUtil.getWorkflowContext(_propertyStore, workflow);
+
     setWorkflowTargetState(workflow, TargetState.DELETE);
+
+    // Delete all finished scheduled workflows.
+    if (wCtx != null && wCtx.getScheduledWorkflows() != null) {
+      for (String scheduledWorkflow : wCtx.getScheduledWorkflows()) {
+        WorkflowContext scheduledWorkflowCtx = TaskUtil.getWorkflowContext(_propertyStore, scheduledWorkflow);
+        if (scheduledWorkflowCtx != null && scheduledWorkflowCtx.getFinishTime() != WorkflowContext.UNFINISHED) {
+          Set<String> jobSet = new HashSet<String>();
+          // Note that even WorkflowConfig is null, if WorkflowContext exists, still need to remove workflow
+          WorkflowConfig wCfg = TaskUtil.getWorkflowConfig(_accessor, scheduledWorkflow);
+          if (wCfg != null) {
+            jobSet.addAll(wCfg.getJobDag().getAllNodes());
+          }
+          TaskUtil.removeWorkflow(_accessor, _propertyStore, scheduledWorkflow, jobSet);
+        }
+      }
+    }
   }
 
   /**
@@ -556,9 +576,7 @@ public class TaskDriver {
 
     WorkflowContext workflowContext = TaskUtil.getWorkflowContext(_propertyStore, workflow);
     if (state != TargetState.DELETE && workflowContext != null &&
-        (workflowContext.getFinishTime() != WorkflowContext.UNFINISHED
-        || workflowContext.getWorkflowState() == TaskState.COMPLETED
-        || workflowContext.getWorkflowState() == TaskState.FAILED)) {
+        workflowContext.getFinishTime() != WorkflowContext.UNFINISHED) {
       // Should not update target state for completed workflow
       LOG.info("Workflow " + workflow + " is already completed, skip to update its target state "
           + state);

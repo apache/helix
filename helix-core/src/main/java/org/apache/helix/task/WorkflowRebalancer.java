@@ -456,7 +456,7 @@ public class WorkflowRebalancer extends TaskRebalancer {
       for (String job : jobs) {
         _rebalanceScheduler.removeScheduledRebalance(job);
       }
-      if (!TaskUtil.removeWorkflow(_manager, workflow, jobs)) {
+      if (!TaskUtil.removeWorkflow(_manager.getHelixDataAccessor(), _manager.getHelixPropertyStore(), workflow, jobs)) {
         LOG.warn("Failed to clean up workflow " + workflow);
       }
     } else {

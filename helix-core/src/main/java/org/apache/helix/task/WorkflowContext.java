@@ -19,7 +19,9 @@ package org.apache.helix.task;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -41,6 +43,7 @@ public class WorkflowContext extends HelixProperty {
     FINISH_TIME,
     JOB_STATES,
     LAST_SCHEDULED_WORKFLOW,
+    SCHEDULED_WORKFLOWS,
     LAST_PURGE_TIME,
     StartTime // TODO this should be named JOB_SCHEDULED_START_TIME, it's not the actual start time of the job
     }
@@ -194,8 +197,15 @@ public class WorkflowContext extends HelixProperty {
     return Long.parseLong(tStr);
   }
 
-  public void setLastScheduledSingleWorkflow(String wf) {
-    _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), wf);
+  public void setLastScheduledSingleWorkflow(String workflow) {
+    _record.setSimpleField(WorkflowContextProperties.LAST_SCHEDULED_WORKFLOW.name(), workflow);
+    // Record scheduled workflow into the history list as well
+    List<String> workflows = getScheduledWorkflows();
+    if (workflows == null) {
+      workflows = new ArrayList<String>();
+      _record.setListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name(), workflows);
+    }
+    workflows.add(workflow);
   }
 
   public String getLastScheduledSingleWorkflow() {
@@ -209,5 +219,9 @@ public class WorkflowContext extends HelixProperty {
 
   public long getLastJobPurgeTime() {
     return _record.getLongField(WorkflowContextProperties.LAST_PURGE_TIME.name(), -1);
+  }
+
+  public List<String> getScheduledWorkflows() {
+    return _record.getListField(WorkflowContextProperties.SCHEDULED_WORKFLOWS.name());
   }
 }

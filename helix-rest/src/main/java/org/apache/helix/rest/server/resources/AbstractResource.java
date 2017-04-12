@@ -25,6 +25,7 @@ import java.util.Map;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.HelixDataAccessor;
@@ -36,6 +37,7 @@ import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
+import org.apache.helix.task.TaskDriver;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -68,6 +70,12 @@ public class AbstractResource {
     ZkClient zkClient = getZkClient();
     HelixAdmin helixAdmin = new ZKHelixAdmin(zkClient);
     return helixAdmin;
+  }
+
+  protected TaskDriver getTaskDriver(String clusterName) {
+    ZkClient zkClient = getZkClient();
+    TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
+    return taskDriver;
   }
 
   protected ConfigAccessor getConfigAccessor () {
@@ -122,7 +130,7 @@ public class AbstractResource {
     return toJson(dataMap);
   }
 
-  protected String toJson(Object object)
+  protected static String toJson(Object object)
       throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();

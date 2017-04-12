@@ -54,7 +54,7 @@ under the License.
     <dependency>
       <groupId>org.glassfish.jersey.core</groupId>
       <artifactId>jersey-server</artifactId>
-      <version>2.6</version>
+      <version>2.9</version>
     </dependency>
     <dependency>
       <groupId>org.eclipse.jetty</groupId>
@@ -64,12 +64,17 @@ under the License.
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-jetty-http</artifactId>
-      <version>2.6</version>
+      <version>2.9</version>
     </dependency>
     <dependency>
       <groupId>org.glassfish.jersey.containers</groupId>
       <artifactId>jersey-container-servlet-core</artifactId>
-      <version>2.6</version>
+      <version>2.9</version>
+    </dependency>
+    <dependency>
+      <groupId>org.glassfish.jersey.test-framework</groupId>
+      <artifactId>jersey-test-framework-core</artifactId>
+      <version>2.9</version>
     </dependency>
     <dependency>
       <groupId>com.thoughtworks.xstream</groupId>

@@ -21,26 +21,35 @@ package org.apache.helix.rest.server.resources;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
+import org.apache.helix.HelixDataAccessor;
+import org.apache.helix.InstanceType;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZKHelixAdmin;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
-import org.codehaus.jackson.JsonGenerationException;
-import org.codehaus.jackson.map.JsonMappingException;
+import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.map.ObjectWriter;
 import org.codehaus.jackson.map.SerializationConfig;
 
 public class AbstractResource {
+  private static Logger _logger = Logger.getLogger(AbstractResource.class.getName());
+
+  protected enum Properties {
+    id,
+    disbled,
+    history,
+    count
+  }
+
   @Context
   private Application _application;
 
@@ -67,17 +76,53 @@ public class AbstractResource {
     return configAccessor;
   }
 
-  protected static String toJson(ZNRecord record)
-      throws IOException {
-    return ObjectToJson(record);
+  protected HelixDataAccessor getDataAccssor(String clusterName) {
+    ZkClient zkClient = getZkClient();
+    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
+    return new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor);
   }
 
-  protected static String toJson(Map<String, ?> dataMap)
-      throws IOException {
-    return ObjectToJson(dataMap);
+  protected Response serverError() {
+    return Response.serverError().build();
   }
 
-  protected static String ObjectToJson(Object object)
+  protected Response notFound() {
+    return Response.status(Response.Status.NOT_FOUND).build();
+  }
+
+  protected Response OK(Object entity) {
+    return Response.ok(entity).build();
+  }
+
+  protected Response JSONRepresentation(ZNRecord znRecord) {
+    return JSONRepresentation(znRecord);
+  }
+
+  protected Response JSONRepresentation(Map<String, ?> dataMap) {
+    return JSONRepresentation(dataMap);
+  }
+
+  protected Response JSONRepresentation(Object entity) {
+    try {
+      String jsonStr = toJson(entity);
+      return OK(jsonStr);
+    } catch (IOException e) {
+      _logger.error("Failed to convert " + entity + " to JSON response", e);
+      return serverError();
+    }
+  }
+
+  protected String toJson(ZNRecord record)
+      throws IOException {
+    return toJson(record);
+  }
+
+  protected String toJson(Map<String, ?> dataMap)
+      throws IOException {
+    return toJson(dataMap);
+  }
+
+  protected String toJson(Object object)
       throws IOException {
     ObjectMapper mapper = new ObjectMapper();
     SerializationConfig serializationConfig = mapper.getSerializationConfig();

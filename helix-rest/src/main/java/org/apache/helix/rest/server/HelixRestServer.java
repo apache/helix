@@ -19,8 +19,6 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
-import java.net.URI;
-import javax.ws.rs.core.UriBuilder;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.resources.ClusterAccessor;

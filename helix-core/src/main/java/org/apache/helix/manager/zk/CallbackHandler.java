@@ -191,7 +191,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
       // Builder keyBuilder = _accessor.keyBuilder();
       long start = System.currentTimeMillis();
       if (logger.isInfoEnabled()) {
-        logger.info(Thread.currentThread().getId() + " START:INVOKE " + _path + " listener:" + _listener.getClass().getCanonicalName());
+        logger.info(
+            Thread.currentThread().getId() + " START:INVOKE " + _path + " listener:" + _listener
+                .getClass().getCanonicalName());
       }
 
       if (_changeType == IDEAL_STATE) {

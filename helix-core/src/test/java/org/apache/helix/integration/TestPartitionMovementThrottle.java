@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -404,9 +405,9 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
   private static class DelayedTransition extends DelayedTransitionBase {
     private static Map<String, List<PartitionTransitionTime>> resourcePatitionTransitionTimes =
-        new HashMap<String, List<PartitionTransitionTime>>();
+        new ConcurrentHashMap<String, List<PartitionTransitionTime>>();
     private static Map<String, List<PartitionTransitionTime>> instancePatitionTransitionTimes =
-        new HashMap<String, List<PartitionTransitionTime>>();
+        new ConcurrentHashMap<String, List<PartitionTransitionTime>>();
     private static boolean _recordThrottle = false;
 
     public static Map<String, List<PartitionTransitionTime>> getResourcePatitionTransitionTimes() {
@@ -440,13 +441,13 @@ public class TestPartitionMovementThrottle extends ZkStandAloneCMTestBase {
 
         if (!resourcePatitionTransitionTimes.containsKey(message.getResourceName())) {
           resourcePatitionTransitionTimes
-              .put(message.getResourceName(), new ArrayList<PartitionTransitionTime>());
+              .put(message.getResourceName(), Collections.synchronizedList(new ArrayList<PartitionTransitionTime>()));
         }
         resourcePatitionTransitionTimes.get(message.getResourceName()).add(partitionTransitionTime);
 
         if (!instancePatitionTransitionTimes.containsKey(message.getTgtName())) {
           instancePatitionTransitionTimes
-              .put(message.getTgtName(), new ArrayList<PartitionTransitionTime>());
+              .put(message.getTgtName(), Collections.synchronizedList(new ArrayList<PartitionTransitionTime>()));
         }
         instancePatitionTransitionTimes.get(message.getTgtName()).add(partitionTransitionTime);
       }

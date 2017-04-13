@@ -183,8 +183,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener
     synchronized (_manager) {
       Type type = changeContext.getType();
       if (!_expectTypes.contains(type)) {
-        logger.warn("Skip processing callbacks for listener: " + _listener + ", path: " + _path + ", expected types: " + _expectTypes + " but was " + type);
-        return;
+        logger.warn("Skip processing callbacks for listener: " + _listener + ", path: " + _path
+            + ", expected types: " + _expectTypes + " but was " + type);
       }
       _expectTypes = nextNotificationType.get(type);
 

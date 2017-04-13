@@ -84,7 +84,7 @@ public class ZkUnitTestBase {
   }
 
   @AfterSuite(alwaysRun = true)
-  public void afterTest() {
+  public void afterSuite() {
     _gZkClient.close();
     TestHelper.stopZkServer(_zkServer);
     _zkServer = null;

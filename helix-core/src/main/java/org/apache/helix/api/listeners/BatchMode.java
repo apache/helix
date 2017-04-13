@@ -19,21 +19,10 @@ package org.apache.helix.api.listeners;
  * under the License.
  */
 
-import java.util.List;
-import org.apache.helix.NotificationContext;
-import org.apache.helix.model.IdealState;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
-/**
- * Interface to implement to listen for changes to the ideal state of resources.
- */
-public interface IdealStateChangeListener {
-
-  /**
-   * Invoed when ideal state changes
-   * @param idealState
-   * @param changeContext
-   */
-  void onIdealStateChange(List<IdealState> idealState, NotificationContext changeContext)
-      throws InterruptedException;
-
+@Retention(RetentionPolicy.RUNTIME)
+public @interface BatchMode {
+  boolean enabled() default true;
 }

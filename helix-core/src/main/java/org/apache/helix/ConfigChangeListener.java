@@ -25,6 +25,7 @@ package org.apache.helix;
  * @deprecated
  * NOTE: This interface definition is moved to {@link org.apache.helix.api.listeners.ConfigChangeListener}
  */
-@Deprecated public interface ConfigChangeListener
+@Deprecated
+public interface ConfigChangeListener
     extends org.apache.helix.api.listeners.ConfigChangeListener {
 }

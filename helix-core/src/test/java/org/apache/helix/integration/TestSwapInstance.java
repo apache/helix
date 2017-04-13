@@ -47,6 +47,9 @@ public class TestSwapInstance extends ZkStandAloneCMTestBase {
     IdealState is2 = helixAccessor.getProperty(helixAccessor.keyBuilder().idealStates("MyDB"));
     idealStateOld2.merge(is2.getRecord());
 
+    Assert.assertTrue(ClusterStateVerifier
+        .verifyByPolling(new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME)));
+
     String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + 0);
     ZKHelixAdmin tool = new ZKHelixAdmin(_gZkClient);
     _setupTool.getClusterManagementTool().enableInstance(CLUSTER_NAME, instanceName, false);

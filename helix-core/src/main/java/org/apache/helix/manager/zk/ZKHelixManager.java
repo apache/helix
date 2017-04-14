@@ -131,7 +131,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
    */
   private GenericHelixController _controller;
   private CallbackHandler _leaderElectionHandler = null;
-  protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<HelixTimerTask>();
+  protected final List<HelixTimerTask> _controllerTimerTasks = new ArrayList<>();
 
   /**
    * status dump timer-task

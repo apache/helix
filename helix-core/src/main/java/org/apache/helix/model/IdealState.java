@@ -644,8 +644,8 @@ public class IdealState extends HelixProperty {
    * Set the frequency with which to rebalance
    * @return the rebalancing timer period
    */
-  public int getRebalanceTimerPeriod() {
-    return _record.getIntField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), -1);
+  public long getRebalanceTimerPeriod() {
+    return _record.getLongField(IdealStateProperty.REBALANCE_TIMER_PERIOD.toString(), -1);
   }
 
   @Override

@@ -29,6 +29,7 @@ import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.I0Itec.zkclient.exception.ZkInterruptedException;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.ConfigChangeListener;
 import org.apache.helix.ControllerChangeListener;
 import org.apache.helix.CurrentStateChangeListener;
@@ -60,6 +61,7 @@ import org.apache.helix.controller.stages.ReadClusterDataStage;
 import org.apache.helix.controller.stages.ResourceComputationStage;
 import org.apache.helix.controller.stages.ResourceValidationStage;
 import org.apache.helix.controller.stages.TaskAssignmentStage;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
@@ -113,7 +115,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
    * one resource group has the config to use the timer.
    */
   Timer _rebalanceTimer = null;
-  int _timerPeriod = Integer.MAX_VALUE;
+  long _timerPeriod = Long.MAX_VALUE;
 
   /**
    * A cache maintained across pipelines
@@ -136,7 +138,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _clusterName = clusterName;
   }
 
-
   class RebalanceTask extends TimerTask {
     HelixManager _manager;
 
@@ -156,6 +157,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       event.addAttribute("eventData", dummy);
       // Should be able to process
       _eventQueue.put(event);
+      logger.info("Controller periodicalRebalance event triggered!");
     }
   }
 
@@ -164,9 +166,9 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
    * Starts the rebalancing timer with the specified period. Start the timer if necessary; If the
    * period is smaller than the current period, cancel the current timer and use the new period.
    */
-  void startRebalancingTimer(int period, HelixManager manager) {
-    logger.info("Controller starting timer at period " + period);
-    if (period < _timerPeriod) {
+  void startRebalancingTimer(long period, HelixManager manager) {
+    if (period != _timerPeriod) {
+      logger.info("Controller starting timer at period " + period);
       if (_rebalanceTimer != null) {
         _rebalanceTimer.cancel();
       }
@@ -179,7 +181,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   }
 
   /**
-   * Starts the rebalancing timer
+   * Stops the rebalancing timer
    */
   void stopRebalancingTimer() {
     if (_rebalanceTimer != null) {
@@ -237,13 +239,13 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   public GenericHelixController(PipelineRegistry registry) {
     _paused = false;
     _registry = registry;
-    _lastSeenInstances = new AtomicReference<Map<String, LiveInstance>>();
-    _lastSeenSessions = new AtomicReference<Map<String, LiveInstance>>();
+    _lastSeenInstances = new AtomicReference<>();
+    _lastSeenSessions = new AtomicReference<>();
+    _cache = new ClusterDataCache(_clusterName);
     _eventQueue = new ClusterEventBlockingQueue();
     _eventThread = new ClusterEventProcessor();
     _eventThread.setDaemon(true);
     _eventThread.start();
-    _cache = new ClusterDataCache(_clusterName);
   }
 
   /**
@@ -272,7 +274,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
     NotificationContext context = null;
     if (event.getAttribute("changeContext") != null) {
-      context = (NotificationContext) (event.getAttribute("changeContext"));
+      context = event.getAttribute("changeContext");
     }
 
     // Initialize _clusterStatusMonitor
@@ -389,27 +391,43 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     event.addAttribute("changeContext", changeContext);
     event.addAttribute("eventData", liveInstances);
     _eventQueue.put(event);
-    logger.info("END: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
+    logger.info(
+        "END: Generic GenericClusterController.onLiveInstanceChange() for cluster " + _clusterName);
   }
 
-  void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates) {
+  private void checkRebalancingTimer(HelixManager manager, List<IdealState> idealStates,
+      ClusterConfig clusterConfig) {
     if (manager.getConfigAccessor() == null) {
       logger.warn(manager.getInstanceName()
           + " config accessor doesn't exist. should be in file-based mode.");
       return;
     }
 
-    for (IdealState idealState : idealStates) {
-      int period = idealState.getRebalanceTimerPeriod();
-      if (period > 0) {
-        startRebalancingTimer(period, manager);
+    long minPeriod = Long.MAX_VALUE;
+    if (clusterConfig != null) {
+      long period = clusterConfig.getRebalanceTimePeriod();
+      if (period > 0 && minPeriod < period) {
+        minPeriod = period;
       }
+    }
+
+    // TODO: resource level rebalance does not make sense, to remove it!
+    for (IdealState idealState : idealStates) {
+      long period = idealState.getRebalanceTimerPeriod();
+      if (period > 0 && minPeriod > period) {
+        minPeriod = period;
+      }
+    }
+
+    if (minPeriod != Long.MAX_VALUE) {
+      startRebalancingTimer(minPeriod, manager);
     }
   }
 
   @Override
   public void onIdealStateChange(List<IdealState> idealStates, NotificationContext changeContext) {
-    logger.info("START: Generic GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
+    logger.info(
+        "START: Generic GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
     if (changeContext == null || changeContext.getType() != Type.CALLBACK) {
       _cache.requireFullRefresh();
     }
@@ -425,7 +443,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     _eventQueue.put(event);
 
     if (changeContext.getType() != Type.FINALIZE) {
-      checkRebalancingTimer(changeContext.getManager(), idealStates);
+      checkRebalancingTimer(changeContext.getManager(), idealStates, _cache.getClusterConfig());
     }
 
     logger.info("END: GenericClusterController.onIdealStateChange() for cluster " + _clusterName);
@@ -454,7 +472,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
   @Override
   public void onInstanceConfigChange(List<InstanceConfig> instanceConfigs,
       NotificationContext changeContext) {
-    logger.info("START: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
+    logger.info(
+        "START: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
     onConfigChange(instanceConfigs, changeContext);
     logger.info("END: GenericClusterController.onInstanceConfigChange() for cluster " + _clusterName);
   }
@@ -506,6 +525,11 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     if (_clusterStatusMonitor == null) {
       _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
     }
+    List<IdealState> idealStates = Collections.emptyList();
+    if (_cache.getIdealStates() != null) {
+      idealStates = new ArrayList<>(_cache.getIdealStates().values());
+    }
+    checkRebalancingTimer(changeContext.getManager(), idealStates, _cache.getClusterConfig());
     _clusterStatusMonitor.setEnabled(!_paused);
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
   }

@@ -50,7 +50,8 @@ public class ClusterConfig extends HelixProperty {
     STATE_TRANSITION_THROTTLE_CONFIGS,
     STATE_TRANSITION_CANCELLATION_ENABLED,
     MISS_TOP_STATE_DURATION_THRESHOLD,
-    RESOURCE_PRIORITY_FIELD
+    RESOURCE_PRIORITY_FIELD,
+    REBALANCE_TIMER_PERIOD
   }
 
   /**
@@ -249,6 +250,18 @@ public class ClusterConfig extends HelixProperty {
 
   public String getResourcePriorityField() {
     return _record.getSimpleField(ClusterConfigProperty.RESOURCE_PRIORITY_FIELD.name());
+  }
+
+  /**
+   * Set the period that controller should sync up its local cache and perform a rebalance.
+   * @param milliseconds
+   */
+  public void setRebalanceTimePeriod(long milliseconds) {
+    _record.setLongField(ClusterConfigProperty.REBALANCE_TIMER_PERIOD.name(), milliseconds);
+  }
+
+  public long getRebalanceTimePeriod() {
+    return _record.getLongField(ClusterConfigProperty.REBALANCE_TIMER_PERIOD.name(), -1);
   }
 
   public boolean isStateTransitionCancelEnabled() {

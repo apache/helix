@@ -90,7 +90,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     ControllerChangeListener, InstanceConfigChangeListener {
   private static final Logger logger = Logger.getLogger(GenericHelixController.class.getName());
   private static final long EVENT_THREAD_JOIN_TIMEOUT = 1000;
-  volatile boolean init = false;
   private final PipelineRegistry _registry;
 
   final AtomicReference<Map<String, LiveInstance>> _lastSeenInstances;
@@ -147,7 +146,16 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
     @Override
     public void run() {
+      //TODO: this is the temporary workaround
       _cache.requireFullRefresh();
+      _cache.refresh(_manager.getHelixDataAccessor());
+      if (_cache.getLiveInstances() != null) {
+        NotificationContext changeContext = new NotificationContext(_manager);
+        changeContext.setType(NotificationContext.Type.CALLBACK);
+        checkLiveInstancesObservation(new ArrayList<>(_cache.getLiveInstances().values()),
+                changeContext);
+      }
+
       NotificationContext changeContext = new NotificationContext(_manager);
       changeContext.setType(NotificationContext.Type.CALLBACK);
       ClusterEvent event = new ClusterEvent("periodicalRebalance");
@@ -174,7 +182,8 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       }
       _rebalanceTimer = new Timer(true);
       _timerPeriod = period;
-      _rebalanceTimer.scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
+      _rebalanceTimer
+          .scheduleAtFixedRate(new RebalanceTask(manager), _timerPeriod, _timerPeriod);
     } else {
       logger.info("Controller already has timer at period " + _timerPeriod);
     }
@@ -286,6 +295,10 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
       } else {
         if (_clusterStatusMonitor == null) {
           _clusterStatusMonitor = new ClusterStatusMonitor(manager.getClusterName());
+        }
+        // TODO: should be in the initization of controller.
+        if (_cache != null) {
+          checkRebalancingTimer(manager, Collections.EMPTY_LIST, _cache.getClusterConfig());
         }
         TaskDriver driver = new TaskDriver(manager);
         _clusterStatusMonitor.refreshWorkflowsStatus(driver);
@@ -406,7 +419,7 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     long minPeriod = Long.MAX_VALUE;
     if (clusterConfig != null) {
       long period = clusterConfig.getRebalanceTimePeriod();
-      if (period > 0 && minPeriod < period) {
+      if (period > 0 && minPeriod > period) {
         minPeriod = period;
       }
     }
@@ -525,11 +538,6 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
     if (_clusterStatusMonitor == null) {
       _clusterStatusMonitor = new ClusterStatusMonitor(changeContext.getManager().getClusterName());
     }
-    List<IdealState> idealStates = Collections.emptyList();
-    if (_cache.getIdealStates() != null) {
-      idealStates = new ArrayList<>(_cache.getIdealStates().values());
-    }
-    checkRebalancingTimer(changeContext.getManager(), idealStates, _cache.getClusterConfig());
     _clusterStatusMonitor.setEnabled(!_paused);
     logger.info("END: GenericClusterController.onControllerChange() for cluster " + _clusterName);
   }
@@ -544,68 +552,70 @@ public class GenericHelixController implements ConfigChangeListener, IdealStateC
 
     // construct maps for current live-instances
     Map<String, LiveInstance> curInstances = new HashMap<String, LiveInstance>();
-    Map<String, LiveInstance> curSessions = new HashMap<String, LiveInstance>();
+    Map<String, LiveInstance> curSessions = new HashMap<>();
     for (LiveInstance liveInstance : liveInstances) {
       curInstances.put(liveInstance.getInstanceName(), liveInstance);
       curSessions.put(liveInstance.getSessionId(), liveInstance);
     }
 
-    Map<String, LiveInstance> lastInstances = _lastSeenInstances.get();
-    Map<String, LiveInstance> lastSessions = _lastSeenSessions.get();
+    // TODO: remove the synchronization here once we move this update into dataCache.
+    synchronized (_lastSeenInstances) {
+      Map<String, LiveInstance> lastInstances = _lastSeenInstances.get();
+      Map<String, LiveInstance> lastSessions = _lastSeenSessions.get();
 
-    HelixManager manager = changeContext.getManager();
-    Builder keyBuilder = new Builder(manager.getClusterName());
-    if (lastSessions != null) {
-      for (String session : lastSessions.keySet()) {
-        if (!curSessions.containsKey(session)) {
-          // remove current-state listener for expired session
-          String instanceName = lastSessions.get(session).getInstanceName();
-          manager.removeListener(keyBuilder.currentStates(instanceName, session), this);
+      HelixManager manager = changeContext.getManager();
+      Builder keyBuilder = new Builder(manager.getClusterName());
+      if (lastSessions != null) {
+        for (String session : lastSessions.keySet()) {
+          if (!curSessions.containsKey(session)) {
+            // remove current-state listener for expired session
+            String instanceName = lastSessions.get(session).getInstanceName();
+            manager.removeListener(keyBuilder.currentStates(instanceName, session), this);
+          }
         }
       }
-    }
 
-    if (lastInstances != null) {
-      for (String instance : lastInstances.keySet()) {
-        if (!curInstances.containsKey(instance)) {
-          // remove message listener for disconnected instances
-          manager.removeListener(keyBuilder.messages(instance), this);
+      if (lastInstances != null) {
+        for (String instance : lastInstances.keySet()) {
+          if (!curInstances.containsKey(instance)) {
+            // remove message listener for disconnected instances
+            manager.removeListener(keyBuilder.messages(instance), this);
+          }
         }
       }
-    }
 
-    for (String session : curSessions.keySet()) {
-      if (lastSessions == null || !lastSessions.containsKey(session)) {
-        String instanceName = curSessions.get(session).getInstanceName();
-        try {
-          // add current-state listeners for new sessions
-          manager.addCurrentStateChangeListener(this, instanceName, session);
-          logger.info(manager.getInstanceName() + " added current-state listener for instance: "
-              + instanceName + ", session: " + session + ", listener: " + this);
-        } catch (Exception e) {
-          logger.error("Fail to add current state listener for instance: " + instanceName
-              + " with session: " + session, e);
+      for (String session : curSessions.keySet()) {
+        if (lastSessions == null || !lastSessions.containsKey(session)) {
+          String instanceName = curSessions.get(session).getInstanceName();
+          try {
+            // add current-state listeners for new sessions
+            manager.addCurrentStateChangeListener(this, instanceName, session);
+            logger.info(manager.getInstanceName() + " added current-state listener for instance: "
+                + instanceName + ", session: " + session + ", listener: " + this);
+          } catch (Exception e) {
+            logger.error("Fail to add current state listener for instance: " + instanceName
+                + " with session: " + session, e);
+          }
         }
       }
-    }
 
-    for (String instance : curInstances.keySet()) {
-      if (lastInstances == null || !lastInstances.containsKey(instance)) {
-        try {
-          // add message listeners for new instances
-          manager.addMessageListener(this, instance);
-          logger.info(manager.getInstanceName() + " added message listener for " + instance
-              + ", listener: " + this);
-        } catch (Exception e) {
-          logger.error("Fail to add message listener for instance: " + instance, e);
+      for (String instance : curInstances.keySet()) {
+        if (lastInstances == null || !lastInstances.containsKey(instance)) {
+          try {
+            // add message listeners for new instances
+            manager.addMessageListener(this, instance);
+            logger.info(manager.getInstanceName() + " added message listener for " + instance
+                + ", listener: " + this);
+          } catch (Exception e) {
+            logger.error("Fail to add message listener for instance: " + instance, e);
+          }
         }
       }
+
+      // update last-seen
+      _lastSeenInstances.set(curInstances);
+      _lastSeenSessions.set(curSessions);
     }
-
-    // update last-seen
-    _lastSeenInstances.set(curInstances);
-    _lastSeenSessions.set(curSessions);
-
   }
 
   public void shutdownClusterStatusMonitor(String clusterName) {

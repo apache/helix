@@ -458,8 +458,7 @@ public class IdealState extends HelixProperty {
     if (instanceStateList != null) {
       return instanceStateList;
     }
-    logger.warn("Resource: " + getResourceName() + " key:" + partitionName
-        + " does not have a pre-computed preference list.");
+
     return null;
   }
 

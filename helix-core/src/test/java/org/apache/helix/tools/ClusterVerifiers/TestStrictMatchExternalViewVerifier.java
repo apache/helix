@@ -22,30 +22,34 @@ package org.apache.helix.tools.ClusterVerifiers;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+
 import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.util.HelixUtil;
 import org.apache.helix.util.TestInputLoader;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-
 public class TestStrictMatchExternalViewVerifier {
 
   @Test(dataProvider = "TestComputeIdealMappingInput")
-  public void testComputeIdealMapping(String comment, String stateModelName, List<String> preferenceList,
-      List<String> liveAndEnabledInstances, Map<String, String> expectedIdealMapping) {
+  public void testComputeIdealMapping(String comment, String stateModelName,
+      List<String> preferenceList, List<String> liveAndEnabledInstances,
+      Map<String, String> expectedIdealMapping) {
     System.out.println("Test case comment: " + comment);
-    Map<String, String> idealMapping = StrictMatchExternalViewVerifier.computeIdealMapping(preferenceList,
+    Map<String, String> idealMapping = HelixUtil.computeIdealMapping(preferenceList,
         BuiltInStateModelDefinitions.valueOf(stateModelName).getStateModelDefinition(),
-        new HashSet<String>(liveAndEnabledInstances));
+        new HashSet<>(liveAndEnabledInstances));
 
     Assert.assertTrue(idealMapping.equals(expectedIdealMapping));
   }
 
   @DataProvider(name = "TestComputeIdealMappingInput")
   public Object[][] loadTestComputeIdealMappingInput() {
-    final String[] params = {"comment", "stateModel", "preferenceList", "liveAndEnabledInstances",
-        "expectedBestPossibleStateMap"};
-    return TestInputLoader.loadTestInputs("TestStrictMatchExternalViewVerifier.ComputeIdealMapping.json", params);
+    final String[] params = { "comment", "stateModel", "preferenceList", "liveAndEnabledInstances",
+        "expectedBestPossibleStateMap"
+    };
+    return TestInputLoader
+        .loadTestInputs("TestStrictMatchExternalViewVerifier.ComputeIdealMapping.json", params);
   }
 }

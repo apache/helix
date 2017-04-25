@@ -19,6 +19,16 @@ package org.apache.helix.tools.ClusterVerifiers;
  * under the License.
  */
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixException;
 import org.apache.helix.PropertyKey;
@@ -31,17 +41,8 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.helix.task.TaskConstants;
+import org.apache.helix.util.HelixUtil;
 import org.apache.log4j.Logger;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Verifier that verifies whether the ExternalViews of given resources (or all resources in the cluster)
@@ -283,43 +284,12 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
     for (String partition : idealState.getPartitionSet()) {
       List<String> preferenceList = AbstractRebalancer
           .getPreferenceList(new Partition(partition), idealState, liveEnabledInstances);
-      Map<String, String> idealMapping = computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
+      Map<String, String> idealMapping =
+          HelixUtil.computeIdealMapping(preferenceList, stateModelDef, liveEnabledInstances);
       idealPartitionState.put(partition, idealMapping);
     }
 
     return idealPartitionState;
-  }
-
-  /**
-   * compute the ideal mapping for resource in Full-Auto and Semi-Auto based on its preference list
-   */
-  static Map<String, String> computeIdealMapping(List<String> preferenceList,
-      StateModelDefinition stateModelDef, Set<String> liveAndEnabled) {
-    Map<String, String> idealStateMap = new HashMap<String, String>();
-
-    if (preferenceList == null) {
-      return idealStateMap;
-    }
-
-    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
-    Set<String> assigned = new HashSet<String>();
-
-    for (String state : statesPriorityList) {
-      int stateCount = AbstractRebalancer.getStateCount(state, stateModelDef, liveAndEnabled.size(),
-          preferenceList.size());
-      for (String instance : preferenceList) {
-        if (stateCount <= 0) {
-          break;
-        }
-        if (!assigned.contains(instance)) {
-          idealStateMap.put(instance, state);
-          assigned.add(instance);
-          stateCount--;
-        }
-      }
-    }
-
-    return idealStateMap;
   }
 
   @Override

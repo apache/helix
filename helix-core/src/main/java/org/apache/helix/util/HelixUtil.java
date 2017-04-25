@@ -19,14 +19,25 @@ package org.apache.helix.util;
  * under the License.
  */
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.helix.PropertyPathBuilder;
 import org.apache.helix.PropertyType;
+import org.apache.helix.controller.rebalancer.AbstractRebalancer;
+import org.apache.helix.controller.rebalancer.strategy.RebalanceStrategy;
+import org.apache.helix.controller.stages.ClusterDataCache;
+import org.apache.helix.model.BuiltInStateModelDefinitions;
+import org.apache.helix.model.ClusterConfig;
+import org.apache.helix.model.IdealState;
+import org.apache.helix.model.InstanceConfig;
+import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 import com.google.common.base.Joiner;
@@ -124,5 +135,87 @@ public final class HelixUtil {
         throw ex;
       }
     }
+  }
+
+  /**
+   * This method provides the ideal state mapping with corresponding rebalance strategy
+   * @param clusterConfig         The cluster config
+   * @param instanceConfigs       List of instance configs
+   * @param liveInstances         List of live instance names
+   * @param idealState            The ideal state of current resource. If input is null, will be
+   *                              treated as newly created resource.
+   * @param partitions            The list of partition names
+   * @param strategyClassName          The rebalance strategy. e.g. AutoRebalanceStrategy
+   * @return A map of ideal state assignment as partition -> instance -> state
+   */
+  public static Map<String, Map<String, String>> getIdealAssignmentForFullAuto(
+      ClusterConfig clusterConfig, List<InstanceConfig> instanceConfigs, List<String> liveInstances,
+      IdealState idealState, List<String> partitions, String strategyClassName)
+      throws ClassNotFoundException, IllegalAccessException, InstantiationException {
+    List<String> allNodes = new ArrayList<>();
+    Map<String, InstanceConfig> instanceConfigMap = new HashMap<>();
+    for (InstanceConfig instanceConfig : instanceConfigs) {
+      allNodes.add(instanceConfig.getInstanceName());
+      instanceConfigMap.put(instanceConfig.getInstanceName(), instanceConfig);
+    }
+    ClusterDataCache cache = new ClusterDataCache();
+    cache.setClusterConfig(clusterConfig);
+    cache.setInstanceConfigMap(instanceConfigMap);
+
+    StateModelDefinition stateModelDefinition =
+        BuiltInStateModelDefinitions.valueOf(idealState.getStateModelDefRef())
+            .getStateModelDefinition();
+
+    RebalanceStrategy strategy =
+        RebalanceStrategy.class.cast(loadClass(HelixUtil.class, strategyClassName).newInstance());
+
+    strategy.init(idealState.getResourceName(), partitions, stateModelDefinition
+            .getStateCountMap(liveInstances.size(), Integer.parseInt(idealState.getReplicas())),
+        idealState.getMaxPartitionsPerInstance());
+
+    Map<String, List<String>> preferenceLists = strategy
+        .computePartitionAssignment(allNodes, liveInstances,
+            new HashMap<String, Map<String, String>>(), cache).getListFields();
+
+    Map<String, Map<String, String>> idealStateMapping = new HashMap<>();
+    Set<String> liveInstanceSet = new HashSet<>(liveInstances);
+    for (String partitionName : preferenceLists.keySet()) {
+      idealStateMapping.put(partitionName,
+          computeIdealMapping(preferenceLists.get(partitionName), stateModelDefinition,
+              liveInstanceSet));
+    }
+    return idealStateMapping;
+  }
+
+  /**
+   * compute the ideal mapping for resource in Full-Auto and Semi-Auto based on its preference list
+   */
+  public static Map<String, String> computeIdealMapping(List<String> preferenceList,
+      StateModelDefinition stateModelDef, Set<String> liveAndEnabled) {
+    Map<String, String> idealStateMap = new HashMap<String, String>();
+
+    if (preferenceList == null) {
+      return idealStateMap;
+    }
+
+    List<String> statesPriorityList = stateModelDef.getStatesPriorityList();
+    Set<String> assigned = new HashSet<String>();
+
+    for (String state : statesPriorityList) {
+      int stateCount = AbstractRebalancer.getStateCount(state, stateModelDef, liveAndEnabled.size(),
+          preferenceList.size());
+      for (String instance : preferenceList) {
+        if (stateCount <= 0) {
+          break;
+        }
+        if (!assigned.contains(instance)) {
+          idealStateMap.put(instance, state);
+          assigned.add(instance);
+          stateCount--;
+        }
+      }
+    }
+
+    return idealStateMap;
   }
 }

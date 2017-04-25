@@ -260,6 +260,10 @@ public class ClusterDataCache {
     return _clusterConfig;
   }
 
+  public void setClusterConfig(ClusterConfig clusterConfig) {
+    _clusterConfig = clusterConfig;
+  }
+
   public String getClusterName() {
     return _clusterConfig != null ? _clusterConfig.getClusterName() : _clusterName;
   }
@@ -476,6 +480,14 @@ public class ClusterDataCache {
    */
   public Map<String, InstanceConfig> getInstanceConfigMap() {
     return _instanceConfigMap;
+  }
+
+  /**
+   * Set the instance config map
+   * @param instanceConfigMap
+   */
+  public void setInstanceConfigMap(Map<String, InstanceConfig> instanceConfigMap) {
+    _instanceConfigMap = instanceConfigMap;
   }
 
   /**

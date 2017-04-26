@@ -142,7 +142,12 @@ public class JobConfig extends ResourceConfig {
     /**
      * The expiration time for the job
      */
-    Expiry
+    Expiry,
+
+    /**
+     * Whether or not enable running task rebalance
+     */
+    RebalanceRunningTask
   }
 
   //Default property values
@@ -157,6 +162,7 @@ public class JobConfig extends ResourceConfig {
   public static final int DEFAULT_NUMBER_OF_TASKS = 0;
   public static final long DEFAULT_JOB_EXECUTION_START_TIME = -1L;
   public static final long DEFAULT_Job_EXECUTION_DELAY_TIME = -1L;
+  public static final boolean DEFAULT_REBALANCE_RUNNING_TASK = false;
 
   public JobConfig(HelixProperty property) {
     super(property.getRecord());
@@ -171,7 +177,8 @@ public class JobConfig extends ResourceConfig {
         jobConfig.getTaskRetryDelay(), jobConfig.isDisableExternalView(),
         jobConfig.isIgnoreDependentJobFailure(), jobConfig.getTaskConfigMap(),
         jobConfig.getJobType(), jobConfig.getInstanceGroupTag(), jobConfig.getExecutionDelay(),
-        jobConfig.getExecutionStart(), jobId, jobConfig.getExpiry());
+        jobConfig.getExecutionStart(), jobId, jobConfig.getExpiry(),
+        jobConfig.isRebalanceRunningTask());
   }
 
   private JobConfig(String workflow, String targetResource, List<String> targetPartitions,
@@ -180,7 +187,8 @@ public class JobConfig extends ResourceConfig {
       int maxForcedReassignmentsPerTask, int failureThreshold, long retryDelay,
       boolean disableExternalView, boolean ignoreDependentJobFailure,
       Map<String, TaskConfig> taskConfigMap, String jobType, String instanceGroupTag,
-      long executionDelay, long executionStart, String jobId, long expiry) {
+      long executionDelay, long executionStart, String jobId, long expiry,
+      boolean rebalanceRunningTask) {
     super(jobId);
     putSimpleConfig(JobConfigProperty.WorkflowID.name(), workflow);
     putSimpleConfig(JobConfigProperty.JobID.name(), jobId);
@@ -239,6 +247,8 @@ public class JobConfig extends ResourceConfig {
     }
     putSimpleConfig(ResourceConfigProperty.MONITORING_DISABLED.toString(),
         String.valueOf(WorkflowConfig.DEFAULT_MONITOR_DISABLE));
+    getRecord().setBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
+        rebalanceRunningTask);
   }
 
   public String getWorkflow() {
@@ -354,6 +364,11 @@ public class JobConfig extends ResourceConfig {
     return getRecord().getLongField(JobConfigProperty.Expiry.name(), WorkflowConfig.DEFAULT_EXPIRY);
   }
 
+  public boolean isRebalanceRunningTask() {
+    return getRecord().getBooleanField(JobConfigProperty.RebalanceRunningTask.name(),
+        DEFAULT_REBALANCE_RUNNING_TASK);
+  }
+
   public static JobConfig fromHelixProperty(HelixProperty property)
       throws IllegalArgumentException {
     Map<String, String> configs = property.getRecord().getSimpleFields();
@@ -386,6 +401,7 @@ public class JobConfig extends ResourceConfig {
     private boolean _disableExternalView = DEFAULT_DISABLE_EXTERNALVIEW;
     private boolean _ignoreDependentJobFailure = DEFAULT_IGNORE_DEPENDENT_JOB_FAILURE;
     private int _numberOfTasks = DEFAULT_NUMBER_OF_TASKS;
+    private boolean _rebalanceRunningTask = DEFAULT_REBALANCE_RUNNING_TASK;
 
     public JobConfig build() {
       if (_targetResource == null && _taskConfigMap.isEmpty()) {
@@ -404,7 +420,8 @@ public class JobConfig extends ResourceConfig {
           _command, _commandConfig, _timeoutPerTask, _numConcurrentTasksPerInstance,
           _maxAttemptsPerTask, _maxForcedReassignmentsPerTask, _failureThreshold, _retryDelay,
           _disableExternalView, _ignoreDependentJobFailure, _taskConfigMap, _jobType,
-          _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry);
+          _instanceGroupTag, _executionDelay, _executionStart, _jobId, _expiry,
+          _rebalanceRunningTask);
     }
 
     /**
@@ -479,6 +496,10 @@ public class JobConfig extends ResourceConfig {
       }
       if (cfg.containsKey(JobConfigProperty.Expiry.name())) {
         b.setExpiry(Long.valueOf(cfg.get(JobConfigProperty.Expiry.name())));
+      }
+      if (cfg.containsKey(JobConfigProperty.RebalanceRunningTask.name())) {
+        b.setRebalanceRunningTask(
+            Boolean.valueOf(cfg.get(JobConfigProperty.RebalanceRunningTask.name())));
       }
       return b;
     }
@@ -604,6 +625,11 @@ public class JobConfig extends ResourceConfig {
       return this;
     }
 
+    public Builder setRebalanceRunningTask(boolean enabled) {
+      _rebalanceRunningTask = enabled;
+      return this;
+    }
+
     private void validate() {
       if (_taskConfigMap.isEmpty() && _targetResource == null) {
         throw new IllegalArgumentException(
@@ -675,7 +701,8 @@ public class JobConfig extends ResourceConfig {
           .setDisableExternalView(jobBean.disableExternalView)
           .setIgnoreDependentJobFailure(jobBean.ignoreDependentJobFailure)
           .setNumberOfTasks(jobBean.numberOfTasks).setExecutionDelay(jobBean.executionDelay)
-          .setExecutionStart(jobBean.executionStart);
+          .setExecutionStart(jobBean.executionStart)
+          .setRebalanceRunningTask(jobBean.rebalanceRunningTask);
 
       if (jobBean.jobCommandConfigMap != null) {
         b.setJobCommandConfigMap(jobBean.jobCommandConfigMap);

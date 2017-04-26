@@ -287,4 +287,33 @@ public class TaskTestUtil {
 
     return event.getAttribute(AttributeName.BEST_POSSIBLE_STATE.toString());
   }
+
+  /**
+   * Implement this class to periodically check whether a defined condition is true,
+   * if timeout, check the condition for the last time and return the result.
+   */
+  public static abstract class Poller {
+    private static final long DEFAULT_TIME_OUT = 1000*10;
+
+    public boolean poll() {
+      return poll(DEFAULT_TIME_OUT);
+    }
+
+    public boolean poll(long timeOut) {
+      long startTime = System.currentTimeMillis();
+      while (System.currentTimeMillis() < startTime + timeOut) {
+        if (check()) {
+          break;
+        }
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+      return check();
+    }
+
+    public abstract boolean check();
+  }
 }

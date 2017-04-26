@@ -46,6 +46,8 @@ public class MockTask extends UserContentStore implements Task {
   private int _numOfSuccessBeforeFail;
   private String _errorMsg;
 
+  public static boolean _signalFail;
+
   public MockTask(TaskCallbackContext context) {
     Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
     if (cfg == null) {
@@ -86,6 +88,9 @@ public class MockTask extends UserContentStore implements Task {
         timeLeft = expiry - System.currentTimeMillis();
         return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
             : timeLeft));
+      }
+      if (_signalFail) {
+        return new TaskResult(TaskResult.Status.FAILED, "Signaled to fail.");
       }
       sleep(50);
     }

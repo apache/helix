@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.helix.HelixException;
 import org.apache.helix.HelixManager;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
@@ -55,10 +56,11 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
 
   protected final String MASTER_SLAVE_STATE_MODEL = "MasterSlave";
   protected final String CLUSTER_NAME = CLUSTER_PREFIX + "_" + getShortClassName();
-  protected final MockParticipantManager[] _participants = new MockParticipantManager[_numNodes];
+  protected MockParticipantManager[] _participants;
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants =  new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -76,10 +78,7 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   @AfterClass
   public void afterClass() throws Exception {
     _manager.disconnect();
-
-    for (int i = 0; i < _numNodes; i++) {
-      _participants[i].syncStop();
-    }
+    stopParticipants();
   }
 
   protected void setupDBs() {
@@ -103,7 +102,8 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
         idealState.setInstanceGroupTag("TESTTAG0");
         _setupTool.getClusterManagementTool().setResourceIdealState(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, idealState);
       } else {
-        _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numParitions, MASTER_SLAVE_STATE_MODEL);
+        _setupTool.addResourceToCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB,
+            _numParitions, MASTER_SLAVE_STATE_MODEL, IdealState.RebalanceMode.FULL_AUTO.name());
       }
       _setupTool.rebalanceStorageCluster(CLUSTER_NAME, WorkflowGenerator.DEFAULT_TGT_DB, _numReplicas);
     }
@@ -120,23 +120,45 @@ public class TaskSynchronizedTestBase extends ZkIntegrationTestBase {
   }
 
   protected void startParticipants() {
+    startParticipants(_numNodes);
+  }
+
+  protected void startParticipants(int numNodes) {
+    for (int i = 0; i < numNodes; i++) {
+      startParticipant(i);
+    }
+  }
+
+  protected void startParticipant(int i) {
     Map<String, TaskFactory> taskFactoryReg = new HashMap<String, TaskFactory>();
     taskFactoryReg.put(MockTask.TASK_COMMAND, new TaskFactory() {
       @Override public Task createNewTask(TaskCallbackContext context) {
         return new MockTask(context);
       }
     });
+    String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
+    _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
 
-    // start dummy participants
+    // Register a Task state model factory.
+    StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
+    stateMachine.registerStateModelFactory("Task",
+        new TaskStateModelFactory(_participants[i], taskFactoryReg));
+    _participants[i].syncStart();
+  }
+
+  protected void stopParticipants() {
     for (int i = 0; i < _numNodes; i++) {
-      String instanceName = PARTICIPANT_PREFIX + "_" + (_startPort + i);
-      _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
+      stopParticipant(i);
+    }
+  }
 
-      // Register a Task state model factory.
-      StateMachineEngine stateMachine = _participants[i].getStateMachineEngine();
-      stateMachine.registerStateModelFactory("Task",
-          new TaskStateModelFactory(_participants[i], taskFactoryReg));
-      _participants[i].syncStart();
+  protected void stopParticipant(int i) {
+    if (_participants.length <= i) {
+      throw new HelixException(String.format("Can't stop participant %s, only %s participants"
+          + "were set up.", i, _participants.length));
+    }
+    if (_participants[i] != null && _participants[i].isConnected()) {
+      _participants[i].reset();
     }
   }
 

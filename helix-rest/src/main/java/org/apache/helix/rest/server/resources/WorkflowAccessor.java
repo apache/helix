@@ -54,8 +54,6 @@ public class WorkflowAccessor extends AbstractResource {
     ParentJobs
   }
 
-  public static final String ID = "id";
-
   @GET
   @Produces({"application/json", "text/plain"})
   public Response getWorkflows(@PathParam("clusterId") String clusterId) {
@@ -78,7 +76,7 @@ public class WorkflowAccessor extends AbstractResource {
 
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     TextNode id = JsonNodeFactory.instance.textNode(workflowId);
-    root.put(ID, id);
+    root.put(Properties.id.name(), id);
 
     ObjectNode workflowConfigNode = JsonNodeFactory.instance.objectNode();
     ObjectNode workflowContextNode = JsonNodeFactory.instance.objectNode();

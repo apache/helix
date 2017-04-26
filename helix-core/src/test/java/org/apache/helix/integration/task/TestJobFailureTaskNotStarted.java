@@ -65,6 +65,7 @@ public class TestJobFailureTaskNotStarted extends TaskSynchronizedTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants =  new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 2;
     _numParitions = 2;

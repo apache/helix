@@ -63,6 +63,7 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants = new MockParticipantManager[_numNodes];
     String namespace = "/" + CLUSTER_NAME;
     if (_gZkClient.exists(namespace)) {
       _gZkClient.deleteRecursive(namespace);
@@ -147,7 +148,6 @@ public class TestIndependentTaskRebalancer extends TaskTestBase {
     _driver.start(workflowBuilder.build());
 
     // Ensure the job completes
-    _driver.pollForWorkflowState(jobName, TaskState.IN_PROGRESS);
     _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
 
 

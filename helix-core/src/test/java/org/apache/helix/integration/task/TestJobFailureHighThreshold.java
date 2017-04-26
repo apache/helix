@@ -23,6 +23,7 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
 import org.apache.helix.HelixException;
 import org.apache.helix.integration.manager.ClusterControllerManager;
+import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.task.JobConfig;
 import org.apache.helix.task.JobContext;
@@ -47,6 +48,7 @@ public class TestJobFailureHighThreshold extends TaskSynchronizedTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numNodes = 1;
     _numParitions = 5;

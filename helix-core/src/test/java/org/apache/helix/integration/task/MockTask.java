@@ -19,19 +19,9 @@ package org.apache.helix.integration.task;
  * under the License.
  */
 
-import com.google.common.collect.Lists;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-
-import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.helix.HelixException;
 import org.apache.helix.task.Task;
 import org.apache.helix.task.TaskCallbackContext;
@@ -59,6 +49,8 @@ public class MockTask extends UserContentStore implements Task {
   private int _numOfFailBeforeSuccess;
   private int _numOfSuccessBeforeFail;
   private String _errorMsg;
+
+  public static boolean _signalFail;
 
   public MockTask(TaskCallbackContext context) {
     Map<String, String> cfg = context.getJobConfig().getJobCommandConfigMap();
@@ -137,6 +129,9 @@ public class MockTask extends UserContentStore implements Task {
         timeLeft = expiry - System.currentTimeMillis();
         return new TaskResult(TaskResult.Status.CANCELED, String.valueOf(timeLeft < 0 ? 0
             : timeLeft));
+      }
+      if (_signalFail) {
+        return new TaskResult(TaskResult.Status.FAILED, "Signaled to fail.");
       }
       sleep(50);
     }

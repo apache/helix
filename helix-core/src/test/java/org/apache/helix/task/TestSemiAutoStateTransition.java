@@ -44,6 +44,7 @@ public class TestSemiAutoStateTransition extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants =  new MockParticipantManager[_numNodes];
     _numParitions = 1;
 
     String namespace = "/" + CLUSTER_NAME;

@@ -55,6 +55,7 @@ public class TestStateTransitionCancellation extends TaskTestBase {
 
   @BeforeClass
   public void beforeClass() throws Exception {
+    _participants = new MockParticipantManager[_numNodes];
     _numDbs = 1;
     _numParitions = 20;
     _numNodes = 2;

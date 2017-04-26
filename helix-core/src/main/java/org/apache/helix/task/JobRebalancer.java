@@ -468,6 +468,12 @@ public class JobRebalancer extends TaskRebalancer {
       Map<String, SortedSet<Integer>> tgtPartitionAssignments = taskAssignmentCal
           .getTaskAssignment(currStateOutput, prevTaskToInstanceStateAssignment, liveInstances, jobCfg, jobCtx,
               workflowConfig, workflowCtx, allPartitions, cache.getIdealStates());
+
+      if (!isGenericTaskJob(jobCfg) || jobCfg.isRebalanceRunningTask()) {
+        dropRebalancedRunningTasks(tgtPartitionAssignments, prevInstanceToTaskAssignments, paMap,
+            jobCtx);
+      }
+
       for (Map.Entry<String, SortedSet<Integer>> entry : prevInstanceToTaskAssignments.entrySet()) {
         String instance = entry.getKey();
         if (!tgtPartitionAssignments.containsKey(instance) || excludedInstances
@@ -526,13 +532,32 @@ public class JobRebalancer extends TaskRebalancer {
     return ra;
   }
 
+  /**
+   * If assignment is different from previous assignment, drop the old running task if it's no
+   * longer assigned to the same instance, but not removing it from excludeSet because the same task
+   * should not be assigned to the new instance right way.
+   */
+  private void dropRebalancedRunningTasks(Map<String, SortedSet<Integer>> newAssignment,
+      Map<String, SortedSet<Integer>> oldAssignment, Map<Integer, PartitionAssignment> paMap,
+      JobContext jobContext) {
+    for (String instance : oldAssignment.keySet()) {
+      for (Integer pId : oldAssignment.get(instance)) {
+        if (jobContext.getPartitionState(pId) == TaskPartitionState.RUNNING
+                && !newAssignment.get(instance).contains(pId)) {
+            paMap.put(pId, new PartitionAssignment(instance, TaskPartitionState.DROPPED.name()));
+            jobContext.setPartitionState(pId, TaskPartitionState.DROPPED);
+        }
+      }
+    }
+  }
+
   private TaskPartitionState updateJobContextAndGetTaskCurrentState(CurrentStateOutput currentStateOutput,
       String jobResource, Integer pId, String pName, String instance, JobContext jobCtx) {
     String currentStateString = currentStateOutput.getCurrentState(jobResource, new Partition(
         pName), instance);
     if (currentStateString == null) {
-      // If the task is assigned but current state is null, it is equivalent to say its current state is INIT
-      return TaskPartitionState.INIT;
+      // Task state is either DROPPED or INIT
+      return jobCtx.getPartitionState(pId);
     }
     TaskPartitionState currentState = TaskPartitionState.valueOf(currentStateString);
     jobCtx.setPartitionState(pId, currentState);
@@ -849,12 +874,12 @@ public class JobRebalancer extends TaskRebalancer {
   }
 
   private TaskAssignmentCalculator getAssignmentCalulator(JobConfig jobConfig) {
+    return isGenericTaskJob(jobConfig) ? _genericTaskAssignmentCal : _fixTaskAssignmentCal;
+  }
+
+  private boolean isGenericTaskJob(JobConfig jobConfig) {
     Map<String, TaskConfig> taskConfigMap = jobConfig.getTaskConfigMap();
-    if (taskConfigMap != null && !taskConfigMap.isEmpty()) {
-      return _genericTaskAssignmentCal;
-    } else {
-      return _fixTaskAssignmentCal;
-    }
+    return taskConfigMap != null && !taskConfigMap.isEmpty();
   }
 
   /**

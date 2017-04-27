@@ -32,7 +32,7 @@ import org.apache.zookeeper.data.Stat;
 public class ZkAsyncCallbacks {
   private static Logger LOG = Logger.getLogger(ZkAsyncCallbacks.class);
 
-  static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
+  public static class GetDataCallbackHandler extends DefaultCallback implements DataCallback {
     byte[] _data;
     Stat _stat;
 
@@ -51,7 +51,7 @@ public class ZkAsyncCallbacks {
     }
   }
 
-  static class SetDataCallbackHandler extends DefaultCallback implements StatCallback {
+  public static class SetDataCallbackHandler extends DefaultCallback implements StatCallback {
     Stat _stat;
 
     @Override
@@ -72,7 +72,7 @@ public class ZkAsyncCallbacks {
     }
   }
 
-  static class ExistsCallbackHandler extends DefaultCallback implements StatCallback {
+  public static class ExistsCallbackHandler extends DefaultCallback implements StatCallback {
     Stat _stat;
 
     @Override
@@ -90,7 +90,7 @@ public class ZkAsyncCallbacks {
 
   }
 
-  static class CreateCallbackHandler extends DefaultCallback implements StringCallback {
+  public static class CreateCallbackHandler extends DefaultCallback implements StringCallback {
     @Override
     public void processResult(int rc, String path, Object ctx, String name) {
       callback(rc, path, ctx);
@@ -102,7 +102,7 @@ public class ZkAsyncCallbacks {
     }
   }
 
-  static class DeleteCallbackHandler extends DefaultCallback implements VoidCallback {
+  public static class DeleteCallbackHandler extends DefaultCallback implements VoidCallback {
     @Override
     public void processResult(int rc, String path, Object ctx) {
       callback(rc, path, ctx);
@@ -118,7 +118,7 @@ public class ZkAsyncCallbacks {
   /**
    * Default callback for zookeeper async api
    */
-  static abstract class DefaultCallback {
+  public static abstract class DefaultCallback {
     AtomicBoolean _lock = new AtomicBoolean(false);
     int _rc = -1;
 

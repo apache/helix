@@ -35,7 +35,8 @@ public class ClusterConfig extends HelixProperty {
     PERSIST_BEST_POSSIBLE_ASSIGNMENT,
     FAULT_ZONE_TYPE, // the type in which isolation should be applied on when Helix places the replicas from same partition.
     DELAY_REBALANCE_DISABLED,  // enabled the delayed rebalaning in case node goes offline.
-    DELAY_REBALANCE_TIME     // delayed time in ms that the delay time Helix should hold until rebalancing.
+    DELAY_REBALANCE_TIME,     // delayed time in ms that the delay time Helix should hold until rebalancing.
+    BATCH_STATE_TRANSITION_MAX_THREADS
   }
 
   /**
@@ -81,6 +82,25 @@ public class ClusterConfig extends HelixProperty {
 
   public boolean isDelayRebalaceDisabled() {
     return _record.getBooleanField(ClusterConfigProperty.DELAY_REBALANCE_DISABLED.name(), false);
+  }
+
+  /**
+   * Set the customized batch message thread pool size
+   *
+   * @return
+   */
+  public void setBatchStateTransitionMaxThreads(int maxThreads) {
+    _record
+        .setIntField(ClusterConfigProperty.BATCH_STATE_TRANSITION_MAX_THREADS.name(), maxThreads);
+  }
+
+  /**
+   * Get the customized batch message thread pool size
+   *
+   * @return
+   */
+  public int getBatchStateTransitionMaxThreads() {
+    return _record.getIntField(ClusterConfigProperty.BATCH_STATE_TRANSITION_MAX_THREADS.name(), -1);
   }
 
   @Override

@@ -48,6 +48,7 @@ import org.apache.helix.NotificationContext.Type;
 import org.apache.helix.PropertyKey;
 import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.controller.GenericHelixController;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.CurrentState;
 import org.apache.helix.model.HelixConfigScope;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
@@ -123,11 +124,12 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   /**
    * separate executor for executing batch messages
    */
-  final ExecutorService _batchMessageExecutorService;
+  ExecutorService _batchMessageExecutorService;
 
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
+  boolean _batchMessageThreadpoolChecked;
 
   // timer for schedule timeout tasks
   final Timer _timer;
@@ -143,6 +145,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
     _batchMessageExecutorService = Executors.newCachedThreadPool();
+    _batchMessageThreadpoolChecked = false;
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
 
@@ -208,6 +211,18 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   private void updateStateTransitionMessageThreadPool(Message message, HelixManager manager) {
     if (!message.getMsgType().equals(MessageType.STATE_TRANSITION.toString())) {
       return;
+    }
+
+    if (!_batchMessageThreadpoolChecked) {
+      HelixDataAccessor accessor = manager.getHelixDataAccessor();
+      ClusterConfig clusterConfig = accessor.getProperty(accessor.keyBuilder().clusterConfig());
+      if (clusterConfig != null && clusterConfig.getBatchStateTransitionMaxThreads() > 0) {
+        LOG.info("Customize batch message thread pool with size : " + clusterConfig
+            .getBatchStateTransitionMaxThreads());
+        _batchMessageExecutorService =
+            Executors.newFixedThreadPool(clusterConfig.getBatchStateTransitionMaxThreads());
+      }
+      _batchMessageThreadpoolChecked = true;
     }
 
     String resourceName = message.getResourceName();

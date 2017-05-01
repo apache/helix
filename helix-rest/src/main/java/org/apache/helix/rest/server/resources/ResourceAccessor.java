@@ -66,13 +66,13 @@ public class ResourceAccessor extends AbstractResource {
     List<String> externalViews = zkClient.getChildren(PropertyPathBuilder.externalView(clusterId));
 
     if (idealStates != null) {
-      idealStatesNode.addAll(mapper.valueToTree(idealStates));
+      idealStatesNode.addAll((ArrayNode) mapper.valueToTree(idealStates));
     } else {
       return notFound();
     }
 
     if (externalViews != null) {
-      externalViewsNode.addAll(mapper.valueToTree(externalViews));
+      externalViewsNode.addAll((ArrayNode) mapper.valueToTree(externalViews));
     }
 
     return JSONRepresentation(root);

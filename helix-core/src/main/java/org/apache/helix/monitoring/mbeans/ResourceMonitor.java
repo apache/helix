@@ -291,6 +291,7 @@ public class ResourceMonitor implements ResourceMonitorMBean {
   public void resetMaxTopStateHandoffGauge() {
     if (_lastResetTime + RESET_TIME_RANGE <= System.currentTimeMillis()) {
       _maxSinglePartitionTopStateHandoffDuration = 0L;
+      _lastResetTime = System.currentTimeMillis();
     }
   }
 }

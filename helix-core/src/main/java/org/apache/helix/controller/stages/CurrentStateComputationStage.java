@@ -181,7 +181,9 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
 
         // TODO: improve following with MIN_ACTIVE_TOP_STATE logic
         // Missing top state need to record
-        if (!stateMap.values().contains(stateModelDef.getTopState())) {
+        if (!stateMap.values().contains(stateModelDef.getTopState()) && (!missingTopStateMap
+            .containsKey(resource.getResourceName()) || !missingTopStateMap
+            .get(resource.getResourceName()).containsKey(partition.getPartitionName()))) {
           reportNewTopStateMissing(cache, stateMap, missingTopStateMap, resource, partition,
               stateModelDef.getTopState());
         }
@@ -208,7 +210,6 @@ public class CurrentStateComputationStage extends AbstractBaseStage {
         }
       }
     }
-    cache.setMissingTopStateMap(missingTopStateMap);
     if (clusterStatusMonitor != null) {
       clusterStatusMonitor.resetMaxMissingTopStateGauge();
     }

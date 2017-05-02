@@ -71,7 +71,7 @@ public class ClusterDataCache {
   Map<String, Map<String, Map<String, CurrentState>>> _currentStateMap;
   Map<String, Map<String, Message>> _messageMap;
   Map<String, Map<String, String>> _idealStateRuleMap;
-  Map<String, Map<String, Long>> _missingTopStateMap;
+  Map<String, Map<String, Long>> _missingTopStateMap = new HashMap<>();
 
   // maintain a cache of participant messages across pipeline runs
   Map<String, Map<String, Message>> _messageCache = Maps.newHashMap();
@@ -107,7 +107,6 @@ public class ClusterDataCache {
       _idealStateCacheMap = accessor.getChildValuesMap(keyBuilder.idealStates());
       _liveInstanceCacheMap = accessor.getChildValuesMap(keyBuilder.liveInstances());
       _instanceConfigCacheMap = accessor.getChildValuesMap(keyBuilder.instanceConfigs());
-      _missingTopStateMap = new HashMap<>();
     }
     _idealStateMap = Maps.newHashMap(_idealStateCacheMap);
     _liveInstanceMap = Maps.newHashMap(_liveInstanceCacheMap);
@@ -577,10 +576,6 @@ public class ClusterDataCache {
       return _constraintMap.get(type.toString());
     }
     return null;
-  }
-
-  public void setMissingTopStateMap(Map<String, Map<String, Long>> missingTopStateMap) {
-    _missingTopStateMap = missingTopStateMap;
   }
 
   public Map<String, Map<String, Long>> getMissingTopStateMap() {

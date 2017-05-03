@@ -30,6 +30,7 @@ import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.controller.pipeline.StageException;
 import org.apache.helix.manager.zk.DefaultSchedulerMessageHandlerFactory;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
@@ -172,8 +173,9 @@ public class MessageGenerationPhase extends AbstractBaseStage {
               }
             }
 
-            int timeout = getTimeOut(cache.getResourceConfig(resourceName), currentState, nextState,
-                idealState, partition);
+            int timeout =
+                getTimeOut(cache.getClusterConfig(), cache.getResourceConfig(resourceName),
+                    currentState, nextState, idealState, partition);
             if (timeout > 0) {
               message.setExecutionTimeout(timeout);
             }
@@ -260,41 +262,43 @@ public class MessageGenerationPhase extends AbstractBaseStage {
     return null;
   }
 
-  private int getTimeOut(ResourceConfig resourceConfig, String currentState, String nextState,
-      IdealState idealState, Partition partition) {
+  private int getTimeOut(ClusterConfig clusterConfig, ResourceConfig resourceConfig,
+      String currentState, String nextState, IdealState idealState, Partition partition) {
     // Set timeout of needed
     int timeout = -1;
-    if (resourceConfig != null) {
-      // Set timeout once ResourceConfig set
-      StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
-          resourceConfig.getStateTransitionTimeoutConfig();
-      timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
-          .getStateTransitionTimeout(currentState, nextState) : -1;
 
+    StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
+        clusterConfig.getStateTransitionTimeoutConfig();
+    timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
+        .getStateTransitionTimeout(currentState, nextState) : -1;
+
+    String timeOutStr = null;
+    // Check IdealState whether has timeout set
+    if (idealState != null) {
+      String stateTransition = currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
+      timeOutStr = idealState.getRecord().getSimpleField(stateTransition);
+      if (timeOutStr == null && idealState.getStateModelDefRef()
+          .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
+        // scheduled task queue
+        if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
+          timeOutStr = idealState.getRecord().getMapField(partition.getPartitionName())
+              .get(Message.Attributes.TIMEOUT.toString());
+        }
+      }
+    }
+    if (timeOutStr != null) {
+      try {
+        timeout = Integer.parseInt(timeOutStr);
+      } catch (Exception e) {
+        logger.error("", e);
+      }
     }
 
-    if (timeout <= 0) {
-      String timeOutStr = null;
-      // Check IdealState whether has timeout set
-      if (idealState != null) {
-        String stateTransition = currentState + "-" + nextState + "_" + Message.Attributes.TIMEOUT;
-        timeOutStr = idealState.getRecord().getSimpleField(stateTransition);
-        if (timeOutStr == null && idealState.getStateModelDefRef()
-            .equalsIgnoreCase(DefaultSchedulerMessageHandlerFactory.SCHEDULER_TASK_QUEUE)) {
-          // scheduled task queue
-          if (idealState.getRecord().getMapField(partition.getPartitionName()) != null) {
-            timeOutStr = idealState.getRecord().getMapField(partition.getPartitionName())
-                .get(Message.Attributes.TIMEOUT.toString());
-          }
-        }
-      }
-      if (timeOutStr != null) {
-        try {
-          timeout = Integer.parseInt(timeOutStr);
-        } catch (Exception e) {
-          logger.error("", e);
-        }
-      }
+    if (resourceConfig != null) {
+      // If resource config has timeout, replace the cluster timeout.
+      stateTransitionTimeoutConfig = resourceConfig.getStateTransitionTimeoutConfig();
+      timeout = stateTransitionTimeoutConfig != null ? stateTransitionTimeoutConfig
+          .getStateTransitionTimeout(currentState, nextState) : -1;
     }
 
     return timeout;

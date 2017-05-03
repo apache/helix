@@ -26,12 +26,11 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
-import org.apache.helix.PropertyKey;
-import org.apache.helix.PropertyKey.Builder;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.RebalanceConfig;
 import org.apache.helix.api.config.StateTransitionTimeoutConfig;
@@ -42,6 +41,7 @@ import org.apache.helix.messaging.handling.MessageHandler.ErrorCode;
 import org.apache.helix.mock.participant.MockMSStateModel;
 import org.apache.helix.mock.participant.MockTransition;
 import org.apache.helix.mock.participant.SleepTransition;
+import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
@@ -55,11 +55,14 @@ import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.MasterNbInExtViewVerifier;
 import org.apache.log4j.Logger;
 import org.testng.Assert;
+import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBase {
   private static Logger LOG = Logger.getLogger(TestStateTransitionTimeout.class);
+  private Map<String, SleepStateModelFactory> _factories;
+  private ConfigAccessor _configAccessor;
 
   @Override
   @BeforeClass
@@ -74,29 +77,26 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
 
     // setup storage cluster
     _setupTool.addCluster(CLUSTER_NAME, true);
-    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
 
     for (int i = 0; i < NODE_NR; i++) {
       String storageNodeName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       _setupTool.addInstanceToCluster(CLUSTER_NAME, storageNodeName);
     }
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
-
-    // Set the timeout values
-    StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
-        new StateTransitionTimeoutConfig(new ZNRecord(TEST_DB));
-    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", 300);
-    ResourceConfig resourceConfig = new ResourceConfig.Builder(TEST_DB)
-        .setStateTransitionTimeoutConfig(stateTransitionTimeoutConfig)
-        .setRebalanceConfig(new RebalanceConfig(new ZNRecord(TEST_DB)))
-        .setNumPartitions(_PARTITIONS).build();
 
     _manager = HelixManagerFactory
         .getZKHelixManager(CLUSTER_NAME, "Admin", InstanceType.ADMINISTRATOR, ZK_ADDR);
     _manager.connect();
-    PropertyKey.Builder keyBuilder = _manager.getHelixDataAccessor().keyBuilder();
-    _manager.getHelixDataAccessor().setProperty(keyBuilder.resourceConfig(TEST_DB), resourceConfig);
+    _configAccessor = new ConfigAccessor(_gZkClient);
 
+    String controllerName = CONTROLLER_PREFIX + "_0";
+    _controller =
+        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
+    _controller.syncStart();
+
+    boolean result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
   }
 
   @StateModelInfo(initialState = "OFFLINE", states = {
@@ -154,13 +154,81 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
 
   @Test
   public void testStateTransitionTimeOut() throws Exception {
-    Map<String, SleepStateModelFactory> factories = new HashMap<String, SleepStateModelFactory>();
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB, _PARTITIONS, STATE_MODEL);
+    _setupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB, false);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB, 3);
+
+    // Set the timeout values
+    StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
+        new StateTransitionTimeoutConfig(new ZNRecord(TEST_DB));
+    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", 300);
+    ResourceConfig resourceConfig = new ResourceConfig.Builder(TEST_DB)
+        .setStateTransitionTimeoutConfig(stateTransitionTimeoutConfig)
+        .setRebalanceConfig(new RebalanceConfig(new ZNRecord(TEST_DB)))
+        .setNumPartitions(_PARTITIONS).setHelixEnabled(false).build();
+    _configAccessor.setResourceConfig(CLUSTER_NAME, TEST_DB, resourceConfig);
+    setParticipants(TEST_DB);
+
+
+    _setupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB, true);
+    boolean result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
+
+    verify(TEST_DB);
+  }
+
+  @Test
+  public void testStateTransitionTimeoutByClusterLevel() throws InterruptedException {
+    _setupTool.addResourceToCluster(CLUSTER_NAME, TEST_DB + 1, _PARTITIONS, STATE_MODEL);
+    _setupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB + 1, false);
+    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, TEST_DB  + 1, 3);
+
+    StateTransitionTimeoutConfig stateTransitionTimeoutConfig =
+        new StateTransitionTimeoutConfig(new ZNRecord(TEST_DB + 1));
+    stateTransitionTimeoutConfig.setStateTransitionTimeout("SLAVE", "MASTER", 300);
+    ClusterConfig clusterConfig = _configAccessor.getClusterConfig(CLUSTER_NAME);
+    clusterConfig.setStateTransitionTimeoutConfig(stateTransitionTimeoutConfig);
+    _configAccessor.setClusterConfig(CLUSTER_NAME, clusterConfig);
+
+    setParticipants(TEST_DB + 1);
+
+    _setupTool.getClusterManagementTool().enableResource(CLUSTER_NAME, TEST_DB + 1, true);
+    boolean result =
+        ClusterStateVerifier
+            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
+    Assert.assertTrue(result);
+    verify(TEST_DB + 1);
+  }
+
+  private void verify(String dbName) {
     IdealState idealState =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, TEST_DB);
+        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
+    HelixDataAccessor accessor = _manager.getHelixDataAccessor();
+    ExternalView ev = accessor.getProperty(accessor.keyBuilder().externalView(dbName));
+    for (String p : idealState.getPartitionSet()) {
+      String idealMaster = idealState.getPreferenceList(p).get(0);
+      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
+
+      TimeOutStateModel model = _factories.get(idealMaster).getStateModel(dbName, p);
+      Assert.assertEquals(model._errorCallcount, 1);
+      Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
+    }
+  }
+
+  private void setParticipants(String dbName) throws InterruptedException {
+    _factories = new HashMap<>();
+    IdealState idealState =
+        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, dbName);
     for (int i = 0; i < NODE_NR; i++) {
+      if (_participants[i] != null) {
+        _participants[i].syncStop();
+      }
+      Thread.sleep(1000);
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
       SleepStateModelFactory factory = new SleepStateModelFactory(1000);
-      factories.put(instanceName, factory);
+      _factories.put(instanceName, factory);
       for (String p : idealState.getPartitionSet()) {
         if (idealState.getPreferenceList(p).get(0).equals(instanceName)) {
           factory.addPartition(p);
@@ -170,27 +238,6 @@ public class TestStateTransitionTimeoutWithResource extends ZkStandAloneCMTestBa
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       _participants[i].getStateMachineEngine().registerStateModelFactory("MasterSlave", factory);
       _participants[i].syncStart();
-    }
-    String controllerName = CONTROLLER_PREFIX + "_0";
-    _controller =
-        new ClusterControllerManager(ZK_ADDR, CLUSTER_NAME, controllerName);
-    _controller.syncStart();
-
-    boolean result =
-        ClusterStateVerifier
-            .verifyByZkCallback(new MasterNbInExtViewVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
-    HelixDataAccessor accessor = _participants[0].getHelixDataAccessor();
-
-    Builder kb = accessor.keyBuilder();
-    ExternalView ev = accessor.getProperty(kb.externalView(TEST_DB));
-    for (String p : idealState.getPartitionSet()) {
-      String idealMaster = idealState.getPreferenceList(p).get(0);
-      Assert.assertTrue(ev.getStateMap(p).get(idealMaster).equals("ERROR"));
-
-      TimeOutStateModel model = factories.get(idealMaster).getStateModel(TEST_DB, p);
-      Assert.assertEquals(model._errorCallcount, 1);
-      Assert.assertEquals(model._error.getCode(), ErrorCode.TIMEOUT);
     }
   }
 }

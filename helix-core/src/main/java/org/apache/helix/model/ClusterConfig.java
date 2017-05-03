@@ -26,6 +26,7 @@ import java.util.List;
 import org.apache.helix.HelixProperty;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.api.config.StateTransitionThrottleConfig;
+import org.apache.helix.api.config.StateTransitionTimeoutConfig;
 
 /**
  * Cluster configurations
@@ -349,6 +350,24 @@ public class ClusterConfig extends HelixProperty {
   public long getMissTopStateDurationThreshold() {
     return _record.getLongField(ClusterConfigProperty.MISS_TOP_STATE_DURATION_THRESHOLD.name(),
         Long.MAX_VALUE);
+  }
+
+  /**
+   * Set cluster level state transition time out
+   * @param stateTransitionTimeoutConfig
+   */
+  public void setStateTransitionTimeoutConfig(
+      StateTransitionTimeoutConfig stateTransitionTimeoutConfig) {
+    _record.setMapField(StateTransitionTimeoutConfig.StateTransitionTimeoutProperty.TIMEOUT.name(),
+        stateTransitionTimeoutConfig.getTimeoutMap());
+  }
+
+  /**
+   * Get the state transition timeout at cluster level
+   * @return
+   */
+  public StateTransitionTimeoutConfig getStateTransitionTimeoutConfig() {
+    return StateTransitionTimeoutConfig.fromRecord(_record);
   }
 
   @Override

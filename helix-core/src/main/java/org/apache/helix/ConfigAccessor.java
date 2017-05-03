@@ -600,7 +600,7 @@ public class ConfigAccessor {
     }
 
     HelixConfigScope scope =
-        new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
+        new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
             .forResource(resourceName).build();
 
     String zkPath = scope.getZkPath();

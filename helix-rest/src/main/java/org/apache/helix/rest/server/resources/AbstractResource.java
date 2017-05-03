@@ -102,14 +102,6 @@ public class AbstractResource {
     return Response.ok(entity).build();
   }
 
-  protected Response JSONRepresentation(ZNRecord znRecord) {
-    return JSONRepresentation(znRecord);
-  }
-
-  protected Response JSONRepresentation(Map<String, ?> dataMap) {
-    return JSONRepresentation(dataMap);
-  }
-
   protected Response JSONRepresentation(Object entity) {
     try {
       String jsonStr = toJson(entity);
@@ -118,16 +110,6 @@ public class AbstractResource {
       _logger.error("Failed to convert " + entity + " to JSON response", e);
       return serverError();
     }
-  }
-
-  protected String toJson(ZNRecord record)
-      throws IOException {
-    return toJson(record);
-  }
-
-  protected String toJson(Map<String, ?> dataMap)
-      throws IOException {
-    return toJson(dataMap);
   }
 
   protected static String toJson(Object object)

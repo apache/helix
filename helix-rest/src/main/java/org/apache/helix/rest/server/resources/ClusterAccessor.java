@@ -210,8 +210,7 @@ public class ClusterAccessor extends AbstractResource {
 
   private boolean isClusterExist(String cluster) {
     ZkClient zkClient = getZkClient();
-    String pathName = "/" + cluster;
-    if (ZKUtil.isClusterSetup(pathName, zkClient)) {
+    if (ZKUtil.isClusterSetup(cluster, zkClient)) {
       return true;
     }
     return false;

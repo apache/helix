@@ -35,6 +35,7 @@ import org.I0Itec.zkclient.IZkDataListener;
 import org.I0Itec.zkclient.exception.ZkNoNodeException;
 import org.I0Itec.zkclient.serialize.ZkSerializer;
 import org.apache.helix.AccessOption;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.manager.zk.ZkAsyncCallbacks.CreateCallbackHandler;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor.RetCode;
 import org.apache.helix.store.HelixPropertyListener;
@@ -102,9 +103,13 @@ public class ZkCacheBaseDataAccessor<T> implements HelixPropertyStore<T> {
 
   public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
       List<String> wtCachePaths, List<String> zkCachePaths) {
-    _zkclient =
-        new ZkClient(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, serializer);
+    this(zkAddress, serializer, chrootPath, wtCachePaths, zkCachePaths, null);
+  }
+
+  public ZkCacheBaseDataAccessor(String zkAddress, ZkSerializer serializer, String chrootPath,
+      List<String> wtCachePaths, List<String> zkCachePaths, String zkClientMonitorTag) {
+    _zkclient = new ZkClient(zkAddress, ZkClient.DEFAULT_SESSION_TIMEOUT,
+        ZkClient.DEFAULT_CONNECTION_TIMEOUT, new BasicZkSerializer(serializer), zkClientMonitorTag);
     _zkclient.waitUntilConnected(ZkClient.DEFAULT_CONNECTION_TIMEOUT, TimeUnit.MILLISECONDS);
     _baseAccessor = new ZkBaseDataAccessor<T>(_zkclient);
 

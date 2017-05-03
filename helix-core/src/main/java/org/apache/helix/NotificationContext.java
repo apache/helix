@@ -21,6 +21,7 @@ package org.apache.helix;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Metadata associated with a notification event and the current state of the cluster
@@ -64,7 +65,7 @@ public class NotificationContext {
    */
   public NotificationContext(HelixManager manager) {
     _manager = manager;
-    _map = new HashMap<String, Object>();
+    _map = new ConcurrentHashMap<String, Object>();
   }
 
   /**

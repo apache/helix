@@ -301,6 +301,30 @@ public class PropertyKey {
       return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName);
     }
 
+    /**
+     * Get a property key associated with {@link Error} for an instance under a session
+     * @param instanceName
+     * @param sessionId
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey errors(String instanceName, String sessionId) {
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId);
+    }
+
+
+    /**
+     * Get a property key associated with {@link Error} for an instance under a session of
+     * specified resource
+     * @param instanceName
+     * @param sessionId
+     * @param resourceName
+     * @return {@link PropertyKey}
+     */
+    public PropertyKey errors(String instanceName, String sessionId, String resourceName) {
+      return new PropertyKey(ERRORS, Error.class, _clusterName, instanceName, sessionId,
+          resourceName);
+    }
+
     public PropertyKey participantHistory(String instanceName) {
       return new PropertyKey(INSTANCE_HISTORY, ParticipantHistory.class, _clusterName,
           instanceName);

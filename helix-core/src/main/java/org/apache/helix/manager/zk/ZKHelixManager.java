@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.TimeUnit;
-
+import javax.management.JMException;
 import org.I0Itec.zkclient.IZkStateListener;
 import org.I0Itec.zkclient.ZkConnection;
 import org.apache.helix.BaseDataAccessor;
@@ -64,6 +64,7 @@ import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.HelixConfigScope.ConfigScopeProperty;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.monitoring.ZKPathDataDumpTask;
+import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
 import org.apache.helix.participant.StateMachineEngine;
 import org.apache.helix.store.zk.AutoFallbackPropertyStore;
@@ -101,6 +102,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
   protected ZkClient _zkclient = null;
   private final DefaultMessagingService _messagingService;
+  private HelixCallbackMonitor _callbackMonitor;
 
   private BaseDataAccessor<ZNRecord> _baseDataAccessor;
   private ZKHelixDataAccessor _dataAccessor;
@@ -209,6 +211,11 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
 
     _keyBuilder = new Builder(clusterName);
     _messagingService = new DefaultMessagingService(this);
+    try {
+      _callbackMonitor = new HelixCallbackMonitor(instanceType, clusterName);
+    } catch (JMException e) {
+      LOG.error("Error in creating callback monitor.", e);
+    }
 
     _stateListener = stateListener;
 
@@ -330,7 +337,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       }
 
       CallbackHandler newHandler =
-          new CallbackHandler(this, _zkclient, propertyKey, listener, eventType, changeType);
+          new CallbackHandler(this, _zkclient, propertyKey, listener, eventType, changeType,
+              _callbackMonitor);
 
       _handlers.add(newHandler);
       LOG.info("Added listener: " + listener + " for type: " + type + " to path: "
@@ -929,7 +937,7 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
               new DistributedLeaderElection(this, _controller, _controllerTimerTasks),
               new EventType[] {
                   EventType.NodeChildrenChanged, EventType.NodeDeleted, EventType.NodeCreated
-              }, ChangeType.CONTROLLER);
+              }, ChangeType.CONTROLLER, _callbackMonitor);
     }
   }
 

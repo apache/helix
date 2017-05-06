@@ -59,6 +59,7 @@ import org.apache.helix.model.IdealState;
 import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
+import org.apache.helix.monitoring.mbeans.HelixCallbackMonitor;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.Watcher.Event.EventType;
 
@@ -89,6 +90,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   BlockingQueue<NotificationContext> _queue = new LinkedBlockingQueue<>(1000);
   private boolean _batchModeEnabled = false;
   private boolean _preFetchEnabled = true;
+  private HelixCallbackMonitor _monitor;
 
   /**
    * maintain the expected notification types
@@ -98,6 +100,11 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
 
   public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
       Object listener, EventType[] eventTypes, ChangeType changeType) {
+    this(manager, client, propertyKey, listener, eventTypes, changeType, null);
+  }
+
+  public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
+      Object listener, EventType[] eventTypes, ChangeType changeType, HelixCallbackMonitor monitor) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }
@@ -112,6 +119,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     this._changeType = changeType;
     this._lastNotificationTimeStamp = new AtomicLong(System.nanoTime());
     this._queue = new LinkedBlockingQueue<>(1000);
+    this._monitor = monitor;
 
     parseListenerProperties();
 
@@ -244,6 +252,9 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
     } else {
       invoke(changeContext);
     }
+    if (_monitor != null) {
+      _monitor.increaseCallbackUnbatchedCounters(_changeType);
+    }
   }
 
   public void invoke(NotificationContext changeContext) throws Exception {
@@ -356,6 +367,10 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
         logger.info(
             Thread.currentThread().getId() + " END:INVOKE " + _path + " listener:" + _listener
                 .getClass().getCanonicalName() + " Took: " + (end - start) + "ms");
+      }
+
+      if (_monitor != null) {
+        _monitor.increaseCallbackCounters(_changeType, end - start);
       }
     }
   }

@@ -110,7 +110,7 @@ public class ClusterAccessor extends AbstractResource {
     if (config == null) {
       return notFound();
     }
-    return JSONRepresentation(config);
+    return JSONRepresentation(config.getRecord());
   }
 
   @GET

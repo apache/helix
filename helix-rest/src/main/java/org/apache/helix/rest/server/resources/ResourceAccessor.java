@@ -20,7 +20,9 @@ package org.apache.helix.rest.server.resources;
  */
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -30,6 +32,7 @@ import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
 import org.apache.helix.PropertyPathBuilder;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.model.ExternalView;
 import org.apache.helix.model.IdealState;
@@ -38,7 +41,6 @@ import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.node.TextNode;
 
 @Path("/clusters/{clusterId}/resources")
 public class ResourceAccessor extends AbstractResource {
@@ -83,7 +85,6 @@ public class ResourceAccessor extends AbstractResource {
   @Produces({ "application/json", "text/plain" })
   public Response getResource(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName) throws IOException {
-    ObjectNode root = JsonNodeFactory.instance.objectNode();
     ConfigAccessor accessor = getConfigAccessor();
     HelixAdmin admin = getHelixAdmin();
 
@@ -91,28 +92,25 @@ public class ResourceAccessor extends AbstractResource {
     IdealState idealState = admin.getResourceIdealState(clusterId, resourceName);
     ExternalView externalView = admin.getResourceExternalView(clusterId, resourceName);
 
+    Map<String, ZNRecord> resourceMap = new HashMap<>();
     if (idealState != null) {
-      root.put(ResourceProperties.idealState.name(),
-          JsonNodeFactory.instance.textNode(toJson(idealState.getRecord())));
+      resourceMap.put(ResourceProperties.idealState.name(), idealState.getRecord());
     } else {
       return notFound();
     }
 
-    TextNode resourceConfigNode = JsonNodeFactory.instance.textNode("");
-    TextNode externalViewNode = JsonNodeFactory.instance.textNode("");
+    resourceMap.put(ResourceProperties.resourceConfig.name(), null);
+    resourceMap.put(ResourceProperties.externalView.name(), null);
 
     if (resourceConfig != null) {
-      resourceConfigNode = JsonNodeFactory.instance.textNode(toJson(resourceConfig.getRecord()));
+      resourceMap.put(ResourceProperties.resourceConfig.name(), resourceConfig.getRecord());
     }
 
     if (externalView != null) {
-      externalViewNode = JsonNodeFactory.instance.textNode(toJson(externalView.getRecord()));
+      resourceMap.put(ResourceProperties.externalView.name(), externalView.getRecord());
     }
 
-    root.put(ResourceProperties.resourceConfig.name(), resourceConfigNode);
-    root.put(ResourceProperties.externalView.name(), externalViewNode);
-
-    return JSONRepresentation(root);
+    return JSONRepresentation(resourceMap);
   }
 
   @GET

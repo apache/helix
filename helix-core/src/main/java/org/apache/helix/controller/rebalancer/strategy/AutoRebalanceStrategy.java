@@ -147,6 +147,10 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
 
     moveExcessReplicas();
 
+    if (_orphaned.size() > 0) {
+      forceToAssignOrphans();
+    }
+
     prepareResult(znRecord);
     return znRecord;
   }
@@ -361,6 +365,27 @@ public class AutoRebalanceStrategy implements RebalanceStrategy {
       for (String participant : preferenceList) {
         znRecord.getMapField(partition).put(participant, _stateMap.get(i));
         i++;
+      }
+    }
+  }
+
+  private void forceToAssignOrphans() {
+    for (Replica replica : _orphaned) {
+      int minOverloadedCapacity = Integer.MAX_VALUE;
+      Node nodeToAssign = null;
+      for (int i = 0; i < _liveNodesList.size(); i++) {
+        Node receiver = _liveNodesList.get(i);
+        if ((nodeToAssign == null || receiver.capacity < minOverloadedCapacity)
+            && receiver.currentlyAssigned < _maximumPerNode && receiver
+            .canAddIfCapacity(replica)) {
+          nodeToAssign = receiver;
+        }
+      }
+
+      if (nodeToAssign != null) {
+        nodeToAssign.currentlyAssigned = nodeToAssign.currentlyAssigned + 1;
+        nodeToAssign.nonPreferred.add(replica);
+        nodeToAssign.newReplicas.add(replica);
       }
     }
   }

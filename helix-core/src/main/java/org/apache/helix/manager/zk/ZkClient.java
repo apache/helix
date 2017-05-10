@@ -431,6 +431,21 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
     });
   }
 
+  public <T> T retryUntilConnected(final Callable<T> callable) {
+    final ZkConnection zkConnection = (ZkConnection) getConnection();
+    return super.retryUntilConnected(new Callable<T>() {
+      @Override
+      public T call() throws Exception {
+        // Validate that the connection is not null before trigger callback
+        if (zkConnection == null || zkConnection.getZookeeper() == null) {
+          throw new IllegalStateException(
+              "ZkConnection is in invalid state! Please close this ZkClient and create new client.");
+        }
+        return callable.call();
+      }
+    });
+  }
+
   private void checkDataSizeLimit(byte[] data) {
     if (data != null && data.length > ZNRecord.SIZE_LIMIT) {
       LOG.error("Data size larger than 1M, will not write to zk. Data (first 1k): "

@@ -25,6 +25,7 @@ package org.apache.helix;
  * for zk-based cluster managers, the getZKXXX(..zkClient) that takes a zkClient parameter
  *   are intended for session expiry test purpose
  */
+import org.apache.helix.manager.zk.HelixManagerStateListener;
 import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.log4j.Logger;
 
@@ -46,6 +47,21 @@ public final class HelixManagerFactory {
   public static HelixManager getZKHelixManager(String clusterName, String instanceName,
       InstanceType type, String zkAddr) {
     return new ZKHelixManager(clusterName, instanceName, type, zkAddr);
+  }
+
+  /**
+   * Construct a zk-based cluster manager that enforces all types (PARTICIPANT, CONTROLLER, and
+   * SPECTATOR) to have a name
+   * @param clusterName
+   * @param instanceName
+   * @param type
+   * @param zkAddr
+   * @param stateListener
+   * @return a HelixManager backed by Zookeeper
+   */
+  public static HelixManager getZKHelixManager(String clusterName, String instanceName,
+      InstanceType type, String zkAddr, HelixManagerStateListener stateListener) {
+    return new ZKHelixManager(clusterName, instanceName, type, zkAddr, stateListener);
   }
 
 }

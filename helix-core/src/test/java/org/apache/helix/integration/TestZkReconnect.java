@@ -31,10 +31,13 @@ import org.apache.helix.HelixManagerFactory;
 import org.apache.helix.InstanceType;
 import org.apache.helix.NotificationContext;
 import org.apache.helix.TestHelper;
+import org.apache.helix.manager.zk.HelixManagerStateListener;
+import org.apache.helix.manager.zk.ZKHelixManager;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.Message;
 import org.apache.helix.participant.statemachine.StateModel;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.helix.store.zk.ZkHelixPropertyStore;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterStateVerifier;
 import org.apache.helix.tools.ClusterStateVerifier.BestPossAndExtViewZkVerifier;
@@ -137,6 +140,79 @@ public class TestZkReconnect {
     }
   }
 
+  @Test
+  public void testZKDisconnectCallback() throws Exception {
+    final int zkPort = TestHelper.getRandomPort();
+    final String zkAddr = String.format("localhost:%d", zkPort);
+    final ZkServer zkServer = TestHelper.startZkServer(zkAddr);
+
+    String className = TestHelper.getTestClassName();
+    String methodName = TestHelper.getTestMethodName();
+    final String clusterName = className + "_" + methodName;
+
+    // Init flag to check if callback is triggered
+    final AtomicReference<Boolean> flag = new AtomicReference<Boolean>(false);
+
+    // Setup cluster
+    LOG.info("Setup clusters");
+    ClusterSetup clusterSetup = new ClusterSetup(zkAddr);
+    clusterSetup.addCluster(clusterName, true);
+    // For fast test, set short timeout
+    System.setProperty("zk.connection.timeout", "2000");
+    System.setProperty("zk.connectionReEstablishment.timeout", "1000");
+
+    // Registers and starts controller, register listener for disconnect handling
+    LOG.info("Starts controller");
+    final ZKHelixManager controller =
+        (ZKHelixManager) HelixManagerFactory.getZKHelixManager(clusterName, null, InstanceType.CONTROLLER, zkAddr,
+            new HelixManagerStateListener() {
+              @Override
+              public void onConnected(HelixManager helixManager) throws Exception {
+                return;
+              }
+
+              @Override
+              public void onDisconnected(HelixManager helixManager, Throwable error) throws Exception {
+                Assert.assertEquals(helixManager.getClusterName(), clusterName);
+                flag.getAndSet(true);
+              }
+            });
+
+    try {
+      controller.connect();
+      ZkHelixPropertyStore propertyStore = controller.getHelixPropertyStore();
+
+      // 1. shutdown zkServer and check if handler trigger callback
+      zkServer.shutdown();
+      // Retry will fail, and flag should be set within onDisconnected handler
+      controller.handleSessionEstablishmentError(new Exception("For testing"));
+      Assert.assertTrue(flag.get());
+
+      try {
+        propertyStore.get("/", null, 0);
+        Assert.fail("propertyStore should be disconnected.");
+      } catch (IllegalStateException e) {
+        // Expected exception
+        System.out.println(e.getMessage());
+      }
+
+      // 2. restart zkServer and check if handler will recover connection
+      flag.getAndSet(false);
+      zkServer.start();
+      // Retry will succeed, and flag should not be set
+      controller.handleSessionEstablishmentError(new Exception("For testing"));
+      Assert.assertFalse(flag.get());
+      // New propertyStore should be in good state
+      propertyStore = controller.getHelixPropertyStore();
+      propertyStore.get("/", null, 0);
+    } finally {
+      controller.disconnect();
+      zkServer.shutdown();
+      System.clearProperty("zk.connection.timeout");
+      System.clearProperty("zk.connectionReEstablishment.timeout");
+    }
+  }
+
   public static final class SimpleStateModel extends StateModel {
 
     private final CountDownLatch latch;
@@ -151,5 +227,4 @@ public class TestZkReconnect {
       latch.countDown();
     }
   }
-
 }

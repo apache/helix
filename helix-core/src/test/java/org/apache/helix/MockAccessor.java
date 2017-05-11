@@ -77,14 +77,21 @@ public class MockAccessor implements HelixDataAccessor {
 
   @Override
   public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value) {
+    return updateProperty(key, new ZNRecordUpdater(value.getRecord()) , value);
+  }
+
+  @Override
+  public <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value) {
     String path = key.getPath();
     PropertyType type = key.getType();
     if (type.updateOnlyOnExists) {
       if (_baseDataAccessor.exists(path, 0)) {
         if (type.mergeOnUpdate) {
           ZNRecord znRecord = new ZNRecord((ZNRecord) _baseDataAccessor.get(path, null, 0));
-          znRecord.merge(value.getRecord());
-          _baseDataAccessor.set(path, znRecord, 0);
+          ZNRecord newZNRecord = updater.update(znRecord);
+          if (newZNRecord != null) {
+            _baseDataAccessor.set(path, newZNRecord, 0);
+          }
         } else {
           _baseDataAccessor.set(path, value.getRecord(), 0);
         }
@@ -93,8 +100,10 @@ public class MockAccessor implements HelixDataAccessor {
       if (type.mergeOnUpdate) {
         if (_baseDataAccessor.exists(path, 0)) {
           ZNRecord znRecord = new ZNRecord((ZNRecord) _baseDataAccessor.get(path, null, 0));
-          znRecord.merge(value.getRecord());
-          _baseDataAccessor.set(path, znRecord, 0);
+          ZNRecord newZNRecord = updater.update(znRecord);
+          if (newZNRecord != null) {
+            _baseDataAccessor.set(path, newZNRecord, 0);
+          }
         } else {
           _baseDataAccessor.set(path, value.getRecord(), 0);
         }

@@ -52,7 +52,9 @@ public class MockBaseDataAccessor implements BaseDataAccessor<ZNRecord> {
   @Override public boolean update(String path, DataUpdater<ZNRecord> updater, int options) {
     ZNRecord current = map.get(path);
     ZNRecord newRecord = updater.update(current);
-    map.put(path, newRecord);
+    if (newRecord != null) {
+      map.put(path, newRecord);
+    }
     try {
       Thread.sleep(50);
     } catch (InterruptedException e) {

@@ -89,11 +89,6 @@ public class BaseStageTest {
       int replicas, RebalanceMode rebalanceMode, String stateModelName, String rebalanceClassName,
       String rebalanceStrategyName) {
     List<IdealState> idealStates = new ArrayList<IdealState>();
-    List<String> instances = new ArrayList<String>();
-    for (int i = 0; i < nodes; i++) {
-      instances.add(HOSTNAME_PREFIX + i);
-    }
-
     for (int i = 0; i < resources.length; i++) {
       String resourceName = resources[i];
       ZNRecord record = new ZNRecord(resourceName);
@@ -195,9 +190,9 @@ public class BaseStageTest {
   }
 
   protected void setupStateModel() {
-    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
-
     Builder keyBuilder = accessor.keyBuilder();
+
+    ZNRecord masterSlave = new StateModelConfigGenerator().generateConfigForMasterSlave();
     accessor.setProperty(keyBuilder.stateModelDef(masterSlave.getId()),
         new StateModelDefinition(masterSlave));
 

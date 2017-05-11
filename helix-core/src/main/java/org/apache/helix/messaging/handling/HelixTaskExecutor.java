@@ -296,7 +296,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
       } else {
         String resourceName = message.getResourceName();
         if (resourceName != null) {
-          String key = message.getMsgType() + "." + resourceName;
+          String key = getPerResourceStateTransitionPoolName(resourceName);
           String perStateTransitionTypeKey =
               getStateTransitionType(key, message.getFromState(), message.getToState());
           if (perStateTransitionTypeKey != null && _executorMap.containsKey(perStateTransitionTypeKey)) {

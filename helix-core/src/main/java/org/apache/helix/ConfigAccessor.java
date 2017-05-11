@@ -560,7 +560,7 @@ public class ConfigAccessor {
 
 
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrUpdate(zkClient, zkPath, clusterConfig.getRecord(), true, true);
+    ZKUtil.createOrReplace(zkClient, zkPath, clusterConfig.getRecord(), true);
   }
 
   /**
@@ -604,7 +604,7 @@ public class ConfigAccessor {
             .forResource(resourceName).build();
 
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrUpdate(zkClient, zkPath, resourceConfig.getRecord(), true, true);
+    ZKUtil.createOrReplace(zkClient, zkPath, resourceConfig.getRecord(), true);
   }
 
   /**
@@ -654,6 +654,6 @@ public class ConfigAccessor {
             .forParticipant(instanceName).build();
 
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrUpdate(zkClient, zkPath, instanceConfig.getRecord(), true, true);
+    ZKUtil.createOrReplace(zkClient, zkPath, instanceConfig.getRecord(), true);
   }
 }

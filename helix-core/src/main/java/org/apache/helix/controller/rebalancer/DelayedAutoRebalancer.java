@@ -41,6 +41,7 @@ import org.apache.helix.model.InstanceConfig;
 import org.apache.helix.model.Partition;
 import org.apache.helix.model.Resource;
 import org.apache.helix.model.ResourceAssignment;
+import org.apache.helix.model.ResourceConfig;
 import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
@@ -55,15 +56,23 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
   public IdealState computeNewIdealState(String resourceName,
       IdealState currentIdealState, CurrentStateOutput currentStateOutput,
       ClusterDataCache clusterData) {
-    List<String> partitions = new ArrayList<String>(currentIdealState.getPartitionSet());
-    if (partitions.size() == 0) {
+    List<String> allPartitions = new ArrayList<String>(currentIdealState.getPartitionSet());
+    if (allPartitions.size() == 0) {
       LOG.info("Partition count is 0 for resource " + resourceName
           + ", stop calculate ideal mapping for the resource.");
       return generateNewIdealState(resourceName, currentIdealState,
           emptyMapping(currentIdealState));
     }
+
+    Map<String, List<String>> userDefinedPreferenceList = new HashMap<>();
+
     ClusterConfig clusterConfig = clusterData.getClusterConfig();
+    ResourceConfig resourceConfig = clusterData.getResourceConfig(resourceName);
     boolean delayRebalanceEnabled = isDelayRebalanceEnabled(currentIdealState, clusterConfig);
+
+    if (resourceConfig != null) {
+      userDefinedPreferenceList = resourceConfig.getPreferenceLists();
+    }
 
     Set<String> liveEnabledNodes;
     Set<String> allNodes;
@@ -121,16 +130,19 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     LinkedHashMap<String, Integer> stateCountMap =
         stateModelDef.getStateCountMap(activeNodes.size(), replicaCount);
     Map<String, Map<String, String>> currentMapping =
-        currentMapping(currentStateOutput, resourceName, partitions, stateCountMap);
+        currentMapping(currentStateOutput, resourceName, allPartitions, stateCountMap);
 
+
+    List<String> partitionsToAssign = new ArrayList<>(allPartitions);
+    partitionsToAssign.removeAll(userDefinedPreferenceList.keySet());
     int maxPartition = currentIdealState.getMaxPartitionsPerInstance();
     _rebalanceStrategy =
-        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitions, resourceName,
+        getRebalanceStrategy(currentIdealState.getRebalanceStrategy(), partitionsToAssign, resourceName,
             stateCountMap, maxPartition);
 
     // sort node lists to ensure consistent preferred assignments
-    List<String> allNodeList = new ArrayList<String>(allNodes);
-    List<String> liveEnabledNodeList = new ArrayList<String>(liveEnabledNodes);
+    List<String> allNodeList = new ArrayList<>(allNodes);
+    List<String> liveEnabledNodeList = new ArrayList<>(liveEnabledNodes);
     Collections.sort(allNodeList);
     Collections.sort(liveEnabledNodeList);
 
@@ -139,7 +151,7 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
     ZNRecord finalMapping = newIdealMapping;
 
     if (isDelayRebalanceEnabled(currentIdealState, clusterConfig)) {
-      List<String> activeNodeList = new ArrayList<String>(activeNodes);
+      List<String> activeNodeList = new ArrayList<>(activeNodes);
       Collections.sort(activeNodeList);
       int minActiveReplicas = getMinActiveReplica(currentIdealState, replicaCount);
 
@@ -150,6 +162,8 @@ public class DelayedAutoRebalancer extends AbstractRebalancer {
               replicaCount, minActiveReplicas);
       LOG.debug("newActiveMapping: " + newActiveMapping);
     }
+
+    finalMapping.getListFields().putAll(userDefinedPreferenceList);
 
     if (LOG.isDebugEnabled()) {
       LOG.debug("currentMapping: " + currentMapping);

@@ -363,18 +363,19 @@ public class HelixStateTransitionHandler extends MessageHandler {
                                                        new Class[] { Message.class,
                                                            NotificationContext.class });
     if (methodToInvoke != null) {
-      logger.info(String.format("Instance %s, partition %s received state transition from %s to %s on session %s.",
+      logger.info(String.format("Instance %s, partition %s received state transition from %s to %s on session %s, message id: %s",
                                 message.getTgtName(),
                                 message.getPartitionName(),
                                 message.getFromState(),
                                 message.getToState(),
-                                message.getTgtSessionId()));
+                                message.getTgtSessionId(),
+                                message.getMsgId()));
 
       if (_cancelled) {
         throw new HelixRollbackException(String.format(
-            "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled",
+            "Instance %s, partition %s state transition from %s to %s on session %s has been cancelled, message id: %s",
             message.getTgtName(), message.getPartitionName(), message.getFromState(),
-            message.getToState(), message.getTgtSessionId()));
+            message.getToState(), message.getTgtSessionId(), message.getMsgId()));
       }
 
       Object result = methodToInvoke.invoke(_stateModel, new Object[] { message, context });

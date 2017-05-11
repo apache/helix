@@ -97,8 +97,7 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
   private List<NotificationContext.Type> _expectTypes = nextNotificationType.get(Type.FINALIZE);
 
   public CallbackHandler(HelixManager manager, ZkClient client, PropertyKey propertyKey,
-      Object listener,
-      EventType[] eventTypes, ChangeType changeType) {
+      Object listener, EventType[] eventTypes, ChangeType changeType) {
     if (listener == null) {
       throw new HelixException("listener could not be null");
     }
@@ -220,7 +219,8 @@ public class CallbackHandler implements IZkChildListener, IZkDataListener {
             }
           }
           try {
-            logger.info("Num callbacks merged for path:" + handler.getPath() + " : " + mergedCallbacks);
+            logger.info(
+                "Num callbacks merged for path:" + handler.getPath() + " : " + mergedCallbacks);
             handler.invoke(notificationToProcess);
           } catch (Exception e) {
             logger.warn("Exception in callback processing thread. Skipping callback", e);

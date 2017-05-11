@@ -881,6 +881,8 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
       throw new HelixException("Cluster structure is not set up for cluster: " + _clusterName);
     }
 
+    _sessionStartTime = System.currentTimeMillis();
+
     switch (_instanceType) {
     case PARTICIPANT:
       handleNewSessionAsParticipant();
@@ -897,8 +899,6 @@ public class ZKHelixManager implements HelixManager, IZkStateListener {
     default:
       break;
     }
-
-    _sessionStartTime = System.currentTimeMillis();
 
     startTimerTasks();
 

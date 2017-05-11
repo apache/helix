@@ -881,16 +881,16 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     String msgType = message.getMsgType().toString();
 
     MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.get(msgType);
-    MessageHandlerFactory handlerFactory = item.factory();
 
     // Fail to find a MessageHandlerFactory for the message
     // we will keep the message and the message will be handled when
     // the corresponding MessageHandlerFactory is registered
-    if (handlerFactory == null) {
+    if (item == null) {
       LOG.warn("Fail to find message handler factory for type: " + msgType + " msgId: "
           + message.getMsgId());
       return null;
     }
+    MessageHandlerFactory handlerFactory = item.factory();
 
     // pass the executor to msg-handler since batch-msg-handler needs task-executor to schedule
     // sub-msgs

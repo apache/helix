@@ -45,7 +45,7 @@ import org.codehaus.jackson.map.SerializationConfig;
 public class AbstractResource {
   private static Logger _logger = Logger.getLogger(AbstractResource.class.getName());
 
-  protected enum Properties {
+  public enum Properties {
     id,
     disbled,
     history,

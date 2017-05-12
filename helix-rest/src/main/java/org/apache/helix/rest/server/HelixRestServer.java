@@ -22,6 +22,8 @@ package org.apache.helix.rest.server;
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.resources.ClusterAccessor;
+import org.apache.helix.rest.server.resources.ResourceAccessor;
+import org.apache.helix.rest.server.resources.WorkflowAccessor;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -36,15 +38,15 @@ public class HelixRestServer extends ResourceConfig {
   private int _port;
   private String _urlPrefix;
   private Server _server;
+  private ServerContext _serverContext;
 
   public HelixRestServer(String zkAddr, int port, String urlPrefix) {
-    super(ClusterAccessor.class);
     _port = port;
     _urlPrefix = urlPrefix;
 
     packages("org.apache.helix.rest.server.resources");
-    ServerContext serverContext = new ServerContext(zkAddr);
-    property(ContextPropertyKeys.SERVER_CONTEXT.name(), serverContext);
+    _serverContext = new ServerContext(zkAddr);
+    property(ContextPropertyKeys.SERVER_CONTEXT.name(), _serverContext);
 
     Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
       @Override public void run() {
@@ -74,6 +76,7 @@ public class HelixRestServer extends ResourceConfig {
     if (_server != null) {
       try {
         _server.stop();
+        _serverContext.close();
       } catch (Exception ex) {
         LOG.error("Failed to stop Helix rest server, " + ex);
       }

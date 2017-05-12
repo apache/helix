@@ -44,7 +44,7 @@ import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/resources")
 public class ResourceAccessor extends AbstractResource {
-  private enum ResourceProperties {
+  public enum ResourceProperties {
     idealState,
     idealStates,
     externalView,

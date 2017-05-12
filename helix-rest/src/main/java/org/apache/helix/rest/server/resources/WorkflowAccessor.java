@@ -19,7 +19,6 @@ package org.apache.helix.rest.server.resources;
  * under the License.
  */
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -47,7 +46,7 @@ import org.codehaus.jackson.node.TextNode;
 public class WorkflowAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(WorkflowAccessor.class.getName());
 
-  private enum WorkflowProperties {
+  public enum WorkflowProperties {
     WorkflowConfig,
     WorkflowContext,
     Jobs,

@@ -29,9 +29,6 @@ public class ServerContext {
 
   public ServerContext(String zkAddr) {
     _zkAddr = zkAddr;
-    _zkClient =
-        new ZkClient(_zkAddr, ZkClient.DEFAULT_SESSION_TIMEOUT,
-            ZkClient.DEFAULT_CONNECTION_TIMEOUT, new ZNRecordSerializer());
   }
 
   public ZkClient getZkClient() {

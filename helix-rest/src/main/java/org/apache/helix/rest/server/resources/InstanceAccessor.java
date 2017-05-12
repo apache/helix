@@ -46,7 +46,7 @@ import org.codehaus.jackson.node.ObjectNode;
 public class InstanceAccessor extends AbstractResource {
   private final static ObjectMapper _mapper = new ObjectMapper();
 
-  private enum InstanceProperties {
+  public enum InstanceProperties {
     instances,
     online,
     disabled,

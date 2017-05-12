@@ -19,12 +19,10 @@ package org.apache.helix.monitoring.mbeans;
  * under the License.
  */
 
-import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
-import javax.management.MBeanServer;
 import javax.management.ObjectName;
 
 public class ZkClientMonitor implements ZkClientMonitorMBean {

@@ -45,14 +45,15 @@ import org.apache.log4j.Logger;
 public class ClusterAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(ClusterAccessor.class.getName());
 
-  protected enum ClusterProperties {
+  public enum ClusterProperties {
     controller,
     instances,
     liveInstances,
     resources,
     paused,
     messages,
-    stateModelDefinitions
+    stateModelDefinitions,
+    clusters
   }
 
   @GET
@@ -62,7 +63,7 @@ public class ClusterAccessor extends AbstractResource {
     List<String> clusters = helixAdmin.getClusters();
 
     Map<String, List<String>> dataMap = new HashMap<>();
-    dataMap.put("clusters", clusters);
+    dataMap.put(ClusterProperties.clusters.name(), clusters);
 
     return JSONRepresentation(dataMap);
   }

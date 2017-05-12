@@ -115,6 +115,7 @@ under the License.
   <modules>
     <module>helix-core</module>
     <module>helix-admin-webapp</module>
+    <module>helix-ui</module>
     <module>helix-rest</module>
     <module>helix-agent</module>
     <module>recipes</module>

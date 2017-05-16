@@ -87,7 +87,7 @@ public class TestTaskRebalancer extends TaskTestBase {
 
     // Wait for job to finish and expire
     _driver.pollForWorkflowState(jobName, TaskState.COMPLETED);
-    Thread.sleep(expiry + 100);
+    Thread.sleep(expiry + 2000);
 
     // Ensure workflow config and context were cleaned up by now
     Assert.assertFalse(_manager.getHelixPropertyStore().exists(workflowPropStoreKey,

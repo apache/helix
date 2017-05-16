@@ -178,6 +178,7 @@ public class TestRecurringJobQueue extends TaskTestBase {
 
     LOG.info("Resuming job-queue: " + queueName);
     _driver.resume(queueName);
+    Thread.sleep(2000);
 
     // Ensure the jobs left are successful completed in the correct order
     currentJobNames.remove(deletedJob1);

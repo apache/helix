@@ -512,7 +512,7 @@ public class TestSchedulerMessage extends ZkStandAloneCMTestBase {
     }
   }
 
-  @Test(dependsOnMethods = "testSchedulerMsg3")
+  @Test(dependsOnMethods = "testSchedulerMsg3", enabled = false)
   public void testSchedulerMsg4() throws Exception {
     _factory._results.clear();
     HelixManager manager = null;

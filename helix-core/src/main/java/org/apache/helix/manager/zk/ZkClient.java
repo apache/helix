@@ -185,7 +185,9 @@ public class ZkClient extends org.I0Itec.zkclient.ZkClient {
       }
     } finally {
       getEventLock().unlock();
-      _monitor.unregister();
+      if (_monitor != null) {
+        _monitor.unregister();
+      }
       LOG.info("Closed zkclient");
     }
   }

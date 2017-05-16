@@ -22,6 +22,7 @@ package org.apache.helix.monitoring.mbeans;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -62,10 +63,10 @@ public class ZkClientMonitor implements ZkClientMonitorMBean {
   private long _writeCounter;
   private long _readBytesCounter;
   private long _writeBytesCounter;
-  private Map<PredefinedPath, Long> _readCounterMap = new HashMap<PredefinedPath, Long>();
-  private Map<PredefinedPath, Long> _writeCounterMap = new HashMap<PredefinedPath, Long>();
-  private Map<PredefinedPath, Long> _readBytesCounterMap = new HashMap<PredefinedPath, Long>();
-  private Map<PredefinedPath, Long> _writBytesCounterMap = new HashMap<PredefinedPath, Long>();
+  private Map<PredefinedPath, Long> _readCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writeCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _readBytesCounterMap = new ConcurrentHashMap<>();
+  private Map<PredefinedPath, Long> _writBytesCounterMap = new ConcurrentHashMap<>();
 
   public ZkClientMonitor(String tag) throws JMException {
     tag = tag == null ? DEFAULT_TAG : tag;

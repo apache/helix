@@ -86,13 +86,15 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
 
   public static class TestOnlineOfflineStateModel extends StateModel {
     private static Logger LOG = Logger.getLogger(MockMSStateModel.class);
-    public static int _numOfSuccessBeforeFail;
+    public static Integer _numOfSuccessBeforeFail;
 
-    public synchronized void onBecomeOnlineFromOffline(Message message,
+    public void onBecomeOnlineFromOffline(Message message,
         NotificationContext context) {
-      if (_numOfSuccessBeforeFail-- > 0) {
-        LOG.info("State transition from Offline to Online");
-        return;
+      synchronized (_numOfSuccessBeforeFail) {
+        if (_numOfSuccessBeforeFail-- > 0) {
+          LOG.info("State transition from Offline to Online");
+          return;
+        }
       }
       throw new HelixException("Number of Success reached");
     }

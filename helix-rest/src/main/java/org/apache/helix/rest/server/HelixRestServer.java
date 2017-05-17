@@ -21,9 +21,6 @@ package org.apache.helix.rest.server;
 
 import org.apache.helix.HelixException;
 import org.apache.helix.rest.common.ContextPropertyKeys;
-import org.apache.helix.rest.server.resources.ClusterAccessor;
-import org.apache.helix.rest.server.resources.ResourceAccessor;
-import org.apache.helix.rest.server.resources.WorkflowAccessor;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -63,20 +60,29 @@ public class HelixRestServer extends ResourceConfig {
 
     try {
       _server.start();
-      _server.join();
     } catch (Exception ex) {
       LOG.error("Failed to start Helix rest server, " + ex);
       throw new HelixException("Failed to start Helix rest server! " + ex);
-    } finally {
-      shutdown();
+    }
+
+    LOG.info("Helix rest server started!");
+  }
+
+  public void join() {
+    if (_server != null) {
+      try {
+        _server.join();
+      } catch (InterruptedException e) {
+        LOG.warn("Join on Helix rest server get interrupted!" + e);
+      }
     }
   }
 
-  private void shutdown() {
+  public void shutdown() {
     if (_server != null) {
       try {
         _server.stop();
-        _serverContext.close();
+        LOG.info("Helix rest server stopped!");
       } catch (Exception ex) {
         LOG.error("Failed to stop Helix rest server, " + ex);
       }

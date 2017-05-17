@@ -27,6 +27,7 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.OptionBuilder;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
+import org.apache.helix.HelixException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -97,7 +98,15 @@ public class HelixRestMain {
     }
 
     final HelixRestServer restServer = new HelixRestServer(zkAddr, port, URI_PREFIX);
-    restServer.start();
+
+    try {
+      restServer.start();
+      restServer.join();
+    } catch (HelixException ex) {
+      LOG.error("Failed to start Helix rest server, " + ex);
+    } finally {
+      restServer.shutdown();
+    }
   }
 
   /**

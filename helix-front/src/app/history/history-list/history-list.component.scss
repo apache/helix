@@ -1,0 +1,8 @@
+// Import theming functions
+@import '~@angular/material/theming';
+// Import custom theme
+@import 'src/theme.scss';
+
+.current-controller {
+  color: mat-color($hi-primary);
+}

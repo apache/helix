@@ -1,0 +1,17 @@
+<section>
+  <md-progress-bar *ngIf="isLoading" mode="indeterminate"></md-progress-bar>
+  <md-nav-list>
+    <a md-list-item
+      *ngFor="let resource of resources">
+      <md-icon md-list-icon *ngIf="resource.alive" color="primary">lens</md-icon>
+      <md-icon md-list-icon
+        *ngIf="!resource.alive"
+        color="warn"
+        mdTooltip="The resource is offline.">cloud_off</md-icon>
+      <h4 md-line>{{ resource.name }}</h4>
+    </a>
+  </md-nav-list>
+  <section *ngIf="!isLoading && !resources?.length" class="info">
+    No Resource found.
+  </section>
+</section>

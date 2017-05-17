@@ -1,0 +1,20 @@
+<section class="cluster-list">
+  <section *ngIf="isLoading && !errorMessage" fxLayout="row" fxLayoutAlign="center center">
+    <md-spinner>
+      Loading all clusters ...
+    </md-spinner>
+  </section>
+  <md-nav-list *ngIf="!isLoading">
+    <h3 md-subheader>Clusters</h3>
+    <a *ngFor="let cluster of clusters"
+      md-list-item
+      [routerLink]="['/clusters', cluster.name]"
+      routerLinkActive="cluster-list-item-selected">
+      <md-icon md-list-icon>blur_circular</md-icon>
+      <h4 md-line>{{ cluster.name }}</h4>
+    </a>
+  </md-nav-list>
+  <section *ngIf="errorMessage">
+    {{ errorMessage }}
+  </section>
+</section>

@@ -1,0 +1,20 @@
+<section>
+  <ngx-datatable
+    #historyTable
+    class="material"
+    [loadingIndicator]="isLoading"
+    [headerHeight]="rowHeight"
+    [rowHeight]="rowHeight"
+    columnMode="force"
+    [rows]="rows"
+    selectionType="single"
+    [sorts]="sorts">
+    <ngx-datatable-column name="Date"></ngx-datatable-column>
+    <ngx-datatable-column name="Time"></ngx-datatable-column>
+    <ngx-datatable-column name="Controller"
+      *ngIf="isController"
+      [cellClass]="bindFunc(getControllerCellClass, this)">
+    </ngx-datatable-column>
+    <ngx-datatable-column name="Session" *ngIf="!isController"></ngx-datatable-column>
+  </ngx-datatable>
+</section>

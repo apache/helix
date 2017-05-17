@@ -1,0 +1,34 @@
+<section>
+  <md-toolbar>
+    <h4>
+      {{ clusterName }} &rsaquo; Controller: {{ controller?.name }}
+    </h4>
+    <md-toolbar-row class="information" fxLayout="row">
+      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
+      <md-spinner *ngIf="isLoading"></md-spinner>
+      <section *ngIf="!isLoading" fxLayout="row">
+        <section class="column">
+          <div class="name">Instance</div>
+          <div class="value">{{ controller.liveInstance }}</div>
+        </section>
+        <section class="column">
+          <div class="name">Session</div>
+          <div class="value">{{ controller.sessionId }}</div>
+        </section>
+        <section class="column">
+          <div class="name">Version</div>
+          <div class="value">{{ controller.helixVersion }}</div>
+        </section>
+      </section>
+    </md-toolbar-row>
+  </md-toolbar>
+  <nav md-tab-nav-bar>
+    <a md-tab-link
+      routerLink="history"
+      routerLinkActive #rla="routerLinkActive"
+      [active]="rla.isActive">
+      History
+    </a>
+  </nav>
+  <router-outlet></router-outlet>
+</section>

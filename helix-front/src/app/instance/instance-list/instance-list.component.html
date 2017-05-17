@@ -1,0 +1,16 @@
+<section>
+  <md-nav-list>
+    <a md-list-item
+      *ngFor="let instance of instances">
+      <md-icon md-list-icon *ngIf="instance.alive" color="primary">lens</md-icon>
+      <md-icon md-list-icon
+        *ngIf="!instance.alive"
+        color="warn"
+        mdTooltip="The instance is not alive.">cloud_off</md-icon>
+      <h4 md-line>{{ instance.name }}</h4>
+    </a>
+  </md-nav-list>
+  <section *ngIf="!instances?.length" class="info">
+    No Instance found.
+  </section>
+</section>

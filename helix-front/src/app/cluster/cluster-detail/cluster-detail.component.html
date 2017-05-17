@@ -1,0 +1,43 @@
+<section class="cluster-detail">
+  <section *ngIf="isLoading && !errorMessage" id="loading">
+    <section class="overlay"></section>
+    <md-spinner>
+      Loading cluster detail information ...
+    </md-spinner>
+  </section>
+  <section *ngIf="cluster">
+    <md-toolbar>
+      <h4>{{ cluster.name }}</h4>
+      <md-toolbar-row>
+        <h6>Controller:
+          <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
+        </h6>
+        <span fxFlex="1 1 auto"></span>
+        <md-icon
+          *ngIf="cluster.enabled"
+          color="primary">
+          check_circle
+        </md-icon>
+        <md-icon
+          *ngIf="!cluster.enabled"
+          color="warn"
+          mdTooltip="This cluster is paused.">
+          pause_circle_filled
+        </md-icon>
+      </md-toolbar-row>
+    </md-toolbar>
+    <nav md-tab-nav-bar>
+      <a md-tab-link
+        *ngFor="let tabLink of tabLinks"
+        [routerLink]="tabLink.link"
+        routerLinkActive #rla="routerLinkActive"
+        [active]="rla.isActive">
+        {{ tabLink.label }}
+      </a>
+    </nav>
+    <router-outlet></router-outlet>
+  </section>
+  <section *ngIf="errorMessage">
+    {{ errorMessage }}
+  </section>
+</section>

@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.ZNRecord;
@@ -43,6 +44,7 @@ import org.codehaus.jackson.node.ObjectNode;
 import org.codehaus.jackson.node.TextNode;
 
 @Path("/clusters/{clusterId}/workflows")
+@Produces({ MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class WorkflowAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(WorkflowAccessor.class.getName());
 
@@ -54,7 +56,6 @@ public class WorkflowAccessor extends AbstractResource {
   }
 
   @GET
-  @Produces({"application/json", "text/plain"})
   public Response getWorkflows(@PathParam("clusterId") String clusterId) {
     TaskDriver taskDriver = getTaskDriver(clusterId);
     Map<String, WorkflowConfig> workflowConfigMap = taskDriver.getWorkflows();
@@ -66,7 +67,6 @@ public class WorkflowAccessor extends AbstractResource {
 
   @GET
   @Path("{workflowId}")
-  @Produces({"application/json", "text/plain"})
   public Response getWorkflow(@PathParam("clusterId") String clusterId,
       @PathParam("workflowId") String workflowId) {
     TaskDriver taskDriver = getTaskDriver(clusterId);
@@ -103,7 +103,6 @@ public class WorkflowAccessor extends AbstractResource {
 
   @GET
   @Path("{workflowId}/configs")
-  @Produces({"application/json", "text/plain"})
   public Response getWorkflowConfig(@PathParam("clusterId") String clusterId,
       @PathParam("workflowId") String workflowId) {
     TaskDriver taskDriver = getTaskDriver(clusterId);
@@ -118,7 +117,6 @@ public class WorkflowAccessor extends AbstractResource {
 
   @GET
   @Path("{workflowId}/context")
-  @Produces({"application/json", "text/plain"})
   public Response getWorkflowContext(@PathParam("clusterId") String clusterId,
       @PathParam("workflowId") String workflowId) {
     TaskDriver taskDriver = getTaskDriver(clusterId);

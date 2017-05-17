@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.HelixAdmin;
@@ -42,6 +43,7 @@ import org.apache.helix.model.StateModelDefinition;
 import org.apache.log4j.Logger;
 
 @Path("/clusters")
+@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class ClusterAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(ClusterAccessor.class.getName());
 
@@ -57,7 +59,6 @@ public class ClusterAccessor extends AbstractResource {
   }
 
   @GET
-  @Produces({"application/json", "text/plain"})
   public Response getClusters() {
     HelixAdmin helixAdmin = getHelixAdmin();
     List<String> clusters = helixAdmin.getClusters();
@@ -70,7 +71,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterInfo(@PathParam("clusterId") String clusterId) {
     if (!isClusterExist(clusterId)) {
       return notFound();
@@ -104,7 +104,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/configs")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterConfig(@PathParam("clusterId") String clusterId) {
     ConfigAccessor accessor = getConfigAccessor();
     ClusterConfig config = accessor.getClusterConfig(clusterId);
@@ -116,7 +115,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/controller")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterController(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
 
@@ -136,7 +134,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/controller/history")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterControllerHistory(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
 
@@ -156,7 +153,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/controller/messages")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
 
@@ -173,7 +169,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/controller/messages/{messageId}")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId,
       @PathParam("messageId") String messageId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
@@ -184,7 +179,6 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/statemodeldefs")
-  @Produces({"application/json", "text/plain"})
   public Response getClusterStateModelDefinitions(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     List<String> stateModelDefs =
@@ -199,8 +193,7 @@ public class ClusterAccessor extends AbstractResource {
 
   @GET
   @Path("{clusterId}/statemodeldefs/{statemodel}")
-  @Produces({ "application/json", "text/plain"
-  }) public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
+  public Response getClusterStateModelDefinition(@PathParam("clusterId") String clusterId,
       @PathParam("statemodel") String statemodel) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
     StateModelDefinition stateModelDef =

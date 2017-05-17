@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.ConfigAccessor;
@@ -43,6 +44,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/resources")
+@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class ResourceAccessor extends AbstractResource {
   public enum ResourceProperties {
     idealState,
@@ -53,7 +55,6 @@ public class ResourceAccessor extends AbstractResource {
   }
 
   @GET
-  @Produces({ "application/json", "text/plain" })
   public Response getResources(@PathParam("clusterId") String clusterId) {
     ObjectNode root = JsonNodeFactory.instance.objectNode();
     root.put(Properties.id.name(), JsonNodeFactory.instance.textNode(clusterId));
@@ -82,7 +83,6 @@ public class ResourceAccessor extends AbstractResource {
 
   @GET
   @Path("{resourceName}")
-  @Produces({ "application/json", "text/plain" })
   public Response getResource(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName) throws IOException {
     ConfigAccessor accessor = getConfigAccessor();
@@ -115,7 +115,6 @@ public class ResourceAccessor extends AbstractResource {
 
   @GET
   @Path("{resourceName}/configs")
-  @Produces({ "application/json", "text/plain" })
   public Response getResourceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName) {
     ConfigAccessor accessor = getConfigAccessor();
@@ -129,7 +128,6 @@ public class ResourceAccessor extends AbstractResource {
 
   @GET
   @Path("{resourceName}/idealState")
-  @Produces({ "application/json", "text/plain" })
   public Response getResourceIdealState(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName) {
     HelixAdmin admin = getHelixAdmin();
@@ -143,7 +141,6 @@ public class ResourceAccessor extends AbstractResource {
 
   @GET
   @Path("{resourceName}/externalView")
-  @Produces({ "application/json", "text/plain" })
   public Response getResourceExternalView(@PathParam("clusterId") String clusterId,
       @PathParam("resourceName") String resourceName) {
     HelixAdmin admin = getHelixAdmin();

@@ -27,6 +27,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.HelixDataAccessor;
@@ -43,6 +44,7 @@ import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
 
 @Path("/clusters/{clusterId}/instances")
+@Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class InstanceAccessor extends AbstractResource {
   private final static ObjectMapper _mapper = new ObjectMapper();
 
@@ -63,7 +65,6 @@ public class InstanceAccessor extends AbstractResource {
   }
 
   @GET
-  @Produces({ "application/json", "text/plain" })
   public Response getInstances(@PathParam("clusterId") String clusterId) {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
     ObjectNode root = JsonNodeFactory.instance.objectNode();
@@ -103,7 +104,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}")
-  @Produces({ "application/json", "text/plain" })
   public Response getInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -131,7 +131,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/configs")
-  @Produces({ "application/json", "text/plain" })
   public Response getInstanceConfig(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -147,7 +146,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/resources")
-  @Produces({ "application/json", "text/plain" })
   public Response getResourcesOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -175,7 +173,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/resources/{resourceName}")
-  @Produces({ "application/json", "text/plain" })
   public Response getResourceOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @PathParam("resourceName") String resourceName) throws IOException {
@@ -198,7 +195,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/errors")
-  @Produces({ "application/json", "text/plain" })
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -237,7 +233,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/errors/{sessionId}/{resourceName}/{partitionName}")
-  @Produces({ "application/json", "text/plain" })
   public Response getErrorsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName, @PathParam("sessionId") String sessionId,
       @PathParam("resourceName") String resourceName,
@@ -254,7 +249,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/history")
-  @Produces({ "application/json", "text/plain" })
   public Response getHistoryOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -268,7 +262,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/messages")
-  @Produces({ "application/json", "text/plain" })
   public Response getMessagesOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -305,7 +298,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/messages/{messageId}")
-  @Produces({ "application/json", "text/plain" })
   public Response getMessageOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @PathParam("messageId") String messageId) throws IOException {
@@ -320,7 +312,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/healthreports")
-  @Produces({ "application/json", "text/plain" })
   public Response getHealthReportsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName) throws IOException {
     HelixDataAccessor accessor = getDataAccssor(clusterId);
@@ -341,7 +332,6 @@ public class InstanceAccessor extends AbstractResource {
 
   @GET
   @Path("{instanceName}/healthreports/{reportName}")
-  @Produces({ "application/json", "text/plain" })
   public Response getHealthReportsOnInstance(@PathParam("clusterId") String clusterId,
       @PathParam("instanceName") String instanceName,
       @PathParam("reportName") String reportName) throws IOException {

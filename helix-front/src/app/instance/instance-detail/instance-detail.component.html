@@ -1,3 +1,33 @@
-<p>
-  instance-detail works!
-</p>
+<section>
+  <md-toolbar class="mat-elevation-z1">
+    <hi-detail-header [cluster]="clusterName" [instance]="instance?.name"></hi-detail-header>
+    <md-toolbar-row class="information" fxLayout="row">
+      <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
+      <md-spinner *ngIf="isLoading"></md-spinner>
+      <section *ngIf="!isLoading" fxLayout="row">
+        <section class="column">
+          <div class="name">Instance</div>
+          <div class="value">{{ instance.liveInstance }}</div>
+        </section>
+        <section class="column">
+          <div class="name">Session</div>
+          <div class="value">{{ instance.sessionId }}</div>
+        </section>
+        <section class="column">
+          <div class="name">Version</div>
+          <div class="value">{{ instance.helixVersion }}</div>
+        </section>
+      </section>
+    </md-toolbar-row>
+  </md-toolbar>
+  <nav md-tab-nav-bar>
+    <a md-tab-link
+      *ngFor="let tabLink of tabLinks"
+      [routerLink]="tabLink.link"
+      routerLinkActive #rla="routerLinkActive"
+      [active]="rla.isActive">
+      {{ tabLink.label }}
+    </a>
+  </nav>
+  <router-outlet></router-outlet>
+</section>

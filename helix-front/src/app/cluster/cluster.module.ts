@@ -7,6 +7,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import 'hammerjs';
 import { FlexLayoutModule } from '@angular/flex-layout';
 
+import { SharedModule } from '../shared/shared.module';
 import { ClusterService } from './shared/cluster.service';
 import { ClusterResolver } from './shared/cluster.resolver';
 import { ClusterListComponent } from './cluster-list/cluster-list.component';
@@ -19,7 +20,8 @@ import { ClusterDetailComponent } from './cluster-detail/cluster-detail.componen
     RouterModule,
     MaterialModule,
     BrowserAnimationsModule,
-    FlexLayoutModule
+    FlexLayoutModule,
+    SharedModule
   ],
   declarations: [
     ClusterListComponent,

@@ -34,25 +34,31 @@ export class HistoryListComponent implements OnInit {
 
   ngOnInit() {
     if (this.route.parent) {
-      let clusterName = this.route.parent.snapshot.params['name'];
+      let clusterName = this.route.parent.snapshot.params['cluster_name'];
       let instanceName = this.route.parent.snapshot.params['instance_name'];
+      let observable = instanceName
+        ? this.service.getInstanceHistory(clusterName, instanceName)
+        : this.service.getControllerHistory(clusterName);
 
-      if (!instanceName) {
-        this.isController = true;
-        this.service
-          .getControllerHistory(clusterName)
-          .subscribe(
-            histories => this.rows = histories,
-            error => {},
-            () => this.isLoading = false
-          );
-      }
+      this.isController = !instanceName;
+
+      observable.subscribe(
+        histories => this.rows = histories,
+        error => {},
+        () => this.isLoading = false
+      );
     }
   }
 
   getControllerCellClass({ value }): any {
     return {
-      'current-controller': value == this.rows[this.rows.length - 1].controller
+      'current': value == this.rows[this.rows.length - 1].controller
+    };
+  }
+
+  getSessionCellClass({ value }): any {
+    return {
+      'current': value == this.rows[this.rows.length - 1].session
     };
   }
 

@@ -22,3 +22,17 @@ $hi-theme: mat-light-theme($hi-primary, $hi-accent, $hi-warn);
 // Alternatively, you can import and @include the theme mixins for each component
 // that you are using.
 @include angular-material-theme($hi-theme);
+
+// Additional adjusts by vivo
+.mat-toolbar {
+  background-color: #fff;
+
+  .mat-icon.secondary {
+    vertical-align: bottom;
+  }
+
+  .mat-toolbar-row.information {
+    height: 24px;
+    margin-bottom: 24px;
+  }
+}

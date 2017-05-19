@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewEncapsulation, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 
 import { ConfigurationService } from '../shared/configuration.service';
@@ -9,13 +9,16 @@ import * as _ from 'lodash';
   selector: 'hi-config-detail',
   templateUrl: './config-detail.component.html',
   styleUrls: ['./config-detail.component.scss'],
-  providers: [ConfigurationService]
-  // no need to customize ViewEncapsulation for now
-  // // Since we are importing external styles in this component
-  // // we will not use Shadow DOM at all to make sure the styles apply
-  // encapsulation: ViewEncapsulation.None
+  providers: [ConfigurationService],
+  // Since we are importing external styles in this component
+  // we will not use Shadow DOM at all to make sure the styles apply
+  encapsulation: ViewEncapsulation.None
 })
 export class ConfigDetailComponent implements OnInit {
+
+  @ViewChild('simpleTable') simpleTable;
+  @ViewChild('listTable') listTable;
+  @ViewChild('mapTable') mapTable;
 
   isLoading = true;
   rowHeight = 40;
@@ -60,23 +63,51 @@ export class ConfigDetailComponent implements OnInit {
 
   ngOnInit() {
     if (this.route.parent) {
-      this.route.parent.data
-        .subscribe(data => {
-          this.isLoading = true;
+      // TODO vxu: convert this logic to config.resolver
+      if (this.route.parent.snapshot.params.instance_name) {
+        this.isLoading = true;
 
-          this.serivce
-            .getClusterConfig(data.cluster.name)
-            .subscribe(
-              config => this.parseConfigs(config),
-              error => {},
-              () => this.isLoading = false
-            );
-        });
+        this.serivce
+          .getInstanceConfig(
+            this.route.parent.snapshot.params.cluster_name,
+            this.route.parent.snapshot.params.instance_name
+          )
+          .subscribe(
+            config => this.parseConfigs(config),
+            error => {},
+            () => this.isLoading = false
+          );
+      } else {
+        this.route.parent.data
+          .subscribe(data => {
+            this.isLoading = true;
+
+            this.serivce
+              .getClusterConfig(data.cluster.name)
+              .subscribe(
+                config => this.parseConfigs(config),
+                error => {},
+                () => this.isLoading = false
+              );
+          });
+      }
     }
   }
 
   updateFilter(event) {
     this.keyword = event.target.value.toLowerCase().trim();
+
+    // Whenever the filter changes, always go back to the first page
+    this.simpleTable.offset = 0;
+    this.listTable.offset = 0;
+    this.mapTable.offset = 0;
+  }
+
+  getNameCellClass({ value }): any {
+    return {
+      // highlight HELIX own configs
+      'primary': value.toUpperCase() == value
+    };
   }
 
   protected parseConfigs(value) {

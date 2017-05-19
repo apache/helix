@@ -20,7 +20,7 @@ export class ClusterDetailComponent implements OnInit {
   readonly tabLinks = [
     { label: 'Resources', link: 'resources' },
     { label: 'Instances', link: 'instances' },
-    { label: 'Configuration', link: 'config' }
+    { label: 'Configuration', link: 'configs' }
   ];
 
   cluster: Cluster;

@@ -23,7 +23,11 @@ export class Cluster {
 
     let ins: Instance[] = [];
     for (let instance of obj.instances) {
-      ins.push(new Instance(instance, obj.liveInstances.indexOf(instance) >= 0));
+      ins.push(new Instance(
+        instance,
+        this.name,
+        obj.liveInstances.indexOf(instance) >= 0)
+      );
     }
     this.instances = ins;
   }

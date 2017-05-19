@@ -1,11 +1,22 @@
 export class Instance {
 
   readonly name: string;
-  // TODO vxu: convert it to an enum in future if necessary
-  readonly alive: boolean;
+  readonly clusterName: string;
+  readonly liveInstance: boolean | string;
+  readonly sessionId: string;
+  readonly helixVersion: string;
 
-  constructor(name: string, alive: boolean) {
+  constructor(
+    name: string,
+    clusterName: string,
+    liveInstance: boolean|string,
+    sessionId?: string,
+    helixVersion?: string
+  ) {
     this.name = name;
-    this.alive = alive;
+    this.clusterName = clusterName;
+    this.liveInstance = liveInstance;
+    this.sessionId = sessionId;
+    this.helixVersion = helixVersion;
   }
 }

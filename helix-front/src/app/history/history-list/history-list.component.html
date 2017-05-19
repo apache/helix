@@ -9,12 +9,21 @@
     [rows]="rows"
     selectionType="single"
     [sorts]="sorts">
-    <ngx-datatable-column name="Date"></ngx-datatable-column>
-    <ngx-datatable-column name="Time"></ngx-datatable-column>
+    <ngx-datatable-column name="Date (GMT)" prop="date"></ngx-datatable-column>
+    <ngx-datatable-column name="Time (Local)" prop="time">
+      <ng-template let-value="value" ngx-datatable-cell-template>
+        <section mdTooltip="{{ value }}">
+          {{ value | date: 'yMMMdjms' }}
+        </section>
+      </ng-template>
+    </ngx-datatable-column>
     <ngx-datatable-column name="Controller"
       *ngIf="isController"
       [cellClass]="bindFunc(getControllerCellClass, this)">
     </ngx-datatable-column>
-    <ngx-datatable-column name="Session" *ngIf="!isController"></ngx-datatable-column>
+    <ngx-datatable-column name="Session"
+      *ngIf="!isController"
+      [cellClass]="bindFunc(getSessionCellClass, this)">
+    </ngx-datatable-column>
   </ngx-datatable>
 </section>

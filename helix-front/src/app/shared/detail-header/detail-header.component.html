@@ -1,0 +1,10 @@
+<h4>
+  <span [ngClass]="{'secondary': isSecondary()}">{{ cluster }}</span>
+  <md-icon *ngIf="isSecondary()" class="secondary">navigate_next</md-icon>
+  <span *ngIf="controller">{{ controller }}</span>
+  <span *ngIf="instance">{{ instance }}</span>
+  <span *ngIf="resource">{{ resource }}</span>
+  <span class="tag">
+    <span [ngClass]="getTag()">{{ getTag() }}</span>
+  </span>
+</h4>

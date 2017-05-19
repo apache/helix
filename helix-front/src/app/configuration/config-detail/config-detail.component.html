@@ -11,7 +11,7 @@
     <md-card-header>
       <md-card-title>
         Simple Fields
-        <span *ngIf="keyword" class="filtered">(filtered)</span>
+        <span *ngIf="keyword" class="primary">(filtered)</span>
       </md-card-title>
     </md-card-header>
     <md-card-content>
@@ -26,7 +26,7 @@
         [sorts]="sorts"
         [limit]="20"
         [loadingIndicator]="isLoading">
-        <ngx-datatable-column name="Name"></ngx-datatable-column>
+        <ngx-datatable-column name="Name" [cellClass]="getNameCellClass"></ngx-datatable-column>
         <ngx-datatable-column name="Value"></ngx-datatable-column>
       </ngx-datatable>
     </md-card-content>
@@ -35,7 +35,7 @@
     <md-card-header>
       <md-card-title>
         List Fields
-        <span *ngIf="keyword" class="filtered">(filtered)</span>
+        <span *ngIf="keyword" class="primary">(filtered)</span>
       </md-card-title>
     </md-card-header>
     <md-card-content>
@@ -70,11 +70,12 @@
     <md-card-header>
       <md-card-title>
         Map Fields
-        <span *ngIf="keyword" class="filtered">(filtered)</span>
+        <span *ngIf="keyword" class="primary">(filtered)</span>
       </md-card-title>
     </md-card-header>
     <md-card-content>
       <ngx-datatable
+        #mapTable
         class="material"
         [headerHeight]="rowHeight"
         rowHeight="auto"

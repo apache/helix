@@ -6,9 +6,9 @@
     </md-spinner>
   </section>
   <section *ngIf="cluster">
-    <md-toolbar>
-      <h4>{{ cluster.name }}</h4>
-      <md-toolbar-row>
+    <md-toolbar class="mat-elevation-z1">
+      <hi-detail-header [cluster]="cluster.name"></hi-detail-header>
+      <md-toolbar-row class="information">
         <h6>Controller:
           <a md-button color="accent" routerLink="controller">{{ cluster.controller }}</a>
         </h6>

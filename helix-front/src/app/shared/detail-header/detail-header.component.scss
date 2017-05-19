@@ -1,0 +1,36 @@
+@import '~@angular/material/theming';
+
+.secondary {
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.tag {
+  padding-left: 10px;
+
+  span {
+    display: inline-block;
+    color: #fff;
+    font-size: 12px;
+    text-transform: uppercase;
+    font-weight: normal;
+    border-radius: 24px;
+    padding: 4px 8px;
+    vertical-align: text-bottom;; // ?
+  }
+
+  .cluster {
+    background-color: mat-color(mat-palette($mat-indigo));
+  }
+
+  .controller {
+    background-color: mat-color(mat-palette($mat-purple));
+  }
+
+  .resource {
+    background-color: mat-color(mat-palette($mat-teal));
+  }
+
+  .instance {
+    background-color: mat-color(mat-palette($mat-blue));
+  }
+}

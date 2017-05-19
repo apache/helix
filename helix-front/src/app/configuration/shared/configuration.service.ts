@@ -6,6 +6,10 @@ import { HelixService } from '../../core/helix.service';
 export class ConfigurationService extends HelixService {
 
   public getClusterConfig(name: string) {
-    return this.request(`/clusters/${name}/configs`);
+    return this.request(`/clusters/${ name }/configs`);
+  }
+
+  public getInstanceConfig(clusterName: string, instanceName: string) {
+    return this.request(`/clusters/${ clusterName }/instances/${ instanceName }/configs`);
   }
 }

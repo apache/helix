@@ -1,10 +1,11 @@
 <section>
   <md-nav-list>
     <a md-list-item
-      *ngFor="let instance of instances">
-      <md-icon md-list-icon *ngIf="instance.alive" color="primary">lens</md-icon>
+      *ngFor="let instance of instances"
+      [routerLink]="['/clusters', instance.clusterName, 'instances', instance.name]">
+      <md-icon md-list-icon *ngIf="instance.liveInstance" color="primary">lens</md-icon>
       <md-icon md-list-icon
-        *ngIf="!instance.alive"
+        *ngIf="!instance.liveInstance"
         color="warn"
         mdTooltip="The instance is not alive.">cloud_off</md-icon>
       <h4 md-line>{{ instance.name }}</h4>

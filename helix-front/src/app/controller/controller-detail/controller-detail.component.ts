@@ -22,7 +22,7 @@ export class ControllerDetailComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    this.clusterName = this.route.snapshot.params['name'];
+    this.clusterName = this.route.snapshot.params['cluster_name'];
     this.service
       .get(this.clusterName)
       .subscribe(

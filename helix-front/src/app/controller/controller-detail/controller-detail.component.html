@@ -1,8 +1,6 @@
 <section>
-  <md-toolbar>
-    <h4>
-      {{ clusterName }} &rsaquo; Controller: {{ controller?.name }}
-    </h4>
+  <md-toolbar class="mat-elevation-z1">
+    <hi-detail-header [cluster]="clusterName" [controller]="controller?.name"></hi-detail-header>
     <md-toolbar-row class="information" fxLayout="row">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>

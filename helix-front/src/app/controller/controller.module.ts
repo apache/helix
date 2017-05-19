@@ -4,6 +4,7 @@ import { MaterialModule } from '@angular/material';
 import { RouterModule } from '@angular/router';
 import { FlexLayoutModule } from '@angular/flex-layout';
 
+import { SharedModule } from '../shared/shared.module';
 import { ControllerDetailComponent } from './controller-detail/controller-detail.component';
 
 @NgModule({
@@ -11,7 +12,8 @@ import { ControllerDetailComponent } from './controller-detail/controller-detail
     CommonModule,
     RouterModule,
     FlexLayoutModule,
-    MaterialModule
+    MaterialModule,
+    SharedModule
   ],
   declarations: [ControllerDetailComponent]
 })

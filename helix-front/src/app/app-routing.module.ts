@@ -11,6 +11,7 @@ import { ResourceListComponent } from './resource/resource-list/resource-list.co
 import { ResourceDetailComponent } from './resource/resource-detail/resource-detail.component';
 import { ControllerDetailComponent } from './controller/controller-detail/controller-detail.component';
 import { HistoryListComponent } from './history/history-list/history-list.component';
+import { InstanceDetailComponent } from './instance/instance-detail/instance-detail.component';
 
 const HELIX_ROUTES: Routes = [
   {
@@ -36,7 +37,7 @@ const HELIX_ROUTES: Routes = [
         pathMatch: 'full'
       },
       {
-        path: 'config',
+        path: 'configs',
         component: ConfigDetailComponent
       },
       {
@@ -50,7 +51,7 @@ const HELIX_ROUTES: Routes = [
     ]
   },
   {
-    path: 'clusters/:name/controller',
+    path: 'clusters/:cluster_name/controller',
     component: ControllerDetailComponent,
     children: [
       {
@@ -70,6 +71,25 @@ const HELIX_ROUTES: Routes = [
     resolve: {
       resource: ResourceResolver
     }
+  },
+  {
+    path: 'clusters/:cluster_name/instances/:instance_name',
+    component: InstanceDetailComponent,
+    children: [
+      {
+        path: '',
+        redirectTo: 'configs',
+        pathMatch: 'full'
+      },
+      {
+        path: 'configs',
+        component: ConfigDetailComponent
+      },
+      {
+        path: 'history',
+        component: HistoryListComponent
+      }
+    ]
   }
 ];
 

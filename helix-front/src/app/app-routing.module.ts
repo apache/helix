@@ -78,8 +78,15 @@ const HELIX_ROUTES: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'configs',
+        redirectTo: 'resources',
         pathMatch: 'full'
+      },
+      {
+        path: 'resources',
+        component: ResourceListComponent,
+        data: {
+          forInstance: true
+        }
       },
       {
         path: 'configs',

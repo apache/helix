@@ -4,7 +4,7 @@
     <md-toolbar-row class="information" fxLayout="row">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>
-      <section *ngIf="!isLoading" fxLayout="row">
+      <section *ngIf="!isLoading && instance.liveInstance" fxLayout="row">
         <section class="column">
           <div class="name">Instance</div>
           <div class="value">{{ instance.liveInstance }}</div>
@@ -17,6 +17,11 @@
           <div class="name">Version</div>
           <div class="value">{{ instance.helixVersion }}</div>
         </section>
+      </section>
+      <section *ngIf="!isLoading && !instance.liveInstance">
+        <div class="offline">
+          This Instance is currently offline.
+        </div>
       </section>
     </md-toolbar-row>
   </md-toolbar>

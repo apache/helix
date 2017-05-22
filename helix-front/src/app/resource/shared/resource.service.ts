@@ -9,14 +9,14 @@ import { Cluster } from '../../cluster/shared/cluster.model';
 @Injectable()
 export class ResourceService extends HelixService {
 
-  public getAll(cluster: string) {
+  public getAll(clusterName: string) {
     return this
-      .request(`/clusters/${cluster}/resources`)
+      .request(`/clusters/${ clusterName }/resources`)
       .map(data => {
         let res: Resource[] = [];
         for (let name of data.idealStates) {
           res.push(<Resource>({
-            cluster: cluster,
+            cluster: clusterName,
             name: name,
             alive: data.externalViews.indexOf(name) >= 0
           }));
@@ -25,9 +25,25 @@ export class ResourceService extends HelixService {
       });
   }
 
+  public getAllOnInstance(clusterName: string, instanceName: string) {
+    return this
+      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources`)
+      .map(data => {
+        let res: any[] = [];
+        if (data) {
+          for (let resource of data.resources) {
+            res.push({
+              name: resource
+            });
+          }
+        }
+        return res;
+      });
+  }
+
   public get(clusterName: string, resourceName: string) {
     return this
-      .request(`/clusters/${clusterName}/resources/${resourceName}`)
+      .request(`/clusters/${ clusterName }/resources/${ resourceName }`)
       .map(data => {
         return new Resource(
           clusterName,

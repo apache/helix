@@ -2,10 +2,11 @@
   <md-progress-bar *ngIf="isLoading" mode="indeterminate"></md-progress-bar>
   <md-nav-list>
     <a md-list-item
-      *ngFor="let resource of resources">
-      <md-icon md-list-icon *ngIf="resource.alive" color="primary">lens</md-icon>
+      *ngFor="let resource of resources"
+      [routerLink]="['/clusters', clusterName, 'resources', resource.name]">
+      <md-icon md-list-icon *ngIf="resource.alive == true" color="primary">lens</md-icon>
       <md-icon md-list-icon
-        *ngIf="!resource.alive"
+        *ngIf="resource.alive == false"
         color="warn"
         mdTooltip="The resource is offline.">cloud_off</md-icon>
       <h4 md-line>{{ resource.name }}</h4>

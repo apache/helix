@@ -13,10 +13,11 @@ import { InstanceService } from '../shared/instance.service';
 export class InstanceDetailComponent implements OnInit {
 
   readonly tabLinks = [
+    { label: 'Resources', link: 'resources' },
     { label: 'Configuration', link: 'configs' },
     { label: 'History', link: 'history' }
   ];
-  
+
   clusterName: string;
   instance: Instance;
   isLoading = true;

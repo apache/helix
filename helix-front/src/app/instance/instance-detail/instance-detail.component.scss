@@ -1,3 +1,6 @@
+@import '~@angular/material/theming';
+@import 'src/theme.scss';
+
 .information {
 
   font-size: 14px;
@@ -15,5 +18,10 @@
   .name {
     font-size: 12px;
     color: rgba(0, 0, 0, .54);
+  }
+
+  .offline {
+    padding-left: 24px;
+    color: mat-color($hi-warn);
   }
 }

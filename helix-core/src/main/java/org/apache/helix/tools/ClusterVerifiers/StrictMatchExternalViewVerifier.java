@@ -236,6 +236,8 @@ public class StrictMatchExternalViewVerifier extends ZkHelixClusterVerifier {
 
     switch (idealState.getRebalanceMode()) {
     case FULL_AUTO:
+      // TODO: need to compute actual IdealState and compare
+      return true;
     case SEMI_AUTO:
     case USER_DEFINED:
       idealPartitionState = computeIdealPartitionState(dataCache, idealState);

@@ -33,8 +33,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.JMException;
 import org.apache.helix.ConfigAccessor;
 import org.apache.helix.Criteria;
 import org.apache.helix.HelixConstants;
@@ -58,6 +60,7 @@ import org.apache.helix.model.Message.MessageState;
 import org.apache.helix.model.Message.MessageType;
 import org.apache.helix.model.builder.HelixConfigScopeBuilder;
 import org.apache.helix.monitoring.ParticipantStatusMonitor;
+import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.monitoring.mbeans.MessageQueueMonitor;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.participant.HelixStateMachineEngine;
@@ -137,12 +140,15 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   }
 
   public HelixTaskExecutor(ParticipantStatusMonitor participantStatusMonitor) {
+    _monitor = participantStatusMonitor;
     _taskMap = new ConcurrentHashMap<String, MessageTaskInfo>();
 
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
     _messageTaskMap = new ConcurrentHashMap<String, String>();
     _batchMessageExecutorService = Executors.newCachedThreadPool();
+    _monitor.createExecutorMonitor("BatchMessageExecutor", _batchMessageExecutorService);
+
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
     _transitionTypeThreadpoolChecked =
@@ -150,7 +156,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
 
     _lock = new Object();
     _statusUpdateUtil = new StatusUpdateUtil();
-    _monitor = participantStatusMonitor;
+
 
     _timer = new Timer(true); // created as a daemon timer thread to handle task timeout
 
@@ -181,6 +187,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + prevExecutor + ", isShutdown: " + prevExecutor.isShutdown());
         newPool.shutdown();
         newPool = null;
+      } else {
+        _monitor.createExecutorMonitor(type, newPool);
       }
       LOG.info("Registered message handler factory for type: " + type + ", poolSize: "
           + threadpoolSize + ", factory: " + factory + ", pool: " + _executorMap.get(type));
@@ -518,6 +526,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   void unregisterMessageHandlerFactory(String type) {
     MsgHandlerFactoryRegistryItem item = _hdlrFtyRegistry.remove(type);
     ExecutorService pool = _executorMap.remove(type);
+    _monitor.removeExecutorMonitor(type);
 
     LOG.info("Unregistering message handler factory for type: " + type + ", factory: "
         + item.factory() + ", pool: " + pool);
@@ -545,6 +554,7 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     for (String msgType : _hdlrFtyRegistry.keySet()) {
       // don't un-register factories, just shutdown all executors
       ExecutorService pool = _executorMap.remove(msgType);
+      _monitor.removeExecutorMonitor(msgType);
       if (pool != null) {
         LOG.info("Reset exectuor for msgType: " + msgType + ", pool: " + pool);
         shutdownAndAwaitTermination(pool);
@@ -586,6 +596,8 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
             + prevPool + ", isShutdown: " + prevPool.isShutdown());
         newPool.shutdown();
         newPool = null;
+      } else {
+        _monitor.createExecutorMonitor(msgType, newPool);
       }
     }
   }

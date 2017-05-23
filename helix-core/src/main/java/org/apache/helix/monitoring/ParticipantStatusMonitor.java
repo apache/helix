@@ -20,17 +20,24 @@ package org.apache.helix.monitoring;
  */
 
 import java.lang.management.ManagementFactory;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import javax.management.JMException;
 import javax.management.MBeanServer;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
+import org.apache.helix.messaging.handling.HelixTaskExecutor;
 import org.apache.helix.model.Message;
 import org.apache.helix.monitoring.mbeans.ParticipantMessageMonitor;
 import org.apache.helix.monitoring.mbeans.StateTransitionStatMonitor;
+import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.log4j.Logger;
 
 public class ParticipantStatusMonitor {
@@ -40,12 +47,14 @@ public class ParticipantStatusMonitor {
 
   private MBeanServer _beanServer;
   private ParticipantMessageMonitor _messageMonitor;
+  private Map<String, ThreadPoolExecutorMonitor> _executorMonitors;
 
   public ParticipantStatusMonitor(boolean isParticipant, String instanceName) {
     try {
       _beanServer = ManagementFactory.getPlatformMBeanServer();
       if (isParticipant) {
         _messageMonitor = new ParticipantMessageMonitor(instanceName);
+        _executorMonitors = new ConcurrentHashMap<>();
         register(_messageMonitor, getObjectName(_messageMonitor.getParticipantBeanName()));
       }
     } catch (Exception e) {
@@ -151,5 +160,30 @@ public class ParticipantStatusMonitor {
     }
     _monitorMap.clear();
 
+  }
+
+  public void createExecutorMonitor(String type, ExecutorService executor) {
+    if (_executorMonitors == null) {
+      return;
+    }
+    if (! (executor instanceof ThreadPoolExecutor)) {
+      return;
+    }
+
+    try {
+      _executorMonitors.put(type,
+          new ThreadPoolExecutorMonitor(HelixTaskExecutor.class.getSimpleName(), type,
+              (ThreadPoolExecutor) executor));
+    } catch (JMException e) {
+      LOG.error(String.format(
+          "Error in creating ThreadPoolExecutorMonitor for type=%s", type), e);
+    }
+  }
+
+  public void removeExecutorMonitor(String type) {
+    if (_executorMonitors != null && _executorMonitors.containsKey(type)) {
+      _executorMonitors.get(type).unregister();
+      _executorMonitors.remove(type);
+    }
   }
 }

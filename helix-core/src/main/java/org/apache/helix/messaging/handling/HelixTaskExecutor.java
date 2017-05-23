@@ -102,7 +102,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   // From storage point of view, only bootstrap case is expensive
   // and we need to throttle, which is mostly IO / network bounded.
   public static final int DEFAULT_PARALLEL_TASKS = 40;
-  public static final int DEFAULT_CANCELLATION_THREADPOOL_SIZE = 40;
   // TODO: create per-task type threadpool with customizable pool size
   protected final Map<String, MessageTaskInfo> _taskMap;
   private final Object _lock;
@@ -125,7 +124,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
   final ExecutorService _batchMessageExecutorService;
 
   final ConcurrentHashMap<String, String> _messageTaskMap;
-  private ExecutorService _cancellationExcutorService;
 
   /* Resources whose configuration for dedicate thread pool has been checked.*/
   final Set<String> _resourcesThreadpoolChecked;
@@ -144,7 +142,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     _hdlrFtyRegistry = new ConcurrentHashMap<String, MsgHandlerFactoryRegistryItem>();
     _executorMap = new ConcurrentHashMap<String, ExecutorService>();
     _messageTaskMap = new ConcurrentHashMap<String, String>();
-    _cancellationExcutorService = Executors.newFixedThreadPool(DEFAULT_CANCELLATION_THREADPOOL_SIZE);
     _batchMessageExecutorService = Executors.newCachedThreadPool();
     _resourcesThreadpoolChecked =
         Collections.newSetFromMap(new ConcurrentHashMap<String, Boolean>());
@@ -312,8 +309,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
           }
         }
       }
-    } else if (message.getMsgType().equals(MessageType.STATE_TRANSITION_CANCELLATION.name())) {
-      executorService = _cancellationExcutorService;
     }
     return executorService;
   }
@@ -568,7 +563,6 @@ public class HelixTaskExecutor implements MessageListener, TaskExecutor {
     }
     _taskMap.clear();
 
-    shutdownAndAwaitTermination(_cancellationExcutorService);
     _messageTaskMap.clear();
 
     _lastSessionSyncTime = null;

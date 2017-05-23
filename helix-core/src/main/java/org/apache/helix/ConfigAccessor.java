@@ -265,7 +265,7 @@ public class ConfigAccessor {
         update.getMapField(splits[1]).put(key, value);
       }
     }
-    ZKUtil.createOrUpdate(zkClient, splits[0], update, true, true);
+    ZKUtil.createOrMerge(zkClient, splits[0], update, true, true);
     return;
   }
 
@@ -317,7 +317,7 @@ public class ConfigAccessor {
       update.setMapField(mapKey, keyValueMap);
     }
 
-    ZKUtil.createOrUpdate(zkClient, zkPath, update, true, true);
+    ZKUtil.createOrMerge(zkClient, zkPath, update, true, true);
     return;
   }
 
@@ -544,23 +544,52 @@ public class ConfigAccessor {
 
   /**
    * Set ClusterConfig of the given cluster.
+   * The current Cluster config will be replaced with the given clusterConfig.
    * WARNING: This is not thread-safe or concurrent updates safe.
    *
    * @param clusterName
+   * @param clusterConfig
    *
    * @return
    */
   public void setClusterConfig(String clusterName, ClusterConfig clusterConfig) {
+    updateClusterConfig(clusterName, clusterConfig, true);
+  }
+
+  /**
+   * Update ClusterConfig of the given cluster.
+   * The value of field in current config will be replaced with the value of the same field in given config if it
+   * presents. If there is new field in given config but not in current config, the field will be added into
+   * the current config..
+   * The list fields and map fields will be replaced as a single entry.
+   *
+   * The current Cluster config will be replaced with the given clusterConfig.
+   * WARNING: This is not thread-safe or concurrent updates safe.
+   *
+   * @param clusterName
+   * @param clusterConfig
+   *
+   * @return
+   */
+  public void updateClusterConfig(String clusterName, ClusterConfig clusterConfig) {
+    updateClusterConfig(clusterName, clusterConfig, false);
+  }
+
+
+  private void updateClusterConfig(String clusterName, ClusterConfig clusterConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
-      throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
+      throw new HelixException("fail to update config. cluster: " + clusterName + " is NOT setup.");
     }
 
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.CLUSTER).forCluster(clusterName).build();
-
-
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrReplace(zkClient, zkPath, clusterConfig.getRecord(), true);
+
+    if (overwrite) {
+      ZKUtil.createOrReplace(zkClient, zkPath, clusterConfig.getRecord(), true);
+    } else {
+      ZKUtil.createOrUpdate(zkClient, zkPath, clusterConfig.getRecord(), true, true);
+    }
   }
 
   /**
@@ -587,14 +616,44 @@ public class ConfigAccessor {
 
   /**
    * Set config of the given resource.
+   * The current Resource config will be replaced with the given clusterConfig.
+   *
    * WARNING: This is not thread-safe or concurrent updates safe.
    *
    * @param clusterName
+   * @param resourceName
+   * @param resourceConfig
    *
    * @return
    */
   public void setResourceConfig(String clusterName, String resourceName,
       ResourceConfig resourceConfig) {
+    updateResourceConfig(clusterName, resourceName, resourceConfig, true);
+  }
+
+  /**
+   * Update ResourceConfig of the given resource.
+   * The value of field in current config will be replaced with the value of the same field in given config if it
+   * presents. If there is new field in given config but not in current config, the field will be added into
+   * the current config..
+   * The list fields and map fields will be replaced as a single entry.
+   *
+   * The current Cluster config will be replaced with the given clusterConfig.
+   * WARNING: This is not thread-safe or concurrent updates safe.
+   *
+   * @param clusterName
+   * @param resourceName
+   * @param resourceConfig
+   *
+   * @return
+   */
+  public void updateResourceConfig(String clusterName, String resourceName,
+      ResourceConfig resourceConfig) {
+    updateResourceConfig(clusterName, resourceName, resourceConfig, false);
+  }
+
+  private void updateResourceConfig(String clusterName, String resourceName,
+      ResourceConfig resourceConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -602,9 +661,13 @@ public class ConfigAccessor {
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.RESOURCE).forCluster(clusterName)
             .forResource(resourceName).build();
-
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrReplace(zkClient, zkPath, resourceConfig.getRecord(), true);
+
+    if (overwrite) {
+      ZKUtil.createOrReplace(zkClient, zkPath, resourceConfig.getRecord(), true);
+    } else {
+      ZKUtil.createOrUpdate(zkClient, zkPath, resourceConfig.getRecord(), true, true);
+    }
   }
 
   /**
@@ -637,14 +700,43 @@ public class ConfigAccessor {
 
   /**
    * Set config of the given instance config.
+   * The current instance config will be replaced with the given instanceConfig.
    * WARNING: This is not thread-safe or concurrent updates safe.
    *
    * @param clusterName
+   * @param instanceName
+   * @param instanceConfig
    *
    * @return
    */
   public void setInstanceConfig(String clusterName, String instanceName,
       InstanceConfig instanceConfig) {
+    updateInstanceConfig(clusterName, instanceName, instanceConfig, true);
+
+  }
+
+  /**
+   * Update ResourceConfig of the given resource. The value of field in current config will be
+   * replaced with the value of the same field in given config if it presents. If there is new field
+   * in given config but not in current config, the field will be added into the current config..
+   * The list fields and map fields will be replaced as a single entry.
+   * The current Cluster config will be replaced with the given clusterConfig. WARNING: This is not
+   * thread-safe or concurrent updates safe.
+   * *
+   *
+   * @param clusterName
+   * @param instanceName
+   * @param instanceConfig
+   *
+   * @return
+   */
+  public void updateInstanceConfig(String clusterName, String instanceName,
+      InstanceConfig instanceConfig) {
+    updateInstanceConfig(clusterName, instanceName, instanceConfig, false);
+  }
+
+  private void updateInstanceConfig(String clusterName, String instanceName,
+      InstanceConfig instanceConfig, boolean overwrite) {
     if (!ZKUtil.isClusterSetup(clusterName, zkClient)) {
       throw new HelixException("fail to setup config. cluster: " + clusterName + " is NOT setup.");
     }
@@ -652,8 +744,12 @@ public class ConfigAccessor {
     HelixConfigScope scope =
         new HelixConfigScopeBuilder(ConfigScopeProperty.PARTICIPANT).forCluster(clusterName)
             .forParticipant(instanceName).build();
-
     String zkPath = scope.getZkPath();
-    ZKUtil.createOrReplace(zkClient, zkPath, instanceConfig.getRecord(), true);
+
+    if (overwrite) {
+      ZKUtil.createOrReplace(zkClient, zkPath, instanceConfig.getRecord(), true);
+    } else {
+      ZKUtil.createOrUpdate(zkClient, zkPath, instanceConfig.getRecord(), true, true);
+    }
   }
 }

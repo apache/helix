@@ -352,6 +352,9 @@ public class IdealState extends HelixProperty {
 
   /**
    * Get the current mapping of a partition
+   * CAUTION: In FULL-AUTO mode, this method could return empty map if
+   * {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)} is set to true.
+   *
    * @param partitionName the name of the partition
    * @return the instances where the replicas live and the state of each
    */
@@ -371,36 +374,74 @@ public class IdealState extends HelixProperty {
   }
 
   /**
-   * Get the instances who host replicas of a partition
+   * Get the instances who host replicas of a partition.
+   * CAUTION: In FULL-AUTO mode, this method could return empty map if
+   * {@link ClusterConfig#setPersistBestPossibleAssignment(Boolean)} is set to true.
+   +
    * @param partitionName the partition to look up
    * @return set of instance names
    */
   public Set<String> getInstanceSet(String partitionName) {
-    if (getRebalanceMode() == RebalanceMode.SEMI_AUTO
-        || getRebalanceMode() == RebalanceMode.FULL_AUTO
-        || getRebalanceMode() == RebalanceMode.USER_DEFINED
-        || getRebalanceMode() == RebalanceMode.TASK) {
+    switch (getRebalanceMode()) {
+    case FULL_AUTO:
+    case SEMI_AUTO:
+    case USER_DEFINED:
+    case TASK:
       List<String> prefList = _record.getListField(partitionName);
-      if (prefList != null) {
+      if (prefList != null && !prefList.isEmpty()) {
         return new TreeSet<String>(prefList);
       } else {
-        logger.warn(partitionName + " does NOT exist");
-        return Collections.emptySet();
+        Map<String, String> stateMap = _record.getMapField(partitionName);
+        if (stateMap != null && !stateMap.isEmpty()) {
+          return new TreeSet<String>(stateMap.keySet());
+        } else {
+          logger.warn(partitionName + " does NOT exist");
+        }
       }
-    } else if (getRebalanceMode() == RebalanceMode.CUSTOMIZED) {
+      break;
+    case CUSTOMIZED:
       Map<String, String> stateMap = _record.getMapField(partitionName);
       if (stateMap != null) {
         return new TreeSet<String>(stateMap.keySet());
       } else {
         logger.warn(partitionName + " does NOT exist");
-        return Collections.emptySet();
       }
-    } else {
+      break;
+    case NONE:
+    default:
       logger.error("Invalid ideal state mode: " + getResourceName());
-      return Collections.emptySet();
+      break;
     }
 
+    return Collections.emptySet();
   }
+
+  /** Set the preference list of a partition
+   * @param partitionName the name of the partition
+   * @param instanceList the instance preference list
+   */
+  public void setPreferenceList(String partitionName, List<String> instanceList) {
+    _record.setListField(partitionName, instanceList);
+  }
+
+  /**
+   * Set the preference lists for all partitions in this resource.
+   *
+   * @param instanceLists the map of instance preference lists.
+   */
+  public void setPreferenceLists(Map<String, List<String>> instanceLists) {
+    _record.setListFields(instanceLists);
+  }
+
+  /**
+   * Get the preference lists for all partitions
+   *
+   * @return map of lists of instances for all partitions in this resource.
+   */
+  public Map<String, List<String>> getPreferenceLists() {
+    return _record.getListFields();
+  }
+
 
   /**
    * Get the preference list of a partition

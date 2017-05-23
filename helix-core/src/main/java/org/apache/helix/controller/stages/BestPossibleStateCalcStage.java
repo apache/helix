@@ -127,6 +127,7 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
           rebalancer.init(manager);
           idealState =
               rebalancer.computeNewIdealState(resourceName, idealState, currentStateOutput, cache);
+          output.setPreferenceLists(resourceName, idealState.getPreferenceLists());
 
           // Use the internal MappingCalculator interface to compute the final assignment
           // The next release will support rebalancers that compute the mapping from start to finish
@@ -180,6 +181,8 @@ public class BestPossibleStateCalcStage extends AbstractBaseStage {
       rebalancer = customizedRebalancer;
       break;
     default:
+      logger.error(
+          "Fail to find the rebalancer, invalid rebalance mode " + idealState.getRebalanceMode());
       break;
     }
 

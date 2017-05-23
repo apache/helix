@@ -24,11 +24,8 @@ import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.model.BuiltInStateModelDefinitions;
 import org.apache.helix.model.IdealState;
 import org.apache.helix.model.IdealState.RebalanceMode;
-import org.apache.helix.model.MasterSlaveSMD;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.tools.ClusterVerifiers.BestPossibleExternalViewVerifier;
-import org.apache.helix.tools.ClusterVerifiers.ClusterStateVerifier;
-import org.apache.helix.tools.ClusterVerifiers.HelixClusterVerifier;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
@@ -42,6 +39,8 @@ import java.util.Map;
 import java.util.Set;
 
 public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
+  Set<String> _instanceNames = new HashSet<String>();
+
   @Override
   @BeforeClass
   public void beforeClass() throws Exception {
@@ -69,13 +68,14 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     // start dummy participants
     for (int i = 0; i < NODE_NR; i++) {
       String instanceName = PARTICIPANT_PREFIX + "_" + (START_PORT + i);
+      _instanceNames.add(instanceName);
       _participants[i] = new MockParticipantManager(ZK_ADDR, CLUSTER_NAME, instanceName);
       _participants[i].syncStart();
     }
   }
 
   @DataProvider(name = "rebalanceModes")
-  public static RebalanceMode [][] rebalanceModes() {
+  public static Object [][] rebalanceModes() {
     return new RebalanceMode[][] { {RebalanceMode.SEMI_AUTO}, {RebalanceMode.FULL_AUTO}};
   }
 
@@ -88,23 +88,25 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
-    HelixClusterVerifier verifier =
+    BestPossibleExternalViewVerifier.Builder verifierBuilder =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
-    Thread.sleep(500);
-    Assert.assertTrue(verifier.verify());
+            .setResources(new HashSet<String>(Collections.singleton(testDb)));
+
+    Assert.assertTrue(verifierBuilder.build().verify());
 
     // kill 1 node
     _participants[0].syncStop();
 
-    Assert.assertTrue(verifier.verify());
+    Set<String> liveInstances = new HashSet<String>(_instanceNames);
+    liveInstances.remove(_participants[0].getInstanceName());
+    verifierBuilder.setExpectLiveInstances(liveInstances);
+    Assert.assertTrue(verifierBuilder.build().verify());
 
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
 
     Set<String> excludedInstances = new HashSet<String>();
     excludedInstances.add(_participants[0].getInstanceName());
-    Thread.sleep(2000);
     verifyAssignmentInIdealStateWithPersistDisabled(idealState, excludedInstances);
 
     // clean up
@@ -124,10 +126,11 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         BuiltInStateModelDefinitions.LeaderStandby.name(), rebalanceMode.name());
     _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
 
-    HelixClusterVerifier verifier =
+    BestPossibleExternalViewVerifier.Builder verifierBuilder =
         new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
-    Assert.assertTrue(verifier.verify());
+            .setResources(new HashSet<String>(Collections.singleton(testDb)));
+
+    Assert.assertTrue(verifierBuilder.build().verify());
 
     IdealState idealState =
         _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
@@ -136,9 +139,10 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     // kill 1 node
     _participants[0].syncStop();
 
-    Boolean result = ClusterStateVerifier.verifyByZkCallback(
-        new ClusterStateVerifier.BestPossAndExtViewZkVerifier(ZK_ADDR, CLUSTER_NAME));
-    Assert.assertTrue(result);
+    Set<String> liveInstances = new HashSet<String>(_instanceNames);
+    liveInstances.remove(_participants[0].getInstanceName());
+    verifierBuilder.setExpectLiveInstances(liveInstances);
+    Assert.assertTrue(verifierBuilder.build().verify());
 
     idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
     // verify that IdealState contains updated assignment in it map fields.
@@ -154,72 +158,8 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
     _participants[0].syncStart();
   }
 
-  /**
-   * This test is to test the temporary solution for solving Espresso/Databus back-compatible map format issue.
-   *
-   * @throws Exception
-   */
-  @Test(dependsOnMethods = { "testDisablePersist" })
-  public void testSemiAutoEnablePersistMasterSlave() throws Exception {
-    String testDb = "TestDB1-MasterSlave";
-    enablePersistBestPossibleAssignment(_gZkClient, CLUSTER_NAME, true);
-
-    _setupTool.addResourceToCluster(CLUSTER_NAME, testDb, 5, BuiltInStateModelDefinitions.MasterSlave.name(),
-        RebalanceMode.SEMI_AUTO.name());
-    _setupTool.rebalanceStorageCluster(CLUSTER_NAME, testDb, 3);
-
-    HelixClusterVerifier verifier =
-        new BestPossibleExternalViewVerifier.Builder(CLUSTER_NAME).setZkAddr(ZK_ADDR)
-            .setResources(new HashSet<String>(Collections.singleton(testDb))).build();
-    Assert.assertTrue(verifier.verify());
-
-    IdealState idealState =
-        _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
-    verifySemiAutoMasterSlaveAssignment(idealState);
-
-    // kill 1 node
-    _participants[0].syncStop();
-
-    Assert.assertTrue(verifier.verify());
-
-    idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
-    verifySemiAutoMasterSlaveAssignment(idealState);
-
-    // disable an instance
-    _setupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), false);
-    idealState = _setupTool.getClusterManagementTool().getResourceIdealState(CLUSTER_NAME, testDb);
-    verifySemiAutoMasterSlaveAssignment(idealState);
-
-    // clean up
-    _setupTool.getClusterManagementTool().dropResource(CLUSTER_NAME, testDb);
-    _setupTool.getClusterManagementTool()
-        .enableInstance(CLUSTER_NAME, _participants[1].getInstanceName(), true);
-    _participants[0].reset();
-    _participants[0].syncStart();
-  }
-
-  private void verifySemiAutoMasterSlaveAssignment(IdealState idealState) {
-    for (String partition : idealState.getPartitionSet()) {
-      Map<String, String> instanceStateMap = idealState.getInstanceStateMap(partition);
-      List<String> preferenceList = idealState.getPreferenceList(partition);
-      int numMaster = 0;
-
-      for (String ins : preferenceList) {
-        Assert.assertTrue(instanceStateMap.containsKey(ins));
-        String state = instanceStateMap.get(ins);
-        Assert.assertTrue(state.equals(MasterSlaveSMD.States.MASTER.name()) || state
-            .equals(MasterSlaveSMD.States.SLAVE.name()));
-        if (state.equals(MasterSlaveSMD.States.MASTER.name())) {
-          numMaster++;
-        }
-      }
-
-      Assert.assertEquals(numMaster, 1);
-    }
-  }
-
-  // verify that the disabled or failed instance should not be included in bestPossible assignment.
+  // verify that both list field and map field should be persisted in IS,
+  // And the disabled or failed instance should not be included in bestPossible assignment.
   private void verifyAssignmentInIdealStateWithPersistEnabled(IdealState idealState,
       Set<String> excludedInstances) {
     for (String partition : idealState.getPartitionSet()) {
@@ -228,8 +168,20 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
       Assert.assertFalse(instanceStateMap.isEmpty());
 
       Set<String> instancesInMap = instanceStateMap.keySet();
-      Set<String> instanceInList = idealState.getInstanceSet(partition);
-      Assert.assertTrue(instanceInList.containsAll(instancesInMap));
+      if (idealState.getRebalanceMode() == RebalanceMode.SEMI_AUTO) {
+        Set<String> instanceInList = idealState.getInstanceSet(partition);
+        Assert.assertTrue(instanceInList.containsAll(instancesInMap));
+      }
+
+      if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+        // preference list should be persisted in IS.
+        List<String> instanceList = idealState.getPreferenceList(partition);
+        Assert.assertNotNull(instanceList);
+        Assert.assertFalse(instanceList.isEmpty());
+        for (String ins : excludedInstances) {
+          Assert.assertFalse(instanceList.contains(ins));
+        }
+      }
 
       for (String ins : excludedInstances) {
         Assert.assertFalse(instancesInMap.contains(ins));
@@ -253,6 +205,12 @@ public class TestRebalancerPersistAssignments extends ZkStandAloneCMTestBase {
         if(instancesInMap.contains(ins)) {
           // if at least one excluded instance is included, it means assignment was not updated.
           assignmentNotChanged = true;
+        }
+        if(idealState.getRebalanceMode() == RebalanceMode.FULL_AUTO) {
+          List<String> instanceList = idealState.getPreferenceList(partition);
+          if (instanceList.contains(ins)) {
+            assignmentNotChanged = true;
+          }
         }
       }
     }

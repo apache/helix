@@ -30,6 +30,7 @@ import java.util.logging.Level;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.Application;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.ConfigAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
@@ -59,6 +60,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
+  protected static ConfigAccessor _configAccessor;
   protected static boolean _init = false;
 
   protected static Set<String> _clusters;
@@ -128,6 +130,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       _gZkClient = new ZkClient(ZK_ADDR, ZkClient.DEFAULT_CONNECTION_TIMEOUT,
           ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());
       _gSetupTool = new ClusterSetup(_gZkClient);
+      _configAccessor = new ConfigAccessor(_gZkClient);
 
       // wait for the web service to start
       Thread.sleep(100);

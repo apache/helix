@@ -21,9 +21,12 @@ package org.apache.helix.rest.server.resources;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import org.apache.helix.ConfigAccessor;
@@ -49,7 +52,8 @@ public class AbstractResource {
     id,
     disbled,
     history,
-    count
+    count,
+    error
   }
 
   @Context
@@ -94,12 +98,44 @@ public class AbstractResource {
     return Response.serverError().build();
   }
 
+  protected Response serverError(String errorMsg) {
+    return Response.serverError().entity(errorMsgToJson(errorMsg)).build();
+  }
+
   protected Response notFound() {
     return Response.status(Response.Status.NOT_FOUND).build();
   }
 
+  protected Response notFound(String errorMsg) {
+    return Response.status(Response.Status.NOT_FOUND).entity(errorMsgToJson(errorMsg)).build();
+  }
+
   protected Response OK(Object entity) {
-    return Response.ok(entity).build();
+    return Response.ok(entity, MediaType.APPLICATION_JSON_TYPE).build();
+  }
+
+  protected Response OK(Object entity, MediaType mediaType) {
+    return Response.ok(entity, mediaType).build();
+  }
+
+  protected Response OK() {
+    return Response.ok().build();
+  }
+
+  protected Response badRequest(String errorMsg) {
+    return Response.status(Response.Status.BAD_REQUEST).entity(errorMsgToJson(errorMsg))
+        .type(MediaType.TEXT_PLAIN).build();
+  }
+
+  private String errorMsgToJson(String error) {
+    try {
+      Map<String, String> errorMap = new HashMap<>();
+      errorMap.put(Properties.error.name(), error);
+      return toJson(errorMap);
+    } catch (IOException e) {
+      _logger.error("Failed to convert " + error + " to JSON string", e);
+      return error;
+    }
   }
 
   protected Response JSONRepresentation(Object entity) {
@@ -112,15 +148,20 @@ public class AbstractResource {
     }
   }
 
+  protected static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
   protected static String toJson(Object object)
       throws IOException {
-    ObjectMapper mapper = new ObjectMapper();
-    SerializationConfig serializationConfig = mapper.getSerializationConfig();
+    SerializationConfig serializationConfig = OBJECT_MAPPER.getSerializationConfig();
     serializationConfig.set(SerializationConfig.Feature.INDENT_OUTPUT, true);
 
     StringWriter sw = new StringWriter();
-    mapper.writeValue(sw, object);
+    OBJECT_MAPPER.writeValue(sw, object);
 
     return sw.toString();
+  }
+
+  protected static ZNRecord toZNRecord(String data) throws IOException {
+    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
   }
 }

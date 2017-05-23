@@ -104,15 +104,11 @@ public class ZkIntegrationTestBase {
   }
 
   protected void enablePersistBestPossibleAssignment(ZkClient zkClient, String clusterName,
-      Boolean enable) {
+      Boolean enabled) {
     ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    HelixConfigScope clusterScope =
-        new HelixConfigScopeBuilder(HelixConfigScope.ConfigScopeProperty.CLUSTER)
-            .forCluster(clusterName).build();
-
-    configAccessor.set(clusterScope,
-        ClusterConfig.ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.name(),
-        enable.toString());
+    ClusterConfig clusterConfig = configAccessor.getClusterConfig(clusterName);
+    clusterConfig.setPersistBestPossibleAssignment(enabled);
+    configAccessor.setClusterConfig(clusterName, clusterConfig);
   }
 
   protected void disableDelayRebalanceInCluster(ZkClient zkClient, String clusterName,

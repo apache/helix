@@ -28,7 +28,8 @@ public class ZNRecordDelta {
    */
   public enum MergeOperation {
     ADD,
-    SUBTRACT
+    SUBTRACT,
+    UPDATE
   };
 
   /**
@@ -44,7 +45,7 @@ public class ZNRecordDelta {
   /**
    * Initialize the delta with a record and the update mode
    * @param record
-   * @param _mergeOperation
+   * @param mergeOperation
    */
   public ZNRecordDelta(ZNRecord record, MergeOperation mergeOperation) {
     _record = new ZNRecord(record);

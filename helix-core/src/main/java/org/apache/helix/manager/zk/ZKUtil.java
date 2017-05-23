@@ -196,7 +196,7 @@ public final class ZKUtil {
     }
   }
 
-  public static void createOrUpdate(ZkClient client, String path, final ZNRecord record,
+  public static void createOrMerge(ZkClient client, String path, final ZNRecord record,
       final boolean persistent, final boolean mergeOnUpdate) {
     int retryCount = 0;
     while (retryCount < RETRYLIMIT) {
@@ -222,6 +222,35 @@ public final class ZKUtil {
           } else {
             client.create(path, record, mode);
           }
+        }
+        break;
+      } catch (Exception e) {
+        retryCount = retryCount + 1;
+        logger.warn("Exception trying to update " + path + " Exception:" + e.getMessage()
+            + ". Will retry.");
+      }
+    }
+  }
+
+  public static void createOrUpdate(ZkClient client, String path, final ZNRecord record,
+      final boolean persistent, final boolean mergeOnUpdate) {
+    int retryCount = 0;
+    while (retryCount < RETRYLIMIT) {
+      try {
+        if (client.exists(path)) {
+          DataUpdater<ZNRecord> updater = new DataUpdater<ZNRecord>() {
+            @Override public ZNRecord update(ZNRecord currentData) {
+              if (currentData != null && mergeOnUpdate) {
+                currentData.update(record);
+                return currentData;
+              }
+              return record;
+            }
+          };
+          client.updateDataSerialized(path, updater);
+        } else {
+          CreateMode mode = (persistent) ? CreateMode.PERSISTENT : CreateMode.EPHEMERAL;
+          client.create(path, record, mode);
         }
         break;
       } catch (Exception e) {

@@ -68,6 +68,21 @@ public class ClusterConfig extends HelixProperty {
   }
 
   /**
+   * Enable/Disable persist best possible assignment in a resource's idealstate.
+   *
+   * @return
+   */
+  public void setPersistBestPossibleAssignment(Boolean enable) {
+    if (enable == null) {
+      _record.getSimpleFields()
+          .remove(ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.toString());
+    } else {
+      _record.setBooleanField(ClusterConfigProperty.PERSIST_BEST_POSSIBLE_ASSIGNMENT.toString(),
+          enable);
+    }
+  }
+
+  /**
    *
    * @return
    */

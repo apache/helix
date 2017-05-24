@@ -1,3 +1,14 @@
+interface IReplica {
+  instanceName: string;
+  externalView: string;
+  idealState: string;
+}
+
+interface IPartition {
+  name: string;
+  replicas: IReplica[];
+}
+
 export class Resource {
 
   readonly name: string;

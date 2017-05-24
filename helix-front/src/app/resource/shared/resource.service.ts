@@ -54,4 +54,30 @@ export class ResourceService extends HelixService {
         );
       });
   }
+
+  public getOnInstance(clusterName: string, instanceName: string, resourceName: string) {
+    return this
+      .request(`/clusters/${ clusterName }/instances/${ instanceName }/resources/${ resourceName }`)
+      .map(data => {
+        let ret = {
+          bucketSize: data.simpleFields.BUCKET_SIZE,
+          sessionId: data.simpleFields.SESSION_ID,
+          stateModelDef: data.simpleFields.STATE_MODEL_DEF,
+          stateModelFactoryName: data.simpleFields.STATE_MODEL_FACTORY_NAME,
+          partitions: []
+        };
+
+        for (let partition in data.mapFields) {
+          let par = data.mapFields[partition];
+
+          ret.partitions.push({
+            name: partition,
+            currentState: par.CURRENT_STATE,
+            info: par.INFO
+          });
+        }
+
+        return ret;
+      });
+  }
 }

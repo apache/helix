@@ -4,20 +4,11 @@
     <md-toolbar-row class="information" fxLayout="row">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>
-      <section *ngIf="!isLoading && instance.liveInstance" fxLayout="row">
-        <section class="column">
-          <div class="name">Instance</div>
-          <div class="value">{{ instance.liveInstance }}</div>
-        </section>
-        <section class="column">
-          <div class="name">Session</div>
-          <div class="value">{{ instance.sessionId }}</div>
-        </section>
-        <section class="column">
-          <div class="name">Version</div>
-          <div class="value">{{ instance.helixVersion }}</div>
-        </section>
-      </section>
+      <hi-key-value-pairs *ngIf="!isLoading && instance.liveInstance" [obj]="instance">
+        <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
+        <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
+        <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
+      </hi-key-value-pairs>
       <section *ngIf="!isLoading && !instance.liveInstance">
         <div class="offline">
           This Instance is currently offline.

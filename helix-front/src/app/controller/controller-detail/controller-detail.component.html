@@ -4,20 +4,11 @@
     <md-toolbar-row class="information" fxLayout="row">
       <a md-mini-fab routerLink="../"><md-icon>arrow_back</md-icon></a>
       <md-spinner *ngIf="isLoading"></md-spinner>
-      <section *ngIf="!isLoading" fxLayout="row">
-        <section class="column">
-          <div class="name">Instance</div>
-          <div class="value">{{ controller.liveInstance }}</div>
-        </section>
-        <section class="column">
-          <div class="name">Session</div>
-          <div class="value">{{ controller.sessionId }}</div>
-        </section>
-        <section class="column">
-          <div class="name">Version</div>
-          <div class="value">{{ controller.helixVersion }}</div>
-        </section>
-      </section>
+      <hi-key-value-pairs *ngIf="!isLoading" [obj]="controller">
+        <hi-key-value-pair name="Instance" prop="liveInstance"></hi-key-value-pair>
+        <hi-key-value-pair name="Session ID" prop="sessionId"></hi-key-value-pair>
+        <hi-key-value-pair name="Helix Version" prop="helixVersion"></hi-key-value-pair>
+      </hi-key-value-pairs>
     </md-toolbar-row>
   </md-toolbar>
   <nav md-tab-nav-bar>

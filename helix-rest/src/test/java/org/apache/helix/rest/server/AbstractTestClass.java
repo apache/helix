@@ -19,32 +19,30 @@ package org.apache.helix.rest.server;
  * under the License.
  */
 
+import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.Application;
+
 import org.I0Itec.zkclient.ZkServer;
 import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
-import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
 import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
-import org.apache.helix.integration.task.WorkflowGenerator;
-import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
 import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.tools.ClusterSetup;
 import org.apache.helix.util.ZKClientPool;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.glassfish.grizzly.http.server.HttpServer;
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.grizzly2.httpserver.GrizzlyHttpServerFactory;
@@ -67,6 +65,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
   protected static ClusterSetup _gSetupTool;
   protected static ConfigAccessor _configAccessor;
   protected static BaseDataAccessor<ZNRecord> _baseAccessor;
+  protected static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   protected static boolean _init = false;
 
   protected static Set<String> _clusters;
@@ -169,6 +168,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     for (String cluster : _clusters) {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);
+      createResourceConfigs(cluster, 8);
       Set<String> resources = createResources(cluster, 8);
       _instancesMap.put(cluster, instances);
       _liveInstancesMap.put(cluster, liveInstances);
@@ -193,6 +193,19 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
       String resource = cluster + "_db_" + i;
       _gSetupTool.addResourceToCluster(cluster, resource, NUM_PARTITIONS, "MasterSlave");
       _gSetupTool.rebalanceStorageCluster(cluster, resource, NUM_REPLICA);
+      resources.add(resource);
+    }
+    return resources;
+  }
+
+  protected Set<String> createResourceConfigs(String cluster, int numResources) {
+    Set<String> resources = new HashSet<>();
+    for (int i = 0; i < numResources; i++) {
+      String resource = cluster + "_db_" + i;
+      org.apache.helix.model.ResourceConfig resourceConfig =
+          new org.apache.helix.model.ResourceConfig.Builder(resource).setNumReplica(NUM_REPLICA)
+              .build();
+      _configAccessor.setResourceConfig(cluster, resource, resourceConfig);
       resources.add(resource);
     }
     return resources;
@@ -231,5 +244,9 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
     }
 
     return clusters;
+  }
+
+  protected static ZNRecord toZNRecord(String data) throws IOException {
+    return OBJECT_MAPPER.reader(ZNRecord.class).readValue(data);
   }
 }

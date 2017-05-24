@@ -56,7 +56,6 @@ import org.apache.log4j.Logger;
 
 @Path("/clusters")
 @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
-@Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class ClusterAccessor extends AbstractResource {
   private static Logger _logger = Logger.getLogger(ClusterAccessor.class.getName());
 

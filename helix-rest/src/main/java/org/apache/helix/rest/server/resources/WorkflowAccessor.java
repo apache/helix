@@ -37,7 +37,6 @@ import org.apache.helix.task.WorkflowConfig;
 import org.apache.helix.task.WorkflowContext;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.node.ArrayNode;
 import org.codehaus.jackson.node.JsonNodeFactory;
 import org.codehaus.jackson.node.ObjectNode;
@@ -91,10 +90,9 @@ public class WorkflowAccessor extends AbstractResource {
     root.put(WorkflowProperties.WorkflowConfig.name(), workflowConfigNode);
     root.put(WorkflowProperties.WorkflowContext.name(), workflowContextNode);
 
-    ObjectMapper mapper = new ObjectMapper();
     JobDag jobDag = workflowConfig.getJobDag();
-    ArrayNode jobs = mapper.valueToTree(jobDag.getAllNodes());
-    ObjectNode parentJobs = mapper.valueToTree(jobDag.getParentsToChildren());
+    ArrayNode jobs = OBJECT_MAPPER.valueToTree(jobDag.getAllNodes());
+    ObjectNode parentJobs = OBJECT_MAPPER.valueToTree(jobDag.getParentsToChildren());
     root.put(WorkflowProperties.Jobs.name(), jobs);
     root.put(WorkflowProperties.ParentJobs.name(), parentJobs);
 
@@ -140,7 +138,7 @@ public class WorkflowAccessor extends AbstractResource {
   private void getWorkflowContextNode(ObjectNode workflowContextNode, ZNRecord record) {
     if (record.getMapFields() != null) {
       for (String fieldName : record.getMapFields().keySet()) {
-        JsonNode node = new ObjectMapper().valueToTree(record.getMapField(fieldName));
+        JsonNode node = OBJECT_MAPPER.valueToTree(record.getMapField(fieldName));
         workflowContextNode.put(fieldName, node);
       }
     }

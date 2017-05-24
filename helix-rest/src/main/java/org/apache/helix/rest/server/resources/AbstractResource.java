@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
@@ -46,6 +47,7 @@ import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
 
+@Consumes({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class AbstractResource {
   private static Logger _logger = Logger.getLogger(AbstractResource.class.getName());
 
@@ -63,7 +65,8 @@ public class AbstractResource {
     enable,
     disable,
     update,
-    delete
+    delete,
+    rebalance
   }
 
   @Context

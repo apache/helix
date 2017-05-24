@@ -46,8 +46,6 @@ import org.codehaus.jackson.node.ObjectNode;
 @Path("/clusters/{clusterId}/instances")
 @Produces({MediaType.APPLICATION_JSON, MediaType.TEXT_PLAIN})
 public class InstanceAccessor extends AbstractResource {
-  private final static ObjectMapper _mapper = new ObjectMapper();
-
   public enum InstanceProperties {
     instances,
     online,
@@ -77,7 +75,7 @@ public class InstanceAccessor extends AbstractResource {
     List<String> instances = accessor.getChildNames(accessor.keyBuilder().instanceConfigs());
 
     if (instances != null) {
-      instancesNode.addAll((ArrayNode) _mapper.valueToTree(instances));
+      instancesNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(instances));
     } else {
       return notFound();
     }
@@ -165,7 +163,7 @@ public class InstanceAccessor extends AbstractResource {
     List<String> resources =
         accessor.getChildNames(accessor.keyBuilder().currentStates(instanceName, currentSessionId));
     if (resources != null && resources.size() > 0) {
-      resourcesNode.addAll((ArrayNode) _mapper.valueToTree(resources));
+      resourcesNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(resources));
     }
 
     return JSONRepresentation(root);
@@ -220,7 +218,7 @@ public class InstanceAccessor extends AbstractResource {
               .getChildNames(accessor.keyBuilder().errors(instanceName, sessionId, resourceName));
           if (partitions != null) {
             ArrayNode partitionsNode = resourcesNode.putArray(resourceName);
-            partitionsNode.addAll((ArrayNode) _mapper.valueToTree(partitions));
+            partitionsNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(partitions));
           }
         }
         errorsNode.put(sessionId, resourcesNode);
@@ -324,7 +322,7 @@ public class InstanceAccessor extends AbstractResource {
         accessor.getChildNames(accessor.keyBuilder().healthReports(instanceName));
 
     if (healthReports != null && healthReports.size() > 0) {
-      healthReportsNode.addAll((ArrayNode) _mapper.valueToTree(healthReports));
+      healthReportsNode.addAll((ArrayNode) OBJECT_MAPPER.valueToTree(healthReports));
     }
 
     return JSONRepresentation(root);

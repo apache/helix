@@ -24,13 +24,16 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import javax.swing.text.AbstractDocument;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.apache.helix.ConfigAccessor;
@@ -46,6 +49,7 @@ import org.apache.helix.model.LeaderHistory;
 import org.apache.helix.model.LiveInstance;
 import org.apache.helix.model.Message;
 import org.apache.helix.model.StateModelDefinition;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 
 @Path("/clusters")
@@ -63,6 +67,13 @@ public class ClusterAccessor extends AbstractResource {
     messages,
     stateModelDefinitions,
     clusters
+  }
+
+  public enum ClusterCommands {
+    activate,
+    expand,
+    enable,
+    disable
   }
 
   @GET
@@ -108,6 +119,109 @@ public class ClusterAccessor extends AbstractResource {
 
     return JSONRepresentation(clusterInfo);
   }
+
+
+  @PUT
+  @Path("{clusterId}")
+  public Response createCluster(@PathParam("clusterId") String clusterId,
+      @DefaultValue("false") @QueryParam("recreate") String recreate) {
+    boolean recreateIfExists = Boolean.valueOf(recreate);
+    ClusterSetup clusterSetup = getClusterSetup();
+
+    try {
+      clusterSetup.addCluster(clusterId, recreateIfExists);
+    } catch (Exception ex) {
+      _logger.error("Failed to create cluster " + clusterId + ", exception: " + ex);
+      return serverError(ex.getMessage());
+    }
+
+    return created();
+  }
+
+  @DELETE
+  @Path("{clusterId}")
+  public Response deleteCluster(@PathParam("clusterId") String clusterId) {
+    ClusterSetup clusterSetup = getClusterSetup();
+
+    try {
+      clusterSetup.deleteCluster(clusterId);
+    } catch (HelixException ex) {
+      _logger.info(
+          "Failed to delete cluster " + clusterId + ", cluster is still in use. Exception: " + ex);
+      return badRequest(ex.getMessage());
+    } catch (Exception ex) {
+      _logger.error("Failed to delete cluster " + clusterId + ", exception: " + ex);
+      return serverError(ex.getMessage());
+    }
+
+    return OK();
+  }
+
+  @POST
+  @Path("{clusterId}")
+  public Response updateCluster(@PathParam("clusterId") String clusterId,
+      @QueryParam("command") String command, @QueryParam("superCluster") String superCluster) {
+    if (command == null) {
+      return badRequest("command is needed!");
+    }
+
+    ClusterCommands commandType;
+    try {
+      commandType = ClusterCommands.valueOf(command);
+    } catch (IllegalArgumentException ex) {
+      return badRequest("Unknown command " + command);
+    }
+    
+    ClusterSetup clusterSetup = getClusterSetup();
+    HelixAdmin helixAdmin = getHelixAdmin();
+
+    switch (commandType) {
+    case activate:
+      if (superCluster == null) {
+        return badRequest("Super Cluster name is missing!");
+      }
+      try {
+        clusterSetup.activateCluster(clusterId, superCluster, true);
+      } catch (Exception ex) {
+        _logger.error("Failed to add cluster " + clusterId + " to super cluster " + superCluster);
+        return serverError(ex.getMessage());
+      }
+      break;
+
+    case expand:
+      try {
+        clusterSetup.expandCluster(clusterId);
+      } catch (Exception ex) {
+        _logger.error("Failed to expand cluster " + clusterId);
+        return serverError(ex.getMessage());
+      }
+      break;
+
+    case enable:
+      try {
+        helixAdmin.enableCluster(clusterId, true);
+      } catch (Exception ex) {
+        _logger.error("Failed to enable cluster " + clusterId);
+        return serverError(ex.getMessage());
+      }
+      break;
+
+    case disable:
+      try {
+        helixAdmin.enableCluster(clusterId, false);
+      } catch (Exception ex) {
+        _logger.error("Failed to disable cluster " + clusterId);
+        return serverError(ex.getMessage());
+      }
+      break;
+
+    default:
+      return badRequest("Unknown command " + commandType);
+    }
+
+    return OK();
+  }
+
 
   @GET
   @Path("{clusterId}/configs")
@@ -214,8 +328,7 @@ public class ClusterAccessor extends AbstractResource {
   @Path("{clusterId}/controller/messages/{messageId}")
   public Response getClusterControllerMessages(@PathParam("clusterId") String clusterId, @PathParam("messageId") String messageId) {
     HelixDataAccessor dataAccessor = getDataAccssor(clusterId);
-    Message message =
-        dataAccessor.getProperty(dataAccessor.keyBuilder().controllerMessage(messageId));
+    Message message = dataAccessor.getProperty(dataAccessor.keyBuilder().controllerMessage(messageId));
     return JSONRepresentation(message.getRecord());
   }
 

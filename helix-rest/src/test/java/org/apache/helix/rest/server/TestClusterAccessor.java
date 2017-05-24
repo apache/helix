@@ -29,13 +29,15 @@ import java.util.Set;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.apache.helix.PropertyKey;
 import org.apache.helix.ZNRecord;
+import org.apache.helix.manager.zk.ZKUtil;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.rest.server.resources.ClusterAccessor;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
-import org.testng.annotations.BeforeClass;
 import org.testng.Assert;
+import org.testng.annotations.BeforeClass;
 import org.testng.annotations.Test;
 
 public class TestClusterAccessor extends AbstractTestClass {
@@ -126,6 +128,52 @@ public class TestClusterAccessor extends AbstractTestClass {
         "cluster config from response: " + newConfig + " vs cluster config actually: " + prevConfig);
   }
 
+  @Test
+  public void testCreateDeleteCluster() {
+    // create an existing cluster should fail.
+    String cluster = _clusters.iterator().next();
+    Response response = target("clusters/" + cluster).request()
+        .put(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+
+    // create a new cluster
+    cluster = "NewCluster";
+    response = target("clusters/" + cluster).request()
+        .put(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+
+    // verify the cluster has been created.
+    Assert.assertTrue(ZKUtil.isClusterSetup(cluster, _gZkClient));
+
+    // delete the cluster
+    response = target("clusters/" + cluster).request().delete();
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+    // verify the cluster has been deleted.
+    Assert.assertFalse(_baseAccessor.exists("/" + cluster, 0));
+  }
+
+  @Test
+  public void testEnableDisableCluster() {
+    // disable a cluster.
+    String cluster = _clusters.iterator().next();
+    Response response = target("clusters/" + cluster).queryParam("command", "disable").request()
+        .post(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+    PropertyKey.Builder keyBuilder = new PropertyKey.Builder(cluster);
+    // verify the cluster is paused.
+    Assert.assertTrue(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
+
+
+    // enable a cluster.
+    response = target("clusters/" + cluster).queryParam("command", "enable").request()
+        .post(Entity.entity(new String(), MediaType.APPLICATION_JSON_TYPE));
+    Assert.assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+    // verify the cluster is paused.
+    Assert.assertFalse(_baseAccessor.exists(keyBuilder.pause().getPath(), 0));
+  }
 
   @Test
   public void testGetClusterConfig() throws IOException {

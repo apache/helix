@@ -22,7 +22,6 @@ package org.apache.helix.rest.server.resources;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.Context;
@@ -41,6 +40,7 @@ import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.rest.server.ServerContext;
 import org.apache.helix.task.TaskDriver;
+import org.apache.helix.tools.ClusterSetup;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.codehaus.jackson.map.SerializationConfig;
@@ -59,7 +59,11 @@ public class AbstractResource {
   @Context
   private Application _application;
 
-  private ZkClient _zkClient;
+  private static ZkClient _zkClient;
+  private static HelixAdmin _helixAdmin;
+  private static Map<String, TaskDriver> _taskDriverMap = new HashMap<>();
+  private static ConfigAccessor _configAccessor;
+  private static ClusterSetup _clusterSetup;
 
   protected ZkClient getZkClient() {
     if (_zkClient == null) {
@@ -72,25 +76,40 @@ public class AbstractResource {
 
   protected HelixAdmin getHelixAdmin () {
     ZkClient zkClient = getZkClient();
-    HelixAdmin helixAdmin = new ZKHelixAdmin(zkClient);
-    return helixAdmin;
+    if (_helixAdmin == null) {
+      _helixAdmin = new ZKHelixAdmin(zkClient);
+    }
+    return _helixAdmin;
+  }
+
+  protected ClusterSetup getClusterSetup() {
+    ZkClient zkClient = getZkClient();
+    if (_clusterSetup == null) {
+      _clusterSetup = new ClusterSetup(zkClient);
+    }
+
+    return _clusterSetup;
   }
 
   protected TaskDriver getTaskDriver(String clusterName) {
     ZkClient zkClient = getZkClient();
-    TaskDriver taskDriver = new TaskDriver(zkClient, clusterName);
-    return taskDriver;
+    if (!_taskDriverMap.containsKey(clusterName)) {
+      _taskDriverMap.put(clusterName, new TaskDriver(zkClient, clusterName));
+    }
+    return _taskDriverMap.get(clusterName);
   }
 
   protected ConfigAccessor getConfigAccessor () {
     ZkClient zkClient = getZkClient();
-    ConfigAccessor configAccessor = new ConfigAccessor(zkClient);
-    return configAccessor;
+    if (_configAccessor == null) {
+      _configAccessor = new ConfigAccessor(zkClient);
+    }
+    return _configAccessor;
   }
 
   protected HelixDataAccessor getDataAccssor(String clusterName) {
     ZkClient zkClient = getZkClient();
-    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<ZNRecord>(zkClient);
+    ZkBaseDataAccessor<ZNRecord> baseDataAccessor = new ZkBaseDataAccessor<>(zkClient);
     return new ZKHelixDataAccessor(clusterName, InstanceType.ADMINISTRATOR, baseDataAccessor);
   }
 
@@ -114,12 +133,12 @@ public class AbstractResource {
     return Response.ok(entity, MediaType.APPLICATION_JSON_TYPE).build();
   }
 
-  protected Response OK(Object entity, MediaType mediaType) {
-    return Response.ok(entity, mediaType).build();
-  }
-
   protected Response OK() {
     return Response.ok().build();
+  }
+
+  protected Response created() {
+    return Response.status(Response.Status.CREATED).build();
   }
 
   protected Response badRequest(String errorMsg) {
@@ -157,6 +176,7 @@ public class AbstractResource {
 
     StringWriter sw = new StringWriter();
     OBJECT_MAPPER.writeValue(sw, object);
+    sw.append('\n');
 
     return sw.toString();
   }

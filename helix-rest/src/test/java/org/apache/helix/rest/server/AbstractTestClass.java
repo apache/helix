@@ -30,12 +30,17 @@ import java.util.logging.Level;
 import javax.ws.rs.ProcessingException;
 import javax.ws.rs.core.Application;
 import org.I0Itec.zkclient.ZkServer;
+import org.apache.helix.BaseDataAccessor;
 import org.apache.helix.ConfigAccessor;
+import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.integration.task.WorkflowGenerator;
+import org.apache.helix.manager.zk.ZKHelixDataAccessor;
 import org.apache.helix.manager.zk.ZNRecordSerializer;
+import org.apache.helix.manager.zk.ZkBaseDataAccessor;
 import org.apache.helix.manager.zk.ZkClient;
 import org.apache.helix.rest.common.ContextPropertyKeys;
 import org.apache.helix.tools.ClusterSetup;
@@ -54,16 +59,18 @@ import org.testng.annotations.AfterSuite;
 import org.testng.annotations.BeforeSuite;
 
 public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
-  protected static final String ZK_ADDR = "localhost:2183";
+  protected static final String ZK_ADDR = "localhost:2123";
   protected static int NUM_PARTITIONS = 10;
   protected static int NUM_REPLICA = 3;
   protected static ZkServer _zkServer;
   protected static ZkClient _gZkClient;
   protected static ClusterSetup _gSetupTool;
   protected static ConfigAccessor _configAccessor;
+  protected static BaseDataAccessor<ZNRecord> _baseAccessor;
   protected static boolean _init = false;
 
   protected static Set<String> _clusters;
+  protected static String _superCluster = "superCluster";
   protected static Map<String, Set<String>> _instancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _liveInstancesMap = new HashMap<>();
   protected static Map<String, Set<String>> _resourcesMap = new HashMap<>();
@@ -131,6 +138,7 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
           ZkClient.DEFAULT_SESSION_TIMEOUT, new ZNRecordSerializer());
       _gSetupTool = new ClusterSetup(_gZkClient);
       _configAccessor = new ConfigAccessor(_gZkClient);
+      _baseAccessor = new ZkBaseDataAccessor<>(_gZkClient);
 
       // wait for the web service to start
       Thread.sleep(100);
@@ -156,6 +164,8 @@ public class AbstractTestClass extends JerseyTestNg.ContainerPerClassTest {
 
   protected void setup() throws Exception {
     _clusters = createClusters(3);
+    _gSetupTool.addCluster(_superCluster, true);
+    _clusters.add(_superCluster);
     for (String cluster : _clusters) {
       Set<String> instances = createInstances(cluster, 10);
       Set<String> liveInstances = startInstances(cluster, instances, 6);

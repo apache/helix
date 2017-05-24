@@ -293,7 +293,7 @@ public class TestBucketizedResource extends ZkIntegrationTestBase {
         ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
             clusterName));
     Assert.assertTrue(result);
-    Thread.sleep(200);
+    Thread.sleep(2000);
     Assert.assertTrue(listener.cbCnt > 0);
 
     // clean up

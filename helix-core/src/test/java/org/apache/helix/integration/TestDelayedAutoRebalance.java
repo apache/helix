@@ -213,7 +213,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       _testDBs.add(db);
       idealStates.put(db, idealState);
     }
-    Assert.assertTrue(_clusterVerifier.verify());
+    Assert.assertTrue(_clusterVerifier.verify(60 * 1000));
 
     // bring down one node, no partition should be moved.
     _participants.get(0).syncStop();
@@ -225,7 +225,7 @@ public class TestDelayedAutoRebalance extends ZkIntegrationTestBase {
       validateMinActiveAndTopStateReplica(idealStates.get(db), ev, minActiveReplica);
     }
 
-    Thread.sleep(delay + 1000);
+    Thread.sleep(delay + 10000);
     // after delay time, it should maintain required number of replicas.
     for (String db : _testDBs) {
       ExternalView ev =

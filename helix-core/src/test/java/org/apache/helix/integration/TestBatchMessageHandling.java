@@ -71,8 +71,8 @@ public class TestBatchMessageHandling extends ZkStandAloneCMTestBase {
       }
     }
 
-    Assert.assertEquals(numOfErrors, 4);
-    Assert.assertEquals(numOfOnlines, 6);
+    Assert.assertTrue(numOfErrors >= 3);
+    Assert.assertTrue(numOfOnlines <= 7);
   }
 
   public static class TestOnlineOfflineStateModelFactory extends

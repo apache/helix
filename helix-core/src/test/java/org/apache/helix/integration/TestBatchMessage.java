@@ -26,10 +26,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.I0Itec.zkclient.IZkChildListener;
-import org.apache.helix.TestHelper;
-import org.apache.helix.ZNRecord;
 import org.apache.helix.HelixProperty.HelixPropertyAttribute;
 import org.apache.helix.PropertyKey.Builder;
+import org.apache.helix.TestHelper;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.integration.manager.ClusterControllerManager;
 import org.apache.helix.integration.manager.MockParticipantManager;
 import org.apache.helix.manager.zk.ZKHelixDataAccessor;
@@ -333,9 +333,8 @@ public class TestBatchMessage extends ZkIntegrationTestBase {
         "--zkSvr", ZK_ADDR, "--enableCluster", clusterName, "true"
     });
 
-    boolean result =
-        ClusterStateVerifier.verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR,
-            clusterName));
+    boolean result = org.apache.helix.tools.ClusterStateVerifier
+        .verifyByZkCallback(new BestPossAndExtViewZkVerifier(ZK_ADDR, clusterName));
     Assert.assertTrue(result);
     Assert.assertTrue(listener._maxNbOfChilds > 16,
         "Should see more than 16 messages at the same time (32 O->S and 32 S->M)");

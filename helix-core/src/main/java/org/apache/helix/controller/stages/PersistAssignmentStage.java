@@ -23,9 +23,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.I0Itec.zkclient.DataUpdater;
 import org.apache.helix.HelixDataAccessor;
 import org.apache.helix.HelixManager;
 import org.apache.helix.PropertyKey;
+import org.apache.helix.ZNRecord;
 import org.apache.helix.controller.pipeline.AbstractBaseStage;
 import org.apache.helix.model.ClusterConfig;
 import org.apache.helix.model.IdealState;
@@ -97,7 +99,19 @@ public class PersistAssignmentStage extends AbstractBaseStage {
         }
 
         if (needPersist) {
-          accessor.setProperty(keyBuilder.idealStates(resourceId), idealState);
+          // Update instead of set to ensure any intermediate changes that the controller does not update are kept.
+          accessor.updateProperty(keyBuilder.idealStates(resourceId), new DataUpdater<ZNRecord>() {
+            @Override
+            public ZNRecord update(ZNRecord current) {
+              if (current != null) {
+                // Overwrite MapFields and ListFields items with the same key.
+                // Note that default merge will keep old values in the maps or lists unchanged, which is not desired.
+                current.getMapFields().putAll(idealState.getRecord().getMapFields());
+                current.getListFields().putAll(idealState.getRecord().getListFields());
+              }
+              return current;
+            }
+          }, idealState);
         }
       }
     }

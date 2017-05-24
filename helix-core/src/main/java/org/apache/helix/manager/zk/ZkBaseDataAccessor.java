@@ -256,9 +256,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         Stat readStat = new Stat();
         T oldData = (T) _zkClient.readData(path, readStat);
         T newData = updater.update(oldData);
-        Stat setStat = _zkClient.writeDataGetStat(path, newData, readStat.getVersion());
-        DataTree.copyStat(setStat, result._stat);
-
+        if (newData != null) {
+          Stat setStat = _zkClient.writeDataGetStat(path, newData, readStat.getVersion());
+          DataTree.copyStat(setStat, result._stat);
+        }
         updatedData = newData;
       } catch (ZkBadVersionException e) {
         retry = true;
@@ -266,9 +267,15 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
         // node not exist, try create, pass null to updater
         try {
           T newData = updater.update(null);
-          AccessResult res = doCreate(path, newData, options);
-          result._pathCreated.addAll(res._pathCreated);
-          RetCode rc = res._retCode;
+          RetCode rc;
+          if (newData != null) {
+            AccessResult res = doCreate(path, newData, options);
+            result._pathCreated.addAll(res._pathCreated);
+            rc = res._retCode;
+          } else {
+            // If update returns null, no need to create.
+            rc = RetCode.OK;
+          }
           switch (rc) {
           case OK:
             updatedData = newData;
@@ -810,6 +817,10 @@ public class ZkBaseDataAccessor<T> implements BaseDataAccessor<T> {
           DataUpdater<T> updater = updaters.get(i);
           T newData = updater.update(curDataList.get(i));
           newDataList.add(newData);
+          if (newData == null) {
+            // No need to create or update if the updater does not return a new version
+            continue;
+          }
           Stat curStat = curStats.get(i);
           if (curStat == null) {
             // node not exists

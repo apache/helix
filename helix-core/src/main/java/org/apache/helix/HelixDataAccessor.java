@@ -60,6 +60,15 @@ public interface HelixDataAccessor {
   <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value);
 
   /**
+   * Updates a property using specified updater
+   * @param key
+   * @param updater an update routine for the data to merge in
+   * @param value
+   * @return true if the update was successful
+   */
+  <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value);
+
+  /**
    * Return the property value, it must be refer to a single Helix Property. i.e
    * PropertyKey.isLeaf() must return true.
    * @param key

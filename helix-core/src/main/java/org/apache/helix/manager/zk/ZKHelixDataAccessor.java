@@ -157,6 +157,11 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
 
   @Override
   public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value) {
+    return updateProperty(key, new ZNRecordUpdater(value.getRecord()), value);
+  }
+
+  @Override
+  public <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value) {
     PropertyType type = key.getType();
     String path = key.getPath();
     int options = constructOptions(type);
@@ -172,7 +177,7 @@ public class ZKHelixDataAccessor implements HelixDataAccessor {
       }
       break;
     default:
-      success = _baseDataAccessor.update(path, new ZNRecordUpdater(value.getRecord()), options);
+      success = _baseDataAccessor.update(path, updater, options);
       break;
     }
     return success;

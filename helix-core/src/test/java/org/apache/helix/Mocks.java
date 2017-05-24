@@ -508,14 +508,21 @@ public class Mocks {
 
     @Override
     public <T extends HelixProperty> boolean updateProperty(PropertyKey key, T value) {
+      return updateProperty(key, new ZNRecordUpdater(value.getRecord()) , value);
+    }
+
+    @Override
+    public <T extends HelixProperty> boolean updateProperty(PropertyKey key, DataUpdater<ZNRecord> updater, T value) {
       String path = key.getPath();
       PropertyType type = key.getType();
       if (type.updateOnlyOnExists) {
         if (data.containsKey(path)) {
           if (type.mergeOnUpdate) {
             ZNRecord znRecord = new ZNRecord(data.get(path));
-            znRecord.merge(value.getRecord());
-            data.put(path, znRecord);
+            ZNRecord newZNRecord = updater.update(znRecord);
+            if (newZNRecord != null) {
+              data.put(path, newZNRecord);
+            }
           } else {
             data.put(path, value.getRecord());
           }
@@ -524,8 +531,10 @@ public class Mocks {
         if (type.mergeOnUpdate) {
           if (data.containsKey(path)) {
             ZNRecord znRecord = new ZNRecord(data.get(path));
-            znRecord.merge(value.getRecord());
-            data.put(path, znRecord);
+            ZNRecord newZNRecord = updater.update(znRecord);
+            if (newZNRecord != null) {
+              data.put(path, znRecord);
+            }
           } else {
             data.put(path, value.getRecord());
           }

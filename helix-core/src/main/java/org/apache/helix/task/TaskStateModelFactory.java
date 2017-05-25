@@ -24,16 +24,24 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 
+import java.util.concurrent.ThreadPoolExecutor;
+import javax.management.JMException;
 import org.apache.helix.HelixManager;
+import org.apache.helix.messaging.handling.HelixTaskExecutor;
+import org.apache.helix.monitoring.mbeans.ThreadPoolExecutorMonitor;
 import org.apache.helix.participant.statemachine.StateModelFactory;
+import org.apache.log4j.Logger;
 
 /**
  * Factory class for {@link TaskStateModel}.
  */
 public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
+  private static Logger LOG = Logger.getLogger(TaskStateModelFactory.class);
+
   private final HelixManager _manager;
   private final Map<String, TaskFactory> _taskFactoryRegistry;
   private final ScheduledExecutorService _taskExecutor;
+  private ThreadPoolExecutorMonitor _monitor;
   private final static int TASK_THREADPOOL_SIZE = 40;
 
   public TaskStateModelFactory(HelixManager manager, Map<String, TaskFactory> taskFactoryRegistry) {
@@ -50,6 +58,14 @@ public class TaskStateModelFactory extends StateModelFactory<TaskStateModel> {
     _manager = manager;
     _taskFactoryRegistry = taskFactoryRegistry;
     _taskExecutor = taskExecutor;
+    if (_taskExecutor instanceof ThreadPoolExecutor) {
+      try {
+        _monitor = new ThreadPoolExecutorMonitor(TaskStateModelFactory.class.getSimpleName(),
+            TaskConstants.STATE_MODEL_NAME, (ThreadPoolExecutor) _taskExecutor);
+      } catch (JMException e) {
+        LOG.warn("Error in creating ThreadPoolExecutorMonitor for TaskStateModelFactory.");
+      }
+    }
   }
 
   @Override public TaskStateModel createNewStateModel(String resourceName, String partitionKey) {

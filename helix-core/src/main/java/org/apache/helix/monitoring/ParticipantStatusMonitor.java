@@ -175,7 +175,7 @@ public class ParticipantStatusMonitor {
           new ThreadPoolExecutorMonitor(HelixTaskExecutor.class.getSimpleName(), type,
               (ThreadPoolExecutor) executor));
     } catch (JMException e) {
-      LOG.error(String.format(
+      LOG.warn(String.format(
           "Error in creating ThreadPoolExecutorMonitor for type=%s", type), e);
     }
   }
